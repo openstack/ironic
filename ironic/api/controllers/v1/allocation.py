@@ -10,7 +10,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import datetime
 from http import client as http_client
 
 from ironic_lib import metrics_utils
@@ -19,203 +18,93 @@ import pecan
 from webob import exc as webob_exc
 
 from ironic import api
-from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import notification_utils as notify
-from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
-from ironic.api import expose
-from ironic.api import types as atypes
+from ironic.api import method
+from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
-from ironic.common import states as ir_states
 from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
-def hide_fields_in_newer_versions(obj):
+ALLOCATION_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'candidate_nodes': {
+            'type': ['array', 'null'],
+            'items': {'type': 'string'}
+        },
+        'extra': {'type': ['object', 'null']},
+        'name': {'type': ['string', 'null']},
+        'node': {'type': ['string', 'null']},
+        'owner': {'type': ['string', 'null']},
+        'resource_class': {'type': ['string', 'null'], 'maxLength': 80},
+        'traits': {
+            'type': ['array', 'null'],
+            'items': api_utils.TRAITS_SCHEMA
+        },
+        'uuid': {'type': ['string', 'null']},
+    },
+    'additionalProperties': False,
+}
+
+ALLOCATION_VALIDATOR = args.and_valid(
+    args.schema(ALLOCATION_SCHEMA),
+    args.dict_valid(uuid=args.uuid)
+)
+
+
+PATCH_ALLOWED_FIELDS = ['name', 'extra']
+
+
+def hide_fields_in_newer_versions(allocation):
     # if requested version is < 1.60, hide owner field
     if not api_utils.allow_allocation_owner():
-        obj.owner = atypes.Unset
+        allocation.pop('owner', None)
 
 
-class Allocation(base.APIBase):
-    """API representation of an allocation.
+def convert_with_links(rpc_allocation, fields=None, sanitize=True):
 
-    This class enforces type checking and value constraints, and converts
-    between the internal object model and the API representation of a
-    allocation.
-    """
+    allocation = api_utils.object_to_dict(
+        rpc_allocation,
+        link_resource='allocations',
+        fields=('extra', 'name', 'state', 'last_error', 'resource_class',
+                'owner'),
+        list_fields=('candidate_nodes', 'traits')
+    )
+    api_utils.populate_node_uuid(rpc_allocation, allocation,
+                                 raise_notfound=False)
 
-    uuid = types.uuid
-    """Unique UUID for this allocation"""
+    if fields is not None:
+        api_utils.check_for_invalid_fields(fields, allocation.keys())
 
-    extra = {str: types.jsontype}
-    """This allocation's meta data"""
-
-    node_uuid = atypes.wsattr(types.uuid, readonly=True)
-    """The UUID of the node this allocation belongs to"""
-
-    node = atypes.wsattr(str)
-    """The node to backfill the allocation for (POST only)"""
-
-    name = atypes.wsattr(str)
-    """The logical name for this allocation"""
-
-    links = None
-    """A list containing a self link and associated allocation links"""
-
-    state = atypes.wsattr(str, readonly=True)
-    """The current state of the allocation"""
-
-    last_error = atypes.wsattr(str, readonly=True)
-    """Last error that happened to this allocation"""
-
-    resource_class = atypes.wsattr(atypes.StringType(max_length=80))
-    """Requested resource class for this allocation"""
-
-    owner = atypes.wsattr(str)
-    """Owner of allocation"""
-
-    # NOTE(dtantsur): candidate_nodes is a list of UUIDs on the database level,
-    # but the API level also accept names, converting them on fly.
-    candidate_nodes = atypes.wsattr([str])
-    """Candidate nodes for this allocation"""
-
-    traits = atypes.wsattr([str])
-    """Requested traits for the allocation"""
-
-    def __init__(self, **kwargs):
-        self.fields = []
-        fields = list(objects.Allocation.fields)
-        # NOTE: node_uuid is not part of objects.Allocation.fields
-        #       because it's an API-only attribute
-        fields.append('node_uuid')
-        for field in fields:
-            # Skip fields we do not expose.
-            if not hasattr(self, field):
-                continue
-            self.fields.append(field)
-            setattr(self, field, kwargs.get(field, atypes.Unset))
-
-    @staticmethod
-    def _convert_with_links(allocation, url):
-        """Add links to the allocation."""
-        # This field is only used in POST, never return it.
-        allocation.node = atypes.Unset
-        allocation.links = [
-            link.make_link('self', url, 'allocations', allocation.uuid),
-            link.make_link('bookmark', url, 'allocations',
-                           allocation.uuid, bookmark=True)
-        ]
-        return allocation
-
-    @classmethod
-    def convert_with_links(cls, rpc_allocation, fields=None, sanitize=True):
-        """Add links to the allocation."""
-        allocation = Allocation(**rpc_allocation.as_dict())
-
-        if rpc_allocation.node_id:
-            try:
-                allocation.node_uuid = objects.Node.get_by_id(
-                    api.request.context,
-                    rpc_allocation.node_id).uuid
-            except exception.NodeNotFound:
-                allocation.node_uuid = None
-        else:
-            allocation.node_uuid = None
-
-        if fields is not None:
-            api_utils.check_for_invalid_fields(fields, allocation.fields)
-
-        # Make the default values consistent between POST and GET API
-        if allocation.candidate_nodes is None:
-            allocation.candidate_nodes = []
-        if allocation.traits is None:
-            allocation.traits = []
-
-        allocation = cls._convert_with_links(allocation,
-                                             api.request.host_url)
-
-        if not sanitize:
-            return allocation
-
-        allocation.sanitize(fields)
-
-        return allocation
-
-    def sanitize(self, fields=None):
-        """Removes sensitive and unrequested data.
-
-        Will only keep the fields specified in the ``fields`` parameter.
-
-        :param fields:
-            list of fields to preserve, or ``None`` to preserve them all
-        :type fields: list of str
-        """
-
-        hide_fields_in_newer_versions(self)
-
-        if fields is not None:
-            self.unset_fields_except(fields)
-
-    @classmethod
-    def sample(cls):
-        """Return a sample of the allocation."""
-        sample = cls(uuid='a594544a-2daf-420c-8775-17a8c3e0852f',
-                     node_uuid='7ae81bb3-dec3-4289-8d6c-da80bd8001ae',
-                     name='node1-allocation-01',
-                     state=ir_states.ALLOCATING,
-                     last_error=None,
-                     resource_class='baremetal',
-                     traits=['CUSTOM_GPU'],
-                     candidate_nodes=[],
-                     extra={'foo': 'bar'},
-                     created_at=datetime.datetime(2000, 1, 1, 12, 0, 0),
-                     updated_at=datetime.datetime(2000, 1, 1, 12, 0, 0),
-                     owner=None)
-        return cls._convert_with_links(sample, 'http://localhost:6385')
+    if sanitize:
+        allocation_sanitize(allocation, fields)
+    return allocation
 
 
-class AllocationCollection(collection.Collection):
-    """API representation of a collection of allocations."""
-
-    allocations = [Allocation]
-    """A list containing allocation objects"""
-
-    def __init__(self, **kwargs):
-        self._type = 'allocations'
-
-    @staticmethod
-    def convert_with_links(rpc_allocations, limit, url=None, fields=None,
-                           **kwargs):
-        collection = AllocationCollection()
-        collection.allocations = [
-            Allocation.convert_with_links(p, fields=fields, sanitize=False)
-            for p in rpc_allocations
-        ]
-        collection.next = collection.get_next(limit, url=url, fields=fields,
-                                              **kwargs)
-
-        for item in collection.allocations:
-            item.sanitize(fields=fields)
-
-        return collection
-
-    @classmethod
-    def sample(cls):
-        """Return a sample of the allocation."""
-        sample = cls()
-        sample.allocations = [Allocation.sample()]
-        return sample
+def allocation_sanitize(allocation, fields):
+    hide_fields_in_newer_versions(allocation)
+    api_utils.sanitize_dict(allocation, fields)
 
 
-class AllocationPatchType(types.JsonPatchType):
-
-    _api_base = Allocation
+def list_convert_with_links(rpc_allocations, limit, url=None, fields=None,
+                            **kwargs):
+    return collection.list_convert_with_links(
+        items=[convert_with_links(p, fields=fields,
+               sanitize=False) for p in rpc_allocations],
+        item_name='allocations',
+        limit=limit,
+        url=url,
+        fields=fields,
+        sanitize_func=allocation_sanitize,
+        **kwargs
+    )
 
 
 class AllocationsController(pecan.rest.RestController):
@@ -289,11 +178,11 @@ class AllocationsController(pecan.rest.RestController):
                                               sort_key=sort_key,
                                               sort_dir=sort_dir,
                                               filters=filters)
-        return AllocationCollection.convert_with_links(allocations, limit,
-                                                       url=resource_url,
-                                                       fields=fields,
-                                                       sort_key=sort_key,
-                                                       sort_dir=sort_dir)
+        return list_convert_with_links(allocations, limit,
+                                       url=resource_url,
+                                       fields=fields,
+                                       sort_key=sort_key,
+                                       sort_dir=sort_dir)
 
     def _check_allowed_allocation_fields(self, fields):
         """Check if fetching a particular field of an allocation is allowed.
@@ -310,9 +199,16 @@ class AllocationsController(pecan.rest.RestController):
             raise exception.NotAcceptable()
 
     @METRICS.timer('AllocationsController.get_all')
-    @expose.expose(AllocationCollection, types.uuid_or_name, str,
-                   str, types.uuid, int, str, str,
-                   types.listtype, str)
+    @method.expose()
+    @args.validate(node=args.uuid_or_name,
+                   resource_class=args.string,
+                   state=args.string,
+                   marker=args.uuid,
+                   limit=args.integer,
+                   sort_key=args.string,
+                   sort_dir=args.string,
+                   fields=args.string_list,
+                   owner=args.string)
     def get_all(self, node=None, resource_class=None, state=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', fields=None,
                 owner=None):
@@ -345,7 +241,8 @@ class AllocationsController(pecan.rest.RestController):
                                                 fields=fields)
 
     @METRICS.timer('AllocationsController.get_one')
-    @expose.expose(Allocation, types.uuid_or_name, types.listtype)
+    @method.expose()
+    @args.validate(allocation_ident=args.uuid_or_name, fields=args.string_list)
     def get_one(self, allocation_ident, fields=None):
         """Retrieve information about the given allocation.
 
@@ -357,28 +254,30 @@ class AllocationsController(pecan.rest.RestController):
             'baremetal:allocation:get', allocation_ident)
         self._check_allowed_allocation_fields(fields)
 
-        return Allocation.convert_with_links(rpc_allocation, fields=fields)
+        return convert_with_links(rpc_allocation, fields=fields)
 
     def _authorize_create_allocation(self, allocation):
         cdict = api.request.context.to_policy_values()
 
         try:
             policy.authorize('baremetal:allocation:create', cdict, cdict)
-            self._check_allowed_allocation_fields(allocation.as_dict())
+            self._check_allowed_allocation_fields(allocation)
         except exception.HTTPForbidden:
             owner = cdict.get('project_id')
-            if not owner or (allocation.owner and owner != allocation.owner):
+            if not owner or (allocation.get('owner')
+                             and owner != allocation.get('owner')):
                 raise
             policy.authorize('baremetal:allocation:create_restricted',
                              cdict, cdict)
-            self._check_allowed_allocation_fields(allocation.as_dict())
-            allocation.owner = owner
+            self._check_allowed_allocation_fields(allocation)
+            allocation['owner'] = owner
 
         return allocation
 
     @METRICS.timer('AllocationsController.post')
-    @expose.expose(Allocation, body=Allocation,
-                   status_code=http_client.CREATED)
+    @method.expose(status_code=http_client.CREATED)
+    @method.body('allocation')
+    @args.validate(allocation=ALLOCATION_VALIDATOR)
     def post(self, allocation):
         """Create a new allocation.
 
@@ -387,21 +286,17 @@ class AllocationsController(pecan.rest.RestController):
         context = api.request.context
         allocation = self._authorize_create_allocation(allocation)
 
-        if (allocation.name
-                and not api_utils.is_valid_logical_name(allocation.name)):
+        if (allocation.get('name')
+                and not api_utils.is_valid_logical_name(allocation['name'])):
             msg = _("Cannot create allocation with invalid name "
-                    "'%(name)s'") % {'name': allocation.name}
+                    "'%(name)s'") % {'name': allocation['name']}
             raise exception.Invalid(msg)
 
-        if allocation.traits:
-            for trait in allocation.traits:
-                api_utils.validate_trait(trait)
-
         node = None
-        if allocation.node is not atypes.Unset:
+        if allocation.get('node'):
             if api_utils.allow_allocation_backfill():
                 try:
-                    node = api_utils.get_rpc_node(allocation.node)
+                    node = api_utils.get_rpc_node(allocation['node'])
                 except exception.NodeNotFound as exc:
                     exc.code = http_client.BAD_REQUEST
                     raise
@@ -410,39 +305,38 @@ class AllocationsController(pecan.rest.RestController):
                         "in this API version")
                 raise exception.Invalid(msg)
 
-        if not allocation.resource_class:
+        if not allocation.get('resource_class'):
             if node:
-                allocation.resource_class = node.resource_class
+                allocation['resource_class'] = node.resource_class
             else:
                 msg = _("The resource_class field is mandatory when not "
                         "backfilling")
                 raise exception.Invalid(msg)
 
-        if allocation.candidate_nodes:
+        if allocation.get('candidate_nodes'):
             # Convert nodes from names to UUIDs and check their validity
             try:
                 converted = api.request.dbapi.check_node_list(
-                    allocation.candidate_nodes)
+                    allocation['candidate_nodes'])
             except exception.NodeNotFound as exc:
                 exc.code = http_client.BAD_REQUEST
                 raise
             else:
                 # Make sure we keep the ordering of candidate nodes.
-                allocation.candidate_nodes = [
-                    converted[ident] for ident in allocation.candidate_nodes]
-
-        all_dict = allocation.as_dict()
+                allocation['candidate_nodes'] = [
+                    converted[ident] for ident in allocation['candidate_nodes']
+                ]
 
         # NOTE(yuriyz): UUID is mandatory for notifications payload
-        if not all_dict.get('uuid'):
+        if not allocation.get('uuid'):
             if node and node.instance_uuid:
                 # When backfilling without UUID requested, assume that the
                 # target instance_uuid is the desired UUID
-                all_dict['uuid'] = node.instance_uuid
+                allocation['uuid'] = node.instance_uuid
             else:
-                all_dict['uuid'] = uuidutils.generate_uuid()
+                allocation['uuid'] = uuidutils.generate_uuid()
 
-        new_allocation = objects.Allocation(context, **all_dict)
+        new_allocation = objects.Allocation(context, **allocation)
         if node:
             new_allocation.node_id = node.id
             topic = api.request.rpcapi.get_topic_for(node)
@@ -459,23 +353,17 @@ class AllocationsController(pecan.rest.RestController):
         # Set the HTTP Location Header
         api.response.location = link.build_url('allocations',
                                                new_allocation.uuid)
-        return Allocation.convert_with_links(new_allocation)
+        return convert_with_links(new_allocation)
 
     def _validate_patch(self, patch):
-        allowed_fields = ['name', 'extra']
-        fields = set()
-        for p in patch:
-            path = p['path'].split('/')[1]
-            if path not in allowed_fields:
-                msg = _("Cannot update %s in an allocation. Only 'name' and "
-                        "'extra' are allowed to be updated.")
-                raise exception.Invalid(msg % p['path'])
-            fields.add(path)
+        fields = api_utils.patch_validate_allowed_fields(
+            patch, PATCH_ALLOWED_FIELDS)
         self._check_allowed_allocation_fields(fields)
 
     @METRICS.timer('AllocationsController.patch')
-    @expose.validate(types.uuid, [AllocationPatchType])
-    @expose.expose(Allocation, types.uuid_or_name, body=[AllocationPatchType])
+    @method.expose()
+    @method.body('patch')
+    @args.validate(allocation_ident=args.string, patch=args.patch)
     def patch(self, allocation_ident, patch):
         """Update an existing allocation.
 
@@ -497,30 +385,26 @@ class AllocationsController(pecan.rest.RestController):
                         "'%(name)s'") % {'name': name}
                 raise exception.Invalid(msg)
         allocation_dict = rpc_allocation.as_dict()
-        allocation = Allocation(**api_utils.apply_jsonpatch(allocation_dict,
-                                                            patch))
-        # Update only the fields that have changed
-        for field in objects.Allocation.fields:
-            try:
-                patch_val = getattr(allocation, field)
-            except AttributeError:
-                # Ignore fields that aren't exposed in the API
-                continue
-            if patch_val == atypes.Unset:
-                patch_val = None
-            if rpc_allocation[field] != patch_val:
-                rpc_allocation[field] = patch_val
+        allocation_dict = api_utils.apply_jsonpatch(rpc_allocation.as_dict(),
+                                                    patch)
+        api_utils.patched_validate_with_schema(
+            allocation_dict, ALLOCATION_SCHEMA, ALLOCATION_VALIDATOR)
+
+        api_utils.patch_update_changed_fields(
+            allocation_dict, rpc_allocation, fields=objects.Allocation.fields,
+            schema=ALLOCATION_SCHEMA
+        )
 
         notify.emit_start_notification(context, rpc_allocation, 'update')
         with notify.handle_error_notification(context,
                                               rpc_allocation, 'update'):
             rpc_allocation.save()
         notify.emit_end_notification(context, rpc_allocation, 'update')
-        return Allocation.convert_with_links(rpc_allocation)
+        return convert_with_links(rpc_allocation)
 
     @METRICS.timer('AllocationsController.delete')
-    @expose.expose(None, types.uuid_or_name,
-                   status_code=http_client.NO_CONTENT)
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @args.validate(allocation_ident=args.uuid_or_name)
     def delete(self, allocation_ident):
         """Delete an allocation.
 
@@ -564,7 +448,8 @@ class NodeAllocationController(pecan.rest.RestController):
         self.inner = AllocationsController()
 
     @METRICS.timer('NodeAllocationController.get_all')
-    @expose.expose(Allocation, types.listtype)
+    @method.expose()
+    @args.validate(fields=args.string_list)
     def get_all(self, fields=None):
         cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:allocation:get', cdict, cdict)
@@ -572,14 +457,14 @@ class NodeAllocationController(pecan.rest.RestController):
         result = self.inner._get_allocations_collection(self.parent_node_ident,
                                                         fields=fields)
         try:
-            return result.allocations[0]
+            return result['allocations'][0]
         except IndexError:
             raise exception.AllocationNotFound(
                 _("Allocation for node %s was not found") %
                 self.parent_node_ident)
 
     @METRICS.timer('NodeAllocationController.delete')
-    @expose.expose(None, status_code=http_client.NO_CONTENT)
+    @method.expose(status_code=http_client.NO_CONTENT)
     def delete(self):
         context = api.request.context
         cdict = context.to_policy_values()
