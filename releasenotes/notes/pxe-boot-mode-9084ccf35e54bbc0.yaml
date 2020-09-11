@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes cleaning and managed inspection not respecting the
+    ``default_boot_mode`` configuration option.
+  - |
+    Fixes cleaning and managed inspection not following the standard boot
+    mode handling logic, particularly, not trying to assert the requested
+    boot mode if the driver allows it.
