@@ -2052,7 +2052,7 @@ Below are the steps to perform this clean step:
 
 .. code-block:: console
 
-    openstack baremetal node clean test_node --clean-steps\
+    openstack baremetal node clean $node_ident --clean-steps\
         '[{"interface": "management", "step": "one_button_secure_erase"}]'
 
 * Once the clean step would triggered and node go to 'clean wait' state and
@@ -2060,7 +2060,7 @@ Below are the steps to perform this clean step:
 
 .. code-block:: console
 
-    openstack baremetal node delete test_node
+    openstack baremetal node delete $node_ident
 
 .. note::
    * Even after deleting the node, One Button Secure Erase operation would continue
@@ -2071,7 +2071,7 @@ Below are the steps to perform this clean step:
 
    * One Button Secure Erase should be used with extreme caution, and only when a system
      is being decommissioned. During the erase the iLO network would keep disconnecting
-     and after the erase user will completly lose iLO access along with the credentials
+     and after the erase user will completely lose iLO access along with the credentials
      of the server, which needs to be regained by the administrator. The process can take
      up to a day or two to fully erase and reset all user data.
 
