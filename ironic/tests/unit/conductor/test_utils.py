@@ -386,6 +386,7 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertEqual(states.POWER_OFF, node['power_state'])
         self.assertEqual(states.NOSTATE, node['target_power_state'])
         self.assertIsNone(node['last_error'])
+        self.assertNotIn('agent_secret_token', node['driver_internal_info'])
 
     @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     @mock.patch.object(fake.FakePower, 'set_power_state', autospec=True)
