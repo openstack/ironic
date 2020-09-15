@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Adds functionality to the ``ilo`` and ``ilo5`` hardware types
+    by enabling virtual media boot without user-built
+    deploy/rescue/boot ISO images. Instead, ironic will
+    build necessary images out of common kernel/ramdisk
+    pair (though user needs to provide ESP image).
+    User provided deploy/rescue/boot ISO images are
+    also supported.
+  - |
+    Adds support of DHCP less deploy to ``ilo`` and ``ilo5``
+    hardware types by using the ``network_data`` property
+    on the node field, operators can now apply network
+    configuration to be embedded in iLO based Virtual
+    Media based deployment ramdisks which include networking
+    configuration enabling the deployment to operate without
+    the use of DHCP.

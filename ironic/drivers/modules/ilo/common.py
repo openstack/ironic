@@ -645,7 +645,7 @@ def update_boot_mode(task):
     node.save()
 
 
-def setup_vmedia(task, iso, ramdisk_options):
+def setup_vmedia(task, iso, ramdisk_options=None):
     """Attaches virtual media and sets it as boot device.
 
     This method attaches the given bootable ISO as virtual media, prepares the
