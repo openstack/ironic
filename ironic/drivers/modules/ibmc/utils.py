@@ -31,6 +31,14 @@ from ironic.conf import CONF
 ibmc_client = importutils.try_import('ibmcclient')
 ibmc_error = importutils.try_import('ibmc_client.exceptions')
 
+if ibmc_error:
+    try:
+        # NOTE(Qianbiao.NG) from python-ibmcclient>=0.2.2, ConnectionError is
+        # renamed to IBMCConnectionError
+        ibmc_error.IBMCConnectionError
+    except AttributeError:
+        ibmc_error.IBMCConnectionError = ibmc_error.ConnectionError
+
 LOG = log.getLogger(__name__)
 
 REQUIRED_PROPERTIES = {
@@ -152,7 +160,7 @@ def handle_ibmc_exception(action):
 
             try:
                 return f(*args, **kwargs)
-            except ibmc_error.ConnectionError as e:
+            except ibmc_error.IBMCConnectionError as e:
                 error = (_('Failed to connect to iBMC for node %(node)s, '
                            'Error: %(error)s')
                          % {'node': node.uuid, 'error': e})
