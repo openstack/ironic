@@ -516,7 +516,7 @@ class RPCAPITestCase(db_base.DbTestCase):
                           node_id='fake-node',
                           callback_url='http://ramdisk.url:port',
                           agent_version=None,
-                          version='1.49')
+                          version='1.51')
 
     def test_heartbeat_agent_token(self):
         self._test_rpcapi('heartbeat',
@@ -525,7 +525,7 @@ class RPCAPITestCase(db_base.DbTestCase):
                           callback_url='http://ramdisk.url:port',
                           agent_version=None,
                           agent_token='xyz1',
-                          version='1.49')
+                          version='1.51')
 
     def test_destroy_volume_connector(self):
         fake_volume_connector = db_utils.get_test_volume_connector()

@@ -103,13 +103,14 @@ class ConductorAPI(object):
                 heartbeat
     |    1.50 - Added set_indicator_state, get_indicator_state and
     |           get_supported_indicators.
+    |    1.51 - Added agent_verify_ca to heartbeat.
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.50'
+    RPC_API_VERSION = '1.51'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -898,7 +899,7 @@ class ConductorAPI(object):
                           node_id=node_id, clean_steps=clean_steps)
 
     def heartbeat(self, context, node_id, callback_url, agent_version,
-                  agent_token=None, topic=None):
+                  agent_token=None, agent_verify_ca=None, topic=None):
         """Process a node heartbeat.
 
         :param context: request context.
@@ -907,6 +908,7 @@ class ConductorAPI(object):
         :param topic: RPC topic. Defaults to self.topic.
         :param agent_token: randomly generated validation token.
         :param agent_version: the version of the agent that is heartbeating
+        :param agent_verify_ca: TLS certificate for the agent.
         :raises: InvalidParameterValue if an invalid agent token is received.
         """
         new_kws = {}
@@ -917,6 +919,9 @@ class ConductorAPI(object):
         if self.client.can_send_version('1.49'):
             version = '1.49'
             new_kws['agent_token'] = agent_token
+        if self.client.can_send_version('1.51'):
+            version = '1.51'
+            new_kws['agent_verify_ca'] = agent_verify_ca
         cctxt = self.client.prepare(topic=topic or self.topic, version=version)
         return cctxt.call(context, 'heartbeat', node_id=node_id,
                           callback_url=callback_url, **new_kws)

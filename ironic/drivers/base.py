@@ -475,12 +475,14 @@ class DeployInterface(BaseInterface):
         """
         pass
 
-    def heartbeat(self, task, callback_url, agent_version):
+    def heartbeat(self, task, callback_url, agent_version,
+                  agent_verify_ca=None):
         """Record a heartbeat for the node.
 
         :param task: A TaskManager instance containing the node to act on.
         :param callback_url: a URL to use to call to the ramdisk.
         :param agent_version: The version of the agent that is heartbeating
+        :param agent_verify_ca: TLS certificate for the agent.
         :return: None
         """
         LOG.warning('Got heartbeat message from node %(node)s, but '

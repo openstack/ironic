@@ -77,7 +77,8 @@ class AgentClient(object):
         })
 
     def _get_verify(self, node):
-        return node.driver_info.get('agent_verify_ca', True)
+        return (node.driver_internal_info.get('agent_verify_ca')
+                or node.driver_info.get('agent_verify_ca', True))
 
     def _raise_if_typeerror(self, result, node, method):
         error = result.get('command_error')

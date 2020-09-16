@@ -7256,7 +7256,7 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.heartbeat(self.context, node.uuid, 'http://callback',
                                agent_token='magic')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
-                                          'http://callback', '3.0.0')
+                                          'http://callback', '3.0.0', None)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
                 autospec=True)
@@ -7279,7 +7279,7 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.heartbeat(self.context, node.uuid, 'http://callback',
                                '1.4.1', agent_token='magic')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
-                                          'http://callback', '1.4.1')
+                                          'http://callback', '1.4.1', None)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
                 autospec=True)
@@ -7327,7 +7327,7 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.heartbeat(self.context, node.uuid, 'http://callback',
                                agent_token='a secret')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
-                                          'http://callback', '3.0.0')
+                                          'http://callback', '3.0.0', None)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
                 autospec=True)
@@ -7351,7 +7351,7 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.heartbeat(self.context, node.uuid, 'http://callback',
                                agent_token='a secret')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
-                                          'http://callback', '3.0.0')
+                                          'http://callback', '3.0.0', None)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
                 autospec=True)
@@ -7449,7 +7449,6 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_spawn.reset_mock()
 
         mock_spawn.side_effect = self._fake_spawn
-
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.heartbeat, self.context,
                                 node.uuid, 'http://callback',
@@ -7457,6 +7456,33 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
         self.assertIn('TLS is required', str(exc.exc_info[1]))
         self.assertFalse(mock_heartbeat.called)
+
+    @mock.patch.object(conductor_utils, 'store_agent_certificate',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
+                autospec=True)
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_heartbeat_with_agent_verify_ca(self, mock_spawn,
+                                            mock_heartbeat,
+                                            mock_store_cert):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYING,
+            target_provision_state=states.ACTIVE,
+            driver_internal_info={'agent_secret_token': 'a secret'})
+        mock_store_cert.return_value = '/path/to/crt'
+
+        self._start_service()
+
+        mock_spawn.reset_mock()
+
+        mock_spawn.side_effect = self._fake_spawn
+        self.service.heartbeat(self.context, node.uuid, 'http://callback',
+                               agent_token='a secret', agent_verify_ca='abcd')
+        mock_heartbeat.assert_called_with(
+            mock.ANY, mock.ANY, 'http://callback', '3.0.0',
+            '/path/to/crt')
 
 
 @mgr_utils.mock_record_keepalive
