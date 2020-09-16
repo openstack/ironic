@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Using the ``network_data`` property on the node field,
+    operators can now apply network configuration to be embedded
+    in Redfish based Virtual Media based deployment ramdisks which
+    include networking configuration enabling the deployment to operate
+    without the use of DHCP. See Redfish driver documentation for
+    `more information <https://docs.openstack.org/ironic/latest/admin/drivers/redfish.html#layer-3-or-dhcp-less-ramdisk-booting>`_.
