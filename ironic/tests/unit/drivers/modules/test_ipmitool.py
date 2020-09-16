@@ -807,6 +807,28 @@ class IPMIToolPrivateMethodTestCase(Base):
         ret = ipmi._parse_driver_info(node)
         self.assertEqual(623, ret['dest_port'])
 
+    def test__parse_driver_info_ipmi_cipher_suite(self):
+        info = dict(INFO_DICT)
+        info['ipmi_cipher_suite'] = 0  # absolute power!
+        node = obj_utils.get_test_node(self.context, driver_info=info)
+        ret = ipmi._parse_driver_info(node)
+        self.assertEqual(0, ret['cipher_suite'])
+
+    def test__parse_driver_info_ipmi_cipher_suite_not_a_number(self):
+        info = dict(INFO_DICT)
+        info['ipmi_cipher_suite'] = 'I can haz accez'
+        node = obj_utils.get_test_node(self.context, driver_info=info)
+        self.assertRaises(exception.InvalidParameterValue,
+                          ipmi._parse_driver_info, node)
+
+    def test__parse_driver_info_ipmi_cipher_suite_ipmi_1_5(self):
+        info = dict(INFO_DICT)
+        info['ipmi_cipher_suite'] = 0
+        info['ipmi_protocol_version'] = '1.5'
+        node = obj_utils.get_test_node(self.context, driver_info=info)
+        self.assertRaises(exception.InvalidParameterValue,
+                          ipmi._parse_driver_info, node)
+
     @mock.patch.object(ipmi.LOG, 'warning', spec_set=True, autospec=True)
     def test__parse_driver_info_undefined_credentials(self, mock_log):
         info = dict(INFO_DICT)
@@ -1331,6 +1353,33 @@ class IPMIToolPrivateMethodTestCase(Base):
             '-L', self.info['priv_level'],
             '-p', '1623',
             '-U', self.info['username'],
+            '-v',
+            '-f', awesome_password_filename,
+            'A', 'B', 'C',
+        ]
+
+        mock_support.return_value = False
+        mock_exec.return_value = (None, None)
+
+        ipmi._exec_ipmitool(self.info, 'A B C')
+
+        mock_support.assert_called_once_with('timing')
+        mock_exec.assert_called_once_with(*args)
+        self.assertFalse(self.mock_sleep.called)
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__exec_ipmitool_cipher_suite(self, mock_exec, mock_support):
+        self.info['cipher_suite'] = '3'
+        ipmi.LAST_CMD_TIME = {}
+        args = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', self.info['address'],
+            '-L', self.info['priv_level'],
+            '-U', self.info['username'],
+            '-C', '3',
             '-v',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
