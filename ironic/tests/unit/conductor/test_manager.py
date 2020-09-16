@@ -5800,7 +5800,8 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                     'force_persistent_boot_device', 'ipmi_protocol_version',
                     'ipmi_force_boot_device', 'deploy_forces_oob_reboot',
                     'rescue_kernel', 'rescue_ramdisk',
-                    'ipmi_disable_boot_timeout', 'ipmi_hex_kg_key']
+                    'ipmi_disable_boot_timeout', 'ipmi_hex_kg_key',
+                    'ipmi_cipher_suite']
         self._check_driver_properties("ipmi", expected)
 
     def test_driver_properties_snmp(self):
