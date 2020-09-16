@@ -57,6 +57,7 @@ _opts = [
     ('neutron', ironic.conf.neutron.list_opts()),
     ('nova', ironic.conf.nova.list_opts()),
     ('pxe', ironic.conf.pxe.opts),
+    ('redfish', ironic.conf.redfish.opts),
     ('service_catalog', ironic.conf.service_catalog.list_opts()),
     ('snmp', ironic.conf.snmp.opts),
     ('swift', ironic.conf.swift.list_opts()),
