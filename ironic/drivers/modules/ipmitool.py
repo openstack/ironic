@@ -109,6 +109,11 @@ OPTIONAL_PROPERTIES = {
                                    '[ipmi]disable_boot_timeout will be '
                                    'used if this option is not set. '
                                    'Optional.'),
+    'ipmi_cipher_suite': _('The number of a cipher suite to use. Only 3 '
+                           '(AES-128 with SHA1) or 17 (AES-128 with SHA256) '
+                           'should ever be used; 17 is preferred. The '
+                           'default value depends on the ipmitool version, '
+                           'some recent versions have switched from 3 to 17.'),
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
@@ -298,6 +303,7 @@ def _parse_driver_info(node):
     target_address = info.get('ipmi_target_address')
     protocol_version = str(info.get('ipmi_protocol_version', '2.0'))
     force_boot_device = info.get('ipmi_force_boot_device', False)
+    cipher_suite = info.get('ipmi_cipher_suite')
 
     if not username:
         LOG.warning('ipmi_username is not defined or empty for node %s: '
@@ -370,6 +376,16 @@ def _parse_driver_info(node):
         raise exception.InvalidParameterValue(_(
             "Number of ipmi_hex_kg_key characters is not even"))
 
+    if cipher_suite is not None:
+        try:
+            int(cipher_suite)
+        except (TypeError, ValueError):
+            raise exception.InvalidParameterValue(_(
+                "Invalid cipher suite %s, expected a number") % cipher_suite)
+        if protocol_version == '1.5':
+            raise exception.InvalidParameterValue(_(
+                "Cipher suites cannot be used with IPMI 1.5"))
+
     return {
         'address': address,
         'dest_port': dest_port,
@@ -386,6 +402,7 @@ def _parse_driver_info(node):
         'target_address': target_address,
         'protocol_version': protocol_version,
         'force_boot_device': force_boot_device,
+        'cipher_suite': cipher_suite,
     }
 
 
@@ -425,17 +442,13 @@ def _get_ipmitool_args(driver_info, pw_file=None):
             '-L', driver_info['priv_level']
             ]
 
-    if driver_info['dest_port']:
-        args.append('-p')
-        args.append(driver_info['dest_port'])
-
-    if driver_info['username']:
-        args.append('-U')
-        args.append(driver_info['username'])
-
-    if driver_info['hex_kg_key']:
-        args.append('-y')
-        args.append(driver_info['hex_kg_key'])
+    for field, arg in [('dest_port', '-p'),
+                       ('username', '-U'),
+                       ('hex_kg_key', '-y'),
+                       ('cipher_suite', '-C')]:
+        if driver_info[field]:
+            args.append(arg)
+            args.append(driver_info[field])
 
     for name, option in BRIDGING_OPTIONS:
         if driver_info[name] is not None:

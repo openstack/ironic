@@ -1,0 +1,18 @@
+---
+fixes:
+  - |
+    Allows configuring IPMI cipher suite via the new ``driver_info``
+    parameter ``ipmi_cipher_suite`` to enable operators to navigate
+    ``ipmitool`` behavior changes around supported ciphers.
+issues:
+  - Some ``ipmitool`` builds, in particular on machines running
+    Red Hat Enterprise Linux 8.2, have changed the default cipher suite
+    being offered which can cause ``ipmitool`` to completely fail to
+    negotiate a connection with the BMC. Operators who encounter this
+    situation should use the ``ipmi_cipher_suite`` parameter in the
+    ``driver_info`` field to override and directly assert the required
+    cipher. Because of potential security implications of attempting
+    second level auto-negotiation and known BMC vendor behaviors,
+    this must be identified by the operator and explicitly set as
+    logic to attempt to navigate through situations like this may
+    have undesirable results.
