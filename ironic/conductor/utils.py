@@ -279,20 +279,19 @@ def node_power_action(task, new_state, timeout=None):
     # Set the target_power_state and clear any last_error, if we're
     # starting a new operation. This will expose to other processes
     # and clients that work is in progress.
-    if node['target_power_state'] != target_state:
-        node['target_power_state'] = target_state
-        node['last_error'] = None
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['last_power_state_change'] = str(
-            timeutils.utcnow().isoformat())
-        node.driver_internal_info = driver_internal_info
-        # NOTE(dtantsur): wipe token on shutting down, otherwise a reboot in
-        # fast-track (or an accidentally booted agent) will cause subsequent
-        # actions to fail.
-        if target_state in (states.POWER_OFF, states.SOFT_POWER_OFF,
-                            states.REBOOT, states.SOFT_REBOOT):
-            wipe_internal_info_on_power_off(node)
-        node.save()
+    node['target_power_state'] = target_state
+    node['last_error'] = None
+    driver_internal_info = node.driver_internal_info
+    driver_internal_info['last_power_state_change'] = str(
+        timeutils.utcnow().isoformat())
+    node.driver_internal_info = driver_internal_info
+    # NOTE(dtantsur): wipe token on shutting down, otherwise a reboot in
+    # fast-track (or an accidentally booted agent) will cause subsequent
+    # actions to fail.
+    if target_state in (states.POWER_OFF, states.SOFT_POWER_OFF,
+                        states.REBOOT, states.SOFT_REBOOT):
+        wipe_internal_info_on_power_off(node)
+    node.save()
 
     # take power action
     try:
@@ -456,6 +455,8 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
 def wipe_internal_info_on_power_off(node):
     """Wipe information that should not survive reboot/power off."""
     driver_internal_info = node.driver_internal_info
+    # DHCP may result in a new IP next time.
+    driver_internal_info.pop('agent_url', None)
     if not is_agent_token_pregenerated(node):
         # Wipe the token if it's not pre-generated, otherwise we'll refuse to
         # generate it again for the newly booted agent.

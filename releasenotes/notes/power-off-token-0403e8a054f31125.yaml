@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes wiping the agent secret token on manual power off or reboot. Also
+    makes sure to remove the agent URL since it may potentially change.
