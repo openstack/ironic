@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Allows configuring IPMI cipher suite via the new ``driver_info``
+    parameter ``ipmi_cipher_suite``.
