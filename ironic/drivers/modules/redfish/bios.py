@@ -175,8 +175,15 @@ class RedfishBIOS(base.BIOSInterface):
             LOG.debug('Apply BIOS configuration for node %(node_uuid)s: '
                       '%(settings)r', {'node_uuid': task.node.uuid,
                                        'settings': settings})
+
+            if bios.supported_apply_times and (
+                    sushy.APPLY_TIME_ON_RESET in bios.supported_apply_times):
+                apply_time = sushy.APPLY_TIME_ON_RESET
+            else:
+                apply_time = None
+
             try:
-                bios.set_attributes(attributes)
+                bios.set_attributes(attributes, apply_time=apply_time)
             except sushy.exceptions.SushyError as e:
                 error_msg = (_('Redfish BIOS apply configuration failed for '
                                'node %(node)s. Error: %(error)s') %

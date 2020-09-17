@@ -217,6 +217,7 @@ if not sushy:
         STATE_ABSENT='absent',
         VIRTUAL_MEDIA_CD='cd',
         VIRTUAL_MEDIA_FLOPPY='floppy',
+        APPLY_TIME_ON_RESET='on reset',
     )
 
     sys.modules['sushy'] = sushy
