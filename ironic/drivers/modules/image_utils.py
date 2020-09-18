@@ -44,7 +44,14 @@ class ImageHandler(object):
             "timeout": CONF.redfish.swift_object_expiry_timeout,
             "image_subdir": "redfish",
             "file_permission": CONF.redfish.file_permission
-        }
+        },
+        "ilo5": {
+            "swift_enabled": not CONF.ilo.use_web_server_for_images,
+            "container": CONF.ilo.swift_ilo_container,
+            "timeout": CONF.ilo.swift_object_expiry_timeout,
+            "image_subdir": "ilo",
+            "file_permission": CONF.ilo.file_permission
+        },
     }
 
     def __init__(self, driver):
@@ -380,6 +387,14 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
     return image_url
 
 
+def _find_param(param_str, param_dict):
+    val = None
+    for param_key in param_dict:
+        if param_str in param_key:
+            val = param_dict.get(param_key)
+    return val
+
+
 def prepare_deploy_iso(task, params, mode, d_info):
     """Prepare deploy or rescue ISO image
 
@@ -406,9 +421,13 @@ def prepare_deploy_iso(task, params, mode, d_info):
     :raises: ImageCreationFailed, if creating ISO image failed.
     """
 
-    kernel_href = d_info.get('%s_kernel' % mode)
-    ramdisk_href = d_info.get('%s_ramdisk' % mode)
-    bootloader_href = d_info.get('bootloader')
+    kernel_str = '%s_kernel' % mode
+    ramdisk_str = '%s_ramdisk' % mode
+    bootloader_str = 'bootloader'
+
+    kernel_href = _find_param(kernel_str, d_info)
+    ramdisk_href = _find_param(ramdisk_str, d_info)
+    bootloader_href = _find_param(bootloader_str, d_info)
 
     # TODO(TheJulia): At some point we should support something like
     # boot_iso for the deploy interface, perhaps when we support config
@@ -494,7 +513,8 @@ def prepare_boot_iso(task, d_info, root_uuid=None):
                 "to generate boot ISO for %(node)s") %
                 {'node': task.node.uuid})
 
-    bootloader_href = d_info.get('bootloader')
+    bootloader_str = 'bootloader'
+    bootloader_href = _find_param(bootloader_str, d_info)
 
     return _prepare_iso_image(
         task, kernel_href, ramdisk_href, bootloader_href,

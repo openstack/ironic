@@ -922,3 +922,49 @@ def get_server_post_state(node):
     except ilo_error.IloError as ilo_exception:
         raise exception.IloOperationError(operation=operation,
                                           error=ilo_exception)
+
+
+def setup_uefi_https(task, iso, persistent=False):
+    """Sets up system to boot from UEFIHTTP boot device.
+
+    Sets the one-time/persistent boot device to UEFIHTTP based
+    on the argument supplied.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param iso: ISO URL to be set to boot from.
+    :param persistent: Indicates whether the system should be set to boot
+        from the given device one-time or each time.
+    :raises: IloOperationError on an error from IloClient library.
+    :raises: IloOperationNotSupported if retrieving post state is not
+        supported on the server.
+    """
+    node = task.node
+    ilo_object = get_ilo_object(node)
+    scheme = urlparse.urlparse(iso).scheme.lower()
+
+    operation = (_("Setting up node %(node)s to boot from URL %(iso)s.") %
+                 {'iso': iso, 'node': node.uuid})
+
+    if scheme != 'https':
+        msg = (_('Error setting up node %(node)s to boot from '
+                 'URL %(iso)s. A secure URL is expected that is exposed '
+                 'over HTTPS.') %
+               {'node': node.uuid, 'iso': iso})
+        raise exception.IloOperationNotSupported(operation=operation,
+                                                 error=msg)
+
+    try:
+        ilo_object.set_http_boot_url(iso)
+        LOG.info("Set the node %(node)s to boot from URL %(iso)s "
+                 "successfully.", {'node': node.uuid, 'iso': iso})
+        if not persistent:
+            ilo_object.set_one_time_boot('UEFIHTTP')
+        else:
+            ilo_object.update_persistent_boot(['UEFIHTTP'])
+
+    except ilo_error.IloCommandNotSupportedInBiosError as ilo_exception:
+        raise exception.IloOperationNotSupported(operation=operation,
+                                                 error=ilo_exception)
+    except ilo_error.IloError as ilo_exception:
+        raise exception.IloOperationError(operation=operation,
+                                          error=ilo_exception)

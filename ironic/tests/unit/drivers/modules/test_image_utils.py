@@ -314,17 +314,50 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
                 base_iso='/path/to/baseiso')
 
+    def test__find_param(self):
+        param_dict = {
+            'ilo_deploy_kernel': 'kernel',
+            'ilo_deploy_ramdisk': 'ramdisk',
+            'ilo_bootloader': 'bootloader'
+        }
+        param_str = "deploy_kernel"
+        expected = "kernel"
+
+        actual = image_utils._find_param(param_str, param_dict)
+        self.assertEqual(actual, expected)
+
+    def test__find_param_not_found(self):
+        param_dict = {
+            'ilo_deploy_ramdisk': 'ramdisk',
+            'ilo_bootloader': 'bootloader'
+        }
+        param_str = "deploy_kernel"
+        expected = None
+        actual = image_utils._find_param(param_str, param_dict)
+        self.assertEqual(actual, expected)
+
+    @mock.patch.object(image_utils, '_find_param', autospec=True)
     @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
-    def test_prepare_deploy_iso(self, mock__prepare_iso_image):
+    def test_prepare_deploy_iso(self, mock__prepare_iso_image,
+                                find_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
 
             d_info = {
-                'deploy_kernel': 'kernel',
-                'deploy_ramdisk': 'ramdisk',
-                'bootloader': 'bootloader'
+                'ilo_deploy_kernel': 'kernel',
+                'ilo_deploy_ramdisk': 'ramdisk',
+                'ilo_bootloader': 'bootloader'
             }
             task.node.driver_info.update(d_info)
+
+            find_call_list = [
+                mock.call('deploy_kernel', d_info),
+                mock.call('deploy_ramdisk', d_info),
+                mock.call('bootloader', d_info)
+            ]
+            find_mock.side_effect = [
+                'kernel', 'ramdisk', 'bootloader'
+            ]
 
             task.node.instance_info.update(deploy_boot_mode='uefi')
 
@@ -333,21 +366,33 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock__prepare_iso_image.assert_called_once_with(
                 task, 'kernel', 'ramdisk', 'bootloader', params={})
 
+            find_mock.assert_has_calls(find_call_list)
+
+    @mock.patch.object(image_utils, '_find_param', autospec=True)
     @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
     @mock.patch.object(images, 'create_vfat_image', autospec=True)
     def test_prepare_deploy_iso_network_data(
-            self, mock_create_vfat_image, mock__prepare_iso_image):
+            self, mock_create_vfat_image, mock__prepare_iso_image,
+            find_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
 
             d_info = {
-                'deploy_kernel': 'kernel',
-                'deploy_ramdisk': 'ramdisk'
+                'ilo_deploy_kernel': 'kernel',
+                'ilo_deploy_ramdisk': 'ramdisk'
             }
             task.node.driver_info.update(d_info)
 
             task.node.instance_info.update()
 
+            find_call_list = [
+                mock.call('deploy_kernel', d_info),
+                mock.call('deploy_ramdisk', d_info),
+                mock.call('bootloader', d_info)
+            ]
+            find_mock.side_effect = [
+                'kernel', 'ramdisk', None
+            ]
             network_data = {'a': ['b']}
 
             mock_get_node_nw_data = mock.MagicMock(return_value=network_data)
@@ -362,16 +407,19 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 task, 'kernel', 'ramdisk', bootloader_href=None,
                 configdrive=mock.ANY, params={})
 
+            find_mock.assert_has_calls(find_call_list)
+
+    @mock.patch.object(image_utils, '_find_param', autospec=True)
     @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
     @mock.patch.object(images, 'create_boot_iso', autospec=True)
     def test_prepare_boot_iso(self, mock_create_boot_iso,
-                              mock__prepare_iso_image):
+                              mock__prepare_iso_image, find_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             d_info = {
-                'deploy_kernel': 'kernel',
-                'deploy_ramdisk': 'ramdisk',
-                'bootloader': 'bootloader'
+                'ilo_deploy_kernel': 'kernel',
+                'ilo_deploy_ramdisk': 'ramdisk',
+                'ilo_bootloader': 'bootloader'
             }
             task.node.driver_info.update(d_info)
 
@@ -379,6 +427,14 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 {'image_source': 'http://boot/iso',
                  'kernel': 'http://kernel/img',
                  'ramdisk': 'http://ramdisk/img'})
+
+            find_call_list = [
+                mock.call('bootloader', d_info)
+            ]
+
+            find_mock.side_effect = [
+                'bootloader'
+            ]
 
             image_utils.prepare_boot_iso(
                 task, d_info, root_uuid=task.node.uuid)
@@ -388,10 +444,14 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 'bootloader', root_uuid=task.node.uuid,
                 base_iso=None)
 
+            find_mock.assert_has_calls(find_call_list)
+
+    @mock.patch.object(image_utils, '_find_param', autospec=True)
     @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
     @mock.patch.object(images, 'create_boot_iso', autospec=True)
     def test_prepare_boot_iso_user_supplied(self, mock_create_boot_iso,
-                                            mock__prepare_iso_image):
+                                            mock__prepare_iso_image,
+                                            find_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             d_info = {
@@ -404,6 +464,13 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             task.node.instance_info.update(
                 {'boot_iso': 'http://boot/iso'})
 
+            find_call_list = [
+                mock.call('bootloader', d_info)
+            ]
+
+            find_mock.side_effect = [
+                'bootloader'
+            ]
             image_utils.prepare_boot_iso(
                 task, d_info, root_uuid=task.node.uuid)
 
@@ -411,3 +478,5 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 mock.ANY, None, None,
                 'bootloader', root_uuid=task.node.uuid,
                 base_iso='http://boot/iso')
+
+            find_mock.assert_has_calls(find_call_list)
