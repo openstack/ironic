@@ -33,6 +33,11 @@ to enable the ``ilo`` and ``ilo5`` hardware type, see
 .. note::
    Only HPE ProLiant Gen10 servers supports hardware type ``redfish``.
 
+.. warning::
+   It is important to note that while the HPE Edgeline series of servers may
+   contain iLO adapters, they are known to not be compatible with the ``ilo``
+   hardware type. The ``redfish`` hardware type should be used instead.
+
 The hardware type ``ilo`` supports following HPE server features:
 
 * `Boot mode support`_
