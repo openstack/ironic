@@ -104,6 +104,7 @@ if [[ "$HOST_TOPOLOGY_ROLE" == "primary" ]]; then
         s|%IRONIC_SERVICE_HOST%|$IRONIC_PROVISION_SUBNET_SUBNODE_IP|g;
     " -i $ironic_wsgi_conf
     enable_apache_site ipxe-ironic
+    restart_apache_server
 else
     ensure_started+='ironic-api '
 fi

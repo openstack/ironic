@@ -823,3 +823,157 @@
       tempest_concurrency: 1
       zuul_copy_output:
         '{{ devstack_bases.old }}/ironic-bm-logs': logs
+
+- job:
+    name: ironic-grenade-multinode-multitenant
+    parent: grenade-multinode
+    timeout: 10800
+    irrelevant-files:
+      - ^driver-requirements.txt$
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^install-guide/.*$
+      - ^ironic/locale/.*$
+      - ^ironic/tests/.*$
+      - ^releasenotes/.*$
+      - ^setup.cfg$
+      - ^tools/.*$
+      - ^tox.ini$
+    required-projects:
+      - openstack/grenade
+      - openstack/ironic
+      - openstack/ironic-lib
+      - openstack/ironic-python-agent
+      - openstack/ironic-python-agent-builder
+      - openstack/ironic-tempest-plugin
+      - openstack/networking-generic-switch
+      - openstack/python-ironicclient
+      - openstack/virtualbmc
+    vars:
+      grenade_devstack_localrc:
+        shared:
+          DEFAULT_INSTANCE_TYPE: baremetal
+          ENABLE_TENANT_TUNNELS: False
+          ENABLE_TENANT_VLANS: True
+          FORCE_CONFIG_DRIVE: True
+          HOST_TOPOLOGY: multinode
+          HOST_TOPOLOGY_ROLE: primary
+          BUILD_TIMEOUT: 1200
+          INSTALL_TEMPEST: False # Don't install a tempest package globaly
+          HOST_TOPOLOGY_SUBNODES: "{{ hostvars['compute1']['nodepool']['public_ipv4'] }}"
+          IRONIC_BAREMETAL_BASIC_OPS: True
+          IRONIC_AUTOMATED_CLEAN_ENABLED: False
+          IRONIC_BUILD_DEPLOY_RAMDISK: False
+          IRONIC_CALLBACK_TIMEOUT: 700
+          IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
+          IRONIC_DEFAULT_BOOT_OPTION: netboot
+          IRONIC_DEPLOY_DRIVER: ipmi
+          IRONIC_VM_COUNT: 6
+          IRONIC_VM_EPHEMERAL_DISK: 1
+          IRONIC_VM_SPECS_RAM: 384
+          IRONIC_RAMDISK_TYPE: tinyipa
+          IRONIC_TEMPEST_BUILD_TIMEOUT: 1200
+          IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
+
+          IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
+          IRONIC_NETWORK_INTERFACE: neutron
+          IRONIC_PROVISION_NETWORK_NAME: ironic-provision
+          IRONIC_PROVISION_SUBNET_GATEWAY: 10.0.5.1
+          IRONIC_PROVISION_SUBNET_PREFIX: 10.0.5.0/24
+          IRONIC_USE_LINK_LOCAL: True
+          OVS_BRIDGE_MAPPINGS: 'mynetwork:brbm,public:br-infra'
+          OVS_PHYSICAL_BRIDGE: brbm
+          PHYSICAL_NETWORK: mynetwork
+          PUBLIC_BRIDGE: br-infra
+          Q_AGENT: openvswitch
+          Q_ML2_TENANT_NETWORK_TYPE: vlan
+          Q_PLUGIN: ml2
+          SWIFT_ENABLE_TEMPURLS: True
+          SWIFT_TEMPURL_KEY: secretkey
+          TENANT_VLAN_RANGE: 100:150
+          VIRT_DRIVER: ironic
+          EBTABLES_RACE_FIX: True
+          LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
+          IRONIC_VM_LOG_DIR: '/opt/stack/ironic-bm-logs'
+      grenade_localrc:
+        BASE_RUN_SMOKE: False
+      devstack_plugins:
+        ironic: https://opendev.org/openstack/ironic
+        networking-generic-switch: https://opendev.org/openstack/networking-generic-switch
+      devstack_services:
+        c-api: False
+        c-bak: False
+        c-sch: False
+        c-vol: False
+        cinder: False
+        ir-api: True
+        ir-cond: True
+      tempest_plugins:
+        - ironic-tempest-plugin
+      tempest_test_regex: BaremetalMultitenancy
+      tox_envlist: all
+      tempest_concurrency: 1
+      grenade_tempest_concurrency: 1
+      grenade_test_timeout: 2600
+      zuul_copy_output:
+        '/opt/stack/ironic-bm-logs': logs
+        '{{ devstack_base_dir }}/data/networking-generic-switch/netmiko_session.log': 'logs'
+    group-vars:
+      subnode:
+        devstack_plugins:
+          ironic: https://opendev.org/openstack/ironic
+          networking-generic-switch: https://opendev.org/openstack/networking-generic-switch
+        devstack_services:
+          c-api: False
+          c-bak: False
+          c-sch: False
+          c-vol: False
+          cinder: False
+          g-api: True
+          ir-api: True
+          ir-cond: True
+          n-cpu: True
+          q-agt: True
+          virtualbmc: True
+        grenade_devstack_localrc:
+          shared:
+            DEFAULT_INSTANCE_TYPE: baremetal
+            ENABLE_TENANT_TUNNELS: False
+            ENABLE_TENANT_VLANS: True
+            FORCE_CONFIG_DRIVE: True
+            HOST_TOPOLOGY: multinode
+            HOST_TOPOLOGY_ROLE: subnode
+            IRONIC_AUTOMATED_CLEAN_ENABLED: False
+            IRONIC_BAREMETAL_BASIC_OPS: True
+            IRONIC_BUILD_DEPLOY_RAMDISK: False
+            BUILD_TIMEOUT: 1200
+            IRONIC_CALLBACK_TIMEOUT: 700
+            IRONIC_TEMPEST_BUILD_TIMEOUT: 1200
+            IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
+            IRONIC_DEFAULT_BOOT_OPTION: netboot
+            IRONIC_DEPLOY_DRIVER: ipmi
+            IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
+            IRONIC_NETWORK_INTERFACE: neutron
+            IRONIC_PROVISION_NETWORK_NAME: ironic-provision
+            IRONIC_PROVISION_SUBNET_GATEWAY: 10.0.5.1
+            IRONIC_PROVISION_SUBNET_PREFIX: 10.0.5.0/24
+            IRONIC_RAMDISK_TYPE: tinyipa
+            IRONIC_USE_LINK_LOCAL: True
+            IRONIC_VM_COUNT: 6
+            IRONIC_VM_EPHEMERAL_DISK: 0
+            IRONIC_VM_SPECS_RAM: 384
+            IRONIC_VM_NETWORK_BRIDGE: sub1brbm
+            OVS_BRIDGE_MAPPINGS: 'mynetwork:sub1brbm,public:br-infra'
+            OVS_PHYSICAL_BRIDGE: sub1brbm
+            PHYSICAL_NETWORK: mynetwork
+            PUBLIC_BRIDGE: br-infra
+            Q_AGENT: openvswitch
+            Q_ML2_TENANT_NETWORK_TYPE: vlan
+            Q_PLUGIN: ml2
+            SWIFT_ENABLE_TEMPURLS: True
+            SWIFT_TEMPURL_KEY: secretkey
+            VIRT_DRIVER: ironic
+            EBTABLES_RACE_FIX: True
+            LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
+            IRONIC_VM_LOG_DIR: '/opt/stack/ironic-bm-logs'
