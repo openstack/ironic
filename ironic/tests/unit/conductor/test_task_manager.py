@@ -200,6 +200,28 @@ class TaskManagerTestCase(db_base.DbTestCase):
         reserve_mock.assert_called_once_with(self.context, self.host,
                                              'fake-node-id')
 
+    def test_excl_lock_upgade_exception_no_retries(
+            self, get_voltgt_mock, get_volconn_mock, get_portgroups_mock,
+            get_ports_mock, build_driver_mock,
+            reserve_mock, release_mock, node_get_mock):
+        retry_attempts = 3
+        self.config(node_locked_retry_attempts=retry_attempts,
+                    group='conductor')
+
+        node_get_mock.return_value = self.node
+        # Fail on the first lock attempt, succeed on the second.
+        reserve_mock.side_effect = [exception.NodeLocked(node='foo',
+                                                         host='foo'),
+                                    self.node]
+
+        task = task_manager.TaskManager(self.context, 'fake-node-id',
+                                        shared=True)
+        self.assertRaises(exception.NodeLocked,
+                          task.upgrade_lock, retry=False)
+
+        reserve_mock.assert_called_once_with(self.context, self.host,
+                                             'fake-node-id')
+
     def test_excl_lock_reserve_exception(
             self, get_voltgt_mock, get_volconn_mock, get_portgroups_mock,
             get_ports_mock, build_driver_mock,

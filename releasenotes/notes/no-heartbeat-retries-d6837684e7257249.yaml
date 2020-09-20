@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Agent heartbeat implementation will no longer retry attempts to acquire
+    an exclusive lock. This is done to avoid several attempts to get a lock
+    in a busy environment with shorter heartbeat period.

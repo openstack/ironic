@@ -626,7 +626,7 @@ class HeartbeatMixin(object):
             return
 
         try:
-            task.upgrade_lock()
+            task.upgrade_lock(retry=False)
         except exception.NodeLocked:
             LOG.warning('Node %s is currently locked, skipping heartbeat '
                         'processing (will retry on the next heartbeat)',
