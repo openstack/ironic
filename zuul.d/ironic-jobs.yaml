@@ -123,7 +123,7 @@
         IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_VM_SPECS_RAM: 512
         IRONIC_VM_SPECS_CPU: 1
-        IRONIC_VM_COUNT: 6
+        IRONIC_VM_COUNT: 4
         IRONIC_VM_VOLUME_COUNT: 2
         # We're using a lot of disk space in this job. Some testing nodes have
         # a small root partition, so use /opt which is mounted from a bigger
@@ -181,7 +181,7 @@
         IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct,ansible,ramdisk"
         IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_RAMDISK_TYPE: tinyipa
-        IRONIC_VM_COUNT: 6
+        IRONIC_VM_COUNT: 4
         IRONIC_VM_VOLUME_COUNT: 2
         IRONIC_VM_SPECS_RAM: 512
         IRONIC_VM_SPECS_CPU: 1
@@ -869,7 +869,7 @@
           IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
           IRONIC_DEFAULT_BOOT_OPTION: netboot
           IRONIC_DEPLOY_DRIVER: ipmi
-          IRONIC_VM_COUNT: 6
+          IRONIC_VM_COUNT: 4
           IRONIC_VM_EPHEMERAL_DISK: 1
           IRONIC_VM_SPECS_RAM: 384
           IRONIC_RAMDISK_TYPE: tinyipa
@@ -960,7 +960,7 @@
             IRONIC_PROVISION_SUBNET_PREFIX: 10.0.5.0/24
             IRONIC_RAMDISK_TYPE: tinyipa
             IRONIC_USE_LINK_LOCAL: True
-            IRONIC_VM_COUNT: 6
+            IRONIC_VM_COUNT: 4
             IRONIC_VM_EPHEMERAL_DISK: 0
             IRONIC_VM_SPECS_RAM: 384
             IRONIC_VM_NETWORK_BRIDGE: sub1brbm
