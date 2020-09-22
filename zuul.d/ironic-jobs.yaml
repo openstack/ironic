@@ -91,7 +91,8 @@
         IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct,ansible"
         IRONIC_RPC_TRANSPORT: json-rpc
-        IRONIC_VM_COUNT: 6
+        IRONIC_VM_COUNT: 4
+        LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
       devstack_services:
@@ -119,6 +120,8 @@
       devstack_localrc:
         IRONIC_DEPLOY_DRIVER: redfish
         IRONIC_ENABLED_HARDWARE_TYPES: redfish
+        IRONIC_VM_COUNT: 2
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
     name: ironic-tempest-pxe_ipmitool-postgres
@@ -224,6 +227,7 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
+        IRONIC_VM_COUNT: 1
       devstack_plugins:
         ironic-inspector: https://opendev.org/openstack/ironic-inspector
       devstack_services:
@@ -357,7 +361,7 @@
         IRONIC_TEMPEST_BUILD_TIMEOUT: 600
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_USE_LINK_LOCAL: True
-        IRONIC_VM_COUNT: 7
+        IRONIC_VM_COUNT: 4
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
         IRONIC_VM_SPECS_RAM: 384
@@ -428,7 +432,7 @@
           IRONIC_PROVISION_NETWORK_NAME: ironic-provision
           IRONIC_RAMDISK_TYPE: tinyipa
           IRONIC_USE_LINK_LOCAL: True
-          IRONIC_VM_COUNT: 7
+          IRONIC_VM_COUNT: 4 
           IRONIC_VM_EPHEMERAL_DISK: 0
           IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
           IRONIC_VM_NETWORK_BRIDGE: sub1brbm

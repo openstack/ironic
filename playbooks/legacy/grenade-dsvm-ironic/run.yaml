@@ -93,7 +93,7 @@
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_AUTOMATED_CLEAN_ENABLED=False"
           export DEVSTACK_GATE_TEMPEST_REGEX=test_server_basic_ops
 
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_COUNT=7"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_COUNT=4"
 
           # Ensure the ironic-vars-EARLY file exists
           touch ironic-vars-early
