@@ -9,6 +9,8 @@
       - release-notes-jobs-python3
     check:
       jobs:
+        - openstack-tox-lower-constraints:
+            nodeset: ubuntu-bionic
         - ironic-tox-unit-with-driver-libs
         - ironic-standalone
         - ironic-standalone-redfish:
@@ -50,6 +52,8 @@
     gate:
       queue: ironic
       jobs:
+        - openstack-tox-lower-constraints:
+            nodeset: ubuntu-bionic
         - ironic-tox-unit-with-driver-libs
         - ironic-standalone
         - ironic-tempest-functional-python3

@@ -122,7 +122,7 @@
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_VM_SPECS_RAM: 384
-        IRONIC_VM_COUNT: 6
+        IRONIC_VM_COUNT: 4
         IRONIC_VM_VOLUME_COUNT: 2
         # We're using a lot of disk space in this job. Some testing nodes have
         # a small root partition, so use /opt which is mounted from a bigger
@@ -180,7 +180,7 @@
         IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct,ansible"
         IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_RAMDISK_TYPE: tinyipa
-        IRONIC_VM_COUNT: 6
+        IRONIC_VM_COUNT: 4
         IRONIC_VM_VOLUME_COUNT: 2
         IRONIC_VM_SPECS_RAM: 384
         # We're using a lot of disk space in this job. Some testing nodes have
@@ -257,6 +257,7 @@
         IRONIC_INSPECTOR_MANAGED_BOOT: True
         IRONIC_INSPECTOR_NODE_NOT_FOUND_HOOK: ''
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_VM_COUNT: 1
       devstack_plugins:
         ironic-inspector: https://opendev.org/openstack/ironic-inspector
       devstack_services:
@@ -378,6 +379,7 @@
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
         IRONIC_DEFAULT_BOOT_OPTION: netboot
+        IRONIC_VM_COUNT: 1
       devstack_plugins:
         ironic-inspector: https://opendev.org/openstack/ironic-inspector
       devstack_services:
@@ -823,7 +825,7 @@
           IRONIC_INSPECTOR_BUILD_RAMDISK: False
           IRONIC_RAMDISK_TYPE: tinyipa
           IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
-          IRONIC_VM_COUNT: 6
+          IRONIC_VM_COUNT: 4
           IRONIC_VM_EPHEMERAL_DISK: 1
           IRONIC_VM_SPECS_RAM: 384
           IRONIC_DEFAULT_BOOT_OPTION: netboot
