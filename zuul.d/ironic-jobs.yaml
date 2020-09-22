@@ -33,13 +33,14 @@
         INSTALL_TEMPEST: False # Don't install a tempest package globaly
         TEMPEST_PLUGINS: "{{ ansible_user_dir }}/src/opendev.org/openstack/ironic-tempest-plugin"
         VIRT_DRIVER: ironic
-        BUILD_TIMEOUT: 900
+        BUILD_TIMEOUT: 1800
         IRONIC_BAREMETAL_BASIC_OPS: True
         IRONIC_BUILD_DEPLOY_RAMDISK: False
-        IRONIC_CALLBACK_TIMEOUT: 700
+        IRONIC_CALLBACK_TIMEOUT: 1800
+        IRONIC_PXE_BOOT_RETRY_TIMEOUT: 900
         IRONIC_DEPLOY_DRIVER: ipmi
         IRONIC_INSPECTOR_BUILD_RAMDISK: False
-        IRONIC_TEMPEST_BUILD_TIMEOUT: 900
+        IRONIC_TEMPEST_BUILD_TIMEOUT: 1800
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
         IRONIC_VM_COUNT: 2
         IRONIC_VM_EPHEMERAL_DISK: 1
@@ -115,7 +116,7 @@
         IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_VM_SPECS_RAM: 384
         IRONIC_VM_SPECS_CPU: 1
-        IRONIC_VM_COUNT: 6
+        IRONIC_VM_COUNT: 4
         IRONIC_VM_VOLUME_COUNT: 2
         # We're using a lot of disk space in this job. Some testing nodes have
         # a small root partition, so use /opt which is mounted from a bigger
@@ -186,6 +187,7 @@
         IRONIC_INSPECTOR_MANAGED_BOOT: True
         IRONIC_INSPECTOR_NODE_NOT_FOUND_HOOK: ''
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_VM_COUNT: 1
       devstack_plugins:
         ironic-inspector: https://opendev.org/openstack/ironic-inspector
       devstack_services:
@@ -309,6 +311,7 @@
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
         IRONIC_DEFAULT_BOOT_OPTION: netboot
+        IRONIC_VM_COUNT: 1
       devstack_plugins:
         ironic-inspector: https://opendev.org/openstack/ironic-inspector
       devstack_services:
@@ -686,9 +689,9 @@
         PUBLIC_PHYSICAL_NETWORK: public
         PUBLIC_PROVIDERNET_TYPE: flat
         Q_USE_PROVIDERNET_FOR_PUBLIC: True
-        BUILD_TIMEOUT: 1440
+        BUILD_TIMEOUT: 2000
         IRONIC_TEMPEST_BUILD_TIMEOUT: 1440
-        IRONIC_PING_TIMEOUT: 1440
+        IRONIC_PING_TIMEOUT: 2000
 
 # NOTE(rpittau): OLD TINYIPA JOBS
 # Those jobs are used by other projects, we leave them here until
@@ -755,7 +758,7 @@
           IRONIC_INSPECTOR_BUILD_RAMDISK: False
           IRONIC_RAMDISK_TYPE: tinyipa
           IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
-          IRONIC_VM_COUNT: 6
+          IRONIC_VM_COUNT: 4
           IRONIC_VM_EPHEMERAL_DISK: 1
           IRONIC_VM_SPECS_RAM: 384
           IRONIC_DEFAULT_BOOT_OPTION: netboot
