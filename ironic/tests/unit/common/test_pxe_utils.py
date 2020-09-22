@@ -392,6 +392,7 @@ class TestPXEUtils(db_base.DbTestCase):
     @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
     def test_create_pxe_config(self, ensure_tree_mock, render_mock,
                                write_mock, chmod_mock):
+        self.config(tftp_root=tempfile.mkdtemp(), group='pxe')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             pxe_utils.create_pxe_config(task, self.pxe_options,
                                         CONF.pxe.pxe_config_template)
@@ -420,6 +421,7 @@ class TestPXEUtils(db_base.DbTestCase):
     def test_create_pxe_config_set_dir_permission(self, ensure_tree_mock,
                                                   render_mock,
                                                   write_mock, chmod_mock):
+        self.config(tftp_root=tempfile.mkdtemp(), group='pxe')
         self.config(dir_permission=0o755, group='pxe')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             pxe_utils.create_pxe_config(task, self.pxe_options,
@@ -479,6 +481,7 @@ class TestPXEUtils(db_base.DbTestCase):
     def test_create_pxe_config_uefi_grub(self, ensure_tree_mock, render_mock,
                                          write_mock, link_ip_configs_mock,
                                          chmod_mock):
+        self.config(tftp_root=tempfile.mkdtemp(), group='pxe')
         grub_tmplte = "ironic/drivers/modules/pxe_grub_config.template"
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.properties['capabilities'] = 'boot_mode:uefi'
@@ -518,6 +521,7 @@ class TestPXEUtils(db_base.DbTestCase):
         # enable mac address usage.....
         grub_tmplte = "ironic/drivers/modules/pxe_grub_config.template"
         self.config(dhcp_provider='none', group='dhcp')
+        self.config(tftp_root=tempfile.mkdtemp(), group='pxe')
         link_ip_configs_mock.side_effect = \
             exception.FailedToGetIPAddressOnPort(port_id='blah')
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -552,6 +556,8 @@ class TestPXEUtils(db_base.DbTestCase):
     def test_create_pxe_config_uefi_ipxe(self, ensure_tree_mock, render_mock,
                                          write_mock, link_mac_pxe_mock,
                                          chmod_mock):
+
+        self.config(http_root=tempfile.mkdtemp(), group='deploy')
         ipxe_template = "ironic/drivers/modules/ipxe_config.template"
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.properties['capabilities'] = 'boot_mode:uefi'
