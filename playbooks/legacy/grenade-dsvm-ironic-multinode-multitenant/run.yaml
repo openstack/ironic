@@ -146,7 +146,7 @@
           export DEVSTACK_GATE_IRONIC_BUILD_RAMDISK=0
           export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_INSPECTOR_BUILD_RAMDISK=False"
 
-          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_COUNT=7"
+          export DEVSTACK_LOCAL_CONFIG+=$'\n'"IRONIC_VM_COUNT=4"
 
           # Ensure the ironic-vars-EARLY file exists
           touch ironic-vars-early
