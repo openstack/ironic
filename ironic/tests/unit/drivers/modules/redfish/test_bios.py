@@ -190,7 +190,6 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             if step == 'factory_reset':
                 ret = task.driver.bios.factory_reset(task)
             if step == 'apply_configuration':
-                bios.apply_time_settings = None
                 bios.supported_apply_times = []
                 ret = task.driver.bios.apply_configuration(task, data)
             mock_get_system.assert_called_with(task.node)
@@ -387,16 +386,15 @@ class RedfishBiosTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    def test_apply_configuration_apply_time_settings(self, mock_power_action,
-                                                     mock_get_system,
-                                                     mock_build_agent_options,
-                                                     mock_prepare):
+    def test_apply_configuration_apply_time_immediate(self, mock_power_action,
+                                                      mock_get_system,
+                                                      mock_build_agent_options,
+                                                      mock_prepare):
         settings = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
                     {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             bios = mock_get_system(task.node).bios
-            bios.apply_time_settings = mock.Mock()
             bios.supported_apply_times = ['immediate']
 
             task.driver.bios.apply_configuration(task, settings)
@@ -419,7 +417,6 @@ class RedfishBiosTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             bios = mock_get_system(task.node).bios
-            bios.apply_time_settings = None
             bios.supported_apply_times = [sushy.APPLY_TIME_ON_RESET]
 
             task.driver.bios.apply_configuration(task, settings)
@@ -427,3 +424,24 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             bios.set_attributes.assert_called_once_with(
                 {s['name']: s['value'] for s in settings},
                 apply_time=sushy.APPLY_TIME_ON_RESET)
+
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_apply_configuration_no_supported_apply_times(
+            self, mock_power_action, mock_get_system, mock_build_agent_options,
+            mock_prepare):
+        settings = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
+                    {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            bios = mock_get_system(task.node).bios
+            bios.supported_apply_times = None
+
+            task.driver.bios.apply_configuration(task, settings)
+
+            bios.set_attributes.assert_called_once_with(
+                {s['name']: s['value'] for s in settings},
+                apply_time=None)
