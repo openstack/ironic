@@ -151,8 +151,14 @@ opts = [
                        'be rejected by the conductor.')),
     cfg.StrOpt('certificates_path',
                default='/var/lib/ironic/certificates',
-               help=_('Path for TLS certificates used to validate '
-                      'connections to the ramdisk.')),
+               help=_('Path to store auto-generated TLS certificates used to '
+                      'validate connections to the ramdisk.')),
+    cfg.StrOpt('verify_ca',
+               default='True',
+               help=_('Path to the TLS CA to validate connection to the '
+                      'ramdisk. Set to True to use the system default CA '
+                      'storage. Set to False to disable validation. Ignored '
+                      'when automatic TLS setup is used.')),
 ]
 
 

@@ -237,7 +237,8 @@ class TestAgentClient(base.TestCase):
             timeout=60,
             verify=True)
 
-    def test__command_verify(self):
+    @mock.patch('os.path.exists', autospec=True, return_value=True)
+    def test__command_verify(self, mock_exists):
         response_data = {'status': 'ok'}
         self.client.session.post.return_value = MockResponse(response_data)
         method = 'standby.run_image'
@@ -258,7 +259,8 @@ class TestAgentClient(base.TestCase):
             timeout=60,
             verify='/path/to/agent.crt')
 
-    def test__command_verify_internal(self):
+    @mock.patch('os.path.exists', autospec=True, return_value=True)
+    def test__command_verify_internal(self, mock_exists):
         response_data = {'status': 'ok'}
         self.client.session.post.return_value = MockResponse(response_data)
         method = 'standby.run_image'
@@ -279,6 +281,63 @@ class TestAgentClient(base.TestCase):
             params={'wait': 'false'},
             timeout=60,
             verify='/path/to/crt')
+
+    @mock.patch('os.path.exists', autospec=True, return_value=True)
+    def test__command_verify_config(self, mock_exists):
+        response_data = {'status': 'ok'}
+        self.client.session.post.return_value = MockResponse(response_data)
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+
+        self.config(verify_ca='/path/to/crt', group='agent')
+
+        url = self.client._get_command_url(self.node)
+        body = self.client._get_command_body(method, params)
+
+        response = self.client._command(self.node, method, params)
+        self.assertEqual(response, response_data)
+        self.client.session.post.assert_called_once_with(
+            url,
+            data=body,
+            params={'wait': 'false'},
+            timeout=60,
+            verify='/path/to/crt')
+
+    @mock.patch('os.path.exists', autospec=True, return_value=True)
+    def test__command_verify_disable(self, mock_exists):
+        response_data = {'status': 'ok'}
+        self.client.session.post.return_value = MockResponse(response_data)
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+
+        self.config(verify_ca='False', group='agent')
+
+        url = self.client._get_command_url(self.node)
+        body = self.client._get_command_body(method, params)
+
+        response = self.client._command(self.node, method, params)
+        self.assertEqual(response, response_data)
+        self.client.session.post.assert_called_once_with(
+            url,
+            data=body,
+            params={'wait': 'false'},
+            timeout=60,
+            verify=False)
+
+    @mock.patch('os.path.exists', autospec=True, return_value=False)
+    def test__command_verify_invalid_file(self, mock_exists):
+        response_data = {'status': 'ok'}
+        self.client.session.post.return_value = MockResponse(response_data)
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+
+        self.config(verify_ca='/path/to/crt', group='agent')
+
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.client._command, self.node, method, params)
 
     @mock.patch('time.sleep', lambda seconds: None)
     def test__command_poll(self):
@@ -344,7 +403,8 @@ class TestAgentClient(base.TestCase):
                           retry_connection=False)
         self.assertEqual(1, self.client.session.get.call_count)
 
-    def test_get_commands_status_verify(self):
+    @mock.patch('os.path.exists', autospec=True, return_value=True)
+    def test_get_commands_status_verify(self, mock_exists):
         self.node.driver_info['agent_verify_ca'] = '/path/to/agent.crt'
 
         with mock.patch.object(self.client.session, 'get',
