@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Fixes ``redfish`` BIOS interface ``apply_configuration`` cleaning/deploy
+    step to work with Redfish Services that must be supplied the Distributed
+    Management Task Force (DMTF) Redfish standard
+    ``@Redfish.SettingsApplyTime`` annotation [1] to specify when to apply the
+    requested settings, such as the Dell EMC integrated Dell Remote Acesss
+    Controller (iDRAC).
+
+    For more information, see `story 2008163
+    <https://storyboard.openstack.org/#!/story/2008163>`_.
+
+    [1] http://redfish.dmtf.org/schemas/DSP0266_1.11.0.html#settings-resource
