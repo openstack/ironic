@@ -4,7 +4,6 @@ features:
     operation for iLO5 based HPE Proliant servers as a ``management``
     clean step ``one_button_secure_erase`` for ``ilo5`` hardware type.
 upgrade:
-  - The ``do_one_button_secure_erase`` interface of 'proliantutils' library has
-    been enhanced to support out-of-band one button secure erase operation for
-    ``ilo5`` hardware type. To leverage this feature, the 'proliantutils'
-    library needs to be upgraded to version '2.10.0'.
+  - The ``one_button_secure_erase`` clean step in the ``ilo5`` hardware type
+    requires ``proliantutils`` version ``2.10.0``. Please upgrade this library
+    to leverage this feature.
