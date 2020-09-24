@@ -2,7 +2,7 @@
 #
 # Copyright 2014 Red Hat, Inc.
 # All Rights Reserved.
-# Copyright (c) 2017-2019 Dell Inc. or its subsidiaries.
+# Copyright (c) 2017-2020 Dell Inc. or its subsidiaries.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -478,5 +478,6 @@ class DracManagement(DracWSManManagement):
     """
 
     def __init__(self):
+        super(DracManagement, self).__init__()
         LOG.warning("Management interface 'idrac' is deprecated and may be "
                     "removed in a future release. Use 'idrac-wsman' instead.")
