@@ -1549,5 +1549,6 @@ class DracRAID(DracWSManRAID):
     """
 
     def __init__(self):
+        super(DracRAID, self).__init__()
         LOG.warning("RAID interface 'idrac' is deprecated and may be removed "
                     "in a future release. Use 'idrac-wsman' instead.")
