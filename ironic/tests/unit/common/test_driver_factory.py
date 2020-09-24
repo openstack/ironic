@@ -282,22 +282,22 @@ class DefaultInterfaceTestCase(db_base.DbTestCase):
 
     def test_calculated_with_one(self):
         self.config(default_deploy_interface=None)
-        self.config(enabled_deploy_interfaces=['direct'])
+        self.config(enabled_deploy_interfaces=['ansible'])
         iface = driver_factory.default_interface(self.driver, 'deploy')
-        self.assertEqual('direct', iface)
+        self.assertEqual('ansible', iface)
 
     def test_calculated_with_two(self):
         self.config(default_deploy_interface=None)
-        self.config(enabled_deploy_interfaces=['iscsi', 'direct'])
+        self.config(enabled_deploy_interfaces=['ansible', 'direct'])
         iface = driver_factory.default_interface(self.driver, 'deploy')
-        self.assertEqual('iscsi', iface)
+        self.assertEqual('direct', iface)
 
     def test_calculated_with_unsupported(self):
         self.config(default_deploy_interface=None)
         # manual-management doesn't support fake deploy
-        self.config(enabled_deploy_interfaces=['fake', 'direct'])
+        self.config(enabled_deploy_interfaces=['fake', 'ansible'])
         iface = driver_factory.default_interface(self.driver, 'deploy')
-        self.assertEqual('direct', iface)
+        self.assertEqual('ansible', iface)
 
     def test_calculated_no_answer(self):
         # manual-management supports no power interfaces

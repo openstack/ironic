@@ -237,3 +237,65 @@ class UpdateToLatestVersionsTestCase(base.DbTestCase):
         for uuid in nodes:
             node = self.dbapi.get_node_by_uuid(uuid)
             self.assertEqual(self.node_ver, node.version)
+
+
+class MigrateFromIscsiTestCase(base.DbTestCase):
+
+    def setUp(self):
+        super(MigrateFromIscsiTestCase, self).setUp()
+        self.context = context.get_admin_context()
+        self.dbapi = db_api.get_instance()
+        self.config(enabled_deploy_interfaces='direct')
+
+    def test_empty_db(self):
+        self.assertEqual(
+            (0, 0), self.dbapi.migrate_from_iscsi_deploy(self.context, 10))
+
+    def test_already_direct_exists(self):
+        utils.create_test_node(deploy_interface='direct')
+        self.assertEqual(
+            (0, 0), self.dbapi.update_to_latest_versions(self.context, 10))
+
+    def test_migrate_by_2(self):
+        utils.create_test_node(deploy_interface='direct')
+        for _i in range(3):
+            uuid = uuidutils.generate_uuid()
+            utils.create_test_node(uuid=uuid, deploy_interface='iscsi')
+        self.assertEqual(
+            (3, 2), self.dbapi.migrate_from_iscsi_deploy(self.context, 2))
+        self.assertEqual(
+            (1, 1), self.dbapi.migrate_from_iscsi_deploy(self.context, 2))
+
+    def test_migrate_all(self):
+        utils.create_test_node(deploy_interface='direct')
+        for _i in range(3):
+            uuid = uuidutils.generate_uuid()
+            utils.create_test_node(uuid=uuid, deploy_interface='iscsi')
+        self.assertEqual(
+            (3, 3), self.dbapi.migrate_from_iscsi_deploy(self.context, 0))
+
+    def test_migration_impossible(self):
+        self.config(enabled_deploy_interfaces='iscsi')
+        for _i in range(3):
+            uuid = uuidutils.generate_uuid()
+            utils.create_test_node(uuid=uuid, deploy_interface='iscsi')
+        self.assertEqual(
+            (0, 0), self.dbapi.migrate_from_iscsi_deploy(self.context, 0))
+
+    def test_migration_impossible2(self):
+        self.config(image_download_source='swift', group='agent')
+        for _i in range(3):
+            uuid = uuidutils.generate_uuid()
+            utils.create_test_node(uuid=uuid, deploy_interface='iscsi')
+        self.assertEqual(
+            (0, 0), self.dbapi.migrate_from_iscsi_deploy(self.context, 0))
+
+    def test_force_migration(self):
+        self.config(enabled_deploy_interfaces='iscsi')
+        utils.create_test_node(deploy_interface='direct')
+        for _i in range(3):
+            uuid = uuidutils.generate_uuid()
+            utils.create_test_node(uuid=uuid, deploy_interface='iscsi')
+        self.assertEqual(
+            (3, 3), self.dbapi.migrate_from_iscsi_deploy(self.context, 0,
+                                                         force=True))

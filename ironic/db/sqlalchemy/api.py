@@ -1527,6 +1527,53 @@ class Connection(api.Connection):
 
         return total_to_migrate, total_migrated
 
+    @oslo_db_api.retry_on_deadlock
+    def migrate_from_iscsi_deploy(self, context, max_count, force=False):
+        """Tries to migrate away from the iscsi deploy interface.
+
+        :param context: the admin context
+        :param max_count: The maximum number of objects to migrate. Must be
+                          >= 0. If zero, all the objects will be migrated.
+        :returns: A 2-tuple, 1. the total number of objects that need to be
+                  migrated (at the beginning of this call) and 2. the number
+                  of migrated objects.
+        """
+        # TODO(dtantsur): maybe change to force=True by default in W?
+        if not force:
+            if 'direct' not in CONF.enabled_deploy_interfaces:
+                LOG.warning('The direct deploy interface is not enabled, will '
+                            'not migrate nodes to it. Run with --option '
+                            'force=true to override.')
+                return 0, 0
+
+            if CONF.agent.image_download_source == 'swift':
+                LOG.warning('The direct deploy interface is using swift, will '
+                            'not migrate nodes to it. Run with --option '
+                            'force=true to override.')
+                return 0, 0
+
+        total_to_migrate = (model_query(models.Node)
+                            .filter_by(deploy_interface='iscsi')
+                            .count())
+        if not total_to_migrate:
+            return 0, 0
+
+        max_to_migrate = max_count or total_to_migrate
+
+        with _session_for_write():
+            query = (model_query(models.Node.id)
+                     .filter_by(deploy_interface='iscsi')
+                     .slice(0, max_to_migrate))
+            ids = [row[0] for row in query]
+
+            num_migrated = (model_query(models.Node)
+                            .filter_by(deploy_interface='iscsi')
+                            .filter(models.Node.id.in_(ids))
+                            .update({'deploy_interface': 'direct'},
+                                    synchronize_session=False))
+
+        return total_to_migrate, num_migrated
+
     @staticmethod
     def _verify_max_traits_per_node(node_id, num_traits):
         """Verify that an operation would not exceed the per-node trait limit.

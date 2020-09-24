@@ -13,7 +13,6 @@
 from ironic.conductor import task_manager
 from ironic.drivers.modules import agent
 from ironic.drivers.modules import ipmitool
-from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import noop_mgmt
 from ironic.drivers.modules import pxe
@@ -46,7 +45,7 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
             kwargs.get('boot', pxe.PXEBoot))
         self.assertIsInstance(
             task.driver.deploy,
-            kwargs.get('deploy', iscsi_deploy.ISCSIDeploy))
+            kwargs.get('deploy', agent.AgentDeploy))
         self.assertIsInstance(
             task.driver.console,
             kwargs.get('console', noop.NoConsole))
@@ -73,14 +72,12 @@ class IPMIHardwareTestCase(db_base.DbTestCase):
                                                 'ipmitool-socat'])
         node = obj_utils.create_test_node(
             self.context, driver='ipmi',
-            deploy_interface='direct',
             raid_interface='agent',
             console_interface='ipmitool-shellinabox',
             vendor_interface='no-vendor')
         with task_manager.acquire(self.context, node.id) as task:
             self._validate_interfaces(
                 task,
-                deploy=agent.AgentDeploy,
                 console=ipmitool.IPMIShellinaboxConsole,
                 raid=agent.AgentRAID,
                 vendor=noop.NoVendor)

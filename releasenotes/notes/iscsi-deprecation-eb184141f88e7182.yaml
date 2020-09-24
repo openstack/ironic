@@ -1,0 +1,16 @@
+---
+upgrade:
+  - |
+    The deprecated ``iscsi`` deploy interface is no longer enabled by default,
+    set ``enabled_deploy_interfaces`` to override. It is also no longer
+    the first in the list of deploy interface priorities, so it has to be
+    requested explicitly if the ``direct`` deploy is also enabled.
+  - |
+    Since the ``direct`` deploy interface is now used by default, you need to
+    configure ``[deploy]http_url`` and ``[deploy]http_root`` to point at a
+    local HTTP server or configure access to Swift.
+deprecations:
+  - |
+    The ``iscsi`` deploy interface is now deprecated, ``direct`` or ``ansible``
+    deploy should be used instead. We expected the complete removal of the
+    ``iscsi`` deploy code to happen in the "X" release.

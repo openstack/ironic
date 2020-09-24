@@ -604,6 +604,8 @@ class ISCSIDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
 
     has_decomposed_deploy_steps = True
 
+    supported = False
+
     def get_properties(self):
         return agent_base.VENDOR_PROPERTIES
 

@@ -53,7 +53,6 @@
         # each of them. For don't need all 10 GiB for CirrOS anyway.
         IRONIC_VM_SPECS_DISK: 4
         IRONIC_VM_SPECS_CPU: 2
-        IRONIC_DEFAULT_DEPLOY_INTERFACE: iscsi
 
         Q_AGENT: openvswitch
         Q_ML2_TENANT_NETWORK_TYPE: vxlan
@@ -114,10 +113,10 @@
         FORCE_CONFIG_DRIVE: False
         IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
-        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
+        IRONIC_ENABLED_HARDWARE_TYPES: ipmi
         IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct,ramdisk"
-        IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
+        IRONIC_ENABLED_RESCUE_INTERFACES: "agent,no-rescue"
         IRONIC_JSON_RPC_AUTH_STRATEGY: 'http_basic'
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_RPC_TRANSPORT: json-rpc
@@ -177,7 +176,6 @@
         IRONIC_ENABLED_HARDWARE_TYPES: redfish
         IRONIC_ENABLED_POWER_INTERFACES: redfish
         IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
-        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct,ansible,ramdisk"
         IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_RAMDISK_TYPE: tinyipa
@@ -285,7 +283,6 @@
     parent: ironic-base
     vars:
       devstack_localrc:
-        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
@@ -344,7 +341,6 @@
         IRONIC_STORAGE_INTERFACE: cinder
         IRONIC_ENABLED_BOOT_INTERFACES: ipxe,pxe,fake
         IRONIC_DEFAULT_BOOT_INTERFACE: ipxe
-        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_COUNT: 3
@@ -367,7 +363,6 @@
     vars:
       tempest_test_regex: InspectorBasicTest
       devstack_localrc:
-        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_INSPECTOR_MANAGE_FIREWALL: True
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
@@ -465,7 +460,6 @@
         IRONIC_BAREMETAL_BASIC_OPS: True
         IRONIC_BUILD_DEPLOY_RAMDISK: False
         IRONIC_CALLBACK_TIMEOUT: 600
-        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_DEFAULT_BOOT_OPTION: local
         IRONIC_DEPLOY_DRIVER: ipmi
         IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
@@ -656,7 +650,6 @@
         s-object: True
         s-proxy: True
       devstack_localrc:
-        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_DIB_RAMDISK_OS: centos8
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
@@ -704,7 +697,6 @@
         TENANT_VLAN_RANGE: 100:150
         IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
         IRONIC_NETWORK_INTERFACE: neutron
-        IRONIC_DEFAILT_DEPLOY_INTERFACE: direct
         IRONIC_DEFAILT_RESCUE_INTERFACE: no-rescue
         IRONIC_USE_LINK_LOCAL: True
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
@@ -734,7 +726,6 @@
     parent: ironic-base
     vars:
       devstack_localrc:
-        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
         IRONIC_RAMDISK_TYPE: tinyipa

@@ -14,12 +14,12 @@
 # Version 1.0.0
 
 from ironic.conductor import task_manager
+from ironic.drivers.modules import agent
 from ironic.drivers.modules.ibmc import management as ibmc_mgmt
 from ironic.drivers.modules.ibmc import power as ibmc_power
 from ironic.drivers.modules.ibmc import raid as ibmc_raid
 from ironic.drivers.modules.ibmc import vendor as ibmc_vendor
 from ironic.drivers.modules import inspector
-from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
 from ironic.tests.unit.db import base as db_base
@@ -46,7 +46,7 @@ class IBMCHardwareTestCase(db_base.DbTestCase):
                                   ibmc_power.IBMCPower)
             self.assertIsInstance(task.driver.boot, pxe.PXEBoot)
             self.assertIsInstance(task.driver.console, noop.NoConsole)
-            self.assertIsInstance(task.driver.deploy, iscsi_deploy.ISCSIDeploy)
+            self.assertIsInstance(task.driver.deploy, agent.AgentDeploy)
             self.assertIsInstance(task.driver.raid, ibmc_raid.IbmcRAID)
             self.assertIsInstance(task.driver.vendor, ibmc_vendor.IBMCVendor)
             self.assertIsInstance(task.driver.inspect, inspector.Inspector)

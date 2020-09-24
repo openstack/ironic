@@ -194,7 +194,7 @@ IRONIC_DRIVER_INTERFACE_TYPES="bios boot power management deploy console inspect
 IRONIC_ENABLED_BIOS_INTERFACES=${IRONIC_ENABLED_BIOS_INTERFACES:-"fake,no-bios"}
 IRONIC_ENABLED_BOOT_INTERFACES=${IRONIC_ENABLED_BOOT_INTERFACES:-"fake,ipxe"}
 IRONIC_ENABLED_CONSOLE_INTERFACES=${IRONIC_ENABLED_CONSOLE_INTERFACES:-"fake,no-console"}
-IRONIC_ENABLED_DEPLOY_INTERFACES=${IRONIC_ENABLED_DEPLOY_INTERFACES:-"fake,iscsi,direct,ramdisk"}
+IRONIC_ENABLED_DEPLOY_INTERFACES=${IRONIC_ENABLED_DEPLOY_INTERFACES:-"fake,direct,ramdisk"}
 IRONIC_ENABLED_INSPECT_INTERFACES=${IRONIC_ENABLED_INSPECT_INTERFACES:-"fake,no-inspect"}
 IRONIC_ENABLED_MANAGEMENT_INTERFACES=${IRONIC_ENABLED_MANAGEMENT_INTERFACES:-"fake,ipmitool,noop"}
 IRONIC_ENABLED_NETWORK_INTERFACES=${IRONIC_ENABLED_NETWORK_INTERFACES:-"flat,noop"}
@@ -754,7 +754,8 @@ function is_ironic_enabled {
 }
 
 function is_deployed_by_agent {
-    [[ -z "${IRONIC_DEPLOY_DRIVER%%agent*}" || "$IRONIC_DEFAULT_DEPLOY_INTERFACE" == "direct" ]] && return 0
+    [[ "$IRONIC_DEFAULT_DEPLOY_INTERFACE" == "direct"
+        || "$IRONIC_DEFAULT_DEPLOY_INTERFACE" == "" ]] && return 0
     return 1
 }
 
@@ -812,6 +813,12 @@ function is_ansible_with_tinyipa {
     # NOTE(pas-ha) we support rebuilding the ramdisk to include (generated) SSH keys
     # as needed for ansible deploy interface only for TinyIPA ramdisks for now
     is_ansible_deploy_enabled && [[ "$IRONIC_RAMDISK_TYPE" == "tinyipa" ]] && return 0
+    return 1
+}
+
+function is_http_server_required {
+    [[ "$IRONIC_IPXE_ENABLED" == "True" ]] && return 0
+    is_deployed_by_agent && [[ "$IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE" != "swift" ]] && return 0
     return 1
 }
 
@@ -1085,7 +1092,7 @@ function install_ironic {
 
     setup_develop $IRONIC_DIR
 
-    if [[ "$IRONIC_USE_WSGI" == "True" || "$IRONIC_IPXE_ENABLED" == "True" ]]; then
+    if [[ "$IRONIC_USE_WSGI" == "True" ]] || is_http_server_required; then
         install_apache_wsgi
     fi
 
@@ -1148,9 +1155,9 @@ function install_ironicclient {
 
 # _cleanup_ironic_apache_additions() - Remove uwsgi files, disable and remove apache vhost file
 function _cleanup_ironic_apache_additions {
-
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]]; then
+    if is_http_server_required; then
         sudo rm -rf $IRONIC_HTTP_DIR
+        # TODO(dtantsur): rename the site, it's also used for direct deploy
         disable_apache_site ipxe-ironic
         sudo rm -f $(apache_site_config_for ipxe-ironic)
     fi
@@ -1160,8 +1167,8 @@ function _cleanup_ironic_apache_additions {
     restart_apache_server
 }
 
-# _config_ironic_apache_ipxe() - Configure ironic IPXE site
-function _config_ironic_apache_ipxe {
+# _config_ironic_apache_additions() - Configure ironic IPXE site
+function _config_ironic_apache_additions {
     local ipxe_apache_conf
     ipxe_apache_conf=$(apache_site_config_for ipxe-ironic)
     sudo cp $IRONIC_DEVSTACK_FILES_DIR/apache-ipxe-ironic.template $ipxe_apache_conf
@@ -1185,7 +1192,7 @@ function cleanup_ironic {
     cleanup_ironic_config_files
 
     # Cleanup additions made to Apache
-    if [[ "$IRONIC_USE_WSGI" == "True" || "$IRONIC_IPXE_ENABLED" == "True" ]]; then
+    if [[ "$IRONIC_USE_WSGI" == "True" ]] || is_http_server_required; then
         _cleanup_ironic_apache_additions
     fi
 
@@ -1204,7 +1211,7 @@ function configure_ironic_dirs {
         $IRONIC_STATE_PATH $IRONIC_TFTPBOOT_DIR $IRONIC_TFTPBOOT_DIR/pxelinux.cfg
     sudo chown -R $STACK_USER:$STACK_USER $IRONIC_TFTPBOOT_DIR
 
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]]; then
+    if is_http_server_required; then
         sudo install -d -o $STACK_USER -g $STACK_USER $IRONIC_HTTP_DIR
     fi
 
@@ -1456,9 +1463,9 @@ function configure_ironic {
     # Format logging
     setup_logging $IRONIC_CONF_FILE
 
-    # Adds ironic site for IPXE
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]]; then
-        _config_ironic_apache_ipxe
+    # Adds ironic site for IPXE and direct deploy
+    if is_http_server_required; then
+        _config_ironic_apache_additions
     fi
 
     # Adds uWSGI for Ironic API
@@ -1728,14 +1735,17 @@ function configure_ironic_conductor {
     # step  because it is too slow to run in the gate.
     iniset $IRONIC_CONF_FILE deploy erase_devices_priority 0
 
+    if is_http_server_required; then
+        iniset $IRONIC_CONF_FILE deploy http_root $IRONIC_HTTP_DIR
+        iniset $IRONIC_CONF_FILE deploy http_url "http://$([[ $IRONIC_HTTP_SERVER =~ : ]] && echo "[$IRONIC_HTTP_SERVER]" || echo $IRONIC_HTTP_SERVER):$IRONIC_HTTP_PORT"
+    fi
+
     if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
         local pxebin
         pxebin=`basename $IRONIC_PXE_BOOT_IMAGE`
         uefipxebin=`basename $(get_uefi_ipxe_boot_file)`
         iniset $IRONIC_CONF_FILE pxe ipxe_bootfile_name $pxebin
         iniset $IRONIC_CONF_FILE pxe uefi_ipxe_bootfile_name $uefipxebin
-        iniset $IRONIC_CONF_FILE deploy http_root $IRONIC_HTTP_DIR
-        iniset $IRONIC_CONF_FILE deploy http_url "http://$([[ $IRONIC_HTTP_SERVER =~ : ]] && echo "[$IRONIC_HTTP_SERVER]" || echo $IRONIC_HTTP_SERVER):$IRONIC_HTTP_PORT"
         if [[ "$IRONIC_IPXE_USE_SWIFT" == "True" ]]; then
             iniset $IRONIC_CONF_FILE pxe ipxe_use_swift True
         fi
@@ -1836,8 +1846,8 @@ function start_ironic {
         start_ironic_conductor
     fi
 
-    # Start Apache if iPXE is enabled
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
+    # Start Apache if iPXE or agent+http is enabled
+    if is_http_server_required; then
         restart_apache_server
     fi
 }
@@ -2589,7 +2599,7 @@ function configure_iptables {
         sudo iptables -I INPUT -d $HOST_IP -p tcp --dport $GLANCE_SERVICE_PORT -j ACCEPT || true
     fi
 
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
+    if is_http_server_required; then
         sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport $IRONIC_HTTP_PORT -j ACCEPT || true
         sudo ip6tables -I INPUT -d $IRONIC_HOST_IPV6 -p tcp --dport $IRONIC_HTTP_PORT -j ACCEPT || true
     fi
@@ -2918,7 +2928,7 @@ function prepare_baremetal_basic_ops {
         return 0
     fi
 
-    if ! is_service_enabled nova && [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
+    if ! is_service_enabled nova && is_http_server_required; then
         local image_file_path
         if [[ ${IRONIC_WHOLEDISK_IMAGE_NAME} =~ \.img$ ]]; then
             image_file_path=$FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}

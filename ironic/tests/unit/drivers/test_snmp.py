@@ -16,8 +16,8 @@
 from unittest import mock
 
 from ironic.conductor import task_manager
+from ironic.drivers.modules import agent
 from ironic.drivers.modules import fake
-from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import noop_mgmt
 from ironic.drivers.modules import pxe
@@ -39,7 +39,7 @@ class SNMPHardwareTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.id) as task:
             self.assertIsInstance(task.driver.power, snmp.SNMPPower)
             self.assertIsInstance(task.driver.boot, pxe.PXEBoot)
-            self.assertIsInstance(task.driver.deploy, iscsi_deploy.ISCSIDeploy)
+            self.assertIsInstance(task.driver.deploy, agent.AgentDeploy)
             self.assertIsInstance(task.driver.management,
                                   noop_mgmt.NoopManagement)
             self.assertIsInstance(task.driver.console, noop.NoConsole)

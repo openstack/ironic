@@ -14,7 +14,7 @@
 #    under the License.
 
 from ironic.conductor import task_manager
-from ironic.drivers.modules import iscsi_deploy
+from ironic.drivers.modules import agent
 from ironic.drivers.modules import noop
 from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import inspect as redfish_inspect
@@ -46,6 +46,6 @@ class RedfishHardwareTestCase(db_base.DbTestCase):
                                   redfish_power.RedfishPower)
             self.assertIsInstance(task.driver.boot,
                                   redfish_boot.RedfishVirtualMediaBoot)
-            self.assertIsInstance(task.driver.deploy, iscsi_deploy.ISCSIDeploy)
+            self.assertIsInstance(task.driver.deploy, agent.AgentDeploy)
             self.assertIsInstance(task.driver.console, noop.NoConsole)
             self.assertIsInstance(task.driver.raid, noop.NoRAID)
