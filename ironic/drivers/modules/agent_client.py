@@ -13,10 +13,12 @@
 # limitations under the License.
 
 from http import client as http_client
+import os
 
 from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_serialization import jsonutils
+from oslo_utils import strutils
 import requests
 import retrying
 
@@ -77,8 +79,18 @@ class AgentClient(object):
         })
 
     def _get_verify(self, node):
-        return (node.driver_internal_info.get('agent_verify_ca')
-                or node.driver_info.get('agent_verify_ca', True))
+        value = (node.driver_internal_info.get('agent_verify_ca')
+                 or node.driver_info.get('agent_verify_ca')
+                 or CONF.agent.verify_ca)
+        if isinstance(value, str):
+            try:
+                value = strutils.bool_from_string(value, strict=True)
+            except ValueError:
+                if not os.path.exists(value):
+                    raise exception.InvalidParameterValue(
+                        _('Agent CA %s is neither a path nor a boolean')
+                        % value)
+        return value
 
     def _raise_if_typeerror(self, result, node, method):
         error = result.get('command_error')
