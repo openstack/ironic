@@ -30,6 +30,7 @@ the services.
    Power Sync with the Compute Service <power-sync>
    Node Multi-Tenancy <node-multitenancy>
    Fast-Track Deployment <fast-track>
+   Booting a Ramdisk or an ISO <ramdisk-boot>
 
 Advanced Topics
 ---------------

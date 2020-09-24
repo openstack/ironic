@@ -145,45 +145,5 @@ Ramdisk deploy
 ==============
 
 The ramdisk interface is intended to provide a mechanism to "deploy" an
-instance where the item to be deployed is in reality a ramdisk.
-Most commonly this is performed when an instance is booted via PXE, iPXE or
-Virtual Media, with the only local storage contents being those in memory.
-It is suported by ``pxe`` and ``ilo-virtual-media`` boot interfaces.
-
-As with most non-default interfaces, it must be enabled and set for a node
-to be utilized:
-
-.. code-block:: ini
-
-   [DEFAULT]
-   ...
-   enabled_deploy_interfaces = iscsi,direct,ramdisk
-   ...
-
-Once enabled and the conductor(s) have been restarted, the interface can
-be set upon creation of a new node or update a pre-existing node:
-
-.. code-block:: shell
-
-   openstack baremetal node create --driver ipmi \
-       --deploy-interface ramdisk \
-       --boot-interface pxe
-   openstack baremetal node set <NODE> --deploy-interface ramdisk
-
-The intended use case is for advanced scientific and ephemeral workloads
-where the step of writing an image to the local storage is not required
-or desired. As such, this interface does come with several caveats:
-
-* Configuration drives are not supported.
-* Disk image contents are not written to the bare metal node.
-* Users and Operators who intend to leverage this interface should
-  expect to leverage a metadata service, custom ramdisk images, or the
-  ``instance_info/ramdisk_kernel_arguments`` parameter to add options to
-  the kernel boot command line.
-* Bare metal nodes must continue to have network access to PXE and iPXE
-  network resources. This is contrary to most tenant networking enabled
-  configurations where this access is restricted to the provisioning and
-  cleaning networks
-* As with all deployment interfaces, automatic cleaning of the node will
-  still occur with the contents of any local storage being wiped between
-  deployments.
+instance where the item to be deployed is in reality a ramdisk. It is
+documented separately, see :doc:`/admin/ramdisk-boot`.
