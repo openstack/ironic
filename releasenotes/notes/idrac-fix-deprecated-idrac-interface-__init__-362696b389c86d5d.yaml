@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes the deprecated ``idrac`` hardware interface implementation
+    ``__init__`` methods to call their base class ``__init__`` methods before
+    emitting a log message warning about their deprecation. For more
+    information, see `story 2008197
+    <https://storyboard.openstack.org/#!/story/2008197>`_.

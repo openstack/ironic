@@ -248,5 +248,6 @@ class DracInspect(DracWSManInspect):
     """
 
     def __init__(self):
+        super(DracInspect, self).__init__()
         LOG.warning("Inspect interface 'idrac' is deprecated and may be "
                     "removed in a future release. Use 'idrac-wsman' instead.")
