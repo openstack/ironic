@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes a potential race in the hash ring code that could result in the
+    hash rings never updated after their initial load.
