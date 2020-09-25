@@ -201,11 +201,17 @@ def do_node_deploy(task, conductor_id=None, configdrive=None):
             _("No deploy steps returned by the driver"))
         raise exception.InstanceDeployFailure(msg)
 
-    do_next_deploy_step(task, 0, conductor_id)
+    if conductor_id is not None:
+        # Update conductor_affinity to reference this conductor's ID
+        # since there may be local persistent state
+        node.conductor_affinity = conductor_id
+        node.save()
+
+    do_next_deploy_step(task, 0)
 
 
 @task_manager.require_exclusive_lock
-def do_next_deploy_step(task, step_index, conductor_id):
+def do_next_deploy_step(task, step_index):
     """Do deployment, starting from the specified deploy step.
 
     :param task: a TaskManager instance with an exclusive lock
@@ -274,13 +280,6 @@ def do_next_deploy_step(task, step_index, conductor_id):
             LOG.debug('Node %s is in error state, not processing '
                       'the remaining deploy steps', task.node)
             return
-
-        if ind == 0:
-            # We've done the very first deploy step.
-            # Update conductor_affinity to reference this conductor's ID
-            # since there may be local persistent state
-            node.conductor_affinity = conductor_id
-            node.save()
 
         # Check if the step is done or not. The step should return
         # states.DEPLOYWAIT if the step is still being executed, or

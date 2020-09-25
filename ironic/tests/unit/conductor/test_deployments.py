@@ -161,6 +161,8 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.assertEqual(
                 fast_track,
                 bool(task.node.driver_internal_info.get('agent_secret_token')))
+            self.assertEqual(self.service.conductor.id,
+                             task.node.conductor_affinity)
 
     def test__do_node_deploy_ok(self):
         self._test__do_node_deploy_ok()
@@ -434,7 +436,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
         task.process_event('deploy')
 
-        deployments.do_next_deploy_step(task, None, self.service.conductor.id)
+        deployments.do_next_deploy_step(task, None)
 
         node.refresh()
         self.assertEqual(states.ACTIVE, node.provision_state)
@@ -455,14 +457,13 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
         task.process_event('deploy')
 
-        deployments.do_next_deploy_step(task, 0, self.service.conductor.id)
+        deployments.do_next_deploy_step(task, 0)
 
         node.refresh()
         self.assertEqual(states.DEPLOYWAIT, node.provision_state)
         self.assertEqual(states.ACTIVE, node.target_provision_state)
         self.assertEqual(expected_first_step, node.deploy_step)
         self.assertEqual(0, node.driver_internal_info['deploy_step_index'])
-        self.assertEqual(self.service.conductor.id, node.conductor_affinity)
         mock_execute.assert_called_once_with(mock.ANY, task,
                                              self.deploy_steps[0])
 
@@ -487,7 +488,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
         task.process_event('deploy')
 
-        deployments.do_next_deploy_step(task, 0, self.service.conductor.id)
+        deployments.do_next_deploy_step(task, 0)
 
         node.refresh()
         self.assertIsNone(node.last_error)
@@ -495,7 +496,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.ACTIVE, node.target_provision_state)
         self.assertEqual(expected_first_step, node.deploy_step)
         self.assertEqual(0, node.driver_internal_info['deploy_step_index'])
-        self.assertEqual(self.service.conductor.id, node.conductor_affinity)
         mock_execute.assert_called_once_with(mock.ANY, task,
                                              self.deploy_steps[0])
 
@@ -517,7 +517,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
         task.process_event('resume')
 
-        deployments.do_next_deploy_step(task, 1, self.service.conductor.id)
+        deployments.do_next_deploy_step(task, 1)
         node.refresh()
 
         self.assertEqual(states.DEPLOYWAIT, node.provision_state)
@@ -553,7 +553,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
         task.process_event('resume')
 
-        deployments.do_next_deploy_step(task, None, self.service.conductor.id)
+        deployments.do_next_deploy_step(task, None)
         node.refresh()
         # Deploying should be complete without calling additional steps
         self.assertEqual(states.ACTIVE, node.provision_state)
@@ -595,7 +595,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
         task.process_event('deploy')
 
-        deployments.do_next_deploy_step(task, 0, self.service.conductor.id)
+        deployments.do_next_deploy_step(task, 0)
 
         # Deploying should be complete
         node.refresh()
@@ -629,7 +629,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
         task.process_event('deploy')
 
-        deployments.do_next_deploy_step(task, 0, self.service.conductor.id)
+        deployments.do_next_deploy_step(task, 0)
 
         # Deploying should be complete
         node.refresh()
@@ -663,7 +663,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
         task.process_event('deploy')
 
-        deployments.do_next_deploy_step(task, 0, self.service.conductor.id)
+        deployments.do_next_deploy_step(task, 0)
 
         # Make sure we go to DEPLOYFAIL, clear deploy_steps
         node.refresh()
@@ -702,8 +702,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
             task = task_manager.TaskManager(self.context, node.uuid)
             task.process_event('deploy')
 
-            deployments.do_next_deploy_step(task, None,
-                                            self.service.conductor.id)
+            deployments.do_next_deploy_step(task, None)
 
             # Deploying should be complete without calling additional steps
             node.refresh()
@@ -729,7 +728,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
         task.process_event('deploy')
 
-        deployments.do_next_deploy_step(task, 0, self.service.conductor.id)
+        deployments.do_next_deploy_step(task, 0)
 
         # Make sure we go to DEPLOYFAIL, clear deploy_steps
         node.refresh()
@@ -763,7 +762,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
-            deployments.do_next_deploy_step(task, 0, mock.ANY)
+            deployments.do_next_deploy_step(task, 0)
 
         self._stop_service()
         node.refresh()
@@ -797,7 +796,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
-            deployments.do_next_deploy_step(task, 0, mock.ANY)
+            deployments.do_next_deploy_step(task, 0)
 
         self._stop_service()
         node.refresh()
