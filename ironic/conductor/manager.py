@@ -879,38 +879,6 @@ class ConductorManager(base_manager.BaseConductorManager):
                      'state': node.provision_state,
                      'deploy_state': ', '.join(expected_states)})
 
-            save_required = False
-            info = node.driver_internal_info
-
-            # Agent is now running, we're ready to validate the remaining steps
-            if not info.get('steps_validated'):
-                try:
-                    conductor_steps.validate_deploy_templates(task)
-                    conductor_steps.set_node_deployment_steps(
-                        task, reset_current=False)
-                except exception.IronicException as exc:
-                    msg = _('Failed to validate the final deploy steps list '
-                            'for node %(node)s: %(exc)s') % {'node': node.uuid,
-                                                             'exc': exc}
-                    return utils.deploying_error_handler(task, msg)
-                info['steps_validated'] = True
-                save_required = True
-
-            try:
-                skip_current_step = info.pop('skip_current_deploy_step')
-            except KeyError:
-                skip_current_step = True
-            else:
-                save_required = True
-            if info.pop('deployment_polling', None) is not None:
-                save_required = True
-            if save_required:
-                node.driver_internal_info = info
-                node.save()
-
-            next_step_index = utils.get_node_next_deploy_steps(
-                task, skip_current_step=skip_current_step)
-
             # TODO(rloo): When deprecation period is over and node is in
             # states.DEPLOYWAIT only, delete the check and always 'resume'.
             if node.provision_state == states.DEPLOYING:
@@ -927,8 +895,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                                       task.node)
             task.spawn_after(
                 self._spawn_worker,
-                deployments.do_next_deploy_step,
-                task, next_step_index)
+                deployments.continue_node_deploy, task)
 
     @METRICS.timer('ConductorManager.do_node_tear_down')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
@@ -1167,57 +1134,13 @@ class ConductorManager(base_manager.BaseConductorManager):
                      'state': node.provision_state,
                      'clean_state': states.CLEANWAIT})
 
-            save_required = False
-            info = node.driver_internal_info
-            try:
-                skip_current_step = info.pop('skip_current_clean_step')
-            except KeyError:
-                skip_current_step = True
-            else:
-                save_required = True
-            if info.pop('cleaning_polling', None) is not None:
-                save_required = True
-            if save_required:
-                node.driver_internal_info = info
-                node.save()
-
-            next_step_index = utils.get_node_next_clean_steps(
-                task, skip_current_step=skip_current_step)
-
-            # If this isn't the final clean step in the cleaning operation
-            # and it is flagged to abort after the clean step that just
-            # finished, we abort the cleaning operation.
-            if node.clean_step.get('abort_after'):
-                step_name = node.clean_step['step']
-                if next_step_index is not None:
-                    LOG.debug('The cleaning operation for node %(node)s was '
-                              'marked to be aborted after step "%(step)s '
-                              'completed. Aborting now that it has completed.',
-                              {'node': task.node.uuid, 'step': step_name})
-                    task.process_event(
-                        'abort',
-                        callback=self._spawn_worker,
-                        call_args=(cleaning.do_node_clean_abort,
-                                   task, step_name),
-                        err_handler=utils.provisioning_error_handler,
-                        target_state=target_state)
-                    return
-
-                LOG.debug('The cleaning operation for node %(node)s was '
-                          'marked to be aborted after step "%(step)s" '
-                          'completed. However, since there are no more '
-                          'clean steps after this, the abort is not going '
-                          'to be done.', {'node': node.uuid,
-                                          'step': step_name})
-
             task.process_event('resume', target_state=target_state)
 
             task.set_spawn_error_hook(utils.spawn_cleaning_error_handler,
                                       task.node)
             task.spawn_after(
                 self._spawn_worker,
-                cleaning.do_next_clean_step,
-                task, next_step_index)
+                cleaning.continue_node_clean, task)
 
     @task_manager.require_exclusive_lock
     def _do_node_verify(self, task):

@@ -323,6 +323,42 @@ def do_next_deploy_step(task, step_index):
              {'node': node.uuid, 'instance': node.instance_uuid})
 
 
+@utils.fail_on_error(utils.deploying_error_handler,
+                     _("Unexpected error when processing next deploy step"))
+@task_manager.require_exclusive_lock
+def continue_node_deploy(task):
+    """Continue deployment after finishing an async deploy step.
+
+    This function calculates which step has to run next and passes control
+    into do_next_deploy_step. On the first run, deploy steps and templates are
+    also validated.
+
+    :param task: a TaskManager instance with an exclusive lock
+    """
+    node = task.node
+
+    # Agent is now running, we're ready to validate the remaining steps
+    if not node.driver_internal_info.get('steps_validated'):
+        try:
+            conductor_steps.validate_deploy_templates(task)
+            conductor_steps.set_node_deployment_steps(
+                task, reset_current=False)
+        except exception.IronicException as exc:
+            msg = _('Failed to validate the final deploy steps list '
+                    'for node %(node)s: %(exc)s') % {'node': node.uuid,
+                                                     'exc': exc}
+            return utils.deploying_error_handler(task, msg)
+
+        info = node.driver_internal_info
+        info['steps_validated'] = True
+        node.driver_internal_info = info
+        node.save()
+
+    next_step_index = utils.update_next_step_index(task, 'deploy')
+
+    do_next_deploy_step(task, next_step_index)
+
+
 def _get_configdrive_obj_name(node):
     """Generate the object name for the config drive."""
     return 'configdrive-%s' % node.uuid
