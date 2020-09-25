@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Adds support for managing BIOS settings via the Redfish out-of-band
+    (OOB) management protocol to the ``idrac`` hardware type. The new
+    hardware BIOS interface implementation which offers it is named
+    ``idrac-redfish``.
+
+    The ``idrac`` hardware type declares support for that new interface
+    implementation, in addition to all BIOS interface implementations it
+    has been supporting. The highest priority BIOS interface remains the
+    same, the one which relies on the Web Services Management (WS-Man)
+    OOB management protocol. The new ``idrac-redfish`` immediately
+    follows it. It now supports the following BIOS interface
+    implementations, listed in priority order from highest to lowest:
+    ``idrac-wsman``, ``idrac-redfish``, and ``no-bios``.
+
+    For more information, see `story 2008100
+    <https://storyboard.openstack.org/#!/story/2008100>`_.

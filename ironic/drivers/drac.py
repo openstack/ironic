@@ -59,7 +59,7 @@ class IDRACHardware(generic.GenericHardware):
     @property
     def supported_bios_interfaces(self):
         """List of supported bios interfaces."""
-        return [bios.DracWSManBIOS, noop.NoBIOS]
+        return [bios.DracWSManBIOS, bios.DracRedfishBIOS, noop.NoBIOS]
 
     @property
     def supported_inspect_interfaces(self):

@@ -47,7 +47,7 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
                     enabled_vendor_interfaces=[
                         'idrac', 'idrac-wsman', 'no-vendor'],
                     enabled_bios_interfaces=[
-                        'idrac-wsman', 'no-bios'])
+                        'idrac-wsman', 'idrac-redfish', 'no-bios'])
 
     def _validate_interfaces(self, driver, **kwargs):
         self.assertIsInstance(
@@ -62,6 +62,10 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
         self.assertIsInstance(
             driver.power,
             kwargs.get('power', drac.power.DracWSManPower))
+
+        self.assertIsInstance(
+            driver.bios,
+            kwargs.get('bios', drac.bios.DracWSManBIOS))
 
         self.assertIsInstance(
             driver.console,
@@ -141,6 +145,14 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
                 task.driver,
                 management=drac.management.DracRedfishManagement,
                 power=drac.power.DracRedfishPower)
+
+    def test_override_with_redfish_bios(self):
+        node = obj_utils.create_test_node(self.context, driver='idrac',
+                                          bios_interface='idrac-redfish')
+        with task_manager.acquire(self.context, node.id) as task:
+            self._validate_interfaces(
+                task.driver,
+                bios=drac.bios.DracRedfishBIOS)
 
     def test_override_with_redfish_inspect(self):
         node = obj_utils.create_test_node(self.context, driver='idrac',
