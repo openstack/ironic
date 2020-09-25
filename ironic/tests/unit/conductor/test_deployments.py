@@ -595,7 +595,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
         task.process_event('deploy')
 
-        deployments.do_next_deploy_step(task, 1, self.service.conductor.id)
+        deployments.do_next_deploy_step(task, 0, self.service.conductor.id)
 
         # Deploying should be complete
         node.refresh()
@@ -604,8 +604,9 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual({}, node.deploy_step)
         self.assertNotIn('deploy_step_index', node.driver_internal_info)
         self.assertIsNone(node.driver_internal_info['deploy_steps'])
-        mock_execute.assert_has_calls = [mock.call(self.deploy_steps[0]),
-                                         mock.call(self.deploy_steps[1])]
+        mock_execute.assert_has_calls(
+            [mock.call(task.driver.deploy, task, self.deploy_steps[0]),
+             mock.call(task.driver.deploy, task, self.deploy_steps[1])])
         self.assertNotIn('agent_url', node.driver_internal_info)
         self.assertNotIn('agent_secret_token', node.driver_internal_info)
 
@@ -628,7 +629,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         task = task_manager.TaskManager(self.context, node.uuid)
         task.process_event('deploy')
 
-        deployments.do_next_deploy_step(task, 1, self.service.conductor.id)
+        deployments.do_next_deploy_step(task, 0, self.service.conductor.id)
 
         # Deploying should be complete
         node.refresh()
@@ -637,8 +638,9 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual({}, node.deploy_step)
         self.assertNotIn('deploy_step_index', node.driver_internal_info)
         self.assertIsNone(node.driver_internal_info['deploy_steps'])
-        mock_execute.assert_has_calls = [mock.call(self.deploy_steps[0]),
-                                         mock.call(self.deploy_steps[1])]
+        mock_execute.assert_has_calls(
+            [mock.call(task.driver.deploy, task, self.deploy_steps[0]),
+             mock.call(task.driver.deploy, task, self.deploy_steps[1])])
         self.assertEqual('url', node.driver_internal_info['agent_url'])
         self.assertEqual('token',
                          node.driver_internal_info['agent_secret_token'])
