@@ -828,7 +828,7 @@ def notify_conductor_resume_operation(task, operation):
     from ironic.conductor import rpcapi
     uuid = task.node.uuid
     rpc = rpcapi.ConductorAPI()
-    topic = rpc.get_topic_for(task.node)
+    topic = rpc.get_current_topic()
     # Need to release the lock to let the conductor take it
     task.release_resources()
     getattr(rpc, method)(task.context, uuid, topic=topic)

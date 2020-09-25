@@ -1728,15 +1728,14 @@ class MiscTestCase(db_base.DbTestCase):
 
     @mock.patch.object(rpcapi.ConductorAPI, 'continue_node_deploy',
                        autospec=True)
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for', autospec=True)
-    def test_notify_conductor_resume_operation(self, mock_topic,
-                                               mock_rpc_call):
-        mock_topic.return_value = 'topic'
+    def test_notify_conductor_resume_operation(self, mock_rpc_call):
+        self.config(host='fake-host')
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             conductor_utils.notify_conductor_resume_operation(task, 'deploy')
             mock_rpc_call.assert_called_once_with(
-                mock.ANY, task.context, self.node.uuid, topic='topic')
+                mock.ANY, task.context, self.node.uuid,
+                topic='ironic.conductor_manager.fake-host')
 
     @mock.patch.object(conductor_utils, 'notify_conductor_resume_operation',
                        autospec=True)
