@@ -1079,6 +1079,21 @@ class IloCommonMethodsTestCase(BaseIloTest):
             func_set_boot_device.assert_called_once_with(task,
                                                          boot_devices.CDROM)
 
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'setup_vmedia_for_boot', spec_set=True,
+                       autospec=True)
+    def test_setup_vmedia_without_params(self,
+                                         func_setup_vmedia_for_boot,
+                                         func_set_boot_device):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            iso = '733d1c44-a2ea-414b-aca7-69decf20d810'
+            ilo_common.setup_vmedia(task, iso)
+            func_setup_vmedia_for_boot.assert_called_once_with(task, iso, None)
+            func_set_boot_device.assert_called_once_with(task,
+                                                         boot_devices.CDROM)
+
     @mock.patch.object(deploy_utils, 'is_secure_boot_requested', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, 'set_secure_boot_mode', spec_set=True,

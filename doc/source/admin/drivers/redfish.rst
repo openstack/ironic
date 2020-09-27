@@ -208,6 +208,9 @@ This initial interface does not support bootloader configuration
 parameter injection, as such the ``[instance_info]/kernel_append_params``
 setting is ignored.
 
+
+.. _`dhcpless_booting`:
+
 Layer 3 or DHCP-less ramdisk booting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -216,7 +219,7 @@ service since it's a User Datagram Protocol (UDP) like other protocols used by
 the PXE suite, there is no guarantee that packets will be delivered.
 
 One of the solutions is the reliance on virtual media boot capability coupled
-with another feature of ``redfish`` hardware type - its ability to provide
+with another feature of hardware type - its ability to provide
 network configuration that is placed in the config-drive_ of the node, the
 configuration follows the same schema that OpenStack Nova uses for the
 ``network_data.json``. The config drive filesystem information is on the IPA

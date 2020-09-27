@@ -43,14 +43,24 @@ class ImageHandler(object):
             "container": CONF.redfish.swift_container,
             "timeout": CONF.redfish.swift_object_expiry_timeout,
             "image_subdir": "redfish",
-            "file_permission": CONF.redfish.file_permission
+            "file_permission": CONF.redfish.file_permission,
+            "kernel_params": CONF.redfish.kernel_append_params
         },
         "ilo5": {
             "swift_enabled": not CONF.ilo.use_web_server_for_images,
             "container": CONF.ilo.swift_ilo_container,
             "timeout": CONF.ilo.swift_object_expiry_timeout,
             "image_subdir": "ilo",
-            "file_permission": CONF.ilo.file_permission
+            "file_permission": CONF.ilo.file_permission,
+            "kernel_params": CONF.pxe.pxe_append_params
+        },
+        "ilo": {
+            "swift_enabled": not CONF.ilo.use_web_server_for_images,
+            "container": CONF.ilo.swift_ilo_container,
+            "timeout": CONF.ilo.swift_object_expiry_timeout,
+            "image_subdir": "ilo",
+            "file_permission": CONF.ilo.file_permission,
+            "kernel_params": CONF.pxe.pxe_append_params
         },
     }
 
@@ -60,6 +70,8 @@ class ImageHandler(object):
         self._timeout = self._SWIFT_MAP[driver].get("timeout")
         self._image_subdir = self._SWIFT_MAP[driver].get("image_subdir")
         self._file_permission = self._SWIFT_MAP[driver].get("file_permission")
+        # To get the kernel parameters
+        self.kernel_params = self._SWIFT_MAP[driver].get("kernel_params")
 
     def _is_swift_enabled(self):
         try:
@@ -303,6 +315,9 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
             "building ISO, or explicit ISO for %(node)s") %
             {'node': task.node.uuid})
 
+    img_handler = ImageHandler(task.node.driver)
+    k_param = img_handler.kernel_params
+
     i_info = task.node.instance_info
 
     # NOTE(TheJulia): Until we support modifying a base iso, most of
@@ -315,8 +330,7 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
             kernel_params = None
 
     else:
-        kernel_params = i_info.get(
-            'kernel_append_params', CONF.redfish.kernel_append_params)
+        kernel_params = i_info.get('kernel_append_params', k_param)
 
     if params and not base_iso:
         kernel_params = ' '.join(
@@ -374,7 +388,6 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
 
             iso_object_name = _get_iso_image_name(task.node)
 
-            img_handler = ImageHandler(task.node.driver)
             image_url = img_handler.publish_image(
                 boot_iso_tmp_file, iso_object_name)
 

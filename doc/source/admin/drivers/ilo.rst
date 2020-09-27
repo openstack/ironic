@@ -2162,6 +2162,11 @@ and ``ilo-uefi-https`` boot interface:
 .. note::
    UEFI secure boot is not supported with ``ilo-uefi-https`` boot interface.
 
+Layer 3 or DHCP-less ramdisk booting
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+DHCP-less deploy is supported by ``ilo`` and ``ilo5`` hardware types.
+However it would work only with ilo-virtual-media boot interface. See
+:ref:`dhcpless_booting` for more information.
 
 .. _`ssacli documentation`: https://support.hpe.com/hpsc/doc/public/display?docId=c03909334
 .. _`proliant-tools`: https://docs.openstack.org/diskimage-builder/latest/elements/proliant-tools/README.html
