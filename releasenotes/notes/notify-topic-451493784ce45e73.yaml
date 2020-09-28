@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Prevents a take over from happening in the middle of a deploy step
+    processing. This could happen if the RPC call ``continue_node_deploy``
+    is routed to a different conductor.

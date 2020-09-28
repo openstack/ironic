@@ -202,6 +202,10 @@ class ConductorAPI(object):
         host = random.choice(list(ring.nodes))
         return self.topic + "." + host
 
+    def get_current_topic(self):
+        """Get RPC topic name for the current conductor."""
+        return self.topic + "." + CONF.host
+
     def can_send_create_port(self):
         """Return whether the RPCAPI supports the create_port method."""
         return self.client.can_send_version("1.41")
