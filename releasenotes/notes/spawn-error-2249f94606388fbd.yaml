@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    No longer silently ignores exceptions that happen when trying to run the
+    next clean or deploy step.
