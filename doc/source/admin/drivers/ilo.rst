@@ -60,6 +60,7 @@ The hardware type ``ilo`` supports following HPE server features:
 * `Soft power operation support`_
 * `BIOS configuration support`_
 * `IPv6 support`_
+* `Layer 3 or DHCP-less ramdisk booting`_
 
 Apart from above features hardware type ``ilo5`` also supports following
 features:
