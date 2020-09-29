@@ -2,12 +2,12 @@
 REST API Version History
 ========================
 
-1.68 (Victoria, master)
+1.68 (Victoria, 16.0)
 -----------------------
 
 Added the ``agent_verify_ca`` parameter to the ramdisk heartbeat API.
 
-1.67 (Victoria, master)
+1.67 (Victoria, 15.1)
 -----------------------
 
 Add support for the mutually exclusive ``port_uuid`` and ``portgroup_uuid``
@@ -16,7 +16,7 @@ fields by having the node vif_attach API accept those values within
 If one is specified, then Ironic will attempt to attach a VIF to the relative
 port or portgroup.
 
-1.66 (Victoria, master)
+1.66 (Victoria, 15.1)
 -----------------------
 
 Add ``network_data`` field to the node object, that will be used by
