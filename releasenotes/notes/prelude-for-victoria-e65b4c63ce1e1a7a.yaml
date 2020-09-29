@@ -10,15 +10,16 @@ prelude: |
     operators' lives has yet to cease, and has no signs of stopping anytime
     soon.
 
-    As with any release, we have some things we are particularly proud of::
-      * Support for TLS encryption of Agent communications.
-      * Support for in-band deployment steps enabling software RAID to be
-        configured at deployment time.
-      * Ramdisk/Virtual Media pass-through of ISO images.
-      * BMC-less ``agent`` power control, so BMC's are not required
-        for deployments.
-      * Network configuration injection with virtual media based ramdisks.
-      * Integrated basic authentication for standalone Ironic operators.
+    As with any release, we have some things we are particularly proud of:
+
+    * Support for TLS encryption of Agent communications.
+    * Support for in-band deployment steps enabling software RAID to be
+      configured at deployment time.
+    * Ramdisk/Virtual Media pass-through of ISO images.
+    * BMC-less ``agent`` power control, so BMC's are not required
+      for deployments.
+    * Network configuration injection with virtual media based ramdisks.
+    * Integrated basic authentication for standalone Ironic operators.
 
     And with any major release, a number of bugs have been fixed. Cross-vendor
     features see increased parity. Every contributor has something to be proud
