@@ -16,6 +16,7 @@ import contextlib
 import crypt
 import datetime
 from distutils.version import StrictVersion
+import functools
 import os
 import secrets
 import time
@@ -561,6 +562,21 @@ def deploying_error_handler(task, logmsg, errmsg=None, traceback=False,
 
     # NOTE(tenbrae): there is no need to clear conductor_affinity
     task.process_event('fail')
+
+
+def fail_on_error(error_callback, msg, *error_args, **error_kwargs):
+    """A decorator for failing operation on failure."""
+    def wrapper(func):
+        @functools.wraps(func)
+        def wrapped(task, *args, **kwargs):
+            try:
+                return func(task, *args, **kwargs)
+            except Exception as exc:
+                errmsg = "%s. %s: %s" % (msg, exc.__class__.__name__, exc)
+                error_callback(task, errmsg, *error_args, **error_kwargs)
+
+        return wrapped
+    return wrapper
 
 
 @task_manager.require_exclusive_lock

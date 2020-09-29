@@ -204,6 +204,8 @@ def do_node_deploy(task, conductor_id=None, configdrive=None):
     do_next_deploy_step(task, 0, conductor_id)
 
 
+@utils.fail_on_error(utils.deploying_error_handler,
+                     _("Unexpected error when processing next deploy step"))
 @task_manager.require_exclusive_lock
 def do_next_deploy_step(task, step_index, conductor_id):
     """Do deployment, starting from the specified deploy step.

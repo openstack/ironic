@@ -126,6 +126,8 @@ def do_node_clean(task, clean_steps=None):
     do_next_clean_step(task, step_index)
 
 
+@utils.fail_on_error(utils.deploying_error_handler,
+                     _("Unexpected error when processing next clean step"))
 @task_manager.require_exclusive_lock
 def do_next_clean_step(task, step_index):
     """Do cleaning, starting from the specified clean step.
