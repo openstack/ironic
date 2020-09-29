@@ -19,7 +19,11 @@
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-ipa-partition-pxe_ipmitool
-        - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
+          # NOTE(TheJulia): Marking non-voting as CI memory changes
+          # means this job is unlikely to work without changing the base
+          # ramdisk OS.
+        - ironic-tempest-ipa-partition-uefi-pxe_ipmitool:
+            voting: false
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
@@ -58,7 +62,8 @@
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-ipa-partition-pxe_ipmitool
-        - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
+        # Removing from voting due to memory consumption
+        # - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
