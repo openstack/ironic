@@ -701,7 +701,7 @@ IRONIC_ANSIBLE_SSH_USER=${IRONIC_ANSIBLE_SSH_USER:-}
 # DevStack deployment, as we do not distribute this generated key to subnodes yet.
 IRONIC_ANSIBLE_SSH_KEY=${IRONIC_ANSIBLE_SSH_KEY:-$IRONIC_DATA_DIR/ansible_ssh_key}
 
-if is_service_enabled swift; then
+if is_service_enabled swift && [[ "$SWIFT_ENABLE_TEMPURLS" == "True" ]]; then
     IRONIC_DEFAULT_DOWNLOAD_SOURCE=swift
 else
     IRONIC_DEFAULT_DOWNLOAD_SOURCE=
@@ -1718,10 +1718,10 @@ function configure_ironic_conductor {
     if is_glance_configuration_required; then
         if [[ "$SWIFT_ENABLE_TEMPURLS" == "False" ]] ; then
             die $LINENO "SWIFT_ENABLE_TEMPURLS must be True. This is " \
-                        "required either because IRONIC_DEPLOY_DRIVER was " \
-                        "set to some agent_* driver OR configuration of " \
-                        "Glance with Swift was explicitly requested with " \
-                        "IRONIC_CONFIGURE_GLANCE_WITH_SWIFT=True"
+                        "required either because " \
+                        "IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE was set to swift "  \
+                        "OR configuration of Glance with Swift was explicitly " \
+                        "requested with IRONIC_CONFIGURE_GLANCE_WITH_SWIFT=True"
         fi
         iniset $IRONIC_CONF_FILE glance swift_temp_url_duration 3600
     fi
