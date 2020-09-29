@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds support for performing firmware updates using the ``redfish``
+    and ``idrac`` hardware types.
+
+    A new firmware update cleaning step has been added to the ``redfish``
+    hardware type. The ``idrac`` hardware type also automatically gains this
+    capability through inheritance.

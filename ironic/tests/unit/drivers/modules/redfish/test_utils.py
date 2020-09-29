@@ -339,3 +339,20 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
             mock.ANY, verify=mock.ANY,
             auth=mock_basic_auth.return_value
         )
+
+    def test_get_update_service(self):
+        redfish_utils._get_connection = mock.Mock()
+        mock_update_service = mock.Mock()
+        redfish_utils._get_connection.return_value = mock_update_service
+
+        result = redfish_utils.get_update_service(self.node)
+
+        self.assertEqual(mock_update_service, result)
+
+    def test_get_update_service_error(self):
+        redfish_utils._get_connection = mock.Mock()
+        redfish_utils._get_connection.side_effect =\
+            sushy.exceptions.MissingAttributeError
+
+        self.assertRaises(exception.RedfishError,
+                          redfish_utils.get_update_service, self.node)

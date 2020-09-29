@@ -218,6 +218,9 @@ if not sushy:
         VIRTUAL_MEDIA_CD='cd',
         VIRTUAL_MEDIA_FLOPPY='floppy',
         APPLY_TIME_ON_RESET='on reset',
+        TASK_STATE_COMPLETED='completed',
+        HEALTH_OK='ok',
+        HEALTH_WARNING='warning'
     )
 
     sys.modules['sushy'] = sushy

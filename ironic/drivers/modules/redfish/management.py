@@ -15,8 +15,11 @@
 
 import collections
 
+from futurist import periodics
+from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import importutils
+from oslo_utils import timeutils
 
 from ironic.common import boot_devices
 from ironic.common import boot_modes
@@ -24,12 +27,17 @@ from ironic.common import components
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import indicator_states
+from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
+from ironic.conf import CONF
 from ironic.drivers import base
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
 
 LOG = log.getLogger(__name__)
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 sushy = importutils.try_import('sushy')
 
@@ -663,3 +671,332 @@ class RedfishManagement(base.ManagementInterface):
             "node %(uuid)s") % {'indicator': indicator,
                                 'component': component,
                                 'uuid': task.node.uuid})
+
+    @METRICS.timer('RedfishManagement.update_firmware')
+    @base.clean_step(priority=0, abortable=False, argsinfo={
+        'firmware_images': {
+            'description': (
+                'A list of firmware images to apply.'
+            ),
+            'required': True
+        }})
+    def update_firmware(self, task, firmware_images):
+        """Updates the firmware on the node.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param firmware_images: A list of firmware images are to apply.
+        :returns: None if it is completed.
+        :raises: RedfishError on an error from the Sushy library.
+        """
+        node = task.node
+
+        LOG.debug('Updating firmware on node %(node_uuid)s with firmware '
+                  '%(firmware_images)s',
+                  {'node_uuid': node.uuid,
+                   'firmware_images': firmware_images})
+
+        update_service = redfish_utils.get_update_service(task.node)
+
+        # The cleaning infrastructure has an exclusive lock on the node, so
+        # there is no need to get one here.
+        self._apply_firmware_update(node, update_service, firmware_images)
+
+        # set_async_step_flags calls node.save()
+        deploy_utils.set_async_step_flags(
+            node,
+            reboot=True,
+            skip_current_step=True,
+            polling=True)
+
+        manager_utils.node_power_action(task, states.REBOOT)
+
+        return deploy_utils.get_async_step_return_state(task.node)
+
+    def _apply_firmware_update(self, node, update_service, firmware_updates):
+        """Applies the next firmware update to the node
+
+        Applies the first firmware update in the firmware_updates list to
+        the node.
+
+        Note that the caller must have an exclusive lock on the node and
+        the caller must ensure node.save() is called after making this
+        call.
+
+        :param node: the node to apply the next update to
+        :param update_service: the sushy firmware update service
+        :param firmware_updates: the remaining firmware updates to apply
+        """
+
+        firmware_update = firmware_updates[0]
+        firmware_url = firmware_update['url']
+
+        LOG.debug('Applying firmware %(firmware_image)s to node '
+                  '%(node_uuid)s',
+                  {'firmware_image': firmware_url,
+                   'node_uuid': node.uuid})
+
+        task_monitor = update_service.simple_update(firmware_url)
+
+        driver_internal_info = node.driver_internal_info
+        firmware_update['task_monitor'] = task_monitor.task_monitor
+        driver_internal_info['firmware_updates'] = firmware_updates
+        node.driver_internal_info = driver_internal_info
+
+    def _continue_firmware_updates(self, task, update_service,
+                                   firmware_updates):
+        """Continues processing the firmware updates
+
+        Continues to process the firmware updates on the node.
+
+        Note that the caller must have an exclusive lock on the node.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param update_service: the sushy firmware update service
+        :param firmware_updates: the remaining firmware updates to apply
+        """
+
+        node = task.node
+        firmware_update = firmware_updates[0]
+        wait_interval = firmware_update.get('wait')
+        if wait_interval:
+            time_now = str(timeutils.utcnow().isoformat())
+            firmware_update['wait_start_time'] = time_now
+
+            LOG.debug('Waiting at %(time)s for %(seconds)s seconds after '
+                      'firmware update %(firmware_image)s on node %(node)s',
+                      {'time': time_now,
+                       'seconds': wait_interval,
+                       'firmware_image': firmware_update['url'],
+                       'node': node.uuid})
+
+            driver_internal_info = node.driver_internal_info
+            driver_internal_info['firmware_updates'] = firmware_updates
+            node.driver_internal_info = driver_internal_info
+            node.save()
+            return
+
+        if len(firmware_updates) == 1:
+            self._clear_firmware_updates(node)
+
+            LOG.info('Firmware updates completed for node %(node)s',
+                     {'node': node.uuid})
+
+            manager_utils.notify_conductor_resume_clean(task)
+        else:
+            firmware_updates.pop(0)
+            self._apply_firmware_update(node,
+                                        update_service,
+                                        firmware_updates)
+            node.save()
+            manager_utils.node_power_action(task, states.REBOOT)
+
+    def _clear_firmware_updates(self, node):
+        """Clears firmware updates from driver_internal_info
+
+        Note that the caller must have an exclusive lock on the node.
+
+        :param node: the node to clear the firmware updates from
+        """
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info.pop('firmware_updates', None)
+        node.driver_internal_info = driver_internal_info
+        node.save()
+
+    @METRICS.timer('RedfishManagement._query_firmware_update_failed')
+    @periodics.periodic(
+        spacing=CONF.redfish.firmware_update_fail_interval,
+        enabled=CONF.redfish.firmware_update_fail_interval > 0)
+    def _query_firmware_update_failed(self, manager, context):
+        """Periodic job to check for failed firmware updates."""
+
+        filters = {'reserved': False, 'provision_state': states.CLEANFAIL,
+                   'maintenance': True}
+
+        fields = ['driver_internal_info']
+
+        node_list = manager.iter_nodes(fields=fields, filters=filters)
+        for (node_uuid, driver, conductor_group,
+             driver_internal_info) in node_list:
+            try:
+                lock_purpose = 'checking async firmware update failed.'
+                with task_manager.acquire(context, node_uuid,
+                                          purpose=lock_purpose,
+                                          shared=True) as task:
+                    if not isinstance(task.driver.management,
+                                      RedfishManagement):
+                        continue
+
+                    firmware_updates = driver_internal_info.get(
+                        'firmware_updates')
+                    if not firmware_updates:
+                        continue
+
+                    node = task.node
+
+                    # A firmware update failed. Discard any remaining firmware
+                    # updates so when the user takes the node out of
+                    # maintenance mode, pending firmware updates do not
+                    # automatically continue.
+                    LOG.warning('Firmware update failed for node %(node)s. '
+                                'Discarding remaining firmware updates.',
+                                {'node': node.uuid})
+
+                    task.upgrade_lock()
+                    self._clear_firmware_updates(node)
+
+            except exception.NodeNotFound:
+                LOG.info('During _query_firmware_update_failed, node '
+                         '%(node)s was not found and presumed deleted by '
+                         'another process.', {'node': node_uuid})
+            except exception.NodeLocked:
+                LOG.info('During _query_firmware_update_failed, node '
+                         '%(node)s was already locked by another process. '
+                         'Skip.', {'node': node_uuid})
+
+    @METRICS.timer('RedfishManagement._query_firmware_update_status')
+    @periodics.periodic(
+        spacing=CONF.redfish.firmware_update_status_interval,
+        enabled=CONF.redfish.firmware_update_status_interval > 0)
+    def _query_firmware_update_status(self, manager, context):
+        """Periodic job to check firmware update tasks."""
+
+        filters = {'reserved': False, 'provision_state': states.CLEANWAIT}
+        fields = ['driver_internal_info']
+
+        node_list = manager.iter_nodes(fields=fields, filters=filters)
+        for (node_uuid, driver, conductor_group,
+             driver_internal_info) in node_list:
+            try:
+                lock_purpose = 'checking async firmware update tasks.'
+                with task_manager.acquire(context, node_uuid,
+                                          purpose=lock_purpose,
+                                          shared=True) as task:
+                    if not isinstance(task.driver.management,
+                                      RedfishManagement):
+                        continue
+
+                    firmware_updates = driver_internal_info.get(
+                        'firmware_updates')
+                    if not firmware_updates:
+                        continue
+
+                    self._check_node_firmware_update(task)
+
+            except exception.NodeNotFound:
+                LOG.info('During _query_firmware_update_status, node '
+                         '%(node)s was not found and presumed deleted by '
+                         'another process.', {'node': node_uuid})
+            except exception.NodeLocked:
+                LOG.info('During _query_firmware_update_status, node '
+                         '%(node)s was already locked by another process. '
+                         'Skip.', {'node': node_uuid})
+
+    @METRICS.timer('RedfishManagement._check_node_firmware_update')
+    def _check_node_firmware_update(self, task):
+        """Check the progress of running firmware update on a node."""
+
+        node = task.node
+
+        firmware_updates = node.driver_internal_info['firmware_updates']
+        current_update = firmware_updates[0]
+
+        try:
+            update_service = redfish_utils.get_update_service(node)
+        except exception.RedfishConnectionError as e:
+            # If the BMC firmware is being updated, the BMC will be
+            # unavailable for some amount of time.
+            LOG.warning('Unable to communicate with firmware update service '
+                        'on node %(node)s. Will try again on the next poll. '
+                        'Error: %(error)s',
+                        {'node': node.uuid,
+                         'error': e})
+            return
+
+        wait_start_time = current_update.get('wait_start_time')
+        if wait_start_time:
+            wait_start = timeutils.parse_isotime(wait_start_time)
+
+            elapsed_time = timeutils.utcnow(True) - wait_start
+            if elapsed_time.seconds >= current_update['wait']:
+                LOG.debug('Finished waiting after firmware update '
+                          '%(firmware_image)s on node %(node)s. '
+                          'Elapsed time: %(seconds)s seconds',
+                          {'firmware_image': current_update['url'],
+                           'node': node.uuid,
+                           'seconds': elapsed_time.seconds})
+                current_update.pop('wait', None)
+                current_update.pop('wait_start_time', None)
+
+                task.upgrade_lock()
+                self._continue_firmware_updates(task,
+                                                update_service,
+                                                firmware_updates)
+            else:
+                LOG.debug('Continuing to wait after firmware update '
+                          '%(firmware_image)s on node %(node)s. '
+                          'Elapsed time: %(seconds)s seconds',
+                          {'firmware_image': current_update['url'],
+                           'node': node.uuid,
+                           'seconds': elapsed_time.seconds})
+
+            return
+
+        try:
+            task_monitor = update_service.get_task_monitor(
+                current_update['task_monitor'])
+        except sushy.exceptions.ResourceNotFoundError:
+            # The BMC deleted the Task before we could query it
+            LOG.warning('Firmware update completed for node %(node)s, '
+                        'firmware %(firmware_image)s, but success of the '
+                        'update is unknown.  Assuming update was successful.',
+                        {'node': node.uuid,
+                         'firmware_image': current_update['url']})
+            task.upgrade_lock()
+            self._continue_firmware_updates(task,
+                                            update_service,
+                                            firmware_updates)
+            return
+
+        if not task_monitor.is_processing:
+            # The last response does not necessarily contain a Task,
+            # so get it
+            sushy_task = task_monitor.get_task()
+
+            # Only parse the messages if the BMC did not return parsed
+            # messages
+            messages = []
+            if not sushy_task.messages[0].message:
+                sushy_task.parse_messages()
+
+            messages = [m.message for m in sushy_task.messages]
+
+            if (sushy_task.task_state == sushy.TASK_STATE_COMPLETED
+                    and sushy_task.task_status in
+                    [sushy.HEALTH_OK, sushy.HEALTH_WARNING]):
+                LOG.info('Firmware update succeeded for node %(node)s, '
+                         'firmware %(firmware_image)s: %(messages)s',
+                         {'node': node.uuid,
+                          'firmware_image': current_update['url'],
+                          'messages': ", ".join(messages)})
+
+                task.upgrade_lock()
+                self._continue_firmware_updates(task,
+                                                update_service,
+                                                firmware_updates)
+            else:
+                error_msg = (_('Firmware update failed for node %(node)s, '
+                               'firmware %(firmware_image)s. '
+                               'Error: %(errors)s') %
+                             {'node': node.uuid,
+                              'firmware_image': current_update['url'],
+                              'errors': ",  ".join(messages)})
+                LOG.error(error_msg)
+
+                task.upgrade_lock()
+                self._clear_firmware_updates(node)
+                manager_utils.cleaning_error_handler(task, error_msg)
+        else:
+            LOG.debug('Firmware update in progress for node %(node)s, '
+                      'firmware %(firmware_image)s.',
+                      {'node': node.uuid,
+                       'firmware_image': current_update['url']})

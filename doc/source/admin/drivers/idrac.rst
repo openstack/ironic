@@ -17,7 +17,7 @@ hardware types, though with smaller feature sets.
 Key features of the Dell iDRAC driver include:
 
 * Out-of-band node inspection
-* Boot device management
+* Boot device management and firmware management
 * Power management
 * RAID controller management and RAID volume configuration
 * BIOS settings configuration
@@ -29,7 +29,7 @@ The ``idrac`` hardware type supports the following Ironic interfaces:
 
 * `BIOS Interface`_: BIOS management
 * `Inspect Interface`_: Hardware inspection
-* Management Interface: Boot device management
+* `Management Interface`_: Boot device and firmware management
 * Power Interface: Power management
 * `RAID Interface`_: RAID controller and disk management
 * `Vendor Interface`_: BIOS management
@@ -267,6 +267,13 @@ The ``idrac-redfish`` inspect interface does not currently set ``pxe_enabled``
 on the ports. The user should ensure that ``pxe_enabled`` is set correctly on
 the ports following inspection with the ``idrac-redfish`` inspect interface.
 
+Management Interface
+====================
+
+The management interface for ``idrac-redfish`` supports updating firmware on
+nodes using a manual cleaning step.
+
+See :doc:`/admin/drivers/redfish` for more information on firmware update support.
 
 RAID Interface
 ==============
