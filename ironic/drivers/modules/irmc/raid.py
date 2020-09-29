@@ -339,8 +339,6 @@ def _validate_physical_disks(node, logical_disks):
 
 class IRMCRAID(base.RAIDInterface):
 
-    supported = False
-
     def get_properties(self):
         """Return the properties of the interface."""
         return irmc_common.COMMON_PROPERTIES

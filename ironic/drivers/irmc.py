@@ -38,8 +38,6 @@ class IRMCHardware(generic.GenericHardware):
     have iRMC S4 management system.
     """
 
-    supported = False
-
     @property
     def supported_bios_interfaces(self):
         """List of supported bios interfaces."""

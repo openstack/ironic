@@ -34,8 +34,6 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 
 class IRMCBIOS(base.BIOSInterface):
 
-    supported = False
-
     def get_properties(self):
         """Return the properties of the interface."""
         return irmc_common.COMMON_PROPERTIES
