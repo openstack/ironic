@@ -928,7 +928,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             task.spawn_after(
                 self._spawn_worker,
                 deployments.do_next_deploy_step,
-                task, next_step_index, self.conductor.id)
+                task, next_step_index)
 
     @METRICS.timer('ConductorManager.do_node_tear_down')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,

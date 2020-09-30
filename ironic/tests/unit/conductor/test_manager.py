@@ -1788,7 +1788,7 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(tgt_prv_state, node.target_provision_state)
         mock_spawn.assert_called_with(mock.ANY,
                                       deployments.do_next_deploy_step,
-                                      mock.ANY, 1, mock.ANY)
+                                      mock.ANY, 1)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_deploy_steps',
                 autospec=True)
@@ -1818,7 +1818,7 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(new_steps, node.driver_internal_info['deploy_steps'])
         mock_spawn.assert_called_with(mock.ANY,
                                       deployments.do_next_deploy_step,
-                                      mock.ANY, 1, mock.ANY)
+                                      mock.ANY, 1)
 
     @mock.patch.object(task_manager.TaskManager, 'process_event',
                        autospec=True)
@@ -1848,7 +1848,7 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(tgt_prv_state, node.target_provision_state)
         mock_spawn.assert_called_with(mock.ANY,
                                       deployments.do_next_deploy_step,
-                                      mock.ANY, 1, mock.ANY)
+                                      mock.ANY, 1)
         self.assertFalse(mock_event.called)
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
@@ -1877,7 +1877,7 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             expected_step_index = 0
         mock_spawn.assert_called_with(mock.ANY,
                                       deployments.do_next_deploy_step,
-                                      mock.ANY, expected_step_index, mock.ANY)
+                                      mock.ANY, expected_step_index)
 
     def test_continue_node_deploy_skip_step(self):
         self._continue_node_deploy_skip_step()
@@ -1905,7 +1905,7 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertNotIn('deployment_polling', node.driver_internal_info)
         mock_spawn.assert_called_with(mock.ANY,
                                       deployments.do_next_deploy_step,
-                                      mock.ANY, 1, mock.ANY)
+                                      mock.ANY, 1)
 
     @mock.patch.object(conductor_steps, 'validate_deploy_templates',
                        autospec=True)
