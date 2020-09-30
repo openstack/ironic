@@ -290,6 +290,14 @@ class MigrateFromIscsiTestCase(base.DbTestCase):
         self.assertEqual(
             (0, 0), self.dbapi.migrate_from_iscsi_deploy(self.context, 0))
 
+    def test_migration_impossible3(self):
+        self.config(default_deploy_interface='iscsi')
+        for _i in range(3):
+            uuid = uuidutils.generate_uuid()
+            utils.create_test_node(uuid=uuid, deploy_interface='iscsi')
+        self.assertEqual(
+            (0, 0), self.dbapi.migrate_from_iscsi_deploy(self.context, 0))
+
     def test_force_migration(self):
         self.config(enabled_deploy_interfaces='iscsi')
         utils.create_test_node(deploy_interface='direct')
