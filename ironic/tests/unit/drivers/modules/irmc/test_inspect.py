@@ -18,6 +18,8 @@ Test class for iRMC Inspection Driver
 
 from unittest import mock
 
+from pysnmp.proto import rfc1902
+
 from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
@@ -38,12 +40,23 @@ class IRMCInspectInternalMethodsTestCase(test_common.BaseIRMCTest):
     @mock.patch('ironic.drivers.modules.irmc.inspect.snmp.SNMPClient',
                 spec_set=True, autospec=True)
     def test__get_mac_addresses(self, snmpclient_mock):
+
+        # NOTE(yushiro): In pysnmp 4.4.12, SNMPClient returns following type:
+        # node classes: pysnmp.proto.rfc1902.Integer32
+        # mac addresses: pysnmp.proto.rfc1902.OctetString
         snmpclient_mock.return_value = mock.Mock(
-            **{'get_next.side_effect': [[2, 2, 7],
-                                        ['\xaa\xaa\xaa\xaa\xaa\xaa',
-                                         '\xbb\xbb\xbb\xbb\xbb\xbb',
-                                         '\xcc\xcc\xcc\xcc\xcc\xcc']]})
-        inspected_macs = ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb']
+            **{'get_next.side_effect': [
+                [
+                    rfc1902.Integer32(2),
+                    rfc1902.Integer32(2),
+                    rfc1902.Integer32(7)
+                ], [
+                    rfc1902.OctetString('\x90\x1b\x0e\xa5\x70\x37'),
+                    rfc1902.OctetString('\x90\x1b\x0e\xa5\x70\x38'),
+                    rfc1902.OctetString('\x90\x1b\x0e\xa5\x70\x39')
+                ]]}
+        )
+        inspected_macs = ['90:1b:0e:a5:70:37', '90:1b:0e:a5:70:38']
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             result = irmc_inspect._get_mac_addresses(task.node)

@@ -16,6 +16,7 @@ testtools>=2.2.0 # MIT
 WebTest>=2.0.27 # MIT
 bashate>=0.5.1 # Apache-2.0
 pycodestyle>=2.0.0,<2.6.0 # MIT
+pysnmp>=4.4.12
 flake8-import-order>=0.17.1 # LGPLv3
 Pygments>=2.2.0 # BSD
 bandit!=1.6.0,>=1.1.0,<2.0.0 # Apache-2.0
