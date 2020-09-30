@@ -15,7 +15,6 @@
 import contextlib
 import crypt
 import datetime
-from distutils.version import StrictVersion
 import functools
 import os
 import secrets
@@ -1171,17 +1170,6 @@ def is_agent_token_valid(node, token):
         return False
     known_token = node.driver_internal_info.get('agent_secret_token', None)
     return known_token == token
-
-
-def is_agent_token_supported(agent_version):
-    # NOTE(TheJulia): This is hoped that 6.x supports
-    # agent token capabilities and realistically needs to be updated
-    # once that version of IPA is out there in some shape or form.
-    # This allows us to gracefully allow older agent's that were
-    # launched via pre-generated agent_tokens, to still work
-    # and could likely be removed at some point down the road.
-    version = str(agent_version).replace('.dev', 'b', 1)
-    return StrictVersion(version) > StrictVersion('6.1.0')
 
 
 def is_agent_token_pregenerated(node):

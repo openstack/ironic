@@ -1,0 +1,8 @@
+---
+other:
+  - |
+    The ironic conductor internal logic has been updated to return an error if
+    no agent version has been submitted during a heartbeat. This is because
+    versions have been transmitted by the agents for quite some time and
+    support for the default use of agent token forces all agents to be
+    updated. As such redundant code been removed and tests updated accordingly.
