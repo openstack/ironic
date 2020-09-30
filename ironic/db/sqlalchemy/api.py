@@ -1546,6 +1546,12 @@ class Connection(api.Connection):
                             'force=true to override.')
                 return 0, 0
 
+            if CONF.default_deploy_interface == 'iscsi':
+                LOG.warning('The iscsi deploy interface is the default, will '
+                            'not migrate nodes away from it. Run with '
+                            '--option force=true to override.')
+                return 0, 0
+
             if CONF.agent.image_download_source == 'swift':
                 LOG.warning('The direct deploy interface is using swift, will '
                             'not migrate nodes to it. Run with --option '
