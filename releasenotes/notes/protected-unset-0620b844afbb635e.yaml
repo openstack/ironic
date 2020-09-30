@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes HTTP 500 when trying to unset the ``protected`` attribute via
+    the CLI.

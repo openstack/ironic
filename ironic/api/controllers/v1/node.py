@@ -1988,6 +1988,9 @@ class NodesController(rest.RestController):
             # of just before saving so we calculate correctly.
             if field == 'conductor_group':
                 patch_val = patch_val.lower()
+            # Node object protected field is not nullable
+            if field == 'protected' and patch_val is None:
+                patch_val = False
             if rpc_node[field] != patch_val:
                 rpc_node[field] = patch_val
 
