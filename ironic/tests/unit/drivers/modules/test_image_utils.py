@@ -30,6 +30,7 @@ from ironic.tests.unit.objects import utils as obj_utils
 sushy = importutils.try_import('sushy')
 
 INFO_DICT = db_utils.get_test_redfish_info()
+INFO_DICT_ILO = db_utils.get_test_ilo_info()
 
 
 class RedfishImageHandlerTestCase(db_base.DbTestCase):
@@ -100,19 +101,15 @@ class RedfishImageHandlerTestCase(db_base.DbTestCase):
             mock_swift_api.delete_object.assert_called_once_with(
                 'ironic_redfish_container', object_name)
 
-    @mock.patch.object(image_utils.ImageHandler, '_is_swift_enabled',
-                       autospec=True)
     @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch.object(image_utils, 'shutil', autospec=True)
     @mock.patch.object(os, 'link', autospec=True)
     @mock.patch.object(os, 'mkdir', autospec=True)
     def test_publish_image_local_link(
-            self, mock_mkdir, mock_link, mock_shutil, mock_chmod,
-            mock__is_swift):
-        img_handler_obj = image_utils.ImageHandler(self.node.driver)
-        mock__is_swift.return_value = False
+            self, mock_mkdir, mock_link, mock_shutil, mock_chmod):
         self.config(use_swift=False, group='redfish')
         self.config(http_url='http://localhost', group='deploy')
+        img_handler_obj = image_utils.ImageHandler(self.node.driver)
 
         url = img_handler_obj.publish_image('file.iso', 'boot.iso')
 
@@ -124,16 +121,12 @@ class RedfishImageHandlerTestCase(db_base.DbTestCase):
             'file.iso', '/httpboot/redfish/boot.iso')
         mock_chmod.assert_called_once_with('file.iso', 0o644)
 
-    @mock.patch.object(image_utils.ImageHandler, '_is_swift_enabled',
-                       autospec=True)
     @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch.object(image_utils, 'shutil', autospec=True)
     @mock.patch.object(os, 'link', autospec=True)
     @mock.patch.object(os, 'mkdir', autospec=True)
     def test_publish_image_local_copy(self, mock_mkdir, mock_link,
-                                      mock_shutil, mock_chmod,
-                                      mock__is_swift):
-        mock__is_swift.return_value = False
+                                      mock_shutil, mock_chmod):
         self.config(use_swift=False, group='redfish')
         self.config(http_url='http://localhost', group='deploy')
         img_handler_obj = image_utils.ImageHandler(self.node.driver)
@@ -152,12 +145,9 @@ class RedfishImageHandlerTestCase(db_base.DbTestCase):
         mock_chmod.assert_called_once_with('/httpboot/redfish/boot.iso',
                                            0o644)
 
-    @mock.patch.object(image_utils.ImageHandler, '_is_swift_enabled',
-                       autospec=True)
     @mock.patch.object(image_utils, 'ironic_utils', autospec=True)
-    def test_unpublish_image_local(self, mock_ironic_utils, mock__is_swift):
+    def test_unpublish_image_local(self, mock_ironic_utils):
         self.config(use_swift=False, group='redfish')
-        mock__is_swift.return_value = False
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             img_handler_obj = image_utils.ImageHandler(self.node.driver)
@@ -169,6 +159,50 @@ class RedfishImageHandlerTestCase(db_base.DbTestCase):
 
             mock_ironic_utils.unlink_without_raise.assert_called_once_with(
                 expected_file)
+
+
+class IloImageHandlerTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(IloImageHandlerTestCase, self).setUp()
+        self.config(enabled_hardware_types=['ilo'],
+                    enabled_power_interfaces=['ilo'],
+                    enabled_boot_interfaces=['ilo-virtual-media'],
+                    enabled_management_interfaces=['ilo'],
+                    enabled_inspect_interfaces=['ilo'],
+                    enabled_bios_interfaces=['ilo'])
+        self.node = obj_utils.create_test_node(
+            self.context, driver='ilo', driver_info=INFO_DICT_ILO)
+
+    def test_ilo_kernel_param_config(self):
+        self.config(kernel_append_params="console=ttyS1", group='ilo')
+        img_handler_obj = image_utils.ImageHandler(self.node.driver)
+        actual_k_param = img_handler_obj.kernel_params
+        expected_k_param = "console=ttyS1"
+
+        self.assertEqual(expected_k_param, actual_k_param)
+
+
+class Ilo5ImageHandlerTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(Ilo5ImageHandlerTestCase, self).setUp()
+        self.config(enabled_hardware_types=['ilo5'],
+                    enabled_power_interfaces=['ilo'],
+                    enabled_boot_interfaces=['ilo-virtual-media'],
+                    enabled_management_interfaces=['ilo5'],
+                    enabled_inspect_interfaces=['ilo'],
+                    enabled_bios_interfaces=['ilo'])
+        self.node = obj_utils.create_test_node(
+            self.context, driver='ilo5', driver_info=INFO_DICT_ILO)
+
+    def test_ilo5_kernel_param_config(self):
+        self.config(kernel_append_params="console=ttyS1", group='ilo')
+        img_handler_obj = image_utils.ImageHandler(self.node.driver)
+        actual_k_param = img_handler_obj.kernel_params
+        expected_k_param = "console=ttyS1"
+
+        self.assertEqual(expected_k_param, actual_k_param)
 
 
 class RedfishImageUtilsTestCase(db_base.DbTestCase):

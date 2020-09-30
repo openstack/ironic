@@ -39,55 +39,53 @@ LOG = log.getLogger(__name__)
 
 class ImageHandler(object):
 
-    _SWIFT_MAP = {
-        "redfish": {
-            "swift_enabled": CONF.redfish.use_swift,
-            "container": CONF.redfish.swift_container,
-            "timeout": CONF.redfish.swift_object_expiry_timeout,
-            "image_subdir": "redfish",
-            "file_permission": CONF.redfish.file_permission,
-            "kernel_params": CONF.redfish.kernel_append_params
-        },
-        "idrac": {
-            "swift_enabled": CONF.redfish.use_swift,
-            "container": CONF.redfish.swift_container,
-            "timeout": CONF.redfish.swift_object_expiry_timeout,
-            "image_subdir": "redfish",
-            "file_permission": CONF.redfish.file_permission,
-            "kernel_params": CONF.redfish.kernel_append_params
-        },
-        "ilo5": {
-            "swift_enabled": not CONF.ilo.use_web_server_for_images,
-            "container": CONF.ilo.swift_ilo_container,
-            "timeout": CONF.ilo.swift_object_expiry_timeout,
-            "image_subdir": "ilo",
-            "file_permission": CONF.ilo.file_permission,
-            "kernel_params": CONF.pxe.pxe_append_params
-        },
-        "ilo": {
-            "swift_enabled": not CONF.ilo.use_web_server_for_images,
-            "container": CONF.ilo.swift_ilo_container,
-            "timeout": CONF.ilo.swift_object_expiry_timeout,
-            "image_subdir": "ilo",
-            "file_permission": CONF.ilo.file_permission,
-            "kernel_params": CONF.pxe.pxe_append_params
-        },
-    }
-
     def __init__(self, driver):
-        self._driver = driver
-        self._container = self._SWIFT_MAP[driver].get("container")
-        self._timeout = self._SWIFT_MAP[driver].get("timeout")
-        self._image_subdir = self._SWIFT_MAP[driver].get("image_subdir")
-        self._file_permission = self._SWIFT_MAP[driver].get("file_permission")
-        # To get the kernel parameters
-        self.kernel_params = self._SWIFT_MAP[driver].get("kernel_params")
+        self.update_driver_config(driver)
 
-    def _is_swift_enabled(self):
-        try:
-            return self._SWIFT_MAP[self._driver].get("swift_enabled")
-        except KeyError:
-            return False
+    def update_driver_config(self, driver):
+        _SWIFT_MAP = {
+            "redfish": {
+                "swift_enabled": CONF.redfish.use_swift,
+                "container": CONF.redfish.swift_container,
+                "timeout": CONF.redfish.swift_object_expiry_timeout,
+                "image_subdir": "redfish",
+                "file_permission": CONF.redfish.file_permission,
+                "kernel_params": CONF.redfish.kernel_append_params
+            },
+            "idrac": {
+                "swift_enabled": CONF.redfish.use_swift,
+                "container": CONF.redfish.swift_container,
+                "timeout": CONF.redfish.swift_object_expiry_timeout,
+                "image_subdir": "redfish",
+                "file_permission": CONF.redfish.file_permission,
+                "kernel_params": CONF.redfish.kernel_append_params
+            },
+            "ilo5": {
+                "swift_enabled": not CONF.ilo.use_web_server_for_images,
+                "container": CONF.ilo.swift_ilo_container,
+                "timeout": CONF.ilo.swift_object_expiry_timeout,
+                "image_subdir": "ilo",
+                "file_permission": CONF.ilo.file_permission,
+                "kernel_params": CONF.ilo.kernel_append_params
+            },
+            "ilo": {
+                "swift_enabled": not CONF.ilo.use_web_server_for_images,
+                "container": CONF.ilo.swift_ilo_container,
+                "timeout": CONF.ilo.swift_object_expiry_timeout,
+                "image_subdir": "ilo",
+                "file_permission": CONF.ilo.file_permission,
+                "kernel_params": CONF.ilo.kernel_append_params
+            },
+        }
+
+        self._driver = driver
+        self.swift_enabled = _SWIFT_MAP[driver].get("swift_enabled")
+        self._container = _SWIFT_MAP[driver].get("container")
+        self._timeout = _SWIFT_MAP[driver].get("timeout")
+        self._image_subdir = _SWIFT_MAP[driver].get("image_subdir")
+        self._file_permission = _SWIFT_MAP[driver].get("file_permission")
+        # To get the kernel parameters
+        self.kernel_params = _SWIFT_MAP[driver].get("kernel_params")
 
     def unpublish_image(self, object_name):
         """Withdraw the image previously made downloadable.
@@ -98,7 +96,7 @@ class ImageHandler(object):
 
         :param object_name: name of the published file (optional)
         """
-        if self._is_swift_enabled():
+        if self.swift_enabled:
             container = self._container
 
             swift_api = swift.SwiftAPI()
@@ -179,7 +177,7 @@ class ImageHandler(object):
         :return: a URL to download published file
         """
 
-        if self._is_swift_enabled():
+        if self.swift_enabled:
             container = self._container
             timeout = self._timeout
 

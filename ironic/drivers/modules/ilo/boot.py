@@ -78,7 +78,17 @@ OPTIONAL_PROPERTIES = {
                               "certificates require to be added to the "
                               "iLO.")
 }
+KERNEL_PARAM_PROPERTIES = {
+    'ilo_kernel_append_params': _("Additional kernel parameters to pass down "
+                                  "to instance kernel. These parameters can "
+                                  "be consumed by the kernel or by the "
+                                  "applications by reading /proc/cmdline. "
+                                  "Mind severe cmdline size limit. Overrides "
+                                  "[ilo]/kernel_append_params ironic option.")
+}
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
+VMEDIA_OPTIONAL_PROPERTIES = OPTIONAL_PROPERTIES.copy()
+VMEDIA_OPTIONAL_PROPERTIES.update(KERNEL_PARAM_PROPERTIES)
 
 KERNEL_RAMDISK_LABELS = {
     'deploy': REQUIRED_PROPERTIES_UEFI_HTTPS_BOOT,
@@ -127,7 +137,7 @@ def parse_driver_info(node, mode='deploy'):
 
     d_info.update(
         {k: info.get(k, getattr(CONF.conductor, k.replace('ilo_', ''), None))
-         for k in OPTIONAL_PROPERTIES})
+         for k in VMEDIA_OPTIONAL_PROPERTIES})
     d_info.pop('ilo_add_certificates', None)
 
     return d_info
@@ -925,6 +935,10 @@ class IloUefiHttpsBoot(base.BootInterface):
         error_msg = (_("Error validating %s for iLO UEFI HTTPS boot. Some "
                        "parameters were missing in node's driver_info") % mode)
         deploy_utils.check_for_missing_params(deploy_info, error_msg)
+
+        deploy_info.update(
+            {k: info.get(k, getattr(CONF.ilo, k.replace('ilo_', ''), None))
+             for k in KERNEL_PARAM_PROPERTIES})
 
         deploy_info.update(ilo_common.parse_driver_info(node))
 
