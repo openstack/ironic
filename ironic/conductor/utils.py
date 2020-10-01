@@ -241,11 +241,10 @@ def _can_skip_state_change(task, new_state):
         if new_state in (states.POWER_OFF, states.SOFT_POWER_OFF):
             _not_going_to_change()
             return True
-    else:
-        # if curr_state == states.ERROR:
-        # be optimistic and continue action
-        LOG.warning("Driver returns ERROR power state for node %s.",
-                    node.uuid)
+
+    LOG.info("Node %(node)s current power state is '%(state)s', "
+             "requested state is '%(new_state)s'.",
+             {'node': node.uuid, 'state': curr_state, 'new_state': new_state})
     return False
 
 
