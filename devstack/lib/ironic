@@ -794,8 +794,18 @@ function is_deployed_by_xclarity {
     return 1
 }
 
+function is_deployed_by_ibmc {
+    [[ "$IRONIC_DEPLOY_DRIVER" == ibmc ]] && return 0
+    return 1
+}
+
 function is_drac_enabled {
     [[ -z "${IRONIC_ENABLED_HARDWARE_TYPES%%*idrac*}" ]] && return 0
+    return 1
+}
+
+function is_ibmc_enabled {
+    [[ -z "${IRONIC_ENABLED_HARDWARE_TYPES%%*ibmc*}" ]] && return 0
     return 1
 }
 
@@ -1135,6 +1145,10 @@ function install_ironic {
 
     if is_drac_enabled; then
         pip_install python-dracclient
+    fi
+
+    if is_ibmc_enabled; then
+        pip_install python-ibmcclient
     fi
 
     if is_ansible_deploy_enabled; then
@@ -2414,6 +2428,11 @@ function enroll_nodes {
                     --driver-info xclarity_password=$bmc_passwd \
                     --driver-info xclarity_username=$bmc_username \
                     --driver-info xclarity_hardware_id=$xclarity_hardware_id"
+            elif is_deployed_by_ibmc; then
+                node_options+=" --driver-info ibmc_address=$bmc_address \
+                    --driver-info ibmc_username=$bmc_username \
+                    --driver-info ibmc_password=$bmc_passwd \
+                    --driver-info ibmc_verify_ca=False"
             fi
 
             interface_info="${mac_address}"
