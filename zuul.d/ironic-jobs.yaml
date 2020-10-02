@@ -238,6 +238,7 @@
     parent: ironic-base
     timeout: 5400
     vars:
+      tempest_test_regex: test_baremetal_server_ops_partition_image
       devstack_localrc:
         IRONIC_ENABLED_HARDWARE_TYPES: snmp
         IRONIC_DEPLOY_DRIVER: snmp
@@ -251,6 +252,7 @@
     parent: ironic-base
     timeout: 5400
     vars:
+      tempest_test_regex: test_baremetal_server_ops_partition_image
       devstack_localrc:
         IRONIC_BOOT_MODE: uefi
         IRONIC_VM_SPECS_RAM: 333096
@@ -328,6 +330,7 @@
     parent: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool
     timeout: 5400
     vars:
+      tempest_test_regex: test_baremetal_server_ops_wholedisk_image
       devstack_localrc:
         IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
