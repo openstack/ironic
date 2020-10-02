@@ -112,7 +112,10 @@ class HashRingManagerTestCase(db_base.DbTestCase):
         # since there is an active conductor for the requested hardware type.
         self.assertEqual(1, len(ring))
 
-        self.ring_manager.updated_at = time.time() - 31
+        self.ring_manager.__class__._hash_rings = (
+            self.ring_manager.__class__._hash_rings[0],
+            time.time() - 31
+        )
         ring = self.ring_manager.get_ring('hardware-type', '')
         self.assertEqual(2, len(ring))
 
@@ -121,7 +124,7 @@ class HashRingManagerTestCase(db_base.DbTestCase):
                                              use_groups=self.use_groups)
         ring = ring_mgr.ring
         self.assertIsNotNone(ring)
-        self.assertIsNone(hash_ring.HashRingManager._hash_rings)
+        self.assertEqual((None, 0), hash_ring.HashRingManager._hash_rings)
 
 
 class HashRingManagerWithGroupsTestCase(HashRingManagerTestCase):
