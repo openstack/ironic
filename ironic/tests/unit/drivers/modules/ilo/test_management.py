@@ -1373,8 +1373,9 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
                               task, erase_pattern={'ssd': 'xyz'})
 
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
-    @mock.patch.object(ilo_management.Ilo5Management, '_set_clean_failed')
-    def test_erase_devices_hdd_ilo_error(self, set_clean_failed_mock,
+    @mock.patch.object(manager_utils, 'cleaning_error_handler',
+                       autospec=True)
+    def test_erase_devices_hdd_ilo_error(self, clean_err_handler_mock,
                                          ilo_mock):
         ilo_mock_object = ilo_mock.return_value
         ilo_mock_object.get_available_disk_types.return_value = ['HDD']
@@ -1393,5 +1394,4 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
                              task.node.driver_internal_info)
             self.assertNotIn('skip_current_clean_step',
                              task.node.driver_internal_info)
-            set_clean_failed_mock.assert_called_once_with(
-                task, exc)
+            clean_err_handler_mock.assert_called_once_with(task, exc)

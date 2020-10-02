@@ -701,13 +701,6 @@ class Ilo5Management(IloManagement):
         task.node.driver_internal_info = driver_internal_info
         task.node.save()
 
-    def _set_clean_failed(self, task, msg):
-        LOG.error("Out-of-band sanitize disk erase job failed for node "
-                  "%(node)s. Message: '%(message)s'.",
-                  {'node': task.node.uuid, 'message': msg})
-        task.node.last_error = msg
-        task.process_event('fail')
-
     def _wait_for_disk_erase_status(self, node):
         """Wait for out-of-band sanitize disk erase to be completed."""
         interval = CONF.ilo.oob_erase_devices_job_status_interval
@@ -842,4 +835,4 @@ class Ilo5Management(IloManagement):
                                              'ilo_disk_erase_ssd_check',
                                              'cleaning_reboot',
                                              'skip_current_clean_step')
-            self._set_clean_failed(task, ilo_exception)
+            manager_utils.cleaning_error_handler(task, ilo_exception)
