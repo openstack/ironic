@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes ``idrac-wsman`` BIOS ``apply_configuration`` and ``factory_reset``
+    clean and deploy steps to fail correctly in case of error when checking
+    completed jobs. Before the fix when BIOS job failed, then node clean or
+    deploy failed with timeout instead of actual error in cleaning or
+    deploying step.

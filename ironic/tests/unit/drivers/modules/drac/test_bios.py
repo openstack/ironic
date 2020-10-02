@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2015-2016 Dell Inc. or its subsidiaries.
+# Copyright (c) 2015-2021 Dell Inc. or its subsidiaries.
 # All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -26,6 +26,7 @@ from dracclient import exceptions as drac_exceptions
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.drac import bios as drac_bios
 from ironic.drivers.modules.drac import common as drac_common
@@ -237,6 +238,85 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.DracOperationError,
                               task.driver.bios.factory_reset, task)
+
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+                       autospec=True)
+    @mock.patch.object(drac_job, 'get_job', spec_set=True,
+                       autospec=True)
+    def test__check_node_bios_jobs(self, mock_get_job,
+                                   mock_notify_conductor_resume_clean):
+        mock_job = mock.Mock()
+        mock_job.status = 'Completed'
+        mock_get_job.return_value = mock_job
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['bios_config_job_ids'] = ['123', '789']
+            task.node.driver_internal_info = driver_internal_info
+            task.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                    'step': 'factory_reset', 'argsinfo': {}}
+            task.node.save()
+            mock_cache = mock.Mock()
+            task.driver.bios.cache_bios_settings = mock_cache
+
+            task.driver.bios._check_node_bios_jobs(task)
+
+            self.assertEqual([], task.node.driver_internal_info.get(
+                'bios_config_job_ids'))
+            mock_cache.assert_called_once_with(task)
+            mock_notify_conductor_resume_clean.assert_called_once_with(task)
+
+    @mock.patch.object(drac_job, 'get_job', spec_set=True,
+                       autospec=True)
+    def test__check_node_bios_jobs_still_running(self, mock_get_job):
+        mock_job = mock.Mock()
+        mock_job.status = 'Running'
+        mock_get_job.return_value = mock_job
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['bios_config_job_ids'] = ['123']
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            mock_resume = mock.Mock()
+            task.driver.bios._resume_current_operation = mock_resume
+            mock_cache = mock.Mock()
+            task.driver.bios.cache_bios_settings = mock_cache
+
+            task.driver.bios._check_node_bios_jobs(task)
+
+            self.assertEqual(['123'],
+                             task.node.driver_internal_info.get(
+                                 'bios_config_job_ids'))
+            mock_cache.assert_not_called()
+            mock_resume.assert_not_called()
+
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(drac_job, 'get_job', spec_set=True,
+                       autospec=True)
+    def test__check_node_bios_jobs_failed(self, mock_get_job,
+                                          mock_cleaning_error_handler):
+        mock_job = mock.Mock()
+        mock_job.status = 'Failed'
+        mock_job.id = '123'
+        mock_job.message = 'Invalid'
+        mock_get_job.return_value = mock_job
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['bios_config_job_ids'] = ['123']
+            task.node.driver_internal_info = driver_internal_info
+            task.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                    'step': 'factory_reset', 'argsinfo': {}}
+            task.node.save()
+
+            task.driver.bios._check_node_bios_jobs(task)
+
+            self.assertEqual([],
+                             task.node.driver_internal_info.get(
+                                 'bios_config_job_ids'))
+            mock_cleaning_error_handler.assert_called_once_with(
+                task, mock.ANY, "Failed config job: 123. Message: 'Invalid'.")
 
 
 class DracBIOSConfigurationTestCase(test_utils.BaseDracTest):
