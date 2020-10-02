@@ -257,25 +257,33 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
         task.process_event('wait')
 
     def _get_uuid_from_result(self, task, type_uuid):
-        command = self._client.get_commands_status(task.node)[-1]
+        command = self._client.get_last_command_status(task.node,
+                                                       'prepare_image')
+        if (not command
+                or not command.get('command_result', {}).get('result')):
+            msg = _('Unexpected response from the agent for node %s: the '
+                    'running command list does not include prepare_image '
+                    'or its result is malformed') % task.node.uuid
+            LOG.error(msg)
+            deploy_utils.set_failed_state(task, msg)
+            return
 
-        if command['command_result'] is not None:
-            words = command['command_result']['result'].split()
-            for word in words:
-                if type_uuid in word:
-                    result = word.split('=')[1]
-                    if not result:
-                        msg = (_('Command result did not return %(type_uuid)s '
-                                 'for node %(node)s. The version of the IPA '
-                                 'ramdisk used in the deployment might not '
-                                 'have support for provisioning of '
-                                 'partition images.') %
-                               {'type_uuid': type_uuid,
-                                'node': task.node.uuid})
-                        LOG.error(msg)
-                        deploy_utils.set_failed_state(task, msg)
-                        return
-                    return result
+        words = command['command_result']['result'].split()
+        for word in words:
+            if type_uuid in word:
+                result = word.split('=')[1]
+                if not result:
+                    msg = (_('Command result did not return %(type_uuid)s '
+                             'for node %(node)s. The version of the IPA '
+                             'ramdisk used in the deployment might not '
+                             'have support for provisioning of '
+                             'partition images.') %
+                           {'type_uuid': type_uuid,
+                            'node': task.node.uuid})
+                    LOG.error(msg)
+                    deploy_utils.set_failed_state(task, msg)
+                    return
+                return result
 
     @METRICS.timer('AgentDeployMixin.check_deploy_success')
     def check_deploy_success(self, node):
