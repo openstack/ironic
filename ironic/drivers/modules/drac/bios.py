@@ -261,14 +261,18 @@ class DracWSManBIOS(base.BIOSInterface):
         :param task: a TaskManager instance with node to act on
         :param config_job: a python-dracclient Job object (named tuple)
         """
-        LOG.error("BIOS configuration job failed for node %(node)s. "
-                  "Failed config job: %(config_job_id)s. "
-                  "Message: '%(message)s'.",
-                  {'node': task.node_uuid, 'config_job_id': config_job.id,
-                   'message': config_job.message})
-        task.node.last_error = config_job.message
-        # tell conductor to handle failure of clean/deploy step
-        task.process_event('fail')
+        error_msg = (_("Failed config job: %(config_job_id)s. "
+                       "Message: '%(message)s'.") %
+                     {'config_job_id': config_job.id,
+                      'message': config_job.message})
+        log_msg = ("BIOS configuration job failed for node %(node)s. "
+                   "%(error)s " %
+                   {'node': task.node.uuid,
+                    'error': error_msg})
+        if task.node.clean_step:
+            manager_utils.cleaning_error_handler(task, log_msg, error_msg)
+        else:
+            manager_utils.deploying_error_handler(task, log_msg, error_msg)
 
     def _resume_current_operation(self, task):
         """Continue cleaning/deployment of the node.
