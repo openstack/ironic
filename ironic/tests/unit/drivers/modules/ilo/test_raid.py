@@ -387,38 +387,46 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_create_configuration_skip_root_skip_non_root()
 
-    @mock.patch.object(ilo_raid.Ilo5RAID, '_set_step_failed')
+    @mock.patch.object(manager_utils, 'cleaning_error_handler',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'deploying_error_handler',
+                       autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def _test_create_configuration_ilo_error(self, ilo_mock,
-                                             set_step_failed_mock):
+                                             deploy_err_handler_mock,
+                                             clean_err_handler_mock):
         ilo_mock_object = ilo_mock.return_value
         exc = ilo_error.IloError('error')
         ilo_mock_object.create_raid_configuration.side_effect = exc
+        msg = ('Failed to create raid configuration on '
+               'node %s' % self.node.uuid)
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.raid.create_configuration(
                 task, create_nonroot_volumes=False)
-            set_step_failed_mock.assert_called_once_with(
-                task,
-                'Failed to create raid configuration '
-                'on node %s' % self.node.uuid, exc)
             self.assertNotIn('ilo_raid_create_in_progress',
                              task.node.driver_internal_info)
             if task.node.clean_step:
                 self.assertNotIn('skip_current_clean_step',
                                  task.node.driver_internal_info)
+                clean_err_handler_mock.assert_called_once_with(
+                    task, msg)
             else:
                 self.assertNotIn('skip_current_deploy_step',
                                  task.node.driver_internal_info)
+                deploy_err_handler_mock.assert_called_once_with(
+                    task, msg, msg)
 
     def test_create_configuration_ilo_error_cleaning(self):
         self.node.clean_step = {'step': 'create_configuration',
                                 'interface': 'raid'}
+        self.node.provision_state = states.CLEANING
         self.node.save()
         self._test_create_configuration_ilo_error()
 
     def test_create_configuration_ilo_error_cleaning_deploying(self):
         self.node.deploy_step = {'step': 'create_configuration',
                                  'interface': 'raid'}
+        self.node.provision_state = states.DEPLOYING
         self.node.save()
         self._test_create_configuration_ilo_error()
 

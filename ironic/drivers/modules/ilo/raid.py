@@ -72,8 +72,10 @@ class Ilo5RAID(base.RAIDInterface):
         LOG.error("RAID configuration job failed for node %(node)s. "
                   "Message: '%(message)s'.",
                   {'node': task.node.uuid, 'message': msg})
-        task.node.last_error = msg
-        task.process_event('fail')
+        if task.node.provision_state == states.DEPLOYING:
+            manager_utils.deploying_error_handler(task, msg, msg)
+        else:
+            manager_utils.cleaning_error_handler(task, msg)
 
     def _set_driver_internal_true_value(self, task, *keys):
         driver_internal_info = task.node.driver_internal_info
