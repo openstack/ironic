@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes ``idrac-wsman`` RAID ``create_configuration`` clean step,
+    ``apply_configuration`` deploy step and ``delete_configuration`` clean and
+    deploy step to fail correctly in case of error when checking completed
+    jobs. Before the fix when RAID job failed, then node cleaning or deploying
+    failed with timeout instead of actual error in clean or deploy step.
