@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes ``redfish`` BIOS ``apply_configuration`` clean and deploy step to
+    fail correctly in case of error when checking if BIOS updates are
+    successfully applied. Before the fix when BIOS updates were unsuccessful,
+    then node cleaning or deploying failed with timeout instead of actual error
+    in clean or deploy step.

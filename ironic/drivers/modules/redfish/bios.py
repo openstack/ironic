@@ -332,8 +332,8 @@ class RedfishBIOS(base.BIOSInterface):
         last_error = (_('Redfish BIOS apply_configuration step failed. '
                         'Attributes %(attrs)s are not updated.') %
                       {'attrs': attrs_not_updated})
-        LOG.error(error_msg)
-        task.node.last_error = last_error
-        if task.node.provision_state in [states.CLEANING, states.CLEANWAIT,
-                                         states.DEPLOYING, states.DEPLOYWAIT]:
-            task.process_event('fail')
+        if task.node.provision_state in [states.CLEANING, states.CLEANWAIT]:
+            LOG.error(error_msg)
+            manager_utils.cleaning_error_handler(task, last_error)
+        if task.node.provision_state in [states.DEPLOYING, states.DEPLOYWAIT]:
+            manager_utils.deploying_error_handler(task, error_msg, last_error)
