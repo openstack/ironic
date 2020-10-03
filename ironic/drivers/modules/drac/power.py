@@ -263,5 +263,6 @@ class DracPower(DracWSManPower):
     """
 
     def __init__(self):
+        super(DracPower, self).__init__()
         LOG.warning("Power interface 'idrac' is deprecated and may be removed "
                     "in a future release. Use 'idrac-wsman' instead.")
