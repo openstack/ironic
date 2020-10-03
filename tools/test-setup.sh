@@ -4,6 +4,12 @@
 # it sets up the test system as needed.
 # Developers should setup their test systems in a similar way.
 
+# Try starting mariadb
+sudo systemctl start mariadb || true
+# Try starting postgresql
+sudo postgresql-setup --initdb || true
+sudo systemctl start postgresql || true
+
 # This setup needs to be run as a user that can run sudo.
 
 # The root password for the MySQL database; pass it in via
@@ -37,6 +43,14 @@ mysql -u $DB_USER -p$DB_PW -h 127.0.0.1 -e "
 # POSTGRES_ROOT_PW.
 DB_ROOT_PW=${POSTGRES_ROOT_PW:-insecure_slave}
 
+# Change working directory to a folder all users can access
+# as psql on centos8 needs to be able to open the working directory
+# which it can't when executed as the postgres user, which is required
+# as same user as process for initial administrative authentication to
+# the postgres database
+
+cd /tmp
+
 # Setup user
 root_roles=$(sudo -H -u postgres psql -t -c "
     SELECT 'HERE' from pg_roles where rolname='$DB_USER'")
@@ -45,6 +59,15 @@ if [[ ${root_roles} == *HERE ]];then
 else
     sudo -H -u postgres psql -c "CREATE ROLE $DB_USER WITH SUPERUSER LOGIN PASSWORD '$DB_PW'"
 fi
+
+# Identify and update the postgres hba file which can be in
+# a version specific path.
+PG_HBA=$(sudo -H -u postgres psql -t -c "show hba_file")
+sudo sed -i 's/ident/trust/g' $PG_HBA
+sudo cat $PG_HBA
+# restart postgres fo new HBA file is loaded and our user trusted.
+sudo systemctl stop postgresql || true
+sudo systemctl start postgresql || true
 
 # Store password for tests
 cat << EOF > $HOME/.pgpass
