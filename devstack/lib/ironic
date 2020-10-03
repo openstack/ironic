@@ -258,7 +258,7 @@ fi
 
 # Prevent a case that will likely result in a failure.
 if [[ "$hostdomain" =~ "rax" ]]; then
-    if [[ "$IRONIC_RAMDISK_TYPE" == "dib" ]] && [[ "$IRONIC_BUILD_DEPLOY_RAMDISK" == "False" ]]; then
+    if [[ "$IRONIC_RAMDISK_TYPE" == "dib" ]]; then
         echo "** WARNING ** - DIB based IPA images have been defined, however we are running devstack on RAX VM. Due to virtualization constraints, we are automatically falling back to TinyIPA to ensure CI job passage."
         IRONIC_RAMDISK_TYPE="tinyipa"
     fi
