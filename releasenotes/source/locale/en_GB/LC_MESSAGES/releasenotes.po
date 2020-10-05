@@ -4,13 +4,13 @@
 # Andi Chandler <andi@gowling.com>, 2020. #zanata
 msgid ""
 msgstr ""
-"Project-Id-Version: ironic\n"
+"Project-Id-Version: Ironic Release Notes\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2020-04-30 16:14+0000\n"
+"POT-Creation-Date: 2020-10-02 19:10+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2020-04-07 08:15+0000\n"
+"PO-Revision-Date: 2020-06-15 05:32+0000\n"
 "Last-Translator: Andi Chandler <andi@gowling.com>\n"
 "Language-Team: English (United Kingdom)\n"
 "Language: en_GB\n"
@@ -139,6 +139,24 @@ msgstr "12.1.2"
 
 msgid "12.1.3"
 msgstr "12.1.3"
+
+msgid "12.1.4"
+msgstr "12.1.4"
+
+msgid "12.2.0"
+msgstr "12.2.0"
+
+msgid "13.0.0"
+msgstr "13.0.0"
+
+msgid "13.0.1"
+msgstr "13.0.1"
+
+msgid "13.0.2"
+msgstr "13.0.2"
+
+msgid "13.0.3"
+msgstr "13.0.3"
 
 msgid "4.2.2"
 msgstr "4.2.2"
@@ -1214,8 +1232,22 @@ msgstr "PXE drivers now support GRUB2"
 msgid "Pike Series (8.0.0 - 9.1.x) Release Notes"
 msgstr "Pike Series (8.0.0 - 9.1.x) Release Notes"
 
+msgid ""
+"Previously, all Nodes were created in the \"available\" provision state - "
+"before management credentials were validated, hardware was burned in, etc. "
+"This could lead to workloads being scheduled to Nodes that were not yet "
+"ready for it."
+msgstr ""
+"Previously, all Nodes were created in the \"available\" provision state - "
+"before management credentials were validated, hardware was burned in, etc. "
+"This could lead to workloads being scheduled to Nodes that were not yet "
+"ready for it."
+
 msgid "Queens Series (9.2.0 - 10.1.x) Release Notes"
 msgstr "Queens Series (9.2.0 - 10.1.x) Release Notes"
+
+msgid "Support for the new ENROLL workflow during Node creation"
+msgstr "Support for the new ENROLL workflow during Node creation"
 
 msgid "ipmitool driver supports IPMI v1.5"
 msgstr "ipmitool driver supports IPMI v1.5"
