@@ -288,8 +288,8 @@ def node_power_action(task, new_state, timeout=None):
     # NOTE(dtantsur): wipe token on shutting down, otherwise a reboot in
     # fast-track (or an accidentally booted agent) will cause subsequent
     # actions to fail.
-    if target_state in (states.POWER_OFF, states.SOFT_POWER_OFF,
-                        states.REBOOT, states.SOFT_REBOOT):
+    if new_state in (states.POWER_OFF, states.SOFT_POWER_OFF,
+                     states.REBOOT, states.SOFT_REBOOT):
         wipe_internal_info_on_power_off(node)
     node.save()
 
