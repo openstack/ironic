@@ -278,10 +278,13 @@ class NodePowerActionTestCase(db_base.DbTestCase):
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
     def test_node_power_action_power_reboot(self, get_power_mock, reboot_mock):
         """Test for reboot a node."""
+        dii = {'agent_secret_token': 'token',
+               'agent_cached_deploy_steps': ['steps']}
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
                                           driver='fake-hardware',
-                                          power_state=states.POWER_ON)
+                                          power_state=states.POWER_ON,
+                                          driver_internal_info=dii)
         task = task_manager.TaskManager(self.context, node.uuid)
 
         conductor_utils.node_power_action(task, states.REBOOT)
@@ -292,6 +295,7 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertEqual(states.POWER_ON, node['power_state'])
         self.assertIsNone(node['target_power_state'])
         self.assertIsNone(node['last_error'])
+        self.assertNotIn('agent_secret_token', node['driver_internal_info'])
 
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
     def test_node_power_action_invalid_state(self, get_power_mock):
