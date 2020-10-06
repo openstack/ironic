@@ -415,6 +415,9 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
                                  task.node.driver_internal_info)
                 clean_err_handler_mock.assert_called_once_with(
                     task,
+                    ("RAID configuration job failed for node %s. Message: "
+                     "'Failed to create raid configuration on node %s'." %
+                     (self.node.uuid, self.node.uuid)),
                     'Failed to create raid configuration '
                     'on node %s' % self.node.uuid)
             else:
@@ -422,6 +425,9 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
                                  task.node.driver_internal_info)
                 deploy_err_handler_mock.assert_called_once_with(
                     task,
+                    ("RAID configuration job failed for node %s. Message: "
+                     "'Failed to create raid configuration on node %s'." %
+                     (self.node.uuid, self.node.uuid)),
                     'Failed to create raid configuration '
                     'on node %s' % self.node.uuid)
 

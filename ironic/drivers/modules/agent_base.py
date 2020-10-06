@@ -203,12 +203,14 @@ def _post_step_reboot(task, step_type):
                 'node': task.node.uuid,
                 'err': e,
                 'type': step_type})
-        LOG.error(msg, exc_info=not isinstance(e, exception.IronicException))
+        traceback = not isinstance(e, exception.IronicException)
         # do not set cleaning_reboot if we didn't reboot
         if step_type == 'clean':
-            manager_utils.cleaning_error_handler(task, msg)
+            manager_utils.cleaning_error_handler(task, msg,
+                                                 traceback=traceback)
         else:
-            manager_utils.deploying_error_handler(task, msg)
+            manager_utils.deploying_error_handler(task, msg,
+                                                  traceback=traceback)
         return
 
     # Signify that we've rebooted
@@ -387,13 +389,13 @@ def execute_clean_step(task, step):
     return execute_step(task, step, 'clean')
 
 
-def _step_failure_handler(task, msg, step_type):
+def _step_failure_handler(task, msg, step_type, traceback=False):
     driver_utils.collect_ramdisk_logs(
         task.node, label='cleaning' if step_type == 'clean' else None)
     if step_type == 'clean':
-        manager_utils.cleaning_error_handler(task, msg)
+        manager_utils.cleaning_error_handler(task, msg, traceback=traceback)
     else:
-        manager_utils.deploying_error_handler(task, msg)
+        manager_utils.deploying_error_handler(task, msg, traceback=traceback)
 
 
 class HeartbeatMixin(object):
@@ -495,10 +497,11 @@ class HeartbeatMixin(object):
         node = task.node
         if (node.provision_state in (states.CLEANING, states.CLEANWAIT)
                 and not CONF.conductor.allow_provisioning_in_maintenance):
-            LOG.error('Aborting cleaning for node %s, as it is in maintenance '
-                      'mode', node.uuid)
+            log_msg = ('Aborting cleaning for node %s, as it is in '
+                       'maintenance mode' % node.uuid)
             last_error = _('Cleaning aborted as node is in maintenance mode')
-            manager_utils.cleaning_error_handler(task, last_error)
+            manager_utils.cleaning_error_handler(task, log_msg,
+                                                 errmsg=last_error)
         elif (node.provision_state in (states.DEPLOYING, states.DEPLOYWAIT)
               and not CONF.conductor.allow_provisioning_in_maintenance):
             LOG.error('Aborting deployment for node %s, as it is in '
@@ -589,10 +592,11 @@ class HeartbeatMixin(object):
                     self.continue_cleaning(task)
         except Exception as e:
             last_error = _('%(msg)s. Error: %(exc)s') % {'msg': msg, 'exc': e}
-            LOG.exception('Asynchronous exception for node %(node)s: %(err)s',
-                          {'node': task.node.uuid, 'err': last_error})
+            log_msg = ('Asynchronous exception for node %(node)s: %(err)s' %
+                       {'node': task.node.uuid, 'err': last_error})
             if node.provision_state in (states.CLEANING, states.CLEANWAIT):
-                manager_utils.cleaning_error_handler(task, last_error)
+                manager_utils.cleaning_error_handler(task, log_msg,
+                                                     errmsg=last_error)
 
     def _heartbeat_rescue_wait(self, task):
         msg = _('Node failed to perform rescue operation')
@@ -1011,14 +1015,14 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
             msg = (_('Could not continue cleaning on node '
                      '%(node)s: %(err)s.') %
                    {'node': node.uuid, 'err': e})
-            LOG.exception(msg)
-            return manager_utils.cleaning_error_handler(task, msg)
+            return manager_utils.cleaning_error_handler(task, msg,
+                                                        traceback=True)
         except exception.InstanceDeployFailure as e:
             msg = (_('Could not continue deployment on node '
                      '%(node)s: %(err)s.') %
                    {'node': node.uuid, 'err': e})
-            LOG.exception(msg)
-            return manager_utils.deploying_error_handler(task, msg)
+            return manager_utils.deploying_error_handler(task, msg,
+                                                         traceback=True)
 
         if manual_clean:
             # Don't restart manual cleaning if agent reboots to a new
@@ -1047,15 +1051,15 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                          '%(node)s after step %(step)s: %(err)s.') %
                        {'node': node.uuid, 'err': e,
                         'step': node.clean_step})
-                LOG.exception(msg)
-                return manager_utils.cleaning_error_handler(task, msg)
+                return manager_utils.cleaning_error_handler(task, msg,
+                                                            traceback=True)
             except exception.InstanceDeployFailure as e:
                 msg = (_('Could not restart deployment on node '
                          '%(node)s after step %(step)s: %(err)s.') %
                        {'node': node.uuid, 'err': e,
                         'step': node.deploy_step})
-                LOG.exception(msg)
-                return manager_utils.deploying_error_handler(task, msg)
+                return manager_utils.deploying_error_handler(task, msg,
+                                                             traceback=True)
 
         manager_utils.notify_conductor_resume_operation(task, step_type)
 
@@ -1109,7 +1113,6 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                     'err': agent_client.get_command_error(command),
                     'step': current_step,
                     'type': step_type})
-            LOG.error(msg)
             return _step_failure_handler(task, msg, step_type)
         # NOTE(dtantsur): VERSION_MISMATCH is a new alias for
         # CLEAN_VERSION_MISMATCH, remove the old one after IPA removes it.
@@ -1137,8 +1140,8 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                             'cls': e.__class__.__name__,
                             'step': current_step,
                             'type': step_type})
-                    LOG.exception(msg)
-                    return _step_failure_handler(task, msg, step_type)
+                    return _step_failure_handler(task, msg, step_type,
+                                                 traceback=True)
 
             if current_step.get('reboot_requested'):
                 _post_step_reboot(task, step_type)
@@ -1155,7 +1158,6 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                     'err': command.get('command_status'),
                     'step': current_step,
                     'type': step_type})
-            LOG.error(msg)
             return _step_failure_handler(task, msg, step_type)
 
     @METRICS.timer('AgentDeployMixin.tear_down_agent')
