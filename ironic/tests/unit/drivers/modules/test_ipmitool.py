@@ -1074,7 +1074,7 @@ class IPMIToolPrivateMethodTestCase(
             '-L', self.info['priv_level'],
             '-U', self.info['username'],
             '-v',
-            '-R', '12',
+            '-R', '7',
             '-N', '5',
             '-f', awesome_password_filename,
             'A', 'B', 'C',
@@ -1573,6 +1573,40 @@ class IPMIToolPrivateMethodTestCase(
             self.assertRaises(exception.IPMIFailure, ipmi._power_on, task,
                               self.info)
         self.assertFalse(mock_status.called)
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    def test__ipmitool_timing_args(self, mock_support):
+        # timing arguments not supported
+        mock_support.return_value = False
+        self.assertEqual([], ipmi._ipmitool_timing_args())
+
+        # handle retries by calling ipmitool repeatedly
+        mock_support.return_value = True
+        self.config(use_ipmitool_retries=False, group='ipmi')
+        self.config(min_command_interval=5, group='ipmi')
+        self.assertEqual(['-R', '1', '-N', '5'], ipmi._ipmitool_timing_args())
+
+        # confirm that different combinations of min_command_interval and
+        # command_retry_timeout result in the command finishing before
+        # command_retry_timeout
+        self.config(use_ipmitool_retries=True, group='ipmi')
+
+        # 7 retries, first interval is 5s
+        # 5 + 6 + 7 + 8 + 9 + 10 + 11 = 56s
+        self.config(command_retry_timeout=60, group='ipmi')
+        self.assertEqual(['-R', '7', '-N', '5'], ipmi._ipmitool_timing_args())
+
+        # 11 retries, first interval is 5s
+        # 5 + 6 + 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 + 15 = 110s
+        self.config(command_retry_timeout=120, group='ipmi')
+        self.config(min_command_interval=5, group='ipmi')
+        self.assertEqual(['-R', '11', '-N', '5'], ipmi._ipmitool_timing_args())
+
+        # 7 retries, first interval is 1s
+        # 1 + 2 + 3 + 4 + 5 + 6 + 7 = 28s
+        self.config(command_retry_timeout=30, group='ipmi')
+        self.config(min_command_interval=1, group='ipmi')
+        self.assertEqual(['-R', '7', '-N', '1'], ipmi._ipmitool_timing_args())
 
 
 class IPMIToolDriverTestCase(Base):
