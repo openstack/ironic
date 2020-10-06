@@ -398,15 +398,32 @@ def cleanup_cleanwait_timeout(task):
                     "check if the ramdisk responsible for the cleaning is "
                     "running on the node. Failed on step %(step)s.") %
                   {'step': task.node.clean_step})
+    logmsg = ("Cleaning for node %(node)s failed. %(error)s" %
+              {'node': task.node.uuid, 'error': last_error})
     # NOTE(rloo): this is called from the periodic task for cleanwait timeouts,
     # via the task manager's process_event(). The node has already been moved
     # to CLEANFAIL, so the error handler doesn't need to set the fail state.
-    cleaning_error_handler(task, msg=last_error, set_fail_state=False)
+    cleaning_error_handler(task, logmsg, errmsg=last_error,
+                           set_fail_state=False)
 
 
-def cleaning_error_handler(task, msg, tear_down_cleaning=True,
+def cleaning_error_handler(task, logmsg, errmsg=None, traceback=False,
+                           tear_down_cleaning=True,
                            set_fail_state=True):
-    """Put a failed node in CLEANFAIL and maintenance."""
+    """Put a failed node in CLEANFAIL and maintenance.
+
+    :param task: a TaskManager instance.
+    :param logmsg: Message to be logged.
+    :param errmsg: Message for the user. Optional, if not provided `logmsg` is
+        used.
+    :param traceback: Whether to log a traceback. Defaults to False.
+    :param tear_down_cleaning: Whether to clean up the PXE and DHCP files after
+        cleaning. Default to True.
+    :param set_fail_state: Whether to set node to failed state. Default to
+        True.
+    """
+    errmsg = errmsg or logmsg
+    LOG.error(logmsg, exc_info=traceback)
     node = task.node
     node.fault = faults.CLEAN_FAILURE
     node.maintenance = True
@@ -418,9 +435,7 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
             msg2 = ('Failed to tear down cleaning on node %(uuid)s, '
                     'reason: %(err)s' % {'err': e, 'uuid': node.uuid})
             LOG.exception(msg2)
-            msg = _('%s. Also failed to tear down cleaning.') % msg
-        else:
-            LOG.error(msg)
+            errmsg = _('%s. Also failed to tear down cleaning.') % errmsg
 
     if node.provision_state in (
             states.CLEANING,
@@ -441,10 +456,10 @@ def cleaning_error_handler(task, msg, tear_down_cleaning=True,
     # For manual cleaning, the target provision state is MANAGEABLE, whereas
     # for automated cleaning, it is AVAILABLE.
     manual_clean = node.target_provision_state == states.MANAGEABLE
-    node.last_error = msg
+    node.last_error = errmsg
     # NOTE(dtantsur): avoid overwriting existing maintenance_reason
     if not node.maintenance_reason:
-        node.maintenance_reason = msg
+        node.maintenance_reason = errmsg
     node.save()
 
     if set_fail_state and node.provision_state != states.CLEANFAIL:

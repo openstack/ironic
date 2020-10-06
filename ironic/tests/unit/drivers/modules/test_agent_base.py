@@ -597,7 +597,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                 self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '1.0.0')
 
             mock_touch.assert_called_once_with(mock.ANY)
-            mock_handler.assert_called_once_with(task, mock.ANY)
+            mock_handler.assert_called_once_with(task, mock.ANY, mock.ANY)
             for called in before_failed_mocks + [failed_mock]:
                 self.assertTrue(called.called)
             for not_called in after_failed_mocks:
@@ -671,7 +671,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '1.0.0')
 
         mock_continue.assert_called_once_with(mock.ANY, task)
-        mock_handler.assert_called_once_with(task, mock.ANY)
+        mock_handler.assert_called_once_with(task, mock.ANY, mock.ANY)
 
     @mock.patch.object(manager_utils, 'rescuing_error_handler', autospec=True)
     @mock.patch.object(agent_base.HeartbeatMixin, '_finalize_rescue',
@@ -1733,7 +1733,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                                   shared=False) as task:
             agent_base._post_step_reboot(task, 'clean')
             mock_reboot.assert_called_once_with(task, states.REBOOT)
-            mock_handler.assert_called_once_with(task, mock.ANY)
+            mock_handler.assert_called_once_with(task, mock.ANY,
+                                                 traceback=True)
             self.assertNotIn('cleaning_reboot',
                              task.node.driver_internal_info)
 
@@ -1750,7 +1751,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                                   shared=False) as task:
             agent_base._post_step_reboot(task, 'deploy')
             mock_reboot.assert_called_once_with(task, states.REBOOT)
-            mock_handler.assert_called_once_with(task, mock.ANY)
+            mock_handler.assert_called_once_with(task, mock.ANY,
+                                                 traceback=True)
             self.assertNotIn('deployment_reboot',
                              task.node.driver_internal_info)
 
@@ -1868,7 +1870,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
 
             get_hook_mock.assert_called_once_with(task.node, 'clean')
             hook_mock.assert_called_once_with(task, command_status)
-            error_handler_mock.assert_called_once_with(task, mock.ANY)
+            error_handler_mock.assert_called_once_with(task, mock.ANY,
+                                                       traceback=True)
             self.assertFalse(notify_mock.called)
             collect_logs_mock.assert_called_once_with(task.node,
                                                       label='cleaning')
@@ -1948,7 +1951,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
             self.deploy.continue_cleaning(task)
-            error_mock.assert_called_once_with(task, mock.ANY)
+            error_mock.assert_called_once_with(task, mock.ANY, traceback=False)
             collect_logs_mock.assert_called_once_with(task.node,
                                                       label='cleaning')
 
@@ -2019,7 +2022,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
 
             status_mock.assert_called_once_with(mock.ANY, task.node)
             refresh_steps_mock.assert_called_once_with(mock.ANY, task, 'clean')
-            error_mock.assert_called_once_with(task, mock.ANY)
+            error_mock.assert_called_once_with(task, mock.ANY, traceback=True)
             self.assertFalse(notify_mock.called)
             self.assertFalse(steps_mock.called)
 
@@ -2036,7 +2039,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
             self.deploy.continue_cleaning(task)
-            error_mock.assert_called_once_with(task, mock.ANY)
+            error_mock.assert_called_once_with(task, mock.ANY, traceback=False)
 
     def _test_clean_step_hook(self):
         """Helper method for unit tests related to clean step hooks."""

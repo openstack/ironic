@@ -98,8 +98,7 @@ def do_node_clean(task, clean_steps=None):
     except Exception as e:
         msg = (_('Failed to prepare node %(node)s for cleaning: %(e)s')
                % {'node': node.uuid, 'e': e})
-        LOG.exception(msg)
-        return utils.cleaning_error_handler(task, msg)
+        return utils.cleaning_error_handler(task, msg, traceback=True)
 
     if prepare_result == states.CLEANWAIT:
         # Prepare is asynchronous, the deploy driver will need to
@@ -142,7 +141,6 @@ def do_next_clean_step(task, step_index):
     # For manual cleaning, the target provision state is MANAGEABLE,
     # whereas for automated cleaning, it is AVAILABLE.
     manual_clean = node.target_provision_state == states.MANAGEABLE
-
     if step_index is None:
         steps = []
     else:
@@ -184,9 +182,8 @@ def do_next_clean_step(task, step_index):
                      '%(exc)s') %
                    {'node': node.uuid, 'exc': e,
                     'step': node.clean_step})
-            LOG.exception(msg)
             driver_utils.collect_ramdisk_logs(task.node, label='cleaning')
-            utils.cleaning_error_handler(task, msg)
+            utils.cleaning_error_handler(task, msg, traceback=True)
             return
 
         # Check if the step is done or not. The step should return
@@ -205,7 +202,6 @@ def do_next_clean_step(task, step_index):
             msg = (_('While executing step %(step)s on node '
                      '%(node)s, step returned invalid value: %(val)s')
                    % {'step': step, 'node': node.uuid, 'val': result})
-            LOG.error(msg)
             return utils.cleaning_error_handler(task, msg)
         LOG.info('Node %(node)s finished clean step %(step)s',
                  {'node': node.uuid, 'step': step})
@@ -223,8 +219,8 @@ def do_next_clean_step(task, step_index):
         msg = (_('Failed to tear down from cleaning for node %(node)s, '
                  'reason: %(err)s')
                % {'node': node.uuid, 'err': e})
-        LOG.exception(msg)
         return utils.cleaning_error_handler(task, msg,
+                                            traceback=True,
                                             tear_down_cleaning=False)
 
     LOG.info('Node %s cleaning complete', node.uuid)
@@ -244,12 +240,14 @@ def do_node_clean_abort(task, step_name=None):
     try:
         task.driver.deploy.tear_down_cleaning(task)
     except Exception as e:
-        LOG.exception('Failed to tear down cleaning for node %(node)s '
-                      'after aborting the operation. Error: %(err)s',
-                      {'node': node.uuid, 'err': e})
+        log_msg = (_('Failed to tear down cleaning for node %(node)s '
+                     'after aborting the operation. Error: %(err)s') %
+                   {'node': node.uuid, 'err': e})
         error_msg = _('Failed to tear down cleaning after aborting '
                       'the operation')
-        utils.cleaning_error_handler(task, error_msg,
+        utils.cleaning_error_handler(task, log_msg,
+                                     errmsg=error_msg,
+                                     traceback=True,
                                      tear_down_cleaning=False,
                                      set_fail_state=False)
         return

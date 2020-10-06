@@ -22,6 +22,7 @@ from ironic.common import states
 from ironic.conductor import cleaning
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
+from ironic.conductor import utils as conductor_utils
 from ironic.drivers.modules import fake
 from ironic.drivers.modules.network import flat as n_flat
 from ironic.tests.unit.db import base as db_base
@@ -839,7 +840,7 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         mock_execute.assert_called_once_with(
             mock.ANY, mock.ANY, self.clean_steps[0])
 
-    @mock.patch.object(cleaning, 'LOG', autospec=True)
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
                 autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step',
@@ -887,9 +888,9 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
             mock.call(mock.ANY, mock.ANY, self.clean_steps[1]),
         ]
         self.assertEqual(power_exec_calls, power_exec_mock.call_args_list)
-        log_mock.exception.assert_called_once_with(
+        log_mock.error.assert_called_once_with(
             'Failed to tear down from cleaning for node {}, reason: boom'
-            .format(node.uuid))
+            .format(node.uuid), exc_info=True)
 
     def test__do_next_clean_step_automated_fail_in_tear_down_cleaning(self):
         self._do_next_clean_step_fail_in_tear_down_cleaning()

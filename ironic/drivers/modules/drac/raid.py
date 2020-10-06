@@ -1495,11 +1495,10 @@ class DracWSManRAID(base.RAIDInterface):
                        "Message: '%(message)s'.") %
                      {'config_job_id': config_job.id,
                       'message': config_job.message})
-        log_msg = (_("RAID configuration job failed for node %(node)s. "
-                     "%(error)s") %
+        log_msg = ("RAID configuration job failed for node %(node)s. "
+                   "%(error)s" %
                    {'node': task.node.uuid, 'error': error_msg})
         if task.node.clean_step:
-            LOG.error(log_msg)
             manager_utils.cleaning_error_handler(task, error_msg)
         else:
             manager_utils.deploying_error_handler(task, log_msg, error_msg)

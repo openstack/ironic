@@ -1066,14 +1066,19 @@ class ErrorHandlersTestCase(tests_base.TestCase):
     @mock.patch.object(conductor_utils, 'cleaning_error_handler',
                        autospec=True)
     def test_cleanup_cleanwait_timeout_handler_call(self, mock_error_handler):
+        self.task.node.uuid = '18c95393-b775-4887-a274-c45be47509d5'
         self.node.clean_step = {}
         conductor_utils.cleanup_cleanwait_timeout(self.task)
 
         mock_error_handler.assert_called_once_with(
             self.task,
-            msg="Timeout reached while cleaning the node. Please "
-                "check if the ramdisk responsible for the cleaning is "
-                "running on the node. Failed on step {}.",
+            logmsg="Cleaning for node 18c95393-b775-4887-a274-c45be47509d5 "
+                   "failed. Timeout reached while cleaning the node. Please "
+                   "check if the ramdisk responsible for the cleaning is "
+                   "running on the node. Failed on step {}.",
+            errmsg="Timeout reached while cleaning the node. Please "
+                   "check if the ramdisk responsible for the cleaning is "
+                   "running on the node. Failed on step {}.",
             set_fail_state=False)
 
     def test_cleanup_cleanwait_timeout(self):
@@ -1096,7 +1101,9 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertEqual(clean_error, self.node.maintenance_reason)
         self.assertEqual('clean failure', self.node.fault)
 
-    def _test_cleaning_error_handler(self, prov_state=states.CLEANING):
+    @mock.patch.object(conductor_utils.LOG, 'error', autospec=True)
+    def _test_cleaning_error_handler(self, mock_log_error,
+                                     prov_state=states.CLEANING):
         self.node.provision_state = prov_state
         target = 'baz'
         self.node.target_provision_state = target
@@ -1108,7 +1115,9 @@ class ErrorHandlersTestCase(tests_base.TestCase):
             'clean_step_index': 0,
             'agent_url': 'url'}
         msg = 'error bar'
-        conductor_utils.cleaning_error_handler(self.task, msg)
+        last_error = "last error"
+        conductor_utils.cleaning_error_handler(self.task, msg,
+                                               errmsg=last_error)
         self.node.save.assert_called_once_with()
         self.assertEqual({}, self.node.clean_step)
         self.assertNotIn('clean_step_index', self.node.driver_internal_info)
@@ -1116,9 +1125,9 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         self.assertNotIn('cleaning_polling', self.node.driver_internal_info)
         self.assertNotIn('skip_current_clean_step',
                          self.node.driver_internal_info)
-        self.assertEqual(msg, self.node.last_error)
+        self.assertEqual(last_error, self.node.last_error)
         self.assertTrue(self.node.maintenance)
-        self.assertEqual(msg, self.node.maintenance_reason)
+        self.assertEqual(last_error, self.node.maintenance_reason)
         self.assertEqual('clean failure', self.node.fault)
         driver = self.task.driver.deploy
         driver.tear_down_cleaning.assert_called_once_with(self.task)
@@ -1128,6 +1137,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
             self.task.process_event.assert_called_once_with('fail',
                                                             target_state=None)
         self.assertNotIn('agent_url', self.node.driver_internal_info)
+        mock_log_error.assert_called_once_with(msg, exc_info=False)
 
     def test_cleaning_error_handler(self):
         self._test_cleaning_error_handler()
@@ -1172,6 +1182,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         msg = 'foo'
         driver.tear_down_cleaning.side_effect = _side_effect
         conductor_utils.cleaning_error_handler(self.task, msg)
+        log_mock.error.assert_called_once_with(msg, exc_info=False)
         self.assertTrue(log_mock.exception.called)
         self.assertIn(msg, self.node.last_error)
         self.assertIn(msg, self.node.maintenance_reason)

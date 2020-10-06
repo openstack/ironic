@@ -1093,11 +1093,9 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             self.assertTrue(mock_log.called)
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
-    @mock.patch.object(redfish_mgmt.LOG, 'error', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
     def test__check_node_firmware_update_fail(self,
                                               mock_get_update_service,
-                                              mock_log,
                                               mock_cleaning_error_handler):
         mock_sushy_task = mock.Mock()
         mock_sushy_task.task_state = 'exception'
@@ -1131,7 +1129,6 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             management._check_node_firmware_update(task)
 
             task.upgrade_lock.assert_called_once_with()
-            self.assertTrue(mock_log.called)
             self.assertEqual({'something': 'else'},
                              task.node.driver_internal_info)
             mock_cleaning_error_handler.assert_called_once()

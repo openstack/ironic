@@ -920,15 +920,16 @@ class Ilo5Management(IloManagement):
                 LOG.info("No drive found to perform out-of-band sanitize "
                          "disk erase for node %(node)s", {'node': node.uuid})
         except ilo_error.IloError as ilo_exception:
-            LOG.error("Out-of-band sanitize disk erase job failed for node "
-                      "%(node)s. Message: '%(message)s'.",
-                      {'node': task.node.uuid, 'message': ilo_exception})
+            log_msg = ("Out-of-band sanitize disk erase job failed for node "
+                       "%(node)s. Message: '%(message)s'." %
+                       {'node': task.node.uuid, 'message': ilo_exception})
             self._pop_driver_internal_values(task,
                                              'ilo_disk_erase_hdd_check',
                                              'ilo_disk_erase_ssd_check',
                                              'cleaning_reboot',
                                              'skip_current_clean_step')
-            manager_utils.cleaning_error_handler(task, ilo_exception)
+            manager_utils.cleaning_error_handler(task, log_msg,
+                                                 errmsg=ilo_exception)
 
     @base.clean_step(priority=0, abortable=False)
     def one_button_secure_erase(self, task):
@@ -961,7 +962,8 @@ class Ilo5Management(IloManagement):
             node.save()
             return states.CLEANWAIT
         except ilo_error.IloError as ilo_exception:
-            LOG.error("One button secure erase job failed for node "
-                      "%(node)s. Message: '%(message)s'.",
-                      {'node': task.node.uuid, 'message': ilo_exception})
-            manager_utils.cleaning_error_handler(task, ilo_exception)
+            log_msg = ("One button secure erase job failed for node "
+                       "%(node)s. Message: '%(message)s'." %
+                       {'node': task.node.uuid, 'message': ilo_exception})
+            manager_utils.cleaning_error_handler(task, log_msg,
+                                                 errmsg=ilo_exception)

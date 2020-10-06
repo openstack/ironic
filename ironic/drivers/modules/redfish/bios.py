@@ -333,7 +333,6 @@ class RedfishBIOS(base.BIOSInterface):
                         'Attributes %(attrs)s are not updated.') %
                       {'attrs': attrs_not_updated})
         if task.node.provision_state in [states.CLEANING, states.CLEANWAIT]:
-            LOG.error(error_msg)
             manager_utils.cleaning_error_handler(task, last_error)
         if task.node.provision_state in [states.DEPLOYING, states.DEPLOYWAIT]:
             manager_utils.deploying_error_handler(task, error_msg, last_error)

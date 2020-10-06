@@ -1669,12 +1669,11 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
                               task.driver.management.erase_devices,
                               task, erase_pattern={'ssd': 'xyz'})
 
-    @mock.patch.object(ilo_management.LOG, 'error', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     @mock.patch.object(manager_utils, 'cleaning_error_handler',
                        autospec=True)
     def test_erase_devices_hdd_ilo_error(self, clean_err_handler_mock,
-                                         ilo_mock, log_mock):
+                                         ilo_mock):
         ilo_mock_object = ilo_mock.return_value
         ilo_mock_object.get_available_disk_types.return_value = ['HDD']
         exc = ilo_error.IloError('error')
@@ -1692,8 +1691,11 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
                              task.node.driver_internal_info)
             self.assertNotIn('skip_current_clean_step',
                              task.node.driver_internal_info)
-            self.assertTrue(log_mock.called)
-            clean_err_handler_mock.assert_called_once_with(task, exc)
+            clean_err_handler_mock.assert_called_once_with(
+                task,
+                ("Out-of-band sanitize disk erase job failed for node %s. "
+                 "Message: 'error'." % task.node.uuid),
+                errmsg=exc)
 
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
@@ -1711,12 +1713,11 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
             mock_power.assert_called_once_with(task, states.REBOOT)
             self.assertEqual(task.node.maintenance, True)
 
-    @mock.patch.object(ilo_management.LOG, 'error', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     @mock.patch.object(manager_utils, 'cleaning_error_handler',
                        autospec=True)
     def test_one_button_secure_erase_ilo_error(
-            self, clean_err_handler_mock, ilo_mock, log_mock):
+            self, clean_err_handler_mock, ilo_mock):
         ilo_mock_object = ilo_mock.return_value
         self.node.clean_step = {'step': 'one_button_secure_erase',
                                 'interface': 'management'}
@@ -1726,7 +1727,10 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.management.one_button_secure_erase(task)
-            clean_err_handler_mock.assert_called_once_with(task, exc)
+            clean_err_handler_mock.assert_called_once_with(
+                task,
+                ("One button secure erase job failed for node %s. "
+                 "Message: 'error'." % task.node.uuid),
+                errmsg=exc)
             self.assertTrue(
                 ilo_mock_object.do_one_button_secure_erase.called)
-            self.assertTrue(log_mock.called)
