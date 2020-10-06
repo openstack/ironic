@@ -24,6 +24,7 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import image_service
 from ironic.common import states
+from ironic.conductor import cleaning
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -315,9 +316,8 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                        'refresh_steps', autospec=True)
     @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
                        autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
-                       autospec=True)
-    def test_heartbeat_resume_clean(self, mock_notify, mock_set_steps,
+    @mock.patch.object(cleaning, 'continue_node_clean', autospec=True)
+    def test_heartbeat_resume_clean(self, mock_clean, mock_set_steps,
                                     mock_refresh, mock_touch):
         self.node.clean_step = {}
         self.node.provision_state = states.CLEANWAIT
@@ -328,7 +328,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
 
         mock_touch.assert_called_once_with(mock.ANY)
         mock_refresh.assert_called_once_with(mock.ANY, task, 'clean')
-        mock_notify.assert_called_once_with(task, 'clean')
+        mock_clean.assert_called_once_with(task)
         mock_set_steps.assert_called_once_with(task)
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
@@ -337,16 +337,16 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                        'refresh_steps', autospec=True)
     @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
                        autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
-                       autospec=True)
-    def test_heartbeat_resume_clean_fails(self, mock_notify, mock_set_steps,
+    @mock.patch.object(cleaning, 'continue_node_clean', autospec=True)
+    def test_heartbeat_resume_clean_fails(self, mock_clean, mock_set_steps,
                                           mock_refresh, mock_touch,
                                           mock_handler):
-        mocks = [mock_refresh, mock_set_steps, mock_notify]
-        self.node.clean_step = {}
-        self.node.provision_state = states.CLEANWAIT
-        self.node.save()
+        mocks = [mock_refresh, mock_set_steps, mock_clean]
         for i in range(len(mocks)):
+            self.node.clean_step = {}
+            self.node.provision_state = states.CLEANWAIT
+            self.node.save()
+
             before_failed_mocks = mocks[:i]
             failed_mock = mocks[i]
             after_failed_mocks = mocks[i + 1:]
@@ -1528,31 +1528,6 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.assertFalse(prepare_mock.called)
             self.assertFalse(failed_state_mock.called)
 
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
-                       autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
-                       autospec=True)
-    def test_continue_cleaning(self, status_mock, notify_mock):
-        # Test a successful execute clean step on the agent
-        self.node.clean_step = {
-            'priority': 10,
-            'interface': 'deploy',
-            'step': 'erase_devices',
-            'reboot_requested': False
-        }
-        self.node.save()
-        status_mock.return_value = [{
-            'command_status': 'SUCCEEDED',
-            'command_name': 'execute_clean_step',
-            'command_result': {
-                'clean_step': self.node.clean_step
-            }
-        }]
-        with task_manager.acquire(self.context, self.node['uuid'],
-                                  shared=False) as task:
-            self.deploy.continue_cleaning(task)
-            notify_mock.assert_called_once_with(task, 'clean')
-
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
                        autospec=True)
@@ -1647,295 +1622,6 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.assertNotIn('deployment_reboot',
                              task.node.driver_internal_info)
 
-    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
-                       autospec=True)
-    def test_continue_cleaning_reboot(
-            self, status_mock, reboot_mock, mock_prepare, mock_build_opt):
-        # Test a successful execute clean step on the agent, with reboot
-        self.node.clean_step = {
-            'priority': 42,
-            'interface': 'deploy',
-            'step': 'reboot_me_afterwards',
-            'reboot_requested': True
-        }
-        self.node.save()
-        status_mock.return_value = [{
-            'command_status': 'SUCCEEDED',
-            'command_name': 'execute_clean_step',
-            'command_result': {
-                'clean_step': self.node.clean_step
-            }
-        }]
-        with task_manager.acquire(self.context, self.node['uuid'],
-                                  shared=False) as task:
-            self.deploy.continue_cleaning(task)
-            reboot_mock.assert_called_once_with(task, states.REBOOT)
-
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
-                       autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
-                       autospec=True)
-    def test_continue_cleaning_after_reboot(self, status_mock, notify_mock):
-        # Test a successful execute clean step on the agent, with reboot
-        self.node.clean_step = {
-            'priority': 42,
-            'interface': 'deploy',
-            'step': 'reboot_me_afterwards',
-            'reboot_requested': True
-        }
-        driver_internal_info = self.node.driver_internal_info
-        driver_internal_info['cleaning_reboot'] = True
-        self.node.driver_internal_info = driver_internal_info
-        self.node.save()
-        # Represents a freshly booted agent with no commands
-        status_mock.return_value = []
-
-        with task_manager.acquire(self.context, self.node['uuid'],
-                                  shared=False) as task:
-            self.deploy.continue_cleaning(task)
-            notify_mock.assert_called_once_with(task, 'clean')
-            self.assertNotIn('cleaning_reboot',
-                             task.node.driver_internal_info)
-
-    @mock.patch.object(agent_base,
-                       '_get_post_step_hook', autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
-                       autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
-                       autospec=True)
-    def test_continue_cleaning_with_hook(
-            self, status_mock, notify_mock, get_hook_mock):
-        self.node.clean_step = {
-            'priority': 10,
-            'interface': 'raid',
-            'step': 'create_configuration',
-        }
-        self.node.save()
-        command_status = {
-            'command_status': 'SUCCEEDED',
-            'command_name': 'execute_clean_step',
-            'command_result': {'clean_step': self.node.clean_step}}
-        status_mock.return_value = [command_status]
-        hook_mock = mock.MagicMock(spec=types.FunctionType, __name__='foo')
-        get_hook_mock.return_value = hook_mock
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            self.deploy.continue_cleaning(task)
-
-            get_hook_mock.assert_called_once_with(task.node, 'clean')
-            hook_mock.assert_called_once_with(task, command_status)
-            notify_mock.assert_called_once_with(task, 'clean')
-
-    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
-                       autospec=True)
-    @mock.patch.object(agent_base,
-                       '_get_post_step_hook', autospec=True)
-    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
-                       autospec=True)
-    def test_continue_cleaning_with_hook_fails(
-            self, status_mock, error_handler_mock, get_hook_mock,
-            notify_mock, collect_logs_mock):
-        self.node.clean_step = {
-            'priority': 10,
-            'interface': 'raid',
-            'step': 'create_configuration',
-        }
-        self.node.save()
-        command_status = {
-            'command_status': 'SUCCEEDED',
-            'command_name': 'execute_clean_step',
-            'command_result': {'clean_step': self.node.clean_step}}
-        status_mock.return_value = [command_status]
-        hook_mock = mock.MagicMock(spec=types.FunctionType, __name__='foo')
-        hook_mock.side_effect = RuntimeError('error')
-        get_hook_mock.return_value = hook_mock
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            self.deploy.continue_cleaning(task)
-
-            get_hook_mock.assert_called_once_with(task.node, 'clean')
-            hook_mock.assert_called_once_with(task, command_status)
-            error_handler_mock.assert_called_once_with(task, mock.ANY,
-                                                       traceback=True)
-            self.assertFalse(notify_mock.called)
-            collect_logs_mock.assert_called_once_with(task.node,
-                                                      label='cleaning')
-
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
-                       autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
-                       autospec=True)
-    def test_continue_cleaning_old_command(self, status_mock, notify_mock):
-        # Test when a second execute_clean_step happens to the agent, but
-        # the new step hasn't started yet.
-        self.node.clean_step = {
-            'priority': 10,
-            'interface': 'deploy',
-            'step': 'erase_devices',
-            'reboot_requested': False
-        }
-        self.node.save()
-        status_mock.return_value = [{
-            'command_status': 'SUCCEEDED',
-            'command_name': 'execute_clean_step',
-            'command_result': {
-                'priority': 20,
-                'interface': 'deploy',
-                'step': 'update_firmware',
-                'reboot_requested': False
-            }
-        }]
-        with task_manager.acquire(self.context, self.node['uuid'],
-                                  shared=False) as task:
-            self.deploy.continue_cleaning(task)
-            self.assertFalse(notify_mock.called)
-
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
-                       autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
-                       autospec=True)
-    def test_continue_cleaning_running(self, status_mock, notify_mock):
-        # Test that no action is taken while a clean step is executing
-        status_mock.return_value = [{
-            'command_status': 'RUNNING',
-            'command_name': 'execute_clean_step',
-            'command_result': None
-        }]
-        with task_manager.acquire(self.context, self.node['uuid'],
-                                  shared=False) as task:
-            self.deploy.continue_cleaning(task)
-            self.assertFalse(notify_mock.called)
-
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
-                       autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
-                       autospec=True)
-    def test_continue_cleaning_no_step_running(self, status_mock, notify_mock):
-        status_mock.return_value = [{
-            'command_status': 'SUCCEEDED',
-            'command_name': 'get_clean_steps',
-            'command_result': []
-        }]
-        with task_manager.acquire(self.context, self.node['uuid'],
-                                  shared=False) as task:
-            self.deploy.continue_cleaning(task)
-            notify_mock.assert_called_once_with(task, 'clean')
-
-    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
-    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
-                       autospec=True)
-    def test_continue_cleaning_fail(self, status_mock, error_mock,
-                                    collect_logs_mock):
-        # Test that a failure puts the node in CLEANFAIL
-        status_mock.return_value = [{
-            'command_status': 'FAILED',
-            'command_name': 'execute_clean_step',
-            'command_result': {}
-        }]
-        with task_manager.acquire(self.context, self.node['uuid'],
-                                  shared=False) as task:
-            task.node.clean_step = {
-                'step': 'erase_devices',
-                'interface': 'deploy',
-            }
-            self.deploy.continue_cleaning(task)
-            error_mock.assert_called_once_with(task, mock.ANY, traceback=False)
-            collect_logs_mock.assert_called_once_with(task.node,
-                                                      label='cleaning')
-
-    @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
-                       autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
-                       autospec=True)
-    @mock.patch.object(agent_base.AgentBaseMixin, 'refresh_steps',
-                       autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
-                       autospec=True)
-    def _test_continue_cleaning_clean_version_mismatch(
-            self, status_mock, refresh_steps_mock, notify_mock, steps_mock,
-            manual=False):
-        status_mock.return_value = [{
-            'command_status': 'CLEAN_VERSION_MISMATCH',
-            'command_name': 'execute_clean_step',
-        }]
-        tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
-        self.node.provision_state = states.CLEANWAIT
-        self.node.target_provision_state = tgt_prov_state
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            self.deploy.continue_cleaning(task)
-            notify_mock.assert_called_once_with(task, 'clean')
-            refresh_steps_mock.assert_called_once_with(mock.ANY, task, 'clean')
-            if manual:
-                self.assertFalse(
-                    task.node.driver_internal_info['skip_current_clean_step'])
-                self.assertFalse(steps_mock.called)
-            else:
-                steps_mock.assert_called_once_with(task)
-                self.assertNotIn('skip_current_clean_step',
-                                 task.node.driver_internal_info)
-
-    def test_continue_cleaning_automated_clean_version_mismatch(self):
-        self._test_continue_cleaning_clean_version_mismatch()
-
-    def test_continue_cleaning_manual_clean_version_mismatch(self):
-        self._test_continue_cleaning_clean_version_mismatch(manual=True)
-
-    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
-    @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
-                       autospec=True)
-    @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
-                       autospec=True)
-    @mock.patch.object(agent_base.AgentBaseMixin, 'refresh_steps',
-                       autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
-                       autospec=True)
-    def test_continue_cleaning_clean_version_mismatch_fail(
-            self, status_mock, refresh_steps_mock, notify_mock, steps_mock,
-            error_mock, manual=False):
-        status_mock.return_value = [{
-            'command_status': 'CLEAN_VERSION_MISMATCH',
-            'command_name': 'execute_clean_step',
-            'command_result': {'hardware_manager_version': {'Generic': '1'}}
-        }]
-        refresh_steps_mock.side_effect = exception.NodeCleaningFailure("boo")
-        tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
-        self.node.provision_state = states.CLEANWAIT
-        self.node.target_provision_state = tgt_prov_state
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            self.deploy.continue_cleaning(task)
-
-            status_mock.assert_called_once_with(mock.ANY, task.node)
-            refresh_steps_mock.assert_called_once_with(mock.ANY, task, 'clean')
-            error_mock.assert_called_once_with(task, mock.ANY, traceback=True)
-            self.assertFalse(notify_mock.called)
-            self.assertFalse(steps_mock.called)
-
-    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
-                       autospec=True)
-    def test_continue_cleaning_unknown(self, status_mock, error_mock):
-        # Test that unknown commands are treated as failures
-        status_mock.return_value = [{
-            'command_status': 'UNKNOWN',
-            'command_name': 'execute_clean_step',
-            'command_result': {}
-        }]
-        with task_manager.acquire(self.context, self.node['uuid'],
-                                  shared=False) as task:
-            self.deploy.continue_cleaning(task)
-            error_mock.assert_called_once_with(task, mock.ANY, traceback=False)
-
     def _test_clean_step_hook(self):
         """Helper method for unit tests related to clean step hooks."""
         some_function_mock = mock.MagicMock()
@@ -1983,6 +1669,351 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
         self.node.save()
         hook_returned = agent_base._get_post_step_hook(self.node, 'clean')
         self.assertIsNone(hook_returned)
+
+
+class ContinueCleaningTest(AgentDeployMixinBaseTest):
+
+    def setUp(self):
+        super().setUp()
+        self.node.provision_state = states.CLEANWAIT
+        self.node.target_provision_state = states.AVAILABLE
+        self.node.save()
+
+    @mock.patch.object(cleaning, 'continue_node_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning(self, status_mock, clean_mock):
+        # Test a successful execute clean step on the agent
+        self.node.clean_step = {
+            'priority': 10,
+            'interface': 'deploy',
+            'step': 'erase_devices',
+            'reboot_requested': False
+        }
+        self.node.save()
+        status_mock.return_value = [{
+            'command_status': 'SUCCEEDED',
+            'command_name': 'execute_clean_step',
+            'command_result': {
+                'clean_step': self.node.clean_step
+            }
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.deploy.continue_cleaning(task)
+            clean_mock.assert_called_once_with(task)
+            self.assertEqual(states.CLEANING, task.node.provision_state)
+            self.assertEqual(states.AVAILABLE,
+                             task.node.target_provision_state)
+
+    @mock.patch.object(cleaning, 'continue_node_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_manual_cleaning(self, status_mock, clean_mock):
+        self.node.target_provision_state = states.MANAGEABLE
+        self.node.clean_step = {
+            'priority': 10,
+            'interface': 'deploy',
+            'step': 'erase_devices',
+            'reboot_requested': False
+        }
+        self.node.save()
+        status_mock.return_value = [{
+            'command_status': 'SUCCEEDED',
+            'command_name': 'execute_clean_step',
+            'command_result': {
+                'clean_step': self.node.clean_step
+            }
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.deploy.continue_cleaning(task)
+            clean_mock.assert_called_once_with(task)
+            self.assertEqual(states.CLEANING, task.node.provision_state)
+            self.assertEqual(states.MANAGEABLE,
+                             task.node.target_provision_state)
+
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_reboot(
+            self, status_mock, reboot_mock, mock_prepare, mock_build_opt):
+        # Test a successful execute clean step on the agent, with reboot
+        self.node.clean_step = {
+            'priority': 42,
+            'interface': 'deploy',
+            'step': 'reboot_me_afterwards',
+            'reboot_requested': True
+        }
+        self.node.save()
+        status_mock.return_value = [{
+            'command_status': 'SUCCEEDED',
+            'command_name': 'execute_clean_step',
+            'command_result': {
+                'clean_step': self.node.clean_step
+            }
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.deploy.continue_cleaning(task)
+            reboot_mock.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(cleaning, 'continue_node_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_after_reboot(self, status_mock, clean_mock):
+        # Test a successful execute clean step on the agent, with reboot
+        self.node.clean_step = {
+            'priority': 42,
+            'interface': 'deploy',
+            'step': 'reboot_me_afterwards',
+            'reboot_requested': True
+        }
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['cleaning_reboot'] = True
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        # Represents a freshly booted agent with no commands
+        status_mock.return_value = []
+
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.deploy.continue_cleaning(task)
+            clean_mock.assert_called_once_with(task)
+            self.assertEqual(states.CLEANING, task.node.provision_state)
+            self.assertNotIn('cleaning_reboot',
+                             task.node.driver_internal_info)
+
+    @mock.patch.object(agent_base,
+                       '_get_post_step_hook', autospec=True)
+    @mock.patch.object(cleaning, 'continue_node_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_with_hook(
+            self, status_mock, clean_mock, get_hook_mock):
+        self.node.clean_step = {
+            'priority': 10,
+            'interface': 'raid',
+            'step': 'create_configuration',
+        }
+        self.node.save()
+        command_status = {
+            'command_status': 'SUCCEEDED',
+            'command_name': 'execute_clean_step',
+            'command_result': {'clean_step': self.node.clean_step}}
+        status_mock.return_value = [command_status]
+        hook_mock = mock.MagicMock(spec=types.FunctionType, __name__='foo')
+        get_hook_mock.return_value = hook_mock
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.deploy.continue_cleaning(task)
+
+            get_hook_mock.assert_called_once_with(task.node, 'clean')
+            hook_mock.assert_called_once_with(task, command_status)
+            clean_mock.assert_called_once_with(task)
+
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
+    @mock.patch.object(cleaning, 'continue_node_clean', autospec=True)
+    @mock.patch.object(agent_base,
+                       '_get_post_step_hook', autospec=True)
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_with_hook_fails(
+            self, status_mock, error_handler_mock, get_hook_mock,
+            clean_mock, collect_logs_mock):
+        self.node.clean_step = {
+            'priority': 10,
+            'interface': 'raid',
+            'step': 'create_configuration',
+        }
+        self.node.save()
+        command_status = {
+            'command_status': 'SUCCEEDED',
+            'command_name': 'execute_clean_step',
+            'command_result': {'clean_step': self.node.clean_step}}
+        status_mock.return_value = [command_status]
+        hook_mock = mock.MagicMock(spec=types.FunctionType, __name__='foo')
+        hook_mock.side_effect = RuntimeError('error')
+        get_hook_mock.return_value = hook_mock
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.deploy.continue_cleaning(task)
+
+            get_hook_mock.assert_called_once_with(task.node, 'clean')
+            hook_mock.assert_called_once_with(task, command_status)
+            error_handler_mock.assert_called_once_with(task, mock.ANY,
+                                                       traceback=True)
+            self.assertFalse(clean_mock.called)
+            collect_logs_mock.assert_called_once_with(task.node,
+                                                      label='cleaning')
+
+    @mock.patch.object(cleaning, 'continue_node_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_old_command(self, status_mock, clean_mock):
+        # Test when a second execute_clean_step happens to the agent, but
+        # the new step hasn't started yet.
+        self.node.clean_step = {
+            'priority': 10,
+            'interface': 'deploy',
+            'step': 'erase_devices',
+            'reboot_requested': False
+        }
+        self.node.save()
+        status_mock.return_value = [{
+            'command_status': 'SUCCEEDED',
+            'command_name': 'execute_clean_step',
+            'command_result': {
+                'priority': 20,
+                'interface': 'deploy',
+                'step': 'update_firmware',
+                'reboot_requested': False
+            }
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.deploy.continue_cleaning(task)
+            self.assertFalse(clean_mock.called)
+
+    @mock.patch.object(cleaning, 'continue_node_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_running(self, status_mock, clean_mock):
+        # Test that no action is taken while a clean step is executing
+        status_mock.return_value = [{
+            'command_status': 'RUNNING',
+            'command_name': 'execute_clean_step',
+            'command_result': None
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.deploy.continue_cleaning(task)
+            self.assertFalse(clean_mock.called)
+
+    @mock.patch.object(cleaning, 'continue_node_clean', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_no_step_running(self, status_mock, clean_mock):
+        status_mock.return_value = [{
+            'command_status': 'SUCCEEDED',
+            'command_name': 'get_clean_steps',
+            'command_result': []
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.deploy.continue_cleaning(task)
+            clean_mock.assert_called_once_with(task)
+
+    @mock.patch.object(driver_utils, 'collect_ramdisk_logs', autospec=True)
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_fail(self, status_mock, error_mock,
+                                    collect_logs_mock):
+        # Test that a failure puts the node in CLEANFAIL
+        status_mock.return_value = [{
+            'command_status': 'FAILED',
+            'command_name': 'execute_clean_step',
+            'command_result': {}
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            task.node.clean_step = {
+                'step': 'erase_devices',
+                'interface': 'deploy',
+            }
+            self.deploy.continue_cleaning(task)
+            error_mock.assert_called_once_with(task, mock.ANY, traceback=False)
+            collect_logs_mock.assert_called_once_with(task.node,
+                                                      label='cleaning')
+
+    @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
+                       autospec=True)
+    @mock.patch.object(cleaning, 'continue_node_clean', autospec=True)
+    @mock.patch.object(agent_base.AgentBaseMixin, 'refresh_steps',
+                       autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def _test_continue_cleaning_clean_version_mismatch(
+            self, status_mock, refresh_steps_mock, clean_mock, steps_mock,
+            manual=False):
+        status_mock.return_value = [{
+            'command_status': 'CLEAN_VERSION_MISMATCH',
+            'command_name': 'execute_clean_step',
+        }]
+        tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
+        self.node.provision_state = states.CLEANWAIT
+        self.node.target_provision_state = tgt_prov_state
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.deploy.continue_cleaning(task)
+            clean_mock.assert_called_once_with(task)
+            refresh_steps_mock.assert_called_once_with(mock.ANY, task, 'clean')
+            if manual:
+                self.assertFalse(
+                    task.node.driver_internal_info['skip_current_clean_step'])
+                self.assertFalse(steps_mock.called)
+            else:
+                steps_mock.assert_called_once_with(task)
+                self.assertNotIn('skip_current_clean_step',
+                                 task.node.driver_internal_info)
+
+    def test_continue_cleaning_automated_clean_version_mismatch(self):
+        self._test_continue_cleaning_clean_version_mismatch()
+
+    def test_continue_cleaning_manual_clean_version_mismatch(self):
+        self._test_continue_cleaning_clean_version_mismatch(manual=True)
+
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
+                       autospec=True)
+    @mock.patch.object(cleaning, 'continue_node_clean', autospec=True)
+    @mock.patch.object(agent_base.AgentBaseMixin, 'refresh_steps',
+                       autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_clean_version_mismatch_fail(
+            self, status_mock, refresh_steps_mock, clean_mock, steps_mock,
+            error_mock, manual=False):
+        status_mock.return_value = [{
+            'command_status': 'CLEAN_VERSION_MISMATCH',
+            'command_name': 'execute_clean_step',
+            'command_result': {'hardware_manager_version': {'Generic': '1'}}
+        }]
+        refresh_steps_mock.side_effect = exception.NodeCleaningFailure("boo")
+        tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
+        self.node.provision_state = states.CLEANWAIT
+        self.node.target_provision_state = tgt_prov_state
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.deploy.continue_cleaning(task)
+
+            status_mock.assert_called_once_with(mock.ANY, task.node)
+            refresh_steps_mock.assert_called_once_with(mock.ANY, task, 'clean')
+            error_mock.assert_called_once_with(task, mock.ANY, traceback=True)
+            self.assertFalse(clean_mock.called)
+            self.assertFalse(steps_mock.called)
+
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                       autospec=True)
+    def test_continue_cleaning_unknown(self, status_mock, error_mock):
+        # Test that unknown commands are treated as failures
+        status_mock.return_value = [{
+            'command_status': 'UNKNOWN',
+            'command_name': 'execute_clean_step',
+            'command_result': {}
+        }]
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.deploy.continue_cleaning(task)
+            error_mock.assert_called_once_with(task, mock.ANY, traceback=False)
 
 
 class TestRefreshCleanSteps(AgentDeployMixinBaseTest):

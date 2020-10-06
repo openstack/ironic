@@ -31,6 +31,8 @@ from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import cleaning
+from ironic.conductor import deployments
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -400,6 +402,15 @@ def _step_failure_handler(task, msg, step_type, traceback=False):
         manager_utils.deploying_error_handler(task, msg, traceback=traceback)
 
 
+def _continue_steps(task, step_type):
+    if step_type == 'clean':
+        task.resume_cleaning()
+        cleaning.continue_node_clean(task)
+    else:
+        task.process_event('resume')
+        deployments.continue_node_deploy(task)
+
+
 class HeartbeatMixin(object):
     """Mixin class implementing heartbeat processing."""
 
@@ -510,13 +521,12 @@ class HeartbeatMixin(object):
                 LOG.debug('Node %s just booted to start cleaning.',
                           node.uuid)
                 msg = _('Node failed to start the first cleaning step')
+                task.resume_cleaning()
                 # First, cache the clean steps
                 self.refresh_clean_steps(task)
                 # Then set/verify node clean steps and start cleaning
                 conductor_steps.set_node_cleaning_steps(task)
-                # The exceptions from RPC are not possible as we using cast
-                # here
-                manager_utils.notify_conductor_resume_clean(task)
+                cleaning.continue_node_clean(task)
             else:
                 msg = _('Node failed to check cleaning progress')
                 # Check if the driver is polling for completion of a step,
@@ -910,7 +920,7 @@ class AgentBaseMixin(object):
                 return manager_utils.deploying_error_handler(task, msg,
                                                              traceback=True)
 
-        manager_utils.notify_conductor_resume_operation(task, step_type)
+        _continue_steps(task, step_type)
 
     @METRICS.timer('AgentBaseMixin.process_next_step')
     def process_next_step(self, task, step_type, **kwargs):
@@ -940,8 +950,7 @@ class AgentBaseMixin(object):
                      else 'deployment_reboot')
             utils.pop_node_nested_field(node, 'driver_internal_info', field)
             node.save()
-            manager_utils.notify_conductor_resume_operation(task, step_type)
-            return
+            return _continue_steps(task, step_type)
 
         current_step = (node.clean_step if step_type == 'clean'
                         else node.deploy_step)
@@ -1000,7 +1009,7 @@ class AgentBaseMixin(object):
             LOG.info('Agent on node %(node)s returned %(type)s command '
                      'success, moving to next step',
                      {'node': node.uuid, 'type': step_type})
-            manager_utils.notify_conductor_resume_operation(task, step_type)
+            _continue_steps(task, step_type)
         else:
             msg = (_('Agent returned unknown status for %(type)s step %(step)s'
                      ' on node %(node)s : %(err)s.') %
@@ -1201,24 +1210,6 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                    {'node': node.uuid, 'cls': e.__class__.__name__,
                     'error': e})
             log_and_raise_deployment_error(task, msg, exc=e)
-
-    # TODO(dtantsur): remove in W
-    @METRICS.timer('AgentDeployMixin.reboot_and_finish_deploy')
-    def reboot_and_finish_deploy(self, task):
-        """Helper method to trigger reboot on the node and finish deploy.
-
-        This method initiates a reboot on the node. On success, it
-        marks the deploy as complete. On failure, it logs the error
-        and marks deploy as failure.
-
-        :param task: a TaskManager object containing the node
-        :raises: InstanceDeployFailure, if node reboot failed.
-        """
-        # NOTE(dtantsur): do nothing here, the new deploy steps tear_down_agent
-        # and boot_instance will be picked up and finish the deploy (even for
-        # legacy deploy interfaces without decomposed steps).
-        task.process_event('wait')
-        manager_utils.notify_conductor_resume_deploy(task)
 
     @METRICS.timer('AgentDeployMixin.prepare_instance_to_boot')
     def prepare_instance_to_boot(self, task, root_uuid, efi_sys_uuid,
