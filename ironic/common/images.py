@@ -426,18 +426,25 @@ def download_size(context, image_href, image_service=None):
     return image_show(context, image_href, image_service)['size']
 
 
-def converted_size(path):
+def converted_size(path, estimate=False):
     """Get size of converted raw image.
 
     The size of image converted to raw format can be growing up to the virtual
     size of the image.
 
     :param path: path to the image file.
-    :returns: virtual size of the image or 0 if conversion not needed.
-
+    :param estimate: Whether to estimate the size by scaling the
+        original size
+    :returns: For `estimate=False`, return the size of the
+        raw image file. For `estimate=True`, return the size of
+        the original image scaled by the configuration value
+        `raw_image_growth_factor`.
     """
     data = disk_utils.qemu_img_info(path)
-    return data.virtual_size
+    if not estimate:
+        return data.virtual_size
+    growth_factor = CONF.raw_image_growth_factor
+    return int(min(data.disk_size * growth_factor, data.virtual_size))
 
 
 def get_image_properties(context, image_href, properties="all"):

@@ -765,3 +765,30 @@ class TestFetchCleanup(base.TestCase):
         mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
                                          '/foo/bar.part')
         mock_will_convert.assert_called_once_with('fake-uuid', '/foo/bar.part')
+
+    @mock.patch.object(images, 'converted_size', autospec=True)
+    @mock.patch.object(images, 'fetch', autospec=True)
+    @mock.patch.object(images, 'image_to_raw', autospec=True)
+    @mock.patch.object(images, 'force_raw_will_convert', autospec=True,
+                       return_value=True)
+    @mock.patch.object(image_cache, '_clean_up_caches', autospec=True)
+    def test__fetch_estimate_fallback(
+            self, mock_clean, mock_will_convert, mock_raw, mock_fetch,
+            mock_size):
+        mock_size.side_effect = [100, 10]
+        mock_clean.side_effect = [exception.InsufficientDiskSpace(), None]
+
+        image_cache._fetch('fake', 'fake-uuid', '/foo/bar', force_raw=True)
+        mock_fetch.assert_called_once_with('fake', 'fake-uuid',
+                                           '/foo/bar.part', force_raw=False)
+        mock_size.assert_has_calls([
+            mock.call('/foo/bar.part', estimate=False),
+            mock.call('/foo/bar.part', estimate=True),
+        ])
+        mock_clean.assert_has_calls([
+            mock.call('/foo', 100),
+            mock.call('/foo', 10),
+        ])
+        mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
+                                         '/foo/bar.part')
+        mock_will_convert.assert_called_once_with('fake-uuid', '/foo/bar.part')
