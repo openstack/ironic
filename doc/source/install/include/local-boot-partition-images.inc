@@ -27,7 +27,7 @@ Enabling local boot with Compute service
 To enable local boot we need to set a capability on the bare metal node,
 for example::
 
-    openstack baremetal node set <node-uuid> --property capabilities="boot_option:local"
+    baremetal node set <node-uuid> --property capabilities="boot_option:local"
 
 
 Nodes having ``boot_option`` set to ``local`` may be requested by adding
@@ -53,4 +53,4 @@ we need a way to enable local boot when Compute is not present. To do that
 we can simply specify the capability via the ``instance_info`` attribute
 of the node, for example::
 
-    openstack baremetal node set <node-uuid> --instance-info capabilities='{"boot_option": "local"}'
+    baremetal node set <node-uuid> --instance-info capabilities='{"boot_option": "local"}'

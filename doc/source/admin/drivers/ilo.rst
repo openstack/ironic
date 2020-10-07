@@ -235,7 +235,7 @@ The following command can be used to enroll a ProLiant node with
 
 .. code-block:: console
 
-    openstack baremetal node create --os-baremetal-api-version=1.38 \
+    baremetal node create --os-baremetal-api-version=1.38 \
         --driver ilo \
         --deploy-interface direct \
         --raid-interface agent \
@@ -251,7 +251,7 @@ The following command can be used to enroll a ProLiant node with
 
 .. code-block:: console
 
-    openstack baremetal node create \
+    baremetal node create \
         --driver ilo5 \
         --deploy-interface direct \
         --raid-interface ilo5 \
@@ -547,7 +547,7 @@ of boot mode (Legacy BIOS or UEFI).
 
   To configure a node in ``uefi`` mode, then set ``capabilities`` as below::
 
-    openstack baremetal node set <node-uuid> --property capabilities='boot_mode:uefi'
+    baremetal node set <node-uuid> --property capabilities='boot_mode:uefi'
 
   Nodes having ``boot_mode`` set to ``uefi`` may be requested by adding an
   ``extra_spec`` to the nova flavor::
@@ -593,7 +593,7 @@ The UEFI secure boot can be configured in ironic by adding
 
 To enable ``secure_boot`` on a node add it to ``capabilities`` as below::
 
- openstack baremetal node set <node-uuid> --property capabilities='secure_boot:true'
+ baremetal node set <node-uuid> --property capabilities='secure_boot:true'
 
 Alternatively see `Hardware Inspection Support`_ to know how to
 automatically populate the secure boot capability.
@@ -847,7 +847,7 @@ Create a deploy template with a single step:
 
 .. code-block:: console
 
-   openstack baremetal deploy template create \
+   baremetal deploy template create \
        CUSTOM_HYPERTHREADING_ON \
        --steps '[{"interface": "bios", "step": "apply_configuration", "args": {"settings": [{"name": "ProcHyperthreading", "value": "Enabled"}]}, "priority": 150}]'
 
@@ -855,7 +855,7 @@ Add the trait ``CUSTOM_HYPERTHREADING_ON`` to the node represented by ``$node_id
 
 .. code-block:: console
 
-   openstack baremetal node add trait $node_ident CUSTOM_HYPERTHREADING_ON
+   baremetal node add trait $node_ident CUSTOM_HYPERTHREADING_ON
 
 Update the flavor ``bm-hyperthreading-on`` in the Compute service with the
 following property:
@@ -1974,7 +1974,7 @@ NMI on a server:
 
 .. code-block:: console
 
-    openstack baremetal node inject nmi <node>
+    baremetal node inject nmi <node>
 
 Following command can be used to inject NMI via Compute service:
 
@@ -1993,10 +1993,10 @@ soft power operations on a server:
 
 .. code-block:: console
 
-    openstack baremetal node reboot --soft \
+    baremetal node reboot --soft \
         [--power-timeout <power-timeout>] <node>
 
-    openstack baremetal node power off --soft \
+    baremetal node power off --soft \
         [--power-timeout <power-timeout>] <node>
 
 .. note::
@@ -2046,7 +2046,7 @@ into the baremetal service using the iLO IPv6 addresses.
 
 .. code-block:: console
 
-    openstack baremetal node create --driver ilo  --deploy-interface direct \
+    baremetal node create --driver ilo  --deploy-interface direct \
         --driver-info ilo_address=2001:0db8:85a3:0000:0000:8a2e:0370:7334 \
         --driver-info ilo_username=test-user \
         --driver-info ilo_password=test-password \
@@ -2096,7 +2096,7 @@ Below are the steps to perform this clean step:
 
 .. code-block:: console
 
-    openstack baremetal node clean $node_ident --clean-steps\
+    baremetal node clean $node_ident --clean-steps\
         '[{"interface": "management", "step": "one_button_secure_erase"}]'
 
 * Once the clean step would triggered and node go to 'clean wait' state and
@@ -2104,7 +2104,7 @@ Below are the steps to perform this clean step:
 
 .. code-block:: console
 
-    openstack baremetal node delete $node_ident
+    baremetal node delete $node_ident
 
 .. note::
    * Even after deleting the node, One Button Secure Erase operation would continue
@@ -2147,7 +2147,7 @@ and ``ilo-uefi-https`` boot interface:
 
 .. code-block:: console
 
-    openstack baremetal node create \
+    baremetal node create \
         --driver ilo5 \
         --boot-interface ilo-uefi-https \
         --deploy-interface direct \

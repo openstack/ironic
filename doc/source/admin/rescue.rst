@@ -62,7 +62,7 @@ but an example of how to do this is outlined below:
 
    .. code-block:: console
 
-       openstack baremetal node set $NODE_UUID \
+       baremetal node set $NODE_UUID \
            --driver-info rescue_ramdisk=$RESCUE_INITRD_UUID \
            --driver-info rescue_kernel=$RESCUE_VMLINUZ_UUID
 
@@ -76,7 +76,7 @@ using ssh, as given below:
 
 .. code-block:: console
 
-    openstack baremetal node rescue $NODE_UUID \
+    baremetal node rescue $NODE_UUID \
         --rescue-password <PASSWORD> --wait
 
     ssh rescue@$INSTANCE_IP_ADDRESS
@@ -87,7 +87,7 @@ before proceeding with unrescue. The node unrescue can be done as given below:
 
 .. code-block:: console
 
-    openstack baremetal node unrescue $NODE_UUID
+    baremetal node unrescue $NODE_UUID
 
 ``rescue`` and ``unrescue`` operations can also be triggered via the Compute
 Service using the following commands:

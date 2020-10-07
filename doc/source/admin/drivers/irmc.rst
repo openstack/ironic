@@ -203,7 +203,7 @@ following sections describe both methods:
   To enable secure boot we need to set a capability on the bare metal node
   and the bare metal flavor, for example::
 
-    openstack baremetal node set <node-uuid> --property capabilities='secure_boot:true'
+    baremetal node set <node-uuid> --property capabilities='secure_boot:true'
     openstack flavor set FLAVOR-NAME --property capabilities:secure_boot="true"
 
 * Enabling secure boot without Compute service:
@@ -211,7 +211,7 @@ following sections describe both methods:
   scheduler to perform more advanced scheduling of instances, we need
   to enable secure boot without nova, for example::
 
-    openstack baremetal node set <node-uuid> --instance-info capabilities='{"secure_boot": "true"}'
+    baremetal node set <node-uuid> --instance-info capabilities='{"secure_boot": "true"}'
 
 .. _irmc_node_cleaning:
 
@@ -287,7 +287,7 @@ the iRMC driver requires the following configuration:
 
   It can be set with the following command::
 
-      openstack baremetal node set $NODE_UUID \
+      baremetal node set $NODE_UUID \
       --driver-info irmc_pci_physical_ids={} \
       --driver-info irmc_pci_physical_ids/$PORT_UUID=LAN0-1 \
       --driver-info irmc_pci_physical_ids/$VOLUME_CONNECTOR_UUID=CNA1-1
@@ -301,7 +301,7 @@ the iRMC driver requires the following configuration:
   For example, if the storage network is 10.2.0.0/22, use the following
   command::
 
-    openstack baremetal node set $NODE_UUID --driver-info irmc_storage_network_size=22
+    baremetal node set $NODE_UUID --driver-info irmc_storage_network_size=22
 
 Supported hardware
 ~~~~~~~~~~~~~~~~~~
@@ -402,7 +402,7 @@ See :ref:`capabilities-discovery` for more details and examples.
 
 The operator can add a trait in compute service flavor, for example::
 
-  openstack baremetal node add trait $NODE_UUID CUSTOM_CPU_FPGA
+  baremetal node add trait $NODE_UUID CUSTOM_CPU_FPGA
 
 A valid trait must be no longer than 255 characters. Standard traits are
 defined in the os_traits library. A custom trait must start with the prefix
@@ -430,7 +430,7 @@ configuration:
 * It is necessary to set ironic configuration into Node with
   JSON file option::
 
-    $ openstack baremetal node set <node-uuid-or-name> \
+    $ baremetal node set <node-uuid-or-name> \
       --target-raid-config <JSON file containing target RAID configuration>
 
   Here is some sample values for JSON file::

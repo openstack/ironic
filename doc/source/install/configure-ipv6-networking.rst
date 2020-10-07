@@ -92,7 +92,7 @@ management, the ``local_link_connection`` field of baremetal ports must be set
 to ``{'network_type': 'unmanaged'}``. The following example shows how to set the
 local_link_connection for operation on unmanaged networks::
 
-  openstack baremetal port set \
+  baremetal port set \
     --local-link-connection network_type=unmanaged <port-uuid>
 
 The use of multiple IPv6 addresses must also be enabled in the Networking

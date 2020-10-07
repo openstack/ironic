@@ -49,7 +49,7 @@ costly than a non-persistent one, so this can bring performance improvements.
 Set the flag ``force_persistent_boot_device`` to ``True`` in the node's
 ``driver_info``::
 
-    $ openstack baremetal node set --driver-info force_persistent_boot_device=True <node>
+    $ baremetal node set --driver-info force_persistent_boot_device=True <node>
 
 .. note::
    It's recommended to check if the node's state has not changed as there

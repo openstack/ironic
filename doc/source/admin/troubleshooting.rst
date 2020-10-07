@@ -24,25 +24,25 @@ A few things should be checked in this case:
    maintenance mode and not already used by an existing instance.
    Check with the following command::
 
-       openstack baremetal node list --provision-state available --no-maintenance --unassociated
+       baremetal node list --provision-state available --no-maintenance --unassociated
 
-   If this command does not show enough nodes, use generic ``openstack baremetal
+   If this command does not show enough nodes, use generic ``baremetal
    node list`` to check other nodes. For example, nodes in ``manageable`` state
    should be made available::
 
-       openstack baremetal node provide <IRONIC NODE>
+       baremetal node provide <IRONIC NODE>
 
    The Bare metal service automatically puts a node in maintenance mode if
    there are issues with accessing its management interface. Check the power
    credentials (e.g. ``ipmi_address``, ``ipmi_username`` and ``ipmi_password``)
    and then move the node out of maintenance mode::
 
-       openstack baremetal node maintenance unset <IRONIC NODE>
+       baremetal node maintenance unset <IRONIC NODE>
 
    The ``node validate`` command can be used to verify that all required fields
    are present. The following command should not return anything::
 
-       openstack baremetal node validate <IRONIC NODE> | grep -E '(power|management)\W*False'
+       baremetal node validate <IRONIC NODE> | grep -E '(power|management)\W*False'
 
    Maintenance mode will be also set on a node if automated cleaning has
    failed for it previously.
@@ -113,7 +113,7 @@ A few things should be checked in this case:
    JSON field has valid values for the keys ``cpus``, ``cpu_arch``,
    ``memory_mb`` and ``local_gb``. Example of valid properties::
 
-        $ openstack baremetal node show <IRONIC NODE> --fields properties
+        $ baremetal node show <IRONIC NODE> --fields properties
         +------------+------------------------------------------------------------------------------------+
         | Property   | Value                                                                              |
         +------------+------------------------------------------------------------------------------------+
@@ -146,7 +146,7 @@ A few things should be checked in this case:
 
       But in Ironic node::
 
-        $ openstack baremetal node show <IRONIC NODE> --fields properties
+        $ baremetal node show <IRONIC NODE> --fields properties
         +------------+-----------------------------------------+
         | Property   | Value                                   |
         +------------+-----------------------------------------+
@@ -646,7 +646,7 @@ VIF attachments are stored on the port object, so deleting the port
 
 Under normal circumstances, when deleting ports, a node should be in a
 stable state, and the node should not be provisioned. If the
-``openstack baremetal port delete`` command fails, this may indicate that
+``baremetal port delete`` command fails, this may indicate that
 a known VIF is still attached. Generally if they are transitory from cleaning,
 provisioning, rescuing, or even inspection, getting the node to the
 ``available`` state wil unblock your delete operation, that is unless there is

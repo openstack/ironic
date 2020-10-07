@@ -29,7 +29,7 @@ How to use
 When it is known that a node shall be retired, set the ``retired``
 flag on the node with::
 
-  openstack baremetal node set --retired node-001
+  baremetal node set --retired node-001
 
 This can be done irrespective of the state the node is in, so in
 particular while the node is ``active``.
@@ -42,7 +42,7 @@ particular while the node is ``active``.
 
 Optionally, a reason can be specified when a node is retired, e.g.::
 
-  openstack baremetal node set --retired node-001 \
+  baremetal node set --retired node-001 \
     --retired-reason "End of warranty for delivery abc123"
 
 Upon instance deletion, an ``active`` node with the ``retired`` flag
@@ -55,10 +55,10 @@ accidental re-use of nodes tagged for removal from the fleet. In order
 to move these nodes to ``available`` none the less, the ``retired`` field
 needs to be removed first. This can be done via::
 
-  openstack baremetal node unset --retired node-001
+  baremetal node unset --retired node-001
 
 In order to facilitate the identification of nodes marked for retirement,
 e.g. by other teams, ironic also allows to list all nodes which have the
 ``retired`` flag set::
 
-  openstack baremetal node list --retired
+  baremetal node list --retired

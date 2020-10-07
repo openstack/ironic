@@ -124,23 +124,23 @@ The web console can be configured in Bare Metal service in the following way:
 
   Enable the web console, for example::
 
-   openstack baremetal node set <node-uuid> \
+   baremetal node set <node-uuid> \
        --driver-info <terminal_port>=<customized_port>
-   openstack baremetal node console enable <node-uuid>
+   baremetal node console enable <node-uuid>
 
   Check whether the console is enabled, for example::
 
-   openstack baremetal node validate <node-uuid>
+   baremetal node validate <node-uuid>
 
   Disable the web console, for example::
 
-   openstack baremetal node console disable  <node-uuid>
-   openstack baremetal node unset <node-uuid> --driver-info <terminal_port>
+   baremetal node console disable  <node-uuid>
+   baremetal node unset <node-uuid> --driver-info <terminal_port>
 
   The ``<terminal_port>`` is driver dependent. The actual name of this field can be
   checked in driver properties, for example::
 
-   openstack baremetal driver property list <driver>
+   baremetal driver property list <driver>
 
   For the ``ipmi`` hardware type, this option is ``ipmi_terminal_port``.
   Give a customized port number to ``<customized_port>``,
@@ -148,7 +148,7 @@ The web console can be configured in Bare Metal service in the following way:
 
   Get web console information for a node as follows::
 
-   openstack baremetal node console show <node-uuid>
+   baremetal node console show <node-uuid>
    +-----------------+----------------------------------------------------------------------+
    | Property        | Value                                                                |
    +-----------------+----------------------------------------------------------------------+
@@ -211,22 +211,22 @@ Serial consoles can be configured in the Bare Metal service as follows:
 
   Enable the serial console, for example::
 
-   openstack baremetal node set <node-uuid> --driver-info ipmi_terminal_port=<port>
-   openstack baremetal node console enable <node-uuid>
+   baremetal node set <node-uuid> --driver-info ipmi_terminal_port=<port>
+   baremetal node console enable <node-uuid>
 
   Check whether the serial console is enabled, for example::
 
-   openstack baremetal node validate <node-uuid>
+   baremetal node validate <node-uuid>
 
   Disable the serial console, for example::
 
-   openstack baremetal node console disable  <node-uuid>
-   openstack baremetal node unset <node-uuid> --driver-info <ipmi_terminal_port>
+   baremetal node console disable  <node-uuid>
+   baremetal node unset <node-uuid> --driver-info <ipmi_terminal_port>
 
 Serial console information is available from the Bare Metal service.  Get
 serial console information for a node from the Bare Metal service as follows::
 
- openstack baremetal node console show <node-uuid>
+ baremetal node console show <node-uuid>
  +-----------------+----------------------------------------------------------------------+
  | Property        | Value                                                                |
  +-----------------+----------------------------------------------------------------------+

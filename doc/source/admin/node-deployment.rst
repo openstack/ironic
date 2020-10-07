@@ -219,10 +219,10 @@ single step:
 Further information on this API is available `here
 <https://docs.openstack.org/api-ref/baremetal/index.html?expanded=create-deploy-template-detail#create-deploy-template>`__.
 
-Creating a deploy template via "openstack baremetal" client
+Creating a deploy template via "baremetal" client
 -----------------------------------------------------------
 
-A deploy template can be created via the ``openstack baremetal deploy template
+A deploy template can be created via the ``baremetal deploy template
 create`` command, starting with ``python-ironicclient`` 2.7.0.
 
 The argument ``--steps`` must be specified. Its value is one of:
@@ -235,7 +235,7 @@ Example of creating a deploy template with a single step using a JSON string:
 
 .. code-block:: console
 
-   openstack baremetal deploy template create \
+   baremetal deploy template create \
        CUSTOM_HYPERTHREADING_ON \
        --steps '[{"interface": "bios", "step": "apply_configuration", "args": {"settings": [{"name": "LogicalProc", "value": "Enabled"}]}, "priority": 150}]'
 
@@ -243,7 +243,7 @@ Or with a file:
 
 .. code-block:: console
 
-   openstack baremetal deploy template create \
+   baremetal deploy template create \
        CUSTOM_HYPERTHREADING_ON \
        ---steps my-deploy-steps.txt
 
@@ -251,7 +251,7 @@ Or with stdin:
 
 .. code-block:: console
 
-   cat my-deploy-steps.txt | openstack baremetal deploy template create \
+   cat my-deploy-steps.txt | baremetal deploy template create \
        CUSTOM_HYPERTHREADING_ON \
        --steps -
 
@@ -265,7 +265,7 @@ to the node represented by ``$node_ident``:
 
 .. code-block:: console
 
-   openstack baremetal node add trait $node_ident CUSTOM_HYPERTHREADING_ON
+   baremetal node add trait $node_ident CUSTOM_HYPERTHREADING_ON
 
 We also update the flavor ``bm-hyperthreading-on`` in the Compute
 service with the following property:
@@ -311,7 +311,7 @@ To make this example more dynamic, let's add a second trait
 
 .. code-block:: console
 
-   openstack baremetal node add trait $node_ident CUSTOM_HYPERTHREADING_OFF
+   baremetal node add trait $node_ident CUSTOM_HYPERTHREADING_OFF
 
 We could also update a second flavor, ``bm-hyperthreading-off``, with the
 following property:

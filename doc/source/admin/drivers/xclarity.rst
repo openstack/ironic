@@ -55,12 +55,12 @@ field and are required:
   xclarity_username to the XClarity Controller.
 - ``xclarity_hardware_id``: The hardware ID of the XClarity managed server.
 
-The ``openstack baremetal node create`` command can be used to enroll
+The ``baremetal node create`` command can be used to enroll
 a node with the ``xclarity`` driver. For example:
 
 .. code-block:: bash
 
-  openstack baremetal node create --driver xclarity \
+  baremetal node create --driver xclarity \
     --driver-info xclarity_manager_ip=https://10.240.217.101 \
     --driver-info xclarity_username=admin \
     --driver-info xclarity_password=password \

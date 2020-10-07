@@ -146,11 +146,11 @@ contains more extensive validation, that is likely un-necessary in a
 
 Setting the external storage interface::
 
-    openstack baremetal node set --storage-interface external $NODE_UUID
+    baremetal node set --storage-interface external $NODE_UUID
 
 Setting a volume::
 
-    openstack baremetal volume target create --node $NODE_UUID \
+    baremetal volume target create --node $NODE_UUID \
         --type iscsi --boot-index 0 --volume-id $VOLUME_UUID \
         --property target_iqn="iqn.2010-10.com.example:vol-X" \
         --property target_lun="0" \
@@ -161,12 +161,12 @@ Setting a volume::
 
 Ensure that no image_source is defined::
 
-    openstack baremetal node unset \
+    baremetal node unset \
         --instance-info image_source $NODE_UUID
 
 Deploy the node::
 
-    openstack baremetal node deploy $NODE_UUID
+    baremetal node deploy $NODE_UUID
 
 Upon deploy, the boot interface for the baremetal node will attempt
 to either create iPXE configuration OR set boot parameters out-of-band via

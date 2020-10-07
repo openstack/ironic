@@ -86,12 +86,12 @@ field:
   verification. To disable verifying TLS_, set this
   to False. This is optional.
 
-The ``openstack baremetal node create`` command can be used to enroll
+The ``baremetal node create`` command can be used to enroll
 a node with the ``ibmc`` driver. For example:
 
 .. code-block:: bash
 
-  openstack baremetal node create --driver ibmc
+  baremetal node create --driver ibmc
     --driver-info ibmc_address=https://example.com \
     --driver-info ibmc_username=admin \
     --driver-info ibmc_password=password

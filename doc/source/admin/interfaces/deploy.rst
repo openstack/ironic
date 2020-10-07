@@ -20,8 +20,8 @@ This interface is used by default, if enabled (see
 :ref:`enable-hardware-interfaces`). You can specify it explicitly
 when creating or updating a node::
 
-    openstack baremetal node create --driver ipmi --deploy-interface iscsi
-    openstack baremetal node set <NODE> --deploy-interface iscsi
+    baremetal node create --driver ipmi --deploy-interface iscsi
+    baremetal node set <NODE> --deploy-interface iscsi
 
 .. _iSCSI: https://en.wikipedia.org/wiki/ISCSI
 
@@ -38,8 +38,8 @@ a detailed explanation of how this deploy interface works.
 
 You can specify this deploy interface when creating or updating a node::
 
-    openstack baremetal node create --driver ipmi --deploy-interface direct
-    openstack baremetal node set <NODE> --deploy-interface direct
+    baremetal node create --driver ipmi --deploy-interface direct
+    baremetal node set <NODE> --deploy-interface direct
 
 .. note::
     For historical reasons the ``direct`` deploy interface is sometimes called
@@ -74,11 +74,11 @@ This configuration affects *glance* and ``file://`` images. If you want
 .. note::
    This option can also be set per node in ``driver_info``::
 
-    openstack baremetal node set <node> --driver-info image_download_source=local
+    baremetal node set <node> --driver-info image_download_source=local
 
    or per instance in ``instance_info``::
 
-    openstack baremetal node set <node> --instance-info image_download_source=local
+    baremetal node set <node> --instance-info image_download_source=local
 
 You need to set up a workable HTTP server at each conductor node which with
 ``direct`` deploy interface enabled, and check http related options in the
@@ -127,8 +127,8 @@ a node:
 
 .. code-block:: shell
 
-   openstack baremetal node create --driver ipmi --deploy-interface ansible
-   openstack baremetal node set <NODE> --deploy-interface ansible
+   baremetal node create --driver ipmi --deploy-interface ansible
+   baremetal node set <NODE> --deploy-interface ansible
 
 For more information about this deploy interface, its features and how to use
 it, see :doc:`Ansible deploy interface <../drivers/ansible>`.

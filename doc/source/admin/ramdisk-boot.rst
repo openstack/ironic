@@ -26,7 +26,7 @@ be set upon creation of a new node:
 
 .. code-block:: shell
 
-   openstack baremetal node create --driver ipmi \
+   baremetal node create --driver ipmi \
        --deploy-interface ramdisk \
        --boot-interface ipxe
 
@@ -34,13 +34,13 @@ or update an existing node:
 
 .. code-block:: shell
 
-   openstack baremetal node set <NODE> --deploy-interface ramdisk
+   baremetal node set <NODE> --deploy-interface ramdisk
 
 Using virtual media:
 
 .. code-block:: shell
 
-   openstack baremetal node create --driver redfish \
+   baremetal node create --driver redfish \
        --deploy-interface ramdisk \
        --boot-interface redfish-virtual-media
 
@@ -54,9 +54,9 @@ For example,
 
 .. code-block:: shell
 
-    openstack baremetal node set <NODE> \
+    baremetal node set <NODE> \
         --instance-info boot_iso=http://path/to/boot.iso
-    openstack baremetal node deploy <NODE>
+    baremetal node deploy <NODE>
 
 Limitations
 -----------

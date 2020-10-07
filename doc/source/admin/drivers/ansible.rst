@@ -188,12 +188,12 @@ configuration file, for their descriptions and default values please see
 Driver properties for the Node
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Set them per-node via ``openstack baremetal node set`` command,
+Set them per-node via ``baremetal node set`` command,
 for example:
 
 .. code-block:: shell
 
-   openstack baremetal node set <node> \
+   baremetal node set <node> \
        --deploy-interface ansible \
        --driver-info ansible_username=stack \
        --driver-info ansible_key_file=/etc/ironic/id_rsa

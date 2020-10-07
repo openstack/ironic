@@ -58,7 +58,7 @@ expression.
 
 #. Set the conductor group on one or more nodes::
 
-    openstack baremetal node set \
+    baremetal node set \
         --conductor-group "OperatorDefinedString" <uuid>
 
 #. As desired and as needed, remaining conductors can be updated with

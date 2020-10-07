@@ -119,4 +119,4 @@ that, you have to update the node's ``driver_info`` field and set the
 ``deploy_forces_oob_reboot`` parameter with the value of **True**. For
 example, the below command sets this configuration in a specific node::
 
-  openstack baremetal node set <UUID or name> --driver-info deploy_forces_oob_reboot=True
+  baremetal node set <UUID or name> --driver-info deploy_forces_oob_reboot=True

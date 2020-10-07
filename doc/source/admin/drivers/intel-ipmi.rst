@@ -73,10 +73,10 @@ All the configuration value required for IntelIPMI is the same as the IPMI
 hardware type except the management interface which is ``intel-ipmitool``.
 Refer :doc:`ipmitool` for details.
 
-The ``openstack baremetal node create`` command can be used to enroll a node
+The ``baremetal node create`` command can be used to enroll a node
 with an IntelIPMI driver. For example::
 
-    openstack baremetal node create --driver intel-ipmi \
+    baremetal node create --driver intel-ipmi \
         --driver-info ipmi_address=<address> \
         --driver-info ipmi_username=<username> \
         --driver-info ipmi_password=<password>
@@ -119,15 +119,15 @@ templates for each profiles in Ironic.
 
 .. code-block:: console
 
-   openstack baremetal deploy template create \
+   baremetal deploy template create \
       CUSTOM_INTEL_SPEED_SELECT_CONFIG_BASE \
       --steps '[{"interface": "management", "step": "configure_intel_speedselect", "args": {"intel_speedselect_config": "0x00", "socket_count": 2}, "priority": 150}]'
 
-   openstack baremetal deploy template create \
+   baremetal deploy template create \
        CUSTOM_INTEL_SPEED_SELECT_CONFIG_1 \
        --steps '[{"interface": "management", "step": "configure_intel_speedselect", "args": {"intel_speedselect_config": "0x01", "socket_count": 2}, "priority": 150}]'
 
-   openstack baremetal deploy template create \
+   baremetal deploy template create \
       CUSTOM_INTEL_SPEED_SELECT_CONFIG_2 \
       --steps '[{"interface": "management", "step": "configure_intel_speedselect", "args": {"intel_speedselect_config": "0x02", "socket_count": 2}, "priority": 150}]'
 
@@ -136,7 +136,7 @@ All Intel SST-PP capable nodes should have these traits associated.
 
 .. code-block:: console
 
-   openstack baremetal node add trait node-0 \
+   baremetal node add trait node-0 \
       CUSTOM_INTEL_SPEED_SELECT_CONFIG_BASE \
       CUSTOM_INTEL_SPEED_SELECT_CONFIG_1 \
       CUSTOM_INTEL_SPEED_SELECT_CONFIG_2

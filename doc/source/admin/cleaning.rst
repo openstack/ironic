@@ -154,10 +154,10 @@ In the above example, the node's RAID interface would configure hardware
 RAID without non-root volumes, and then all devices would be erased
 (in that order).
 
-Starting manual cleaning via "openstack baremetal" CLI
+Starting manual cleaning via "openstack metal" CLI
 ------------------------------------------------------
 
-Manual cleaning is available via the ``openstack baremetal node clean``
+Manual cleaning is available via the ``baremetal node clean``
 command, starting with Bare Metal API version 1.15.
 
 The argument ``--clean-steps`` must be specified. Its value is one of:
@@ -175,20 +175,20 @@ add ``--os-baremetal-api-version 1.15`` to the command.)::
 
 Examples of doing this with a JSON string::
 
-    openstack baremetal node clean <node> \
+    baremetal node clean <node> \
         --clean-steps '[{"interface": "deploy", "step": "erase_devices_metadata"}]'
 
-    openstack baremetal node clean <node> \
+    baremetal node clean <node> \
         --clean-steps '[{"interface": "deploy", "step": "erase_devices"}]'
 
 Or with a file::
 
-    openstack baremetal node clean <node> \
+    baremetal node clean <node> \
         --clean-steps my-clean-steps.txt
 
 Or with stdin::
 
-    cat my-clean-steps.txt | openstack baremetal node clean <node> \
+    cat my-clean-steps.txt | baremetal node clean <node> \
         --clean-steps -
 
 Cleaning Network
@@ -289,7 +289,7 @@ To check what cleaning step the node is performing or attempted to perform and
 failed, run the following command; it will return the value in the node's
 ``driver_internal_info`` field::
 
-    openstack baremetal node show $node_ident -f value -c driver_internal_info
+    baremetal node show $node_ident -f value -c driver_internal_info
 
 The ``clean_steps`` field will contain a list of all remaining steps with their
 priorities, and the first one listed is the step currently in progress or that
@@ -326,7 +326,7 @@ A ``clean failed`` node can be moved to ``manageable`` state, where it cannot
 be scheduled by nova and you can safely attempt to fix the node. To move a node
 from ``clean failed`` to ``manageable``::
 
-  openstack baremetal node manage $node_ident
+  baremetal node manage $node_ident
 
 You can now take actions on the node, such as replacing a bad disk drive.
 
@@ -341,10 +341,10 @@ to allow it to be scheduled by nova.
 ::
 
   # First, move it out of maintenance mode
-  openstack baremetal node maintenance unset $node_ident
+  baremetal node maintenance unset $node_ident
 
   # Now, make the node available for scheduling by nova
-  openstack baremetal node provide $node_ident
+  baremetal node provide $node_ident
 
 The node will begin automated cleaning from the start, and move to
 ``available`` state when complete.
