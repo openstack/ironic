@@ -130,14 +130,20 @@ def default_interface(hw_type, interface_type,
     :raises: InterfaceNotFoundInEntrypoint if the entry point was not found.
     :raises: NoValidDefaultForInterface if no default interface can be found.
     """
+
     factory = _INTERFACE_LOADERS[interface_type]
 
     # The fallback default from the configuration
     impl_name = getattr(CONF, 'default_%s_interface' % interface_type)
 
     if impl_name is not None:
-        # Check that the default is correct for this type
-        get_interface(hw_type, interface_type, impl_name)
+        try:
+            # Check that the default is correct for this type
+            get_interface(hw_type, interface_type, impl_name)
+        except exception.IncompatibleInterface:
+            raise exception.NoValidDefaultForInterface(
+                interface_type=interface_type, driver=driver_name)
+
     else:
         supported = getattr(hw_type,
                             'supported_%s_interfaces' % interface_type)
