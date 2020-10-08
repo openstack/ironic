@@ -35,7 +35,7 @@ to list all drivers enabled on all hosts:
 
 .. code-block:: console
 
-    openstack baremetal driver list
+    baremetal driver list
     +---------------------+-----------------------+
     | Supported driver(s) | Active host(s)        |
     +---------------------+-----------------------+
@@ -119,7 +119,7 @@ and may be combined if desired.
    .. code-block:: console
 
     $ export OS_BAREMETAL_API_VERSION=1.11
-    $ openstack baremetal node create --driver ipmi
+    $ baremetal node create --driver ipmi
     +--------------+--------------------------------------+
     | Property     | Value                                |
     +--------------+--------------------------------------+
@@ -132,7 +132,7 @@ and may be combined if desired.
     | name         | None                                 |
     +--------------+--------------------------------------+
 
-    $ openstack baremetal node show dfc6189f-ad83-4261-9bda-b27258eb1987
+    $ baremetal node show dfc6189f-ad83-4261-9bda-b27258eb1987
     +------------------------+--------------------------------------+
     | Property               | Value                                |
     +------------------------+--------------------------------------+
@@ -170,7 +170,7 @@ and may be combined if desired.
 
    .. code-block:: console
 
-    $ openstack baremetal --os-baremetal-api-version 1.31 node set $NODE_UUID \
+    $ baremetal --os-baremetal-api-version 1.31 node set $NODE_UUID \
         --deploy-interface direct \
         --raid-interface agent
 
@@ -178,7 +178,7 @@ and may be combined if desired.
 
    .. code-block:: console
 
-    $ openstack baremetal --os-baremetal-api-version 1.31 node create --driver ipmi \
+    $ baremetal --os-baremetal-api-version 1.31 node create --driver ipmi \
         --deploy-interface direct \
         --raid-interface agent
 
@@ -190,7 +190,7 @@ and may be combined if desired.
 
    .. code-block:: console
 
-    $ openstack baremetal node set $NODE_UUID \
+    $ baremetal node set $NODE_UUID \
         --driver-info ipmi_username=$USER \
         --driver-info ipmi_password=$PASS \
         --driver-info ipmi_address=$ADDRESS
@@ -202,14 +202,14 @@ and may be combined if desired.
 
       .. code-block:: console
 
-       $ openstack baremetal node set $NODE_UUID --driver-info ipmi_port=$PORT_NUMBER
+       $ baremetal node set $NODE_UUID --driver-info ipmi_port=$PORT_NUMBER
 
    You may also specify all ``driver_info`` parameters during node
    creation by passing the **--driver-info** option multiple times:
 
    .. code-block:: console
 
-     $ openstack baremetal node create --driver ipmi \
+     $ baremetal node create --driver ipmi \
          --driver-info ipmi_username=$USER \
          --driver-info ipmi_password=$PASS \
          --driver-info ipmi_address=$ADDRESS
@@ -221,7 +221,7 @@ and may be combined if desired.
 
    .. code-block:: console
 
-    $ openstack baremetal node set $NODE_UUID \
+    $ baremetal node set $NODE_UUID \
         --driver-info deploy_kernel=$DEPLOY_VMLINUZ_UUID \
         --driver-info deploy_ramdisk=$DEPLOY_INITRD_UUID
 
@@ -235,7 +235,7 @@ and may be combined if desired.
 
    .. code-block:: console
 
-    $ openstack baremetal node set $NODE_UUID \
+    $ baremetal node set $NODE_UUID \
         --driver-info cleaning_network=$CLEAN_UUID_OR_NAME \
         --driver-info provisioning_network=$PROVISION_UUID_OR_NAME
 
@@ -300,7 +300,7 @@ Adding scheduling information
 
    .. code-block:: console
 
-    $ openstack baremetal node set $NODE_UUID \
+    $ baremetal node set $NODE_UUID \
         --property cpus=$CPU_COUNT \
         --property memory_mb=$RAM_MB \
         --property local_gb=$DISK_GB
@@ -310,7 +310,7 @@ Adding scheduling information
 
    .. code-block:: console
 
-     $ openstack baremetal node create --driver ipmi \
+     $ baremetal node create --driver ipmi \
          --driver-info ipmi_username=$USER \
          --driver-info ipmi_password=$PASS \
          --driver-info ipmi_address=$ADDRESS \
@@ -339,7 +339,7 @@ Adding scheduling information
 
    .. code-block:: console
 
-    $ openstack baremetal node set $NODE_UUID \
+    $ baremetal node set $NODE_UUID \
         --property capabilities=key1:val1,key2:val2
 
    Some capabilities can also be discovered during `Hardware Inspection`_.
@@ -353,7 +353,7 @@ Adding scheduling information
 
    .. code-block:: console
 
-    $ openstack baremetal node add trait $NODE_UUID \
+    $ baremetal node add trait $NODE_UUID \
         CUSTOM_TRAIT1 HW_CPU_X86_VMX
 
 
@@ -365,7 +365,7 @@ Validating node information
 
    .. code-block:: console
 
-    $ openstack baremetal node validate $NODE_UUID
+    $ baremetal node validate $NODE_UUID
     +------------+--------+--------+
     | Interface  | Result | Reason |
     +------------+--------+--------+
@@ -385,7 +385,7 @@ Validating node information
 
    .. code-block:: console
 
-    $ openstack baremetal node validate $NODE_UUID
+    $ baremetal node validate $NODE_UUID
     +------------+--------+-------------------------------------------------------------------------------------------------------------------------------------+
     | Interface  | Result | Reason                                                                                                                              |
     +------------+--------+-------------------------------------------------------------------------------------------------------------------------------------+
@@ -408,7 +408,7 @@ Validating node information
 
    .. code-block:: console
 
-    $ openstack baremetal node validate $NODE_UUID
+    $ baremetal node validate $NODE_UUID
     +------------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | Interface  | Result | Reason                                                                                                                                                           |
     +------------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -444,8 +444,8 @@ To move a node from ``enroll`` to ``manageable`` provision state:
 
 .. code-block:: console
 
-    $ openstack baremetal --os-baremetal-api-version 1.11 node manage $NODE_UUID
-    $ openstack baremetal node show $NODE_UUID
+    $ baremetal --os-baremetal-api-version 1.11 node manage $NODE_UUID
+    $ baremetal node show $NODE_UUID
     +------------------------+--------------------------------------------------------------------+
     | Property               | Value                                                              |
     +------------------------+--------------------------------------------------------------------+
@@ -456,9 +456,9 @@ To move a node from ``enroll`` to ``manageable`` provision state:
     +------------------------+--------------------------------------------------------------------+
 
 .. note:: Since it is an asynchronous call, the response for
-          ``openstack baremetal node manage`` will not indicate whether the
+          ``baremetal node manage`` will not indicate whether the
           transition succeeded or not. You can check the status of the
-          operation via ``openstack baremetal node show``. If it was successful,
+          operation via ``baremetal node show``. If it was successful,
           ``provision_state`` will be in the desired state. If it failed,
           there will be information in the node's ``last_error``.
 
@@ -470,8 +470,8 @@ To move a node from ``manageable`` to ``available`` provision state:
 
 .. code-block:: console
 
-    $ openstack baremetal --os-baremetal-api-version 1.11 node provide $NODE_UUID
-    $ openstack baremetal node show $NODE_UUID
+    $ baremetal --os-baremetal-api-version 1.11 node provide $NODE_UUID
+    $ baremetal node show $NODE_UUID
     +------------------------+--------------------------------------------------------------------+
     | Property               | Value                                                              |
     +------------------------+--------------------------------------------------------------------+
@@ -512,13 +512,13 @@ The node is named 'example' in the following examples:
 
 .. code-block:: console
 
-    $ openstack baremetal node create --driver ipmi --name example
+    $ baremetal node create --driver ipmi --name example
 
 or
 
 .. code-block:: console
 
-    $ openstack baremetal node set $NODE_UUID --name example
+    $ baremetal node set $NODE_UUID --name example
 
 
 Once assigned a logical name, a node can then be referred to by name or
@@ -526,7 +526,7 @@ UUID interchangeably:
 
 .. code-block:: console
 
-    $ openstack baremetal node create --driver ipmi --name example
+    $ baremetal node create --driver ipmi --name example
     +--------------+--------------------------------------+
     | Property     | Value                                |
     +--------------+--------------------------------------+
@@ -539,7 +539,7 @@ UUID interchangeably:
     | name         | example                              |
     +--------------+--------------------------------------+
 
-    $ openstack baremetal node show example
+    $ baremetal node show example
     +------------------------+--------------------------------------+
     | Property               | Value                                |
     +------------------------+--------------------------------------+
@@ -570,7 +570,7 @@ interfaces for a hardware type (for your deployment):
 
 .. code-block:: console
 
-    $ openstack baremetal --os-baremetal-api-version 1.31 driver show ipmi
+    $ baremetal --os-baremetal-api-version 1.31 driver show ipmi
     +-------------------------------+----------------+
     | Field                         | Value          |
     +-------------------------------+----------------+
@@ -641,7 +641,7 @@ A new node is created with the ``ipmi`` driver and no interfaces specified:
 .. code-block:: console
 
     $ export OS_BAREMETAL_API_VERSION=1.31
-    $ openstack baremetal node create --driver ipmi
+    $ baremetal node create --driver ipmi
     +--------------+--------------------------------------+
     | Property     | Value                                |
     +--------------+--------------------------------------+

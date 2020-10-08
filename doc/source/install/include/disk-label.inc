@@ -47,7 +47,7 @@ When Ironic is used with the Compute service the disk label should be
 set to node's ``properties/capabilities`` field and also to the flavor
 which will request such capability, for example::
 
-    openstack baremetal node set <node-uuid> --property capabilities='disk_label:gpt'
+    baremetal node set <node-uuid> --property capabilities='disk_label:gpt'
 
 As for the flavor::
 
@@ -59,4 +59,4 @@ When used in standalone mode
 When used without the Compute service, the disk label should be set
 directly to the node's ``instance_info`` field, as below::
 
-    openstack baremetal node set <node-uuid> --instance-info capabilities='{"disk_label": "gpt"}'
+    baremetal node set <node-uuid> --instance-info capabilities='{"disk_label": "gpt"}'

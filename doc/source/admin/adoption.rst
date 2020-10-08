@@ -121,7 +121,7 @@ from the ``manageable`` state to ``active`` state::
     # 1.17, which introduces the adoption capability.
     export OS_BAREMETAL_API_VERSION=1.17
 
-    openstack baremetal node create --name testnode \
+    baremetal node create --name testnode \
         --driver ipmi \
         --driver-info ipmi_address=<ip_address> \
         --driver-info ipmi_username=<username> \
@@ -129,15 +129,15 @@ from the ``manageable`` state to ``active`` state::
         --driver-info deploy_kernel=<deploy_kernel_id_or_url> \
         --driver-info deploy_ramdisk=<deploy_ramdisk_id_or_url>
 
-    openstack baremetal port create <node_mac_address> --node <node_uuid>
+    baremetal port create <node_mac_address> --node <node_uuid>
 
-    openstack baremetal node set testnode \
+    baremetal node set testnode \
         --instance-info image_source="http://localhost:8080/blankimage" \
         --instance-info capabilities="{\"boot_option\": \"local\"}"
 
-    openstack baremetal node manage testnode --wait
+    baremetal node manage testnode --wait
 
-    openstack baremetal node adopt testnode --wait
+    baremetal node adopt testnode --wait
 
 .. NOTE::
    In the above example, the image_source setting must reference a valid
@@ -160,7 +160,7 @@ from the ``manageable`` state to ``active`` state::
    used to match an instance in the Compute service. Doing so is not
    required for the proper operation of the Bare Metal service.
 
-   openstack baremetal node set <node name or uuid> --instance-uuid <uuid>
+   baremetal node set <node name or uuid> --instance-uuid <uuid>
 
 .. NOTE::
    In Newton, coupled with API version 1.20, the concept of a
@@ -186,7 +186,7 @@ If a user wishes to abort their attempt at adopting, they can then move
 the node back to ``manageable`` from ``adopt failed`` state by issuing the
 ``manage`` verb.  Example::
 
-  openstack baremetal node manage <node name or uuid>
+  baremetal node manage <node name or uuid>
 
 If all else fails the hardware node can be removed from the Bare Metal
 service.  The ``node delete`` command, which is **not** the same as setting
@@ -194,4 +194,4 @@ the provision state to ``deleted``, can be used while the node is in
 ``adopt failed`` state. This will delete the node without cleaning
 occurring to preserve the node's current state. Example::
 
-  openstack baremetal node delete <node name or uuid>
+  baremetal node delete <node name or uuid>

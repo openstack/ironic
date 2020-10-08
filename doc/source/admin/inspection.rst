@@ -25,11 +25,11 @@ The node should be in the ``manageable`` state before inspection is initiated.
 If it is in the ``enroll`` or ``available`` state, move it to ``manageable``
 first::
 
-    openstack baremetal node manage <node_UUID>
+    baremetal node manage <node_UUID>
 
 Then inspection can be initiated using the following command::
 
-    openstack baremetal node inspect <node_UUID>
+    baremetal node inspect <node_UUID>
 
 .. _capabilities-discovery:
 

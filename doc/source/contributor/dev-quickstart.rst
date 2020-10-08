@@ -193,7 +193,7 @@ Step 1: Create a Python virtualenv
     pip install python-openstackclient
 
 
-#. Install the `openstack baremetal` client::
+#. Install the `baremetal` client::
 
     pip install python-ironicclient
 
@@ -324,10 +324,10 @@ Then list the available commands and resources::
     openstack help baremetal
 
     # get the list of drivers currently supported by the available conductor(s)
-    openstack baremetal driver list
+    baremetal driver list
 
     # get a list of nodes (should be empty at this point)
-    openstack baremetal node list
+    baremetal node list
 
 Here is an example walkthrough of creating a node::
 
@@ -339,7 +339,7 @@ Here is an example walkthrough of creating a node::
     # enroll the node with the fake hardware type and IPMI-based power and
     # management interfaces. Note that driver info may be added at node
     # creation time with "--driver-info"
-    NODE=$(openstack baremetal node create \
+    NODE=$(baremetal node create \
            --driver fake-hardware \
            --management-interface ipmitool \
            --power-interface ipmitool \
@@ -348,20 +348,20 @@ Here is an example walkthrough of creating a node::
            -f value -c uuid)
 
     # driver info may also be added or updated later on
-    openstack baremetal node set $NODE --driver-info ipmi_password=$IPMI_PASS
+    baremetal node set $NODE --driver-info ipmi_password=$IPMI_PASS
 
     # add a network port
-    openstack baremetal port create $MAC --node $NODE
+    baremetal port create $MAC --node $NODE
 
     # view the information for the node
-    openstack baremetal node show $NODE
+    baremetal node show $NODE
 
     # request that the node's driver validate the supplied information
-    openstack baremetal node validate $NODE
+    baremetal node validate $NODE
 
     # you have now enrolled a node sufficiently to be able to control
     # its power state from ironic!
-    openstack baremetal node power on $NODE
+    baremetal node power on $NODE
 
 If you make some code changes and want to test their effects, simply stop the
 services with Ctrl-C and restart them.
@@ -710,7 +710,7 @@ Nova will be interfacing with Ironic conductor to spawn the node.  On the
 Ironic side, you should see an Ironic node associated with this Nova instance.
 It should be powered on and in a 'wait call-back' provisioning state::
 
-    openstack baremetal node list
+    baremetal node list
     +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+
     | UUID                                 | Name   | Instance UUID                        | Power State | Provisioning State | Maintenance |
     +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+
@@ -735,7 +735,7 @@ This provisioning process may take some time depending on the performance of
 the host system, but Ironic should eventually show the node as having an
 'active' provisioning state::
 
-    openstack baremetal node list
+    baremetal node list
     +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+
     | UUID                                 | Name   | Instance UUID                        | Power State | Provisioning State | Maintenance |
     +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+

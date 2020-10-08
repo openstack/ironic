@@ -24,7 +24,7 @@ deploy step in the ``AgentDeploy`` class.
 
 After deployment of the baremetal node, check the updated deploy steps::
 
-    openstack baremetal node show $node_ident -f json -c driver_internal_info
+    baremetal node show $node_ident -f json -c driver_internal_info
 
 The above command outputs the ``driver_internal_info`` as following::
 

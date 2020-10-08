@@ -27,7 +27,7 @@ Ironic Python Agent ramdisk. For in-band hardware RAID configuration,
 a hardware manager which supports RAID should be bundled with the ramdisk.
 
 Whether a node supports RAID configuration could be found using the CLI
-command ``openstack baremetal node validate <node-uuid>``. In-band RAID is
+command ``baremetal node validate <node-uuid>``. In-band RAID is
 usually implemented by the ``agent`` RAID interface.
 
 Build agent ramdisk which supports RAID configuration
@@ -74,7 +74,7 @@ done on the node.
 Each dictionary of logical disk contains the desired properties of logical
 disk supported by the hardware type. These properties are discoverable by::
 
-    openstack baremetal driver raid property list <driver name>
+    baremetal driver raid property list <driver name>
 
 Mandatory properties
 ^^^^^^^^^^^^^^^^^^^^
@@ -296,7 +296,7 @@ physical disk found on the bare metal node.
 
 To get the current RAID configuration::
 
-    openstack baremetal node show <node-uuid-or-name>
+    baremetal node show <node-uuid-or-name>
 
 Workflow
 ========
@@ -314,12 +314,12 @@ Workflow
   `Target RAID configuration`_. The target RAID configuration is set on
   the Ironic node::
 
-      openstack baremetal node set <node-uuid-or-name> \
+      baremetal node set <node-uuid-or-name> \
          --target-raid-config <JSON file containing target RAID configuration>
 
   The CLI command can accept the input from standard input also::
 
-       openstack baremetal node set <node-uuid-or-name> \
+       baremetal node set <node-uuid-or-name> \
           --target-raid-config -
 
 * Create a JSON file with the RAID clean steps for manual cleaning. Add other
@@ -343,13 +343,13 @@ Workflow
 * Bring the node to ``manageable`` state and do a ``clean`` action to start
   cleaning on the node::
 
-      openstack baremetal node clean <node-uuid-or-name> \
+      baremetal node clean <node-uuid-or-name> \
          --clean-steps <JSON file containing clean steps created above>
 
 * After manual cleaning is complete, the current RAID configuration is
   reported in the ``raid_config`` field when running::
 
-      openstack baremetal node show <node-uuid-or-name>
+      baremetal node show <node-uuid-or-name>
 
 Software RAID
 =============

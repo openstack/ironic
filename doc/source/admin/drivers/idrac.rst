@@ -159,7 +159,7 @@ hardware type using WSMAN for all interfaces:
 
 .. code-block:: bash
 
-    openstack baremetal node create --driver idrac \
+    baremetal node create --driver idrac \
         --driver-info drac_username=user \
         --driver-info drac_password=pa$$w0rd \
         --driver-info drac_address=drac.host
@@ -169,7 +169,7 @@ hardware type using Redfish for all interfaces:
 
 .. code-block:: bash
 
-    openstack baremetal node create --driver idrac \
+    baremetal node create --driver idrac \
         --driver-info redfish_username=user \
         --driver-info redfish_password=pa$$w0rd \
         --driver-info redfish_address=drac.host \
@@ -186,7 +186,7 @@ hardware type assuming a mix of Redfish and WSMAN interfaces are used:
 
 .. code-block:: bash
 
-    openstack baremetal node create --driver idrac \
+    baremetal node create --driver idrac \
         --driver-info drac_username=user \
         --driver-info drac_password=pa$$w0rd
         --driver-info drac_address=drac.host \
@@ -360,7 +360,7 @@ hot spare physical disks, and clears foreign configuration:
 
 .. code-block:: bash
 
-  openstack baremetal node clean --clean-steps \
+  baremetal node clean --clean-steps \
     '[{"interface": "raid", "step": "delete_configuration"}]' ${node_uuid}
 
 
@@ -369,7 +369,7 @@ configuration:
 
 .. code-block:: bash
 
-  openstack baremetal node set --target-raid-config '{ "logical_disks":
+  baremetal node set --target-raid-config '{ "logical_disks":
     [ { "controller": "RAID.Integrated.1-1",
         "is_root_volume": true,
         "physical_disks": [
@@ -459,7 +459,7 @@ Get BIOS Config
 
 .. code-block:: bash
 
-  openstack baremetal node passthru call --http-method GET ${node_uuid} get_bios_config
+  baremetal node passthru call --http-method GET ${node_uuid} get_bios_config
 
 Snippet of output showing virtualization enabled:
 
@@ -491,7 +491,7 @@ Set BIOS Config
 
 .. code-block:: bash
 
-  openstack baremetal node passthru call ${node_uuid} set_bios_config --arg "name=value"
+  baremetal node passthru call ${node_uuid} set_bios_config --arg "name=value"
 
 
 Walkthrough of perfoming a BIOS configuration change:
@@ -505,7 +505,7 @@ two properties that are being changed are:
 
 .. code-block:: bash
 
-  openstack baremetal node passthru call ${node_uuid} set_bios_config \
+  baremetal node passthru call ${node_uuid} set_bios_config \
     --arg "ProcVirtualization=Enabled" \
     --arg "SriovGlobalEnable=Enabled"
 
@@ -532,7 +532,7 @@ Ironic power API.
 
 .. code-block:: bash
 
-  openstack baremetal node passthru call ${node_uuid} commit_bios_config \
+  baremetal node passthru call ${node_uuid} commit_bios_config \
     --arg "reboot=true"
 
 .. code-block:: json
@@ -546,7 +546,7 @@ The state of any executing job can be queried:
 
 .. code-block:: bash
 
-  openstack baremetal node passthru call --http-method GET ${node_uuid} list_unfinished_jobs
+  baremetal node passthru call --http-method GET ${node_uuid} list_unfinished_jobs
 
 
 .. code-block:: json
@@ -568,7 +568,7 @@ Instead of committing, a pending change can be abandoned:
 
 .. code-block:: bash
 
-  openstack baremetal node passthru call --http-method DELETE ${node_uuid} abandon_bios_config
+  baremetal node passthru call --http-method DELETE ${node_uuid} abandon_bios_config
 
 The abandon command does not provide a response body.
 
@@ -609,18 +609,18 @@ The boot mode can be changed via the vendor passthru interface as follows:
 
 .. code-block:: bash
 
-  openstack baremetal node passthru call ${node_uuid} set_bios_config \
+  baremetal node passthru call ${node_uuid} set_bios_config \
     --arg "BootMode=Uefi"
 
-  openstack baremetal node passthru call ${node_uuid} commit_bios_config \
+  baremetal node passthru call ${node_uuid} commit_bios_config \
     --arg "reboot=true"
 
 .. code-block:: bash
 
-  openstack baremetal node passthru call ${node_uuid} set_bios_config \
+  baremetal node passthru call ${node_uuid} set_bios_config \
     --arg "BootMode=Bios"
 
-  openstack baremetal node passthru call ${node_uuid} commit_bios_config \
+  baremetal node passthru call ${node_uuid} commit_bios_config \
     --arg "reboot=true"
 
 Known Issues
@@ -661,7 +661,7 @@ time as waiting for iDRAC to become ready again and then time out, for example:
 
 .. code-block:: bash
 
-  openstack baremetal node passthru call --http-method GET \
+  baremetal node passthru call --http-method GET \
     aed58dca-1b25-409a-a32f-3a817d59e1e0 list_unfinished_jobs
   Timed out waiting for a reply to message ID 547ce7995342418c99ef1ea4a0054572 (HTTP 500)
 

@@ -74,10 +74,10 @@ good practice to have them set:
    It is highly recommend that you setup a username and password for
    your BMC.
 
-The ``openstack baremetal node create`` command can be used to enroll a node
+The ``baremetal node create`` command can be used to enroll a node
 with an IPMItool-based driver. For example::
 
-    openstack baremetal node create --driver ipmi \
+    baremetal node create --driver ipmi \
         --driver-info ipmi_address=<address> \
         --driver-info ipmi_username=<username> \
         --driver-info ipmi_password=<password>
@@ -125,13 +125,13 @@ The parameter ``ipmi_bridging`` should specify the type of bridging
 required: *single* or *dual* to access the bare metal node. If the
 parameter is not specified, the default value will be set to *no*.
 
-The ``openstack baremetal node set`` command can be used to set the required
+The ``baremetal node set`` command can be used to set the required
 bridging information to the Ironic node enrolled with the IPMItool
 driver. For example:
 
 * Single Bridging::
 
-    openstack baremetal node set <UUID or name> \
+    baremetal node set <UUID or name> \
         --driver-info ipmi_local_address=<address> \
         --driver-info ipmi_bridging=single \
         --driver-info ipmi_target_channel=<channel> \
@@ -139,7 +139,7 @@ driver. For example:
 
 * Double Bridging::
 
-    openstack baremetal node set <UUID or name> \
+    baremetal node set <UUID or name> \
         --driver-info ipmi_local_address=<address> \
         --driver-info ipmi_bridging=dual \
         --driver-info ipmi_transit_channel=<transit channel> \
@@ -159,10 +159,10 @@ the following option needs to be set to the node's ``driver_info`` field:
 - ``ipmi_protocol_version``: The version of the IPMI protocol; default
   is *2.0*. Supported values are *1.5* or *2.0*.
 
-The ``openstack baremetal node set`` command can be used to set the desired
+The ``baremetal node set`` command can be used to set the desired
 protocol version::
 
-    openstack baremetal node set <UUID or name> --driver-info ipmi_protocol_version=<version>
+    baremetal node set <UUID or name> --driver-info ipmi_protocol_version=<version>
 
 .. warning::
    Version *1.5* of the IPMI protocol does not support encryption.
@@ -188,7 +188,7 @@ Another possible problem is ``ipmitool`` commands taking very long (tens of
 seconds or even minutes) because the BMC does not support cipher suite
 negotiation. In both cases you can specify the required suite yourself, e.g.::
 
-    openstack baremetal node set <UUID or name> --driver-info ipmi_cipher_suite=3
+    baremetal node set <UUID or name> --driver-info ipmi_cipher_suite=3
 
 Static boot order configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

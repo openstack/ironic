@@ -16,8 +16,8 @@ Setting the Owner and Lessee
 Non-administrative access to a node is controlled through a node's ``owner``
 or ``lessee`` attribute::
 
-  openstack baremetal node set --owner 080925ee2f464a2c9dce91ee6ea354e2  node-7
-  openstack baremetal node set --lessee 2a210e5ff114c8f2b6e994218f51a904  node-10
+  baremetal node set --owner 080925ee2f464a2c9dce91ee6ea354e2  node-7
+  baremetal node set --lessee 2a210e5ff114c8f2b6e994218f51a904  node-10
 
 
 Configuring the Bare Metal Service Policy

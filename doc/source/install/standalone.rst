@@ -131,7 +131,7 @@ Using CLI
 ---------
 
 To use the
-:python-ironicclient-doc:`openstack baremetal CLI <cli/osc_plugin_cli.html>`,
+:python-ironicclient-doc:`baremetal CLI <cli/osc_plugin_cli.html>`,
 set up these environment variables. If the ``noauth`` authentication strategy is
 being used, the value ``none`` must be set for OS_AUTH_TYPE. OS_ENDPOINT is
 the URL of the ironic-api process.
@@ -155,7 +155,7 @@ Enrolling nodes
    name (for example, ``ipmi``). You can also specify all the required
    driver parameters in one command. This will return the node UUID::
 
-    openstack baremetal node create --driver ipmi \
+    baremetal node create --driver ipmi \
         --driver-info ipmi_address=ipmi.server.net \
         --driver-info ipmi_username=user \
         --driver-info ipmi_password=pass \
@@ -189,7 +189,7 @@ Enrolling nodes
    cards which are part of the node by creating a port with each NIC's MAC
    address. In this case, they're used for naming of PXE configs for a node::
 
-    openstack baremetal port create $MAC_ADDRESS --node $NODE_UUID
+    baremetal port create $MAC_ADDRESS --node $NODE_UUID
 
 Populating instance_info
 ------------------------
@@ -233,7 +233,7 @@ Populating instance_info
 
    For example::
 
-    openstack baremetal node set $NODE_UUID \
+    baremetal node set $NODE_UUID \
         --instance-info image_source=$IMG \
         --instance-info image_checksum=$MD5HASH \
         --instance-info kernel=$KERNEL \
@@ -242,7 +242,7 @@ Populating instance_info
 
    With a SHA256 hash::
 
-    openstack baremetal node set $NODE_UUID \
+    baremetal node set $NODE_UUID \
         --instance-info image_source=$IMG \
         --instance-info image_os_hash_algo=sha256 \
         --instance-info image_os_hash_value=$SHA256HASH \
@@ -252,7 +252,7 @@ Populating instance_info
 
    With a whole disk image::
 
-    openstack baremetal node set $NODE_UUID \
+    baremetal node set $NODE_UUID \
         --instance-info image_source=$IMG \
         --instance-info image_checksum=$MD5HASH
 
@@ -260,12 +260,12 @@ Populating instance_info
    format, you may want them cached locally, converted to raw and served from
    the conductor's HTTP server::
 
-    openstack baremetal node set $NODE_UUID \
+    baremetal node set $NODE_UUID \
         --instance-info image_download_source=local
 
 #. :ref:`Boot mode <boot_mode_support>` can be specified per instance::
 
-    openstack baremetal node set $NODE_UUID \
+    baremetal node set $NODE_UUID \
         --instance-info deploy_boot_mode=uefi
 
    Otherwise, the ``boot_mode`` capability from the node's ``properties`` will
@@ -282,13 +282,13 @@ Populating instance_info
 #. To override the :ref:`boot option <local-boot-partition-images>` used for
    this instance, set the ``boot_option`` capability::
 
-    openstack baremetal node set $NODE_UUID \
+    baremetal node set $NODE_UUID \
         --instance-info capabilities='{"boot_option": "local"}'
 
 #. Starting with the Ussuri release, you can set :ref:`root device hints
    <root-device-hints>` per instance::
 
-    openstack baremetal node set $NODE_UUID \
+    baremetal node set $NODE_UUID \
         --instance-info root_device='{"wwn": "0x4000cca77fc4dba1"}'
 
    This setting overrides any previous setting in ``properties`` and will be
@@ -305,7 +305,7 @@ Deployment
 
 #. Validate that all parameters are correct::
 
-    openstack baremetal node validate $NODE_UUID
+    baremetal node validate $NODE_UUID
 
     +------------+--------+----------------------------------------------------------------+
     | Interface  | Result | Reason                                                         |
@@ -323,7 +323,7 @@ Deployment
 
 #. Now you can start the deployment, run::
 
-    openstack baremetal node deploy $NODE_UUID
+    baremetal node deploy $NODE_UUID
 
 
 Ramdisk booting
@@ -341,18 +341,18 @@ To use, a few different settings must be modified.
 
 #. Change the ``deploy_interface`` on the node to ``ramdisk``::
 
-       openstack baremetal node set $NODE_UUID \
+       baremetal node set $NODE_UUID \
                --deploy-interface ramdisk
 
 #. Set a kernel and ramdisk to be utilized::
 
-       openstack baremetal node set $NODE_UUID \
+       baremetal node set $NODE_UUID \
                --instance-info kernel=$KERNEL_URL \
                --instance-info ramdisk=$RAMDISK_URL
 
 #. Deploy the node::
 
-       openstack baremetal node deploy $NODE_UUID
+       baremetal node deploy $NODE_UUID
 
    .. warning::
       Configuration drives, also known as a configdrive, is not supported
@@ -376,12 +376,12 @@ be booted.
 #. Store the URL to the ISO image to ``instance_info/boot_iso``,
    instead of a ``kernel`` or ``ramdisk`` setting::
 
-       openstack baremetal node set $NODE_UUID \
+       baremetal node set $NODE_UUID \
                --instance-info boot_iso=$BOOT_ISO_URL
 
 #. Deploy the node::
 
-          openstack baremetal node deploy $NODE_UUID
+          baremetal node deploy $NODE_UUID
 
 
 .. warning::

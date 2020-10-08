@@ -98,7 +98,7 @@ Enabling the SNMP Hardware Type
 
       .. code-block:: console
 
-          openstack baremetal node set --property capabilities="boot_option:netboot" <node-uuid>
+          baremetal node set --property capabilities="boot_option:netboot" <node-uuid>
           openstack flavor set --property "capabilities:boot_option"="netboot" ironic-flavor
 
 
@@ -161,7 +161,7 @@ type:
 
 .. code-block:: bash
 
-  openstack baremetal node create --os-baremetal-api-version=1.31 \
+  baremetal node create --os-baremetal-api-version=1.31 \
     --driver snmp --driver-info snmp_driver=<pdu_manufacturer> \
     --driver-info snmp_address=<ip_address> \
     --driver-info snmp_outlet=<outlet_index> \

@@ -135,7 +135,7 @@ Configuring nodes
    ironic-conductor's configuration file. Set it to ``neutron`` to use the
    Networking service's ML2 driver::
 
-     openstack baremetal node create --network-interface neutron --driver ipmi
+     baremetal node create --network-interface neutron --driver ipmi
 
    .. note::
       If the ``[DEFAULT]/default_network_interface`` configuration option is
@@ -145,12 +145,12 @@ Configuring nodes
 #. To update an existing node's network interface to ``neutron``, use the
    following commands::
 
-     openstack baremetal node set $NODE_UUID_OR_NAME \
+     baremetal node set $NODE_UUID_OR_NAME \
          --network-interface neutron
 
 #. Create a port as follows::
 
-     openstack baremetal port create $HW_MAC_ADDRESS --node $NODE_UUID \
+     baremetal port create $HW_MAC_ADDRESS --node $NODE_UUID \
          --local-link-connection switch_id=$SWITCH_MAC_ADDRESS \
          --local-link-connection switch_info=$SWITCH_HOSTNAME \
          --local-link-connection port_id=$SWITCH_PORT \
@@ -169,14 +169,14 @@ Configuring nodes
    the port GUID's lower 3 and higher 3 bytes. In this example it would be f4:52:14:38:39:81.
    Putting it all together, create an Infiniband port as follows::
 
-     openstack baremetal port create $HW_MAC_ADDRESS --node $NODE_UUID \
+     baremetal port create $HW_MAC_ADDRESS --node $NODE_UUID \
          --pxe-enabled true \
          --extra client-id=$CLIENT_ID \
          --physical-network physnet1
 
 #. Create a Smart NIC port as follows::
 
-     openstack baremetal port create $HW_MAC_ADDRESS --node $NODE_UUID \
+     baremetal port create $HW_MAC_ADDRESS --node $NODE_UUID \
          --local-link-connection hostname=$HOSTNAME \
          --local-link-connection port_id=$REP_NAME \
          --pxe-enabled true \
@@ -188,7 +188,7 @@ Configuring nodes
 
 #. Check the port configuration::
 
-     openstack baremetal port show $PORT_UUID
+     baremetal port show $PORT_UUID
 
 After these steps, the provisioning of the created node will happen in the
 provisioning network, and then the node will be moved to the tenant network

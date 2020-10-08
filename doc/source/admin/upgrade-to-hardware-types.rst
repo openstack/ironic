@@ -92,12 +92,12 @@ set new values for some or all interfaces:
 
     export OS_BAREMETAL_API_VERSION=1.31
 
-    for uuid in $(openstack baremetal node list --driver pxe_ipmitool -f value -c UUID); do
+    for uuid in $(baremetal node list --driver pxe_ipmitool -f value -c UUID); do
         openstack baremetal node set $uuid --driver ipmi --deploy-interface iscsi
     done
 
-    for uuid in $(openstack baremetal node list --driver agent_ipmitool -f value -c UUID); do
-        openstack baremetal node set $uuid --driver ipmi --deploy-interface direct
+    for uuid in $(baremetal node list --driver agent_ipmitool -f value -c UUID); do
+        baremetal node set $uuid --driver ipmi --deploy-interface direct
     done
 
 See :doc:`/install/enrollment` for more details on setting hardware types and
@@ -109,10 +109,10 @@ interfaces.
 
     .. code-block:: console
 
-        openstack baremetal node maintenance set $UUID \
+        baremetal node maintenance set $UUID \
             --reason "Changing driver and/or hardware interfaces"
         # do the update, validate its correctness
-        openstack baremetal node maintenance unset $UUID
+        baremetal node maintenance unset $UUID
 
 Other interfaces
 ----------------
@@ -146,8 +146,8 @@ Then you can tell your nodes to use this interface, for example:
 .. code-block:: console
 
     export OS_BAREMETAL_API_VERSION=1.31
-    for uuid in $(openstack baremetal node list --driver ipmi -f value -c UUID); do
-        openstack baremetal node set $uuid --inspect-interface inspector
+    for uuid in $(baremetal node list --driver ipmi -f value -c UUID); do
+        baremetal node set $uuid --inspect-interface inspector
     done
 
 .. note::
@@ -185,8 +185,8 @@ to update all nodes use:
 .. code-block:: console
 
     export OS_BAREMETAL_API_VERSION=1.31
-    for uuid in $(openstack baremetal node list --driver ipmi -f value -c UUID); do
-        openstack baremetal node set $uuid --console-interface ipmitool-shellinabox
+    for uuid in $(baremetal node list --driver ipmi -f value -c UUID); do
+        baremetal node set $uuid --console-interface ipmitool-shellinabox
     done
 
 RAID
@@ -209,8 +209,8 @@ RAID interface. For example, to update all nodes use:
 .. code-block:: console
 
     export OS_BAREMETAL_API_VERSION=1.31
-    for uuid in $(openstack baremetal node list --driver ipmi -f value -c UUID); do
-        openstack baremetal node set $uuid --raid-interface agent
+    for uuid in $(baremetal node list --driver ipmi -f value -c UUID); do
+        baremetal node set $uuid --raid-interface agent
     done
 
 .. note::
