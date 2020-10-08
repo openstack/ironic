@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixes wiping agent token on rebooting via API.
