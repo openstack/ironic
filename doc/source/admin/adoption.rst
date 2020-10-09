@@ -180,7 +180,7 @@ upon what driver is selected for the node.
 Any node that is in the ``adopt failed`` state can have the ``adopt`` verb
 re-attempted.  Example::
 
-  openstack baremetal node adopt <node name or uuid>
+  baremetal node adopt <node name or uuid>
 
 If a user wishes to abort their attempt at adopting, they can then move
 the node back to ``manageable`` from ``adopt failed`` state by issuing the

@@ -53,8 +53,7 @@ You will need to specify what storage interface the node will use to handle
 storage operations. For example, to set the storage interface to ``cinder``
 on an existing node::
 
-   openstack --os-baremetal-api-version 1.33 baremetal node set \
-             --storage-interface cinder $NODE_UUID
+    baremetal node set --storage-interface cinder $NODE_UUID
 
 A default storage interface can be specified in ironic.conf. See the
 `Conductor Configuration`_ section for details.
@@ -65,15 +64,14 @@ In order for a bare metal node to boot from an iSCSI volume, the ``iscsi_boot``
 capability for the node must be set to ``True``. For example, if you want to
 update an existing node to boot from volume::
 
-   openstack --os-baremetal-api-version 1.33 baremetal node set \
-             --property capabilities=iscsi_boot:True $NODE_UUID
+    baremetal node set --property capabilities=iscsi_boot:True $NODE_UUID
 
 You will also need to create a volume connector for the node, so the storage
 interface will know how to communicate with the node for storage operation. In
 the case of iSCSI, you will need to provide an iSCSI Qualifying Name (IQN)
 that is unique to your SAN. For example, to create a volume connector for iSCSI::
 
-   openstack --os-baremetal-api-version 1.33 baremetal volume connector create \
+    baremetal volume connector create \
              --node $NODE_UUID --type iqn --connector-id iqn.2017-08.org.openstack.$NODE_UUID
 
 Image Creation
@@ -115,7 +113,7 @@ it is not explicitly required, and can be performed manually.
 
 A target record can be created using a command similar to the example below::
 
-    openstack --os-baremetal-api-version 1.33 baremetal volume target create \
+    baremetal volume target create \
               --node $NODE_UUID --type iscsi --boot-index 0 --volume $VOLUME_UUID
 
 .. Note:: A ``boot-index`` value of ``0`` represents the boot volume for a

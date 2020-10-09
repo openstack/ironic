@@ -51,7 +51,7 @@ Retrieve BIOS settings
 
 To retrieve the cached BIOS configuration from a specified node::
 
-    $ baremetal node bios setting list <node-uuid>
+    $ baremetal node bios setting list <node>
 
 BIOS settings are cached on each node cleaning operation or when settings
 have been applied successfully via BIOS cleaning steps. The return of above
@@ -79,7 +79,7 @@ as following::
 
 To get a specified BIOS setting for a node::
 
-    $ baremetal node bios setting show <node-uuid> <setting-name>
+    $ baremetal node bios setting show <node> <setting-name>
 
 If ``-f json`` is added as suffix to above command, it returns BIOS settings
 as following::

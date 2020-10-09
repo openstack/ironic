@@ -235,7 +235,7 @@ The following command can be used to enroll a ProLiant node with
 
 .. code-block:: console
 
-    baremetal node create --os-baremetal-api-version=1.38 \
+    baremetal node create \
         --driver ilo \
         --deploy-interface direct \
         --raid-interface agent \
@@ -547,7 +547,7 @@ of boot mode (Legacy BIOS or UEFI).
 
   To configure a node in ``uefi`` mode, then set ``capabilities`` as below::
 
-    baremetal node set <node-uuid> --property capabilities='boot_mode:uefi'
+    baremetal node set <node> --property capabilities='boot_mode:uefi'
 
   Nodes having ``boot_mode`` set to ``uefi`` may be requested by adding an
   ``extra_spec`` to the nova flavor::
@@ -593,7 +593,7 @@ The UEFI secure boot can be configured in ironic by adding
 
 To enable ``secure_boot`` on a node add it to ``capabilities`` as below::
 
- baremetal node set <node-uuid> --property capabilities='secure_boot:true'
+ baremetal node set <node> --property capabilities='secure_boot:true'
 
 Alternatively see `Hardware Inspection Support`_ to know how to
 automatically populate the secure boot capability.
@@ -1640,9 +1640,9 @@ returns the SUM log files. The log files include ``hpsum_log.txt`` and
 firmware version for each component and their update status. The log object
 will be named with the following pattern::
 
-    <node-uuid>[_<instance-uuid>]_update_firmware_sum_<timestamp yyyy-mm-dd-hh-mm-ss>.tar.gz
+    <node>[_<instance-uuid>]_update_firmware_sum_<timestamp yyyy-mm-dd-hh-mm-ss>.tar.gz
     or
-    <node-uuid>[_<instance-uuid>]_flash_firmware_sum_<timestamp yyyy-mm-dd-hh-mm-ss>.tar.gz
+    <node>[_<instance-uuid>]_flash_firmware_sum_<timestamp yyyy-mm-dd-hh-mm-ss>.tar.gz
 
 Refer to :ref:`retrieve_deploy_ramdisk_logs` for more information on enabling and
 viewing the logs returned from the ramdisk.
@@ -2027,7 +2027,7 @@ Later the value of raid level of root volume can be added in
 And consequently flavor needs to be updated to request the resource class
 to create the server using selected node::
 
-    openstack baremetal node set test_node --resource-class \
+    baremetal node set test_node --resource-class \
     baremetal-with-RAID10
 
     openstack flavor set --property \

@@ -103,7 +103,7 @@ To check what deploy step the node is performing or attempted to perform and
 failed, run the following command; it will return the value in the node's
 ``driver_internal_info`` field::
 
-    openstack baremetal node show $node_ident -f value -c driver_internal_info
+    baremetal node show $node_ident -f value -c driver_internal_info
 
 The ``deploy_steps`` field will contain a list of all remaining steps with
 their priorities, and the first one listed is the step currently in progress or

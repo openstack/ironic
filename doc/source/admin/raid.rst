@@ -27,7 +27,7 @@ Ironic Python Agent ramdisk. For in-band hardware RAID configuration,
 a hardware manager which supports RAID should be bundled with the ramdisk.
 
 Whether a node supports RAID configuration could be found using the CLI
-command ``baremetal node validate <node-uuid>``. In-band RAID is
+command ``baremetal node validate <node>``. In-band RAID is
 usually implemented by the ``agent`` RAID interface.
 
 Build agent ramdisk which supports RAID configuration

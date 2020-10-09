@@ -54,7 +54,7 @@ command:
 
 .. code-block:: console
 
-    $ openstack baremetal driver property list ipmi
+    $ baremetal driver property list ipmi
     +----------------------+-------------------------------------------------------------------------------------------------------------+
     | Property             | Description                                                                                                 |
     +----------------------+-------------------------------------------------------------------------------------------------------------+
@@ -170,15 +170,13 @@ and may be combined if desired.
 
    .. code-block:: console
 
-    $ baremetal --os-baremetal-api-version 1.31 node set $NODE_UUID \
-        --deploy-interface direct \
-        --raid-interface agent
+    $ baremetal node set $NODE_UUID --deploy-interface direct --raid-interface agent
 
    or set during node creation:
 
    .. code-block:: console
 
-    $ baremetal --os-baremetal-api-version 1.31 node create --driver ipmi \
+    $ baremetal node create --driver ipmi \
         --deploy-interface direct \
         --raid-interface agent
 
@@ -248,11 +246,11 @@ and may be combined if desired.
 
    .. code-block:: console
 
-    $ openstack baremetal port create $MAC_ADDRESS --node $NODE_UUID
+    $ baremetal port create $MAC_ADDRESS --node $NODE_UUID
 
    .. note::
       When it is time to remove the node from the Bare Metal service, the
-      command used to remove the port is ``openstack baremetal port delete
+      command used to remove the port is ``baremetal port delete
       <port uuid>``. When doing so, it is important to ensure that the
       baremetal node is not in ``maintenance`` as guarding logic to prevent
       orphaning Neutron Virtual Interfaces (VIFs) will be overriden.
@@ -279,15 +277,13 @@ Adding scheduling information
 
    .. code-block:: console
 
-    $ openstack --os-baremetal-api-version 1.21 baremetal node set $NODE_UUID \
-        --resource-class $CLASS_NAME
+    $ baremetal node set $NODE_UUID --resource-class $CLASS_NAME
 
    The ``--resource-class`` argument can also be used when creating a node:
 
    .. code-block:: console
 
-    $ openstack --os-baremetal-api-version 1.21 baremetal node create \
-        --driver $DRIVER --resource-class $CLASS_NAME
+    $ baremetal node create --driver $DRIVER --resource-class $CLASS_NAME
 
    To use resource classes for scheduling you need to update your flavors as
    described in :doc:`configure-nova-flavors`.
@@ -444,7 +440,7 @@ To move a node from ``enroll`` to ``manageable`` provision state:
 
 .. code-block:: console
 
-    $ baremetal --os-baremetal-api-version 1.11 node manage $NODE_UUID
+    $ baremetal node manage $NODE_UUID
     $ baremetal node show $NODE_UUID
     +------------------------+--------------------------------------------------------------------+
     | Property               | Value                                                              |
@@ -470,7 +466,7 @@ To move a node from ``manageable`` to ``available`` provision state:
 
 .. code-block:: console
 
-    $ baremetal --os-baremetal-api-version 1.11 node provide $NODE_UUID
+    $ baremetal node provide $NODE_UUID
     $ baremetal node show $NODE_UUID
     +------------------------+--------------------------------------------------------------------+
     | Property               | Value                                                              |
@@ -570,7 +566,7 @@ interfaces for a hardware type (for your deployment):
 
 .. code-block:: console
 
-    $ baremetal --os-baremetal-api-version 1.31 driver show ipmi
+    $ baremetal driver show ipmi
     +-------------------------------+----------------+
     | Field                         | Value          |
     +-------------------------------+----------------+
