@@ -1,0 +1,37 @@
+---
+fixes:
+  - |
+    Fixes issues when ``UEFI`` boot mode has been requested with persistent
+    boot to ``DISK`` where some versions of ``ipmitool`` do not properly
+    handle multiple options being set at the same time. While some of this
+    logic was addressed in upstream `ipmitool <https://github.com/ipmitool/ipmitool/issues/163>`_
+    development, new versions are not released and vendors maintain downstream
+    forks of the ipmitool utility. When considering vendor specific `selector
+    differences <https://storyboard.openstack.org/#!/story/2008241>`_ along
+    with the current stance of new versions from the upstream ``ipmitool``
+    community, it only made sense to handle this logic with-in Ironic.
+    In part this was because if already set the selector value would not be
+    updated. Now ironic always transmits the selector value for ``UEFI``.
+  - Fixes handling of Supermicro ``UEFI`` supporting BMCs with the ``ipmi``
+    hardware type such that an appropriate boot device selector value is sent
+    to the remote BMC to indicate boot from local storage. This is available
+    for both persistent and one-time boot applications. For more information,
+    please consult `story 2008241 <https://storyboard.openstack.org/#!/story/2008241>`_.
+  - Fixes handling of the ``ipmi`` hardware type where ``UEFI`` boot mode and
+    "one-time" boot to PXE has been requested. As Ironic now specifically
+    transmits the raw commands, this setting should be properly appied where
+    previously PXE boot operations may have previously occured in
+    ``Legacy BIOS`` mode.
+other:
+  - Adds a ``detect_vendor`` management interface method to the ``ipmi``
+    hardware type. This method is being promoted as a higher level interface
+    as the fundimental need to be able to have logic aware of the hardware
+    vendor is necessary with vendor agnostic drivers where slight differences
+    require slightly different behavior.
+upgrade:
+  - An automated detection of a IPMI BMC hardware vendor has been added to
+    appropriately handle IPMI BMC variations. Ironic will now query this and
+    save this value if not already set in order to avoid querying for
+    every single operation. Operators upgrading should expect an elongated
+    first power state synchronization if for nodes with the ``ipmi``
+    hardware type.
