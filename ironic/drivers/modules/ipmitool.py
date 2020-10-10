@@ -156,7 +156,7 @@ IPMITOOL_RETRYABLE_FAILURES = ['insufficient resources for session',
 
 # NOTE(lucasagomes): A mapping for the boot devices and their hexadecimal
 # value. For more information about these values see the "Set System Boot
-# Options Command" section of the link below (page 418)
+# Options Command" section 28.13 of the link below (page 392)
 # http://www.intel.com/content/www/us/en/servers/ipmi/ipmi-second-gen-interface-spec-v2-rev1-1.html  # noqa
 BOOT_DEVICE_HEXA_MAP = {
     boot_devices.PXE: '0x04',
@@ -165,6 +165,50 @@ BOOT_DEVICE_HEXA_MAP = {
     boot_devices.BIOS: '0x18',
     boot_devices.SAFE: '0x0c'
 }
+# NOTE(TheJulia): Inline notes for ipmi raw boot device commands.
+# Per spec (intel 2nd gen ipmi interface, v2, rev1-1)
+#  - bit 7 is CMOS clear
+#  - bit 6 is Keyboard lock
+#  - bit 5-2 is the boot device selector
+#    * where 0000b is to do nothing
+#    * where 0001b is to force pxe
+#    * where 0010b is boot from hard drive
+#    * And anything above 1100b is listed reserved
+#      which is 0x30 for ipmitool raw commands!
+#  - bit 1 is screen blank
+#  - bit 0 is lock out reset button
+#
+# Effectively this results in
+# 00000100b == 0x04 for booting from PXE
+# 00001000b == 0x08 for booting from the primary hard disk.
+# 00100000b == 0x20 is remotely connected virtual media
+# 00100100b == 0x24 which is primary remote boot media as set
+#                   via the OEM initiator mailbox information.
+#                   Like.. iscsi?
+#                   However! Supermicro uses this as the UEFI
+#                   hard disk. See: https://www.supermicro.com/support/faqs/faq.cfm?faq=25559  # noqa
+# 00010000b == 0x30 Enters the reserved territory, and should not
+#                   be expected in use.
+
+
+def _vendor_aware_boot_device_map(task):
+    """Returns an altered vendor boot device map based upon vendor."""
+    node = task.node
+    vendor = node.properties.get('vendor', None)
+    boot_dev_map = BOOT_DEVICE_HEXA_MAP.copy()
+    boot_mode = boot_mode_utils.get_boot_mode(node)
+    if vendor:
+        vendor = str(vendor).lower()
+        if boot_mode == 'uefi' and vendor == "supermicro":
+            # This difference is only known on UEFI mode for supermicro
+            # hardware.
+            boot_dev_map[boot_devices.DISK] = '0x24'
+        # NOTE(TheJulia): Similar differences may exist with Cisco UCS
+        # hardware when using IPMI, however at present we don't know
+        # what the setting would be.
+        # NOTE(TheJulia) I've observed "mc info" manufacter name of a cisco
+        # c-series machine to return "Unknown (0x168B)"
+    return boot_dev_map
 
 
 def _check_option_support(options):
@@ -906,6 +950,24 @@ class IPMIPower(base.PowerInterface):
             call).
 
         """
+        # NOTE(TheJulia): Temporary until we promote detect_vendor as
+        # a higher level management method and able to automatically
+        # run detection upon either power state sync or in the enrollment
+        # to management step.
+        try:
+            properties = task.node.properties
+            if not properties.get('vendor'):
+                # We have no vendor stored, so we'll go ahead and
+                # call to store it.
+                vendor = task.driver.management.detect_vendor(task)
+                if vendor:
+                    props = task.node.properties
+                    props['vendor'] = vendor
+                    task.node.properties = props
+                    task.node.save()
+        except exception.UnsupportedDriverExtension:
+            pass
+
         driver_info = _parse_driver_info(task.node)
         return _power_status(driver_info)
 
@@ -1069,7 +1131,7 @@ class IPMIManagement(base.ManagementInterface):
             # persistent or we do not have admin rights.
             persistent = False
 
-        # FIXME(lucasagomes): Older versions of the ipmitool utility
+        # NOTE(lucasagomes): Older versions of the ipmitool utility
         # are not able to set the options "efiboot" and "persistent"
         # at the same time, combining other options seems to work fine,
         # except efiboot. Newer versions of ipmitool (1.8.17) does fix
@@ -1079,19 +1141,37 @@ class IPMIManagement(base.ManagementInterface):
         # uefi mode, this will work with newer and older versions of the
         # ipmitool utility. Also see:
         # https://bugs.launchpad.net/ironic/+bug/1611306
+        # NOTE(TheJulia): Previously we added raw device support because
+        # most distributions are carrying older downstream patched versions
+        # of ipmitool where "efiboot" and "persistent" do not work. However,
+        # using the embedded support assumes that every vendor out there uses
+        # the same device numbers all the time. Reality is not so kind.
+        # It should also be noted that the ipmitool chassis bootparm get
+        # command also just interprets back the same fields, so if the vendor
+        # has set a different value as default, then ipmitool is not going
+        # to understand it and may be listing the wrong boot flag as a result.
+        # See: https://storyboard.openstack.org/#!/story/2008241
         boot_mode = boot_mode_utils.get_boot_mode(task.node)
-        if persistent and boot_mode == 'uefi':
-            raw_cmd = ('0x00 0x08 0x05 0xe0 %s 0x00 0x00 0x00' %
-                       BOOT_DEVICE_HEXA_MAP[device])
+        if boot_mode == 'uefi':
+            # Long story short: UEFI was added to IPMI after the final spec
+            # release occured. This means BMCs may actually NEED to be
+            # explicitly told if the boot is persistant because the
+            # BMC may return a value which is explicitly parsed as
+            # no change, BUT the BMC may treat that as operational default.
+            efi_persistence = '0xe0' if persistent else '0xa0'
+            # 0xe0 is persistent UEFI boot, 0xa0 is one-time UEFI boot.
+            boot_device_map = _vendor_aware_boot_device_map(task)
+            raw_cmd = ('0x00 0x08 0x05 %s %s 0x00 0x00 0x00' %
+                       (efi_persistence, boot_device_map[device]))
             send_raw(task, raw_cmd)
             return
 
         options = []
         if persistent:
             options.append('persistent')
-        if boot_mode == 'uefi':
-            options.append('efiboot')
-
+        # NOTE(TheJulia): Once upon a time we had efiboot here. It doesn't
+        # work in all cases and directs us to unhappy places if the values
+        # are incorrect.
         cmd = "chassis bootdev %s" % device
         if options:
             cmd = cmd + " options=%s" % ','.join(options)
@@ -1129,6 +1209,8 @@ class IPMIManagement(base.ManagementInterface):
         driver_internal_info = task.node.driver_internal_info
         ifbd = driver_info.get('ipmi_force_boot_device', False)
 
+        driver_info = _parse_driver_info(task.node)
+
         if (strutils.bool_from_string(ifbd)
                 and driver_internal_info.get('persistent_boot_device')
                 and driver_internal_info.get('is_next_boot_persistent', True)):
@@ -1138,7 +1220,6 @@ class IPMIManagement(base.ManagementInterface):
             }
 
         cmd = "chassis bootparam get 5"
-        driver_info = _parse_driver_info(task.node)
         response = {'boot_device': None, 'persistent': None}
 
         try:
@@ -1150,7 +1231,9 @@ class IPMIManagement(base.ManagementInterface):
                         'Error: %(error)s',
                         {'node': driver_info['uuid'], 'cmd': cmd, 'error': e})
             raise exception.IPMIFailure(cmd=cmd)
-
+        # FIXME(TheJulia): This whole thing needs to be refactored to be based
+        # upon the response generated by the "Boot parameter data".
+        # See: https://storyboard.openstack.org/#!/story/2008241
         re_obj = re.search('Boot Device Selector : (.+)?\n', out)
         if re_obj:
             boot_selector = re_obj.groups('')[0]
@@ -1168,6 +1251,38 @@ class IPMIManagement(base.ManagementInterface):
 
         response['persistent'] = 'Options apply to all future boots' in out
         return response
+
+    @task_manager.require_exclusive_lock
+    @METRICS.timer('IPMIManagement.detect_vendor')
+    def detect_vendor(self, task):
+        """Detects, stores, and returns the hardware vendor.
+
+        If the Node object ``properties`` field does not already contain
+        a ``vendor`` field, then this method is intended to query
+        Detects the BMC hardware vendor and stores the returned value
+        with-in the Node object ``properties`` field if detected.
+
+        :param task: A task from TaskManager.
+        :raises: InvalidParameterValue if an invalid component, indicator
+            or state is specified.
+        :raises: MissingParameterValue if a required parameter is missing
+        :returns: String representing the BMC reported Vendor or
+                  Manufacturer, otherwise returns None.
+        """
+        try:
+            driver_info = _parse_driver_info(task.node)
+            out, err = _exec_ipmitool(driver_info, "mc info")
+            re_obj = re.search("Manufacturer Name .*: (.+)", out)
+            if re_obj:
+                bmc_vendor = str(re_obj.groups('')[0]).lower().split(':')
+                # Pull unparsed data and save the vendor
+                return bmc_vendor[-1]
+        except (exception.PasswordFileFailedToCreate,
+                processutils.ProcessExecutionError) as e:
+            LOG.warning('IPMI get boot device failed to detect vendor '
+                        'of bmc for %(node)s. Error %(err)s',
+                        {'node': task.node.uuid,
+                         'err': e})
 
     @METRICS.timer('IPMIManagement.get_sensors_data')
     def get_sensors_data(self, task):

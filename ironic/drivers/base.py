@@ -1093,6 +1093,24 @@ class ManagementInterface(BaseInterface):
         raise exception.UnsupportedDriverExtension(
             driver=task.node.driver, extension='get_indicator_state')
 
+    def detect_vendor(self, task):
+        """Detects, stores, and returns the hardware vendor.
+
+        If the Node object ``properties`` field does not already contain
+        a ``vendor`` field, then this method is intended to query
+        Detects the BMC hardware vendor and stores the returned value
+        with-in the Node object ``properties`` field if detected.
+
+        :param task: A task from TaskManager.
+        :raises: InvalidParameterValue if an invalid component, indicator
+            or state is specified.
+        :raises: MissingParameterValue if a required parameter is missing
+        :returns: String representing the BMC reported Vendor or
+                  Manufacturer, otherwise returns None.
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='detect_vendor')
+
 
 class InspectInterface(BaseInterface):
     """Interface for inspection-related actions."""

@@ -58,6 +58,31 @@ INFO_DICT = db_utils.get_test_ipmi_info()
 BRIDGE_INFO_DICT = INFO_DICT.copy()
 BRIDGE_INFO_DICT.update(db_utils.get_test_ipmi_bridging_parameters())
 
+MC_INFO = """Device ID                 : 32
+Device Revision           : 1
+Firmware Revision         : 0.99
+IPMI Version              : 2.0
+Manufacturer ID           : 1234
+Manufacturer Name         : {vendor}
+Product ID                : 2001 (0x0801)
+Product Name              : Unknown (0x101)
+Device Available          : yes
+Provides Device SDRs      : no
+Additional Device Support :
+    Sensor Device
+    SDR Repository Device
+    SEL Device
+    FRU Inventory Device
+    IPMB Event Receiver
+    IPMB Event Generator
+    Chassis Device
+Aux Firmware Rev Info     :
+    0x00
+    0x00
+    0x00
+    0x00
+"""
+
 
 class IPMIToolCheckInitTestCase(base.TestCase):
 
@@ -1486,20 +1511,22 @@ class IPMIToolPrivateMethodTestCase(
                     mock.call(self.info, "power status", kill_on_timeout=True)]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.properties['vendor'] = 'lolcat'
             self.assertRaises(exception.PowerStateFailure,
                               ipmi._power_on, task, self.info, timeout=2)
 
         self.assertEqual(expected, mock_exec.call_args_list)
 
+    @mock.patch.object(ipmi.IPMIManagement, 'detect_vendor', autospec=True)
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     @mock.patch('oslo_utils.eventletutils.EventletEvent.wait', autospec=True)
-    def test__soft_power_off(self, sleep_mock, mock_exec):
-
+    def test__soft_power_off(self, sleep_mock, mock_exec, mock_vendor):
         def side_effect(driver_info, command, **kwargs):
             resp_dict = {"power status": ["Chassis Power is off\n", None],
                          "power soft": [None, None]}
             return resp_dict.get(command, ["Bad\n", None])
 
+        mock_vendor.return_value = None
         mock_exec.side_effect = side_effect
 
         expected = [mock.call(self.info, "power soft"),
@@ -1510,10 +1537,13 @@ class IPMIToolPrivateMethodTestCase(
 
         self.assertEqual(expected, mock_exec.call_args_list)
         self.assertEqual(states.POWER_OFF, state)
+        self.assertTrue(mock_vendor.called)
 
+    @mock.patch.object(ipmi.IPMIManagement, 'detect_vendor', autospec=True)
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     @mock.patch('oslo_utils.eventletutils.EventletEvent.wait', autospec=True)
-    def test__soft_power_off_max_retries(self, sleep_mock, mock_exec):
+    def test__soft_power_off_max_retries(self, sleep_mock, mock_exec,
+                                         mock_vendor):
 
         def side_effect(driver_info, command, **kwargs):
             resp_dict = {"power status": ["Chassis Power is on\n", None],
@@ -1527,10 +1557,13 @@ class IPMIToolPrivateMethodTestCase(
                     mock.call(self.info, "power status", kill_on_timeout=True)]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.properties['vendor'] = 'meow5000'
             self.assertRaises(exception.PowerStateFailure,
                               ipmi._soft_power_off, task, self.info, timeout=2)
 
         self.assertEqual(expected, mock_exec.call_args_list)
+        # Should be removed when detect_vendor automatic invocation is moved.
+        self.assertFalse(mock_vendor.called)
 
     @mock.patch.object(ipmi, '_power_status', autospec=True)
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
@@ -1570,8 +1603,9 @@ class IPMIToolDriverTestCase(Base):
             self.assertEqual(sorted(expected),
                              sorted(task.driver.get_properties()))
 
+    @mock.patch.object(ipmi.IPMIManagement, 'detect_vendor', autospec=True)
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    def test_get_power_state(self, mock_exec):
+    def test_get_power_state(self, mock_exec, mock_detect):
         returns = iter([["Chassis Power is off\n", None],
                         ["Chassis Power is on\n", None],
                         ["\n", None]])
@@ -1579,6 +1613,7 @@ class IPMIToolDriverTestCase(Base):
                     mock.call(self.info, "power status", kill_on_timeout=True),
                     mock.call(self.info, "power status", kill_on_timeout=True)]
         mock_exec.side_effect = returns
+        mock_detect.return_value = None
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             pstate = self.power.get_power_state(task)
@@ -1591,16 +1626,20 @@ class IPMIToolDriverTestCase(Base):
             self.assertEqual(states.ERROR, pstate)
 
         self.assertEqual(mock_exec.call_args_list, expected)
+        self.assertEqual(3, mock_detect.call_count)
 
+    @mock.patch.object(ipmi.IPMIManagement, 'detect_vendor', autospec=True)
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
-    def test_get_power_state_exception(self, mock_exec):
+    def test_get_power_state_exception(self, mock_exec, mock_vendor):
         mock_exec.side_effect = processutils.ProcessExecutionError("error")
+        mock_vendor.return_value = None
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.IPMIFailure,
                               self.power.get_power_state,
                               task)
         mock_exec.assert_called_once_with(self.info, "power status",
                                           kill_on_timeout=True)
+        self.assertEqual(1, mock_vendor.call_count)
 
     @mock.patch.object(ipmi, '_power_on', autospec=True)
     @mock.patch.object(ipmi, '_power_off', autospec=True)
@@ -2205,7 +2244,7 @@ class IPMIToolDriverTestCase(Base):
 
         mock_calls = [
             mock.call(self.info, "raw 0x00 0x08 0x03 0x08"),
-            mock.call(self.info, "chassis bootdev pxe options=efiboot")
+            mock.call(self.info, "raw 0x00 0x08 0x05 0xa0 0x04 0x00 0x00 0x00")
         ]
         mock_exec.assert_has_calls(mock_calls)
 
@@ -2222,6 +2261,48 @@ class IPMIToolDriverTestCase(Base):
         mock_calls = [
             mock.call(self.info, "raw 0x00 0x08 0x03 0x08"),
             mock.call(self.info, "raw 0x00 0x08 0x05 0xe0 0x04 0x00 0x00 0x00")
+        ]
+        mock_exec.assert_has_calls(mock_calls)
+
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       autospec=True)
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_set_boot_device_uefi_and_persistent_smci(
+            self, mock_exec, mock_boot_mode):
+        mock_boot_mode.return_value = 'uefi'
+        mock_exec.return_value = [None, None]
+        properties = self.node.properties
+        properties['vendor'] = 'SuperMicro'
+        self.node.properties = properties
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.management.set_boot_device(task, boot_devices.DISK,
+                                            persistent=True)
+        mock_calls = [
+            mock.call(self.info, "raw 0x00 0x08 0x03 0x08"),
+            mock.call(self.info, "raw 0x00 0x08 0x05 0xe0 "
+                                 "0x24 0x00 0x00 0x00")
+        ]
+        mock_exec.assert_has_calls(mock_calls)
+
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       autospec=True)
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_management_interface_set_boot_device_uefi_and_onetime_smci(
+            self, mock_exec, mock_boot_mode):
+        mock_boot_mode.return_value = 'uefi'
+        mock_exec.return_value = [None, None]
+        properties = self.node.properties
+        properties['vendor'] = 'SuperMicro'
+        self.node.properties = properties
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.management.set_boot_device(task, boot_devices.DISK,
+                                            persistent=False)
+        mock_calls = [
+            mock.call(self.info, "raw 0x00 0x08 0x03 0x08"),
+            mock.call(self.info, "raw 0x00 0x08 0x05 0xa0 "
+                                 "0x24 0x00 0x00 0x00")
         ]
         mock_exec.assert_has_calls(mock_calls)
 
@@ -2339,6 +2420,16 @@ class IPMIToolDriverTestCase(Base):
 
             mock_exec.assert_called_once_with(driver_info, "power diag")
             self.assertTrue(mock_log.called)
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_detect_vendor(self, mock_exec):
+        mock_exec.return_value = (MC_INFO.format(vendor='LolCatMeow'),
+                                  None)
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_info = ipmi._parse_driver_info(task.node)
+            vendor = self.management.detect_vendor(task)
+            mock_exec.assert_called_once_with(driver_info, 'mc info')
+            self.assertEqual('lolcatmeow', vendor)
 
     def test__parse_ipmi_sensor_data_ok(self):
         fake_sensors_data = """
