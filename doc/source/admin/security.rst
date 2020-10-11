@@ -129,7 +129,6 @@ include:
 Additional references:
 
 - :ref:`cleaning`
-- :ref:`trusted-boot`
 
 
 Other considerations
