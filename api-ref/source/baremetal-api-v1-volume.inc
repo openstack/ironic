@@ -118,6 +118,7 @@ Request
     - type: volume_connector_type
     - connector_id: volume_connector_connector_id
     - extra: req_extra
+    - uuid: req_uuid
 
 **Example Volume connector creation request:**
 
@@ -322,10 +323,11 @@ Request
 
     - node_uuid: req_node_uuid
     - volume_type: volume_target_volume_type
-    - properties: volume_target_properties
+    - properties: req_volume_target_properties
     - boot_index: volume_target_boot_index
     - volume_id: volume_target_volume_id
     - extra: req_extra
+    - uuid: req_uuid
 
 **Example Volume target creation request:**
 

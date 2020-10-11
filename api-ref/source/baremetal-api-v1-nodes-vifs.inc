@@ -60,6 +60,8 @@ Request
 .. rest_parameters:: parameters.yaml
 
     - id: req_node_vif_ident
+    - port_uuid: req_node_vif_port_uuid
+    - portgroup_uuid: req_node_vif_portgroup_uuid
     - node_ident: node_ident
 
 **Example request to attach a VIF to a Node:**

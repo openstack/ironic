@@ -88,7 +88,12 @@ Request
 
     - node_uuid: req_node_uuid
     - address: req_portgroup_address
-    - name: portgroup_name
+    - name: req_portgroup_name
+    - mode: req_portgroup_mode
+    - standalone_ports_supported: req_standalone_ports_supported
+    - properties: req_portgroup_properties
+    - extra: req_extra
+    - uuid: req_uuid
 
 **Example Portgroup creation request:**
 
