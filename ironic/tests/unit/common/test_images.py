@@ -250,34 +250,28 @@ class IronicImagesTestCase(base.TestCase):
 
 class FsImageTestCase(base.TestCase):
 
+    @mock.patch.object(builtins, 'open', autospec=True)
     @mock.patch.object(shutil, 'copyfile', autospec=True)
     @mock.patch.object(os, 'makedirs', autospec=True)
-    @mock.patch.object(os.path, 'dirname', autospec=True)
-    @mock.patch.object(os.path, 'exists', autospec=True)
-    def test__create_root_fs(self, path_exists_mock,
-                             dirname_mock, mkdir_mock, cp_mock):
-
-        def path_exists_mock_func(path):
-            return path == 'root_dir'
-
+    def test__create_root_fs(self, mkdir_mock, cp_mock, open_mock):
         files_info = {
             'a1': 'b1',
             'a2': 'b2',
-            'a3': 'sub_dir/b3'}
+            'a3': 'sub_dir/b3',
+            b'a4': 'b4'}
 
-        path_exists_mock.side_effect = path_exists_mock_func
-        dirname_mock.side_effect = ['root_dir', 'root_dir', 'root_dir/sub_dir',
-                                    'root_dir/sub_dir']
         images._create_root_fs('root_dir', files_info)
+
         cp_mock.assert_any_call('a1', 'root_dir/b1')
         cp_mock.assert_any_call('a2', 'root_dir/b2')
         cp_mock.assert_any_call('a3', 'root_dir/sub_dir/b3')
 
-        path_exists_mock.assert_any_call('root_dir/sub_dir')
-        dirname_mock.assert_any_call('root_dir/b1')
-        dirname_mock.assert_any_call('root_dir/b2')
-        dirname_mock.assert_any_call('root_dir/sub_dir/b3')
-        mkdir_mock.assert_called_once_with('root_dir/sub_dir')
+        open_mock.assert_called_once_with('root_dir/b4', 'wb')
+        fp = open_mock.return_value.__enter__.return_value
+        fp.write.assert_called_once_with(b'a4')
+
+        mkdir_mock.assert_any_call('root_dir', exist_ok=True)
+        mkdir_mock.assert_any_call('root_dir/sub_dir', exist_ok=True)
 
     @mock.patch.object(images, '_create_root_fs', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
@@ -412,21 +406,6 @@ class FsImageTestCase(base.TestCase):
                                    CONF.grub_config_template,
                                    options)
         self.assertEqual(expected_cfg, cfg)
-
-    @mock.patch.object(images, 'os', autospec=True)
-    def test__read_dir(self, mock_os):
-        mock_os.path.join = os.path.join
-        mock_os.path.isdir.side_effect = (False, True, False)
-        mock_os.listdir.side_effect = [['a', 'b'], ['c']]
-
-        file_info = images._read_dir('/mnt')
-
-        expected = {
-            '/mnt/a': 'a',
-            '/mnt/b/c': 'b/c'
-        }
-
-        self.assertEqual(expected, file_info)
 
     @mock.patch.object(os.path, 'relpath', autospec=True)
     @mock.patch.object(os, 'walk', autospec=True)
@@ -599,7 +578,8 @@ class FsImageTestCase(base.TestCase):
     @mock.patch.object(images, '_generate_cfg', autospec=True)
     def _test_create_isolinux_image_for_bios(
             self, gen_cfg_mock, execute_mock, tempdir_mock,
-            write_to_file_mock, create_root_fs_mock, ldlinux_path=None):
+            write_to_file_mock, create_root_fs_mock, ldlinux_path=None,
+            inject_files=None):
 
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
@@ -616,13 +596,16 @@ class FsImageTestCase(base.TestCase):
         images.create_isolinux_image_for_bios('tgt_file',
                                               'path/to/kernel',
                                               'path/to/ramdisk',
-                                              kernel_params=params)
+                                              kernel_params=params,
+                                              inject_files=inject_files)
 
         files_info = {
             'path/to/kernel': 'vmlinuz',
             'path/to/ramdisk': 'initrd',
             CONF.isolinux_bin: 'isolinux/isolinux.bin'
         }
+        if inject_files:
+            files_info.update(inject_files)
         if ldlinux_path:
             files_info[ldlinux_path] = 'isolinux/ldlinux.c32'
         create_root_fs_mock.assert_called_once_with('tmpdir', files_info)
@@ -652,6 +635,12 @@ class FsImageTestCase(base.TestCase):
         mock_isfile.side_effect = [False, True]
         self._test_create_isolinux_image_for_bios(
             ldlinux_path='/usr/share/syslinux/ldlinux.c32')
+
+    @mock.patch.object(os.path, 'isfile', autospec=True)
+    def test_create_isolinux_image_for_bios_inject_files(self, mock_isfile):
+        mock_isfile.return_value = False
+        self._test_create_isolinux_image_for_bios(
+            inject_files={'/source': 'target'})
 
     @mock.patch.object(images, '_umount_without_raise', autospec=True)
     @mock.patch.object(images, '_create_root_fs', autospec=True)
@@ -765,7 +754,7 @@ class FsImageTestCase(base.TestCase):
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid',
             deploy_iso='tmpdir/deploy_iso-uuid',
-            esp_image=None, kernel_params=params, configdrive=None)
+            esp_image=None, kernel_params=params, inject_files=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -793,7 +782,7 @@ class FsImageTestCase(base.TestCase):
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid',
             deploy_iso=None, esp_image='tmpdir/efiboot-uuid',
-            kernel_params=params, configdrive=None)
+            kernel_params=params, inject_files=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -821,7 +810,7 @@ class FsImageTestCase(base.TestCase):
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel-href', 'tmpdir/ramdisk-href',
             deploy_iso='tmpdir/deploy_iso-href',
-            esp_image=None, kernel_params=params, configdrive=None)
+            esp_image=None, kernel_params=params, inject_files=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -849,7 +838,7 @@ class FsImageTestCase(base.TestCase):
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel-href', 'tmpdir/ramdisk-href',
             deploy_iso=None, esp_image='tmpdir/efiboot-href',
-            kernel_params=params, configdrive=None)
+            kernel_params=params, inject_files=None)
 
     @mock.patch.object(images, 'create_isolinux_image_for_bios', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -863,26 +852,24 @@ class FsImageTestCase(base.TestCase):
         images.create_boot_iso('ctx', 'output_file', 'kernel-uuid',
                                'ramdisk-uuid', 'deploy_iso-uuid',
                                'efiboot-uuid', 'root-uuid',
-                               'kernel-params', 'bios', 'configdrive')
+                               'kernel-params', 'bios')
 
         fetch_images_mock.assert_any_call(
             'ctx', 'kernel-uuid', 'tmpdir/kernel-uuid')
         fetch_images_mock.assert_any_call(
             'ctx', 'ramdisk-uuid', 'tmpdir/ramdisk-uuid')
-        fetch_images_mock.assert_any_call(
-            'ctx', 'configdrive', 'tmpdir/configdrive')
 
         # Note (NobodyCam): the original assert asserted that fetch_images
         #                   was not called with parameters, this did not
         #                   work, So I instead assert that there were only
         #                   Two calls to the mock validating the above
         #                   asserts.
-        self.assertEqual(3, fetch_images_mock.call_count)
+        self.assertEqual(2, fetch_images_mock.call_count)
 
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid',
-            kernel_params=params, configdrive='tmpdir/configdrive')
+            kernel_params=params, inject_files=None)
 
     @mock.patch.object(images, 'create_isolinux_image_for_bios', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -897,19 +884,17 @@ class FsImageTestCase(base.TestCase):
         images.create_boot_iso('ctx', 'output_file', 'kernel-uuid',
                                'ramdisk-uuid', 'deploy_iso-uuid',
                                'efiboot-uuid', 'root-uuid',
-                               'kernel-params', None, 'http://configdrive')
+                               'kernel-params', None)
 
         fetch_images_mock.assert_any_call(
             'ctx', 'kernel-uuid', 'tmpdir/kernel-uuid')
         fetch_images_mock.assert_any_call(
             'ctx', 'ramdisk-uuid', 'tmpdir/ramdisk-uuid')
-        fetch_images_mock.assert_any_call(
-            'ctx', 'http://configdrive', 'tmpdir/configdrive')
 
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid',
-            configdrive='tmpdir/configdrive', kernel_params=params)
+            kernel_params=params, inject_files=None)
 
     @mock.patch.object(images, 'create_isolinux_image_for_bios', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -924,8 +909,7 @@ class FsImageTestCase(base.TestCase):
         images.create_boot_iso('ctx', 'output_file', 'kernel-uuid',
                                'ramdisk-uuid', 'deploy_iso-uuid',
                                'efiboot-uuid', None,
-                               None, None, 'http://configdrive',
-                               base_iso=base_iso)
+                               None, None, base_iso=base_iso)
 
         fetch_images_mock.assert_any_call(
             'ctx', base_iso, 'output_file')
