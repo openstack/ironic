@@ -46,6 +46,14 @@ class ImageHandler(object):
             "file_permission": CONF.redfish.file_permission,
             "kernel_params": CONF.redfish.kernel_append_params
         },
+        "idrac": {
+            "swift_enabled": CONF.redfish.use_swift,
+            "container": CONF.redfish.swift_container,
+            "timeout": CONF.redfish.swift_object_expiry_timeout,
+            "image_subdir": "redfish",
+            "file_permission": CONF.redfish.file_permission,
+            "kernel_params": CONF.redfish.kernel_append_params
+        },
         "ilo5": {
             "swift_enabled": not CONF.ilo.use_web_server_for_images,
             "container": CONF.ilo.swift_ilo_container,
