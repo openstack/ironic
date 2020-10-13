@@ -994,7 +994,8 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
         task.node.save()
 
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
-        ramdisk_params['BOOTIF'] = deploy_nic_mac
+        if deploy_nic_mac is not None:
+            ramdisk_params['BOOTIF'] = deploy_nic_mac
 
         if task.node.provision_state == states.RESCUING:
             mode = 'rescue'
