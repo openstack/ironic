@@ -315,7 +315,7 @@ IRONIC_DIB_RAMDISK_OPTIONS=${IRONIC_DIB_RAMDISK_OPTIONS:-}
 if [[ -z "$IRONIC_DIB_RAMDISK_OPTIONS" ]]; then
     if [[ "$IRONIC_DIB_RAMDISK_OS" == "centos8" ]]; then
         # Adapt for DIB naming change
-        IRONIC_DIB_RAMDISK_OS=centos-minimal
+        IRONIC_DIB_RAMDISK_OS=centos
         IRONIC_DIB_RAMDISK_RELEASE=8
     fi
     IRONIC_DIB_RAMDISK_OPTIONS="$IRONIC_DIB_RAMDISK_OS"
