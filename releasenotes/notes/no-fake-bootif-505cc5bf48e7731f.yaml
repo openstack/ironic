@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    No longer tries to pass ``BOOTIF=None`` as a kernel parameter when using
+    virtual media. This could break inspection.

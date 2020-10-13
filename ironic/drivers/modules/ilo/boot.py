@@ -456,7 +456,8 @@ class IloVirtualMediaBoot(base.BootInterface):
         task.node.save()
 
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
-        ramdisk_params['BOOTIF'] = deploy_nic_mac
+        if deploy_nic_mac is not None:
+            ramdisk_params['BOOTIF'] = deploy_nic_mac
         if (node.driver_info.get('ilo_rescue_iso')
                 and node.provision_state == states.RESCUING):
             iso = node.driver_info['ilo_rescue_iso']
@@ -1077,7 +1078,8 @@ class IloUefiHttpsBoot(base.BootInterface):
         task.node.save()
 
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
-        ramdisk_params['BOOTIF'] = deploy_nic_mac
+        if deploy_nic_mac is not None:
+            ramdisk_params['BOOTIF'] = deploy_nic_mac
 
         mode = 'deploy'
         if node.provision_state == states.RESCUING:
