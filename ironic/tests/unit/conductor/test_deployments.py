@@ -428,6 +428,8 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         self.deploy_end = {
             'step': 'deploy_end', 'priority': 20, 'interface': 'deploy'}
         self.deploy_steps = [self.deploy_start, self.deploy_end]
+        self.in_band_step = {
+            'step': 'deploy_middle', 'priority': 30, 'interface': 'deploy'}
 
     @mock.patch.object(deployments, 'LOG', autospec=True)
     def test__do_next_deploy_step_none(self, mock_log):
@@ -810,6 +812,81 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertIsNotNone(node.last_error)
         mock_execute.assert_called_once_with(
             mock.ANY, mock.ANY, self.deploy_steps[0])
+
+    @mock.patch.object(deployments, 'do_next_deploy_step', autospec=True)
+    def _continue_node_deploy(self, mock_next_step, skip=True):
+        driver_info = {'deploy_steps': self.deploy_steps,
+                       'deploy_step_index': 0,
+                       'deployment_polling': 'value'}
+        if not skip:
+            driver_info['skip_current_deploy_step'] = skip
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYING,
+            driver_internal_info=driver_info,
+            deploy_step=self.deploy_steps[0])
+        with task_manager.acquire(self.context, node.uuid) as task:
+            deployments.continue_node_deploy(task)
+            expected_step_index = None if skip else 0
+            self.assertNotIn(
+                'skip_current_deploy_step', task.node.driver_internal_info)
+            self.assertNotIn(
+                'deployment_polling', task.node.driver_internal_info)
+            mock_next_step.assert_called_once_with(task, expected_step_index)
+
+    def test_continue_node_deploy(self):
+        self._continue_node_deploy(skip=True)
+
+    def test_continue_node_deploy_no_skip_step(self):
+        self._continue_node_deploy(skip=False)
+
+    @mock.patch.object(deployments, 'do_next_deploy_step', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_deploy_steps',
+                autospec=True)
+    def test_continue_node_deploy_first_agent_boot(self, mock_get_steps,
+                                                   mock_next_step):
+        new_steps = [self.deploy_start, self.in_band_step, self.deploy_end]
+        mock_get_steps.return_value = new_steps
+        driver_info = {'deploy_steps': self.deploy_steps,
+                       'deploy_step_index': 0}
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.DEPLOYING,
+                                          target_provision_state=states.ACTIVE,
+                                          last_error=None,
+                                          driver_internal_info=driver_info,
+                                          deploy_step=self.deploy_steps[0])
+        with task_manager.acquire(self.context, node.uuid) as task:
+            deployments.continue_node_deploy(task)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertTrue(task.node.driver_internal_info['steps_validated'])
+            self.assertEqual(new_steps,
+                             task.node.driver_internal_info['deploy_steps'])
+            mock_next_step.assert_called_once_with(task, 1)
+
+    @mock.patch.object(deployments, 'do_next_deploy_step', autospec=True)
+    @mock.patch.object(conductor_steps, 'validate_deploy_templates',
+                       autospec=True)
+    def test_continue_node_steps_validation(self, mock_validate,
+                                            mock_next_step):
+        tgt_prv_state = states.ACTIVE
+        mock_validate.side_effect = exception.InvalidParameterValue('boom')
+        driver_info = {'deploy_steps': self.deploy_steps,
+                       'deploy_step_index': 0,
+                       'steps_validated': False}
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.DEPLOYING,
+                                          target_provision_state=tgt_prv_state,
+                                          last_error=None,
+                                          driver_internal_info=driver_info,
+                                          deploy_step=self.deploy_steps[0])
+        with task_manager.acquire(self.context, node.uuid) as task:
+            deployments.continue_node_deploy(task)
+            self.assertEqual(states.DEPLOYFAIL, task.node.provision_state)
+            self.assertIn('Failed to validate the final deploy steps',
+                          task.node.last_error)
+            self.assertIn('boom', task.node.last_error)
+            self.assertEqual(tgt_prv_state, node.target_provision_state)
+            self.assertFalse(mock_next_step.called)
 
 
 @mock.patch.object(swift, 'SwiftAPI', autospec=True)

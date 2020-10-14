@@ -1121,6 +1121,36 @@ def get_node_next_deploy_steps(task, skip_current_step=True):
                                 skip_current_step=skip_current_step)
 
 
+def update_next_step_index(task, step_type):
+    """Calculate the next step index and update the node.
+
+    :param task: A TaskManager object
+    :param step_type: The type of steps to process: 'clean' or 'deploy'.
+    :returns: Index of the next step.
+    """
+    info = task.node.driver_internal_info
+    save_required = False
+
+    try:
+        skip_current_step = info.pop('skip_current_%s_step' % step_type)
+    except KeyError:
+        skip_current_step = True
+    else:
+        save_required = True
+
+    field = ('cleaning_polling' if step_type == 'clean'
+             else 'deployment_polling')
+    if info.pop(field, None) is not None:
+        save_required = True
+
+    if save_required:
+        task.node.driver_internal_info = info
+        task.node.save()
+
+    return _get_node_next_steps(task, step_type,
+                                skip_current_step=skip_current_step)
+
+
 def add_secret_token(node, pregenerated=False):
     """Adds a secret token to driver_internal_info for IPA verification.
 

@@ -995,6 +995,35 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
     def test__do_next_clean_step_manual_bad_step_return_value(self):
         self._do_next_clean_step_bad_step_return_value(manual=True)
 
+    @mock.patch.object(cleaning, 'do_next_clean_step', autospec=True)
+    def _continue_node_clean(self, mock_next_step, skip=True):
+        # test that skipping current step mechanism works
+        driver_info = {'clean_steps': self.clean_steps,
+                       'clean_step_index': 0,
+                       'cleaning_polling': 'value'}
+        if not skip:
+            driver_info['skip_current_clean_step'] = skip
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=states.MANAGEABLE,
+            driver_internal_info=driver_info,
+            clean_step=self.clean_steps[0])
+        with task_manager.acquire(self.context, node.uuid) as task:
+            cleaning.continue_node_clean(task)
+            expected_step_index = 1 if skip else 0
+            self.assertNotIn(
+                'skip_current_clean_step', task.node.driver_internal_info)
+            self.assertNotIn(
+                'cleaning_polling', task.node.driver_internal_info)
+            mock_next_step.assert_called_once_with(task, expected_step_index)
+
+    def test_continue_node_clean(self):
+        self._continue_node_clean(skip=True)
+
+    def test_continue_node_clean_no_skip_step(self):
+        self._continue_node_clean(skip=False)
+
 
 class DoNodeCleanAbortTestCase(db_base.DbTestCase):
     @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)

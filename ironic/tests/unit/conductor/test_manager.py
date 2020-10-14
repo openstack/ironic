@@ -1718,8 +1718,6 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             'step': 'deploy_start', 'priority': 50, 'interface': 'deploy'}
         self.deploy_end = {
             'step': 'deploy_end', 'priority': 20, 'interface': 'deploy'}
-        self.in_band_step = {
-            'step': 'deploy_middle', 'priority': 30, 'interface': 'deploy'}
         self.deploy_steps = [self.deploy_start, self.deploy_end]
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
@@ -1771,14 +1769,10 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         # test a node can continue deploying via RPC
         prv_state = states.DEPLOYWAIT
         tgt_prv_state = states.ACTIVE
-        driver_info = {'deploy_steps': self.deploy_steps,
-                       'deploy_step_index': 0,
-                       'steps_validated': True}
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=prv_state,
                                           target_provision_state=tgt_prv_state,
                                           last_error=None,
-                                          driver_internal_info=driver_info,
                                           deploy_step=self.deploy_steps[0])
         self._start_service()
         self.service.continue_node_deploy(self.context, node.uuid)
@@ -1787,38 +1781,8 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.DEPLOYING, node.provision_state)
         self.assertEqual(tgt_prv_state, node.target_provision_state)
         mock_spawn.assert_called_with(mock.ANY,
-                                      deployments.do_next_deploy_step,
-                                      mock.ANY, 1)
-
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_deploy_steps',
-                autospec=True)
-    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
-                autospec=True)
-    def test_continue_node_deploy_first_agent_boot(self, mock_spawn,
-                                                   mock_get_steps):
-        new_steps = [self.deploy_start, self.in_band_step, self.deploy_end]
-        mock_get_steps.return_value = new_steps
-        prv_state = states.DEPLOYWAIT
-        tgt_prv_state = states.ACTIVE
-        driver_info = {'deploy_steps': self.deploy_steps,
-                       'deploy_step_index': 0}
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=prv_state,
-                                          target_provision_state=tgt_prv_state,
-                                          last_error=None,
-                                          driver_internal_info=driver_info,
-                                          deploy_step=self.deploy_steps[0])
-        self._start_service()
-        self.service.continue_node_deploy(self.context, node.uuid)
-        self._stop_service()
-        node.refresh()
-        self.assertEqual(states.DEPLOYING, node.provision_state)
-        self.assertEqual(tgt_prv_state, node.target_provision_state)
-        self.assertTrue(node.driver_internal_info['steps_validated'])
-        self.assertEqual(new_steps, node.driver_internal_info['deploy_steps'])
-        mock_spawn.assert_called_with(mock.ANY,
-                                      deployments.do_next_deploy_step,
-                                      mock.ANY, 1)
+                                      deployments.continue_node_deploy,
+                                      mock.ANY)
 
     @mock.patch.object(task_manager.TaskManager, 'process_event',
                        autospec=True)
@@ -1847,94 +1811,9 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.DEPLOYING, node.provision_state)
         self.assertEqual(tgt_prv_state, node.target_provision_state)
         mock_spawn.assert_called_with(mock.ANY,
-                                      deployments.do_next_deploy_step,
-                                      mock.ANY, 1)
+                                      deployments.continue_node_deploy,
+                                      mock.ANY)
         self.assertFalse(mock_event.called)
-
-    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
-                autospec=True)
-    def _continue_node_deploy_skip_step(self, mock_spawn, skip=True):
-        # test that skipping current step mechanism works
-        driver_info = {'deploy_steps': self.deploy_steps,
-                       'deploy_step_index': 0,
-                       'steps_validated': True}
-        if not skip:
-            driver_info['skip_current_deploy_step'] = skip
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            provision_state=states.DEPLOYWAIT,
-            target_provision_state=states.MANAGEABLE,
-            driver_internal_info=driver_info, deploy_step=self.deploy_steps[0])
-        self._start_service()
-        self.service.continue_node_deploy(self.context, node.uuid)
-        self._stop_service()
-        node.refresh()
-        if skip:
-            expected_step_index = 1
-        else:
-            self.assertNotIn(
-                'skip_current_deploy_step', node.driver_internal_info)
-            expected_step_index = 0
-        mock_spawn.assert_called_with(mock.ANY,
-                                      deployments.do_next_deploy_step,
-                                      mock.ANY, expected_step_index)
-
-    def test_continue_node_deploy_skip_step(self):
-        self._continue_node_deploy_skip_step()
-
-    def test_continue_node_deploy_no_skip_step(self):
-        self._continue_node_deploy_skip_step(skip=False)
-
-    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
-                autospec=True)
-    def test_continue_node_deploy_polling(self, mock_spawn):
-        # test that deployment_polling flag is cleared
-        driver_info = {'deploy_steps': self.deploy_steps,
-                       'deploy_step_index': 0,
-                       'deployment_polling': True,
-                       'steps_validated': True}
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            provision_state=states.DEPLOYWAIT,
-            target_provision_state=states.MANAGEABLE,
-            driver_internal_info=driver_info, deploy_step=self.deploy_steps[0])
-        self._start_service()
-        self.service.continue_node_deploy(self.context, node.uuid)
-        self._stop_service()
-        node.refresh()
-        self.assertNotIn('deployment_polling', node.driver_internal_info)
-        mock_spawn.assert_called_with(mock.ANY,
-                                      deployments.do_next_deploy_step,
-                                      mock.ANY, 1)
-
-    @mock.patch.object(conductor_steps, 'validate_deploy_templates',
-                       autospec=True)
-    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
-                autospec=True)
-    def test_continue_node_steps_validation(self, mock_spawn, mock_validate):
-        prv_state = states.DEPLOYWAIT
-        tgt_prv_state = states.ACTIVE
-        mock_validate.side_effect = exception.InvalidParameterValue('boom')
-        driver_info = {'deploy_steps': self.deploy_steps,
-                       'deploy_step_index': 0,
-                       'steps_validated': False}
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=prv_state,
-                                          target_provision_state=tgt_prv_state,
-                                          last_error=None,
-                                          driver_internal_info=driver_info,
-                                          deploy_step=self.deploy_steps[0])
-        self._start_service()
-        mock_spawn.reset_mock()
-        self.service.continue_node_deploy(self.context, node.uuid)
-        self._stop_service()
-        node.refresh()
-        self.assertEqual(states.DEPLOYFAIL, node.provision_state)
-        self.assertIn('Failed to validate the final deploy steps',
-                      node.last_error)
-        self.assertIn('boom', node.last_error)
-        self.assertEqual(tgt_prv_state, node.target_provision_state)
-        self.assertFalse(mock_spawn.called)
 
 
 @mgr_utils.mock_record_keepalive
@@ -2627,13 +2506,10 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # test a node can continue cleaning via RPC
         prv_state = return_state
         tgt_prv_state = states.MANAGEABLE if manual else states.AVAILABLE
-        driver_info = {'clean_steps': self.clean_steps,
-                       'clean_step_index': 0}
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=prv_state,
                                           target_provision_state=tgt_prv_state,
                                           last_error=None,
-                                          driver_internal_info=driver_info,
                                           clean_step=self.clean_steps[0])
         self._start_service()
         self.service.continue_node_clean(self.context, node.uuid)
@@ -2642,68 +2518,13 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.CLEANING, node.provision_state)
         self.assertEqual(tgt_prv_state, node.target_provision_state)
         mock_spawn.assert_called_with(self.service,
-                                      cleaning.do_next_clean_step,
-                                      mock.ANY, self.next_clean_step_index)
+                                      cleaning.continue_node_clean, mock.ANY)
 
     def test_continue_node_clean_automated(self):
         self._continue_node_clean(states.CLEANWAIT)
 
     def test_continue_node_clean_manual(self):
         self._continue_node_clean(states.CLEANWAIT, manual=True)
-
-    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
-                autospec=True)
-    def _continue_node_clean_skip_step(self, mock_spawn, skip=True):
-        # test that skipping current step mechanism works
-        driver_info = {'clean_steps': self.clean_steps,
-                       'clean_step_index': 0}
-        if not skip:
-            driver_info['skip_current_clean_step'] = skip
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            provision_state=states.CLEANWAIT,
-            target_provision_state=states.MANAGEABLE,
-            driver_internal_info=driver_info, clean_step=self.clean_steps[0])
-        self._start_service()
-        self.service.continue_node_clean(self.context, node.uuid)
-        self._stop_service()
-        node.refresh()
-        if skip:
-            expected_step_index = 1
-        else:
-            self.assertNotIn(
-                'skip_current_clean_step', node.driver_internal_info)
-            expected_step_index = 0
-        mock_spawn.assert_called_with(self.service,
-                                      cleaning.do_next_clean_step,
-                                      mock.ANY, expected_step_index)
-
-    def test_continue_node_clean_skip_step(self):
-        self._continue_node_clean_skip_step()
-
-    def test_continue_node_clean_no_skip_step(self):
-        self._continue_node_clean_skip_step(skip=False)
-
-    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
-                autospec=True)
-    def test_continue_node_clean_polling(self, mock_spawn):
-        # test that cleaning_polling flag is cleared
-        driver_info = {'clean_steps': self.clean_steps,
-                       'clean_step_index': 0,
-                       'cleaning_polling': True}
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            provision_state=states.CLEANWAIT,
-            target_provision_state=states.MANAGEABLE,
-            driver_internal_info=driver_info, clean_step=self.clean_steps[0])
-        self._start_service()
-        self.service.continue_node_clean(self.context, node.uuid)
-        self._stop_service()
-        node.refresh()
-        self.assertNotIn('cleaning_polling', node.driver_internal_info)
-        mock_spawn.assert_called_with(self.service,
-                                      cleaning.do_next_clean_step,
-                                      mock.ANY, 1)
 
     def _continue_node_clean_abort(self, manual=False):
         last_clean_step = self.clean_steps[0]

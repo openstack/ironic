@@ -266,3 +266,48 @@ def do_node_clean_abort(task, step_name=None):
     utils.wipe_cleaning_internal_info(task)
     node.save()
     LOG.info(info_message)
+
+
+@utils.fail_on_error(utils.cleaning_error_handler,
+                     _("Unexpected error when processing next clean step"))
+@task_manager.require_exclusive_lock
+def continue_node_clean(task):
+    """Continue cleaning after finishing an async clean step.
+
+    This function calculates which step has to run next and passes control
+    into do_next_clean_step.
+
+    :param task: a TaskManager instance with an exclusive lock
+    """
+    node = task.node
+
+    next_step_index = utils.update_next_step_index(task, 'clean')
+
+    # If this isn't the final clean step in the cleaning operation
+    # and it is flagged to abort after the clean step that just
+    # finished, we abort the cleaning operation.
+    if node.clean_step.get('abort_after'):
+        step_name = node.clean_step['step']
+        if next_step_index is not None:
+            LOG.debug('The cleaning operation for node %(node)s was '
+                      'marked to be aborted after step "%(step)s '
+                      'completed. Aborting now that it has completed.',
+                      {'node': task.node.uuid, 'step': step_name})
+
+            if node.target_provision_state == states.MANAGEABLE:
+                target_state = states.MANAGEABLE
+            else:
+                target_state = None
+
+            task.process_event('fail', target_state=target_state)
+            do_node_clean_abort(task, step_name)
+            return
+
+        LOG.debug('The cleaning operation for node %(node)s was '
+                  'marked to be aborted after step "%(step)s" '
+                  'completed. However, since there are no more '
+                  'clean steps after this, the abort is not going '
+                  'to be done.', {'node': node.uuid,
+                                  'step': step_name})
+
+    do_next_clean_step(task, next_step_index)
