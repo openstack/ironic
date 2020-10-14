@@ -55,6 +55,7 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
 
     def _bind_flat_ports(self, task):
         LOG.debug("Binding flat network ports")
+        bound_ports = []
         for port_like_obj in task.ports + task.portgroups:
             vif_port_id = (
                 port_like_obj.internal_info.get(common.TENANT_VIF_KEY)
@@ -68,12 +69,15 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
             try:
                 neutron.update_neutron_port(task.context,
                                             vif_port_id, port_attrs)
+                bound_ports.append(vif_port_id)
             except openstack_exc.OpenStackCloudException as e:
                 msg = (_('Unable to set binding:host_id for '
                          'neutron port %(port_id)s. Error: '
                          '%(err)s') % {'port_id': vif_port_id, 'err': e})
                 LOG.exception(msg)
                 raise exception.NetworkError(msg)
+        LOG.debug("Finished binding flat network ports, attached: %s",
+                  ' '.join(bound_ports))
 
     def _unbind_flat_ports(self, task):
         node = task.node
