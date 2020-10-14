@@ -415,7 +415,8 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         config_via_floppy = d_info.get('config_via_floppy')
 
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
-        ramdisk_params['BOOTIF'] = deploy_nic_mac
+        if deploy_nic_mac is not None:
+            ramdisk_params['BOOTIF'] = deploy_nic_mac
         if CONF.debug and 'ipa-debug' not in ramdisk_params:
             ramdisk_params['ipa-debug'] = '1'
 
