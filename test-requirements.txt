@@ -1,7 +1,7 @@
 # The order of packages is significant, because pip processes them in the order
 # of appearance. Changing the order has an impact on the overall integration
 # process, which may cause wedges in the gate later.
-hacking>=3.0.1,<3.1.0 # Apache-2.0
+hacking>=3.1.0,<4.0.0 # Apache-2.0
 coverage!=4.4,>=4.0 # Apache-2.0
 ddt>=1.0.1 # MIT
 doc8>=0.6.0 # Apache-2.0
@@ -15,7 +15,7 @@ psycopg2>=2.8.5 # LGPL/ZPL
 testtools>=2.2.0 # MIT
 WebTest>=2.0.27 # MIT
 bashate>=0.5.1 # Apache-2.0
-pycodestyle>=2.0.0,<2.6.0 # MIT
+pycodestyle>=2.0.0,<2.7.0 # MIT
 pysnmp>=4.4.12
 flake8-import-order>=0.17.1 # LGPLv3
 Pygments>=2.2.0 # BSD
