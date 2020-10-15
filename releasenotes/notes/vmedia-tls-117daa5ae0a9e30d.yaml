@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    A new option ``[agent]api_ca_file`` allows passing a CA file to the
+    ramdisk when ``redfish-virtual-media`` boot is used. Requires
+    ironic-python-agent from the Wallaby cycle.

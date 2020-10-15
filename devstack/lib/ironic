@@ -1703,12 +1703,14 @@ function configure_ironic_conductor {
 
     local kernel_append_params="nofb nomodeset console=${IRONIC_TTY_DEV}"
     kernel_append_params+=" systemd.journald.forward_to_console=yes"
-    if is_service_enabled tls-proxy; then
-        kernel_append_params+=" ipa-insecure=1"
-    fi
 
-    if [[ -n "kernel_append_params" ]]; then
-        iniset $IRONIC_CONF_FILE redfish kernel_append_params "$kernel_append_params"
+    # NOTE(dtantsur): avoid setting ipa-insecure for redfish, we have a way to
+    # pass the TLS certificate.
+    iniset $IRONIC_CONF_FILE redfish kernel_append_params "$kernel_append_params"
+
+    if is_service_enabled tls-proxy; then
+        deploy_int_CA "$IRONIC_STATE_PATH/ironic-ca.pem"
+        iniset $IRONIC_CONF_FILE agent api_ca_file "$IRONIC_STATE_PATH/ironic-ca.pem"
     fi
 
     # Set these options for scenarios in which the agent fetches the image

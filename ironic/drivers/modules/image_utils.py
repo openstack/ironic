@@ -388,6 +388,12 @@ def _find_param(param_str, param_dict):
     return val
 
 
+_TLS_REMOTE_FILE = 'etc/ironic-python-agent/ironic.crt'
+_TLS_CONFIG_TEMPLATE = """[DEFAULT]
+cafile = /%s
+""" % _TLS_REMOTE_FILE
+
+
 def prepare_deploy_iso(task, params, mode, d_info):
     """Prepare deploy or rescue ISO image
 
@@ -430,6 +436,11 @@ def prepare_deploy_iso(task, params, mode, d_info):
         bootloader_href=bootloader_href, params=params)
 
     inject_files = {}
+    if CONF.agent.api_ca_file:
+        inject_files[CONF.agent.api_ca_file] = _TLS_REMOTE_FILE
+        inject_files[_TLS_CONFIG_TEMPLATE.encode('utf-8')] = \
+            'etc/ironic-python-agent.d/ironic-tls.conf'
+
     network_data = task.driver.network.get_node_network_data(task)
     if network_data:
         LOG.debug('Injecting custom network data for node %s',
