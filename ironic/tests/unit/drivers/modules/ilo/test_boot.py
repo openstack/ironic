@@ -1992,6 +1992,8 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             task.driver.boot.clean_up_ramdisk(task)
             cleanup_iso_mock.assert_called_once_with(task)
 
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode',
+                       spec_set=True, autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, 'setup_uefi_https',
@@ -2005,7 +2007,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
     def _test_prepare_instance_local_or_whole_disk_image(
             self, set_boot_device_mock,
             parse_deploy_mock, prepare_iso_mock, setup_uefi_https_mock,
-            cleanup_iso_mock):
+            cleanup_iso_mock, update_secureboot_mock):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -2014,6 +2016,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.DISK,
                                                          persistent=True)
+            update_secureboot_mock.assert_called_once_with(task, True)
             cleanup_iso_mock.assert_called_once_with(task)
             prepare_iso_mock.assert_not_called()
             setup_uefi_https_mock.assert_not_called()
@@ -2028,6 +2031,8 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_prepare_instance_local_or_whole_disk_image()
 
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode',
+                       spec_set=True, autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, 'setup_uefi_https',
@@ -2041,7 +2046,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
     def test_prepare_instance_partition_image(
             self, set_boot_device_mock,
             parse_deploy_mock, prepare_iso_mock, setup_uefi_https_mock,
-            cleanup_iso_mock):
+            cleanup_iso_mock, update_secureboot_mock):
 
         self.node.instance_info = {
             'capabilities': '{"boot_option": "netboot"}'
@@ -2064,11 +2069,14 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             parse_deploy_mock.assert_called_once_with(mock.ANY, task.node)
             prepare_iso_mock.assert_called_once_with(
                 task, d_info, root_uuid='12312642-09d3-467f-8e09-12385826a123')
+            update_secureboot_mock.assert_called_once_with(task, True)
             setup_uefi_https_mock.assert_called_once_with(
                 task, "recreated-iso", True)
             self.assertEqual(task.node.instance_info['ilo_boot_iso'],
                              "recreated-iso")
 
+    @mock.patch.object(ilo_common, 'update_secure_boot_mode',
+                       spec_set=True, autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, 'setup_uefi_https',
@@ -2082,7 +2090,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
     def test_prepare_instance_boot_ramdisk(
             self, set_boot_device_mock,
             parse_deploy_mock, prepare_iso_mock, setup_uefi_https_mock,
-            cleanup_iso_mock):
+            cleanup_iso_mock, update_secureboot_mock):
 
         self.node.driver_internal_info.update({'is_whole_disk_image': False})
         self.node.save()
@@ -2103,17 +2111,21 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             parse_deploy_mock.assert_called_once_with(mock.ANY, task.node)
             prepare_iso_mock.assert_called_once_with(
                 task, d_info)
+            update_secureboot_mock.assert_called_once_with(task, True)
             setup_uefi_https_mock.assert_called_once_with(
                 task, "recreated-iso", True)
             self.assertTrue('ilo_boot_iso' not in task.node.instance_info)
 
+    @mock.patch.object(ilo_boot, 'disable_secure_boot_if_supported',
+                       spec_set=True, autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', spec_set=True,
                        autospec=True)
-    def test_clean_up_instance(self, cleanup_iso_mock):
+    def test_clean_up_instance(self, cleanup_iso_mock, disable_secure_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.boot.clean_up_instance(task)
             cleanup_iso_mock.assert_called_once_with(task)
+            disable_secure_mock.assert_called_once_with(task)
 
     def test_validate_rescue(self):
         driver_info = self.node.driver_info

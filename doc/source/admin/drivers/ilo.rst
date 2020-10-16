@@ -2160,9 +2160,6 @@ and ``ilo-uefi-https`` boot interface:
         --driver-info ilo_deploy_ramdisk=<glance-uuid-of-rescue-ramdisk> \
         --driver-info ilo_bootloader=<glance-uuid-of-bootloader>
 
-.. note::
-   UEFI secure boot is not supported with ``ilo-uefi-https`` boot interface.
-
 Layer 3 or DHCP-less ramdisk booting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 DHCP-less deploy is supported by ``ilo`` and ``ilo5`` hardware types.
