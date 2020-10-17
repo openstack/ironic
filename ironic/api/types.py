@@ -142,12 +142,12 @@ class BinaryType(UserType):
     def tobasetype(self, value):
         if value is None:
             return None
-        return base64.encodestring(value)
+        return base64.encodebytes(value)
 
     def frombasetype(self, value):
         if value is None:
             return None
-        return base64.decodestring(value)
+        return base64.decodebytes(value)
 
 
 #: The binary almost-native type

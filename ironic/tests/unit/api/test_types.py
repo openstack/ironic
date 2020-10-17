@@ -446,13 +446,13 @@ Value: 'v3'. Value should be one of: v., v.",
     def test_binary_to_base(self):
         import base64
         assert types.binary.tobasetype(None) is None
-        expected = base64.encodestring(b'abcdef')
+        expected = base64.encodebytes(b'abcdef')
         assert types.binary.tobasetype(b'abcdef') == expected
 
     def test_binary_from_base(self):
         import base64
         assert types.binary.frombasetype(None) is None
-        encoded = base64.encodestring(b'abcdef')
+        encoded = base64.encodebytes(b'abcdef')
         assert types.binary.frombasetype(encoded) == b'abcdef'
 
     def test_wsattr_weakref_datatype(self):
