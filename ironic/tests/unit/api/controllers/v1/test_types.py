@@ -16,7 +16,6 @@
 #    under the License.
 
 from http import client as http_client
-import platform
 from unittest import mock
 
 from pecan import rest
@@ -121,7 +120,6 @@ class TestJsonPatchType(api_base.BaseApiTest):
     root_controller = ('ironic.tests.unit.api.controllers.v1.'
                        'test_types.MyRoot')
 
-    @mock.patch.object(platform, '_syscmd_uname', lambda *x: '')
     def setUp(self):
         super(TestJsonPatchType, self).setUp()
 
