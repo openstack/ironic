@@ -26,6 +26,8 @@ which disk it should pick for the deployment. The list of supported hints is:
   rotational) when choosing which disk Ironic should deploy the image onto.
 * hctl (STRING): the SCSI address (Host, Channel, Target and Lun),
   e.g '1:0:0:0'
+* by_path (STRING): the alternate device name corresponding to a particular
+  PCI or iSCSI path, e.g /dev/disk/by-path/pci-0000:00
 * name (STRING): the device name, e.g /dev/md0
 
 
