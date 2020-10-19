@@ -33,6 +33,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
 
@@ -221,6 +222,10 @@ class RedfishManagement(base.ManagementInterface):
                          {'node': task.node.uuid, 'error': e})
             LOG.error(error_msg)
             raise exception.RedfishError(error=error_msg)
+
+        # Ensure that boot mode is synced with what is set.
+        # Some BMCs reset it to default (BIOS) when changing the boot device.
+        boot_mode_utils.sync_boot_mode(task)
 
     def get_boot_device(self, task):
         """Get the current boot device for a node.
