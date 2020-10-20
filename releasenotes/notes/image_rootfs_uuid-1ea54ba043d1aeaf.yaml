@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    When deploying a node with software RAID with an image not from Glance,
+    the new ``instance_info`` field ``image_rootfs_uuid`` can be used to
+    specify the UUID of the root partition to install the bootloader on.
