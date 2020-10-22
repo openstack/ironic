@@ -48,12 +48,12 @@ CLI commands below specify it for completeness.
    along with, optionally, its name, address, mode, properties, and if it
    supports fallback to standalone ports::
 
-    openstack --os-baremetal-api-version 1.26 baremetal port group create \
+    baremetal port group create \
     --node $NODE_UUID --name test --address fa:ab:25:48:fd:ba --mode 802.3ad \
     --property miimon=100 --property xmit_hash_policy="layer2+3" \
     --support-standalone-ports
 
-   A port group can also be updated with ``openstack baremetal port group set``
+   A port group can also be updated with ``baremetal port group set``
    command, see its help for more details.
 
    If an address is not specified, the port group address on the deployed
@@ -91,13 +91,12 @@ CLI commands below specify it for completeness.
 
    It can be done on port creation::
 
-     openstack --os-baremetal-api-version 1.26 baremetal port create \
+     baremetal port create \
      --node $NODE_UUID --address fa:ab:25:48:fd:ba --port-group test
 
    Or by updating an existing port::
 
-     openstack --os-baremetal-api-version 1.26 baremetal port set \
-     $PORT_UUID --port-group $PORT_GROUP_UUID
+     baremetal port set $PORT_UUID --port-group $PORT_GROUP_UUID
 
    When updating a port, the node associated with the port has to be in
    ``enroll``, ``manageable``, or ``inspecting`` states. A port group can have

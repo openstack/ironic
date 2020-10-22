@@ -66,8 +66,7 @@ with tagging some nodes with it:
 
 .. code-block:: console
 
-      $ openstack --os-baremetal-api-version 1.21 baremetal node set $NODE_UUID \
-        --resource-class baremetal.with-GPU
+      $ baremetal node set $NODE_UUID --resource-class baremetal.with-GPU
 
 .. warning::
     It is possible to **add** a resource class to ``active`` nodes, but it is
@@ -119,8 +118,7 @@ To add the standard trait ``HW_CPU_X86_VMX`` and a custom trait
 
 .. code-block:: console
 
-      $ openstack --os-baremetal-api-version 1.37 baremetal node add trait \
-        $NODE_UUID CUSTOM_TRAIT1 HW_CPU_X86_VMX
+      $ baremetal node add trait $NODE_UUID CUSTOM_TRAIT1 HW_CPU_X86_VMX
 
 Then, update the flavor to require these traits:
 

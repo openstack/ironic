@@ -383,7 +383,7 @@ The following command can be used to create a RAID configuration:
 
 .. code-block:: bash
 
-  openstack baremetal node clean --clean-steps \
+  baremetal node clean --clean-steps \
     '[{"interface": "raid", "step": "create_configuration"}]' ${node_uuid}
 
 

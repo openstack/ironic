@@ -119,23 +119,22 @@ The web console can be configured in Bare Metal service in the following way:
   If the node uses a hardware type, for example ``ipmi``, set the node's
   console interface to ``ipmitool-shellinabox``::
 
-   openstack --os-baremetal-api-version 1.31 baremetal node set <node-uuid> \
-       --console-interface ipmitool-shellinabox
+    baremetal node set <node> --console-interface ipmitool-shellinabox
 
   Enable the web console, for example::
 
-   baremetal node set <node-uuid> \
+   baremetal node set <node> \
        --driver-info <terminal_port>=<customized_port>
-   baremetal node console enable <node-uuid>
+   baremetal node console enable <node>
 
   Check whether the console is enabled, for example::
 
-   baremetal node validate <node-uuid>
+   baremetal node validate <node>
 
   Disable the web console, for example::
 
-   baremetal node console disable  <node-uuid>
-   baremetal node unset <node-uuid> --driver-info <terminal_port>
+   baremetal node console disable  <node>
+   baremetal node unset <node> --driver-info <terminal_port>
 
   The ``<terminal_port>`` is driver dependent. The actual name of this field can be
   checked in driver properties, for example::
@@ -148,7 +147,7 @@ The web console can be configured in Bare Metal service in the following way:
 
   Get web console information for a node as follows::
 
-   baremetal node console show <node-uuid>
+   baremetal node console show <node>
    +-----------------+----------------------------------------------------------------------+
    | Property        | Value                                                                |
    +-----------------+----------------------------------------------------------------------+
@@ -206,27 +205,26 @@ Serial consoles can be configured in the Bare Metal service as follows:
   If the node uses a hardware type, for example ``ipmi``, set the node's
   console interface to ``ipmitool-socat``::
 
-   openstack --os-baremetal-api-version 1.31 baremetal node set <node-uuid> \
-       --console-interface ipmitool-socat
+    baremetal node set <node> --console-interface ipmitool-socat
 
   Enable the serial console, for example::
 
-   baremetal node set <node-uuid> --driver-info ipmi_terminal_port=<port>
-   baremetal node console enable <node-uuid>
+   baremetal node set <node> --driver-info ipmi_terminal_port=<port>
+   baremetal node console enable <node>
 
   Check whether the serial console is enabled, for example::
 
-   baremetal node validate <node-uuid>
+   baremetal node validate <node>
 
   Disable the serial console, for example::
 
-   baremetal node console disable  <node-uuid>
-   baremetal node unset <node-uuid> --driver-info <ipmi_terminal_port>
+   baremetal node console disable  <node>
+   baremetal node unset <node> --driver-info <ipmi_terminal_port>
 
 Serial console information is available from the Bare Metal service.  Get
 serial console information for a node from the Bare Metal service as follows::
 
- baremetal node console show <node-uuid>
+ baremetal node console show <node>
  +-----------------+----------------------------------------------------------------------+
  | Property        | Value                                                                |
  +-----------------+----------------------------------------------------------------------+

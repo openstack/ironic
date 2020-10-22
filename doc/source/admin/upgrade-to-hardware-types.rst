@@ -93,7 +93,7 @@ set new values for some or all interfaces:
     export OS_BAREMETAL_API_VERSION=1.31
 
     for uuid in $(baremetal node list --driver pxe_ipmitool -f value -c UUID); do
-        openstack baremetal node set $uuid --driver ipmi --deploy-interface iscsi
+        baremetal node set $uuid --driver ipmi --deploy-interface iscsi
     done
 
     for uuid in $(baremetal node list --driver agent_ipmitool -f value -c UUID); do
@@ -264,7 +264,7 @@ passthru methods from different vendor passthru implementations:
      .. code-block:: shell
 
         # set the vendor interface to 'vendor_foo`
-        openstack --os-baremetal-api-version 1.31 baremetal node set <node> --vendor-interface vendor_foo
+        baremetal node set <node> --vendor-interface vendor_foo
 
         # invoke the vendor passthru method
-        openstack baremetal node passthru call <node> vendor_method_foo
+        baremetal node passthru call <node> vendor_method_foo

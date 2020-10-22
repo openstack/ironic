@@ -371,7 +371,7 @@ When filing bugs, please include as much detail as possible, and don't be shy.
 
 Essential pieces of information are generally:
 
-* Contents of the 'node' - `openstack baremetal node show <uuid>`
+* Contents of the 'node' - `baremetal node show <uuid>`
 * Steps to reproduce the issue.
 * Exceptions and surrounding lines from the logs.
 * Versions of ironic, ironic-python-agent, and any other coupled components.

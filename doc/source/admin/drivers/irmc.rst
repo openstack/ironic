@@ -101,7 +101,7 @@ Here is a command example to enroll a node with ``irmc`` hardware type.
 
 .. code-block:: console
 
-   openstack baremetal node create \
+   baremetal node create \
       --bios-interface irmc \
       --boot-interface irmc-pxe \
       --deploy-interface direct \
@@ -203,7 +203,7 @@ following sections describe both methods:
   To enable secure boot we need to set a capability on the bare metal node
   and the bare metal flavor, for example::
 
-    baremetal node set <node-uuid> --property capabilities='secure_boot:true'
+    baremetal node set <node> --property capabilities='secure_boot:true'
     openstack flavor set FLAVOR-NAME --property capabilities:secure_boot="true"
 
 * Enabling secure boot without Compute service:
@@ -211,7 +211,7 @@ following sections describe both methods:
   scheduler to perform more advanced scheduling of instances, we need
   to enable secure boot without nova, for example::
 
-    baremetal node set <node-uuid> --instance-info capabilities='{"secure_boot": "true"}'
+    baremetal node set <node> --instance-info capabilities='{"secure_boot": "true"}'
 
 .. _irmc_node_cleaning:
 

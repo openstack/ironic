@@ -66,7 +66,7 @@ A few things should be checked in this case:
 #. Starting with the Pike release, check that all your nodes have the
    ``resource_class`` field set using the following command::
 
-       openstack --os-baremetal-api-version 1.21 baremetal node list --fields uuid name resource_class
+      baremetal node list --fields uuid name resource_class
 
    Then check that the flavor(s) are configured to request these resource
    classes via their properties::
@@ -282,7 +282,7 @@ all the logs according to the ``deploy_logs_storage_backend``
 configuration option. All log objects will be named with the following
 pattern::
 
-  <node-uuid>[_<instance-uuid>]_<timestamp yyyy-mm-dd-hh:mm:ss>.tar.gz
+  <node>[_<instance-uuid>]_<timestamp yyyy-mm-dd-hh:mm:ss>.tar.gz
 
 .. note::
    The *instance_uuid* field is not required for deploying a node when
@@ -652,7 +652,7 @@ provisioning, rescuing, or even inspection, getting the node to the
 ``available`` state wil unblock your delete operation, that is unless there is
 a tenant VIF attahment. In that case, the vif will need to be removed from
 with-in the Bare Metal service using the
-``openstack baremetal node vif detach`` command.
+``baremetal node vif detach`` command.
 
 A port can also be checked to see if there is a VIF attachment by consulting
 the port's ``internal_info`` field.

@@ -34,7 +34,7 @@ Hardware types and interfaces are enabled in the configuration as described in
 :doc:`/install/enabling-drivers`. Usually, a hardware type is configured on
 enrolling as described in :doc:`/install/enrollment`::
 
-    openstack baremetal node create --driver <hardware type>
+    baremetal node create --driver <hardware type>
 
 Any hardware interfaces can be specified on enrollment as well::
 
