@@ -362,7 +362,7 @@ utils_opts = [
                       'dir.')),
 ]
 
-cert_verify_opts = [
+webserver_opts = [
     cfg.StrOpt('webserver_verify_ca',
                default='True',
                mutable=True,
@@ -380,6 +380,10 @@ cert_verify_opts = [
                       'is set to True i.e the certificates present in the '
                       'standard path are used for SSL verification.'
                       'Defaults to True.')),
+    cfg.IntOpt('webserver_connection_timeout',
+               default=60,
+               help=_('Connection timeout when accessing remote web servers '
+                      'with images.')),
 ]
 
 
@@ -396,4 +400,4 @@ def register_opts(conf):
     conf.register_opts(portgroup_opts)
     conf.register_opts(service_opts)
     conf.register_opts(utils_opts)
-    conf.register_opts(cert_verify_opts)
+    conf.register_opts(webserver_opts)

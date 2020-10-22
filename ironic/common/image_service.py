@@ -98,7 +98,8 @@ class HttpImageService(BaseImageService):
             verify = CONF.webserver_verify_ca
 
         try:
-            response = requests.head(image_href, verify=verify)
+            response = requests.head(image_href, verify=verify,
+                                     timeout=CONF.webserver_connection_timeout)
             if response.status_code != http_client.OK:
                 raise exception.ImageRefValidationFailed(
                     image_href=output_url,
@@ -130,8 +131,8 @@ class HttpImageService(BaseImageService):
             verify = CONF.webserver_verify_ca
 
         try:
-            response = requests.get(image_href, stream=True,
-                                    verify=verify)
+            response = requests.get(image_href, stream=True, verify=verify,
+                                    timeout=CONF.webserver_connection_timeout)
             if response.status_code != http_client.OK:
                 raise exception.ImageRefValidationFailed(
                     image_href=image_href,
