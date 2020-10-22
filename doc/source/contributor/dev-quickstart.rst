@@ -314,8 +314,7 @@ functionality without necessarily starting DevStack.
 To get started, export the following variables to point the client at the
 local instance of ironic and disable the authentication::
 
-    export OS_AUTH_TYPE=token_endpoint
-    export OS_TOKEN=fake
+    export OS_AUTH_TYPE=none
     export OS_ENDPOINT=http://127.0.0.1:6385
 
 Then list the available commands and resources::
