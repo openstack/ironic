@@ -384,7 +384,7 @@ The following command can be used to create a RAID configuration:
 .. code-block:: bash
 
   baremetal node clean --clean-steps \
-    '[{"interface": "raid", "step": "create_configuration"}]' ${node_uuid}
+    '[{"interface": "raid", "step": "create_configuration"}]' <node>
 
 
 When the physical disk names or controller names are not known, the
@@ -459,7 +459,7 @@ Get BIOS Config
 
 .. code-block:: bash
 
-  baremetal node passthru call --http-method GET ${node_uuid} get_bios_config
+  baremetal node passthru call --http-method GET <node> get_bios_config
 
 Snippet of output showing virtualization enabled:
 
@@ -491,7 +491,7 @@ Set BIOS Config
 
 .. code-block:: bash
 
-  baremetal node passthru call ${node_uuid} set_bios_config --arg "name=value"
+  baremetal node passthru call <node> set_bios_config --arg "name=value"
 
 
 Walkthrough of perfoming a BIOS configuration change:
@@ -505,7 +505,7 @@ two properties that are being changed are:
 
 .. code-block:: bash
 
-  baremetal node passthru call ${node_uuid} set_bios_config \
+  baremetal node passthru call <node> set_bios_config \
     --arg "ProcVirtualization=Enabled" \
     --arg "SriovGlobalEnable=Enabled"
 
@@ -532,7 +532,7 @@ Ironic power API.
 
 .. code-block:: bash
 
-  baremetal node passthru call ${node_uuid} commit_bios_config \
+  baremetal node passthru call <node> commit_bios_config \
     --arg "reboot=true"
 
 .. code-block:: json
@@ -546,7 +546,7 @@ The state of any executing job can be queried:
 
 .. code-block:: bash
 
-  baremetal node passthru call --http-method GET ${node_uuid} list_unfinished_jobs
+  baremetal node passthru call --http-method GET <node> list_unfinished_jobs
 
 
 .. code-block:: json
@@ -568,7 +568,7 @@ Instead of committing, a pending change can be abandoned:
 
 .. code-block:: bash
 
-  baremetal node passthru call --http-method DELETE ${node_uuid} abandon_bios_config
+  baremetal node passthru call --http-method DELETE <node> abandon_bios_config
 
 The abandon command does not provide a response body.
 
@@ -609,18 +609,18 @@ The boot mode can be changed via the vendor passthru interface as follows:
 
 .. code-block:: bash
 
-  baremetal node passthru call ${node_uuid} set_bios_config \
+  baremetal node passthru call <node> set_bios_config \
     --arg "BootMode=Uefi"
 
-  baremetal node passthru call ${node_uuid} commit_bios_config \
+  baremetal node passthru call <node> commit_bios_config \
     --arg "reboot=true"
 
 .. code-block:: bash
 
-  baremetal node passthru call ${node_uuid} set_bios_config \
+  baremetal node passthru call <node> set_bios_config \
     --arg "BootMode=Bios"
 
-  baremetal node passthru call ${node_uuid} commit_bios_config \
+  baremetal node passthru call <node> commit_bios_config \
     --arg "reboot=true"
 
 Known Issues
