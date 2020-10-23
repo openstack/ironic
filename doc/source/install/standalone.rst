@@ -300,6 +300,13 @@ Populating instance_info
 
    * ``ilo_boot_iso``, ``image_source``, ``root_gb`` under ``instance_info``.
 
+#. For software RAID with whole-disk images, the root UUID of the root
+   partition has to be provided so that the bootloader can be correctly
+   installed::
+
+    baremetal node set $NODE_UUID \
+        --instance-info image_rootfs_uuid=<uuid>
+
 Deployment
 ----------
 

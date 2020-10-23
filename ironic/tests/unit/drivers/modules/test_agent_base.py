@@ -1317,6 +1317,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
     def test_configure_local_boot_on_software_raid(
             self, install_bootloader_mock, try_set_boot_device_mock,
             GlanceImageService_mock):
+        image = GlanceImageService_mock.return_value.show.return_value
+        image.get.return_value = {'rootfs_uuid': 'rootfs'}
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
             task.node.driver_internal_info['is_whole_disk_image'] = True
@@ -1336,7 +1338,50 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             }
             self.deploy.configure_local_boot(task)
             self.assertTrue(GlanceImageService_mock.called)
-            self.assertTrue(install_bootloader_mock.called)
+            install_bootloader_mock.assert_called_once_with(
+                mock.ANY, task.node,
+                root_uuid='rootfs',
+                efi_system_part_uuid=None,
+                prep_boot_part_uuid=None,
+                target_boot_mode='bios',
+                software_raid=True)
+            try_set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.DISK, persistent=True)
+
+    @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
+                       autospec=True)
+    def test_configure_local_boot_on_software_raid_explicit_uuid(
+            self, install_bootloader_mock, try_set_boot_device_mock,
+            GlanceImageService_mock):
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = True
+            task.node.instance_info['image_rootfs_uuid'] = 'rootfs'
+            task.node.target_raid_config = {
+                "logical_disks": [
+                    {
+                        "size_gb": 100,
+                        "raid_level": "1",
+                        "controller": "software",
+                    },
+                    {
+                        "size_gb": 'MAX',
+                        "raid_level": "0",
+                        "controller": "software",
+                    }
+                ]
+            }
+            self.deploy.configure_local_boot(task)
+            self.assertFalse(GlanceImageService_mock.called)
+            install_bootloader_mock.assert_called_once_with(
+                mock.ANY, task.node,
+                root_uuid='rootfs',
+                efi_system_part_uuid=None,
+                prep_boot_part_uuid=None,
+                target_boot_mode='bios',
+                software_raid=True)
             try_set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.DISK, persistent=True)
 

@@ -1333,26 +1333,29 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
         # image's metadata (via Glance). Fall back to the driver internal
         # info in case it is not available (e.g. not set or there's no Glance).
         if software_raid:
-            image_source = node.instance_info.get('image_source')
-            try:
-                context = task.context
-                context.is_admin = True
-                glance = image_service.GlanceImageService(
-                    context=context)
-                image_info = glance.show(image_source)
-                image_properties = image_info.get('properties')
-                root_uuid = image_properties['rootfs_uuid']
-                LOG.debug('Got rootfs_uuid from Glance: %s '
-                          '(node %s)', root_uuid, node.uuid)
-            except Exception as e:
-                LOG.warning('Could not get \'rootfs_uuid\' property for '
-                            'image %(image)s from Glance for node %(node)s. '
-                            '%(cls)s: %(error)s.',
-                            {'image': image_source, 'node': node.uuid,
-                             'cls': e.__class__.__name__, 'error': e})
-                root_uuid = internal_info.get('root_uuid_or_disk_id')
-                LOG.debug('Got rootfs_uuid from driver internal info: '
-                          '%s (node %s)', root_uuid, node.uuid)
+            root_uuid = node.instance_info.get('image_rootfs_uuid')
+            if not root_uuid:
+                image_source = node.instance_info.get('image_source')
+                try:
+                    context = task.context
+                    context.is_admin = True
+                    glance = image_service.GlanceImageService(
+                        context=context)
+                    image_info = glance.show(image_source)
+                    image_properties = image_info.get('properties')
+                    root_uuid = image_properties['rootfs_uuid']
+                    LOG.debug('Got rootfs_uuid from Glance: %s '
+                              '(node %s)', root_uuid, node.uuid)
+                except Exception as e:
+                    LOG.warning(
+                        'Could not get \'rootfs_uuid\' property for '
+                        'image %(image)s from Glance for node %(node)s. '
+                        '%(cls)s: %(error)s.',
+                        {'image': image_source, 'node': node.uuid,
+                         'cls': e.__class__.__name__, 'error': e})
+                    root_uuid = internal_info.get('root_uuid_or_disk_id')
+                    LOG.debug('Got rootfs_uuid from driver internal info: '
+                              '%s (node %s)', root_uuid, node.uuid)
 
         # For whole disk images it is not necessary that the root_uuid
         # be provided since the bootloaders on the disk will be used
