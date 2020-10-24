@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    The ramdisk log filename will contain the node name when it exists.

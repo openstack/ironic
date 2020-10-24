@@ -272,6 +272,9 @@ def get_ramdisk_logs_file_name(node, label=None):
     """
     timestamp = timeutils.utcnow().strftime('%Y-%m-%d-%H-%M-%S')
     file_name_fields = [node.uuid]
+    if node.name:
+        file_name_fields.append(node.name)
+
     if node.instance_uuid:
         file_name_fields.append(node.instance_uuid)
 
