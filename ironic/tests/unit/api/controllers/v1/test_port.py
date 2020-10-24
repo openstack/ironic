@@ -1779,6 +1779,19 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertIn('maximum character', response.json['error_message'])
 
+    def test_invalid_physnet_empty_string(self, mock_upd):
+        physnet = ''
+        headers = {api_base.Version.string: versions.max_version_string()}
+        response = self.patch_json('/ports/%s' % self.port.uuid,
+                                   [{'path': '/physical_network',
+                                     'value': physnet,
+                                     'op': 'replace'}],
+                                   expect_errors=True,
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertIn('non-empty value', response.json['error_message'])
+
     def test_portgroups_subresource_patch(self, mock_upd):
         portgroup = obj_utils.create_test_portgroup(self.context,
                                                     node_id=self.node.id)
@@ -2598,6 +2611,16 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertIn('maximum character', response.json['error_message'])
+        self.assertFalse(mock_create.called)
+
+    def test_create_port_invalid_physnet_empty_string(self, mock_create):
+        physnet = ''
+        pdict = post_get_test_port(physical_network=physnet)
+        response = self.post_json('/ports', pdict, expect_errors=True,
+                                  headers=self.headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertIn('non-empty value', response.json['error_message'])
         self.assertFalse(mock_create.called)
 
     def test_create_port_with_is_smartnic(self, mock_create):

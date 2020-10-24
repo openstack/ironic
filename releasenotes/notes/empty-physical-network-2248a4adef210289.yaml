@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    fixes an issue that physical_network could be set to an empty string,
+    which makes the port unusable.

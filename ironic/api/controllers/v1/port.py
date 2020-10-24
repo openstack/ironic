@@ -627,6 +627,11 @@ class PortsController(rest.RestController):
                 "Smart NIC port must have port_id "
                 "and hostname in local_link_connection")
 
+        physical_network = pdict.get('physical_network')
+        if physical_network is not None and not physical_network:
+            raise exception.Invalid('A non-empty value is required when '
+                                    'setting physical_network')
+
         create_remotely = api.request.rpcapi.can_send_create_port()
         if (not create_remotely and pdict.get('portgroup_uuid')):
             # NOTE(mgoddard): In RPC API v1.41, port creation was moved to the
@@ -748,6 +753,12 @@ class PortsController(rest.RestController):
                                                 'state': ir_states.INSPECTING}
             raise exception.ClientSideError(msg,
                                             status_code=http_client.CONFLICT)
+
+        if (api_utils.is_path_updated(patch, '/physical_network')
+            and rpc_port['physical_network'] is not None
+                and not rpc_port['physical_network']):
+            raise exception.Invalid('A non-empty value is required when '
+                                    'setting physical_network')
 
         notify_extra = {'node_uuid': rpc_node.uuid,
                         'portgroup_uuid': port.portgroup_uuid}
