@@ -632,17 +632,6 @@ class PortsController(rest.RestController):
             raise exception.Invalid('A non-empty value is required when '
                                     'setting physical_network')
 
-        create_remotely = api.request.rpcapi.can_send_create_port()
-        if (not create_remotely and pdict.get('portgroup_uuid')):
-            # NOTE(mgoddard): In RPC API v1.41, port creation was moved to the
-            # conductor service to facilitate validation of the physical
-            # network field of ports in portgroups. During a rolling upgrade,
-            # the RPCAPI will reject the create_port method, so we need to
-            # create the port locally. If the port is a member of a portgroup,
-            # we are unable to perform the validation and must reject the
-            # request.
-            raise exception.NotAcceptable()
-
         vif = api_utils.handle_post_port_like_extra_vif(pdict)
 
         if (pdict.get('portgroup_uuid')
@@ -670,18 +659,9 @@ class PortsController(rest.RestController):
                                        **notify_extra)
         with notify.handle_error_notification(context, rpc_port, 'create',
                                               **notify_extra):
-            # NOTE(mgoddard): In RPC API v1.41, port creation was moved to the
-            # conductor service to facilitate validation of the physical
-            # network field of ports in portgroups. During a rolling upgrade,
-            # the RPCAPI will reject the create_port method, so we need to
-            # create the port locally.
-            if create_remotely:
-                topic = api.request.rpcapi.get_topic_for(rpc_node)
-                new_port = api.request.rpcapi.create_port(context, rpc_port,
-                                                          topic)
-            else:
-                rpc_port.create()
-                new_port = rpc_port
+            topic = api.request.rpcapi.get_topic_for(rpc_node)
+            new_port = api.request.rpcapi.create_port(context, rpc_port,
+                                                      topic)
         notify.emit_end_notification(context, new_port, 'create',
                                      **notify_extra)
         # Set the HTTP Location Header
