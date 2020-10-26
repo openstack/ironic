@@ -1104,25 +1104,6 @@ function install_ironic {
         install_apache_wsgi
     fi
 
-    if [[ "$IRONIC_BOOT_MODE" == "uefi" && "$IRONIC_IS_HARDWARE" == "False" ]]; then
-
-        # Append the nvram configuration to libvirt if it's not present already
-        if ! sudo grep -q "^nvram" /etc/libvirt/qemu.conf; then
-            echo "nvram=[\"$UEFI_LOADER_PATH:$UEFI_NVRAM_PATH\"]" | sudo tee -a /etc/libvirt/qemu.conf
-        fi
-
-        # Replace the default virtio PXE ROM in QEMU with an EFI capable
-        # one. The EFI ROM should work on with both boot modes, Legacy
-        # BIOS and UEFI.
-        if is_fedora; then
-            sudo rm /usr/share/qemu/pxe-virtio.rom
-            sudo ln -s /usr/share/ipxe.efi/1af41000.rom /usr/share/qemu/pxe-virtio.rom
-        fi
-
-        # Restart libvirt to the changes to take effect
-        restart_libvirt
-    fi
-
     if is_redfish_enabled || is_deployed_by_redfish; then
         setup_sushy
     fi
