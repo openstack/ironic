@@ -10,8 +10,10 @@
     check:
       jobs:
         - ironic-tox-unit-with-driver-libs
-        - ironic-standalone
-        - ironic-standalone-redfish
+        - ironic-standalone:
+            voting: false
+        - ironic-standalone-redfish:
+            voting: false
         - ironic-tempest-functional-python3
         - ironic-grenade
         - ironic-grenade-multinode-multitenant:
@@ -47,8 +49,6 @@
       queue: ironic
       jobs:
         - ironic-tox-unit-with-driver-libs
-        - ironic-standalone
-        - ironic-standalone-redfish
         - ironic-tempest-functional-python3
         - ironic-grenade
         # removing from voting due to end of cycle gate instability.
