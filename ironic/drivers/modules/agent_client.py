@@ -153,6 +153,8 @@ class AgentClient(object):
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
         :returns: A dict containing command result from agent, see
                   get_commands_status for a sample.
         """
@@ -223,6 +225,17 @@ class AgentClient(object):
                           'Expected 2xx HTTP status code, got %(code)d.',
                           {'method': method, 'node': node.uuid,
                            'code': response.status_code})
+            if (response.status_code == http_client.CONFLICT
+                or 'agent is busy' in faultstring.lower()):
+                # HTTP 409 check as an explicit check of if the agent
+                # is already busy.
+                # NOTE(TheJulia): The agent sends upper case A as of
+                # late victoria, but lower case the entire message
+                # for compatability with pre-late victoria agents
+                # which returns HTTP 409.
+                raise exception.AgentInProgress(node=node.uuid,
+                                                command=method,
+                                                error=faultstring)
             raise exception.AgentAPIError(node=node.uuid,
                                           status=response.status_code,
                                           error=faultstring)
@@ -337,6 +350,8 @@ class AgentClient(object):
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
         :returns: A dict containing command status from agent.
                   See :func:`get_commands_status` for a command result sample.
         """
@@ -370,6 +385,8 @@ class AgentClient(object):
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
         :returns: A dict containing command response from agent.
                   See :func:`get_commands_status` for a command result sample.
         """
@@ -400,6 +417,8 @@ class AgentClient(object):
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
         :returns: A dict containing command response from agent.
                   See :func:`get_commands_status` for a command result sample.
         """
@@ -456,6 +475,8 @@ class AgentClient(object):
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
         :returns: A dict containing command response from agent.
             See :func:`get_commands_status` for a command result sample.
             The value of key command_result is in the form of:
@@ -487,6 +508,8 @@ class AgentClient(object):
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
         :returns: A dict containing command response from agent.
             See :func:`get_commands_status` for a command result sample.
             The value of key command_result is in the form of:
@@ -550,6 +573,8 @@ class AgentClient(object):
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
         :returns: A dict containing command response from agent.
             See :func:`get_commands_status` for a command result sample.
             The value of key command_result is in the form of:
@@ -581,6 +606,8 @@ class AgentClient(object):
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
         :returns: A dict containing command response from agent.
 
         """
@@ -597,6 +624,8 @@ class AgentClient(object):
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
         :returns: A dict containing command response from agent.
                   See :func:`get_commands_status` for a command result sample.
         """
@@ -612,6 +641,8 @@ class AgentClient(object):
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
         :returns: A dict containing command response from agent.
                   See :func:`get_commands_status` for a command result sample.
         """
@@ -627,6 +658,8 @@ class AgentClient(object):
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
         :returns: A dict containing command response from agent.
                   See :func:`get_commands_status` for a command result sample.
         """
@@ -643,6 +676,8 @@ class AgentClient(object):
         :raises: IronicException when failed to issue the request or there was
                  a malformed response from the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
         :returns: A dict containing command response from agent.
                   See :func:`get_commands_status` for a command result sample.
         """
@@ -660,6 +695,8 @@ class AgentClient(object):
                  to issue the request, or there was a malformed response from
                  the agent.
         :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
         :raises: InstanceRescueFailure when the agent ramdisk is too old
                  to support transmission of the rescue password.
         :returns: A dict containing command response from agent.

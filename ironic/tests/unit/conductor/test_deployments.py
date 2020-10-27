@@ -767,7 +767,42 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         self._stop_service()
         node.refresh()
 
-        # Make sure we go to CLEANWAIT
+        # Make sure we go to DEPLOYWAIT
+        self.assertEqual(states.DEPLOYWAIT, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertEqual(self.deploy_steps[0], node.deploy_step)
+        self.assertEqual(0, node.driver_internal_info['deploy_step_index'])
+        self.assertFalse(node.driver_internal_info['skip_current_deploy_step'])
+        mock_execute.assert_called_once_with(
+            mock.ANY, mock.ANY, self.deploy_steps[0])
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
+                autospec=True)
+    def test_do_next_deploy_step_agent_busy(self, mock_execute):
+        # When a deploy step fails, go to DEPLOYWAIT
+        tgt_prov_state = states.ACTIVE
+
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYING,
+            target_provision_state=tgt_prov_state,
+            last_error=None,
+            driver_internal_info={'deploy_steps': self.deploy_steps,
+                                  'deploy_step_index': None,
+                                  'deployment_reboot': True},
+            clean_step={})
+        mock_execute.side_effect = exception.AgentInProgress(
+            reason='meow')
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            deployments.do_next_deploy_step(task, 0)
+
+        self._stop_service()
+        node.refresh()
+
+        # Make sure we go to DEPLOYWAIT
         self.assertEqual(states.DEPLOYWAIT, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
         self.assertEqual(self.deploy_steps[0], node.deploy_step)

@@ -902,11 +902,11 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
         call = getattr(self._client, 'get_%s_steps' % step_type)
         try:
             agent_result = call(node, task.ports).get('command_result', {})
-        except exception.AgentAPIError as exc:
-            if 'agent is busy' in str(exc):
-                LOG.debug('Agent is busy with a command, will refresh steps '
-                          'on the next heartbeat')
-                return
+        except exception.AgentInProgress as exc:
+            LOG.debug('Agent for node %(node)s is busy with a command, '
+                      'will refresh steps on the next heartbeat.',
+                      {'node': task.node.uuid})
+            return
 
             # TODO(dtantsur): change to just 'raise'
             if step_type == 'clean':

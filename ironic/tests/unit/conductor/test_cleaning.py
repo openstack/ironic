@@ -783,6 +783,37 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
                 autospec=True)
+    def test_do_next_clean_step_agent_busy(self, mock_execute):
+        # When a clean step fails, go to CLEANWAIT
+        tgt_prov_state = states.MANAGEABLE
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=tgt_prov_state,
+            last_error=None,
+            driver_internal_info={'clean_steps': self.clean_steps,
+                                  'clean_step_index': None,
+                                  'cleaning_reboot': True},
+            clean_step={})
+        mock_execute.side_effect = exception.AgentInProgress(
+            reason='still meowing')
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            cleaning.do_next_clean_step(task, 0)
+
+        node.refresh()
+        # Make sure we go to CLEANWAIT
+        self.assertEqual(states.CLEANWAIT, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertEqual(self.clean_steps[0], node.clean_step)
+        self.assertEqual(0, node.driver_internal_info['clean_step_index'])
+        self.assertFalse(node.driver_internal_info['skip_current_clean_step'])
+        mock_execute.assert_called_once_with(
+            mock.ANY, mock.ANY, self.clean_steps[0])
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
+                autospec=True)
     def test_do_next_clean_step_oob_reboot_last_step(self, mock_execute):
         # Resume where last_step is the last cleaning step
         tgt_prov_state = states.MANAGEABLE
