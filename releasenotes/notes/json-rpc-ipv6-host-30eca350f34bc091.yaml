@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    When configured to use json-rpc, the ``[DEFAULT].host`` configuration
+    option to ironic-conductor can now be set to an IPv6 address. Previously
+    it could only be an IPv4 address or a DNS name.
