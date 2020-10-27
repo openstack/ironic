@@ -237,6 +237,51 @@ class TestAgentClient(base.TestCase):
             timeout=60,
             verify=True)
 
+    def test__command_error_code_agent_busy(self):
+        # Victoria and previous busy status check.
+        response_text = {"faultstring": "Agent is busy - meowing"}
+        self.client.session.post.return_value = MockResponse(
+            response_text, status_code=http_client.BAD_REQUEST)
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+
+        url = self.client._get_command_url(self.node)
+        body = self.client._get_command_body(method, params)
+
+        self.assertRaises(exception.AgentInProgress,
+                          self.client._command,
+                          self.node, method, params)
+        self.client.session.post.assert_called_once_with(
+            url,
+            data=body,
+            params={'wait': 'false'},
+            timeout=60,
+            verify=True)
+
+    def test__command_error_code_agent_busy_conflict(self):
+        # Post Wallaby logic as the IPA return code changed to
+        # better delineate the state.
+        response_text = {"faultstring": "lolcat says busy meowing"}
+        self.client.session.post.return_value = MockResponse(
+            response_text, status_code=http_client.CONFLICT)
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+
+        url = self.client._get_command_url(self.node)
+        body = self.client._get_command_body(method, params)
+
+        self.assertRaises(exception.AgentInProgress,
+                          self.client._command,
+                          self.node, method, params)
+        self.client.session.post.assert_called_once_with(
+            url,
+            data=body,
+            params={'wait': 'false'},
+            timeout=60,
+            verify=True)
+
     @mock.patch('os.path.exists', autospec=True, return_value=True)
     def test__command_verify(self, mock_exists):
         response_data = {'status': 'ok'}

@@ -2223,8 +2223,8 @@ class TestRefreshCleanSteps(AgentDeployMixinBaseTest):
     @mock.patch.object(agent_client.AgentClient, 'get_deploy_steps',
                        autospec=True)
     def test_refresh_steps_busy(self, client_mock, log_mock):
-        client_mock.side_effect = exception.AgentAPIError(
-            node="node", status="500", error='agent is busy')
+        client_mock.side_effect = exception.AgentInProgress(
+            node="node", error='Agent is busy : maximum meowing')
 
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:

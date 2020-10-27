@@ -813,3 +813,8 @@ class UnknownAttribute(ClientSideError):
         else:
             self.fieldname = name
         super(UnknownAttribute, self).__init__(self.msg)
+
+
+class AgentInProgress(IronicException):
+    _msg_fmt = _('Node %(node)s command "%(command)s" failed. Agent is '
+                 'presently executing a command. Error %(error)s')

@@ -179,6 +179,17 @@ def do_next_clean_step(task, step_index):
                                     else None)
                     task.process_event('wait', target_state=target_state)
                     return
+            if isinstance(e, exception.AgentInProgress):
+                LOG.info('Conductor attempted to process clean step for '
+                         'node %(node)s. Agent indicated it is presently '
+                         'executing a command. Error: %(error)s',
+                         {'node': task.node.uuid,
+                          'error': e})
+                driver_internal_info['skip_current_clean_step'] = False
+                node.driver_internal_info = driver_internal_info
+                target_state = states.MANAGEABLE if manual_clean else None
+                task.process_event('wait', target_state=target_state)
+                return
 
             msg = (_('Node %(node)s failed step %(step)s: '
                      '%(exc)s') %
