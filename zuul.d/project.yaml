@@ -14,8 +14,6 @@
         - ironic-standalone-redfish
         - ironic-tempest-functional-python3
         - ironic-grenade
-        - ironic-grenade-multinode-multitenant:
-            voting: false
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
@@ -51,8 +49,6 @@
         - ironic-standalone-redfish
         - ironic-tempest-functional-python3
         - ironic-grenade
-        # removing from voting due to end of cycle gate instability.
-        # - ironic-grenade-multinode-multitenant
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
@@ -67,5 +63,9 @@
         - metalsmith-integration-glance-localboot-centos7
     experimental:
       jobs:
+        # TODO(dtantsur): these two jobs are useful but currently hopelessly
+        # broken. Fix them and bring back to the gate.
+        - ironic-grenade-multinode-multitenant:
+            voting: false
         - ironic-inspector-tempest-discovery-fast-track:
             voting: false
