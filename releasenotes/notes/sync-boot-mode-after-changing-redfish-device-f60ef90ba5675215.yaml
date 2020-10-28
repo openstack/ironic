@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    After changing the boot device via Redfish, check that the boot mode being
+    reported matches what is configured and, if not, set it to the configured
+    value.  Some BMCs change the boot mode when the device is
+    set via Redfish, see `story 2008252
+    <https://storyboard.openstack.org/#!/story/2008252>`__ for details.
