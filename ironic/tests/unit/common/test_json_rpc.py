@@ -348,6 +348,40 @@ class TestClient(test_base.TestCase):
                   'params': {'answer': 42, 'context': self.ctx_json},
                   'id': self.context.request_id})
 
+    def test_call_ipv4_success(self, mock_session):
+        response = mock_session.return_value.post.return_value
+        response.json.return_value = {
+            'jsonrpc': '2.0',
+            'result': 42
+        }
+        cctx = self.client.prepare('foo.192.0.2.1')
+        self.assertEqual('192.0.2.1', cctx.host)
+        result = cctx.call(self.context, 'do_something', answer=42)
+        self.assertEqual(42, result)
+        mock_session.return_value.post.assert_called_once_with(
+            'http://192.0.2.1:8089',
+            json={'jsonrpc': '2.0',
+                  'method': 'do_something',
+                  'params': {'answer': 42, 'context': self.ctx_json},
+                  'id': self.context.request_id})
+
+    def test_call_ipv6_success(self, mock_session):
+        response = mock_session.return_value.post.return_value
+        response.json.return_value = {
+            'jsonrpc': '2.0',
+            'result': 42
+        }
+        cctx = self.client.prepare('foo.2001:db8::1')
+        self.assertEqual('2001:db8::1', cctx.host)
+        result = cctx.call(self.context, 'do_something', answer=42)
+        self.assertEqual(42, result)
+        mock_session.return_value.post.assert_called_once_with(
+            'http://[2001:db8::1]:8089',
+            json={'jsonrpc': '2.0',
+                  'method': 'do_something',
+                  'params': {'answer': 42, 'context': self.ctx_json},
+                  'id': self.context.request_id})
+
     def test_call_success_with_version(self, mock_session):
         response = mock_session.return_value.post.return_value
         response.json.return_value = {
