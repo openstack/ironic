@@ -52,12 +52,10 @@
         # each of them. For don't need all 10 GiB for CirrOS anyway.
         IRONIC_VM_SPECS_DISK: 4
         IRONIC_VM_SPECS_CPU: 2
-
         Q_AGENT: openvswitch
         Q_ML2_TENANT_NETWORK_TYPE: vxlan
         Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch
         SERVICE_TIMEOUT: 90
-
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
       tempest_plugins:
@@ -66,6 +64,9 @@
         '{{ devstack_base_dir }}/ironic-bm-logs': 'logs'
         '{{ devstack_base_dir }}/data/networking-generic-switch/netmiko_session.log': 'logs'
       devstack_services:
+        # TODO: re-enable dstat once https://storyboard.openstack.org/#!/story/2008185
+        # is resolved
+        dstat: false
         q-agt: true
         q-dhcp: true
         q-l3: true
@@ -75,13 +76,11 @@
         ovn-controller: false
         ovn-northd: false
         q-ovn-metadata-agent: false
-
         c-api: False
         c-bak: False
         c-sch: False
         c-vol: False
         cinder: False
-
         s-account: False
         s-container: False
         s-object: False
@@ -221,12 +220,6 @@
     name: ironic-tempest-partition-uefi-redfish-vmedia
     description: "Deploy ironic node over Redfish virtual media using UEFI boot mode"
     parent: ironic-tempest-partition-bios-redfish-pxe
-    # TODO: Remove the below nodeset setting to Bionic once
-    # https://storyboard.openstack.org/#!/story/2008185 is fixed
-    # Once nodeset is removed form here then devstack base jobs
-    # will automatically run this job on Ubuntu Focal nodeset from
-    # Victoria gate onwards.
-    nodeset: openstack-single-node-bionic
     vars:
       devstack_localrc:
         IRONIC_BOOT_MODE: uefi
@@ -328,12 +321,6 @@
     name: ironic-tempest-ipa-partition-pxe_ipmitool
     description: ironic-tempest-ipa-partition-pxe_ipmitool that also tests cleaning.
     parent: ironic-base
-    # TODO: Remove the below nodeset setting to Bionic once
-    # https://storyboard.openstack.org/#!/story/2008185 is fixed
-    # Once nodeset is removed form here then devstack base jobs
-    # will automatically run this job on Ubuntu Focal nodeset from
-    # Victoria gate onwards.
-    nodeset: openstack-single-node-bionic
     vars:
       devstack_localrc:
         IRONIC_DEFAULT_BOOT_OPTION: netboot
@@ -734,12 +721,6 @@
     name: ironic-tempest-bios-ipmi-direct-tinyipa
     description: ironic-tempest-wholedisk-bios-ipmi-direct-tinyipa that also tests cleaning.
     parent: ironic-base
-    # TODO: Remove the below nodeset setting to Bionic once
-    # https://storyboard.openstack.org/#!/story/2008185 is fixed
-    # Once nodeset is removed form here then devstack base jobs
-    # will automatically run this job on Ubuntu Focal nodeset from
-    # Victoria gate onwards.
-    nodeset: openstack-single-node-bionic
     vars:
       devstack_localrc:
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
