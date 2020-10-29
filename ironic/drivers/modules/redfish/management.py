@@ -742,6 +742,8 @@ class RedfishManagement(base.ManagementInterface):
             skip_current_step=True,
             polling=True)
 
+        deploy_opts = deploy_utils.build_agent_options(task.node)
+        task.driver.boot.prepare_ramdisk(task, deploy_opts)
         manager_utils.node_power_action(task, states.REBOOT)
 
         return deploy_utils.get_async_step_return_state(task.node)
@@ -999,7 +1001,7 @@ class RedfishManagement(base.ManagementInterface):
             # Only parse the messages if the BMC did not return parsed
             # messages
             messages = []
-            if not sushy_task.messages[0].message:
+            if sushy_task.messages and not sushy_task.messages[0].message:
                 sushy_task.parse_messages()
 
             messages = [m.message for m in sushy_task.messages]
