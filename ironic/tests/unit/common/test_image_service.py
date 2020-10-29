@@ -43,7 +43,8 @@ class HttpImageServiceTestCase(base.TestCase):
         response.status_code = http_client.OK
         self.service.validate_href(self.href)
         path_mock.assert_not_called()
-        head_mock.assert_called_once_with(self.href, verify=True)
+        head_mock.assert_called_once_with(self.href, verify=True,
+                                          timeout=60)
         response.status_code = http_client.NO_CONTENT
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href,
@@ -60,7 +61,8 @@ class HttpImageServiceTestCase(base.TestCase):
         response = head_mock.return_value
         response.status_code = http_client.OK
         self.service.validate_href(self.href)
-        head_mock.assert_called_once_with(self.href, verify=False)
+        head_mock.assert_called_once_with(self.href, verify=False,
+                                          timeout=60)
         response.status_code = http_client.NO_CONTENT
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href,
@@ -76,7 +78,8 @@ class HttpImageServiceTestCase(base.TestCase):
         head_mock.side_effect = requests.ConnectionError()
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href, self.href)
-        head_mock.assert_called_once_with(self.href, verify=False)
+        head_mock.assert_called_once_with(self.href, verify=False,
+                                          timeout=60)
         head_mock.side_effect = requests.RequestException()
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href, self.href)
@@ -88,7 +91,8 @@ class HttpImageServiceTestCase(base.TestCase):
         response = head_mock.return_value
         response.status_code = http_client.OK
         self.service.validate_href(self.href)
-        head_mock.assert_called_once_with(self.href, verify=True)
+        head_mock.assert_called_once_with(self.href, verify=True,
+                                          timeout=60)
         response.status_code = http_client.NO_CONTENT
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href,
@@ -105,7 +109,8 @@ class HttpImageServiceTestCase(base.TestCase):
         head_mock.side_effect = requests.ConnectionError()
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href, self.href)
-        head_mock.assert_called_once_with(self.href, verify=True)
+        head_mock.assert_called_once_with(self.href, verify=True,
+                                          timeout=60)
         head_mock.side_effect = requests.RequestException()
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href, self.href)
@@ -118,7 +123,26 @@ class HttpImageServiceTestCase(base.TestCase):
         response.status_code = http_client.OK
 
         self.service.validate_href(self.href)
-        head_mock.assert_called_once_with(self.href, verify='/some/path')
+        head_mock.assert_called_once_with(self.href, verify='/some/path',
+                                          timeout=60)
+        response.status_code = http_client.NO_CONTENT
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          self.service.validate_href,
+                          self.href)
+        response.status_code = http_client.BAD_REQUEST
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          self.service.validate_href,
+                          self.href)
+
+    @mock.patch.object(requests, 'head', autospec=True)
+    def test_validate_href_custom_timeout(self, head_mock):
+        cfg.CONF.set_override('webserver_connection_timeout', 15)
+
+        response = head_mock.return_value
+        response.status_code = http_client.OK
+        self.service.validate_href(self.href)
+        head_mock.assert_called_once_with(self.href, verify=True,
+                                          timeout=15)
         response.status_code = http_client.NO_CONTENT
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href,
@@ -137,7 +161,8 @@ class HttpImageServiceTestCase(base.TestCase):
 
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href, self.href)
-        head_mock.assert_called_once_with(self.href, verify='/some/path')
+        head_mock.assert_called_once_with(self.href, verify='/some/path',
+                                          timeout=60)
 
     @mock.patch.object(requests, 'head', autospec=True)
     def test_validate_href_verify_error(self, head_mock):
@@ -145,7 +170,8 @@ class HttpImageServiceTestCase(base.TestCase):
         head_mock.side_effect = requests.RequestException()
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href, self.href)
-        head_mock.assert_called_once_with(self.href, verify='/some/path')
+        head_mock.assert_called_once_with(self.href, verify='/some/path',
+                                          timeout=60)
 
     @mock.patch.object(requests, 'head', autospec=True)
     def test_validate_href_verify_os_error(self, head_mock):
@@ -153,7 +179,8 @@ class HttpImageServiceTestCase(base.TestCase):
         head_mock.side_effect = OSError()
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.validate_href, self.href)
-        head_mock.assert_called_once_with(self.href, verify='/some/path')
+        head_mock.assert_called_once_with(self.href, verify='/some/path',
+                                          timeout=60)
 
     @mock.patch.object(requests, 'head', autospec=True)
     def test_validate_href_error_with_secret_parameter(self, head_mock):
@@ -165,7 +192,8 @@ class HttpImageServiceTestCase(base.TestCase):
                               True)
         self.assertIn('secreturl', str(e))
         self.assertNotIn(self.href, str(e))
-        head_mock.assert_called_once_with(self.href, verify=False)
+        head_mock.assert_called_once_with(self.href, verify=False,
+                                          timeout=60)
 
     @mock.patch.object(requests, 'head', autospec=True)
     def _test_show(self, head_mock, mtime, mtime_date):
@@ -175,7 +203,8 @@ class HttpImageServiceTestCase(base.TestCase):
             'Last-Modified': mtime
         }
         result = self.service.show(self.href)
-        head_mock.assert_called_once_with(self.href, verify=True)
+        head_mock.assert_called_once_with(self.href, verify=True,
+                                          timeout=60)
         self.assertEqual({'size': 100, 'updated_at': mtime_date,
                           'properties': {}}, result)
 
@@ -197,7 +226,8 @@ class HttpImageServiceTestCase(base.TestCase):
         head_mock.return_value.headers = {}
         self.assertRaises(exception.ImageRefValidationFailed,
                           self.service.show, self.href)
-        head_mock.assert_called_with(self.href, verify=True)
+        head_mock.assert_called_with(self.href, verify=True,
+                                     timeout=60)
 
     @mock.patch.object(shutil, 'copyfileobj', autospec=True)
     @mock.patch.object(requests, 'get', autospec=True)
@@ -213,7 +243,8 @@ class HttpImageServiceTestCase(base.TestCase):
             image_service.IMAGE_CHUNK_SIZE
         )
         req_get_mock.assert_called_once_with(self.href, stream=True,
-                                             verify=True)
+                                             verify=True,
+                                             timeout=60)
 
     @mock.patch.object(shutil, 'copyfileobj', autospec=True)
     @mock.patch.object(requests, 'get', autospec=True)
@@ -230,7 +261,8 @@ class HttpImageServiceTestCase(base.TestCase):
             image_service.IMAGE_CHUNK_SIZE
         )
         req_get_mock.assert_called_once_with(self.href, stream=True,
-                                             verify=False)
+                                             verify=False,
+                                             timeout=60)
 
     @mock.patch.object(shutil, 'copyfileobj', autospec=True)
     @mock.patch.object(requests, 'get', autospec=True)
@@ -247,7 +279,8 @@ class HttpImageServiceTestCase(base.TestCase):
             image_service.IMAGE_CHUNK_SIZE
         )
         req_get_mock.assert_called_once_with(self.href, stream=True,
-                                             verify=True)
+                                             verify=True,
+                                             timeout=60)
 
     @mock.patch.object(shutil, 'copyfileobj', autospec=True)
     @mock.patch.object(requests, 'get', autospec=True)
@@ -264,7 +297,8 @@ class HttpImageServiceTestCase(base.TestCase):
             image_service.IMAGE_CHUNK_SIZE
         )
         req_get_mock.assert_called_once_with(self.href, stream=True,
-                                             verify='/some/path')
+                                             verify='/some/path',
+                                             timeout=60)
 
     @mock.patch.object(shutil, 'copyfileobj', autospec=True)
     @mock.patch.object(requests, 'get', autospec=True)
@@ -289,7 +323,8 @@ class HttpImageServiceTestCase(base.TestCase):
         self.assertRaises(exception.ImageDownloadFailed,
                           self.service.download, self.href, file_mock)
         req_get_mock.assert_called_once_with(self.href, stream=True,
-                                             verify=False)
+                                             verify=False,
+                                             timeout=60)
 
     @mock.patch.object(shutil, 'copyfileobj', autospec=True)
     @mock.patch.object(requests, 'get', autospec=True)
@@ -305,7 +340,8 @@ class HttpImageServiceTestCase(base.TestCase):
         self.assertRaises(exception.ImageDownloadFailed,
                           self.service.download, self.href, file_mock)
         req_get_mock.assert_called_once_with(self.href, stream=True,
-                                             verify='/some/path')
+                                             verify='/some/path',
+                                             timeout=60)
 
     @mock.patch.object(shutil, 'copyfileobj', autospec=True)
     @mock.patch.object(requests, 'get', autospec=True)
@@ -320,7 +356,8 @@ class HttpImageServiceTestCase(base.TestCase):
         self.assertRaises(exception.ImageDownloadFailed,
                           self.service.download, self.href, file_mock)
         req_get_mock.assert_called_once_with(self.href, stream=True,
-                                             verify='/some/path')
+                                             verify='/some/path',
+                                             timeout=60)
 
     @mock.patch.object(shutil, 'copyfileobj', autospec=True)
     @mock.patch.object(requests, 'get', autospec=True)
@@ -335,7 +372,26 @@ class HttpImageServiceTestCase(base.TestCase):
         self.assertRaises(exception.ImageDownloadFailed,
                           self.service.download, self.href, file_mock)
         req_get_mock.assert_called_once_with(self.href, stream=True,
-                                             verify='/some/path')
+                                             verify='/some/path',
+                                             timeout=60)
+
+    @mock.patch.object(shutil, 'copyfileobj', autospec=True)
+    @mock.patch.object(requests, 'get', autospec=True)
+    def test_download_success_custom_timeout(
+            self, req_get_mock, shutil_mock):
+        cfg.CONF.set_override('webserver_connection_timeout', 15)
+        response_mock = req_get_mock.return_value
+        response_mock.status_code = http_client.OK
+        response_mock.raw = mock.MagicMock(spec=io.BytesIO)
+        file_mock = mock.Mock(spec=io.BytesIO)
+        self.service.download(self.href, file_mock)
+        shutil_mock.assert_called_once_with(
+            response_mock.raw.__enter__(), file_mock,
+            image_service.IMAGE_CHUNK_SIZE
+        )
+        req_get_mock.assert_called_once_with(self.href, stream=True,
+                                             verify=True,
+                                             timeout=15)
 
 
 class FileImageServiceTestCase(base.TestCase):

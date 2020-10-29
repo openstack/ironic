@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Adds timeout to HTTP image validation and downloading operations, so that
+    the ``direct`` deploy does not hang when the remote server is not
+    responsive. The default timeout is 60 seconds and can be changed via the
+    new ``webserver_connection_timeout`` option.
