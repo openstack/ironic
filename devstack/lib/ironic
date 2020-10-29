@@ -2795,6 +2795,8 @@ function upload_baremetal_ironic_efiboot {
     echo_summary "Building and uploading EFI boot image for ironic"
 
     if [ ! -e "$IRONIC_EFIBOOT" ]; then
+        # NOTE(dtantsur): update doc/source/admin/drivers/redfish.rst when
+        # changing this procedure.
 
         local efiboot_path
         efiboot_path=$(mktemp -d --tmpdir=${DEST})/$efiboot_name
@@ -2812,16 +2814,8 @@ function upload_baremetal_ironic_efiboot {
 
         sudo mkdir -p $efiboot_mount/efi/boot
 
-        sudo grub-mkimage \
-            -C xz \
-            -O x86_64-efi \
-            -p /boot/grub \
-            -o $efiboot_mount/efi/boot/bootx64.efi \
-            boot linux linuxefi search normal configfile \
-            part_gpt btrfs ext2 fat iso9660 loopback \
-            test keystatus gfxmenu regexp probe \
-            efi_gop efi_uga all_video gfxterm font \
-            echo read ls cat png jpeg halt reboot
+        sudo cp "$IRONIC_GRUB2_SHIM_FILE" $efiboot_mount/efi/boot/bootx64.efi
+        sudo cp "$IRONIC_GRUB2_FILE" $efiboot_mount/efi/boot/grubx64.efi
 
         sudo umount $efiboot_mount
 
@@ -2839,6 +2833,21 @@ function upload_baremetal_ironic_efiboot {
     die_if_not_set $LINENO IRONIC_EFIBOOT_ID "Failed to load EFI bootloader image into glance"
 
     iniset $IRONIC_CONF_FILE conductor bootloader $IRONIC_EFIBOOT_ID
+
+    local efi_grub_path
+    if is_ubuntu; then
+        efi_grub_path=EFI/ubuntu/grub.cfg
+    elif is_fedora; then
+        if grep -qi CentOS /etc/redhat-release; then
+            efi_grub_path=EFI/centos/grub.cfg
+        else
+            efi_grub_path=EFI/fedora/grub.cfg
+        fi
+    else
+        # NOTE(dtantsur): this is likely incorrect
+        efi_grub_path=EFI/BOOT/grub.cfg
+    fi
+    iniset $IRONIC_CONF_FILE DEFAULT grub_config_path $efi_grub_path
 }
 
 # build deploy kernel+ramdisk, then upload them to glance

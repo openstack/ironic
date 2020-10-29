@@ -116,6 +116,7 @@ set up on the Bare Metal service nodes which run the ``ironic-conductor``.
     echo 're ^(^/) /tftpboot/\1' >> /tftpboot/map-file
     echo 're ^([^/]) /tftpboot/\1' >> /tftpboot/map-file
 
+.. _uefi-pxe-grub:
 
 UEFI PXE - Grub setup
 ---------------------
