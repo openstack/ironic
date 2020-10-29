@@ -27,6 +27,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.tests.unit.db import base as db_base
@@ -740,6 +741,10 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             response = task.driver.management.detect_vendor(task)
             self.assertEqual("Fake GmbH", response)
 
+    @mock.patch.object(deploy_utils, 'build_agent_options',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
+                       spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'get_async_step_return_state',
                        autospec=True)
@@ -748,7 +753,9 @@ class RedfishManagementTestCase(db_base.DbTestCase):
     def test_update_firmware(self, mock_get_update_service,
                              mock_set_async_step_flags,
                              mock_get_async_step_return_state,
-                             mock_node_power_action):
+                             mock_node_power_action, mock_prepare,
+                             build_mock):
+        build_mock.return_value = {'a': 'b'}
         mock_task_monitor = mock.Mock()
         mock_task_monitor.task_monitor = '/task/123'
         mock_update_service = mock.Mock()
@@ -1142,6 +1149,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         mock_message = mock.Mock()
         mock_message.message = 'Firmware upgrade failed'
         messages = mock.PropertyMock(side_effect=[[mock_message_unparsed],
+                                                  [mock_message],
                                                   [mock_message]])
         type(mock_sushy_task).messages = messages
         mock_task_monitor = mock.Mock()
