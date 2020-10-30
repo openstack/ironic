@@ -257,6 +257,16 @@ def do_next_deploy_step(task, step_index):
                     node.driver_internal_info = driver_internal_info
                     task.process_event('wait')
                     return
+            if isinstance(e, exception.AgentInProgress):
+                LOG.info('Conductor attempted to process deploy step for '
+                         'node %(node)s. Agent indicated it is presently '
+                         'executing a command. Error: %(error)s',
+                         {'node': task.node.uuid,
+                          'error': e})
+                driver_internal_info['skip_current_deploy_step'] = False
+                node.driver_internal_info = driver_internal_info
+                task.process_event('wait')
+                return
             log_msg = ('Node %(node)s failed deploy step %(step)s. Error: '
                        '%(err)s' %
                        {'node': node.uuid, 'step': node.deploy_step, 'err': e})

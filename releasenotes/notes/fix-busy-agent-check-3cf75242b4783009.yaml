@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes recognition of a busy agent to also handle recognition
+    during deployment steps by more uniformly detecting and
+    identifying when the ``ironic-python-agent`` service is busy.
