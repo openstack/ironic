@@ -1,0 +1,9 @@
+---
+issues:
+  - |
+    When ``redfish-virtual-media`` is used, fast-track mode will not work as
+    expected, nodes will be rebooted between operations.
+fixes:
+  - |
+    Fixes timeout in fast-track mode with ``redfish-virtual-media`` when
+    running one operation after another (e.g. cleaning after inspection).
