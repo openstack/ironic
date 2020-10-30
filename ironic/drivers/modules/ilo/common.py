@@ -545,10 +545,11 @@ def set_boot_mode(node, boot_mode):
     except ilo_error.IloCommandNotSupportedError:
         p_boot_mode = DEFAULT_BOOT_MODE
 
-    if BOOT_MODE_ILO_TO_GENERIC[p_boot_mode.lower()] == boot_mode:
-        LOG.info("Node %(uuid)s pending boot mode is %(boot_mode)s.",
-                 {'uuid': node.uuid, 'boot_mode': boot_mode})
-        return
+    if p_boot_mode:
+        if BOOT_MODE_ILO_TO_GENERIC[p_boot_mode.lower()] == boot_mode:
+            LOG.info("Node %(uuid)s pending boot mode is %(boot_mode)s.",
+                     {'uuid': node.uuid, 'boot_mode': boot_mode})
+            return
 
     try:
         ilo_object.set_pending_boot_mode(
@@ -922,6 +923,147 @@ def get_server_post_state(node):
     except ilo_error.IloError as ilo_exception:
         raise exception.IloOperationError(operation=operation,
                                           error=ilo_exception)
+
+
+def _get_certificate_file_list(cert_file_list):
+    """Get the list of certificates to use.
+
+    :param cert_file_list: certificates file list.
+    :returns: cert_file_list if it's not empty. If empty or None,
+        returns the list of path configured for "webserver_verify_ca"
+        configuration option if the path exists. If the path does not
+        exist, returns empty list.
+    :raises: InvalidParameterValue if argument provided is other than
+        a list.
+    """
+
+    cfl = cert_file_list
+
+    if not cfl:
+        try:
+            verify = strutils.bool_from_string(CONF.webserver_verify_ca,
+                                               strict=True)
+        except ValueError:
+            verify = CONF.webserver_verify_ca
+
+        if isinstance(verify, bool):
+            return []
+
+        if not os.path.exists(verify):
+            LOG.error("Path to the certificate file %(path)s "
+                      "does not exist.", {'path': verify})
+            return []
+
+        cfl = [verify]
+
+    if not isinstance(cfl, list):
+        raise exception.InvalidParameterValue(_(
+            'List of files is expected whereas "%(atype)s" type '
+            'is provided.') % {'atype': type(cfl)})
+
+    return cfl
+
+
+def add_certificates(task, cert_file_list=None):
+    """Adds certificates to the node.
+
+    Adds certificates to the node based on the driver info
+    provided.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param cert_file_list: List of certificates to be added to the node.
+        If None, certificates from path configured in 'webserver_verify_ca'
+        will be added to the node.
+    :raises: IloOperationError on an error from IloClient library.
+    :raises: IloOperationNotSupported if retrieving post state is not
+        supported on the server.
+    :raises: InvalidParameterValue, if any of the required parameters are
+            invalid.
+    """
+
+    node = task.node
+    ilo_object = get_ilo_object(node)
+    d_info = node.driver_info
+
+    export_certs = d_info.get('ilo_add_certificates', True)
+
+    if export_certs is None:
+        export_certs = True
+    else:
+        try:
+            export_certs = strutils.bool_from_string(export_certs,
+                                                     strict=True)
+        except ValueError:
+            raise exception.InvalidParameterValue(
+                _('Invalid value type set in driver_info/'
+                  'ilo_add_certificates on node %(node)s. '
+                  'The value should be a Boolean '
+                  ' not "%(value)s"'
+                  ) % {'value': export_certs, 'node': node.uuid})
+
+    if not export_certs:
+        LOG.info("Adding of certificates to the node %(node)s is not "
+                 "requested. Assuming required certificates are available "
+                 "on the node.", {'node': node.uuid})
+        return
+
+    cfl = _get_certificate_file_list(cert_file_list)
+
+    if not cfl:
+        LOG.debug("Not adding any certificate to the node %(node)s "
+                  "as no certificates are provided", {'node': node.uuid})
+        return
+
+    try:
+        # NOTE(vmud213): Add the certificates to the node which are
+        # eventually being used for TLS verification by the node before
+        # downloading the deploy/instance images during HTTPS boot from
+        # URL.
+        operation = (_("Add certificates to %(node)s from paths "
+                       "%(cpath)s.") % {'cpath': cfl, 'node': node.uuid})
+
+        ilo_object.add_tls_certificate(cfl)
+
+        LOG.info("Successfully added certificates to the node %(node)s from "
+                 "paths %(cpath)s.", {'cpath': cfl, 'node': node.uuid})
+    except ilo_error.IloCommandNotSupportedInBiosError as ilo_exception:
+        raise exception.IloOperationNotSupported(operation=operation,
+                                                 error=ilo_exception)
+    except ilo_error.IloError as ilo_exception:
+        raise exception.IloOperationError(operation=operation,
+                                          error=ilo_exception)
+
+
+def clear_certificates(task, cert_file_list=None):
+    """Clears any certificates added to the node.
+
+    Clears the certificates added to the node as part of any Ironic
+    operation
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param cert_file_list: List of certificates to be removed from node.
+        If None, all the certificates present on the node will be removed.
+    :raises: IloOperationError on an error from IloClient library.
+    :raises: IloOperationNotSupported if retrieving post state is not
+        supported on the server.
+    """
+
+    node = task.node
+    operation = (_("Clearing certificates from node %(node)s.") %
+                 {'node': node.uuid})
+
+    try:
+        ilo_object = get_ilo_object(node)
+        ilo_object.remove_tls_certificate(cert_file_list)
+    except ilo_error.IloCommandNotSupportedInBiosError as ilo_exception:
+        raise exception.IloOperationNotSupported(operation=operation,
+                                                 error=ilo_exception)
+    except ilo_error.IloError as ilo_exception:
+        raise exception.IloOperationError(operation=operation,
+                                          error=ilo_exception)
+    LOG.info("Cleared TLS certificates from the node %(node)s "
+             "successfully from paths %(cpath)s.",
+             {'node': node.uuid, 'cpath': cert_file_list})
 
 
 def setup_uefi_https(task, iso, persistent=False):

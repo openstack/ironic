@@ -1221,6 +1221,201 @@ class IloCommonMethodsTestCase(BaseIloTest):
                               task.node)
         ilo_mock_object.get_host_post_state.assert_called_once_with()
 
+    @mock.patch.object(os.path, 'exists', spec_set=True,
+                       autospec=True)
+    def test__get_certificate_file_list_none(self, path_exists_mock):
+        cl = None
+        CONF.webserver_verify_ca = '/file/path'
+        path_exists_mock.return_value = True
+        expected = ['/file/path']
+        actual = ilo_common._get_certificate_file_list(cl)
+        self.assertEqual(expected, actual)
+
+    @mock.patch.object(os.path, 'exists', spec_set=True,
+                       autospec=True)
+    def test__get_certificate_file_list_empty(self, path_exists_mock):
+        cl = []
+        CONF.webserver_verify_ca = '/file/path'
+        path_exists_mock.return_value = True
+        expected = ['/file/path']
+        actual = ilo_common._get_certificate_file_list(cl)
+        self.assertEqual(expected, actual)
+
+    @mock.patch.object(os.path, 'exists', spec_set=True,
+                       autospec=True)
+    def test__get_certificate_file_list_empty_no_path(self, path_exists_mock):
+        cl = []
+        CONF.webserver_verify_ca = '/file/path'
+        path_exists_mock.return_value = False
+        expected = []
+        actual = ilo_common._get_certificate_file_list(cl)
+        self.assertEqual(expected, actual)
+
+    def test__get_certificate_file_list(self):
+        cl = ['file/path/a', 'file/path/b']
+        CONF.webserver_verify_ca = '/file/path/c'
+        expected = cl
+        actual = ilo_common._get_certificate_file_list(cl)
+        self.assertEqual(expected, actual)
+
+    def test__get_certificate_file_list_string_type(self):
+        cl = 'file/path/a'
+        CONF.webserver_verify_ca = '/file/path/c'
+        self.assertRaisesRegex(exception.InvalidParameterValue,
+                               "List of files is .* \"<class 'str'>\" .*",
+                               ilo_common._get_certificate_file_list, cl)
+
+    @mock.patch.object(ilo_common, '_get_certificate_file_list', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_add_certificates_false(self, get_ilo_object_mock, get_cl_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+        c_l = ['/file/path/a', '/file/path/b']
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['ilo_add_certificates'] = "false"
+            ilo_common.add_certificates(task, c_l)
+
+        get_cl_mock.assert_not_called()
+        ilo_mock_object.add_tls_certificate.assert_not_called()
+
+    @mock.patch.object(ilo_common, '_get_certificate_file_list', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_add_certificates_true(self, get_ilo_object_mock, get_cl_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+        c_l = ['/file/path/a', '/file/path/b']
+        get_cl_mock.return_value = c_l
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['ilo_add_certificates'] = "true"
+            ilo_common.add_certificates(task, c_l)
+
+        get_cl_mock.assert_called_once_with(c_l)
+        ilo_mock_object.add_tls_certificate.assert_called_once_with(c_l)
+
+    @mock.patch.object(ilo_common, '_get_certificate_file_list', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_add_certificates_None(self, get_ilo_object_mock, get_cl_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+        c_l = ['/file/path/a', '/file/path/b']
+        get_cl_mock.return_value = c_l
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['ilo_add_certificates'] = None
+            ilo_common.add_certificates(task, c_l)
+
+        get_cl_mock.assert_called_once_with(c_l)
+        ilo_mock_object.add_tls_certificate.assert_called_once_with(c_l)
+
+    @mock.patch.object(ilo_common, '_get_certificate_file_list', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_add_certificates_invalid(self, get_ilo_object_mock, get_cl_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+        c_l = ['/file/path/a', '/file/path/b']
+        get_cl_mock.return_value = c_l
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['ilo_add_certificates'] = "xyz"
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "Invalid value type set in driver_info.*",
+                                   ilo_common.add_certificates,
+                                   task, c_l)
+
+        get_cl_mock.assert_not_called()
+        ilo_mock_object.add_tls_certificate.assert_not_called()
+
+    @mock.patch.object(ilo_common, '_get_certificate_file_list', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_add_certificates_true_default(self, get_ilo_object_mock,
+                                           get_cl_mock):
+
+        ilo_mock_object = get_ilo_object_mock.return_value
+        c_l = ['/file/path/A']
+        get_cl_mock.return_value = c_l
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['ilo_add_certificates'] = "true"
+            ilo_common.add_certificates(task)
+
+        get_cl_mock.assert_called_once_with(None)
+        ilo_mock_object.add_tls_certificate.assert_called_once_with(c_l)
+
+    @mock.patch.object(ilo_common, '_get_certificate_file_list', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_add_certificates_raises_ilo_error(self, get_ilo_object_mock,
+                                               get_cl_mock):
+        CONF.webserver_verify_ca = False
+        ilo_mock_object = get_ilo_object_mock.return_value
+        c_l = ['/file/path/a', '/file/path/b']
+        get_cl_mock.return_value = c_l
+        exc = ilo_error.IloError('error')
+        ilo_mock_object.add_tls_certificate.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.driver_info['ilo_add_certificates'] = "true"
+            self.assertRaises(exception.IloOperationError,
+                              ilo_common.add_certificates,
+                              task, c_l)
+
+        get_cl_mock.assert_called_once_with(c_l)
+        ilo_mock_object.add_tls_certificate.assert_called_once_with(c_l)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_clear_certificates(self, get_ilo_object_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+        c_l = ['/file/path/a', '/file/path/b']
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_common.clear_certificates(task, c_l)
+
+        ilo_mock_object.remove_tls_certificate.assert_called_once_with(c_l)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_clear_certificates_default(self, get_ilo_object_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            ilo_common.clear_certificates(task)
+
+        ilo_mock_object.remove_tls_certificate.assert_called_once_with(None)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test_clear_certificates_raises_ilo_error(self, get_ilo_object_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+        c_l = ['/file/path/a', '/file/path/b']
+        exc = ilo_error.IloError('error')
+        ilo_mock_object.remove_tls_certificate.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IloOperationError,
+                              ilo_common.clear_certificates,
+                              task, c_l)
+
+        ilo_mock_object.remove_tls_certificate.assert_called_once_with(c_l)
+
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
     def test_setup_uefi_https_scheme_http(self, get_ilo_object_mock):
