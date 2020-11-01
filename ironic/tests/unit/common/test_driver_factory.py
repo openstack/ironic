@@ -333,6 +333,17 @@ class DefaultInterfaceTestCase(db_base.DbTestCase):
             driver_factory.default_interface, self.driver, 'power',
             driver_name='foo', node='bar')
 
+    @mock.patch.object(driver_factory, 'get_interface', autospec=True)
+    def test_check_exception_IncompatibleInterface(self, mock_get_interface):
+        self.config(enabled_management_interfaces=['redfish'])
+        self.config(default_management_interface=['redfish'])
+        mock_get_interface.side_effect = exception.IncompatibleInterface(
+            interface_type='management',
+            hardware_type=self.driver)
+        self.assertRaises(exception.NoValidDefaultForInterface,
+                          driver_factory.default_interface, self.driver,
+                          'management')
+
 
 class TestFakeHardware(hardware_type.AbstractHardwareType):
     @property
