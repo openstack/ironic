@@ -356,7 +356,6 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, 'image-url', sushy.VIRTUAL_MEDIA_CD)
 
             expected_params = {
-                'BOOTIF': None,
                 'ipa-agent-token': mock.ANY,
                 'ipa-debug': '1',
             }
@@ -402,7 +401,6 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, 'image-url', sushy.VIRTUAL_MEDIA_CD)
 
             expected_params = {
-                'BOOTIF': None,
                 'ipa-agent-token': mock.ANY,
             }
 
@@ -470,7 +468,6 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock__insert_vmedia.assert_has_calls(insert_calls)
 
             expected_params = {
-                'BOOTIF': None,
                 'boot_method': 'vmedia',
                 'ipa-debug': '1',
                 'ipa-agent-token': mock.ANY,
