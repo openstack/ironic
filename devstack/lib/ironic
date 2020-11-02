@@ -1049,6 +1049,8 @@ function install_redfish {
     # NOTE(dtantsur): handling virtual media ISO can take time, so increase
     # both concurrency and the worker timeout.
     cmd+=" --workers 2 --threads 2 --timeout 90"
+    # NOTE(dtantsur): log all accesses to stdout
+    cmd+=" --access-logfile=- --error-logfile=-"
 
     write_user_unit_file $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE "$cmd" "" "$STACK_USER"
 
