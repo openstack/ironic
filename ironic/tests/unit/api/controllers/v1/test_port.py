@@ -2208,20 +2208,6 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertTrue(response.json['error_message'])
         self.assertFalse(mock_create.called)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'can_send_create_port',
-                       autospec=True)
-    def test_create_port_cannot_send_create_port(self, mock_cscp, mock_create):
-        mock_cscp.return_value = False
-        pdict = post_get_test_port(
-            node_uuid=self.node.uuid,
-            portgroup_uuid=None)
-        response = self.post_json('/ports', pdict, headers=self.headers)
-        self.assertEqual('application/json', response.content_type)
-        self.assertEqual(http_client.CREATED, response.status_int)
-        self.assertFalse(mock_create.called)
-        mock_cscp.assert_called_once_with(mock.ANY)
-        objects.Port.get(self.context, pdict['uuid'])
-
     def test_create_port_portgroup(self, mock_create):
         pdict = post_get_test_port(
             portgroup_uuid=self.portgroup.uuid,
@@ -2255,21 +2241,6 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
         self.assertFalse(mock_create.called)
-
-    @mock.patch.object(rpcapi.ConductorAPI, 'can_send_create_port',
-                       autospec=True)
-    def test_create_port_portgroup_cannot_send_create_port(self, mock_cscp,
-                                                           mock_create):
-        mock_cscp.return_value = False
-        pdict = post_get_test_port(
-            node_uuid=self.node.uuid,
-            portgroup_uuid=self.portgroup.uuid)
-        response = self.post_json('/ports', pdict, expect_errors=True,
-                                  headers=self.headers)
-        self.assertEqual('application/json', response.content_type)
-        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
-        self.assertFalse(mock_create.called)
-        mock_cscp.assert_called_once_with(mock.ANY)
 
     @mock.patch.object(notification_utils, '_emit_api_notification')
     def test_create_port_address_already_exist(self, mock_notify, mock_create):
