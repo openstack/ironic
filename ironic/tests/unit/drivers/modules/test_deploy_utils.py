@@ -1191,6 +1191,37 @@ class AgentMethodsTestCase(db_base.DbTestCase):
     def test_prepare_inband_cleaning_fast_track(self):
         self._test_prepare_inband_cleaning(fast_track=True)
 
+    @mock.patch('ironic.conductor.utils.power_on_node_if_needed',
+                autospec=True)
+    @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    @mock.patch.object(utils, 'build_agent_options', autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+                'add_cleaning_network', autospec=True)
+    def test_prepare_inband_cleaning_broken_fast_track(
+            self, add_cleaning_network_mock,
+            build_options_mock, power_mock, prepare_ramdisk_mock,
+            is_fast_track_mock, power_on_if_needed_mock):
+        build_options_mock.return_value = {'a': 'b'}
+        is_fast_track_mock.side_effect = [True, False]
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertEqual(
+                states.CLEANWAIT,
+                utils.prepare_inband_cleaning(task))
+            add_cleaning_network_mock.assert_called_once_with(
+                task.driver.network, task)
+            power_mock.assert_called_once_with(task, states.REBOOT)
+            self.assertEqual(1, task.node.driver_internal_info[
+                             'agent_erase_devices_iterations'])
+            self.assertIs(True, task.node.driver_internal_info[
+                          'agent_erase_devices_zeroize'])
+            prepare_ramdisk_mock.assert_called_once_with(
+                mock.ANY, mock.ANY, {'a': 'b'})
+            build_options_mock.assert_called_once_with(task.node)
+            self.assertFalse(power_on_if_needed_mock.called)
+
     @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'

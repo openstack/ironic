@@ -649,6 +649,9 @@ def prepare_inband_cleaning(task, manage_boot=True):
         ramdisk_opts = build_agent_options(task.node)
         task.driver.boot.prepare_ramdisk(task, ramdisk_opts)
 
+    # NOTE(dtantsur): calling prepare_ramdisk may power off the node, so we
+    # need to check fast-track again and reboot if needed.
+    fast_track = manager_utils.is_fast_track(task)
     if not fast_track:
         manager_utils.node_power_action(task, states.REBOOT)
 
