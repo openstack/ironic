@@ -597,8 +597,9 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_replace_singular(self, mock_utcnow, mock_notify):
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
 
@@ -633,8 +634,9 @@ class TestPatch(test_api_base.BaseApiTest):
                                headers=self.headers)
         self.assertIsNone(result['name'])
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(objects.Allocation, 'save')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(objects.Allocation, 'save', autospec=True)
     def test_update_error(self, mock_save, mock_notify):
         mock_save.side_effect = Exception()
         allocation = obj_utils.create_test_allocation(self.context)
@@ -764,7 +766,8 @@ class TestPost(test_api_base.BaseApiTest):
         ).mock
         self.mock_get_topic_for_node.return_value = 'node-topic'
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_create_allocation(self, mock_utcnow, mock_notify):
         adict = apiutils.allocation_post_data()
@@ -836,8 +839,9 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertFalse(mock_warn.called)
         self.assertFalse(mock_except.called)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(objects.Allocation, 'create')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(objects.Allocation, 'create', autospec=True)
     def test_create_allocation_error(self, mock_create, mock_notify):
         mock_create.side_effect = Exception()
         adict = apiutils.allocation_post_data()
@@ -1168,7 +1172,7 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertTrue(response.json['error_message'])
 
 
-@mock.patch.object(rpcapi.ConductorAPI, 'destroy_allocation')
+@mock.patch.object(rpcapi.ConductorAPI, 'destroy_allocation', autospec=True)
 class TestDelete(test_api_base.BaseApiTest):
     headers = {api_base.Version.string: str(api_v1.max_version())}
 
@@ -1182,7 +1186,8 @@ class TestDelete(test_api_base.BaseApiTest):
             fixtures.MockPatchObject(rpcapi.ConductorAPI, 'get_random_topic')
         ).mock
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_allocation_by_id(self, mock_notify, mock_destroy):
         self.delete('/allocations/%s' % self.allocation.uuid,
                     headers=self.headers)
@@ -1198,7 +1203,8 @@ class TestDelete(test_api_base.BaseApiTest):
                       node_uuid=self.node.uuid),
         ])
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_allocation_node_locked(self, mock_notify, mock_destroy):
         self.node.reserve(self.context, 'fake', self.node.uuid)
         mock_destroy.side_effect = exception.NodeLocked(node='fake-node',
@@ -1248,7 +1254,8 @@ class TestDelete(test_api_base.BaseApiTest):
                           headers=self.headers)
         self.assertEqual(http_client.NOT_FOUND, res.status_code)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_allocation_by_node(self, mock_notify, mock_destroy):
         self.delete('/nodes/%s/allocation' % self.node.uuid,
                     headers=self.headers)

@@ -38,7 +38,8 @@ class TestBase(base.BaseApiTest):
 
 class TestVersion(base.BaseApiTest):
 
-    @mock.patch('ironic.api.controllers.base.Version.parse_headers')
+    @mock.patch('ironic.api.controllers.base.Version.parse_headers',
+                autospec=True)
     def test_init(self, mock_parse):
         a = mock.Mock()
         b = mock.Mock()
@@ -49,14 +50,16 @@ class TestVersion(base.BaseApiTest):
         self.assertEqual(a, v.major)
         self.assertEqual(b, v.minor)
 
-    @mock.patch('ironic.api.controllers.base.Version.parse_headers')
+    @mock.patch('ironic.api.controllers.base.Version.parse_headers',
+                autospec=True)
     def test_repr(self, mock_parse):
         mock_parse.return_value = (123, 456)
         v = cbase.Version('test', mock.ANY, mock.ANY)
         result = "%s" % v
         self.assertEqual('123.456', result)
 
-    @mock.patch('ironic.api.controllers.base.Version.parse_headers')
+    @mock.patch('ironic.api.controllers.base.Version.parse_headers',
+                autospec=True)
     def test_repr_with_strings(self, mock_parse):
         mock_parse.return_value = ('abc', 'def')
         v = cbase.Version('test', mock.ANY, mock.ANY)
