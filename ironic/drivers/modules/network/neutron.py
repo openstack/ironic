@@ -235,7 +235,11 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
                 link_info = port_like_obj.local_link_connection
                 neutron.wait_for_host_agent(client, link_info['hostname'])
 
-            neutron.unbind_neutron_port(vif_port_id, context=task.context)
+            # NOTE(kaifeng) address is optional for port group, avoid to
+            # regenerate mac when the address is absent.
+            reset_mac = bool(port_like_obj.address)
+            neutron.unbind_neutron_port(vif_port_id, context=task.context,
+                                        reset_mac=reset_mac)
 
     def need_power_on(self, task):
         """Check if the node has any Smart NIC ports
