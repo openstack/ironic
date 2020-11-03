@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    The default value of ``[api]api_workers`` is now limited to 4. Set it
+    explicitly if you need a higher value.
+fixes:
+  - |
+    No longer launches too many API workers on systems with a lot of CPU
+    cores by default.

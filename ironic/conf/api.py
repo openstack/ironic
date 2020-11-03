@@ -44,9 +44,9 @@ opts = [
                ),
     cfg.IntOpt('api_workers',
                help=_('Number of workers for OpenStack Ironic API service. '
-                      'The default is equal to the number of CPUs available '
-                      'if that can be determined, else a default worker '
-                      'count of 1 is returned.')),
+                      'The default is equal to the number of CPUs available, '
+                      'but not more than 4. One worker is used if the CPU '
+                      'number cannot be detected.')),
     cfg.BoolOpt('enable_ssl_api',
                 default=False,
                 help=_("Enable the integrated stand-alone API to service "
