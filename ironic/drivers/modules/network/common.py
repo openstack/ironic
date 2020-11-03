@@ -255,9 +255,11 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
         'port': {
             'binding:vnic_type': neutron.VNIC_BAREMETAL,
             'binding:host_id': node.uuid,
-            'mac_address': port_like_obj.address
         }
     }
+    # NOTE(kaifeng) Only update mac address when it's available
+    if port_like_obj.address:
+        body['port']['mac_address'] = port_like_obj.address
     binding_profile = {'local_link_information': local_link_info}
     if local_group_info:
         binding_profile['local_group_information'] = local_group_info
