@@ -23,12 +23,12 @@ CONF = cfg.CONF
 
 
 class TestWSGIService(base.TestCase):
+    @mock.patch.object(processutils, 'get_worker_count', lambda: 2)
     @mock.patch.object(wsgi_service.wsgi, 'Server', autospec=True)
     def test_workers_set_default(self, mock_server):
         service_name = "ironic_api"
         test_service = wsgi_service.WSGIService(service_name)
-        self.assertEqual(processutils.get_worker_count(),
-                         test_service.workers)
+        self.assertEqual(2, test_service.workers)
         mock_server.assert_called_once_with(CONF, service_name,
                                             test_service.app,
                                             host='0.0.0.0',
@@ -41,11 +41,19 @@ class TestWSGIService(base.TestCase):
         test_service = wsgi_service.WSGIService("ironic_api")
         self.assertEqual(8, test_service.workers)
 
+    @mock.patch.object(processutils, 'get_worker_count', lambda: 3)
     @mock.patch.object(wsgi_service.wsgi, 'Server', autospec=True)
     def test_workers_set_zero_setting(self, mock_server):
         self.config(api_workers=0, group='api')
         test_service = wsgi_service.WSGIService("ironic_api")
-        self.assertEqual(processutils.get_worker_count(), test_service.workers)
+        self.assertEqual(3, test_service.workers)
+
+    @mock.patch.object(processutils, 'get_worker_count', lambda: 42)
+    @mock.patch.object(wsgi_service.wsgi, 'Server', autospec=True)
+    def test_workers_set_default_limit(self, mock_server):
+        self.config(api_workers=0, group='api')
+        test_service = wsgi_service.WSGIService("ironic_api")
+        self.assertEqual(4, test_service.workers)
 
     @mock.patch.object(wsgi_service.wsgi, 'Server', autospec=True)
     def test_workers_set_negative_setting(self, mock_server):
