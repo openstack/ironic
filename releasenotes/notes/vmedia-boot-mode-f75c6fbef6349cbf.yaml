@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The virtual media ISO image building process now respects the
+    ``default_boot_mode`` configuration option.

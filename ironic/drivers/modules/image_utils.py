@@ -345,7 +345,7 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
             (kernel_params, ' '.join(
                 '%s=%s' % kv for kv in params.items())))
 
-    boot_mode = boot_mode_utils.get_boot_mode_for_deploy(task.node)
+    boot_mode = boot_mode_utils.get_boot_mode(task.node)
 
     LOG.debug("Trying to create %(boot_mode)s ISO image for node %(node)s "
               "with kernel %(kernel_href)s, ramdisk %(ramdisk_href)s, "
