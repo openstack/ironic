@@ -245,6 +245,14 @@ class UtilsRamdiskLogsTestCase(tests_base.TestCase):
                          + instance_uuid + '_2000-01-01-00-00-00.tar.gz')
         self.assertEqual(expected_name, name)
 
+        # with name
+        node_name = 'foo'
+        node3 = obj_utils.get_test_node(self.context, name=node_name)
+        name = driver_utils.get_ramdisk_logs_file_name(node3)
+        expected_name = ('1be26c0b-03f2-4d2e-ae87-c02d7f33c123_'
+                         + node_name + '_2000-01-01-00-00-00.tar.gz')
+        self.assertJsonEqual(expected_name, name)
+
     @mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)
     @mock.patch.object(agent_client.AgentClient,
                        'collect_system_logs', autospec=True)
