@@ -456,7 +456,8 @@ class TestCheckAllowFields(base.TestCase):
         mock_request.version.minor = 36
         self.assertFalse(utils.allow_traits())
 
-    @mock.patch.object(objects.Port, 'supports_physical_network')
+    @mock.patch.object(objects.Port, 'supports_physical_network',
+                       autospec=True)
     def test_allow_port_physical_network_no_pin(self, mock_spn, mock_request):
         mock_spn.return_value = True
         mock_request.version.minor = 34
@@ -464,7 +465,8 @@ class TestCheckAllowFields(base.TestCase):
         mock_request.version.minor = 33
         self.assertFalse(utils.allow_port_physical_network())
 
-    @mock.patch.object(objects.Port, 'supports_physical_network')
+    @mock.patch.object(objects.Port, 'supports_physical_network',
+                       autospec=True)
     def test_allow_port_physical_network_pin(self, mock_spn, mock_request):
         mock_spn.return_value = False
         mock_request.version.minor = 34
@@ -569,7 +571,7 @@ class TestCheckAllowFields(base.TestCase):
         self.assertFalse(utils.allow_agent_token())
 
 
-@mock.patch.object(api, 'request')
+@mock.patch.object(api, 'request', spec_set=['context', 'version'])
 class TestNodeIdent(base.TestCase):
 
     def setUp(self):
@@ -593,9 +595,9 @@ class TestNodeIdent(base.TestCase):
         self.assertFalse(utils.is_valid_node_name(self.invalid_name))
         self.assertFalse(utils.is_valid_node_name(self.valid_uuid))
 
-    @mock.patch.object(utils, 'allow_node_logical_names')
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(objects.Node, 'get_by_name')
+    @mock.patch.object(utils, 'allow_node_logical_names', autospec=True)
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(objects.Node, 'get_by_name', autospec=True)
     def test_get_rpc_node_expect_uuid(self, mock_gbn, mock_gbu, mock_anln,
                                       mock_pr):
         mock_anln.return_value = True
@@ -605,9 +607,9 @@ class TestNodeIdent(base.TestCase):
         self.assertEqual(1, mock_gbu.call_count)
         self.assertEqual(0, mock_gbn.call_count)
 
-    @mock.patch.object(utils, 'allow_node_logical_names')
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(objects.Node, 'get_by_name')
+    @mock.patch.object(utils, 'allow_node_logical_names', autospec=True)
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(objects.Node, 'get_by_name', autospec=True)
     def test_get_rpc_node_expect_name(self, mock_gbn, mock_gbu, mock_anln,
                                       mock_pr):
         mock_pr.version.minor = 10
@@ -618,9 +620,9 @@ class TestNodeIdent(base.TestCase):
         self.assertEqual(0, mock_gbu.call_count)
         self.assertEqual(1, mock_gbn.call_count)
 
-    @mock.patch.object(utils, 'allow_node_logical_names')
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(objects.Node, 'get_by_name')
+    @mock.patch.object(utils, 'allow_node_logical_names', autospec=True)
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(objects.Node, 'get_by_name', autospec=True)
     def test_get_rpc_node_invalid_name(self, mock_gbn, mock_gbu,
                                        mock_anln, mock_pr):
         mock_pr.version.minor = 10
@@ -629,9 +631,9 @@ class TestNodeIdent(base.TestCase):
                           utils.get_rpc_node,
                           self.invalid_name)
 
-    @mock.patch.object(utils, 'allow_node_logical_names')
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(objects.Node, 'get_by_name')
+    @mock.patch.object(utils, 'allow_node_logical_names', autospec=True)
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(objects.Node, 'get_by_name', autospec=True)
     def test_get_rpc_node_by_uuid_no_logical_name(self, mock_gbn, mock_gbu,
                                                   mock_anln, mock_pr):
         # allow_node_logical_name() should have no effect
@@ -642,9 +644,9 @@ class TestNodeIdent(base.TestCase):
         self.assertEqual(1, mock_gbu.call_count)
         self.assertEqual(0, mock_gbn.call_count)
 
-    @mock.patch.object(utils, 'allow_node_logical_names')
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(objects.Node, 'get_by_name')
+    @mock.patch.object(utils, 'allow_node_logical_names', autospec=True)
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(objects.Node, 'get_by_name', autospec=True)
     def test_get_rpc_node_by_name_no_logical_name(self, mock_gbn, mock_gbu,
                                                   mock_anln, mock_pr):
         mock_anln.return_value = False
@@ -767,7 +769,7 @@ class TestPortgroupIdent(base.TestCase):
         self.portgroup = test_api_utils.post_get_test_portgroup()
 
     @mock.patch.object(api, 'request', spec_set=["context"])
-    @mock.patch.object(objects.Portgroup, 'get_by_name')
+    @mock.patch.object(objects.Portgroup, 'get_by_name', autospec=True)
     def test_get_rpc_portgroup_name(self, mock_gbn, mock_pr):
         mock_gbn.return_value = self.portgroup
         self.assertEqual(self.portgroup, utils.get_rpc_portgroup(
@@ -775,7 +777,7 @@ class TestPortgroupIdent(base.TestCase):
         mock_gbn.assert_called_once_with(mock_pr.context, self.valid_name)
 
     @mock.patch.object(api, 'request', spec_set=["context"])
-    @mock.patch.object(objects.Portgroup, 'get_by_uuid')
+    @mock.patch.object(objects.Portgroup, 'get_by_uuid', autospec=True)
     def test_get_rpc_portgroup_uuid(self, mock_gbu, mock_pr):
         self.portgroup['uuid'] = self.valid_uuid
         mock_gbu.return_value = self.portgroup
@@ -840,8 +842,8 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(utils, 'get_rpc_node')
-    @mock.patch.object(utils, 'get_rpc_node_with_suffix')
+    @mock.patch.object(utils, 'get_rpc_node', autospec=True)
+    @mock.patch.object(utils, 'get_rpc_node_with_suffix', autospec=True)
     def test_check_node_policy_and_retrieve(
             self, mock_grnws, mock_grn, mock_authorize, mock_pr
     ):
@@ -861,8 +863,8 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(utils, 'get_rpc_node')
-    @mock.patch.object(utils, 'get_rpc_node_with_suffix')
+    @mock.patch.object(utils, 'get_rpc_node', autospec=True)
+    @mock.patch.object(utils, 'get_rpc_node_with_suffix', autospec=True)
     def test_check_node_policy_and_retrieve_with_suffix(
             self, mock_grnws, mock_grn, mock_authorize, mock_pr
     ):
@@ -882,7 +884,7 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
 
     @mock.patch.object(api, 'request', spec_set=["context"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(utils, 'get_rpc_node')
+    @mock.patch.object(utils, 'get_rpc_node', autospec=True)
     def test_check_node_policy_and_retrieve_no_node_policy_forbidden(
             self, mock_grn, mock_authorize, mock_pr
     ):
@@ -900,7 +902,7 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
 
     @mock.patch.object(api, 'request', spec_set=["context"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(utils, 'get_rpc_node')
+    @mock.patch.object(utils, 'get_rpc_node', autospec=True)
     def test_check_node_policy_and_retrieve_no_node(
             self, mock_grn, mock_authorize, mock_pr
     ):
@@ -917,7 +919,7 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(utils, 'get_rpc_node')
+    @mock.patch.object(utils, 'get_rpc_node', autospec=True)
     def test_check_node_policy_and_retrieve_policy_forbidden(
             self, mock_grn, mock_authorize, mock_pr
     ):
@@ -943,7 +945,7 @@ class TestCheckAllocationPolicyAndRetrieve(base.TestCase):
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(utils, 'get_rpc_allocation_with_suffix')
+    @mock.patch.object(utils, 'get_rpc_allocation_with_suffix', autospec=True)
     def test_check_node_policy_and_retrieve(
             self, mock_graws, mock_authorize, mock_pr
     ):
@@ -961,7 +963,7 @@ class TestCheckAllocationPolicyAndRetrieve(base.TestCase):
 
     @mock.patch.object(api, 'request', spec_set=["context"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(utils, 'get_rpc_allocation_with_suffix')
+    @mock.patch.object(utils, 'get_rpc_allocation_with_suffix', autospec=True)
     def test_check_alloc_policy_and_retrieve_no_alloc_policy_forbidden(
             self, mock_graws, mock_authorize, mock_pr
     ):
@@ -979,7 +981,7 @@ class TestCheckAllocationPolicyAndRetrieve(base.TestCase):
 
     @mock.patch.object(api, 'request', spec_set=["context"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(utils, 'get_rpc_allocation_with_suffix')
+    @mock.patch.object(utils, 'get_rpc_allocation_with_suffix', autospec=True)
     def test_check_allocation_policy_and_retrieve_no_allocation(
             self, mock_graws, mock_authorize, mock_pr
     ):
@@ -996,7 +998,7 @@ class TestCheckAllocationPolicyAndRetrieve(base.TestCase):
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(utils, 'get_rpc_allocation_with_suffix')
+    @mock.patch.object(utils, 'get_rpc_allocation_with_suffix', autospec=True)
     def test_check_allocation_policy_and_retrieve_policy_forbidden(
             self, mock_graws, mock_authorize, mock_pr
     ):
@@ -1021,8 +1023,8 @@ class TestCheckMultipleNodePoliciesAndRetrieve(base.TestCase):
         self.node['owner'] = '12345'
         self.node['lessee'] = '54321'
 
-    @mock.patch.object(utils, 'check_node_policy_and_retrieve')
-    @mock.patch.object(utils, 'check_owner_policy')
+    @mock.patch.object(utils, 'check_node_policy_and_retrieve', autospec=True)
+    @mock.patch.object(utils, 'check_owner_policy', autospec=True)
     def test_check_multiple_node_policies_and_retrieve(
             self, mock_cop, mock_cnpar
     ):
@@ -1038,8 +1040,8 @@ class TestCheckMultipleNodePoliciesAndRetrieve(base.TestCase):
             'node', 'fake_policy_2', '12345', '54321')
         self.assertEqual(self.node, rpc_node)
 
-    @mock.patch.object(utils, 'check_node_policy_and_retrieve')
-    @mock.patch.object(utils, 'check_owner_policy')
+    @mock.patch.object(utils, 'check_node_policy_and_retrieve', autospec=True)
+    @mock.patch.object(utils, 'check_owner_policy', autospec=True)
     def test_check_multiple_node_policies_and_retrieve_first_fail(
             self, mock_cop, mock_cnpar
     ):
@@ -1056,8 +1058,8 @@ class TestCheckMultipleNodePoliciesAndRetrieve(base.TestCase):
                                            self.valid_node_uuid, False)
         mock_cop.assert_not_called()
 
-    @mock.patch.object(utils, 'check_node_policy_and_retrieve')
-    @mock.patch.object(utils, 'check_owner_policy')
+    @mock.patch.object(utils, 'check_node_policy_and_retrieve', autospec=True)
+    @mock.patch.object(utils, 'check_owner_policy', autospec=True)
     def test_check_node_policy_and_retrieve_no_node(
             self, mock_cop, mock_cnpar
     ):
@@ -1193,8 +1195,8 @@ class TestCheckPortPolicyAndRetrieve(base.TestCase):
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(objects.Port, 'get_by_uuid')
-    @mock.patch.object(objects.Node, 'get_by_id')
+    @mock.patch.object(objects.Port, 'get_by_uuid', autospec=True)
+    @mock.patch.object(objects.Node, 'get_by_id', autospec=True)
     def test_check_port_policy_and_retrieve(
             self, mock_ngbi, mock_pgbu, mock_authorize, mock_pr
     ):
@@ -1218,7 +1220,7 @@ class TestCheckPortPolicyAndRetrieve(base.TestCase):
 
     @mock.patch.object(api, 'request', spec_set=["context"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(objects.Port, 'get_by_uuid')
+    @mock.patch.object(objects.Port, 'get_by_uuid', autospec=True)
     def test_check_port_policy_and_retrieve_no_port_policy_forbidden(
             self, mock_pgbu, mock_authorize, mock_pr
     ):
@@ -1236,7 +1238,7 @@ class TestCheckPortPolicyAndRetrieve(base.TestCase):
 
     @mock.patch.object(api, 'request', spec_set=["context"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(objects.Port, 'get_by_uuid')
+    @mock.patch.object(objects.Port, 'get_by_uuid', autospec=True)
     def test_check_port_policy_and_retrieve_no_port(
             self, mock_pgbu, mock_authorize, mock_pr
     ):
@@ -1253,8 +1255,8 @@ class TestCheckPortPolicyAndRetrieve(base.TestCase):
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(objects.Port, 'get_by_uuid')
-    @mock.patch.object(objects.Node, 'get_by_id')
+    @mock.patch.object(objects.Port, 'get_by_uuid', autospec=True)
+    @mock.patch.object(objects.Node, 'get_by_id', autospec=True)
     def test_check_port_policy_and_retrieve_policy_forbidden(
             self, mock_ngbi, mock_pgbu, mock_authorize, mock_pr
     ):
