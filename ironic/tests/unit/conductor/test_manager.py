@@ -1784,6 +1784,27 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                       deployments.continue_node_deploy,
                                       mock.ANY)
 
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_continue_node_deploy_locked(self, mock_spawn):
+        """Test that continuing a deploy via RPC cannot fail due to locks."""
+        max_attempts = 3
+        self.config(node_locked_retry_attempts=max_attempts, group='conductor')
+        prv_state = states.DEPLOYWAIT
+        tgt_prv_state = states.ACTIVE
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=prv_state,
+                                          target_provision_state=tgt_prv_state,
+                                          last_error=None,
+                                          deploy_step=self.deploy_steps[0])
+        self._start_service()
+        with mock.patch.object(objects.Node, 'reserve', autospec=True) as mck:
+            mck.side_effect = (
+                ([exception.NodeLocked(node='foo', host='foo')] * max_attempts)
+                + [node])
+            self.service.continue_node_deploy(self.context, node.uuid)
+        self._stop_service()
+
     @mock.patch.object(task_manager.TaskManager, 'process_event',
                        autospec=True)
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
@@ -2581,6 +2602,28 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test_continue_node_clean_manual_abort_last_clean_step(self):
         self._continue_node_clean_abort_last_clean_step(manual=True)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_continue_node_clean_locked(self, mock_spawn):
+        """Test that continuing a clean via RPC cannot fail due to locks."""
+        max_attempts = 3
+        self.config(node_locked_retry_attempts=max_attempts, group='conductor')
+        driver_info = {'clean_steps': [self.clean_steps[0]],
+                       'clean_step_index': 0}
+        tgt_prov_state = states.AVAILABLE
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANWAIT,
+            target_provision_state=tgt_prov_state, last_error=None,
+            driver_internal_info=driver_info, clean_step=self.clean_steps[0])
+        self._start_service()
+        with mock.patch.object(objects.Node, 'reserve', autospec=True) as mck:
+            mck.side_effect = (
+                ([exception.NodeLocked(node='foo', host='foo')] * max_attempts)
+                + [node])
+            self.service.continue_node_clean(self.context, node.uuid)
+        self._stop_service()
 
 
 class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
