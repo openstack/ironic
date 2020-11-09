@@ -3033,6 +3033,42 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNone(node.target_provision_state)
         self.assertTrue(node.last_error)
 
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeBIOS.cache_bios_settings',
+                autospec=True)
+    def _test__do_node_cache_bios(self, mock_bios, mock_validate,
+                                  mock_log,
+                                  enable_unsupported=False,
+                                  enable_exception=False):
+        if enable_unsupported:
+            mock_bios.side_effect = exception.UnsupportedDriverExtension('')
+        elif enable_exception:
+            mock_bios.side_effect = exception.IronicException('test')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.VERIFYING,
+            target_provision_state=states.MANAGEABLE)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            self.service._do_node_verify(task)
+            mock_bios.assert_called_once_with(mock.ANY, task)
+            mock_validate.assert_called_once_with(mock.ANY, task)
+            if enable_exception:
+                mock_log.exception.assert_called_once_with(
+                    'Caching of bios settings failed on node {}.'
+                    .format(node.uuid))
+
+    def test__do_node_cache_bios(self):
+        self._test__do_node_cache_bios()
+
+    def test__do_node_cache_bios_exception(self):
+        self._test__do_node_cache_bios(enable_exception=True)
+
+    def test__do_node_cache_bios_unsupported(self):
+        self._test__do_node_cache_bios(enable_unsupported=True)
+
 
 @mgr_utils.mock_record_keepalive
 class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,

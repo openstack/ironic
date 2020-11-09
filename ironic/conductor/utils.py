@@ -1313,3 +1313,19 @@ def store_agent_certificate(node, agent_verify_ca):
         LOG.debug('Saved the custom certificate for node %(node)s to %(file)s',
                   {'node': node.uuid, 'file': fname})
         return fname
+
+
+def node_cache_bios_settings(task, node):
+    """Do caching of bios settings if supported by driver"""
+    try:
+        LOG.debug('BF getting BIOS info for node %s',
+                  node.uuid)
+        task.driver.bios.cache_bios_settings(task)
+    except exception.UnsupportedDriverExtension:
+        LOG.warning('BIOS settings are not supported for node %s, '
+                    'skipping', node.uuid)
+    # TODO(zshi) remove this check when classic drivers are removed
+    except Exception:
+        msg = (_('Caching of bios settings failed on node %(node)s.')
+               % {'node': node.uuid})
+        LOG.exception(msg)

@@ -77,19 +77,8 @@ def do_node_clean(task, clean_steps=None):
         node.driver_internal_info = info
         node.save()
 
-    # Do caching of bios settings if supported by driver,
-    # this will be called for both manual and automated cleaning.
-    try:
-        task.driver.bios.cache_bios_settings(task)
-    except exception.UnsupportedDriverExtension:
-        LOG.warning('BIOS settings are not supported for node %s, '
-                    'skipping', task.node.uuid)
-    # TODO(zshi) remove this check when classic drivers are removed
-    except Exception:
-        msg = (_('Caching of bios settings failed on node %(node)s. '
-                 'Continuing with node cleaning.')
-               % {'node': node.uuid})
-        LOG.exception(msg)
+    # Retrieve BIOS config settings for this node
+    utils.node_cache_bios_settings(task, node)
 
     # Allow the deploy driver to set up the ramdisk again (necessary for
     # IPA cleaning)
