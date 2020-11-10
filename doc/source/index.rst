@@ -53,6 +53,11 @@ Administrator Guide
 ===================
 
 .. toctree::
+  :maxdepth: 3
+
+  admin/drivers
+
+.. toctree::
   :maxdepth: 2
 
   admin/index
