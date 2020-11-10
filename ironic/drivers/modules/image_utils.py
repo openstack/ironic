@@ -459,6 +459,8 @@ def prepare_deploy_iso(task, params, mode, d_info):
 
     network_data = task.driver.network.get_node_network_data(task)
     if network_data:
+        LOG.debug('Injecting custom network data for node %s',
+                  task.node.uuid)
         with tempfile.NamedTemporaryFile(dir=CONF.tempdir,
                                          suffix='.iso') as metadata_fileobj:
 
