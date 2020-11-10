@@ -185,12 +185,15 @@ property can be used to pass user-specified kernel command line parameters.
 For ramdisk kernel, ``[instance_info]/kernel_append_params`` property serves
 the same purpose.
 
+.. _redfish-virtual-media-ramdisk:
+
 Virtual Media Ramdisk
 ~~~~~~~~~~~~~~~~~~~~~
 
 The ``ramdisk`` deploy interface can be used in concert with the
 ``redfish-virtual-media`` boot interface to facilitate the boot of a remote
-node utilizing pre-supplied virtual media.
+node utilizing pre-supplied virtual media. See :doc:`/admin/ramdisk-boot` for
+information on how to enable and configure it.
 
 Instead of supplying an ``[instance_info]/image_source`` parameter, a
 ``[instance_info]/boot_iso`` parameter can be supplied. The image will
@@ -201,12 +204,14 @@ of ``ACTIVE``.
 
 .. code-block:: bash
 
-  baremetal node set \
-      --instance_info boot_iso=http://url/to.iso node-0
+  baremetal node set <node name or UUID> \
+      --boot-interface redfish-virtual-media \
+      --deploy-interface ramdisk \
+      --instance_info boot_iso=http://url/to.iso
 
 This initial interface does not support bootloader configuration
 parameter injection, as such the ``[instance_info]/kernel_append_params``
-setting is ignored.
+setting is ignored. Configuration drives are not supported yet.
 
 
 .. _`dhcpless_booting`:

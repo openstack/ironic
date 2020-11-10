@@ -36,13 +36,8 @@ or update an existing node:
 
    baremetal node set <NODE> --deploy-interface ramdisk
 
-Using virtual media:
-
-.. code-block:: shell
-
-   baremetal node create --driver redfish \
-       --deploy-interface ramdisk \
-       --boot-interface redfish-virtual-media
+You can also use it with :ref:`redfish virtual media
+<redfish-virtual-media-ramdisk>` instead of iPXE.
 
 .. TODO(dtantsur): document how exactly to create and boot a ramdisk
 
