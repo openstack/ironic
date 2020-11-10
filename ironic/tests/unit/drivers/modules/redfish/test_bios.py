@@ -236,7 +236,8 @@ class RedfishBiosTestCase(db_base.DbTestCase):
         self._test_step_pre_reboot()
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def _test_step_post_reboot(self, mock_get_system):
+    def _test_step_post_reboot(self, mock_get_system,
+                               attributes_after_reboot=None):
         if self.node.deploy_step:
             step_data = self.node.deploy_step
         else:
@@ -246,6 +247,14 @@ class RedfishBiosTestCase(db_base.DbTestCase):
         if step == 'factory_reset':
             check_fields = ['post_factory_reset_reboot_requested']
         if step == 'apply_configuration':
+            mock_bios = mock.Mock()
+            # if attributes after reboot not provided then mimic success
+            # by returning the same as requested
+            mock_bios.attributes = attributes_after_reboot \
+                or self.node.driver_internal_info['requested_bios_attrs']
+            mock_system = mock.Mock()
+            mock_system.bios = mock_bios
+            mock_get_system.return_value = mock_system
             check_fields = ['post_config_reboot_requested',
                             'requested_bios_attrs']
         with task_manager.acquire(self.context, self.node.uuid,
@@ -279,13 +288,56 @@ class RedfishBiosTestCase(db_base.DbTestCase):
         node.save()
         self._test_step_post_reboot()
 
-    def test_apply_conf_post_reboot_cleaning(self):
-        data = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(manager_utils, 'deploying_error_handler', autospec=True)
+    def test_apply_conf_post_reboot_cleaning(self,
+                                             mock_deploying_error_handler,
+                                             mock_cleaning_error_handler):
+        data = [{'name': 'ProcTurboMode', 'value': 'Enabled'},
                 {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
         self.node.clean_step = {'priority': 100, 'interface': 'bios',
                                 'step': 'apply_configuration',
                                 'argsinfo': {'settings': data}}
+        requested_attrs = {'ProcTurboMode': 'Enabled',
+                           'NicBoot1': 'NetworkBoot'}
+        node = self.node
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['post_config_reboot_requested'] = True
+        driver_internal_info['requested_bios_attrs'] = requested_attrs
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        self._test_step_post_reboot()
+        mock_cleaning_error_handler.assert_not_called()
+        mock_deploying_error_handler.assert_not_called()
+
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
+    def test_apply_conf_post_reboot_cleaning_failed(
+            self, mock_cleaning_error_handler):
+        data = [{'name': 'ProcTurboMode', 'value': 'Enabled'}]
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'apply_configuration',
+                                'argsinfo': {'settings': data}}
         requested_attrs = {'ProcTurboMode': 'Enabled'}
+        attributes_after_reboot = {'ProcTurboMode': 'Disabled'}
+        node = self.node
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info['post_config_reboot_requested'] = True
+        driver_internal_info['requested_bios_attrs'] = requested_attrs
+        self.node.driver_internal_info = driver_internal_info
+        self.node.provision_state = states.CLEANING
+        self.node.save()
+        self._test_step_post_reboot(
+            attributes_after_reboot=attributes_after_reboot)
+        mock_cleaning_error_handler.assert_called_once()
+
+    def test_apply_conf_post_reboot_deploying(self):
+        data = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
+                {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'apply_configuration',
+                                 'argsinfo': {'settings': data}}
+        requested_attrs = {'ProcTurboMode': 'Enabled',
+                           'NicBoot1': 'NetworkBoot'}
         node = self.node
         driver_internal_info = node.driver_internal_info
         driver_internal_info['post_config_reboot_requested'] = True
@@ -294,20 +346,25 @@ class RedfishBiosTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_step_post_reboot()
 
-    def test_apply_conf_post_reboot_deploying(self):
-        data = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
-                {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
+    @mock.patch.object(manager_utils, 'deploying_error_handler', autospec=True)
+    def test_apply_conf_post_reboot_deploying_failed(
+            self, mock_deploying_error_handler):
+        data = [{'name': 'ProcTurboMode', 'value': 'Enabled'}]
         self.node.deploy_step = {'priority': 100, 'interface': 'bios',
                                  'step': 'apply_configuration',
                                  'argsinfo': {'settings': data}}
         requested_attrs = {'ProcTurboMode': 'Enabled'}
+        attributes_after_reboot = {'ProcTurboMode': 'Disabled'}
         node = self.node
         driver_internal_info = node.driver_internal_info
         driver_internal_info['post_config_reboot_requested'] = True
         driver_internal_info['requested_bios_attrs'] = requested_attrs
         self.node.driver_internal_info = driver_internal_info
+        self.node.provision_state = states.DEPLOYWAIT
         self.node.save()
-        self._test_step_post_reboot()
+        self._test_step_post_reboot(
+            attributes_after_reboot=attributes_after_reboot)
+        mock_deploying_error_handler.assert_called_once()
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_factory_reset_fail(self, mock_get_system):
@@ -345,7 +402,8 @@ class RedfishBiosTestCase(db_base.DbTestCase):
     def test_check_bios_attrs(self, mock_get_system):
         settings = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
                     {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
-        requested_attrs = {'ProcTurboMode': 'Enabled'}
+        requested_attrs = {'ProcTurboMode': 'Enabled',
+                           'NicBoot1': 'NetworkBoot'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             attributes = mock_get_system(task.node).bios.attributes
