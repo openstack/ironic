@@ -3359,6 +3359,27 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
 
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_update_automated_clean_with_false(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:node:disable_cleaning':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.47'}
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/automated_clean',
+                                     'value': False,
+                                     'op': 'replace'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.FORBIDDEN, response.status_code)
+
     def test_update_automated_clean_old_api(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())

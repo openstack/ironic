@@ -195,6 +195,30 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
                 autospec=True)
+    def test__do_node_clean_automated_enabled_individual_disabled(
+            self, mock_validate):
+        self.config(automated_clean=True, group='conductor')
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE,
+            last_error=None, automated_clean=False)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            cleaning.do_node_clean(task)
+        node.refresh()
+
+        # Assert that the node was moved to available without cleaning
+        self.assertFalse(mock_validate.called)
+        self.assertEqual(states.AVAILABLE, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertEqual({}, node.clean_step)
+        self.assertNotIn('clean_steps', node.driver_internal_info)
+        self.assertNotIn('clean_step_index', node.driver_internal_info)
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
     def test__do_node_clean_automated_disabled_individual_disabled(
             self, mock_validate):
         self.config(automated_clean=False, group='conductor')

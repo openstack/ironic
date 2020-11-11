@@ -256,7 +256,13 @@ node_policies = [
         'rule:is_admin or rule:is_observer',
         'Retrieve Node BIOS information',
         [{'path': '/nodes/{node_ident}/bios', 'method': 'GET'},
-         {'path': '/nodes/{node_ident}/bios/{setting}', 'method': 'GET'}])
+         {'path': '/nodes/{node_ident}/bios/{setting}', 'method': 'GET'}]),
+
+    policy.DocumentedRuleDefault(
+        'baremetal:node:disable_cleaning',
+        'rule:baremetal:node:update',
+        'Disable Node disk cleaning',
+        [{'path': '/nodes/{node_ident}', 'method': 'PATCH'}]),
 ]
 
 port_policies = [
