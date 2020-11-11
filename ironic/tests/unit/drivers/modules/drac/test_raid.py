@@ -720,6 +720,74 @@ class DracCreateRaidConfigurationHelpersTestCase(test_utils.BaseDracTest):
         self.assertEqual(expected_physical_disk_ids,
                          logical_disks[0]['physical_disks'])
 
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
+    def test__validate_volume_size_requested_more_than_actual_size(
+            self, mock_list_physical_disks, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        self.logical_disk = {
+            'physical_disks': [
+                'Disk.Bay.0:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                'Disk.Bay.1:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                'Disk.Bay.2:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                'Disk.Bay.3:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                'Disk.Bay.4:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                'Disk.Bay.5:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                'Disk.Bay.6:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                'Disk.Bay.7:Enclosure.Internal.0-1:RAID.Integrated.1-1'],
+            'raid_level': '1+0', 'is_root_volume': True,
+            'size_mb': 102400000,
+            'controller': 'RAID.Integrated.1-1'}
+
+        self.logical_disks = [self.logical_disk.copy()]
+        self.target_raid_configuration = {'logical_disks': self.logical_disks}
+        self.node.target_raid_config = self.target_raid_configuration
+        self.node.save()
+
+        physical_disks = self._generate_physical_disks()
+        mock_list_physical_disks.return_value = physical_disks
+
+        processed_logical_disks = drac_raid._validate_volume_size(
+            self.node, self.node.target_raid_config['logical_disks'])
+
+        self.assertEqual(2287104, processed_logical_disks[0]['size_mb'])
+
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(drac_raid, 'list_physical_disks', autospec=True)
+    def test__validate_volume_size_requested_less_than_actual_size(
+            self, mock_list_physical_disks, mock_get_drac_client):
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        self.logical_disk = {
+            'physical_disks': [
+                'Disk.Bay.0:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                'Disk.Bay.1:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                'Disk.Bay.2:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                'Disk.Bay.3:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                'Disk.Bay.4:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                'Disk.Bay.5:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                'Disk.Bay.6:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+                'Disk.Bay.7:Enclosure.Internal.0-1:RAID.Integrated.1-1'],
+            'raid_level': '1+0', 'is_root_volume': True,
+            'size_mb': 204800,
+            'controller': 'RAID.Integrated.1-1'}
+
+        self.logical_disks = [self.logical_disk.copy()]
+        self.target_raid_configuration = {'logical_disks': self.logical_disks}
+        self.node.target_raid_config = self.target_raid_configuration
+        self.node.save()
+
+        physical_disks = self._generate_physical_disks()
+        mock_list_physical_disks.return_value = physical_disks
+
+        processed_logical_disks = drac_raid._validate_volume_size(
+            self.node, self.node.target_raid_config['logical_disks'])
+
+        self.assertEqual(self.logical_disk, processed_logical_disks[0])
+
 
 class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
 
@@ -853,6 +921,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
             self.assertEqual(1, mock_change_physical_disk_state.call_count)
 
             self.node.refresh()
+            self.assertEqual(True,
+                             task.node.driver_internal_info[
+                                 'volume_validation'])
             self.assertEqual(next_substep,
                              task.node.driver_internal_info[
                                  'raid_config_substep'])
@@ -931,6 +1002,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
             self.assertEqual(1, mock_client.create_virtual_disk.call_count)
 
             self.node.refresh()
+            self.assertEqual(False,
+                             task.node.driver_internal_info[
+                                 'volume_validation'])
             self.assertEqual(next_substep,
                              task.node.driver_internal_info[
                                  'raid_config_substep'])
@@ -955,6 +1029,10 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
         mock_list_physical_disks.return_value = physical_disks
         mock_change_physical_disk_state.return_value = {
             'is_reboot_required': constants.RebootRequired.optional,
+            'conversion_results': {
+                'RAID.Integrated.1-1': {
+                    'is_reboot_required': constants.RebootRequired.false,
+                    'is_commit_required': False}},
             'commit_required_ids': ['RAID.Integrated.1-1']}
         mock_commit_config.return_value = '42'
 
@@ -964,6 +1042,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 task, create_root_volume=False, create_nonroot_volumes=False,
                 delete_existing=False)
 
+            self.assertEqual(False,
+                             task.node.driver_internal_info[
+                                 'volume_validation'])
             self.assertEqual(0, mock_client.create_virtual_disk.call_count)
             self.assertEqual(0, mock_commit_config.call_count)
 
@@ -1029,6 +1110,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 task, create_root_volume=True, create_nonroot_volumes=False,
                 delete_existing=True)
 
+            self.assertEqual(True,
+                             task.node.driver_internal_info[
+                                 'volume_validation'])
             mock_commit_config.assert_called_with(
                 task.node, raid_controller='RAID.Integrated.1-1',
                 realtime=True, reboot=False)
@@ -1084,6 +1168,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 task, create_root_volume=True, create_nonroot_volumes=True,
                 delete_existing=False)
 
+            self.assertEqual(True,
+                             task.node.driver_internal_info[
+                                 'volume_validation'])
             # Commits to the controller
             mock_commit_config.assert_called_with(
                 mock.ANY, raid_controller='RAID.Integrated.1-1', reboot=False,
@@ -1140,6 +1227,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 task, create_root_volume=True, create_nonroot_volumes=True,
                 delete_existing=False)
 
+            self.assertEqual(True,
+                             task.node.driver_internal_info[
+                                 'volume_validation'])
             # Commits to the controller
             mock_commit_config.assert_called_with(
                 mock.ANY, raid_controller='RAID.Integrated.1-1', reboot=False,
@@ -1189,6 +1279,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 task, create_root_volume=True, create_nonroot_volumes=True,
                 delete_existing=False)
 
+            self.assertEqual(True,
+                             task.node.driver_internal_info[
+                                 'volume_validation'])
         self.node.refresh()
         self.assertEqual(['42'],
                          self.node.driver_internal_info['raid_config_job_ids'])
@@ -1236,6 +1329,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 task, create_root_volume=True, create_nonroot_volumes=True,
                 delete_existing=False)
 
+            self.assertEqual(True,
+                             task.node.driver_internal_info[
+                                 'volume_validation'])
             # Commits to the controller
             mock_commit_config.assert_called_with(
                 mock.ANY, raid_controller='RAID.Integrated.1-1',
@@ -1286,6 +1382,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 task, create_root_volume=True, create_nonroot_volumes=True,
                 delete_existing=False)
 
+            self.assertEqual(True,
+                             task.node.driver_internal_info[
+                                 'volume_validation'])
             # Commits to the controller
             mock_commit_config.assert_called_with(
                 mock.ANY, raid_controller='RAID.Integrated.1-1',
@@ -1343,6 +1442,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 task, create_root_volume=True, create_nonroot_volumes=True,
                 delete_existing=False)
 
+            self.assertEqual(True,
+                             task.node.driver_internal_info[
+                                 'volume_validation'])
             # Commits to the controller
             mock_commit_config.assert_called_with(
                 mock.ANY, raid_controller='RAID.Integrated.1-1', reboot=False,
@@ -1423,6 +1525,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 task, create_root_volume=True, create_nonroot_volumes=True,
                 delete_existing=False)
 
+            self.assertEqual(True,
+                             task.node.driver_internal_info[
+                                 'volume_validation'])
             # Commits to the controller
             mock_commit_config.assert_called_with(
                 mock.ANY, raid_controller='RAID.Integrated.1-1', reboot=False,
@@ -1525,6 +1630,9 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
                 task, create_root_volume=True, create_nonroot_volumes=True,
                 delete_existing=False)
 
+            self.assertEqual(True,
+                             task.node.driver_internal_info[
+                                 'volume_validation'])
             # Commits to the controller
             mock_commit_config.assert_called_with(
                 mock.ANY, raid_controller='RAID.Integrated.1-1', reboot=False,
