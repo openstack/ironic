@@ -104,11 +104,8 @@ a node with the ``redfish`` driver. For example:
 For more information about enrolling nodes see :ref:`enrollment`
 in the install guide.
 
-Features of the ``redfish`` hardware type
-=========================================
-
 Boot mode support
-^^^^^^^^^^^^^^^^^
+=================
 
 The ``redfish`` hardware type can read current boot mode from the
 bare metal node as well as set it to either Legacy BIOS or UEFI.
@@ -121,7 +118,7 @@ bare metal node as well as set it to either Legacy BIOS or UEFI.
    boot mode to their bare metal nodes.
 
 Out-Of-Band inspection
-^^^^^^^^^^^^^^^^^^^^^^
+======================
 
 The ``redfish`` hardware type can inspect the bare metal node by querying
 Redfish compatible BMC. This process is quick and reliable compared to the
@@ -141,7 +138,7 @@ into the introspection ramdisk.
    support the required schema. In this case the property will be set to 0.
 
 Virtual media boot
-^^^^^^^^^^^^^^^^^^
+==================
 
 The idea behind virtual media boot is that BMC gets hold of the boot image
 one way or the other (e.g. by HTTP GET, other methods are defined in the
@@ -167,12 +164,7 @@ BIOS boot mode, it suffice to set ironic boot interface to
   baremetal node set --boot-interface redfish-virtual-media node-0
 
 If UEFI boot mode is desired, the user should additionally supply EFI
-System Partition image (ESP_) via ``[driver-info]/bootloader`` ironic node
-property or ironic configuration file in form of Glance image UUID or a URL.
-
-.. code-block:: bash
-
-  baremetal node set --driver-info bootloader=<glance-uuid> node-0
+System Partition image (ESP_), see `Configuring an ESP image`_ for details.
 
 If ``[driver_info]/config_via_floppy`` boolean property of the node is set to
 ``true``, ironic will create a file with runtime configuration parameters,
@@ -184,6 +176,70 @@ specific kernel configuration, ``[instance_info]/kernel_append_params``
 property can be used to pass user-specified kernel command line parameters.
 For ramdisk kernel, ``[instance_info]/kernel_append_params`` property serves
 the same purpose.
+
+Configuring an ESP image
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An ESP image is an image that contains the necessary bootloader to boot the ISO
+in UEFI mode. You will need a GRUB2 image file, as well as Shim for secure
+boot. See :ref:`uefi-pxe-grub` for an explanation how to get them.
+
+Then the following script can be used to build an ESP image:
+
+.. code-block:: bash
+
+   DEST=/path/to/esp.img
+   GRUB2=/path/to/grub.efi
+   SHIM=/path/to/shim.efi
+   TEMP_MOUNT=$(mktemp -d)
+
+   dd if=/dev/zero of=$DEST bs=4096 count=1024
+   mkfs.fat -s 4 -r 512 -S 4096 $DEST
+
+   sudo mount $DEST $TEMP_MOUNT
+   sudo mkdir -p $DEST/EFI/BOOT
+   sudo cp "$SHIM" $DEST/EFI/BOOT/BOOTX64.efi
+   sudo cp "$GRUB2" $DEST/EFI/BOOT/GRUBX64.efi
+   sudo umount $TEMP_MOUNT
+
+.. note::
+   If you use an architecture other than x86-64, you'll need to adjust the
+   destination paths.
+
+The resulting image should be provided via the ``driver_info/bootloader``
+ironic node property in form of an image UUID or a URL:
+
+.. code-block:: bash
+
+   baremetal node set --driver-info bootloader=<glance-uuid-or-url> node-0
+
+Alternatively, set the bootloader UUID or URL in the configuration file:
+
+.. code-block:: ini
+
+   [conductor]
+   bootloader = <glance-uuid-or-url>
+
+Finally, you need to provide the correct GRUB2 configuration path for your
+image. In most cases this path will depend on your distribution, more
+precisely, the distribution you took the GRUB2 image from. For example:
+
+CentOS:
+
+.. code-block:: ini
+
+   [DEFAULT]
+   grub_config_path = EFI/centos/grub.cfg
+
+Ubuntu:
+
+.. code-block:: ini
+
+   [DEFAULT]
+   grub_config_path = EFI/ubuntu/grub.cfg
+
+.. note::
+   Unlike in the script above, these paths are case-sensitive!
 
 .. _redfish-virtual-media-ramdisk:
 
@@ -217,7 +273,7 @@ setting is ignored. Configuration drives are not supported yet.
 .. _`dhcpless_booting`:
 
 Layer 3 or DHCP-less ramdisk booting
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The DHCP used by PXE requires direct L2 connectivity between the node and the
 service since it's a User Datagram Protocol (UDP) like other protocols used by
@@ -257,8 +313,8 @@ scenario.
 
   Make sure to use add the simple-init_ element when building the IPA ramdisk.
 
-Firmware update using manual cleaning step
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Firmware update using manual cleaning
+=====================================
 
 The ``redfish`` hardware type supports updating the firmware on nodes using a
 manual cleaning step.

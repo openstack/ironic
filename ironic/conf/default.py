@@ -211,7 +211,11 @@ image_opts = [
     cfg.StrOpt('grub_config_path',
                default='/boot/grub/grub.cfg',
                help=_('GRUB2 configuration file location on the UEFI ISO '
-                      'images produced by ironic.')),
+                      'images produced by ironic. The default value is '
+                      'usually incorrect and should not be relied on. '
+                      'If you use a GRUB2 image from a certain distribution, '
+                      'use a distribution-specific path here, e.g. '
+                      'EFI/ubuntu/grub.cfg')),
     cfg.StrOpt('grub_config_template',
                default=os.path.join('$pybasedir',
                                     'common/grub_conf.template'),
