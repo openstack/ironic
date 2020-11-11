@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Correctly handles the node's custom network data when the ``noop`` network
+    interface is used. Previously it was ignored.

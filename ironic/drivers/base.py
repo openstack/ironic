@@ -1575,7 +1575,7 @@ class NetworkInterface(BaseInterface):
         :returns: a dict holding network configuration information adhearing
             Nova network metadata layout (`network_data.json`).
         """
-        return {}
+        return task.node.network_data or {}
 
 
 class StorageInterface(BaseInterface, metaclass=abc.ABCMeta):
