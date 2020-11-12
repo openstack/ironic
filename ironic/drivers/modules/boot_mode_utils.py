@@ -284,7 +284,8 @@ def get_boot_mode(node):
         return boot_mode
     # TODO(hshiina): The default boot mode will be changed to UEFI.
     global warn_about_default_boot_mode
-    if not warn_about_default_boot_mode:
+    if (not warn_about_default_boot_mode
+            and CONF.deploy.default_boot_mode == boot_modes.LEGACY_BIOS):
         warn_about_default_boot_mode = True
         LOG.warning('Boot mode is not configured for node %(node_uuid)s '
                     'explicitly. The default boot mode is "%(bios)s", but, '
@@ -294,4 +295,4 @@ def get_boot_mode(node):
                     {'node_uuid': node.uuid,
                      'bios': boot_modes.LEGACY_BIOS,
                      'uefi': boot_modes.UEFI})
-    return boot_modes.LEGACY_BIOS
+    return CONF.deploy.default_boot_mode

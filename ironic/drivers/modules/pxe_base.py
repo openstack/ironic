@@ -191,7 +191,8 @@ class PXEBaseMixin(object):
             pxe_info.update(
                 pxe_utils.get_instance_image_info(
                     task, ipxe_enabled=self.ipxe_enabled))
-            boot_mode_utils.sync_boot_mode(task)
+
+        boot_mode_utils.sync_boot_mode(task)
 
         pxe_options = pxe_utils.build_pxe_config_options(
             task, pxe_info, ipxe_enabled=self.ipxe_enabled,

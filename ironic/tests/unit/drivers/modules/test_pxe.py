@@ -277,8 +277,7 @@ class PXEBootTestCase(db_base.DbTestCase):
                                                          mode=mode,
                                                          ipxe_enabled=False)
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
-            if self.node.provision_state == states.DEPLOYING:
-                get_boot_mode_mock.assert_called_once_with(task)
+            get_boot_mode_mock.assert_called_once_with(task)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=persistent)
