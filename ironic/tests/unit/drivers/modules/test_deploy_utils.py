@@ -1039,6 +1039,20 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
         result = utils.get_disk_label(self.node)
         self.assertEqual('gpt', result)
 
+    def test_get_disk_label_nothing_set(self):
+        inst_info = {'capabilities': {'cat': 'meows'}}
+        self.node.instance_info = inst_info
+        result = utils.get_disk_label(self.node)
+        self.assertIsNone(result)
+
+    def test_get_disk_label_uefi_mode(self):
+        inst_info = {'capabilities': {'cat': 'meows'}}
+        properties = {'capabilities': 'boot_mode:uefi'}
+        self.node.instance_info = inst_info
+        self.node.properties = properties
+        result = utils.get_disk_label(self.node)
+        self.assertEqual('gpt', result)
+
 
 class TrySetBootDeviceTestCase(db_base.DbTestCase):
 
