@@ -739,14 +739,6 @@ class TestVifPortIDMixin(db_base.DbTestCase):
             vif = self.interface.get_current_vif(task, self.port)
             self.assertIsNone(vif)
 
-    def test_get_node_network_data_complete(self):
-        self.node.network_data = self.network_data
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.id) as task:
-            network_data = self.interface.get_node_network_data(task)
-
-        self.assertEqual(self.network_data, network_data)
-
 
 class TestNeutronVifPortIDMixin(db_base.DbTestCase):
 
