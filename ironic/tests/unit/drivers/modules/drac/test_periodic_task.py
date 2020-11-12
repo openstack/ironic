@@ -203,9 +203,11 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         self._test__check_node_raid_jobs_with_completed_job(
             mock_notify_conductor_resume)
 
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
-    def test__check_node_raid_jobs_with_failed_job(self, mock_get_drac_client):
+    def test__check_node_raid_jobs_with_failed_job(
+            self, mock_get_drac_client, mock_cleaning_error_handler):
         # mock node.driver_internal_info and node.clean_step
         driver_internal_info = {'raid_config_job_ids': ['42']}
         self.node.driver_internal_info = driver_internal_info
@@ -232,15 +234,18 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         self.assertEqual([],
                          self.node.driver_internal_info['raid_config_job_ids'])
         self.assertEqual({}, self.node.raid_config)
-        task.process_event.assert_called_once_with('fail')
+        mock_cleaning_error_handler.assert_called_once_with(task, mock.ANY)
 
+    @mock.patch.object(manager_utils, 'deploying_error_handler', autospec=True)
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
     @mock.patch.object(drac_raid.DracRAID, 'get_logical_disks',
                        spec_set=True, autospec=True)
     def _test__check_node_raid_jobs_with_completed_job_already_failed(
             self, mock_notify_conductor_resume,
-            mock_get_logical_disks, mock_get_drac_client):
+            mock_get_logical_disks, mock_get_drac_client,
+            mock_cleaning_error_handler, mock_deploying_error_handler):
         expected_logical_disk = {'size_gb': 558,
                                  'raid_level': '1',
                                  'name': 'disk 0'}
@@ -271,7 +276,12 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         self.assertNotIn('raid_config_job_failure',
                          self.node.driver_internal_info)
         self.assertNotIn('logical_disks', self.node.raid_config)
-        task.process_event.assert_called_once_with('fail')
+        if self.node.clean_step:
+            mock_cleaning_error_handler.assert_called_once_with(task, mock.ANY)
+        else:
+            mock_deploying_error_handler.assert_called_once_with(task,
+                                                                 mock.ANY,
+                                                                 mock.ANY)
         self.assertFalse(mock_notify_conductor_resume.called)
 
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
@@ -346,13 +356,16 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         self._test__check_node_raid_jobs_with_multiple_jobs_completed(
             mock_notify_conductor_resume)
 
+    @mock.patch.object(manager_utils, 'deploying_error_handler', autospec=True)
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
                        autospec=True)
     @mock.patch.object(drac_raid.DracRAID, 'get_logical_disks',
                        spec_set=True, autospec=True)
     def _test__check_node_raid_jobs_with_multiple_jobs_failed(
             self, mock_notify_conductor_resume,
-            mock_get_logical_disks, mock_get_drac_client):
+            mock_get_logical_disks, mock_get_drac_client,
+            mock_cleaning_error_handler, mock_deploying_error_handler):
         expected_logical_disk = {'size_gb': 558,
                                  'raid_level': '1',
                                  'name': 'disk 0'}
@@ -387,7 +400,12 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         self.assertNotIn('raid_config_job_failure',
                          self.node.driver_internal_info)
         self.assertNotIn('logical_disks', self.node.raid_config)
-        task.process_event.assert_called_once_with('fail')
+        if self.node.clean_step:
+            mock_cleaning_error_handler.assert_called_once_with(task, mock.ANY)
+        else:
+            mock_deploying_error_handler.assert_called_once_with(task,
+                                                                 mock.ANY,
+                                                                 mock.ANY)
         self.assertFalse(mock_notify_conductor_resume.called)
 
     @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
