@@ -1169,6 +1169,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                 LOG.error(error, exc_info=log_traceback)
 
         if error is None:
+            # Retrieve BIOS config settings for this node
+            utils.node_cache_bios_settings(task, node)
+
             if power_state != node.power_state:
                 old_power_state = node.power_state
                 node.power_state = power_state
@@ -1694,6 +1697,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # is called as part of the transition from ENROLL to MANAGEABLE
             # states. As such it is redundant to call here.
             self._do_takeover(task)
+
             LOG.info("Successfully adopted node %(node)s",
                      {'node': node.uuid})
             task.process_event('done')

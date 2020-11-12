@@ -22,6 +22,7 @@ from ironic.common import states
 from ironic.conductor import cleaning
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
+from ironic.conductor import utils as conductor_utils
 from ironic.drivers.modules import fake
 from ironic.drivers.modules.network import flat as n_flat
 from ironic.tests.unit.db import base as db_base
@@ -85,7 +86,7 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
     def test__do_node_clean_manual_network_validate_fail(self, mock_validate):
         self.__do_node_clean_validate_fail(mock_validate, clean_steps=[])
 
-    @mock.patch.object(cleaning, 'LOG', autospec=True)
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
                        autospec=True)
     @mock.patch.object(cleaning, 'do_next_clean_step', autospec=True)
@@ -124,8 +125,7 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
             mock_validate.assert_called_once_with(mock.ANY, task)
             if enable_exception:
                 mock_log.exception.assert_called_once_with(
-                    'Caching of bios settings failed on node {}. '
-                    'Continuing with node cleaning.'
+                    'Caching of bios settings failed on node {}.'
                     .format(node.uuid))
 
     def test__do_node_clean_manual_cache_bios(self):

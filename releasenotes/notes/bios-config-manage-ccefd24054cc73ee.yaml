@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Retrieves BIOS configuration settings when moving a node to ``manageable``.
+    This allows the settings to be used when choosing which node to deploy.
+    For more details, see
+    `story 2008326 <https://storyboard.openstack.org/#!/story/2008326>`_.
