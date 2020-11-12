@@ -808,6 +808,9 @@ class AgentRAID(base.RAIDInterface):
             returned from agent ramdisk on query of the status of command(s).
         :returns: None
         """
+        prop = task.node.properties
+        prop.pop('root_device', None)
+        task.node.properties = prop
         task.node.raid_config = {}
         task.node.save()
 

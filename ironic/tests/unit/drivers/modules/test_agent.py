@@ -1952,11 +1952,13 @@ class AgentRAIDTestCase(db_base.DbTestCase):
         command = {'command_result': {'clean_result': 'foo'}}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.raid_config = {'foo': 'bar'}
+            task.node.properties = {'root_device': {'wwn': 'fake wwn'}}
             raid_mgmt = agent.AgentRAID
             raid_mgmt._delete_configuration_final(task, command)
 
         self.node.refresh()
         self.assertEqual({}, self.node.raid_config)
+        self.assertEqual({}, self.node.properties)
 
     def test__delete_configuration_final_registered(
             self):
