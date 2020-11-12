@@ -533,7 +533,8 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.unconfigure_tenant_networks(task)
             mock_unbind_port.assert_called_once_with(
-                self.port.extra['vif_port_id'], context=task.context)
+                self.port.extra['vif_port_id'], context=task.context,
+                reset_mac=True)
 
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
     @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
@@ -550,8 +551,35 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.unconfigure_tenant_networks(task)
             mock_unbind_port.assert_called_once_with(
-                self.port.extra['vif_port_id'], context=task.context)
+                self.port.extra['vif_port_id'], context=task.context,
+                reset_mac=True)
             wait_agent_mock.assert_called_once_with(nclient, 'hostname')
+
+    @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
+    def test_unconfigure_tenant_networks_portgroup_1(self, mock_unbind_port):
+        pg = utils.create_test_portgroup(
+            self.context, node_id=self.node.id, address='ff:54:00:cf:2d:32',
+            internal_info={'tenant_vif_port_id': uuidutils.generate_uuid()})
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.unconfigure_tenant_networks(task)
+            mock_unbind_port.assert_has_calls([
+                mock.call(self.port.extra['vif_port_id'], context=task.context,
+                          reset_mac=True),
+                mock.call(pg.internal_info['tenant_vif_port_id'],
+                          context=task.context, reset_mac=True)])
+
+    @mock.patch.object(neutron_common, 'unbind_neutron_port', autospec=True)
+    def test_unconfigure_tenant_networks_portgroup_2(self, mock_unbind_port):
+        pg = utils.create_test_portgroup(
+            self.context, node_id=self.node.id, address=None,
+            internal_info={'tenant_vif_port_id': uuidutils.generate_uuid()})
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.interface.unconfigure_tenant_networks(task)
+            mock_unbind_port.assert_has_calls([
+                mock.call(self.port.extra['vif_port_id'], context=task.context,
+                          reset_mac=True),
+                mock.call(pg.internal_info['tenant_vif_port_id'],
+                          context=task.context, reset_mac=False)])
 
     def test_configure_tenant_networks_no_ports_for_node(self):
         n = utils.create_test_node(self.context, network_interface='neutron',
@@ -740,6 +768,64 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             'local_group_information': local_group_info
         }
         call2_attrs['mac_address'] = 'ff:54:00:cf:2d:32'
+        with task_manager.acquire(self.context, self.node.id) as task:
+            # Override task.portgroups here, to have ability to check
+            # that mocked get_local_group_information was called with
+            # this portgroup object.
+            task.portgroups = [pg]
+            self.interface.configure_tenant_networks(task)
+            client_mock.assert_called_once_with(context=task.context)
+            glgi_mock.assert_called_once_with(task, pg)
+        update_mock.assert_has_calls(
+            [mock.call(self.context, self.port.extra['vif_port_id'],
+                       call1_attrs),
+             mock.call(self.context, pg.extra['vif_port_id'],
+                       call2_attrs)]
+        )
+
+    @mock.patch.object(neutron_common, 'get_neutron_port_data', autospec=True)
+    @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
+    @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
+    @mock.patch.object(neutron_common, 'get_client', autospec=True)
+    @mock.patch.object(neutron_common, 'get_local_group_information',
+                       autospec=True)
+    def test_configure_tenant_networks_with_portgroups_no_address(
+            self, glgi_mock, client_mock, update_mock, wait_agent_mock,
+            port_data_mock):
+        pg = utils.create_test_portgroup(
+            self.context, node_id=self.node.id, address=None,
+            extra={'vif_port_id': uuidutils.generate_uuid()})
+        port1 = utils.create_test_port(
+            self.context, node_id=self.node.id, address='ff:54:00:cf:2d:33',
+            uuid=uuidutils.generate_uuid(),
+            portgroup_id=pg.id,
+            local_link_connection={'switch_id': '0a:1b:2c:3d:4e:ff',
+                                   'port_id': 'Ethernet1/1',
+                                   'switch_info': 'switch2'}
+        )
+        port2 = utils.create_test_port(
+            self.context, node_id=self.node.id, address='ff:54:00:cf:2d:34',
+            uuid=uuidutils.generate_uuid(),
+            portgroup_id=pg.id,
+            local_link_connection={'switch_id': '0a:1b:2c:3d:4e:ff',
+                                   'port_id': 'Ethernet1/2',
+                                   'switch_info': 'switch2'}
+        )
+        local_group_info = {'a': 'b'}
+        glgi_mock.return_value = local_group_info
+        expected_attrs = {'binding:vnic_type': 'baremetal',
+                          'binding:host_id': self.node.uuid}
+        call1_attrs = copy.deepcopy(expected_attrs)
+        call1_attrs['binding:profile'] = {
+            'local_link_information': [self.port.local_link_connection]
+        }
+        call1_attrs['mac_address'] = '52:54:00:cf:2d:32'
+        call2_attrs = copy.deepcopy(expected_attrs)
+        call2_attrs['binding:profile'] = {
+            'local_link_information': [port1.local_link_connection,
+                                       port2.local_link_connection],
+            'local_group_information': local_group_info
+        }
         with task_manager.acquire(self.context, self.node.id) as task:
             # Override task.portgroups here, to have ability to check
             # that mocked get_local_group_information was called with
