@@ -19,7 +19,6 @@
 Handling of VM disk images.
 """
 
-import contextlib
 import os
 import shutil
 
@@ -48,9 +47,11 @@ def _create_root_fs(root_directory, files_info):
 
     :param root_directory: the filesystem root directory.
     :param files_info: A dict containing absolute path of file to be copied
-                       -> relative path within the vfat image. For example::
+                       or its content as bytes -> relative path within
+                       the vfat image. For example::
                         {
-                        '/absolute/path/to/file' -> 'relative/path/within/root'
+                        '/absolute/path/to/file': 'relative/path/within/root',
+                        b'{"some": "json"}': 'another/relative/path'
                         ...
                         }
     :raises: OSError, if creation of any directory failed.
@@ -59,10 +60,14 @@ def _create_root_fs(root_directory, files_info):
     for src_file, path in files_info.items():
         target_file = os.path.join(root_directory, path)
         dirname = os.path.dirname(target_file)
-        if not os.path.exists(dirname):
-            os.makedirs(dirname)
+        if dirname:
+            os.makedirs(dirname, exist_ok=True)
 
-        shutil.copyfile(src_file, target_file)
+        if isinstance(src_file, bytes):
+            with open(target_file, 'wb') as fp:
+                fp.write(src_file)
+        else:
+            shutil.copyfile(src_file, target_file)
 
 
 def _umount_without_raise(mount_dir):
@@ -155,67 +160,19 @@ def _generate_cfg(kernel_params, template, options):
     return utils.render_template(template, options)
 
 
-def _read_dir(root_dir, prefix_dir=None):
-    """Gather files under given directory.
+def _label(files_info):
+    """Get a suitable label for the files.
 
-    :param root_dir: a directory to traverse.
-    :returns: a dict mapping absolute paths to relative to the `root_dir`.
+    Returns "config-2" if the openstack metadata is present.
     """
-    files_info = {}
-
-    if not prefix_dir:
-        prefix_dir = root_dir
-
-    for entry in os.listdir(root_dir):
-        path = os.path.join(root_dir, entry)
-        if os.path.isdir(path):
-            files_info.update(_read_dir(path, prefix_dir))
-
-        else:
-            files_info[path] = path[len(prefix_dir) + 1:]
-
-    return files_info
-
-
-@contextlib.contextmanager
-def _collect_files(image_path):
-    """Mount image and return a dictionary of paths found there.
-
-    Mounts given image under a temporary directory, walk its contents
-    and produce a dictionary of absolute->relative paths found on the
-    image.
-
-    :param image_path: ISO9660 or FAT-formatted image to mount.
-    :raises: ImageCreationFailed, if image inspection failed.
-    :returns: a dict mapping absolute paths to relative to the mount point.
-    """
-    if not image_path:
-        yield {}
-        return
-
-    with utils.tempdir() as mount_dir:
-        try:
-            utils.mount(image_path, mount_dir, '-o', 'loop')
-
-        except processutils.ProcessExecutionError as e:
-            LOG.exception("Mounting filesystem image %(image)s "
-                          "failed", {'image': image_path})
-            raise exception.ImageCreationFailed(image_type='iso', error=e)
-
-        try:
-            yield _read_dir(mount_dir)
-
-        except EnvironmentError as e:
-            LOG.exception(
-                "Examining image %(images)s failed: ", {'image': image_path})
-            _umount_without_raise(mount_dir)
-            raise exception.ImageCreationFailed(image_type='iso', error=e)
-
-        _umount_without_raise(mount_dir)
+    if any(x.startswith('openstack/') for x in files_info.values()):
+        return 'config-2'
+    else:
+        return 'VMEDIA_BOOT_ISO'
 
 
 def create_isolinux_image_for_bios(
-        output_file, kernel, ramdisk, kernel_params=None, configdrive=None):
+        output_file, kernel, ramdisk, kernel_params=None, inject_files=None):
     """Creates an isolinux image on the specified file.
 
     Copies the provided kernel, ramdisk to a directory, generates the isolinux
@@ -229,8 +186,8 @@ def create_isolinux_image_for_bios(
     :param kernel_params: a list of strings(each element being a string like
         'K=V' or 'K' or combination of them like 'K1=V1,K2,...') to be added
         as the kernel cmdline.
-    :param configdrive: ISO9660 or FAT-formatted OpenStack config drive
-        image. This image will be written onto the built ISO image. Optional.
+    :param inject_files: Mapping of local source file paths to their location
+        on the final ISO image.
     :raises: ImageCreationFailed, if image creation failed while copying files
         or while running command to generate iso.
     """
@@ -248,6 +205,8 @@ def create_isolinux_image_for_bios(
             ramdisk: 'initrd',
             CONF.isolinux_bin: ISOLINUX_BIN,
         }
+        if inject_files:
+            files_info.update(inject_files)
 
         # ldlinux.c32 is required for syslinux 5.0 or later.
         if CONF.ldlinux_c32:
@@ -262,15 +221,12 @@ def create_isolinux_image_for_bios(
         if ldlinux_src:
             files_info[ldlinux_src] = LDLINUX_BIN
 
-        with _collect_files(configdrive) as cfgdrv_files:
-            files_info.update(cfgdrv_files)
+        try:
+            _create_root_fs(tmpdir, files_info)
 
-            try:
-                _create_root_fs(tmpdir, files_info)
-
-            except EnvironmentError as e:
-                LOG.exception("Creating the filesystem root failed.")
-                raise exception.ImageCreationFailed(image_type='iso', error=e)
+        except EnvironmentError as e:
+            LOG.exception("Creating the filesystem root failed.")
+            raise exception.ImageCreationFailed(image_type='iso', error=e)
 
         cfg = _generate_cfg(kernel_params,
                             CONF.isolinux_config_template, options)
@@ -279,8 +235,7 @@ def create_isolinux_image_for_bios(
         utils.write_to_file(isolinux_cfg, cfg)
 
         try:
-            utils.execute('mkisofs', '-r', '-V',
-                          'config-2' if configdrive else 'VMEDIA_BOOT_ISO',
+            utils.execute('mkisofs', '-r', '-V', _label(files_info),
                           '-cache-inodes', '-J', '-l', '-no-emul-boot',
                           '-boot-load-size', '4', '-boot-info-table',
                           '-b', ISOLINUX_BIN, '-o', output_file, tmpdir)
@@ -291,7 +246,7 @@ def create_isolinux_image_for_bios(
 
 def create_esp_image_for_uefi(
         output_file, kernel, ramdisk, deploy_iso=None, esp_image=None,
-        kernel_params=None, configdrive=None):
+        kernel_params=None, inject_files=None):
     """Creates an ESP image on the specified file.
 
     Copies the provided kernel, ramdisk and EFI system partition image (ESP) to
@@ -311,8 +266,8 @@ def create_esp_image_for_uefi(
     :param kernel_params: a list of strings(each element being a string like
         'K=V' or 'K' or combination of them like 'K1=V1,K2,...') to be added
         as the kernel cmdline.
-    :param configdrive: ISO9660 or FAT-formatted OpenStack config drive
-        image. This image will be written onto the built ISO image. Optional.
+    :param inject_files: Mapping of local source file paths to their location
+        on the final ISO image.
     :raises: ImageCreationFailed, if image creation failed while copying files
         or while running command to generate iso.
     """
@@ -325,6 +280,8 @@ def create_esp_image_for_uefi(
             kernel: 'vmlinuz',
             ramdisk: 'initrd',
         }
+        if inject_files:
+            files_info.update(inject_files)
 
         with utils.tempdir() as mountdir:
             # Open the deploy iso used to initiate deploy and copy the
@@ -359,20 +316,17 @@ def create_esp_image_for_uefi(
 
             files_info.update(uefi_path_info)
 
-            with _collect_files(configdrive) as cfgdrv_files:
-                files_info.update(cfgdrv_files)
+            try:
+                _create_root_fs(tmpdir, files_info)
 
-                try:
-                    _create_root_fs(tmpdir, files_info)
+            except EnvironmentError as e:
+                LOG.exception("Creating the filesystem root failed.")
+                raise exception.ImageCreationFailed(
+                    image_type='iso', error=e)
 
-                except EnvironmentError as e:
-                    LOG.exception("Creating the filesystem root failed.")
-                    raise exception.ImageCreationFailed(
-                        image_type='iso', error=e)
-
-                finally:
-                    if deploy_iso:
-                        _umount_without_raise(mountdir)
+            finally:
+                if deploy_iso:
+                    _umount_without_raise(mountdir)
 
         # Generate and copy grub config file.
         grub_conf = _generate_cfg(kernel_params,
@@ -381,18 +335,13 @@ def create_esp_image_for_uefi(
 
         # Create the boot_iso.
         try:
-            utils.execute('mkisofs', '-r', '-V',
-                          'config-2' if configdrive else 'VMEDIA_BOOT_ISO',
+            utils.execute('mkisofs', '-r', '-V', _label(files_info),
                           '-l', '-e', e_img_rel_path, '-no-emul-boot',
                           '-o', output_file, tmpdir)
 
         except processutils.ProcessExecutionError as e:
             LOG.exception("Creating ISO image failed.")
             raise exception.ImageCreationFailed(image_type='iso', error=e)
-
-
-# NOTE(etingof): backward compatibility
-create_isolinux_image_for_uefi = create_esp_image_for_uefi
 
 
 def fetch(context, image_href, path, force_raw=False):
@@ -526,7 +475,7 @@ def get_temp_url_for_glance_image(context, image_uuid):
 def create_boot_iso(context, output_filename, kernel_href,
                     ramdisk_href, deploy_iso_href=None, esp_image_href=None,
                     root_uuid=None, kernel_params=None, boot_mode=None,
-                    configdrive_href=None, base_iso=None):
+                    base_iso=None, inject_files=None):
     """Creates a bootable ISO image for a node.
 
     Given the hrefs for kernel, ramdisk, root partition's UUID and
@@ -550,12 +499,11 @@ def create_boot_iso(context, output_filename, kernel_href,
     :param kernel_params: a string containing whitespace separated values
         kernel cmdline arguments of the form K=V or K (optional).
     :boot_mode: the boot mode in which the deploy is to happen.
-    :param configdrive_href: URL to ISO9660 or FAT-formatted OpenStack config
-        drive image. This image will be embedded into the built ISO image.
-        Optional.
     :param base_iso: URL or glance UUID of a to be used as an override of
         what should be retrieved for to use, instead of building an ISO
         bootable ramdisk.
+    :param inject_files: Mapping of local source file paths to their location
+        on the final ISO image.
     :raises: ImageCreationFailed, if creating boot ISO failed.
     """
     with utils.tempdir() as tmpdir:
@@ -573,14 +521,6 @@ def create_boot_iso(context, output_filename, kernel_href,
             ramdisk_path = os.path.join(tmpdir, ramdisk_href.split('/')[-1])
             fetch(context, kernel_href, kernel_path)
             fetch(context, ramdisk_href, ramdisk_path)
-
-        if configdrive_href:
-            configdrive_path = os.path.join(
-                tmpdir, configdrive_href.split('/')[-1])
-            fetch(context, configdrive_href, configdrive_path)
-
-        else:
-            configdrive_path = None
 
         params = []
         if root_uuid:
@@ -612,12 +552,12 @@ def create_boot_iso(context, output_filename, kernel_href,
             create_esp_image_for_uefi(
                 output_filename, kernel_path, ramdisk_path,
                 deploy_iso=deploy_iso_path, esp_image=esp_image_path,
-                kernel_params=params, configdrive=configdrive_path)
+                kernel_params=params, inject_files=inject_files)
 
         else:
             create_isolinux_image_for_bios(
                 output_filename, kernel_path, ramdisk_path,
-                kernel_params=params, configdrive=configdrive_path)
+                kernel_params=params, inject_files=inject_files)
 
 
 def is_whole_disk_image(ctx, instance_info):

@@ -22,7 +22,6 @@ from urllib import parse as urlparse
 
 from ironic_lib import utils as ironic_utils
 from oslo_log import log
-from oslo_serialization import base64
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -288,28 +287,24 @@ def cleanup_floppy_image(task):
 
 
 def _prepare_iso_image(task, kernel_href, ramdisk_href,
-                       bootloader_href=None, configdrive=None,
-                       root_uuid=None, params=None, base_iso=None):
+                       bootloader_href=None, root_uuid=None, params=None,
+                       base_iso=None, inject_files=None):
     """Prepare an ISO to boot the node.
 
     Build bootable ISO out of `kernel_href` and `ramdisk_href` (and
     `bootloader` if it's UEFI boot), then push built image up to Swift and
     return a temporary URL.
 
-    If `configdrive` is specified it will be eventually written onto
-    the boot ISO image.
-
     :param task: a TaskManager instance containing the node to act on.
     :param kernel_href: URL or Glance UUID of the kernel to use
     :param ramdisk_href: URL or Glance UUID of the ramdisk to use
     :param bootloader_href: URL or Glance UUID of the EFI bootloader
          image to use when creating UEFI bootbable ISO
-    :param configdrive: URL to or a compressed blob of a ISO9660 or
-        FAT-formatted OpenStack config drive image. This image will be
-        written onto the built ISO image. Optional.
     :param root_uuid: optional uuid of the root partition.
     :param params: a dictionary containing 'parameter name'->'value'
         mapping to be passed to kernel command line.
+    :param inject_files: Mapping of local source file paths to their location
+        on the final ISO image.
     :returns: bootable ISO HTTP URL.
     :raises: MissingParameterValue, if any of the required parameters are
         missing.
@@ -360,44 +355,21 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
     with tempfile.NamedTemporaryFile(
             dir=CONF.tempdir, suffix='.iso') as boot_fileobj:
 
-        with tempfile.NamedTemporaryFile(
-                dir=CONF.tempdir, suffix='.img') as cfgdrv_fileobj:
+        boot_iso_tmp_file = boot_fileobj.name
+        images.create_boot_iso(
+            task.context, boot_iso_tmp_file,
+            kernel_href, ramdisk_href,
+            esp_image_href=bootloader_href,
+            root_uuid=root_uuid,
+            kernel_params=kernel_params,
+            boot_mode=boot_mode,
+            base_iso=base_iso,
+            inject_files=inject_files)
 
-            configdrive_href = configdrive
+        iso_object_name = _get_iso_image_name(task.node)
 
-            # FIXME(TheJulia): This is treated as conditional with
-            # a base_iso as the intent, eventually, is to support
-            # injection into the supplied image.
-
-            if configdrive and not base_iso:
-                parsed_url = urlparse.urlparse(configdrive)
-                if not parsed_url.scheme:
-                    cfgdrv_blob = base64.decode_as_bytes(configdrive)
-
-                    with open(cfgdrv_fileobj.name, 'wb') as f:
-                        f.write(cfgdrv_blob)
-
-                    configdrive_href = urlparse.urlunparse(
-                        ('file', '', cfgdrv_fileobj.name, '', '', ''))
-
-                LOG.debug("Built configdrive out of configdrive blob "
-                          "for node %(node)s", {'node': task.node.uuid})
-
-            boot_iso_tmp_file = boot_fileobj.name
-            images.create_boot_iso(
-                task.context, boot_iso_tmp_file,
-                kernel_href, ramdisk_href,
-                esp_image_href=bootloader_href,
-                configdrive_href=configdrive_href,
-                root_uuid=root_uuid,
-                kernel_params=kernel_params,
-                boot_mode=boot_mode,
-                base_iso=base_iso)
-
-            iso_object_name = _get_iso_image_name(task.node)
-
-            image_url = img_handler.publish_image(
-                boot_iso_tmp_file, iso_object_name)
+        image_url = img_handler.publish_image(
+            boot_iso_tmp_file, iso_object_name)
 
     LOG.debug("Created ISO %(name)s in object store for node %(node)s, "
               "exposed as temporary URL "
@@ -426,8 +398,8 @@ def prepare_deploy_iso(task, params, mode, d_info):
     and return temporary Swift URL to the image.
 
     If network interface supplies network configuration (`network_data`),
-    a new `configdrive` will be created with `network_data.json` inside,
-    and eventually written down onto the boot ISO.
+    a `network_data.json` will be written into an appropriate location on
+    the final ISO.
 
     :param task: a TaskManager instance containing the node to act on.
     :param params: a dictionary containing 'parameter name'->'value'
@@ -457,35 +429,17 @@ def prepare_deploy_iso(task, params, mode, d_info):
         _prepare_iso_image, task, kernel_href, ramdisk_href,
         bootloader_href=bootloader_href, params=params)
 
+    inject_files = {}
     network_data = task.driver.network.get_node_network_data(task)
     if network_data:
         LOG.debug('Injecting custom network data for node %s',
                   task.node.uuid)
-        with tempfile.NamedTemporaryFile(dir=CONF.tempdir,
-                                         suffix='.iso') as metadata_fileobj:
+        network_data = json.dumps(network_data, indent=2).encode('utf-8')
+        inject_files[network_data] = (
+            'openstack/latest/network_data.json'
+        )
 
-            with open(metadata_fileobj.name, 'w') as f:
-                json.dump(network_data, f, indent=2)
-
-            files_info = {
-                metadata_fileobj.name: 'openstack/latest/network_data.json'
-            }
-
-            with tempfile.NamedTemporaryFile(
-                    dir=CONF.tempdir, suffix='.img') as cfgdrv_fileobj:
-
-                images.create_vfat_image(cfgdrv_fileobj.name, files_info)
-
-                configdrive_href = urlparse.urlunparse(
-                    ('file', '', cfgdrv_fileobj.name, '', '', ''))
-
-                LOG.debug("Built configdrive %(name)s out of network data "
-                          "for node %(node)s", {'name': configdrive_href,
-                                                'node': task.node.uuid})
-
-                return prepare_iso_image(configdrive=configdrive_href)
-
-    return prepare_iso_image()
+    return prepare_iso_image(inject_files=inject_files)
 
 
 def prepare_boot_iso(task, d_info, root_uuid=None):

@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes permission issues when injecting network data into a virtual media.
+other:
+  - |
+    The ``configdrive`` argument to some utils in ``ironic.common.images`` and
+    ``ironic.drivers.modules.image_utils`` has been replaced with a new
+    ``inject_files`` argument. The previous approach did not really work in
+    all situations and we don't expect 3rd party drivers to use it.
