@@ -468,8 +468,7 @@ def prepare_deploy_iso(task, params, mode, d_info):
                 json.dump(network_data, f, indent=2)
 
             files_info = {
-                metadata_fileobj.name: 'openstack/latest/meta'
-                                       'data/network_data.json'
+                metadata_fileobj.name: 'openstack/latest/network_data.json'
             }
 
             with tempfile.NamedTemporaryFile(
