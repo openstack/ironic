@@ -8,7 +8,6 @@ the services.
 .. toctree::
   :maxdepth: 1
 
-   Drivers, Hardware Types and Hardware Interfaces <drivers>
    Ironic Python Agent <drivers/ipa>
    Node Hardware Inspection <inspection>
    Node Deployment <node-deployment>
@@ -31,6 +30,14 @@ the services.
    Node Multi-Tenancy <node-multitenancy>
    Fast-Track Deployment <fast-track>
    Booting a Ramdisk or an ISO <ramdisk-boot>
+
+Drivers, Hardware Types and Hardware Interfaces
+-----------------------------------------------
+
+.. toctree::
+  :maxdepth: 3
+
+  drivers
 
 Advanced Topics
 ---------------
