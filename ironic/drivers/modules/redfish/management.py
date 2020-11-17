@@ -995,7 +995,6 @@ class RedfishManagement(base.ManagementInterface):
                              {'node': node.uuid,
                               'firmware_image': current_update['url'],
                               'errors': ",  ".join(messages)})
-                LOG.error(error_msg)
 
                 task.upgrade_lock()
                 self._clear_firmware_updates(node)
