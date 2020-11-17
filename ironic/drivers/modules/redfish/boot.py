@@ -183,7 +183,7 @@ def _insert_vmedia(task, boot_url, boot_device):
         _('No suitable virtual media device found'))
 
 
-def _eject_vmedia(task, boot_device=None):
+def eject_vmedia(task, boot_device=None):
     """Eject virtual CDs and DVDs
 
     :param task: A task from TaskManager.
@@ -430,7 +430,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                 floppy_ref = image_utils.prepare_floppy_image(
                     task, params=ramdisk_params)
 
-                _eject_vmedia(task, sushy.VIRTUAL_MEDIA_FLOPPY)
+                eject_vmedia(task, sushy.VIRTUAL_MEDIA_FLOPPY)
                 _insert_vmedia(
                     task, floppy_ref, sushy.VIRTUAL_MEDIA_FLOPPY)
 
@@ -447,7 +447,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         iso_ref = image_utils.prepare_deploy_iso(task, ramdisk_params,
                                                  mode, d_info)
 
-        _eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
+        eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
         _insert_vmedia(task, iso_ref, sushy.VIRTUAL_MEDIA_CD)
 
         boot_mode_utils.sync_boot_mode(task)
@@ -474,12 +474,12 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         LOG.debug("Cleaning up deploy boot for "
                   "%(node)s", {'node': task.node.uuid})
 
-        _eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
+        eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
         image_utils.cleanup_iso_image(task)
 
         if (config_via_floppy
                 and _has_vmedia_device(task, sushy.VIRTUAL_MEDIA_FLOPPY)):
-            _eject_vmedia(task, sushy.VIRTUAL_MEDIA_FLOPPY)
+            eject_vmedia(task, sushy.VIRTUAL_MEDIA_FLOPPY)
 
             image_utils.cleanup_floppy_image(task)
 
@@ -533,7 +533,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         deploy_info = _parse_deploy_info(node)
         iso_ref = image_utils.prepare_boot_iso(task, deploy_info, **params)
-        _eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
+        eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
         _insert_vmedia(task, iso_ref, sushy.VIRTUAL_MEDIA_CD)
 
         boot_mode_utils.sync_boot_mode(task)
@@ -556,11 +556,11 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         LOG.debug("Cleaning up instance boot for "
                   "%(node)s", {'node': task.node.uuid})
 
-        _eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
+        eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
         d_info = task.node.driver_info
         config_via_floppy = d_info.get('config_via_floppy')
         if config_via_floppy:
-            _eject_vmedia(task, sushy.VIRTUAL_MEDIA_FLOPPY)
+            eject_vmedia(task, sushy.VIRTUAL_MEDIA_FLOPPY)
 
         image_utils.cleanup_iso_image(task)
 

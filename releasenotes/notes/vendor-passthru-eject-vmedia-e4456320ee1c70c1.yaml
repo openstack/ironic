@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Provides a new vendor passthru method for Redfish to eject a virtual_media
+    device.  A specific device can be given (either ``cd``, ``dvd``,
+    ``floppy``, or ``usb``), or if no device is provided then all attached
+    devices will be ejected.

@@ -24,6 +24,7 @@ from ironic.drivers import base
 from ironic.drivers.modules.drac import bios as drac_bios
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
+from ironic.drivers.modules.redfish import vendor as redfish_vendor
 
 LOG = logging.getLogger(__name__)
 
@@ -190,3 +191,10 @@ class DracVendorPassthru(DracWSManVendorPassthru):
         LOG.warning("Vendor passthru interface 'idrac' is deprecated and may "
                     "be removed in a future release. Use 'idrac-wsman' "
                     "instead.")
+
+
+class DracRedfishVendorPassthru(redfish_vendor.RedfishVendorPassthru):
+    """iDRAC Redfish interface for vendor_passthru.
+
+    Use the Redfish implementation for vendor passthru.
+    """
