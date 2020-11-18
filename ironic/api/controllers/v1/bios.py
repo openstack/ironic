@@ -17,12 +17,9 @@ from ironic_lib import metrics_utils
 from pecan import rest
 
 from ironic import api
-from ironic.api.controllers import base
-from ironic.api.controllers import link
-from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
-from ironic.api import expose
-from ironic.api import types as atypes
+from ironic.api import method
+from ironic.common import args
 from ironic.common import exception
 from ironic.common import policy
 from ironic import objects
@@ -30,58 +27,23 @@ from ironic import objects
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
-class BIOSSetting(base.APIBase):
-    """API representation of a BIOS setting."""
-
-    name = atypes.wsattr(str)
-
-    value = atypes.wsattr(str)
-
-    links = None
-
-    def __init__(self, **kwargs):
-        self.fields = []
-        fields = list(objects.BIOSSetting.fields)
-        for k in fields:
-            if hasattr(self, k):
-                self.fields.append(k)
-                value = kwargs.get(k, atypes.Unset)
-                setattr(self, k, value)
-
-    @staticmethod
-    def _convert_with_links(bios, node_uuid, url):
-        """Add links to the bios setting."""
-        name = bios.name
-        bios.links = [link.make_link('self', url, 'nodes',
-                                     "%s/bios/%s" % (node_uuid, name)),
-                      link.make_link('bookmark', url, 'nodes',
-                                     "%s/bios/%s" % (node_uuid, name),
-                                     bookmark=True)]
-        return bios
-
-    @classmethod
-    def convert_with_links(cls, rpc_bios, node_uuid):
-        """Add links to the bios setting."""
-        bios = BIOSSetting(**rpc_bios.as_dict())
-        return cls._convert_with_links(bios, node_uuid, api.request.host_url)
+def convert_with_links(rpc_bios, node_uuid):
+    """Build a dict containing a bios setting value."""
+    bios = api_utils.object_to_dict(
+        rpc_bios,
+        uuid=False,
+        fields=('name', 'value'),
+        link_resource='nodes',
+        link_resource_args="%s/bios/%s" % (node_uuid, rpc_bios.name),
+    )
+    return bios
 
 
-class BIOSSettingsCollection(base.Base):
-    """API representation of the bios settings for a node."""
-
-    bios = [BIOSSetting]
-    """Node bios settings list"""
-
-    @staticmethod
-    def collection_from_list(node_ident, bios_settings):
-        col = BIOSSettingsCollection()
-
-        bios_list = []
-        for bios_setting in bios_settings:
-            bios_list.append(BIOSSetting.convert_with_links(bios_setting,
-                                                            node_ident))
-        col.bios = bios_list
-        return col
+def collection_from_list(node_ident, bios_settings):
+    bios_list = []
+    for bios_setting in bios_settings:
+        bios_list.append(convert_with_links(bios_setting, node_ident))
+    return {'bios': bios_list}
 
 
 class NodeBiosController(rest.RestController):
@@ -92,7 +54,7 @@ class NodeBiosController(rest.RestController):
         self.node_ident = node_ident
 
     @METRICS.timer('NodeBiosController.get_all')
-    @expose.expose(BIOSSettingsCollection)
+    @method.expose()
     def get_all(self):
         """List node bios settings."""
         cdict = api.request.context.to_policy_values()
@@ -101,11 +63,11 @@ class NodeBiosController(rest.RestController):
         node = api_utils.get_rpc_node(self.node_ident)
         settings = objects.BIOSSettingList.get_by_node_id(
             api.request.context, node.id)
-        return BIOSSettingsCollection.collection_from_list(self.node_ident,
-                                                           settings)
+        return collection_from_list(self.node_ident, settings)
 
     @METRICS.timer('NodeBiosController.get_one')
-    @expose.expose({str: BIOSSetting}, types.name)
+    @method.expose()
+    @args.validate(setting_name=args.name)
     def get_one(self, setting_name):
         """Retrieve information about the given bios setting.
 
@@ -122,5 +84,4 @@ class NodeBiosController(rest.RestController):
             raise exception.BIOSSettingNotFound(node=node.uuid,
                                                 name=setting_name)
 
-        return {setting_name: BIOSSetting.convert_with_links(setting,
-                                                             node.uuid)}
+        return {setting_name: convert_with_links(setting, node.uuid)}
