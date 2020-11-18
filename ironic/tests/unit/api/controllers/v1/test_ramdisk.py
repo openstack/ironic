@@ -19,6 +19,7 @@ from http import client as http_client
 from unittest import mock
 
 import fixtures
+from keystonemiddleware import auth_token
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
@@ -338,3 +339,31 @@ class TestHeartbeat(test_api_base.BaseApiTest):
             headers={api_base.Version.string: '1.67'},
             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+
+@mock.patch.object(auth_token.AuthProtocol, 'process_request',
+                   lambda *_: None)
+class TestLookupScopedRBAC(TestLookup):
+
+    """Test class to execute the Lookup tests with RBAC enforcement."""
+    def setUp(self):
+        super(TestLookupScopedRBAC, self).setUp()
+
+        cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
+        cfg.CONF.set_override('enforce_new_defaults', True,
+                              group='oslo_policy')
+        cfg.CONF.set_override('auth_strategy', 'keystone')
+
+
+@mock.patch.object(auth_token.AuthProtocol, 'process_request',
+                   lambda *_: None)
+class TestHeartbeatScopedRBAC(TestHeartbeat):
+
+    """Test class to execute the Heartbeat tests with RBAC enforcement."""
+    def setUp(self):
+        super(TestHeartbeatScopedRBAC, self).setUp()
+
+        cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
+        cfg.CONF.set_override('enforce_new_defaults', True,
+                              group='oslo_policy')
+        cfg.CONF.set_override('auth_strategy', 'keystone')
