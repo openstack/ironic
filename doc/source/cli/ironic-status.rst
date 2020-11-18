@@ -77,3 +77,8 @@ Upgrade
 
   * Adds a check for compatibility of the object versions with the release
     of ironic.
+
+  **Wallaby**
+
+  * Adds a check to validate the configured policy file is not JSON
+    based as JSON based policies have been deprecated.

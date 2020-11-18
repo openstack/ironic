@@ -46,7 +46,7 @@ Configure the Identity service for the Bare Metal service
 
    If you choose to customize the names of Roles used with the Bare Metal
    service, do so by changing the "is_member", "is_observer", and "is_admin"
-   policy settings in ``/etc/ironic/policy.json``.
+   policy settings in ``/etc/ironic/policy.yaml``.
 
    More complete documentation on managing Users and Roles within your
    OpenStack deployment are outside the scope of this document, but may be
@@ -75,6 +75,6 @@ Configure the Identity service for the Bare Metal service
 #. Further documentation is available elsewhere for the ``openstack``
    :python-openstackclient-doc:`command-line client <cli/authentication.html>`
    and the :keystone-doc:`Identity <admin/cli-manage-projects-users-and-roles.html>`
-   service. A :doc:`policy.json.sample </configuration/sample-policy>`
+   service. A :doc:`policy.yaml.sample </configuration/sample-policy>`
    file, which enumerates the service's default policies, is provided for
    your convenience with the Bare Metal Service.

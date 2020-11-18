@@ -21,6 +21,7 @@ import sys
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log
+from oslo_policy import opts
 from oslo_policy import policy
 
 from ironic.common import exception
@@ -28,6 +29,13 @@ from ironic.common import exception
 _ENFORCER = None
 CONF = cfg.CONF
 LOG = log.getLogger(__name__)
+
+
+# TODO(gmann): Remove setting the default value of config policy_file
+# once oslo_policy change the default value to 'policy.yaml'.
+# https://github.com/openstack/oslo.policy/blob/a626ad12fe5a3abd49d70e3e5b95589d279ab578/oslo_policy/opts.py#L49
+DEFAULT_POLICY_FILE = 'policy.yaml'
+opts.set_defaults(cfg.CONF, DEFAULT_POLICY_FILE)
 
 default_policies = [
     # Legacy setting, don't remove. Likely to be overridden by operators who
@@ -591,10 +599,11 @@ def init_enforcer(policy_file=None, rules=None,
     # loaded exactly once - when this module-global is initialized.
     # Defining these in the relevant API modules won't work
     # because API classes lack singletons and don't use globals.
-    _ENFORCER = policy.Enforcer(CONF, policy_file=policy_file,
-                                rules=rules,
-                                default_rule=default_rule,
-                                use_conf=use_conf)
+    _ENFORCER = policy.Enforcer(
+        CONF, policy_file=policy_file,
+        rules=rules,
+        default_rule=default_rule,
+        use_conf=use_conf)
     _ENFORCER.register_defaults(list_policies())
 
 
