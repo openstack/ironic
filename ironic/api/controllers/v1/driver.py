@@ -19,12 +19,10 @@ from ironic_lib import metrics_utils
 from pecan import rest
 
 from ironic import api
-from ironic.api.controllers import base
 from ironic.api.controllers import link
-from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
-from ironic.api import expose
-from ironic.api import types as atypes
+from ironic.api import method
+from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -64,7 +62,7 @@ _VENDOR_METHODS = {}
 _RAID_PROPERTIES = {}
 
 
-def hide_fields_in_newer_versions(obj):
+def hide_fields_in_newer_versions(driver):
     """This method hides fields that were added in newer API versions.
 
     Certain fields were introduced at certain API versions.
@@ -72,80 +70,33 @@ def hide_fields_in_newer_versions(obj):
     matches or exceeds the versions when these fields were introduced.
     """
     if not api_utils.allow_storage_interface():
-        obj.default_storage_interface = atypes.Unset
-        obj.enabled_storage_interfaces = atypes.Unset
+        driver.pop('default_storage_interface', None)
+        driver.pop('enabled_storage_interfaces', None)
 
     if not api_utils.allow_rescue_interface():
-        obj.default_rescue_interface = atypes.Unset
-        obj.enabled_rescue_interfaces = atypes.Unset
+        driver.pop('default_rescue_interface', None)
+        driver.pop('enabled_rescue_interfaces', None)
 
     if not api_utils.allow_bios_interface():
-        obj.default_bios_interface = atypes.Unset
-        obj.enabled_bios_interfaces = atypes.Unset
+        driver.pop('default_bios_interface', None)
+        driver.pop('enabled_bios_interfaces', None)
 
 
-class Driver(base.Base):
-    """API representation of a driver."""
+def convert_with_links(name, hosts, detail=False, interface_info=None):
+    """Convert driver/hardware type info to a dict.
 
-    name = str
-    """The name of the driver"""
-
-    hosts = [str]
-    """A list of active conductors that support this driver"""
-
-    type = str
-    """Whether the driver is classic or dynamic (hardware type)"""
-
-    links = None
-    """A list containing self and bookmark links"""
-
-    properties = None
-    """A list containing links to driver properties"""
-
-    """Default interface for a hardware type"""
-    default_bios_interface = str
-    default_boot_interface = str
-    default_console_interface = str
-    default_deploy_interface = str
-    default_inspect_interface = str
-    default_management_interface = str
-    default_network_interface = str
-    default_power_interface = str
-    default_raid_interface = str
-    default_rescue_interface = str
-    default_storage_interface = str
-    default_vendor_interface = str
-
-    """A list of enabled interfaces for a hardware type"""
-    enabled_bios_interfaces = [str]
-    enabled_boot_interfaces = [str]
-    enabled_console_interfaces = [str]
-    enabled_deploy_interfaces = [str]
-    enabled_inspect_interfaces = [str]
-    enabled_management_interfaces = [str]
-    enabled_network_interfaces = [str]
-    enabled_power_interfaces = [str]
-    enabled_raid_interfaces = [str]
-    enabled_rescue_interfaces = [str]
-    enabled_storage_interfaces = [str]
-    enabled_vendor_interfaces = [str]
-
-    @staticmethod
-    def convert_with_links(name, hosts, detail=False, interface_info=None):
-        """Convert driver/hardware type info to an API-serializable object.
-
-        :param name: name of a hardware type.
-        :param hosts: list of conductor hostnames driver is active on.
-        :param detail: boolean, whether to include detailed info, such as
-                       the 'type' field and default/enabled interfaces fields.
-        :param interface_info: optional list of dicts of hardware interface
-                               info.
-        :returns: API-serializable driver object.
-        """
-        driver = Driver()
-        driver.name = name
-        driver.hosts = hosts
-        driver.links = [
+    :param name: name of a hardware type.
+    :param hosts: list of conductor hostnames driver is active on.
+    :param detail: boolean, whether to include detailed info, such as
+                    the 'type' field and default/enabled interfaces fields.
+    :param interface_info: optional list of dicts of hardware interface
+                            info.
+    :returns: dict representing the driver object.
+    """
+    driver = {
+        'name': name,
+        'hosts': hosts,
+        'links': [
             link.make_link('self',
                            api.request.public_url,
                            'drivers', name),
@@ -154,105 +105,81 @@ class Driver(base.Base):
                            'drivers', name,
                            bookmark=True)
         ]
-        if api_utils.allow_links_node_states_and_driver_properties():
-            driver.properties = [
-                link.make_link('self',
-                               api.request.public_url,
-                               'drivers', name + "/properties"),
-                link.make_link('bookmark',
-                               api.request.public_url,
-                               'drivers', name + "/properties",
-                               bookmark=True)
-            ]
+    }
+    if api_utils.allow_links_node_states_and_driver_properties():
+        driver['properties'] = [
+            link.make_link('self',
+                           api.request.public_url,
+                           'drivers', name + "/properties"),
+            link.make_link('bookmark',
+                           api.request.public_url,
+                           'drivers', name + "/properties",
+                           bookmark=True)
+        ]
 
-        if api_utils.allow_dynamic_drivers():
-            # NOTE(dtantsur): only dynamic drivers (based on hardware types)
-            # are supported starting with the Rocky release.
-            driver.type = 'dynamic'
-            if detail:
-                if interface_info is None:
-                    # TODO(jroll) objectify this
-                    interface_info = (api.request.dbapi
-                                      .list_hardware_type_interfaces([name]))
-                for iface_type in driver_base.ALL_INTERFACES:
-                    default = None
-                    enabled = set()
-                    for iface in interface_info:
-                        if iface['interface_type'] == iface_type:
-                            iface_name = iface['interface_name']
-                            enabled.add(iface_name)
-                            # NOTE(jroll) this assumes the default is the same
-                            # on all conductors
-                            if iface['default']:
-                                default = iface_name
+    if api_utils.allow_dynamic_drivers():
+        # NOTE(dtantsur): only dynamic drivers (based on hardware types)
+        # are supported starting with the Rocky release.
+        driver['type'] = 'dynamic'
+        if detail:
+            if interface_info is None:
+                # TODO(jroll) objectify this
+                interface_info = (api.request.dbapi
+                                  .list_hardware_type_interfaces([name]))
+            for iface_type in driver_base.ALL_INTERFACES:
+                default = None
+                enabled = set()
+                for iface in interface_info:
+                    if iface['interface_type'] == iface_type:
+                        iface_name = iface['interface_name']
+                        enabled.add(iface_name)
+                        # NOTE(jroll) this assumes the default is the same
+                        # on all conductors
+                        if iface['default']:
+                            default = iface_name
 
-                    default_key = 'default_%s_interface' % iface_type
-                    enabled_key = 'enabled_%s_interfaces' % iface_type
-                    setattr(driver, default_key, default)
-                    setattr(driver, enabled_key, list(enabled))
+                default_key = 'default_%s_interface' % iface_type
+                enabled_key = 'enabled_%s_interfaces' % iface_type
+                driver[default_key] = default
+                driver[enabled_key] = list(enabled)
 
-        hide_fields_in_newer_versions(driver)
-        return driver
-
-    @classmethod
-    def sample(cls):
-        attrs = {
-            'name': 'sample-driver',
-            'hosts': ['fake-host'],
-            'type': 'classic',
-        }
-        for iface_type in driver_base.ALL_INTERFACES:
-            attrs['default_%s_interface' % iface_type] = None
-            attrs['enabled_%s_interfaces' % iface_type] = None
-
-        sample = cls(**attrs)
-        return sample
+    hide_fields_in_newer_versions(driver)
+    return driver
 
 
-class DriverList(base.Base):
-    """API representation of a list of drivers."""
+def list_convert_with_links(hardware_types, detail=False):
+    """Convert drivers and hardware types to an API-serializable object.
 
-    drivers = [Driver]
-    """A list containing drivers objects"""
+    :param hardware_types: dict mapping hardware type names to conductor
+                            hostnames.
+    :param detail: boolean, whether to include detailed info, such as
+                    the 'type' field and default/enabled interfaces fields.
+    :returns: an API-serializable driver collection object.
+    """
+    drivers = []
+    collection = {
+        'drivers': drivers
+    }
 
-    @staticmethod
-    def convert_with_links(hardware_types, detail=False):
-        """Convert drivers and hardware types to an API-serializable object.
+    # NOTE(jroll) we return hardware types in all API versions,
+    # but restrict type/default/enabled fields to 1.30.
+    # This is checked in Driver.convert_with_links(), however also
+    # checking here can save us a DB query.
+    if api_utils.allow_dynamic_drivers() and detail:
+        iface_info = api.request.dbapi.list_hardware_type_interfaces(
+            list(hardware_types))
+    else:
+        iface_info = []
 
-        :param hardware_types: dict mapping hardware type names to conductor
-                               hostnames.
-        :param detail: boolean, whether to include detailed info, such as
-                       the 'type' field and default/enabled interfaces fields.
-        :returns: an API-serializable driver collection object.
-        """
-        collection = DriverList()
-        collection.drivers = []
-
-        # NOTE(jroll) we return hardware types in all API versions,
-        # but restrict type/default/enabled fields to 1.30.
-        # This is checked in Driver.convert_with_links(), however also
-        # checking here can save us a DB query.
-        if api_utils.allow_dynamic_drivers() and detail:
-            iface_info = api.request.dbapi.list_hardware_type_interfaces(
-                list(hardware_types))
-        else:
-            iface_info = []
-
-        for htname in hardware_types:
-            interface_info = [i for i in iface_info
-                              if i['hardware_type'] == htname]
-            collection.drivers.append(
-                Driver.convert_with_links(htname,
-                                          list(hardware_types[htname]),
-                                          detail=detail,
-                                          interface_info=interface_info))
-        return collection
-
-    @classmethod
-    def sample(cls):
-        sample = cls()
-        sample.drivers = [Driver.sample()]
-        return sample
+    for htname in hardware_types:
+        interface_info = [i for i in iface_info
+                          if i['hardware_type'] == htname]
+        drivers.append(
+            convert_with_links(htname,
+                               list(hardware_types[htname]),
+                               detail=detail,
+                               interface_info=interface_info))
+    return collection
 
 
 class DriverPassthruController(rest.RestController):
@@ -268,7 +195,8 @@ class DriverPassthruController(rest.RestController):
     }
 
     @METRICS.timer('DriverPassthruController.methods')
-    @expose.expose(str, str)
+    @method.expose()
+    @args.validate(driver_name=args.string)
     def methods(self, driver_name):
         """Retrieve information about vendor methods of the given driver.
 
@@ -290,9 +218,10 @@ class DriverPassthruController(rest.RestController):
         return _VENDOR_METHODS[driver_name]
 
     @METRICS.timer('DriverPassthruController._default')
-    @expose.expose(str, str, str,
-                   body=str)
-    def _default(self, driver_name, method, data=None):
+    @method.expose()
+    @method.body('data')
+    @args.validate(driver_name=args.string, method=args.string)
+    def _default(self, driver_name, method=None, data=None):
         """Call a driver API extension.
 
         :param driver_name: name of the driver to call.
@@ -300,12 +229,17 @@ class DriverPassthruController(rest.RestController):
                        implementation.
         :param data: body of data to supply to the specified method.
         """
+        if not method:
+            raise exception.MissingArgument('method')
+
         cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:driver:vendor_passthru', cdict, cdict)
 
         topic = api.request.rpcapi.get_topic_for_driver(driver_name)
-        return api_utils.vendor_passthru(driver_name, method, topic, data=data,
-                                         driver_passthru=True)
+        resp = api_utils.vendor_passthru(driver_name, method, topic,
+                                         data=data, driver_passthru=True)
+        api.response.status_code = resp.status_code
+        return resp.obj
 
 
 class DriverRaidController(rest.RestController):
@@ -315,7 +249,8 @@ class DriverRaidController(rest.RestController):
     }
 
     @METRICS.timer('DriverRaidController.logical_disk_properties')
-    @expose.expose(types.jsontype, str)
+    @method.expose()
+    @args.validate(driver_name=args.string)
     def logical_disk_properties(self, driver_name):
         """Returns the logical disk properties for the driver.
 
@@ -364,7 +299,8 @@ class DriversController(rest.RestController):
     }
 
     @METRICS.timer('DriversController.get_all')
-    @expose.expose(DriverList, str, types.boolean)
+    @method.expose()
+    @args.validate(type=args.string, detail=args.boolean)
     def get_all(self, type=None, detail=None):
         """Retrieve a list of drivers."""
         # FIXME(tenbrae): formatting of the auto-generated REST API docs
@@ -387,10 +323,11 @@ class DriversController(rest.RestController):
             # NOTE(dtantsur): we don't support classic drivers starting with
             # the Rocky release.
             hw_type_dict = {}
-        return DriverList.convert_with_links(hw_type_dict, detail=detail)
+        return list_convert_with_links(hw_type_dict, detail=detail)
 
     @METRICS.timer('DriversController.get_one')
-    @expose.expose(Driver, str)
+    @method.expose()
+    @args.validate(driver_name=args.string)
     def get_one(self, driver_name):
         """Retrieve a single driver."""
         # NOTE(russell_h): There is no way to make this more efficient than
@@ -403,13 +340,14 @@ class DriversController(rest.RestController):
         hw_type_dict = api.request.dbapi.get_active_hardware_type_dict()
         for name, hosts in hw_type_dict.items():
             if name == driver_name:
-                return Driver.convert_with_links(name, list(hosts),
-                                                 detail=True)
+                return convert_with_links(name, list(hosts),
+                                          detail=True)
 
         raise exception.DriverNotFound(driver_name=driver_name)
 
     @METRICS.timer('DriversController.properties')
-    @expose.expose(str, str)
+    @method.expose()
+    @args.validate(driver_name=args.string)
     def properties(self, driver_name):
         """Retrieve property information of the given driver.
 

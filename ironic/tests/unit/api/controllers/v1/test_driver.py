@@ -324,7 +324,7 @@ class TestListDrivers(base.BaseApiTest):
             '/drivers/%s/vendor_passthru/do_test' % self.hw1,
             {'test_key': 'test_value'})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
-        self.assertEqual(return_value['return'], response.json)
+        self.assertEqual(b'', response.body)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru')
     def test_driver_vendor_passthru_get(self, mocked_driver_vendor_passthru):
@@ -343,7 +343,7 @@ class TestListDrivers(base.BaseApiTest):
         response = self.delete(
             '/drivers/%s/vendor_passthru/do_test' % self.hw1)
         self.assertEqual(http_client.ACCEPTED, response.status_int)
-        self.assertEqual(return_value['return'], response.json)
+        self.assertEqual(b'', response.body)
 
     def test_driver_vendor_passthru_driver_not_found(self):
         # tests when given driver is not found

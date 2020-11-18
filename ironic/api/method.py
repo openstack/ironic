@@ -91,7 +91,10 @@ def body(body_arg):
         @functools.wraps(function)
         def inner_body(*args, **kwargs):
 
-            data = pecan.request.json
+            if pecan.request.body:
+                data = pecan.request.json
+            else:
+                data = {}
             if isinstance(data, dict):
                 # remove any keyword arguments which pecan has
                 # extracted from the body
