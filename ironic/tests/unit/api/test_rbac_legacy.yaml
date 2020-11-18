@@ -520,90 +520,105 @@ nodes_vendor_passthru_methods_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 503
+  deprecated: true
 
 nodes_vendor_passthru_methods_get_member:
   path: '/v1/nodes/{node_ident}/vendor_passthru/methods'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 nodes_vendor_passthru_methods_get_observer:
   path: '/v1/nodes/{node_ident}/vendor_passthru/methods'
   method: get
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 nodes_vendor_passthru_get_admin:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: get
   headers: *admin_headers
   assert_status: 503
+  deprecated: true
 
 nodes_vendor_passthru_get_member:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 nodes_vendor_passthru_get_observer:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: get
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 nodes_vendor_passthru_post_admin:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: post
   headers: *admin_headers
   assert_status: 503
+  deprecated: true
 
 nodes_vendor_passthru_post_member:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: post
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 nodes_vendor_passthru_post_observer:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: post
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 nodes_vendor_passthru_put_admin:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: put
   headers: *admin_headers
   assert_status: 503
+  deprecated: true
 
 nodes_vendor_passthru_put_member:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: put
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 nodes_vendor_passthru_put_observer:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: put
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 nodes_vendor_passthru_delete_admin:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: delete
   headers: *admin_headers
   assert_status: 503
+  deprecated: true
 
 nodes_vendor_passthru_delete_member:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: delete
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 nodes_vendor_passthru_delete_observer:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: delete
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 # Node Traits - https://docs.openstack.org/api-ref/baremetal/#node-traits-nodes
 
@@ -1631,72 +1646,84 @@ drivers_vendor_passthru_methods_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 404
+  deprecated: true
 
 drivers_vendor_passthru_methods_get_member:
   path: '/v1/drivers/{driver_name}/vendor_passthru/methods'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 drivers_vendor_passthru_methods_get_observer:
   path: '/v1/drivers/{driver_name}/vendor_passthru/methods'
   method: get
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 drivers_vendor_passthru_get_admin:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: get
   headers: *admin_headers
   assert_status: 404
+  deprecated: true
 
 drivers_vendor_passthru_get_member:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 drivers_vendor_passthru_get_observer:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: get
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 drivers_vendor_passthru_post_admin:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: post
   headers: *admin_headers
   assert_status: 404
+  deprecated: true
 
 drivers_vendor_passthru_post_member:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: post
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 drivers_vendor_passthru_post_observer:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: post
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 drivers_vendor_passthru_put_admin:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: put
   headers: *admin_headers
   assert_status: 404
+  deprecated: true
 
 drivers_vendor_passthru_put_member:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: put
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 drivers_vendor_passthru_put_observer:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: put
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 # NOTE(TheJulia): Returns an error due to the driver name
 # not matching, but this should be pass policy checking.
@@ -1706,18 +1733,21 @@ drivers_vendor_passthru_delete_admin:
   method: delete
   headers: *admin_headers
   assert_status: 404
+  skip_reason: not updated for scope testing
 
 drivers_vendor_passthru_delete_observer:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: delete
   headers: *member_headers
   assert_status: 403
+  skip_reason: not updated for scope testing
 
 drivers_vendor_passthru_delete_observer:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: delete
   headers: *observer_headers
   assert_status: 403
+  skip_reason: not updated for scope testing
 
 # Node Bios - https://docs.openstack.org/api-ref/baremetal/#node-bios-nodes
 
