@@ -31,7 +31,6 @@ from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import port as api_port
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
-from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common import policy
 from ironic.common import states
@@ -75,18 +74,6 @@ def _rpcapi_update_port(self, context, port, topic):
     """
     port.save()
     return port
-
-
-class TestPortObject(base.TestCase):
-
-    @mock.patch("ironic.api.request")
-    def test_port_init(self, mock_pecan_req):
-        mock_pecan_req.version.minor = 1
-        port_dict = apiutils.port_post_data(node_id=None,
-                                            portgroup_uuid=None)
-        del port_dict['extra']
-        port = api_port.Port(**port_dict)
-        self.assertEqual(atypes.Unset, port.extra)
 
 
 @mock.patch.object(api_utils, 'allow_port_physical_network', autospec=True)
@@ -251,7 +238,7 @@ class TestListPorts(test_api_base.BaseApiTest):
 
     # NOTE(jlvillal): autospec=True doesn't work on staticmethods:
     # https://bugs.python.org/issue23078
-    @mock.patch.object(objects.Node, 'get', spec_set=types.FunctionType)
+    @mock.patch.object(objects.Node, 'get_by_id', spec_set=types.FunctionType)
     def test_list_with_deleted_node(self, mock_get_node):
         # check that we don't end up with HTTP 400 when node deletion races
         # with listing ports - see https://launchpad.net/bugs/1748893
@@ -262,7 +249,8 @@ class TestListPorts(test_api_base.BaseApiTest):
 
     # NOTE(jlvillal): autospec=True doesn't work on staticmethods:
     # https://bugs.python.org/issue23078
-    @mock.patch.object(objects.Node, 'get', spec_set=types.FunctionType)
+    @mock.patch.object(objects.Node, 'get_by_id',
+                       spec_set=types.FunctionType)
     def test_list_detailed_with_deleted_node(self, mock_get_node):
         # check that we don't end up with HTTP 400 when node deletion races
         # with listing ports - see https://launchpad.net/bugs/1748893
@@ -1103,7 +1091,7 @@ class TestListPorts(test_api_base.BaseApiTest):
     @mock.patch.object(api_port.PortsController, '_get_ports_collection',
                        autospec=True)
     def test_detail_with_incorrect_api_usage(self, mock_gpc):
-        mock_gpc.return_value = api_port.PortCollection.convert_with_links(
+        mock_gpc.return_value = api_port.list_convert_with_links(
             [], 0)
         # GET /v1/ports/detail specifying node and node_uuid.  In this case
         # we expect the node_uuid interface to be used.
@@ -1186,12 +1174,12 @@ class TestPatch(test_api_base.BaseApiTest):
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.START,
                                       node_uuid=self.node.uuid,
-                                      portgroup_uuid=atypes.Unset),
+                                      portgroup_uuid=None),
                                       mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.END,
                                       node_uuid=self.node.uuid,
-                                      portgroup_uuid=atypes.Unset)])
+                                      portgroup_uuid=None)])
 
     def test_update_byaddress_not_allowed(self, mock_upd):
         response = self.patch_json('/ports/%s' % self.port.address,
@@ -1250,12 +1238,12 @@ class TestPatch(test_api_base.BaseApiTest):
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.START,
                                       node_uuid=self.node.uuid,
-                                      portgroup_uuid=atypes.Unset),
+                                      portgroup_uuid=None),
                                       mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.ERROR,
                                       obj_fields.NotificationStatus.ERROR,
                                       node_uuid=self.node.uuid,
-                                      portgroup_uuid=atypes.Unset)])
+                                      portgroup_uuid=None)])
 
     def test_replace_node_uuid(self, mock_upd):
         response = self.patch_json('/ports/%s' % self.port.uuid,
@@ -1557,7 +1545,8 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
-        self.assertIn('mandatory attribute', response.json['error_message'])
+        self.assertIn("'address' is a required property",
+                      response.json['error_message'])
         self.assertFalse(mock_upd.called)
 
     def test_add_root(self, mock_upd):
@@ -1764,7 +1753,8 @@ class TestPatch(test_api_base.BaseApiTest):
                                    headers=headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
-        self.assertIn('should be string', response.json['error_message'])
+        self.assertIn("1234 is not of type 'string', 'null'",
+                      response.json['error_message'])
 
     def test_invalid_physnet_too_long(self, mock_upd):
         physnet = 'p' * 65
@@ -1777,7 +1767,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                    headers=headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
-        self.assertIn('maximum character', response.json['error_message'])
+        self.assertIn('is too long', response.json['error_message'])
 
     def test_invalid_physnet_empty_string(self, mock_upd):
         physnet = ''
@@ -2045,6 +2035,7 @@ class TestPost(test_api_base.BaseApiTest):
         pdict.pop('extra')
         pdict.pop('physical_network')
         pdict.pop('is_smartnic')
+        pdict.pop('portgroup_uuid')
         headers = {api_base.Version.string: str(api_v1.min_version())}
         response = self.post_json('/ports', pdict, headers=headers)
         self.assertEqual('application/json', response.content_type)
@@ -2571,7 +2562,8 @@ class TestPost(test_api_base.BaseApiTest):
                                   headers=self.headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
-        self.assertIn('should be string', response.json['error_message'])
+        self.assertIn("1234 is not of type 'string', 'null'",
+                      response.json['error_message'])
         self.assertFalse(mock_create.called)
 
     def test_create_port_invalid_physnet_too_long(self, mock_create):
@@ -2581,7 +2573,7 @@ class TestPost(test_api_base.BaseApiTest):
                                   headers=self.headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
-        self.assertIn('maximum character', response.json['error_message'])
+        self.assertIn('is too long', response.json['error_message'])
         self.assertFalse(mock_create.called)
 
     def test_create_port_invalid_physnet_empty_string(self, mock_create):

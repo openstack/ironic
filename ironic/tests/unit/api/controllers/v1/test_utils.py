@@ -1680,3 +1680,105 @@ class TestObjectToDict(base.TestCase):
             self.node,
             link_resource='node',
             link_resource_args='foo'))
+
+
+class TestLocalLinkValidation(base.TestCase):
+
+    def test_local_link_connection_type(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        value = {'switch_id': '0a:1b:2c:3d:4e:5f',
+                 'port_id': 'value2',
+                 'switch_info': 'value3'}
+        self.assertEqual(value, v('l', value))
+
+    def test_local_link_connection_type_datapath_id(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        value = {'switch_id': '0000000000000000',
+                 'port_id': 'value2',
+                 'switch_info': 'value3'}
+        self.assertEqual(value, v('l', value))
+
+    def test_local_link_connection_type_not_mac_or_datapath_id(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        value = {'switch_id': 'badid',
+                 'port_id': 'value2',
+                 'switch_info': 'value3'}
+        self.assertRaises(exception.InvalidSwitchID, v, 'l', value)
+
+    def test_local_link_connection_type_invalid_key(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        value = {'switch_id': '0a:1b:2c:3d:4e:5f',
+                 'port_id': 'value2',
+                 'switch_info': 'value3',
+                 'invalid_key': 'value'}
+        self.assertRaisesRegex(
+            exception.Invalid,
+            'Additional properties are not allowed',
+            v, 'l', value)
+
+    def test_local_link_connection_type_missing_local_link_mandatory_key(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        value = {'switch_id': '0a:1b:2c:3d:4e:5f',
+                 'switch_info': 'value3'}
+        self.assertRaisesRegex(exception.Invalid, 'is a required property',
+                               v, 'l', value)
+
+    def test_local_link_connection_type_local_link_keys_mandatory(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        value = {'switch_id': '0a:1b:2c:3d:4e:5f',
+                 'port_id': 'value2'}
+        self.assertEqual(value, v('l', value))
+
+    def test_local_link_connection_type_empty_value(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        value = {}
+        self.assertEqual(value, v('l', value))
+
+    def test_local_link_connection_type_smart_nic_keys_mandatory(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        vs = utils.LOCAL_LINK_SMART_NIC_VALIDATOR
+        value = {'port_id': 'rep0-0',
+                 'hostname': 'hostname'}
+        self.assertEqual(value, vs('l', value))
+        self.assertEqual(value, v('l', value))
+
+    def test_local_link_connection_type_smart_nic_keys_with_optional(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        vs = utils.LOCAL_LINK_SMART_NIC_VALIDATOR
+        value = {'port_id': 'rep0-0',
+                 'hostname': 'hostname',
+                 'switch_id': '0a:1b:2c:3d:4e:5f',
+                 'switch_info': 'sw_info'}
+        self.assertEqual(value, vs('l', value))
+        self.assertEqual(value, v('l', value))
+
+    def test_local_link_connection_type_smart_nic_keys_hostname_missing(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        vs = utils.LOCAL_LINK_SMART_NIC_VALIDATOR
+        value = {'port_id': 'rep0-0'}
+        self.assertRaises(exception.Invalid, vs, 'l', value)
+        self.assertRaises(exception.Invalid, v, 'l', value)
+
+    def test_local_link_connection_type_smart_nic_keys_port_id_missing(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        vs = utils.LOCAL_LINK_SMART_NIC_VALIDATOR
+        value = {'hostname': 'hostname'}
+        self.assertRaises(exception.Invalid, vs, 'l', value)
+        self.assertRaises(exception.Invalid, v, 'l', value)
+
+    def test_local_link_connection_net_type_unmanaged(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        value = {'network_type': 'unmanaged'}
+        self.assertEqual(value, v('l', value))
+
+    def test_local_link_connection_net_type_unmanaged_combine_ok(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        value = {'network_type': 'unmanaged',
+                 'switch_id': '0a:1b:2c:3d:4e:5f',
+                 'port_id': 'rep0-0'}
+        self.assertEqual(value, v('l', value))
+
+    def test_local_link_connection_net_type_invalid(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        value = {'network_type': 'invalid'}
+        self.assertRaises(exception.Invalid, v, 'l', value)

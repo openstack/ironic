@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 from http import client as http_client
 import inspect
 import io
@@ -85,6 +86,71 @@ TRAITS_SCHEMA = {'anyOf': [
      'pattern': CUSTOM_TRAIT_PATTERN},
     {'type': 'string', 'enum': STANDARD_TRAITS},
 ]}
+
+LOCAL_LINK_BASE_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'port_id': {'type': 'string'},
+        'switch_id': {'type': 'string'},
+        'hostname': {'type': 'string'},
+        'switch_info': {'type': 'string'},
+        'network_type': {'type': 'string',
+                         'enum': ['managed', 'unmanaged']},
+    },
+    'additionalProperties': False
+}
+
+LOCAL_LINK_SCHEMA = copy.deepcopy(LOCAL_LINK_BASE_SCHEMA)
+# set mandatory fields for a local link
+LOCAL_LINK_SCHEMA['required'] = ['port_id', 'switch_id']
+
+LOCAL_LINK_SMART_NIC_SCHEMA = copy.deepcopy(LOCAL_LINK_BASE_SCHEMA)
+# set mandatory fields for a smart nic
+LOCAL_LINK_SMART_NIC_SCHEMA['required'] = ['port_id', 'hostname']
+
+# no other mandatory fields for a network_type=unmanaged link
+LOCAL_LINK_UNMANAGED_SCHEMA = copy.deepcopy(LOCAL_LINK_BASE_SCHEMA)
+LOCAL_LINK_UNMANAGED_SCHEMA['properties']['network_type']['enum'] = [
+    'unmanaged']
+LOCAL_LINK_UNMANAGED_SCHEMA['required'] = ['network_type']
+
+LOCAL_LINK_CONN_SCHEMA = {'anyOf': [
+    LOCAL_LINK_SCHEMA,
+    LOCAL_LINK_SMART_NIC_SCHEMA,
+    LOCAL_LINK_UNMANAGED_SCHEMA,
+    {'type': 'object', 'additionalProperties': False},
+]}
+
+
+def local_link_normalize(name, value):
+    if not value:
+        return value
+
+    # Check switch_id is either a valid mac address or
+    # OpenFlow datapath_id and normalize it.
+    try:
+        value['switch_id'] = utils.validate_and_normalize_mac(
+            value['switch_id'])
+    except exception.InvalidMAC:
+        try:
+            value['switch_id'] = utils.validate_and_normalize_datapath_id(
+                value['switch_id'])
+        except exception.InvalidDatapathID:
+            raise exception.InvalidSwitchID(switch_id=value['switch_id'])
+    except KeyError:
+        # In Smart NIC case 'switch_id' is optional.
+        pass
+
+    return value
+
+
+LOCAL_LINK_VALIDATOR = args.and_valid(
+    args.schema(LOCAL_LINK_CONN_SCHEMA),
+    local_link_normalize
+)
+
+
+LOCAL_LINK_SMART_NIC_VALIDATOR = args.schema(LOCAL_LINK_SMART_NIC_SCHEMA)
 
 
 def object_to_dict(obj, created_at=True, updated_at=True, uuid=True,
@@ -1235,14 +1301,14 @@ def handle_post_port_like_extra_vif(p_dict):
     return vif
 
 
-def handle_patch_port_like_extra_vif(rpc_object, api_object, patch):
+def handle_patch_port_like_extra_vif(rpc_object, internal_info, patch):
     """Handle a Patch request that modifies .extra['vif_port_id'].
 
     This handles attach/detach of VIFs via the VIF port ID
     in a port or port group's extra['vif_port_id'] field.
 
     :param rpc_object: a Port or Portgroup RPC object
-    :param api_object: the corresponding Port or Portgroup API object
+    :param internal_info: Dict of port or portgroup internal info
     :param patch: the JSON patch in the API request
     """
     vif_list = get_patch_values(patch, '/extra/vif_port_id')
@@ -1259,7 +1325,7 @@ def handle_patch_port_like_extra_vif(rpc_object, api_object, patch):
         #       int_info = rpc_object.internal_info.get('tenant_vif_port_id')
         #       if (not int_info or
         #           int_info == rpc_object.extra.get('vif_port_id')):
-        #           api_object.internal_info['tenant_vif_port_id'] = vif
+        #           internal_info['tenant_vif_port_id'] = vif
         if allow_vifs_subcontroller():
             utils.warn_about_deprecated_extra_vif_port_id()
         # NOTE(rloo): if the user isn't also using the REST API
@@ -1267,7 +1333,7 @@ def handle_patch_port_like_extra_vif(rpc_object, api_object, patch):
         #             .extra[] value to the .internal_info location
         int_info = rpc_object.internal_info.get('tenant_vif_port_id')
         if (not int_info or int_info == rpc_object.extra.get('vif_port_id')):
-            api_object.internal_info['tenant_vif_port_id'] = vif
+            internal_info['tenant_vif_port_id'] = vif
 
     elif is_path_removed(patch, '/extra/vif_port_id'):
         # TODO(rloo): in Stein cycle: if API version >= 1.28, remove this
@@ -1277,7 +1343,7 @@ def handle_patch_port_like_extra_vif(rpc_object, api_object, patch):
         #   if not allow_vifs_subcontroller():
         #     int_info = rpc_object.internal_info.get('tenant_vif...')
         #     if (int_info and int_info==rpc_object.extra.get('vif_port_id')):
-        #         api_object.internal_info['tenant_vif_port_id'] = None
+        #         internal_info['tenant_vif_port_id'] = None
         if allow_vifs_subcontroller():
             utils.warn_about_deprecated_extra_vif_port_id()
         # NOTE(rloo): if the user isn't also using the REST API
@@ -1285,7 +1351,7 @@ def handle_patch_port_like_extra_vif(rpc_object, api_object, patch):
         #             .extra[] value from the .internal_info location
         int_info = rpc_object.internal_info.get('tenant_vif_port_id')
         if (int_info and int_info == rpc_object.extra.get('vif_port_id')):
-            api_object.internal_info.pop('tenant_vif_port_id')
+            internal_info.pop('tenant_vif_port_id')
 
 
 def allow_detail_query():

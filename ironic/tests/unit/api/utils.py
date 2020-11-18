@@ -114,12 +114,8 @@ def node_post_data(**kw):
 
 def port_post_data(**kw):
     port = db_utils.get_test_port(**kw)
-    # These values are not part of the API object
-    port.pop('version')
-    port.pop('node_id')
-    port.pop('portgroup_id')
-    internal = port_controller.PortPatchType.internal_attrs()
-    return remove_internal(port, internal)
+    return remove_other_fields(port,
+                               port_controller.PORT_SCHEMA['properties'])
 
 
 def volume_connector_post_data(**kw):

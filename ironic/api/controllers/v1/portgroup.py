@@ -555,8 +555,8 @@ class PortgroupsController(pecan.rest.RestController):
         portgroup = Portgroup(**api_utils.apply_jsonpatch(portgroup_dict,
                                                           patch))
 
-        api_utils.handle_patch_port_like_extra_vif(rpc_portgroup, portgroup,
-                                                   patch)
+        api_utils.handle_patch_port_like_extra_vif(
+            rpc_portgroup, portgroup.internal_info, patch)
 
         # Update only the fields that have changed
         for field in objects.Portgroup.fields:

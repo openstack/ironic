@@ -18,7 +18,7 @@ from openstack.connection import exceptions as openstack_exc
 from oslo_log import log
 import retrying
 
-from ironic.api.controllers.v1 import types
+from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import context as ironic_context
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -718,13 +718,21 @@ def validate_port_info(node, port):
                     "in the nodes %(node)s port %(port)s",
                     {'node': node.uuid, 'port': port.uuid})
         return False
-    if (port.is_smartnic and not types.locallinkconnectiontype
-            .validate_for_smart_nic(port.local_link_connection)):
+
+    try:
+        api_utils.LOCAL_LINK_SMART_NIC_VALIDATOR(
+            'local_link_connection', port.local_link_connection)
+    except exception.Invalid:
+        valid_smart_nic = False
+    else:
+        valid_smart_nic = True
+
+    if port.is_smartnic and not valid_smart_nic:
         LOG.error("Smart NIC port must have port_id and hostname in "
                   "local_link_connection, port: %s", port['id'])
         return False
-    if (not port.is_smartnic and types.locallinkconnectiontype
-            .validate_for_smart_nic(port.local_link_connection)):
+
+    if not port.is_smartnic and valid_smart_nic:
         LOG.error("Only Smart NIC ports can have port_id and hostname "
                   "in local_link_connection, port: %s", port['id'])
         return False

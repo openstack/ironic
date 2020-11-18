@@ -13,7 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import datetime
+import copy
 from http import client as http_client
 
 from ironic_lib import metrics_utils
@@ -22,14 +22,12 @@ from oslo_utils import uuidutils
 from pecan import rest
 
 from ironic import api
-from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import notification_utils as notify
-from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
-from ironic.api import expose
-from ironic.api import types as atypes
+from ironic.api import method
+from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -40,284 +38,164 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 LOG = log.getLogger(__name__)
 
 
-_DEFAULT_RETURN_FIELDS = ('uuid', 'address')
+_DEFAULT_RETURN_FIELDS = ['uuid', 'address']
 
 
-def hide_fields_in_newer_versions(obj):
+PORT_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'address': {'type': 'string'},
+        'extra': {'type': ['object', 'null']},
+        'is_smartnic': {'type': ['string', 'boolean', 'null']},
+        'local_link_connection': {'type': ['null', 'object']},
+        'node_uuid': {'type': 'string'},
+        'physical_network': {'type': ['string', 'null'], 'maxLength': 64},
+        'portgroup_uuid': {'type': ['string', 'null']},
+        'pxe_enabled': {'type': ['string', 'boolean', 'null']},
+        'uuid': {'type': ['string', 'null']},
+    },
+    'required': ['address', 'node_uuid'],
+    'additionalProperties': False,
+}
+
+
+PORT_PATCH_SCHEMA = copy.deepcopy(PORT_SCHEMA)
+# patch supports patching some internal_info values
+PORT_PATCH_SCHEMA['properties']['internal_info'] = {'type': ['null', 'object']}
+
+PATCH_ALLOWED_FIELDS = [
+    'address',
+    'extra',
+    'internal_info',
+    'is_smartnic',
+    'local_link_connection',
+    'node_uuid',
+    'physical_network',
+    'portgroup_uuid',
+    'pxe_enabled'
+]
+
+PORT_VALIDATOR_EXTRA = args.dict_valid(
+    address=args.mac_address,
+    node_uuid=args.uuid,
+    is_smartnic=args.boolean,
+    local_link_connection=api_utils.LOCAL_LINK_VALIDATOR,
+    portgroup_uuid=args.uuid,
+    pxe_enabled=args.boolean,
+    uuid=args.uuid,
+)
+
+PORT_VALIDATOR = args.and_valid(
+    args.schema(PORT_SCHEMA),
+    PORT_VALIDATOR_EXTRA
+)
+
+PORT_PATCH_VALIDATOR = args.and_valid(
+    args.schema(PORT_PATCH_SCHEMA),
+    PORT_VALIDATOR_EXTRA
+)
+
+
+def hide_fields_in_newer_versions(port):
     # if requested version is < 1.18, hide internal_info field
     if not api_utils.allow_port_internal_info():
-        obj.internal_info = atypes.Unset
+        port.pop('internal_info', None)
     # if requested version is < 1.19, hide local_link_connection and
     # pxe_enabled fields
     if not api_utils.allow_port_advanced_net_fields():
-        obj.pxe_enabled = atypes.Unset
-        obj.local_link_connection = atypes.Unset
+        port.pop('pxe_enabled', None)
+        port.pop('local_link_connection', None)
     # if requested version is < 1.24, hide portgroup_uuid field
     if not api_utils.allow_portgroups_subcontrollers():
-        obj.portgroup_uuid = atypes.Unset
+        port.pop('portgroup_uuid', None)
     # if requested version is < 1.34, hide physical_network field.
     if not api_utils.allow_port_physical_network():
-        obj.physical_network = atypes.Unset
+        port.pop('physical_network', None)
     # if requested version is < 1.53, hide is_smartnic field.
     if not api_utils.allow_port_is_smartnic():
-        obj.is_smartnic = atypes.Unset
+        port.pop('is_smartnic', None)
 
 
-class Port(base.APIBase):
-    """API representation of a port.
+def convert_with_links(rpc_port, fields=None, sanitize=True):
+    port = api_utils.object_to_dict(
+        rpc_port,
+        link_resource='ports',
+        fields=(
+            'address',
+            'extra',
+            'internal_info',
+            'is_smartnic',
+            'local_link_connection',
+            'physical_network',
+            'pxe_enabled',
+        )
+    )
+    api_utils.populate_node_uuid(rpc_port, port)
+    if rpc_port.portgroup_id:
+        pg = objects.Portgroup.get(api.request.context, rpc_port.portgroup_id)
+        port['portgroup_uuid'] = pg.uuid
+    else:
+        port['portgroup_uuid'] = None
 
-    This class enforces type checking and value constraints, and converts
-    between the internal object model and the API representation of a port.
-    """
+    _validate_fields(port, fields)
 
-    _node_uuid = None
-    _portgroup_uuid = None
-
-    def _get_node_uuid(self):
-        return self._node_uuid
-
-    def _set_node_uuid(self, value):
-        if value and self._node_uuid != value:
-            try:
-                # FIXME(comstud): One should only allow UUID here, but
-                # there seems to be a bug in that tests are passing an
-                # ID. See bug #1301046 for more details.
-                node = objects.Node.get(api.request.context, value)
-                self._node_uuid = node.uuid
-                # NOTE(lucasagomes): Create the node_id attribute on-the-fly
-                #                    to satisfy the api -> rpc object
-                #                    conversion.
-                self.node_id = node.id
-            except exception.NodeNotFound as e:
-                # Change error code because 404 (NotFound) is inappropriate
-                # response for a POST request to create a Port
-                e.code = http_client.BAD_REQUEST  # BadRequest
-                raise
-        elif value == atypes.Unset:
-            self._node_uuid = atypes.Unset
-
-    def _get_portgroup_uuid(self):
-        return self._portgroup_uuid
-
-    def _set_portgroup_uuid(self, value):
-        if value and self._portgroup_uuid != value:
-            if not api_utils.allow_portgroups_subcontrollers():
-                self._portgroup_uuid = atypes.Unset
-                return
-            try:
-                portgroup = objects.Portgroup.get(api.request.context, value)
-                if portgroup.node_id != self.node_id:
-                    raise exception.BadRequest(_('Port can not be added to a '
-                                                 'portgroup belonging to a '
-                                                 'different node.'))
-                self._portgroup_uuid = portgroup.uuid
-                # NOTE(lucasagomes): Create the portgroup_id attribute
-                #                    on-the-fly to satisfy the api ->
-                #                    rpc object conversion.
-                self.portgroup_id = portgroup.id
-            except exception.PortgroupNotFound as e:
-                # Change error code because 404 (NotFound) is inappropriate
-                # response for a POST request to create a Port
-                e.code = http_client.BAD_REQUEST  # BadRequest
-                raise e
-        elif value == atypes.Unset:
-            self._portgroup_uuid = atypes.Unset
-        elif value is None and api_utils.allow_portgroups_subcontrollers():
-            # This is to output portgroup_uuid field if API version allows this
-            self._portgroup_uuid = None
-
-    uuid = types.uuid
-    """Unique UUID for this port"""
-
-    address = atypes.wsattr(types.macaddress, mandatory=True)
-    """MAC Address for this port"""
-
-    extra = {str: types.jsontype}
-    """This port's meta data"""
-
-    internal_info = atypes.wsattr({str: types.jsontype}, readonly=True)
-    """This port's internal information maintained by ironic"""
-
-    node_uuid = atypes.wsproperty(types.uuid, _get_node_uuid, _set_node_uuid,
-                                  mandatory=True)
-    """The UUID of the node this port belongs to"""
-
-    portgroup_uuid = atypes.wsproperty(types.uuid, _get_portgroup_uuid,
-                                       _set_portgroup_uuid, mandatory=False)
-    """The UUID of the portgroup this port belongs to"""
-
-    pxe_enabled = types.boolean
-    """Indicates whether pxe is enabled or disabled on the node."""
-
-    local_link_connection = types.locallinkconnectiontype
-    """The port binding profile for the port"""
-
-    physical_network = atypes.StringType(max_length=64)
-    """The name of the physical network to which this port is connected."""
-
-    links = None
-    """A list containing a self link and associated port links"""
-
-    is_smartnic = types.boolean
-    """Indicates whether this port is a Smart NIC port."""
-
-    def __init__(self, **kwargs):
-        self.fields = []
-        fields = list(objects.Port.fields)
-        # NOTE(lucasagomes): node_uuid is not part of objects.Port.fields
-        #                    because it's an API-only attribute
-        fields.append('node_uuid')
-        # NOTE: portgroup_uuid is not part of objects.Port.fields
-        #                    because it's an API-only attribute
-        fields.append('portgroup_uuid')
-        for field in fields:
-            # Add fields we expose.
-            if hasattr(self, field):
-                self.fields.append(field)
-                setattr(self, field, kwargs.get(field, atypes.Unset))
-
-        # NOTE(lucasagomes): node_id is an attribute created on-the-fly
-        # by _set_node_uuid(), it needs to be present in the fields so
-        # that as_dict() will contain node_id field when converting it
-        # before saving it in the database.
-        self.fields.append('node_id')
-        setattr(self, 'node_uuid', kwargs.get('node_id', atypes.Unset))
-
-        # NOTE: portgroup_id is an attribute created on-the-fly
-        # by _set_portgroup_uuid(), it needs to be present in the fields so
-        # that as_dict() will contain portgroup_id field when converting it
-        # before saving it in the database.
-        self.fields.append('portgroup_id')
-        setattr(self, 'portgroup_uuid', kwargs.get('portgroup_id',
-                                                   atypes.Unset))
-
-    @classmethod
-    def convert_with_links(cls, rpc_port, fields=None, sanitize=True):
-        port = Port(**rpc_port.as_dict())
-
-        port._validate_fields(fields)
-
-        url = api.request.public_url
-
-        port.links = [link.make_link('self', url,
-                                     'ports', port.uuid),
-                      link.make_link('bookmark', url,
-                                     'ports', port.uuid,
-                                     bookmark=True)
-                      ]
-
-        if not sanitize:
-            return port
-
-        port.sanitize(fields=fields)
-
+    if not sanitize:
         return port
 
-    def _validate_fields(self, fields=None):
-        if fields is not None:
-            api_utils.check_for_invalid_fields(fields, self.as_dict())
+    port_sanitize(port, fields=fields)
 
-    def sanitize(self, fields=None):
-        """Removes sensitive and unrequested data.
-
-        Will only keep the fields specified in the ``fields`` parameter.
-
-        :param fields:
-            list of fields to preserve, or ``None`` to preserve them all
-        :type fields: list of str
-        """
-        hide_fields_in_newer_versions(self)
-
-        if fields is not None:
-            self.unset_fields_except(fields)
-
-        # never expose the node_id attribute
-        self.node_id = atypes.Unset
-
-        # never expose the portgroup_id attribute
-        self.portgroup_id = atypes.Unset
-
-    @classmethod
-    def sample(cls, expand=True):
-        time = datetime.datetime(2000, 1, 1, 12, 0, 0)
-        sample = cls(uuid='27e3153e-d5bf-4b7e-b517-fb518e17f34c',
-                     address='fe:54:00:77:07:d9',
-                     extra={'foo': 'bar'},
-                     internal_info={},
-                     created_at=time,
-                     updated_at=time,
-                     pxe_enabled=True,
-                     local_link_connection={
-                         'switch_info': 'host', 'port_id': 'Gig0/1',
-                         'switch_id': 'aa:bb:cc:dd:ee:ff'},
-                     physical_network='physnet1',
-                     is_smartnic=False)
-        # NOTE(lucasagomes): node_uuid getter() method look at the
-        # _node_uuid variable
-        sample._node_uuid = '7ae81bb3-dec3-4289-8d6c-da80bd8001ae'
-        sample._portgroup_uuid = '037d9a52-af89-4560-b5a3-a33283295ba2'
-        fields = None if expand else _DEFAULT_RETURN_FIELDS
-        return cls._convert_with_links(sample, 'http://localhost:6385',
-                                       fields=fields)
+    return port
 
 
-class PortPatchType(types.JsonPatchType):
-    _api_base = Port
-
-    @staticmethod
-    def internal_attrs():
-        defaults = types.JsonPatchType.internal_attrs()
-        return defaults + ['/internal_info']
+def _validate_fields(port, fields=None):
+    if fields is not None:
+        api_utils.check_for_invalid_fields(fields, port)
 
 
-class PortCollection(collection.Collection):
-    """API representation of a collection of ports."""
+def port_sanitize(port, fields=None):
+    """Removes sensitive and unrequested data.
 
-    ports = [Port]
-    """A list containing ports objects"""
+    Will only keep the fields specified in the ``fields`` parameter.
 
-    def __init__(self, **kwargs):
-        self._type = 'ports'
+    :param fields:
+        list of fields to preserve, or ``None`` to preserve them all
+    :type fields: list of str
+    """
+    hide_fields_in_newer_versions(port)
+    api_utils.sanitize_dict(port, fields)
 
-    @staticmethod
-    def convert_with_links(rpc_ports, limit, url=None, fields=None, **kwargs):
-        collection = PortCollection()
-        collection.ports = []
-        for rpc_port in rpc_ports:
-            try:
-                port = Port.convert_with_links(rpc_port, fields=fields,
-                                               sanitize=False)
-            except exception.NodeNotFound:
-                # NOTE(dtantsur): node was deleted after we fetched the port
-                # list, meaning that the port was also deleted. Skip it.
-                LOG.debug('Skipping port %s as its node was deleted',
-                          rpc_port.uuid)
-                continue
-            except exception.PortgroupNotFound:
-                # NOTE(dtantsur): port group was deleted after we fetched the
-                # port list, it may mean that the port was deleted too, but
-                # we don't know it. Pretend that the port group was removed.
-                LOG.debug('Removing port group UUID from port %s as the port '
-                          'group was deleted', rpc_port.uuid)
-                rpc_port.portgroup_id = None
-                port = Port.convert_with_links(rpc_port, fields=fields,
-                                               sanitize=False)
 
-            collection.ports.append(port)
-
-        collection.next = collection.get_next(limit, url=url, fields=fields,
-                                              **kwargs)
-
-        for item in collection.ports:
-            item.sanitize(fields=fields)
-
-        return collection
-
-    @classmethod
-    def sample(cls):
-        sample = cls()
-        sample.ports = [Port.sample(expand=False)]
-        return sample
+def list_convert_with_links(rpc_ports, limit, url=None, fields=None, **kwargs):
+    ports = []
+    for rpc_port in rpc_ports:
+        try:
+            port = convert_with_links(rpc_port, fields=fields,
+                                      sanitize=False)
+        except exception.NodeNotFound:
+            # NOTE(dtantsur): node was deleted after we fetched the port
+            # list, meaning that the port was also deleted. Skip it.
+            LOG.debug('Skipping port %s as its node was deleted',
+                      rpc_port.uuid)
+            continue
+        except exception.PortgroupNotFound:
+            # NOTE(dtantsur): port group was deleted after we fetched the
+            # port list, it may mean that the port was deleted too, but
+            # we don't know it. Pretend that the port group was removed.
+            LOG.debug('Removing port group UUID from port %s as the port '
+                      'group was deleted', rpc_port.uuid)
+            rpc_port.portgroup_id = None
+            port = convert_with_links(rpc_port, fields=fields,
+                                      sanitize=False)
+        ports.append(port)
+    return collection.list_convert_with_links(
+        items=ports,
+        item_name='ports',
+        limit=limit,
+        url=url,
+        fields=fields,
+        sanitize_func=port_sanitize,
+        **kwargs
+    )
 
 
 class PortsController(rest.RestController):
@@ -417,12 +295,12 @@ class PortsController(rest.RestController):
         if detail is not None:
             parameters['detail'] = detail
 
-        return PortCollection.convert_with_links(ports, limit,
-                                                 url=resource_url,
-                                                 fields=fields,
-                                                 sort_key=sort_key,
-                                                 sort_dir=sort_dir,
-                                                 **parameters)
+        return list_convert_with_links(ports, limit,
+                                       url=resource_url,
+                                       fields=fields,
+                                       sort_key=sort_key,
+                                       sort_dir=sort_dir,
+                                       **parameters)
 
     def _get_ports_by_address(self, address, project=None):
         """Retrieve a port by its address.
@@ -473,10 +351,12 @@ class PortsController(rest.RestController):
                 raise exception.NotAcceptable()
 
     @METRICS.timer('PortsController.get_all')
-    @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
-                   types.macaddress, types.uuid, int, str,
-                   str, types.listtype, types.uuid_or_name,
-                   types.boolean)
+    @method.expose()
+    @args.validate(node=args.uuid_or_name, node_uuid=args.uuid,
+                   address=args.mac_address, marker=args.uuid,
+                   limit=args.integer, sort_key=args.string,
+                   sort_dir=args.string, fields=args.string_list,
+                   portgroup=args.uuid_or_name, detail=args.boolean)
     def get_all(self, node=None, node_uuid=None, address=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', fields=None,
                 portgroup=None, detail=None):
@@ -530,9 +410,12 @@ class PortsController(rest.RestController):
                                           detail=detail, project=project)
 
     @METRICS.timer('PortsController.detail')
-    @expose.expose(PortCollection, types.uuid_or_name, types.uuid,
-                   types.macaddress, types.uuid, int, str,
-                   str, types.uuid_or_name)
+    @method.expose()
+    @args.validate(node=args.uuid_or_name, node_uuid=args.uuid,
+                   address=args.mac_address, marker=args.uuid,
+                   limit=args.integer, sort_key=args.string,
+                   sort_dir=args.string,
+                   portgroup=args.uuid_or_name)
     def detail(self, node=None, node_uuid=None, address=None, marker=None,
                limit=None, sort_key='id', sort_dir='asc', portgroup=None):
         """Retrieve a list of ports with detail.
@@ -583,7 +466,8 @@ class PortsController(rest.RestController):
                                           project=project)
 
     @METRICS.timer('PortsController.get_one')
-    @expose.expose(Port, types.uuid, types.listtype)
+    @method.expose()
+    @args.validate(port_uuid=args.uuid, fields=args.string_list)
     def get_one(self, port_uuid, fields=None):
         """Retrieve information about the given port.
 
@@ -601,10 +485,12 @@ class PortsController(rest.RestController):
         api_utils.check_allow_specify_fields(fields)
         self._check_allowed_port_fields(fields)
 
-        return Port.convert_with_links(rpc_port, fields=fields)
+        return convert_with_links(rpc_port, fields=fields)
 
     @METRICS.timer('PortsController.post')
-    @expose.expose(Port, body=Port, status_code=http_client.CREATED)
+    @method.expose(status_code=http_client.CREATED)
+    @method.body('port')
+    @args.validate(port=PORT_VALIDATOR)
     def post(self, port):
         """Create a new port.
 
@@ -618,59 +504,85 @@ class PortsController(rest.RestController):
         cdict = context.to_policy_values()
         policy.authorize('baremetal:port:create', cdict, cdict)
 
-        pdict = port.as_dict()
-        self._check_allowed_port_fields(pdict)
+        # NOTE(lucasagomes): Create the node_id attribute on-the-fly
+        #                    to satisfy the api -> rpc object
+        #                    conversion.
+        node = api_utils.replace_node_uuid_with_id(port)
 
-        if (port.is_smartnic and not types.locallinkconnectiontype
-                .validate_for_smart_nic(port.local_link_connection)):
-            raise exception.Invalid(
-                "Smart NIC port must have port_id "
-                "and hostname in local_link_connection")
+        self._check_allowed_port_fields(port)
 
-        physical_network = pdict.get('physical_network')
+        portgroup = None
+        if port.get('portgroup_uuid'):
+            try:
+                portgroup = objects.Portgroup.get(api.request.context,
+                                                  port.pop('portgroup_uuid'))
+                if portgroup.node_id != node.id:
+                    raise exception.BadRequest(_('Port can not be added to a '
+                                                 'portgroup belonging to a '
+                                                 'different node.'))
+                # NOTE(lucasagomes): Create the portgroup_id attribute
+                #                    on-the-fly to satisfy the api ->
+                #                    rpc object conversion.
+                port['portgroup_id'] = portgroup.id
+            except exception.PortgroupNotFound as e:
+                # Change error code because 404 (NotFound) is inappropriate
+                # response for a POST request to create a Port
+                e.code = http_client.BAD_REQUEST  # BadRequest
+                raise e
+
+        if port.get('is_smartnic'):
+            try:
+                api_utils.LOCAL_LINK_SMART_NIC_VALIDATOR(
+                    'local_link_connection',
+                    port.get('local_link_connection'))
+            except exception.Invalid:
+                raise exception.Invalid(
+                    "Smart NIC port must have port_id "
+                    "and hostname in local_link_connection")
+
+        physical_network = port.get('physical_network')
         if physical_network is not None and not physical_network:
             raise exception.Invalid('A non-empty value is required when '
                                     'setting physical_network')
 
-        vif = api_utils.handle_post_port_like_extra_vif(pdict)
+        vif = api_utils.handle_post_port_like_extra_vif(port)
 
-        if (pdict.get('portgroup_uuid')
-                and (pdict.get('pxe_enabled') or vif)):
-            rpc_pg = objects.Portgroup.get_by_uuid(context,
-                                                   pdict['portgroup_uuid'])
-            if not rpc_pg.standalone_ports_supported:
+        if (portgroup and (port.get('pxe_enabled') or vif)):
+            if not portgroup.standalone_ports_supported:
                 msg = _("Port group %s doesn't support standalone ports. "
                         "This port cannot be created as a member of that "
                         "port group because either 'extra/vif_port_id' "
                         "was specified or 'pxe_enabled' was set to True.")
                 raise exception.Conflict(
-                    msg % pdict['portgroup_uuid'])
+                    msg % portgroup.uuid)
 
         # NOTE(yuriyz): UUID is mandatory for notifications payload
-        if not pdict.get('uuid'):
-            pdict['uuid'] = uuidutils.generate_uuid()
+        if not port.get('uuid'):
+            port['uuid'] = uuidutils.generate_uuid()
 
-        rpc_port = objects.Port(context, **pdict)
-        rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
+        rpc_port = objects.Port(context, **port)
 
-        notify_extra = {'node_uuid': port.node_uuid,
-                        'portgroup_uuid': port.portgroup_uuid}
+        notify_extra = {
+            'node_uuid': node.uuid,
+            'portgroup_uuid': portgroup and portgroup.uuid or None
+        }
         notify.emit_start_notification(context, rpc_port, 'create',
                                        **notify_extra)
         with notify.handle_error_notification(context, rpc_port, 'create',
                                               **notify_extra):
-            topic = api.request.rpcapi.get_topic_for(rpc_node)
+            topic = api.request.rpcapi.get_topic_for(node)
             new_port = api.request.rpcapi.create_port(context, rpc_port,
                                                       topic)
         notify.emit_end_notification(context, new_port, 'create',
                                      **notify_extra)
         # Set the HTTP Location Header
         api.response.location = link.build_url('ports', new_port.uuid)
-        return Port.convert_with_links(new_port)
+        return convert_with_links(new_port)
 
     @METRICS.timer('PortsController.patch')
-    @expose.validate(types.uuid, [PortPatchType])
-    @expose.expose(Port, types.uuid, body=[PortPatchType])
+    @method.expose()
+    @method.body('patch')
+    @args.validate(port_uuid=args.uuid, patch=args.patch)
     def patch(self, port_uuid, patch):
         """Update an existing port.
 
@@ -681,8 +593,7 @@ class PortsController(rest.RestController):
         if self.parent_node_ident or self.parent_portgroup_ident:
             raise exception.OperationNotPermitted()
 
-        rpc_port, rpc_node = api_utils.check_port_policy_and_retrieve(
-            'baremetal:port:update', port_uuid)
+        api_utils.patch_validate_allowed_fields(patch, PATCH_ALLOWED_FIELDS)
 
         context = api.request.context
         fields_to_check = set()
@@ -695,35 +606,65 @@ class PortsController(rest.RestController):
                 fields_to_check.add(field)
         self._check_allowed_port_fields(fields_to_check)
 
+        rpc_port, rpc_node = api_utils.check_port_policy_and_retrieve(
+            'baremetal:port:update', port_uuid)
+
         port_dict = rpc_port.as_dict()
         # NOTE(lucasagomes):
         # 1) Remove node_id because it's an internal value and
         #    not present in the API object
         # 2) Add node_uuid
-        port_dict['node_uuid'] = port_dict.pop('node_id', None)
+        port_dict.pop('node_id', None)
+        port_dict['node_uuid'] = rpc_node.uuid
         # NOTE(vsaienko):
         # 1) Remove portgroup_id because it's an internal value and
         #    not present in the API object
         # 2) Add portgroup_uuid
-        port_dict['portgroup_uuid'] = port_dict.pop('portgroup_id', None)
-        port = Port(**api_utils.apply_jsonpatch(port_dict, patch))
+        portgroup = None
+        if port_dict.get('portgroup_id'):
+            portgroup = objects.Portgroup.get_by_id(
+                context, port_dict.pop('portgroup_id'))
+        port_dict['portgroup_uuid'] = portgroup and portgroup.uuid or None
 
-        api_utils.handle_patch_port_like_extra_vif(rpc_port, port, patch)
+        port_dict = api_utils.apply_jsonpatch(port_dict, patch)
 
-        if api_utils.is_path_removed(patch, '/portgroup_uuid'):
-            rpc_port.portgroup_id = None
+        api_utils.handle_patch_port_like_extra_vif(
+            rpc_port, port_dict['internal_info'], patch)
 
-        # Update only the fields that have changed
-        for field in objects.Port.fields:
-            try:
-                patch_val = getattr(port, field)
-            except AttributeError:
-                # Ignore fields that aren't exposed in the API
-                continue
-            if patch_val == atypes.Unset:
-                patch_val = None
-            if rpc_port[field] != patch_val:
-                rpc_port[field] = patch_val
+        try:
+            if api_utils.is_path_updated(patch, '/portgroup_uuid'):
+                if port_dict.get('portgroup_uuid'):
+                    portgroup = objects.Portgroup.get_by_uuid(
+                        context, port_dict['portgroup_uuid'])
+                else:
+                    portgroup = None
+        except exception.PortGroupNotFound as e:
+            # Change error code because 404 (NotFound) is inappropriate
+            # response for a PATCH request to change a Port
+            e.code = http_client.BAD_REQUEST  # BadRequest
+            raise
+
+        try:
+            if port_dict['node_uuid'] != rpc_node.uuid:
+                rpc_node = objects.Node.get(
+                    api.request.context, port_dict['node_uuid'])
+        except exception.NodeNotFound as e:
+            # Change error code because 404 (NotFound) is inappropriate
+            # response for a PATCH request to change a Port
+            e.code = http_client.BAD_REQUEST  # BadRequest
+            raise
+
+        api_utils.patched_validate_with_schema(
+            port_dict, PORT_PATCH_SCHEMA, PORT_PATCH_VALIDATOR)
+
+        api_utils.patch_update_changed_fields(
+            port_dict, rpc_port, fields=objects.Port.fields,
+            schema=PORT_PATCH_SCHEMA,
+            id_map={
+                'node_id': rpc_node.id,
+                'portgroup_id': portgroup and portgroup.id or None
+            }
+        )
 
         if (rpc_node.provision_state == ir_states.INSPECTING
                 and api_utils.allow_inspect_wait_state()):
@@ -741,7 +682,7 @@ class PortsController(rest.RestController):
                                     'setting physical_network')
 
         notify_extra = {'node_uuid': rpc_node.uuid,
-                        'portgroup_uuid': port.portgroup_uuid}
+                        'portgroup_uuid': portgroup and portgroup.uuid or None}
         notify.emit_start_notification(context, rpc_port, 'update',
                                        **notify_extra)
         with notify.handle_error_notification(context, rpc_port, 'update',
@@ -750,14 +691,15 @@ class PortsController(rest.RestController):
             new_port = api.request.rpcapi.update_port(context, rpc_port,
                                                       topic)
 
-        api_port = Port.convert_with_links(new_port)
+        api_port = convert_with_links(new_port)
         notify.emit_end_notification(context, new_port, 'update',
                                      **notify_extra)
 
         return api_port
 
     @METRICS.timer('PortsController.delete')
-    @expose.expose(None, types.uuid, status_code=http_client.NO_CONTENT)
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @args.validate(port_uuid=args.uuid)
     def delete(self, port_uuid):
         """Delete a port.
 
