@@ -237,6 +237,11 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
         db_utils.create_test_node_trait(
             node_id=fake_db_node['id'])
 
+        # dedicated node for portgroup addition test to avoid
+        # false positives with test runners.
+        db_utils.create_test_node(
+            uuid='18a552fb-dcd2-43bf-9302-e4c93287be11')
+
         self.format_data.update({
             'node_ident': fake_db_node['uuid'],
             'allocated_node_ident': fake_db_node_alloced['uuid'],

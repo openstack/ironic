@@ -107,7 +107,7 @@ nodes_get_admin:
   method: get
   headers: *admin_headers
   assert_list_length:
-    nodes: 2
+    nodes: 3
   assert_status: 200
   deprecated: true
 
@@ -116,7 +116,7 @@ nodes_get_other_admin:
   method: get
   headers: *other_admin_headers
   assert_list_length:
-    nodes: 2
+    nodes: 3
   assert_status: 200
   deprecated: true
 
@@ -837,18 +837,21 @@ portgroups_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 portgroups_get_member:
   path: '/v1/portgroups'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 portgroups_get_observer:
   path: '/v1/portgroups'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 # Returns 400 as the node uuid cannot be found, but
 # it is past the access controls.
@@ -857,8 +860,9 @@ portgroups_post_admin:
   method: post
   headers: *admin_headers
   body: &portgroup_body
-    node_uuid: 68a552fb-dcd2-43bf-9302-e4c93287be16
-  assert_status: 400
+    node_uuid: 18a552fb-dcd2-43bf-9302-e4c93287be11
+  assert_status: 201
+  deprecated: true
 
 portgroups_post_member:
   path: '/v1/portgroups'
@@ -866,6 +870,7 @@ portgroups_post_member:
   headers: *member_headers
   body: *portgroup_body
   assert_status: 403
+  deprecated: true
 
 portgroups_post_observer:
   path: '/v1/portgroups'
@@ -873,42 +878,49 @@ portgroups_post_observer:
   headers: *observer_headers
   body: *portgroup_body
   assert_status: 403
+  deprecated: true
 
 portgroups_detail_get_admin:
   path: '/v1/portgroups/detail'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 portgroups_detail_get_member:
   path: '/v1/portgroups/detail'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 portgroups_detail_get_observer:
   path: '/v1/portgroups/detail'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 portgroups_portgroup_ident_get_admin:
   path: '/v1/portgroups/{portgroup_ident}'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 portgroups_portgroup_ident_get_member:
   path: '/v1/portgroups/{portgroup_ident}'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 portgroups_portgroup_ident_get_observer:
   path: '/v1/portgroups/{portgroup_ident}'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 portgroups_portgroup_ident_patch_admin:
   path: '/v1/portgroups/{portgroup_ident}'
@@ -919,6 +931,7 @@ portgroups_portgroup_ident_patch_admin:
       path: /extra
       value: {'test': 'testing'}
   assert_status: 503
+  deprecated: true
 
 portgroups_portgroup_ident_patch_member:
   path: '/v1/portgroups/{portgroup_ident}'
@@ -926,6 +939,7 @@ portgroups_portgroup_ident_patch_member:
   headers: *member_headers
   body: *portgroup_patch_body
   assert_status: 403
+  deprecated: true
 
 portgroups_portgroup_ident_patch_observer:
   path: '/v1/portgroups/{portgroup_ident}'
@@ -933,24 +947,28 @@ portgroups_portgroup_ident_patch_observer:
   headers: *observer_headers
   body: *portgroup_patch_body
   assert_status: 403
+  deprecated: true
 
 portgroups_portgroup_ident_delete_admin:
   path: '/v1/portgroups/{portgroup_ident}'
   method: delete
   headers: *admin_headers
   assert_status: 503
+  deprecated: true
 
 portgroups_portgroup_ident_delete_member:
   path: '/v1/portgroups/{portgroup_ident}'
   method: delete
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 portgroups_portgroup_ident_delete_observer:
   path: '/v1/portgroups/{portgroup_ident}'
   method: delete
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 # Portgroups by node - https://docs.openstack.org/api-ref/baremetal/#listing-portgroups-by-node-nodes-portgroups
 
@@ -959,36 +977,42 @@ nodes_portgroups_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 nodes_portgroups_get_member:
   path: '/v1/nodes/{node_ident}/portgroups'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 nodes_portgroups_get_observer:
   path: '/v1/nodes/{node_ident}/portgroups'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 nodes_portgroups_detail_get_admin:
   path: '/v1/nodes/{node_ident}/portgroups/detail'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 nodes_portgroups_detail_get_member:
   path: '/v1/nodes/{node_ident}/portgroups/detail'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 nodes_portgroups_detail_get_observer:
   path: '/v1/nodes/{node_ident}/portgroups/detail'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 # Ports - https://docs.openstack.org/api-ref/baremetal/#ports-ports
 

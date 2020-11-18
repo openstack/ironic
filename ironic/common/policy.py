@@ -757,31 +757,77 @@ port_policies = [
     ),
 ]
 
+deprecated_portgroup_get = policy.DeprecatedRule(
+    name='baremetal:portgroup:get',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_portgroup_create = policy.DeprecatedRule(
+    name='baremetal:portgroup:create',
+    check_str='rule:is_admin'
+)
+deprecated_portgroup_delete = policy.DeprecatedRule(
+    name='baremetal:portgroup:delete',
+    check_str='rule:is_admin'
+)
+deprecated_portgroup_update = policy.DeprecatedRule(
+    name='baremetal:portgroup:update',
+    check_str='rule:is_admin'
+)
+deprecated_portgroup_reason = """
+The baremetal port groups API is now aware of system scope and default roles.
+"""
+
 portgroup_policies = [
     policy.DocumentedRuleDefault(
-        'baremetal:portgroup:get',
-        'rule:is_admin or rule:is_observer',
-        'Retrieve Portgroup records',
-        [{'path': '/portgroups', 'method': 'GET'},
-         {'path': '/portgroups/detail', 'method': 'GET'},
-         {'path': '/portgroups/{portgroup_ident}', 'method': 'GET'},
-         {'path': '/nodes/{node_ident}/portgroups', 'method': 'GET'},
-         {'path': '/nodes/{node_ident}/portgroups/detail', 'method': 'GET'}]),
+        name='baremetal:portgroup:get',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='Retrieve Portgroup records',
+        operations=[
+            {'path': '/portgroups', 'method': 'GET'},
+            {'path': '/portgroups/detail', 'method': 'GET'},
+            {'path': '/portgroups/{portgroup_ident}', 'method': 'GET'},
+            {'path': '/nodes/{node_ident}/portgroups', 'method': 'GET'},
+            {'path': '/nodes/{node_ident}/portgroups/detail', 'method': 'GET'},
+        ],
+        deprecated_rule=deprecated_portgroup_get,
+        deprecated_reason=deprecated_portgroup_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:portgroup:create',
-        'rule:is_admin',
-        'Create Portgroup records',
-        [{'path': '/portgroups', 'method': 'POST'}]),
+        name='baremetal:portgroup:create',
+        check_str=SYSTEM_ADMIN,
+        scope_types=['system'],
+        description='Create Portgroup records',
+        operations=[{'path': '/portgroups', 'method': 'POST'}],
+        deprecated_rule=deprecated_portgroup_create,
+        deprecated_reason=deprecated_portgroup_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:portgroup:delete',
-        'rule:is_admin',
-        'Delete Portgroup records',
-        [{'path': '/portgroups/{portgroup_ident}', 'method': 'DELETE'}]),
+        name='baremetal:portgroup:delete',
+        check_str=SYSTEM_ADMIN,
+        scope_types=['system'],
+        description='Delete Portgroup records',
+        operations=[
+            {'path': '/portgroups/{portgroup_ident}', 'method': 'DELETE'}
+        ],
+        deprecated_rule=deprecated_portgroup_delete,
+        deprecated_reason=deprecated_portgroup_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:portgroup:update',
-        'rule:is_admin',
-        'Update Portgroup records',
-        [{'path': '/portgroups/{portgroup_ident}', 'method': 'PATCH'}]),
+        name='baremetal:portgroup:update',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Update Portgroup records',
+        operations=[
+            {'path': '/portgroups/{portgroup_ident}', 'method': 'PATCH'}
+        ],
+        deprecated_rule=deprecated_portgroup_update,
+        deprecated_reason=deprecated_portgroup_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 ]
 
 chassis_policies = [
