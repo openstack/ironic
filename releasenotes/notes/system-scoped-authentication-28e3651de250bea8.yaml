@@ -2,7 +2,8 @@
 features:
   - |
     The Baremetal API, provided by the ironic-api process, now supports use of
-    ``system`` scoped ``keystone`` authentication for the node endpoint.
+    ``system`` scoped ``keystone`` authentication for the nodes and ports
+    endpoints.
 upgrade:
   - |
     Deprecated policy rules are not expressed via a default policy file

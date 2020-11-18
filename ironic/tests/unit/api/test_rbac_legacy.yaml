@@ -997,18 +997,21 @@ ports_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 ports_get_member:
   path: '/v1/ports'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 ports_get_observer:
   path: '/v1/ports'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 # NOTE(TheJulia): Returns 400 when the conductor calls are
 # mocked indicating node lookup failed, which means the access
@@ -1021,6 +1024,7 @@ ports_post_admin:
   body: &port_body
     node_uuid: 68a552fb-dcd2-43bf-9302-e4c93287be16
     address: 00:01:02:03:04:05
+  deprecated: true
 
 ports_post_member:
   path: '/v1/ports'
@@ -1028,6 +1032,7 @@ ports_post_member:
   headers: *member_headers
   assert_status: 403
   body: *port_body
+  deprecated: true
 
 ports_post_observer:
   path: '/v1/ports'
@@ -1035,42 +1040,49 @@ ports_post_observer:
   headers: *observer_headers
   assert_status: 403
   body: *port_body
+  deprecated: true
 
 ports_detail_get_admin:
   path: '/v1/ports/detail'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 ports_detail_get_member:
   path: '/v1/ports/detail'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 ports_detail_get_observer:
   path: '/v1/ports/detail'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 ports_port_id_get_admin:
   path: '/v1/ports/{port_ident}'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 ports_port_id_get_member:
   path: '/v1/ports/{port_ident}'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 ports_port_id_get_observer:
   path: '/v1/ports/{port_ident}'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 ports_port_id_patch_admin:
   path: '/v1/ports/{port_ident}'
@@ -1081,6 +1093,7 @@ ports_port_id_patch_admin:
     - op: replace
       path: /extra
       value: {'test': 'testing'}
+  deprecated: true
 
 ports_port_id_patch_member:
   path: '/v1/ports/{port_ident}'
@@ -1088,6 +1101,7 @@ ports_port_id_patch_member:
   headers: *member_headers
   assert_status: 403
   body: *port_patch_body
+  deprecated: true
 
 ports_port_id_patch_observer:
   path: '/v1/ports/{port_ident}'
@@ -1095,24 +1109,28 @@ ports_port_id_patch_observer:
   headers: *observer_headers
   assert_status: 403
   body: *port_patch_body
+  deprecated: true
 
 ports_port_id_delete_admin:
   path: '/v1/ports/{port_ident}'
   method: delete
   headers: *admin_headers
   assert_status: 503
+  deprecated: true
 
 ports_port_id_delete_member:
   path: '/v1/ports/{port_ident}'
   method: delete
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 ports_port_id_delete_observer:
   path: '/v1/ports/{port_ident}'
   method: delete
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 # Ports by node - https://docs.openstack.org/api-ref/baremetal/#listing-ports-by-node-nodes-ports
 
@@ -1121,36 +1139,42 @@ nodes_ports_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 nodes_ports_get_member:
   path: '/v1/nodes/{node_ident}/ports'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 nodes_ports_get_observer:
   path: '/v1/nodes/{node_ident}/ports'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 nodes_ports_detail_get_admin:
   path: '/v1/nodes/{node_ident}/ports/detail'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 nodes_ports_detail_get_member:
   path: '/v1/nodes/{node_ident}/ports/detail'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 nodes_ports_detail_get_observer:
   path: '/v1/nodes/{node_ident}/ports/detail'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 # Ports by portgroup - https://docs.openstack.org/api-ref/baremetal/#listing-ports-by-portgroup-portgroup-ports
 
@@ -1159,36 +1183,42 @@ portgroups_ports_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 portgroups_ports_get_member:
   path: '/v1/portgroups/{portgroup_ident}/ports'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 portgroups_ports_get_observer:
   path: '/v1/portgroups/{portgroup_ident}/ports'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 portgroups_ports_detail_get_admin:
   path: '/v1/portgroups/{portgroup_ident}/ports/detail'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 portgroups_ports_detail_get_member:
   path: '/v1/portgroups/{portgroup_ident}/ports/detail'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 portgroups_ports_detail_get_observer:
   path: '/v1/portgroups/{portgroup_ident}/ports/detail'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 
 # Volume(s) - https://docs.openstack.org/api-ref/baremetal/#volume-volume
