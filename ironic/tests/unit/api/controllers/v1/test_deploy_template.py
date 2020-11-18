@@ -24,12 +24,10 @@ from oslo_utils import uuidutils
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
-from ironic.api.controllers.v1 import deploy_template as api_deploy_template
 from ironic.api.controllers.v1 import notification_utils
 from ironic.common import exception
 from ironic import objects
 from ironic.objects import fields as obj_fields
-from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.api import utils as test_api_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -43,27 +41,6 @@ def _obj_to_api_step(obj_step):
         'args': obj_step['args'],
         'priority': obj_step['priority'],
     }
-
-
-class TestDeployTemplateObject(base.TestCase):
-
-    def test_deploy_template_init(self):
-        template_dict = test_api_utils.deploy_template_post_data()
-        template = api_deploy_template.DeployTemplate(**template_dict)
-        self.assertEqual(template_dict['uuid'], template.uuid)
-        self.assertEqual(template_dict['name'], template.name)
-        self.assertEqual(template_dict['extra'], template.extra)
-        for t_dict_step, t_step in zip(template_dict['steps'], template.steps):
-            self.assertEqual(t_dict_step['interface'], t_step.interface)
-            self.assertEqual(t_dict_step['step'], t_step.step)
-            self.assertEqual(t_dict_step['args'], t_step.args)
-            self.assertEqual(t_dict_step['priority'], t_step.priority)
-
-    def test_deploy_template_sample(self):
-        sample = api_deploy_template.DeployTemplate.sample(expand=False)
-        self.assertEqual('534e73fa-1014-4e58-969a-814cc0cb9d43', sample.uuid)
-        self.assertEqual('CUSTOM_RAID1', sample.name)
-        self.assertEqual({'foo': 'bar'}, sample.extra)
 
 
 class BaseDeployTemplatesAPITest(test_api_base.BaseApiTest):
@@ -361,7 +338,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
         if error_msg:
-            self.assertRegex(response.json['error_message'], error_msg)
+            self.assertIn(error_msg, response.json['error_message'])
         self.assertFalse(mock_save.called)
         return response
 
@@ -423,7 +400,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
         self._test_update_bad_request(
             mock_save,
             [{'path': '/name', 'value': 'aa:bb_cc', 'op': 'replace'}],
-            'Deploy template name must be a valid trait')
+            "'aa:bb_cc' does not match '^CUSTOM_[A-Z0-9_]+$'")
 
     def test_update_by_id_invalid_api_version(self, mock_save):
         name = 'CUSTOM_DT2'
@@ -491,18 +468,19 @@ class TestPatch(BaseDeployTemplatesAPITest):
         name = 'CUSTOM_' + 'X' * 249
         patch = [{'path': '/name', 'op': 'replace', 'value': name}]
         self._test_update_bad_request(
-            mock_save, patch, 'Deploy template name must be a valid trait')
+            mock_save, patch, "'%s' is too long" % name)
 
     def test_replace_invalid_name_not_a_trait(self, mock_save):
         name = 'not-a-trait'
         patch = [{'path': '/name', 'op': 'replace', 'value': name}]
         self._test_update_bad_request(
-            mock_save, patch, 'Deploy template name must be a valid trait')
+            mock_save, patch,
+            "'not-a-trait' does not match '^CUSTOM_[A-Z0-9_]+$'")
 
     def test_replace_invalid_name_none(self, mock_save):
         patch = [{'path': '/name', 'op': 'replace', 'value': None}]
         self._test_update_bad_request(
-            mock_save, patch, "Deploy template name cannot be None")
+            mock_save, patch, "None is not of type 'string'")
 
     def test_replace_duplicate_step(self, mock_save):
         # interface & step combination must be unique.
@@ -528,7 +506,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
         }
         patch = [{'path': '/steps/0', 'op': 'replace', 'value': step}]
         self._test_update_bad_request(
-            mock_save, patch, "Invalid input for field/attribute interface.")
+            mock_save, patch, "'foo' is not one of")
 
     def test_replace_non_existent_step_fail(self, mock_save):
         step = {
@@ -543,7 +521,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
     def test_replace_empty_step_list_fail(self, mock_save):
         patch = [{'path': '/steps', 'op': 'replace', 'value': []}]
         self._test_update_bad_request(
-            mock_save, patch, 'No deploy steps specified')
+            mock_save, patch, '[] is too short')
 
     def _test_remove_not_allowed(self, mock_save, field, error_msg=None):
         patch = [{'path': '/%s' % field, 'op': 'remove'}]
@@ -552,17 +530,17 @@ class TestPatch(BaseDeployTemplatesAPITest):
     def test_remove_uuid(self, mock_save):
         self._test_remove_not_allowed(
             mock_save, 'uuid',
-            "'/uuid' is an internal attribute and can not be updated")
+            "Cannot patch /uuid")
 
     def test_remove_name(self, mock_save):
         self._test_remove_not_allowed(
             mock_save, 'name',
-            "'/name' is a mandatory attribute and can not be removed")
+            "'name' is a required property")
 
     def test_remove_steps(self, mock_save):
         self._test_remove_not_allowed(
             mock_save, 'steps',
-            "'/steps' is a mandatory attribute and can not be removed")
+            "'steps' is a required property")
 
     def test_remove_foo(self, mock_save):
         self._test_remove_not_allowed(mock_save, 'foo')
@@ -571,7 +549,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
         patch = [{'path': '/steps/0/interface', 'op': 'replace',
                   'value': 'foo'}]
         self._test_update_bad_request(
-            mock_save, patch, "Invalid input for field/attribute interface.")
+            mock_save, patch, "'foo' is not one of")
 
     def test_replace_multi(self, mock_save):
         steps = [
@@ -639,7 +617,7 @@ class TestPatch(BaseDeployTemplatesAPITest):
     def test_remove_only_step_fail(self, mock_save):
         patch = [{'path': '/steps/0', 'op': 'remove'}]
         self._test_update_bad_request(
-            mock_save, patch, "No deploy steps specified")
+            mock_save, patch, "[] is too short")
 
     def test_remove_non_existent_step_property_fail(self, mock_save):
         patch = [{'path': '/steps/0/non-existent', 'op': 'remove'}]
@@ -648,7 +626,8 @@ class TestPatch(BaseDeployTemplatesAPITest):
     def test_add_root_non_existent(self, mock_save):
         patch = [{'path': '/foo', 'value': 'bar', 'op': 'add'}]
         self._test_update_bad_request(
-            mock_save, patch, "Adding a new attribute \\(/foo\\)")
+            mock_save, patch,
+            "Cannot patch /foo")
 
     def test_add_too_high_index_step_fail(self, mock_save):
         step = {
@@ -790,13 +769,13 @@ class TestPost(BaseDeployTemplatesAPITest):
         name = 'CUSTOM_' + 'X' * 249
         tdict = test_api_utils.post_get_test_deploy_template(name=name)
         self._test_create_bad_request(
-            tdict, 'Deploy template name must be a valid trait')
+            tdict, "'%s' is too long" % name)
 
     def test_create_name_invalid_not_a_trait(self):
         name = 'not-a-trait'
         tdict = test_api_utils.post_get_test_deploy_template(name=name)
         self._test_create_bad_request(
-            tdict, 'Deploy template name must be a valid trait')
+            tdict, "'not-a-trait' does not match '^CUSTOM_[A-Z0-9_]+$'")
 
     def test_create_steps_invalid_duplicate(self):
         steps = [
@@ -814,7 +793,7 @@ class TestPost(BaseDeployTemplatesAPITest):
     def _test_create_no_mandatory_field(self, field):
         tdict = test_api_utils.post_get_test_deploy_template()
         del tdict[field]
-        self._test_create_bad_request(tdict, "Mandatory field missing")
+        self._test_create_bad_request(tdict, "is a required property")
 
     def test_create_no_mandatory_field_name(self):
         self._test_create_no_mandatory_field('name')
@@ -825,7 +804,7 @@ class TestPost(BaseDeployTemplatesAPITest):
     def _test_create_no_mandatory_step_field(self, field):
         tdict = test_api_utils.post_get_test_deploy_template()
         del tdict['steps'][0][field]
-        self._test_create_bad_request(tdict, "Mandatory field missing")
+        self._test_create_bad_request(tdict, "is a required property")
 
     def test_create_no_mandatory_step_field_interface(self):
         self._test_create_no_mandatory_step_field('interface')
@@ -846,59 +825,69 @@ class TestPost(BaseDeployTemplatesAPITest):
 
     def test_create_invalid_field_name(self):
         self._test_create_invalid_field(
-            'name', 42, 'Invalid input for field/attribute name')
+            'name', 42, "42 is not of type 'string'")
 
     def test_create_invalid_field_name_none(self):
         self._test_create_invalid_field(
-            'name', None, "Deploy template name cannot be None")
+            'name', None, "None is not of type 'string'")
 
     def test_create_invalid_field_steps(self):
         self._test_create_invalid_field(
-            'steps', {}, "Invalid input for field/attribute template")
+            'steps', {}, "{} is not of type 'array'")
 
     def test_create_invalid_field_empty_steps(self):
         self._test_create_invalid_field(
-            'steps', [], "No deploy steps specified")
+            'steps', [], "[] is too short")
 
     def test_create_invalid_field_extra(self):
         self._test_create_invalid_field(
-            'extra', 42, "Invalid input for field/attribute template")
+            'extra', 42, "42 is not of type 'object'")
 
     def test_create_invalid_field_foo(self):
         self._test_create_invalid_field(
-            'foo', 'bar', "Unknown attribute for argument template: foo")
+            'foo', 'bar',
+            "Additional properties are not allowed ('foo' was unexpected)")
 
     def _test_create_invalid_step_field(self, field, value, error_msg=None):
         tdict = test_api_utils.post_get_test_deploy_template()
         tdict['steps'][0][field] = value
         if error_msg is None:
-            error_msg = "Invalid input for field/attribute"
+            error_msg = "Deploy template invalid: "
         self._test_create_bad_request(tdict, error_msg)
 
     def test_create_invalid_step_field_interface1(self):
-        self._test_create_invalid_step_field('interface', [3])
+        self._test_create_invalid_step_field(
+            'interface', [3], "[3] is not of type 'string'")
 
     def test_create_invalid_step_field_interface2(self):
-        self._test_create_invalid_step_field('interface', 'foo')
+        self._test_create_invalid_step_field(
+            'interface', 'foo', "'foo' is not one of")
 
     def test_create_invalid_step_field_step(self):
-        self._test_create_invalid_step_field('step', 42)
+        self._test_create_invalid_step_field(
+            'step', 42, "42 is not of type 'string'")
 
     def test_create_invalid_step_field_args1(self):
-        self._test_create_invalid_step_field('args', 'not a dict')
+        self._test_create_invalid_step_field(
+            'args', 'not a dict', "'not a dict' is not of type 'object'")
 
     def test_create_invalid_step_field_args2(self):
-        self._test_create_invalid_step_field('args', [])
+        self._test_create_invalid_step_field(
+            'args', [], "[] is not of type 'object'")
 
     def test_create_invalid_step_field_priority(self):
-        self._test_create_invalid_step_field('priority', 'not a number')
+        self._test_create_invalid_step_field(
+            'priority', 'not a number',
+            "'not a number' is not of type 'integer'")
 
     def test_create_invalid_step_field_negative_priority(self):
-        self._test_create_invalid_step_field('priority', -1)
+        self._test_create_invalid_step_field(
+            'priority', -1, "-1 is less than the minimum of 0")
 
     def test_create_invalid_step_field_foo(self):
         self._test_create_invalid_step_field(
-            'foo', 'bar', "Unknown attribute for argument template.steps: foo")
+            'foo', 'bar',
+            "Additional properties are not allowed ('foo' was unexpected)")
 
     def test_create_step_string_priority(self):
         tdict = test_api_utils.post_get_test_deploy_template()
