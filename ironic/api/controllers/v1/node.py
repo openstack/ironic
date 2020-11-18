@@ -1277,13 +1277,6 @@ def node_sanitize(node, fields):
         node['driver_info'] = strutils.mask_dict_password(
             node['driver_info'], "******")
 
-        # NOTE(derekh): mask ssh keys for the ssh power driver.
-        # As this driver is deprecated masking here (opposed to strutils)
-        # is simpler, and easier to backport. This can be removed along
-        # with support for the ssh power driver.
-        if node['driver_info'].get('ssh_key_contents'):
-            node['driver_info']['ssh_key_contents'] = "******"
-
     if not show_instance_secrets and node.get('instance_info'):
         node['instance_info'] = strutils.mask_dict_password(
             node['instance_info'], "******")

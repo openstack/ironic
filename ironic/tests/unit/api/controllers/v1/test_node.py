@@ -2198,18 +2198,6 @@ class TestListNodes(test_api_base.BaseApiTest):
         mock_vdi.assert_called_once_with(mock.ANY, mock.ANY,
                                          node.uuid, 'test-topic')
 
-    def test_ssh_creds_masked(self):
-        driver_info = {"ssh_password": "password", "ssh_key_contents": "key"}
-        node = obj_utils.create_test_node(self.context,
-                                          chassis_id=self.chassis.id,
-                                          driver_info=driver_info)
-        data = self.get_json(
-            '/nodes/%s' % node.uuid,
-            headers={api_base.Version.string: str(api_v1.max_version())})
-
-        self.assertEqual("******", data["driver_info"]["ssh_password"])
-        self.assertEqual("******", data["driver_info"]["ssh_key_contents"])
-
     @mock.patch.object(rpcapi.ConductorAPI, 'get_indicator_state')
     def test_get_indicator_state(self, mock_gis):
         node = obj_utils.create_test_node(self.context)

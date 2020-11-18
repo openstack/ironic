@@ -77,11 +77,13 @@ def convert_with_links(rpc_allocation, fields=None, sanitize=True):
                 'owner'),
         list_fields=('candidate_nodes', 'traits')
     )
-    api_utils.populate_node_uuid(rpc_allocation, allocation,
-                                 raise_notfound=False)
+    try:
+        api_utils.populate_node_uuid(rpc_allocation, allocation)
+    except exception.NodeNotFound:
+        allocation['node_uuid'] = None
 
     if fields is not None:
-        api_utils.check_for_invalid_fields(fields, allocation.keys())
+        api_utils.check_for_invalid_fields(fields, set(allocation))
 
     if sanitize:
         allocation_sanitize(allocation, fields)

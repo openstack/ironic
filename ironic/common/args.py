@@ -100,7 +100,7 @@ def uuid_or_name(name, value):
     if value is None:
         return
     if (not utils.is_valid_logical_name(value)
-        and not uuidutils.is_uuid_like(value)):
+            and not uuidutils.is_uuid_like(value)):
         raise exception.InvalidParameterValue(
             _('Expected UUID or name for %s: %s') % (name, value))
     return value
@@ -271,7 +271,9 @@ def types(*types):
     :param: types one or more types to use for the isinstance test
     :returns: validator function which takes name and value arguments
     """
-    return functools.partial(_validate_types, types=tuple(types))
+    # Replace None with the None type
+    types = tuple((type(None) if tp is None else tp) for tp in types)
+    return functools.partial(_validate_types, types=types)
 
 
 def _apply_validator(name, value, val_functions):
@@ -352,7 +354,7 @@ def validate(*args, **kwargs):
                 elif param.default == inspect.Parameter.empty:
                     # no argument was provided, and there is no default
                     # in the parameter, so this is a mandatory argument
-                    raise exception.InvalidParameterValue(
+                    raise exception.MissingParameterValue(
                         _('Missing mandatory parameter: %s') % param.name)
 
             if param_positional:
@@ -388,7 +390,8 @@ patch = schema({
             'op': {'type': 'string', 'enum': ['add', 'replace', 'remove']},
             'value': {}
         },
-        'additionalProperties': False
+        'additionalProperties': False,
+        'required': ['op', 'path']
     }
 })
 """Validate a patch API operation"""

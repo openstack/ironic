@@ -37,7 +37,8 @@ def list_convert_with_links(items, item_name, limit, url=None, fields=None,
     :param fields:
         Optional fields to use for sanitize function
     :param sanitize_func:
-        Optional sanitize function run on each item
+        Optional sanitize function run on each item, item changes will be
+        done in-place
     :param key_field:
         Key name for building next URL
     :param kwargs:

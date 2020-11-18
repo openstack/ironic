@@ -67,7 +67,7 @@ EVENTS_SCHEMA = {
                 'type': 'object',
                 'properties': {
                     'event': {'type': 'string',
-                              'enum': list(EVENT_VALIDATORS.keys())},
+                              'enum': list(EVENT_VALIDATORS)},
                 },
                 'required': ['event'],
                 'additionalProperties': True,
@@ -80,7 +80,7 @@ EVENTS_SCHEMA = {
 
 
 def events_valid(name, value):
-    '''Validator for events'''
+    """Validator for events"""
 
     for event in value['events']:
         validator = EVENT_VALIDATORS[event['event']]

@@ -226,7 +226,7 @@ def object_to_dict(obj, created_at=True, updated_at=True, uuid=True,
     return to_dict
 
 
-def populate_node_uuid(obj, to_dict, raise_notfound=True):
+def populate_node_uuid(obj, to_dict):
     """Look up the node referenced in the object and populate a dict.
 
     The node is fetched with the object ``node_id`` attribute and the
@@ -236,23 +236,15 @@ def populate_node_uuid(obj, to_dict, raise_notfound=True):
         object to get the node_id attribute
     :param to_dict:
         dict to populate with a ``node_uuid`` value
-    :param raise_notfound:
-        If ``True`` raise a NodeNotFound exception if the node doesn't exist
-        otherwise set the dict ``node_uuid`` value to None.
     :raises:
-        exception.NodeNotFound if raise_notfound and the node is not found
+        exception.NodeNotFound if the node is not found
     """
     if not obj.node_id:
         to_dict['node_uuid'] = None
         return
-    try:
-        to_dict['node_uuid'] = objects.Node.get_by_id(
-            api.request.context,
-            obj.node_id).uuid
-    except exception.NodeNotFound:
-        if raise_notfound:
-            raise
-        to_dict['node_uuid'] = None
+    to_dict['node_uuid'] = objects.Node.get_by_id(
+        api.request.context,
+        obj.node_id).uuid
 
 
 def replace_node_uuid_with_id(to_dict):
@@ -343,7 +335,7 @@ def patched_validate_with_schema(patched_dict, schema, validator=None):
     :raises: exception.Invalid if validation fails
     """
     schema_fields = schema['properties']
-    for field in set(patched_dict.keys()):
+    for field in set(patched_dict):
         if field not in schema_fields:
             patched_dict.pop(field, None)
     if not validator:
@@ -385,7 +377,7 @@ def sanitize_dict(to_sanitize, fields):
     if fields is None:
         return
 
-    for key in set(to_sanitize.keys()):
+    for key in set(to_sanitize):
         if key not in fields and key != 'links':
             to_sanitize.pop(key, None)
 

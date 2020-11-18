@@ -221,7 +221,7 @@ class DriverPassthruController(rest.RestController):
     @method.expose()
     @method.body('data')
     @args.validate(driver_name=args.string, method=args.string)
-    def _default(self, driver_name, method=None, data=None):
+    def _default(self, driver_name, method, data=None):
         """Call a driver API extension.
 
         :param driver_name: name of the driver to call.
@@ -229,8 +229,6 @@ class DriverPassthruController(rest.RestController):
                        implementation.
         :param data: body of data to supply to the specified method.
         """
-        if not method:
-            raise exception.MissingArgument('method')
 
         cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:driver:vendor_passthru', cdict, cdict)
