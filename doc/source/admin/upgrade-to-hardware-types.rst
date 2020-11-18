@@ -97,7 +97,7 @@ set new values for some or all interfaces:
     done
 
     for uuid in $(baremetal node list --driver agent_ipmitool -f value -c UUID); do
-        baremetal node set $uuid --driver ipmi --deploy-interface direct
+        baremetal node set <node> --driver ipmi --deploy-interface direct
     done
 
 See :doc:`/install/enrollment` for more details on setting hardware types and
@@ -147,7 +147,7 @@ Then you can tell your nodes to use this interface, for example:
 
     export OS_BAREMETAL_API_VERSION=1.31
     for uuid in $(baremetal node list --driver ipmi -f value -c UUID); do
-        baremetal node set $uuid --inspect-interface inspector
+        baremetal node set <node> --inspect-interface inspector
     done
 
 .. note::
@@ -186,7 +186,7 @@ to update all nodes use:
 
     export OS_BAREMETAL_API_VERSION=1.31
     for uuid in $(baremetal node list --driver ipmi -f value -c UUID); do
-        baremetal node set $uuid --console-interface ipmitool-shellinabox
+        baremetal node set <node> --console-interface ipmitool-shellinabox
     done
 
 RAID
@@ -210,7 +210,7 @@ RAID interface. For example, to update all nodes use:
 
     export OS_BAREMETAL_API_VERSION=1.31
     for uuid in $(baremetal node list --driver ipmi -f value -c UUID); do
-        baremetal node set $uuid --raid-interface agent
+        baremetal node set <node> --raid-interface agent
     done
 
 .. note::
