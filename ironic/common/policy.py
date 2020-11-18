@@ -1062,41 +1062,92 @@ utility_policies = [
     ),
 ]
 
+
+deprecated_volume_get = policy.DeprecatedRule(
+    name='baremetal:volume:get',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_volume_create = policy.DeprecatedRule(
+    name='baremetal:volume:create',
+    check_str='rule:is_admin'
+)
+deprecated_volume_delete = policy.DeprecatedRule(
+    name='baremetal:volume:delete',
+    check_str='rule:is_admin'
+)
+deprecated_volume_update = policy.DeprecatedRule(
+    name='baremetal:volume:update',
+    check_str='rule:is_admin'
+)
+deprecated_volume_reason = """
+The baremetal volume API is now aware of system scope and default
+roles.
+"""
+
 volume_policies = [
     policy.DocumentedRuleDefault(
-        'baremetal:volume:get',
-        'rule:is_admin or rule:is_observer',
-        'Retrieve Volume connector and target records',
-        [{'path': '/volume', 'method': 'GET'},
-         {'path': '/volume/connectors', 'method': 'GET'},
-         {'path': '/volume/connectors/{volume_connector_id}', 'method': 'GET'},
-         {'path': '/volume/targets', 'method': 'GET'},
-         {'path': '/volume/targets/{volume_target_id}', 'method': 'GET'},
-         {'path': '/nodes/{node_ident}/volume', 'method': 'GET'},
-         {'path': '/nodes/{node_ident}/volume/connectors', 'method': 'GET'},
-         {'path': '/nodes/{node_ident}/volume/targets', 'method': 'GET'}]),
+        name='baremetal:volume:get',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='Retrieve Volume connector and target records',
+        operations=[
+            {'path': '/volume', 'method': 'GET'},
+            {'path': '/volume/connectors', 'method': 'GET'},
+            {'path': '/volume/connectors/{volume_connector_id}',
+             'method': 'GET'},
+            {'path': '/volume/targets', 'method': 'GET'},
+            {'path': '/volume/targets/{volume_target_id}', 'method': 'GET'},
+            {'path': '/nodes/{node_ident}/volume', 'method': 'GET'},
+            {'path': '/nodes/{node_ident}/volume/connectors', 'method': 'GET'},
+            {'path': '/nodes/{node_ident}/volume/targets', 'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_volume_get,
+        deprecated_reason=deprecated_volume_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:volume:create',
-        'rule:is_admin',
-        'Create Volume connector and target records',
-        [{'path': '/volume/connectors', 'method': 'POST'},
-         {'path': '/volume/targets', 'method': 'POST'}]),
+        name='baremetal:volume:create',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Create Volume connector and target records',
+        operations=[
+            {'path': '/volume/connectors', 'method': 'POST'},
+            {'path': '/volume/targets', 'method': 'POST'}
+        ],
+        deprecated_rule=deprecated_volume_create,
+        deprecated_reason=deprecated_volume_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:volume:delete',
-        'rule:is_admin',
-        'Delete Volume connector and target records',
-        [{'path': '/volume/connectors/{volume_connector_id}',
-          'method': 'DELETE'},
-         {'path': '/volume/targets/{volume_target_id}',
-          'method': 'DELETE'}]),
+        name='baremetal:volume:delete',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Delete Volume connector and target records',
+        operations=[
+            {'path': '/volume/connectors/{volume_connector_id}',
+             'method': 'DELETE'},
+            {'path': '/volume/targets/{volume_target_id}',
+             'method': 'DELETE'}
+        ],
+        deprecated_rule=deprecated_volume_delete,
+        deprecated_reason=deprecated_volume_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:volume:update',
-        'rule:is_admin',
-        'Update Volume connector and target records',
-        [{'path': '/volume/connectors/{volume_connector_id}',
-          'method': 'PATCH'},
-         {'path': '/volume/targets/{volume_target_id}',
-          'method': 'PATCH'}]),
+        name='baremetal:volume:update',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Update Volume connector and target records',
+        operations=[
+            {'path': '/volume/connectors/{volume_connector_id}',
+             'method': 'PATCH'},
+            {'path': '/volume/targets/{volume_target_id}',
+             'method': 'PATCH'}
+        ],
+        deprecated_rule=deprecated_volume_update,
+        deprecated_reason=deprecated_volume_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 ]
 
 conductor_policies = [
