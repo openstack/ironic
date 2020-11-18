@@ -14,6 +14,10 @@ Tests for the API /events methods.
 """
 
 from http import client as http_client
+from unittest import mock
+
+from keystonemiddleware import auth_token
+from oslo_config import cfg
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers.v1 import event
@@ -214,3 +218,26 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
+
+
+@mock.patch.object(auth_token.AuthProtocol, 'process_request',
+                   lambda *_: None)
+class TestPostRBAC(TestPost):
+
+    """Test class to execute the Event post tests with RBAC enforcement."""
+    def setUp(self):
+        super(TestPostRBAC, self).setUp()
+
+        cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
+        cfg.CONF.set_override('enforce_new_defaults', True,
+                              group='oslo_policy')
+        cfg.CONF.set_override('auth_strategy', 'keystone')
+        # Headers required for this to pass in system scope restricted
+        # authentication, as our default for api tests is noauth.
+        self.headers = {
+            api_base.Version.string: str(
+                versions.max_version_string()),
+            'X-Auth-Token': 'test-auth-token',
+            'X-Roles': 'admin',
+            'OpenStack-System-Scope': 'all',
+        }
