@@ -60,13 +60,13 @@ PORT_SCHEMA = {
 
 
 PORT_PATCH_SCHEMA = copy.deepcopy(PORT_SCHEMA)
-# patch supports patching some internal_info values
+# patching /extra/vif_port_id has the side-effect of modifying
+# internal_info values, so include it in the patch schema
 PORT_PATCH_SCHEMA['properties']['internal_info'] = {'type': ['null', 'object']}
 
 PATCH_ALLOWED_FIELDS = [
     'address',
     'extra',
-    'internal_info',
     'is_smartnic',
     'local_link_connection',
     'node_uuid',

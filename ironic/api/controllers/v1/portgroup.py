@@ -52,7 +52,8 @@ PORTGROUP_SCHEMA = {
 }
 
 PORTGROUP_PATCH_SCHEMA = copy.deepcopy(PORTGROUP_SCHEMA)
-# patch supports patching some internal_info values
+# patching /extra/vif_port_id has the side-effect of modifying
+# internal_info values, so include it in the patch schema
 PORTGROUP_PATCH_SCHEMA['properties']['internal_info'] = {
     'type': ['null', 'object']}
 
