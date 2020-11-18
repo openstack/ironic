@@ -1644,15 +1644,13 @@ allocations_post_admin:
   body: &allocation_body
     resource_class: CUSTOM_TEST
   assert_status: 503
-  skip_reason: not updated for scope testing
 
 allocations_post_member:
   path: '/v1/allocations'
   method: post
   headers: *scoped_member_headers
   body: *allocation_body
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 503
 
 allocations_post_observer:
   path: '/v1/allocations'
@@ -1660,49 +1658,42 @@ allocations_post_observer:
   headers: *observer_headers
   body: *allocation_body
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 allocations_get_admin:
   path: '/v1/allocations'
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 allocations_get_member:
   path: '/v1/allocations'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 allocations_get_observer:
   path: '/v1/allocations'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 allocations_allocation_id_get_admin:
   path: '/v1/allocations/{allocation_ident}'
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 allocations_allocation_id_get_member:
   path: '/v1/allocations/{allocation_ident}'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 allocations_allocation_id_get_observer:
   path: '/v1/allocations/{allocation_ident}'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 allocations_allocation_id_patch_admin:
   path: '/v1/allocations/{allocation_ident}'
@@ -1713,15 +1704,13 @@ allocations_allocation_id_patch_admin:
       path: /extra
       value: {'test': 'testing'}
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 allocations_allocation_id_patch_member:
   path: '/v1/allocations/{allocation_ident}'
   method: patch
   headers: *scoped_member_headers
   body: *allocation_patch
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 allocations_allocation_id_patch_observer:
   path: '/v1/allocations/{allocation_ident}'
@@ -1729,7 +1718,6 @@ allocations_allocation_id_patch_observer:
   headers: *observer_headers
   body: *allocation_patch
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 # NOTE(TheJulia): Currently returns an HTTP 503
 # Resource temporarily unavailable, please retry.
@@ -1739,21 +1727,18 @@ allocations_allocation_id_delete_admin:
   method: delete
   headers: *admin_headers
   assert_status: 503
-  skip_reason: not updated for scope testing
 
 allocations_allocation_id_delete_member:
   path: '/v1/allocations/{allocation_ident}'
   method: delete
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 503
 
 allocations_allocation_id_delete_observer:
   path: '/v1/allocations/{allocation_ident}'
   method: delete
   headers: *observer_headers
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 # Allocations ( Node level) - https://docs.openstack.org/api-ref/baremetal/#node-allocation-allocations-nodes
 nodes_allocation_get_admin:
@@ -1761,21 +1746,18 @@ nodes_allocation_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 nodes_allocation_get_member:
   path: '/v1/nodes/{allocated_node_ident}/allocation'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 nodes_allocation_get_observer:
   path: '/v1/nodes/{allocated_node_ident}/allocation'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 # NOTE(TheJulia): Currently returns an HTTP 503
 # Resource temporarily unavailable, please retry.
@@ -1785,21 +1767,18 @@ nodes_allocation_delete_admin:
   method: delete
   headers: *admin_headers
   assert_status: 503
-  skip_reason: not updated for scope testing
 
 nodes_allocation_delete_member:
   path: '/v1/nodes/{allocated_node_ident}/allocation'
   method: delete
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 503
 
 nodes_allocation_delete_observer:
   path: '/v1/nodes/{allocated_node_ident}/allocation'
   method: delete
   headers: *observer_headers
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 # Deploy Templates - https://docs.openstack.org/api-ref/baremetal/#deploy-templates-deploy-templates
 
