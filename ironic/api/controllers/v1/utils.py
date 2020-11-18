@@ -75,7 +75,14 @@ V31_FIELDS = [
 ]
 
 STANDARD_TRAITS = os_traits.get_traits()
-CUSTOM_TRAIT_REGEX = re.compile("^%s[A-Z0-9_]+$" % os_traits.CUSTOM_NAMESPACE)
+CUSTOM_TRAIT_PATTERN = "^%s[A-Z0-9_]+$" % os_traits.CUSTOM_NAMESPACE
+CUSTOM_TRAIT_REGEX = re.compile(CUSTOM_TRAIT_PATTERN)
+
+TRAITS_SCHEMA = {'anyOf': [
+    {'type': 'string', 'minLength': 1, 'maxLength': 255,
+     'pattern': CUSTOM_TRAIT_PATTERN},
+    {'type': 'string', 'enum': STANDARD_TRAITS},
+]}
 
 
 def validate_limit(limit):
@@ -97,6 +104,7 @@ def validate_sort_dir(sort_dir):
 
 
 def validate_trait(trait, error_prefix=_('Invalid trait')):
+    # TODO(sbaker) remove when all trait validation is jsonschema based
     error = exception.ClientSideError(
         _('%(error_prefix)s. A valid trait must be no longer than 255 '
           'characters. Standard traits are defined in the os_traits library. '
