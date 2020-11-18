@@ -26,29 +26,12 @@ from oslo_utils import uuidutils
 
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
-from ironic.api.controllers.v1 import chassis as api_chassis
 from ironic.api.controllers.v1 import notification_utils
-from ironic.api import types as atypes
 from ironic import objects
 from ironic.objects import fields as obj_fields
-from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.api import utils as apiutils
 from ironic.tests.unit.objects import utils as obj_utils
-
-
-class TestChassisObject(base.TestCase):
-
-    def test_chassis_init(self):
-        chassis_dict = apiutils.chassis_post_data()
-        del chassis_dict['description']
-        chassis = api_chassis.Chassis(**chassis_dict)
-        self.assertEqual(atypes.Unset, chassis.description)
-
-    def test_chassis_sample(self):
-        expected_description = 'Sample chassis'
-        sample = api_chassis.Chassis.sample(expand=False)
-        self.assertEqual(expected_description, sample.as_dict()['description'])
 
 
 class TestListChassis(test_api_base.BaseApiTest):
@@ -577,8 +560,7 @@ class TestPost(test_api_base.BaseApiTest):
 
     def test_create_chassis_toolong_description(self):
         descr = 'a' * 256
-        valid_error_message = ('Value should have a maximum character '
-                               'requirement of 255')
+        valid_error_message = (' is too long')
         cdict = apiutils.chassis_post_data(description=descr)
         response = self.post_json('/chassis', cdict, expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
@@ -587,7 +569,7 @@ class TestPost(test_api_base.BaseApiTest):
 
     def test_create_chassis_invalid_description(self):
         descr = 1334
-        valid_error_message = 'Value should be string'
+        valid_error_message = "1334 is not of type 'string', 'null'"
         cdict = apiutils.chassis_post_data(description=descr)
         response = self.post_json('/chassis', cdict, expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)

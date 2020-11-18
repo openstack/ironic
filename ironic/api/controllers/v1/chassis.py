@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import datetime
 from http import client as http_client
 
 from ironic_lib import metrics_utils
@@ -21,15 +20,13 @@ from oslo_utils import uuidutils
 from pecan import rest
 
 from ironic import api
-from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import node
 from ironic.api.controllers.v1 import notification_utils as notify
-from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
-from ironic.api import expose
-from ironic.api import types as atypes
+from ironic.api import method
+from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -37,139 +34,64 @@ from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
+CHASSIS_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'uuid': {'type': ['string', 'null']},
+        'extra': {'type': ['object', 'null']},
+        'description': {'type': ['string', 'null'], 'maxLength': 255},
+    },
+    'additionalProperties': False,
+}
 
-_DEFAULT_RETURN_FIELDS = ('uuid', 'description')
+CHASSIS_VALIDATOR = args.and_valid(
+    args.schema(CHASSIS_SCHEMA),
+    args.dict_valid(uuid=args.uuid)
+)
 
-
-class Chassis(base.APIBase):
-    """API representation of a chassis.
-
-    This class enforces type checking and value constraints, and converts
-    between the internal object model and the API representation of
-    a chassis.
-    """
-
-    uuid = types.uuid
-    """The UUID of the chassis"""
-
-    description = atypes.StringType(max_length=255)
-    """The description of the chassis"""
-
-    extra = {str: types.jsontype}
-    """The metadata of the chassis"""
-
-    links = None
-    """A list containing a self link and associated chassis links"""
-
-    nodes = None
-    """Links to the collection of nodes contained in this chassis"""
-
-    def __init__(self, **kwargs):
-        self.fields = []
-        for field in objects.Chassis.fields:
-            # Skip fields we do not expose.
-            if not hasattr(self, field):
-                continue
-            self.fields.append(field)
-            setattr(self, field, kwargs.get(field, atypes.Unset))
-
-    @staticmethod
-    def _convert_with_links(chassis, url, fields=None):
-        if fields is None:
-            chassis.nodes = [link.make_link('self',
-                                            url,
-                                            'chassis',
-                                            chassis.uuid + "/nodes"),
-                             link.make_link('bookmark',
-                                            url,
-                                            'chassis',
-                                            chassis.uuid + "/nodes",
-                                            bookmark=True)
-                             ]
-        chassis.links = [link.make_link('self',
-                                        url,
-                                        'chassis', chassis.uuid),
-                         link.make_link('bookmark',
-                                        url,
-                                        'chassis', chassis.uuid,
-                                        bookmark=True)
-                         ]
-        return chassis
-
-    @classmethod
-    def convert_with_links(cls, rpc_chassis, fields=None, sanitize=True):
-        chassis = Chassis(**rpc_chassis.as_dict())
-
-        if fields is not None:
-            api_utils.check_for_invalid_fields(fields, chassis.as_dict())
-
-        chassis = cls._convert_with_links(chassis, api.request.public_url,
-                                          fields)
-
-        if not sanitize:
-            return chassis
-
-        chassis.sanitize(fields)
-        return chassis
-
-    def sanitize(self, fields=None):
-        """Removes sensitive and unrequested data.
-
-        Will only keep the fields specified in the ``fields`` parameter.
-
-        :param fields:
-            list of fields to preserve, or ``None`` to preserve them all
-        :type fields: list of str
-        """
-        if fields is not None:
-            self.unset_fields_except(fields)
-
-    @classmethod
-    def sample(cls, expand=True):
-        time = datetime.datetime(2000, 1, 1, 12, 0, 0)
-        sample = cls(uuid='eaaca217-e7d8-47b4-bb41-3f99f20eed89', extra={},
-                     description='Sample chassis', created_at=time,
-                     updated_at=time)
-        fields = None if expand else _DEFAULT_RETURN_FIELDS
-        return cls._convert_with_links(sample, 'http://localhost:6385',
-                                       fields=fields)
+DEFAULT_RETURN_FIELDS = ['uuid', 'description']
 
 
-class ChassisPatchType(types.JsonPatchType):
+def convert_with_links(rpc_chassis, fields=None, sanitize=True):
+    chassis = api_utils.object_to_dict(
+        rpc_chassis,
+        fields=('description', 'extra'),
+        link_resource='chassis'
+    )
 
-    _api_base = Chassis
+    url = api.request.public_url
+    chassis['nodes'] = [
+        link.make_link('self',
+                       url,
+                       'chassis',
+                       rpc_chassis.uuid + "/nodes"),
+        link.make_link('bookmark',
+                       url,
+                       'chassis',
+                       rpc_chassis.uuid + "/nodes",
+                       bookmark=True)],
+
+    if fields is not None:
+        api_utils.check_for_invalid_fields(fields, chassis)
+
+    if sanitize:
+        api_utils.sanitize_dict(chassis, fields)
+    return chassis
 
 
-class ChassisCollection(collection.Collection):
-    """API representation of a collection of chassis."""
-
-    chassis = [Chassis]
-    """A list containing chassis objects"""
-
-    def __init__(self, **kwargs):
-        self._type = 'chassis'
-
-    @staticmethod
-    def convert_with_links(chassis, limit, url=None, fields=None, **kwargs):
-        collection = ChassisCollection()
-        collection.chassis = [Chassis.convert_with_links(ch, fields=fields,
-                                                         sanitize=False)
-                              for ch in chassis]
-        url = url or None
-        collection.next = collection.get_next(limit, url=url, fields=fields,
-                                              **kwargs)
-        for item in collection.chassis:
-            item.sanitize(fields)
-        return collection
-
-    @classmethod
-    def sample(cls):
-        # FIXME(jroll) hack for docs build, bug #1560508
-        if not hasattr(objects, 'Chassis'):
-            objects.register_all()
-        sample = cls()
-        sample.chassis = [Chassis.sample(expand=False)]
-        return sample
+def list_convert_with_links(rpc_chassis_list, limit, url=None, fields=None,
+                            **kwargs):
+    return collection.list_convert_with_links(
+        items=[convert_with_links(ch, fields=fields,
+                                  sanitize=False)
+               for ch in rpc_chassis_list],
+        item_name='chassis',
+        limit=limit,
+        url=url,
+        fields=fields,
+        sanitize_func=api_utils.sanitize_dict,
+        **kwargs
+    )
 
 
 class ChassisController(rest.RestController):
@@ -209,16 +131,18 @@ class ChassisController(rest.RestController):
         if detail is not None:
             parameters['detail'] = detail
 
-        return ChassisCollection.convert_with_links(chassis, limit,
-                                                    url=resource_url,
-                                                    fields=fields,
-                                                    sort_key=sort_key,
-                                                    sort_dir=sort_dir,
-                                                    **parameters)
+        return list_convert_with_links(chassis, limit,
+                                       url=resource_url,
+                                       fields=fields,
+                                       sort_key=sort_key,
+                                       sort_dir=sort_dir,
+                                       **parameters)
 
     @METRICS.timer('ChassisController.get_all')
-    @expose.expose(ChassisCollection, types.uuid, int,
-                   str, str, types.listtype, types.boolean)
+    @method.expose()
+    @args.validate(marker=args.uuid, limit=args.integer, sort_key=args.string,
+                   sort_dir=args.string, fields=args.string_list,
+                   detail=args.boolean)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
                 fields=None, detail=None):
         """Retrieve a list of chassis.
@@ -239,14 +163,15 @@ class ChassisController(rest.RestController):
         api_utils.check_allow_specify_fields(fields)
 
         fields = api_utils.get_request_return_fields(fields, detail,
-                                                     _DEFAULT_RETURN_FIELDS)
+                                                     DEFAULT_RETURN_FIELDS)
 
         return self._get_chassis_collection(marker, limit, sort_key, sort_dir,
                                             fields=fields, detail=detail)
 
     @METRICS.timer('ChassisController.detail')
-    @expose.expose(ChassisCollection, types.uuid, int,
-                   str, str)
+    @method.expose()
+    @args.validate(marker=args.uuid, limit=args.integer, sort_key=args.string,
+                   sort_dir=args.string)
     def detail(self, marker=None, limit=None, sort_key='id', sort_dir='asc'):
         """Retrieve a list of chassis with detail.
 
@@ -271,7 +196,8 @@ class ChassisController(rest.RestController):
                                             resource_url)
 
     @METRICS.timer('ChassisController.get_one')
-    @expose.expose(Chassis, types.uuid, types.listtype)
+    @method.expose()
+    @args.validate(chassis_uuid=args.uuid, fields=args.string_list)
     def get_one(self, chassis_uuid, fields=None):
         """Retrieve information about the given chassis.
 
@@ -285,10 +211,12 @@ class ChassisController(rest.RestController):
         api_utils.check_allow_specify_fields(fields)
         rpc_chassis = objects.Chassis.get_by_uuid(api.request.context,
                                                   chassis_uuid)
-        return Chassis.convert_with_links(rpc_chassis, fields=fields)
+        return convert_with_links(rpc_chassis, fields=fields)
 
     @METRICS.timer('ChassisController.post')
-    @expose.expose(Chassis, body=Chassis, status_code=http_client.CREATED)
+    @method.expose(status_code=http_client.CREATED)
+    @method.body('chassis')
+    @args.validate(chassis=CHASSIS_VALIDATOR)
     def post(self, chassis):
         """Create a new chassis.
 
@@ -299,21 +227,22 @@ class ChassisController(rest.RestController):
         policy.authorize('baremetal:chassis:create', cdict, cdict)
 
         # NOTE(yuriyz): UUID is mandatory for notifications payload
-        if not chassis.uuid:
-            chassis.uuid = uuidutils.generate_uuid()
+        if not chassis.get('uuid'):
+            chassis['uuid'] = uuidutils.generate_uuid()
 
-        new_chassis = objects.Chassis(context, **chassis.as_dict())
+        new_chassis = objects.Chassis(context, **chassis)
         notify.emit_start_notification(context, new_chassis, 'create')
         with notify.handle_error_notification(context, new_chassis, 'create'):
             new_chassis.create()
         notify.emit_end_notification(context, new_chassis, 'create')
         # Set the HTTP Location Header
         api.response.location = link.build_url('chassis', new_chassis.uuid)
-        return Chassis.convert_with_links(new_chassis)
+        return convert_with_links(new_chassis)
 
     @METRICS.timer('ChassisController.patch')
-    @expose.validate(types.uuid, [ChassisPatchType])
-    @expose.expose(Chassis, types.uuid, body=[ChassisPatchType])
+    @method.expose()
+    @method.body('patch')
+    @args.validate(chassis_uuid=args.string, patch=args.patch)
     def patch(self, chassis_uuid, patch):
         """Update an existing chassis.
 
@@ -324,30 +253,29 @@ class ChassisController(rest.RestController):
         cdict = context.to_policy_values()
         policy.authorize('baremetal:chassis:update', cdict, cdict)
 
-        rpc_chassis = objects.Chassis.get_by_uuid(context, chassis_uuid)
-        chassis = Chassis(
-            **api_utils.apply_jsonpatch(rpc_chassis.as_dict(), patch))
+        api_utils.patch_validate_allowed_fields(
+            patch, CHASSIS_SCHEMA['properties'])
 
-        # Update only the fields that have changed
-        for field in objects.Chassis.fields:
-            try:
-                patch_val = getattr(chassis, field)
-            except AttributeError:
-                # Ignore fields that aren't exposed in the API
-                continue
-            if patch_val == atypes.Unset:
-                patch_val = None
-            if rpc_chassis[field] != patch_val:
-                rpc_chassis[field] = patch_val
+        rpc_chassis = objects.Chassis.get_by_uuid(context, chassis_uuid)
+        chassis = api_utils.apply_jsonpatch(rpc_chassis.as_dict(), patch)
+
+        api_utils.patched_validate_with_schema(
+            chassis, CHASSIS_SCHEMA, CHASSIS_VALIDATOR)
+
+        api_utils.patch_update_changed_fields(
+            chassis, rpc_chassis, fields=objects.Chassis.fields,
+            schema=CHASSIS_SCHEMA
+        )
 
         notify.emit_start_notification(context, rpc_chassis, 'update')
         with notify.handle_error_notification(context, rpc_chassis, 'update'):
             rpc_chassis.save()
         notify.emit_end_notification(context, rpc_chassis, 'update')
-        return Chassis.convert_with_links(rpc_chassis)
+        return convert_with_links(rpc_chassis)
 
     @METRICS.timer('ChassisController.delete')
-    @expose.expose(None, types.uuid, status_code=http_client.NO_CONTENT)
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @args.validate(chassis_uuid=args.uuid)
     def delete(self, chassis_uuid):
         """Delete a chassis.
 
