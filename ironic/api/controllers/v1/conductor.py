@@ -10,21 +10,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import datetime
-
 from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import timeutils
 from pecan import rest
 
 from ironic import api
-from ironic.api.controllers import base
-from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
-from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
-from ironic.api import expose
-from ironic.api import types as atypes
+from ironic.api import method
+from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -35,124 +30,40 @@ CONF = ironic.conf.CONF
 LOG = log.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
-_DEFAULT_RETURN_FIELDS = ('hostname', 'conductor_group', 'alive')
+DEFAULT_RETURN_FIELDS = ['hostname', 'conductor_group', 'alive']
 
 
-class Conductor(base.APIBase):
-    """API representation of a bare metal conductor."""
+def convert_with_links(rpc_conductor, fields=None, sanitize=True):
+    conductor = api_utils.object_to_dict(
+        rpc_conductor,
+        uuid=False,
+        fields=('hostname', 'conductor_group', 'drivers'),
+        link_resource='conductors',
+        link_resource_args=rpc_conductor.hostname
+    )
+    conductor['alive'] = not timeutils.is_older_than(
+        rpc_conductor.updated_at, CONF.conductor.heartbeat_timeout)
+    if fields is not None:
+        api_utils.check_for_invalid_fields(fields, conductor)
 
-    hostname = atypes.wsattr(str)
-    """The hostname for this conductor"""
-
-    conductor_group = atypes.wsattr(str)
-    """The conductor group this conductor belongs to"""
-
-    alive = types.boolean
-    """Indicates whether this conductor is considered alive"""
-
-    drivers = atypes.wsattr([str])
-    """The drivers enabled on this conductor"""
-
-    links = None
-    """A list containing a self link and associated conductor links"""
-
-    def __init__(self, **kwargs):
-        self.fields = []
-        fields = list(objects.Conductor.fields)
-        # NOTE(kaifeng): alive is not part of objects.Conductor.fields
-        # because it's an API-only attribute.
-        fields.append('alive')
-
-        for field in fields:
-            # Skip fields we do not expose.
-            if not hasattr(self, field):
-                continue
-            self.fields.append(field)
-            setattr(self, field, kwargs.get(field, atypes.Unset))
-
-    @staticmethod
-    def _convert_with_links(conductor, url, fields=None):
-        conductor.links = [link.make_link('self', url, 'conductors',
-                                          conductor.hostname),
-                           link.make_link('bookmark', url, 'conductors',
-                                          conductor.hostname,
-                                          bookmark=True)]
-        return conductor
-
-    @classmethod
-    def convert_with_links(cls, rpc_conductor, fields=None):
-        conductor = Conductor(**rpc_conductor.as_dict())
-        conductor.alive = not timeutils.is_older_than(
-            conductor.updated_at, CONF.conductor.heartbeat_timeout)
-
-        if fields is not None:
-            api_utils.check_for_invalid_fields(fields, conductor.as_dict())
-
-        conductor = cls._convert_with_links(conductor,
-                                            api.request.public_url,
-                                            fields=fields)
-        conductor.sanitize(fields)
-        return conductor
-
-    def sanitize(self, fields):
-        """Removes sensitive and unrequested data.
-
-        Will only keep the fields specified in the ``fields`` parameter.
-
-        :param fields:
-            list of fields to preserve, or ``None`` to preserve them all
-        :type fields: list of str
-        """
-        if fields is not None:
-            self.unset_fields_except(fields)
-
-    @classmethod
-    def sample(cls, expand=True):
-        time = datetime.datetime(2000, 1, 1, 12, 0, 0)
-        sample = cls(hostname='computer01',
-                     conductor_group='',
-                     alive=True,
-                     drivers=['ipmi'],
-                     created_at=time,
-                     updated_at=time)
-        fields = None if expand else _DEFAULT_RETURN_FIELDS
-        return cls._convert_with_links(sample, 'http://localhost:6385',
-                                       fields=fields)
+    if sanitize:
+        api_utils.sanitize_dict(conductor, fields)
+    return conductor
 
 
-class ConductorCollection(collection.Collection):
-    """API representation of a collection of conductors."""
-
-    conductors = [Conductor]
-    """A list containing conductor objects"""
-
-    def __init__(self, **kwargs):
-        self._type = 'conductors'
-
-    # NOTE(kaifeng) Override because conductors use hostname instead of uuid.
-    @classmethod
-    def get_key_field(cls):
-        return 'hostname'
-
-    @staticmethod
-    def convert_with_links(conductors, limit, url=None, fields=None, **kwargs):
-        collection = ConductorCollection()
-        collection.conductors = [Conductor.convert_with_links(c, fields=fields)
-                                 for c in conductors]
-        collection.next = collection.get_next(limit, url=url, fields=fields,
-                                              **kwargs)
-
-        for conductor in collection.conductors:
-            conductor.sanitize(fields)
-
-        return collection
-
-    @classmethod
-    def sample(cls):
-        sample = cls()
-        conductor = Conductor.sample(expand=False)
-        sample.conductors = [conductor]
-        return sample
+def list_convert_with_links(rpc_conductors, limit, url=None, fields=None,
+                            **kwargs):
+    return collection.list_convert_with_links(
+        items=[convert_with_links(c, fields=fields, sanitize=False)
+               for c in rpc_conductors],
+        item_name='conductors',
+        limit=limit,
+        url=url,
+        fields=fields,
+        key_field='hostname',
+        sanitize_func=api_utils.sanitize_dict,
+        **kwargs
+    )
 
 
 class ConductorsController(rest.RestController):
@@ -187,14 +98,14 @@ class ConductorsController(rest.RestController):
         if detail is not None:
             parameters['detail'] = detail
 
-        return ConductorCollection.convert_with_links(conductors, limit,
-                                                      url=resource_url,
-                                                      fields=fields,
-                                                      **parameters)
+        return list_convert_with_links(conductors, limit, url=resource_url,
+                                       fields=fields, **parameters)
 
     @METRICS.timer('ConductorsController.get_all')
-    @expose.expose(ConductorCollection, types.name, int, str,
-                   str, types.listtype, types.boolean)
+    @method.expose()
+    @args.validate(marker=args.name, limit=args.integer, sort_key=args.string,
+                   sort_dir=args.string, fields=args.string_list,
+                   detail=args.boolean)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
                 fields=None, detail=None):
         """Retrieve a list of conductors.
@@ -222,14 +133,15 @@ class ConductorsController(rest.RestController):
         api_utils.check_allowed_fields([sort_key])
 
         fields = api_utils.get_request_return_fields(fields, detail,
-                                                     _DEFAULT_RETURN_FIELDS)
+                                                     DEFAULT_RETURN_FIELDS)
 
         return self._get_conductors_collection(marker, limit, sort_key,
                                                sort_dir, fields=fields,
                                                detail=detail)
 
     @METRICS.timer('ConductorsController.get_one')
-    @expose.expose(Conductor, types.name, types.listtype)
+    @method.expose()
+    @args.validate(hostname=args.name, fields=args.string_list)
     def get_one(self, hostname, fields=None):
         """Retrieve information about the given conductor.
 
@@ -248,4 +160,4 @@ class ConductorsController(rest.RestController):
 
         conductor = objects.Conductor.get_by_hostname(api.request.context,
                                                       hostname, online=None)
-        return Conductor.convert_with_links(conductor, fields=fields)
+        return convert_with_links(conductor, fields=fields)
