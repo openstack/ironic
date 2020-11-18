@@ -18,59 +18,41 @@ import pecan
 from pecan import rest
 
 from ironic import api
-from ironic.api.controllers import base
 from ironic.api.controllers import link
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import volume_connector
 from ironic.api.controllers.v1 import volume_target
-from ironic.api import expose
+from ironic.api import method
 from ironic.common import exception
 from ironic.common import policy
 
 
-class Volume(base.APIBase):
-    """API representation of a volume root.
+def convert(node_ident=None):
+    url = api.request.public_url
+    volume = {}
+    if node_ident:
+        resource = 'nodes'
+        rargs = '%s/volume/' % node_ident
+    else:
+        resource = 'volume'
+        rargs = ''
 
-    This class exists as a root class for the volume connectors and volume
-    targets controllers.
-    """
+    volume['links'] = [
+        link.make_link('self', url, resource, rargs),
+        link.make_link('bookmark', url, resource, rargs,
+                       bookmark=True)]
 
-    links = None
-    """A list containing a self link and associated volume links"""
+    volume['connectors'] = [
+        link.make_link('self', url, resource, rargs + 'connectors'),
+        link.make_link('bookmark', url, resource, rargs + 'connectors',
+                       bookmark=True)]
 
-    connectors = None
-    """Links to the volume connectors resource"""
+    volume['targets'] = [
+        link.make_link('self', url, resource, rargs + 'targets'),
+        link.make_link('bookmark', url, resource, rargs + 'targets',
+                       bookmark=True)]
 
-    targets = None
-    """Links to the volume targets resource"""
-
-    @staticmethod
-    def convert(node_ident=None):
-        url = api.request.public_url
-        volume = Volume()
-        if node_ident:
-            resource = 'nodes'
-            args = '%s/volume/' % node_ident
-        else:
-            resource = 'volume'
-            args = ''
-
-        volume.links = [
-            link.make_link('self', url, resource, args),
-            link.make_link('bookmark', url, resource, args,
-                           bookmark=True)]
-
-        volume.connectors = [
-            link.make_link('self', url, resource, args + 'connectors'),
-            link.make_link('bookmark', url, resource, args + 'connectors',
-                           bookmark=True)]
-
-        volume.targets = [
-            link.make_link('self', url, resource, args + 'targets'),
-            link.make_link('bookmark', url, resource, args + 'targets',
-                           bookmark=True)]
-
-        return volume
+    return volume
 
 
 class VolumeController(rest.RestController):
@@ -85,7 +67,7 @@ class VolumeController(rest.RestController):
         super(VolumeController, self).__init__()
         self.parent_node_ident = node_ident
 
-    @expose.expose(Volume)
+    @method.expose()
     def get(self):
         if not api_utils.allow_volume():
             raise exception.NotFound()
@@ -93,7 +75,7 @@ class VolumeController(rest.RestController):
         cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:volume:get', cdict, cdict)
 
-        return Volume.convert(self.parent_node_ident)
+        return convert(self.parent_node_ident)
 
     @pecan.expose()
     def _lookup(self, subres, *remainder):
