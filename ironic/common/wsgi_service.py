@@ -20,6 +20,9 @@ from ironic.common.i18n import _
 from ironic.conf import CONF
 
 
+_MAX_DEFAULT_WORKERS = 4
+
+
 class WSGIService(service.ServiceBase):
     """Provides ability to launch ironic API from wsgi app."""
 
@@ -32,8 +35,12 @@ class WSGIService(service.ServiceBase):
         """
         self.name = name
         self.app = app.VersionSelectorApplication()
-        self.workers = (CONF.api.api_workers
-                        or processutils.get_worker_count())
+        self.workers = (
+            CONF.api.api_workers
+            # NOTE(dtantsur): each worker takes a substantial amount of memory,
+            # so we don't want to end up with dozens of them.
+            or min(processutils.get_worker_count(), _MAX_DEFAULT_WORKERS)
+        )
         if self.workers and self.workers < 1:
             raise exception.ConfigInvalid(
                 _("api_workers value of %d is invalid, "
