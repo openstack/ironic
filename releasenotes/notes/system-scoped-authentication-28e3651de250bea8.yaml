@@ -4,7 +4,7 @@ features:
     The Baremetal API, provided by the ironic-api process, now supports use of
     ``system`` scoped ``keystone`` authentication for the following endpoints:
     nodes, ports, portgroups, chassis, drivers, driver vendor passthru,
-    volume targets, volume connectors
+    volume targets, volume connectors, conductors
 upgrade:
   - |
     Deprecated policy rules are not expressed via a default policy file
