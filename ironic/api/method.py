@@ -32,7 +32,7 @@ pecan_json_decorate = pecan.expose(
     generic=False)
 
 
-def expose():
+def expose(status_code=None):
 
     def decorate(f):
 
@@ -40,6 +40,8 @@ def expose():
         def callfunction(self, *args, **kwargs):
             try:
                 result = f(self, *args, **kwargs)
+                if status_code:
+                    pecan.response.status = status_code
 
             except Exception:
                 try:
@@ -58,12 +60,49 @@ def expose():
                 else:
                     pecan.response.status = 500
 
+            def _empty():
+                pecan.request.pecan['content_type'] = None
+                pecan.response.content_type = None
+
+            # never return content for NO_CONTENT
+            if pecan.response.status_code == 204:
+                return _empty()
+
+            # don't encode None for ACCEPTED responses
+            if result is None and pecan.response.status_code == 202:
+                return _empty()
+
             return json.dumps(result)
 
         pecan_json_decorate(callfunction)
         return callfunction
 
     return decorate
+
+
+def body(body_arg):
+    """Decorator which places HTTP request body JSON into a method argument
+
+    :param body_arg: Name of argument to populate with body JSON
+    """
+
+    def inner_function(function):
+
+        @functools.wraps(function)
+        def inner_body(*args, **kwargs):
+
+            data = pecan.request.json
+            if isinstance(data, dict):
+                # remove any keyword arguments which pecan has
+                # extracted from the body
+                for field in data.keys():
+                    kwargs.pop(field, None)
+
+            kwargs[body_arg] = data
+
+            return function(*args, **kwargs)
+        return inner_body
+    return inner_function
 
 
 def format_exception(excinfo, debug=False):
