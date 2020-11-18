@@ -90,7 +90,7 @@ ironic configuration file to match the HTTP server configurations.
    http_url = http://example.com
    http_root = /httpboot
 
-Each HTTP servers should be configured to follow symlinks for images
+Each HTTP server should be configured to follow symlinks for images
 accessible from HTTP service. Please refer to configuration option
 ``FollowSymLinks`` if you are using Apache HTTP server, or
 ``disable_symlinks`` if Nginx HTTP server is in use.
