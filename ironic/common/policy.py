@@ -1316,31 +1316,78 @@ event_policies = [
 ]
 
 
+deprecated_deploy_template_get = policy.DeprecatedRule(
+    name='baremetal:deploy_template:get',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_deploy_template_create = policy.DeprecatedRule(
+    name='baremetal:deploy_template:create',
+    check_str='rule:is_admin'
+)
+deprecated_deploy_template_delete = policy.DeprecatedRule(
+    name='baremetal:deploy_template:delete',
+    check_str='rule:is_admin'
+)
+deprecated_deploy_template_update = policy.DeprecatedRule(
+    name='baremetal:deploy_template:update',
+    check_str='rule:is_admin'
+)
+deprecated_template_reason = """
+The baremetal deploy template API is now aware of system scope and
+default roles.
+"""
+
 deploy_template_policies = [
     policy.DocumentedRuleDefault(
-        'baremetal:deploy_template:get',
-        'rule:is_admin or rule:is_observer',
-        'Retrieve Deploy Template records',
-        [{'path': '/deploy_templates', 'method': 'GET'},
-         {'path': '/deploy_templates/{deploy_template_ident}',
-          'method': 'GET'}]),
+        name='baremetal:deploy_template:get',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='Retrieve Deploy Template records',
+        operations=[
+            {'path': '/deploy_templates', 'method': 'GET'},
+            {'path': '/deploy_templates/{deploy_template_ident}',
+             'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_deploy_template_get,
+        deprecated_reason=deprecated_template_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:deploy_template:create',
-        'rule:is_admin',
-        'Create Deploy Template records',
-        [{'path': '/deploy_templates', 'method': 'POST'}]),
+        name='baremetal:deploy_template:create',
+        check_str=SYSTEM_ADMIN,
+        scope_types=['system'],
+        description='Create Deploy Template records',
+        operations=[{'path': '/deploy_templates', 'method': 'POST'}],
+        deprecated_rule=deprecated_deploy_template_create,
+        deprecated_reason=deprecated_template_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:deploy_template:delete',
-        'rule:is_admin',
-        'Delete Deploy Template records',
-        [{'path': '/deploy_templates/{deploy_template_ident}',
-          'method': 'DELETE'}]),
+        name='baremetal:deploy_template:delete',
+        check_str=SYSTEM_ADMIN,
+        scope_types=['system'],
+        description='Delete Deploy Template records',
+        operations=[
+            {'path': '/deploy_templates/{deploy_template_ident}',
+             'method': 'DELETE'}
+        ],
+        deprecated_rule=deprecated_deploy_template_delete,
+        deprecated_reason=deprecated_template_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:deploy_template:update',
-        'rule:is_admin',
-        'Update Deploy Template records',
-        [{'path': '/deploy_templates/{deploy_template_ident}',
-          'method': 'PATCH'}]),
+        name='baremetal:deploy_template:update',
+        check_str=SYSTEM_ADMIN,
+        scope_types=['system'],
+        description='Update Deploy Template records',
+        operations=[
+            {'path': '/deploy_templates/{deploy_template_ident}',
+             'method': 'PATCH'}
+        ],
+        deprecated_rule=deprecated_deploy_template_update,
+        deprecated_reason=deprecated_template_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 ]
 
 
