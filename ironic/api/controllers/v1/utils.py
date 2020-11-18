@@ -27,8 +27,10 @@ from oslo_utils import uuidutils
 from pecan import rest
 
 from ironic import api
+from ironic.api.controllers import link
 from ironic.api.controllers.v1 import versions
 from ironic.api import types as atypes
+from ironic.common import args
 from ironic.common import exception
 from ironic.common import faults
 from ironic.common.i18n import _
@@ -83,6 +85,244 @@ TRAITS_SCHEMA = {'anyOf': [
      'pattern': CUSTOM_TRAIT_PATTERN},
     {'type': 'string', 'enum': STANDARD_TRAITS},
 ]}
+
+
+def object_to_dict(obj, created_at=True, updated_at=True, uuid=True,
+                   link_resource=None, link_resource_args=None, fields=None,
+                   list_fields=None, date_fields=None, boolean_fields=None):
+    """Helper function to convert RPC objects to REST API dicts.
+
+    :param obj:
+        RPC object to convert to a dict
+    :param created_at:
+        Whether to include standard base class attribute created_at
+    :param updated_at:
+        Whether to include standard base class attribute updated_at
+    :param uuid:
+        Whether to include standard base class attribute uuid
+    :param link_resource:
+        When specified, generate a ``links`` value with a ``self`` and
+        ``bookmark`` using this resource name
+    :param link_resource_args:
+        Resource arguments to be added to generated links. When not specified,
+        the object ``uuid`` will be used.
+    :param fields:
+        Dict values to populate directly from object attributes
+    :param list_fields:
+        Dict values to populate from object attributes where an empty list is
+        the default for empty attributes
+    :param date_fields:
+        Dict values to populate from object attributes as ISO 8601 dates,
+        or None if the value is None
+    :param boolean_fields:
+        Dict values to populate from object attributes as boolean values
+        or False if the value is empty
+    :returns: A dict containing values from the object
+    """
+    url = api.request.public_url
+    to_dict = {}
+
+    if uuid:
+        to_dict['uuid'] = obj.uuid
+
+    if created_at:
+        to_dict['created_at'] = (obj.created_at
+                                 and obj.created_at.isoformat() or None)
+    if updated_at:
+        to_dict['updated_at'] = (obj.updated_at
+                                 and obj.updated_at.isoformat() or None)
+
+    if fields:
+        for field in fields:
+            to_dict[field] = getattr(obj, field)
+
+    if list_fields:
+        for field in list_fields:
+            to_dict[field] = getattr(obj, field) or []
+
+    if date_fields:
+        for field in date_fields:
+            date = getattr(obj, field)
+            to_dict[field] = date and date.isoformat() or None
+
+    if boolean_fields:
+        for field in boolean_fields:
+            to_dict[field] = getattr(obj, field) or False
+
+    if link_resource:
+        if not link_resource_args:
+            link_resource_args = obj.uuid
+        to_dict['links'] = [
+            link.make_link('self', url, link_resource, link_resource_args),
+            link.make_link('bookmark', url, link_resource, link_resource_args,
+                           bookmark=True)
+        ]
+
+    return to_dict
+
+
+def populate_node_uuid(obj, to_dict, raise_notfound=True):
+    """Look up the node referenced in the object and populate a dict.
+
+    The node is fetched with the object ``node_id`` attribute and the
+    dict ``node_uuid`` value is populated with the node uuid
+
+    :param obj:
+        object to get the node_id attribute
+    :param to_dict:
+        dict to populate with a ``node_uuid`` value
+    :param raise_notfound:
+        If ``True`` raise a NodeNotFound exception if the node doesn't exist
+        otherwise set the dict ``node_uuid`` value to None.
+    :raises:
+        exception.NodeNotFound if raise_notfound and the node is not found
+    """
+    if not obj.node_id:
+        to_dict['node_uuid'] = None
+        return
+    try:
+        to_dict['node_uuid'] = objects.Node.get_by_id(
+            api.request.context,
+            obj.node_id).uuid
+    except exception.NodeNotFound:
+        if raise_notfound:
+            raise
+        to_dict['node_uuid'] = None
+
+
+def replace_node_uuid_with_id(to_dict):
+    """Replace ``node_uuid`` dict value with ``node_id``
+
+    ``node_id`` is found by fetching the node by uuid lookup.
+
+    :param to_dict: Dict to set ``node_id`` value on
+    :returns: The node object from the lookup
+    :raises: NodeNotFound with status_code set to 400 BAD_REQUEST
+        when node is not found.
+    """
+    try:
+        node = objects.Node.get_by_uuid(api.request.context,
+                                        to_dict.pop('node_uuid'))
+        to_dict['node_id'] = node.id
+    except exception.NodeNotFound as e:
+        # Change error code because 404 (NotFound) is inappropriate
+        # response for requests acting on non-nodes
+        e.code = http_client.BAD_REQUEST  # BadRequest
+        raise
+    return node
+
+
+def replace_node_id_with_uuid(to_dict):
+    """Replace ``node_id`` dict value with ``node_uuid``
+
+    ``node_uuid`` is found by fetching the node by id lookup.
+
+    :param to_dict: Dict to set ``node_uuid`` value on
+    :returns: The node object from the lookup
+    :raises: NodeNotFound with status_code set to 400 BAD_REQUEST
+        when node is not found.
+    """
+    try:
+        node = objects.Node.get_by_id(api.request.context,
+                                      to_dict.pop('node_id'))
+        to_dict['node_uuid'] = node.uuid
+    except exception.NodeNotFound as e:
+        # Change error code because 404 (NotFound) is inappropriate
+        # response for requests acting on non-nodes
+        e.code = http_client.BAD_REQUEST  # BadRequest
+        raise
+    return node
+
+
+def patch_update_changed_fields(from_dict, rpc_object, fields,
+                                schema, id_map=None):
+    """Update rpc object based on changed fields in a dict.
+
+    Only fields which have a corresponding schema field are updated when
+    changed. Other values can be updated using the id_map.
+
+    :param from_dict: Dict containing changed field values
+    :param rpc_object: Object to update changed fields on
+    :param fields: Field names on the rpc object
+    :param schema: jsonschema to get field names of the dict
+    :param id_map: Optional dict mapping object field names to
+        arbitrary values when there is no matching field in the schema
+    """
+    schema_fields = schema['properties']
+
+    def _patch_val(field, patch_val):
+        if field in rpc_object and rpc_object[field] != patch_val:
+            rpc_object[field] = patch_val
+
+    for field in fields:
+        if id_map and field in id_map:
+            _patch_val(field, id_map[field])
+        elif field in schema_fields:
+            _patch_val(field, from_dict.get(field))
+
+
+def patched_validate_with_schema(patched_dict, schema, validator=None):
+    """Validate a patched dict object against a validator or schema.
+
+    This function has the side-effect of deleting any dict value which
+    is not in the schema. This allows database-loaded objects to be pruned
+    of their internal values before validation.
+
+    :param patched_dict: dict representation of the object with patch
+        updates applied
+    :param schema: Any dict key not in the schema will be deleted from the
+        dict. If no validator is specified then the resulting ``patched_dict``
+        will be validated agains the schema
+    :param validator: Optional validator to use if there is extra validation
+        required beyond the schema
+    :raises: exception.Invalid if validation fails
+    """
+    schema_fields = schema['properties']
+    for field in set(patched_dict.keys()):
+        if field not in schema_fields:
+            patched_dict.pop(field, None)
+    if not validator:
+        validator = args.schema(schema)
+    validator('patch', patched_dict)
+
+
+def patch_validate_allowed_fields(patch, allowed_fields):
+    """Validate that a patch list only modifies allowed fields.
+
+    :param patch: List of patch dicts to validate
+    :param allowed_fields: List of fields which are allowed to be patched
+    :returns: The list of fields which will be patched
+    :raises: exception.Invalid if any patch changes a field not in
+        ``allowed_fields``
+    """
+    fields = set()
+    for p in patch:
+        path = p['path'].split('/')[1]
+        if path not in allowed_fields:
+            msg = _("Cannot patch %s. Only the following can be updated: %s")
+            raise exception.Invalid(
+                msg % (p['path'], ', '.join(allowed_fields)))
+        fields.add(path)
+    return fields
+
+
+def sanitize_dict(to_sanitize, fields):
+    """Removes sensitive and unrequested data.
+
+    Will only keep the fields specified in the ``fields`` parameter (plus
+    the ``links`` field).
+
+    :param to_sanitize: dict to sanitize
+    :param fields:
+        list of fields to preserve, or ``None`` to preserve them all
+    :type fields: list of str
+    """
+    if fields is None:
+        return
+
+    for key in set(to_sanitize.keys()):
+        if key not in fields and key != 'links':
+            to_sanitize.pop(key, None)
 
 
 def validate_limit(limit):

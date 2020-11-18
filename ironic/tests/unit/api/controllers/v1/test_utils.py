@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
 from http import client as http_client
 import io
 from unittest import mock
@@ -33,6 +34,7 @@ from ironic.common import states
 from ironic import objects
 from ironic.tests import base
 from ironic.tests.unit.api import utils as test_api_utils
+from ironic.tests.unit.objects import utils as obj_utils
 
 CONF = cfg.CONF
 
@@ -220,6 +222,221 @@ class TestApiUtils(base.TestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           utils.check_for_invalid_fields,
                           requested, supported)
+
+    def test_patch_update_changed_fields(self):
+        schema = {
+            'properties': {
+                'one': {},
+                'two': {},
+                'three': {},
+                'four': {},
+                'five_uuid': {},
+            }
+        }
+        fields = [
+            'one',
+            'two',
+            'three',
+            'four',
+            'five_id'
+        ]
+
+        def rpc_object():
+            obj = mock.MagicMock()
+            items = {
+                'one': 1,
+                'two': 'ii',
+                'three': None,
+                'four': [1, 2, 3, 4],
+                'five_id': 123
+            }
+            obj.__getitem__.side_effect = items.__getitem__
+            obj.__contains__.side_effect = items.__contains__
+            return obj
+
+        # test no change
+        o = rpc_object()
+        utils.patch_update_changed_fields({
+            'one': 1,
+            'two': 'ii',
+            'three': None,
+            'four': [1, 2, 3, 4],
+        }, o, fields, schema, id_map={'five_id': 123})
+        o.__setitem__.assert_not_called()
+
+        # test everything changes, and id_map values override from_dict values
+        o = rpc_object()
+        utils.patch_update_changed_fields({
+            'one': 2,
+            'two': 'iii',
+            'three': '',
+            'four': [2, 3],
+        }, o, fields, schema, id_map={'four': [4], 'five_id': 456})
+        o.__setitem__.assert_has_calls([
+            mock.call('one', 2),
+            mock.call('two', 'iii'),
+            mock.call('three', ''),
+            mock.call('four', [4]),
+            mock.call('five_id', 456)
+        ])
+
+        # test None fields from None values and missing keys
+        # also five_id is untouched with no id_map
+        o = rpc_object()
+        utils.patch_update_changed_fields({
+            'two': None,
+        }, o, fields, schema)
+        o.__setitem__.assert_has_calls([
+            mock.call('two', None),
+        ])
+
+        # test fields not in the schema are untouched
+        fields = [
+            'six',
+            'seven',
+            'eight'
+        ]
+        o = rpc_object()
+        utils.patch_update_changed_fields({
+            'six': 2,
+            'seven': 'iii',
+            'eight': '',
+        }, o, fields, schema)
+        o.__setitem__.assert_not_called()
+
+    def test_patched_validate_with_schema(self):
+        schema = {
+            'properties': {
+                'one': {'type': 'string'},
+                'two': {'type': 'integer'},
+                'three': {'type': 'boolean'},
+            }
+        }
+
+        # test non-schema fields removed
+        pd = {
+            'one': 'one',
+            'two': 2,
+            'three': True,
+            'four': 4,
+            'five': 'five'
+        }
+        utils.patched_validate_with_schema(pd, schema)
+        self.assertEqual({
+            'one': 'one',
+            'two': 2,
+            'three': True,
+        }, pd)
+
+        # test fails schema validation
+        pd = {
+            'one': 1,
+            'two': 2,
+            'three': False
+        }
+        e = self.assertRaises(exception.InvalidParameterValue,
+                              utils.patched_validate_with_schema, pd, schema)
+        self.assertIn("1 is not of type 'string'", str(e))
+
+        # test fails custom validation
+        def validate(name, value):
+            raise exception.InvalidParameterValue('big ouch')
+
+        pd = {
+            'one': 'one',
+            'two': 2,
+            'three': False
+        }
+        e = self.assertRaises(exception.InvalidParameterValue,
+                              utils.patched_validate_with_schema, pd, schema,
+                              validate)
+        self.assertIn("big ouch", str(e))
+
+    def test_patch_validate_allowed_fields(self):
+        allowed_fields = ['one', 'two', 'three']
+
+        # patch all
+        self.assertEqual(
+            {'one', 'two', 'three'},
+            utils.patch_validate_allowed_fields([
+                {'path': '/one'},
+                {'path': '/two'},
+                {'path': '/three/four'},
+            ], allowed_fields))
+
+        # patch one
+        self.assertEqual(
+            {'one'},
+            utils.patch_validate_allowed_fields([
+                {'path': '/one'},
+            ], allowed_fields))
+
+        # patch invalid field
+        e = self.assertRaises(
+            exception.Invalid,
+            utils.patch_validate_allowed_fields,
+            [{'path': '/four'}],
+            allowed_fields)
+        self.assertIn("Cannot patch /four. "
+                      "Only the following can be updated: "
+                      "one, two, three", str(e))
+
+    @mock.patch.object(api, 'request', autospec=False)
+    def test_sanitize_dict(self, mock_req):
+        mock_req.public_url = 'http://192.0.2.1:5050'
+
+        node = obj_utils.get_test_node(
+            self.context,
+            created_at=datetime.datetime(2000, 1, 1, 0, 0),
+            updated_at=datetime.datetime(2001, 1, 1, 0, 0),
+            inspection_started_at=datetime.datetime(2002, 1, 1, 0, 0),
+            console_enabled=True,
+            tags=['one', 'two', 'three'])
+
+        expected_links = [{
+            'href': 'http://192.0.2.1:5050/v1/node/'
+                    '1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+            'rel': 'self'
+        }, {
+            'href': 'http://192.0.2.1:5050/node/'
+                    '1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+            'rel': 'bookmark'
+        }]
+
+        # all fields
+        node_dict = utils.object_to_dict(
+            node,
+            link_resource='node',
+        )
+        utils.sanitize_dict(node_dict, None)
+        self.assertEqual({
+            'created_at': '2000-01-01T00:00:00+00:00',
+            'links': expected_links,
+            'updated_at': '2001-01-01T00:00:00+00:00',
+            'uuid': '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'
+        }, node_dict)
+
+        # some fields
+        node_dict = utils.object_to_dict(
+            node,
+            link_resource='node',
+        )
+        utils.sanitize_dict(node_dict, ['uuid', 'created_at'])
+        self.assertEqual({
+            'created_at': '2000-01-01T00:00:00+00:00',
+            'links': expected_links,
+            'uuid': '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'
+        }, node_dict)
+
+        # no fields
+        node_dict = utils.object_to_dict(
+            node,
+            link_resource='node',
+        )
+        utils.sanitize_dict(node_dict, [])
+        self.assertEqual({
+            'links': expected_links,
+        }, node_dict)
 
 
 @mock.patch.object(api, 'request', spec_set=['version'])
@@ -680,6 +897,69 @@ class TestNodeIdent(base.TestCase):
         self.assertRaises(exception.NodeNotFound,
                           utils.get_rpc_node,
                           self.valid_name)
+
+    @mock.patch.object(objects.Node, 'get_by_id', autospec=True)
+    def test_populate_node_uuid(self, mock_gbi, mock_pr):
+        port = obj_utils.get_test_port(self.context)
+        node = obj_utils.get_test_node(self.context, id=port.node_id)
+        mock_gbi.return_value = node
+
+        # successful lookup
+        d = {}
+        utils.populate_node_uuid(port, d)
+        self.assertEqual({
+            'node_uuid': '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'
+        }, d)
+
+        # not found, don't raise
+        mock_gbi.side_effect = exception.NodeNotFound(node=port.node_id)
+        d = {}
+        utils.populate_node_uuid(port, d, raise_notfound=False)
+        self.assertEqual({
+            'node_uuid': None
+        }, d)
+
+        # not found, raise exception
+        mock_gbi.side_effect = exception.NodeNotFound(node=port.node_id)
+        d = {}
+        self.assertRaises(exception.NodeNotFound,
+                          utils.populate_node_uuid, port, d)
+
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    def test_replace_node_uuid_with_id(self, mock_gbu, mock_pr):
+        node = obj_utils.get_test_node(self.context, id=1)
+        mock_gbu.return_value = node
+        to_dict = {'node_uuid': self.valid_uuid}
+
+        self.assertEqual(node, utils.replace_node_uuid_with_id(to_dict))
+        self.assertEqual({'node_id': 1}, to_dict)
+
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    def test_replace_node_uuid_with_id_not_found(self, mock_gbu, mock_pr):
+        to_dict = {'node_uuid': self.valid_uuid}
+        mock_gbu.side_effect = exception.NodeNotFound(node=self.valid_uuid)
+
+        e = self.assertRaises(exception.NodeNotFound,
+                              utils.replace_node_uuid_with_id, to_dict)
+        self.assertEqual(400, e.code)
+
+    @mock.patch.object(objects.Node, 'get_by_id', autospec=True)
+    def test_replace_node_id_with_uuid(self, mock_gbi, mock_pr):
+        node = obj_utils.get_test_node(self.context, uuid=self.valid_uuid)
+        mock_gbi.return_value = node
+        to_dict = {'node_id': 1}
+
+        self.assertEqual(node, utils.replace_node_id_with_uuid(to_dict))
+        self.assertEqual({'node_uuid': self.valid_uuid}, to_dict)
+
+    @mock.patch.object(objects.Node, 'get_by_id', autospec=True)
+    def test_replace_node_id_with_uuid_not_found(self, mock_gbi, mock_pr):
+        to_dict = {'node_id': 1}
+        mock_gbi.side_effect = exception.NodeNotFound(node=1)
+
+        e = self.assertRaises(exception.NodeNotFound,
+                              utils.replace_node_id_with_uuid, to_dict)
+        self.assertEqual(400, e.code)
 
 
 class TestVendorPassthru(base.TestCase):
@@ -1366,3 +1646,89 @@ class TestCheckPortListPolicy(base.TestCase):
 
         owner = utils.check_port_list_policy()
         self.assertEqual(owner, '12345')
+
+
+class TestObjectToDict(base.TestCase):
+
+    def setUp(self):
+        super(TestObjectToDict, self).setUp()
+        self.node = obj_utils.get_test_node(
+            self.context,
+            created_at=datetime.datetime(2000, 1, 1, 0, 0),
+            updated_at=datetime.datetime(2001, 1, 1, 0, 0),
+            inspection_started_at=datetime.datetime(2002, 1, 1, 0, 0),
+            console_enabled=True,
+            tags=['one', 'two', 'three'])
+
+        p = mock.patch.object(api, 'request', autospec=False)
+        mock_req = p.start()
+        mock_req.public_url = 'http://192.0.2.1:5050'
+        self.addCleanup(p.stop)
+
+    def test_no_args(self):
+        self.assertEqual({
+            'created_at': '2000-01-01T00:00:00+00:00',
+            'updated_at': '2001-01-01T00:00:00+00:00',
+            'uuid': '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'
+        }, utils.object_to_dict(self.node))
+
+    def test_no_base_attributes(self):
+        self.assertEqual({}, utils.object_to_dict(
+            self.node,
+            created_at=False,
+            updated_at=False,
+            uuid=False)
+        )
+
+    def test_fields(self):
+        self.assertEqual({
+            'conductor_group': '',
+            'console_enabled': True,
+            'created_at': '2000-01-01T00:00:00+00:00',
+            'driver': 'fake-hardware',
+            'inspection_finished_at': None,
+            'inspection_started_at': '2002-01-01T00:00:00+00:00',
+            'maintenance': False,
+            'tags': ['one', 'two', 'three'],
+            'traits': [],
+            'updated_at': '2001-01-01T00:00:00+00:00',
+            'uuid': '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'
+        }, utils.object_to_dict(
+            self.node,
+            fields=['conductor_group', 'driver'],
+            boolean_fields=['maintenance', 'console_enabled'],
+            date_fields=['inspection_started_at', 'inspection_finished_at'],
+            list_fields=['tags', 'traits'])
+        )
+
+    def test_links(self):
+        self.assertEqual({
+            'created_at': '2000-01-01T00:00:00+00:00',
+            'links': [{
+                'href': 'http://192.0.2.1:5050/v1/node/'
+                        '1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                'rel': 'self'
+            }, {
+                'href': 'http://192.0.2.1:5050/node/'
+                        '1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                'rel': 'bookmark'
+            }],
+            'updated_at': '2001-01-01T00:00:00+00:00',
+            'uuid': '1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+        }, utils.object_to_dict(self.node, link_resource='node'))
+
+        self.assertEqual({
+            'created_at': '2000-01-01T00:00:00+00:00',
+            'links': [{
+                'href': 'http://192.0.2.1:5050/v1/node/foo',
+                'rel': 'self'
+            }, {
+                'href': 'http://192.0.2.1:5050/node/foo',
+                'rel': 'bookmark'
+            }],
+            'updated_at': '2001-01-01T00:00:00+00:00',
+            'uuid': '1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+        }, utils.object_to_dict(
+            self.node,
+            link_resource='node',
+            link_resource_args='foo'))
