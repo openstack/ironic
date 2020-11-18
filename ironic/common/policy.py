@@ -21,6 +21,7 @@ import sys
 from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log
+from oslo_log import versionutils
 from oslo_policy import opts
 from oslo_policy import policy
 
@@ -137,190 +138,519 @@ default_policies = [
 #             All of these may be overridden by configuration, but we can
 #             depend on their existence throughout the code.
 
+deprecated_node_create = policy.DeprecatedRule(
+    name='baremetal:node:create',
+    check_str='rule:is_admin'
+)
+deprecated_node_get = policy.DeprecatedRule(
+    name='baremetal:node:get',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_node_list = policy.DeprecatedRule(
+    name='baremetal:node:list',
+    check_str='rule:baremetal:node:get'
+)
+deprecated_node_list_all = policy.DeprecatedRule(
+    name='baremetal:node:list_all',
+    check_str='rule:baremetal:node:get'
+)
+deprecated_node_update = policy.DeprecatedRule(
+    name='baremetal:node:update',
+    check_str='rule:is_admin'
+)
+deprecated_node_update_extra = policy.DeprecatedRule(
+    name='baremetal:node:update_extra',
+    check_str='rule:baremetal:node:update'
+)
+deprecated_node_update_instance_info = policy.DeprecatedRule(
+    name='baremetal:node:update_instance_info',
+    check_str='rule:baremetal:node:update'
+)
+deprecated_node_update_owner_provisioned = policy.DeprecatedRule(
+    name='baremetal:node:update_owner_provisioned',
+    check_str='rule:is_admin'
+)
+deprecated_node_delete = policy.DeprecatedRule(
+    name='baremetal:node:delete',
+    check_str='rule:is_admin'
+)
+deprecated_node_validate = policy.DeprecatedRule(
+    name='baremetal:node:validate',
+    check_str='rule:is_admin'
+)
+deprecated_node_set_maintenance = policy.DeprecatedRule(
+    name='baremetal:node:set_maintenance',
+    check_str='rule:is_admin'
+)
+deprecated_node_clear_maintenance = policy.DeprecatedRule(
+    name='baremetal:node:clear_maintenance',
+    check_str='rule:is_admin'
+)
+deprecated_node_get_boot_device = policy.DeprecatedRule(
+    name='baremetal:node:get_boot_device',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_node_set_boot_device = policy.DeprecatedRule(
+    name='baremetal:node:set_boot_device',
+    check_str='rule:is_admin'
+)
+deprecated_node_get_indicator_state = policy.DeprecatedRule(
+    name='baremetal:node:get_indicator_state',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_node_set_indicator_state = policy.DeprecatedRule(
+    name='baremetal:node:set_indicator_state',
+    check_str='rule:is_admin'
+)
+deprecated_node_inject_nmi = policy.DeprecatedRule(
+    name='baremetal:node:inject_nmi',
+    check_str='rule:is_admin'
+)
+deprecated_node_get_states = policy.DeprecatedRule(
+    name='baremetal:node:get_states',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_node_set_power_state = policy.DeprecatedRule(
+    name='baremetal:node:set_power_state',
+    check_str='rule:is_admin'
+)
+deprecated_node_set_provision_state = policy.DeprecatedRule(
+    name='baremetal:node:set_provision_state',
+    check_str='rule:is_admin'
+)
+deprecated_node_set_raid_state = policy.DeprecatedRule(
+    name='baremetal:node:set_raid_state',
+    check_str='rule:is_admin'
+)
+deprecated_node_get_console = policy.DeprecatedRule(
+    name='baremetal:node:get_console',
+    check_str='rule:is_admin'
+)
+deprecated_node_set_console_state = policy.DeprecatedRule(
+    name='baremetal:node:set_console_state',
+    check_str='rule:is_admin'
+)
+deprecated_node_vif_list = policy.DeprecatedRule(
+    name='baremetal:node:vif:list',
+    check_str='rule:is_admin'
+)
+deprecated_node_vif_attach = policy.DeprecatedRule(
+    name='baremetal:node:vif:attach',
+    check_str='rule:is_admin'
+)
+deprecated_node_vif_detach = policy.DeprecatedRule(
+    name='baremetal:node:vif:detach',
+    check_str='rule:is_admin'
+)
+deprecated_node_traits_list = policy.DeprecatedRule(
+    name='baremetal:node:traits:list',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_node_traits_set = policy.DeprecatedRule(
+    name='baremetal:node:traits:set',
+    check_str='rule:is_admin'
+)
+deprecated_node_traits_delete = policy.DeprecatedRule(
+    name='baremetal:node:traits:delete',
+    check_str='rule:is_admin'
+)
+deprecated_node_bios_get = policy.DeprecatedRule(
+    name='baremetal:node:bios:get',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_bios_disable_cleaning = policy.DeprecatedRule(
+    name='baremetal:node:disable_cleaning',
+    check_str='rule:baremetal:node:update',
+)
+deprecated_node_reason = """
+The baremetal node API is now aware of system scope and default roles.
+Capability to fallback to legacy admin project policy configuration
+will be removed in the Xena release of Ironic.
+"""
+
+
 node_policies = [
     policy.DocumentedRuleDefault(
-        'baremetal:node:create',
-        'rule:is_admin',
-        'Create Node records',
-        [{'path': '/nodes', 'method': 'POST'}]),
+        name='baremetal:node:create',
+        check_str=SYSTEM_ADMIN,
+        scope_types=['system'],
+        description='Create Node records',
+        operations=[{'path': '/nodes', 'method': 'POST'}],
+        deprecated_rule=deprecated_node_create,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:node:get',
-        'rule:is_admin or rule:is_observer',
-        'Retrieve a single Node record',
-        [{'path': '/nodes/{node_ident}', 'method': 'GET'}]),
+        name='baremetal:node:get',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='Retrieve a single Node record',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
+        deprecated_rule=deprecated_node_get,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:node:list',
-        'rule:baremetal:node:get',
-        'Retrieve multiple Node records, filtered by owner',
-        [{'path': '/nodes', 'method': 'GET'},
-         {'path': '/nodes/detail', 'method': 'GET'}]),
+        name='baremetal:node:list',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='Retrieve multiple Node records, filtered by owner',
+        operations=[{'path': '/nodes', 'method': 'GET'},
+                    {'path': '/nodes/detail', 'method': 'GET'}],
+        deprecated_rule=deprecated_node_list,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:node:list_all',
-        'rule:baremetal:node:get',
-        'Retrieve multiple Node records',
-        [{'path': '/nodes', 'method': 'GET'},
-         {'path': '/nodes/detail', 'method': 'GET'}]),
+        name='baremetal:node:list_all',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='Retrieve multiple Node records',
+        operations=[{'path': '/nodes', 'method': 'GET'},
+                    {'path': '/nodes/detail', 'method': 'GET'}],
+        deprecated_rule=deprecated_node_list_all,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:node:update',
-        'rule:is_admin',
-        'Update Node records',
-        [{'path': '/nodes/{node_ident}', 'method': 'PATCH'}]),
+        name='baremetal:node:update',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Update Node records',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    # TODO(TheJulia): Explicit RBAC testing needed for this.
     policy.DocumentedRuleDefault(
-        'baremetal:node:update_extra',
-        'rule:baremetal:node:update',
-        'Update Node extra field',
-        [{'path': '/nodes/{node_ident}', 'method': 'PATCH'}]),
+        name='baremetal:node:update_extra',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Update Node extra field',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update_extra,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    # TODO(TheJulia): Explicit RBAC testing needed for this.
     policy.DocumentedRuleDefault(
-        'baremetal:node:update_instance_info',
-        'rule:baremetal:node:update',
-        'Update Node instance_info field',
-        [{'path': '/nodes/{node_ident}', 'method': 'PATCH'}]),
+        name='baremetal:node:update_instance_info',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Update Node instance_info field',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update_instance_info,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    # TODO(TheJulia): Explicit RBAC testing needed for this.
     policy.DocumentedRuleDefault(
-        'baremetal:node:update_owner_provisioned',
-        'rule:is_admin',
-        'Update Node owner even when Node is provisioned',
-        [{'path': '/nodes/{node_ident}', 'method': 'PATCH'}]),
+        name='baremetal:node:update_owner_provisioned',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Update Node owner even when Node is provisioned',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update_owner_provisioned,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    # TODO(TheJulia): Explicit RBAC testing needed for this... Maybe?
     policy.DocumentedRuleDefault(
-        'baremetal:node:delete',
-        'rule:is_admin',
-        'Delete Node records',
-        [{'path': '/nodes/{node_ident}', 'method': 'DELETE'}]),
+        name='baremetal:node:delete',
+        check_str=SYSTEM_ADMIN,
+        scope_types=['system'],
+        description='Delete Node records',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'DELETE'}],
+        deprecated_rule=deprecated_node_delete,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 
     policy.DocumentedRuleDefault(
-        'baremetal:node:validate',
-        'rule:is_admin',
-        'Request active validation of Nodes',
-        [{'path': '/nodes/{node_ident}/validate', 'method': 'GET'}]),
+        name='baremetal:node:validate',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Request active validation of Nodes',
+        operations=[
+            {'path': '/nodes/{node_ident}/validate', 'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_node_validate,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 
     policy.DocumentedRuleDefault(
-        'baremetal:node:set_maintenance',
-        'rule:is_admin',
-        'Set maintenance flag, taking a Node out of service',
-        [{'path': '/nodes/{node_ident}/maintenance', 'method': 'PUT'}]),
+        name='baremetal:node:set_maintenance',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Set maintenance flag, taking a Node out of service',
+        operations=[
+            {'path': '/nodes/{node_ident}/maintenance', 'method': 'PUT'}
+        ],
+        deprecated_rule=deprecated_node_set_maintenance,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:node:clear_maintenance',
-        'rule:is_admin',
-        'Clear maintenance flag, placing the Node into service again',
-        [{'path': '/nodes/{node_ident}/maintenance', 'method': 'DELETE'}]),
+        name='baremetal:node:clear_maintenance',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description=(
+            'Clear maintenance flag, placing the Node into service again'
+        ),
+        operations=[
+            {'path': '/nodes/{node_ident}/maintenance', 'method': 'DELETE'}
+        ],
+        deprecated_rule=deprecated_node_clear_maintenance,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+
+    # NOTE(TheJulia): This should liekly be deprecated and be replaced with
+    # a cached object.
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:get_boot_device',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Retrieve Node boot device metadata',
+        operations=[
+            {'path': '/nodes/{node_ident}/management/boot_device',
+             'method': 'GET'},
+            {'path': '/nodes/{node_ident}/management/boot_device/supported',
+             'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_node_get_boot_device,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:set_boot_device',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Change Node boot device',
+        operations=[
+            {'path': '/nodes/{node_ident}/management/boot_device',
+             'method': 'PUT'}
+        ],
+        deprecated_rule=deprecated_node_set_maintenance,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 
     policy.DocumentedRuleDefault(
-        'baremetal:node:get_boot_device',
-        'rule:is_admin or rule:is_observer',
-        'Retrieve Node boot device metadata',
-        [{'path': '/nodes/{node_ident}/management/boot_device',
-          'method': 'GET'},
-         {'path': '/nodes/{node_ident}/management/boot_device/supported',
-          'method': 'GET'}]),
+        name='baremetal:node:get_indicator_state',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='Retrieve Node indicators and their states',
+        operations=[
+            {'path': '/nodes/{node_ident}/management/indicators/'
+                     '{component}/{indicator}',
+             'method': 'GET'},
+            {'path': '/nodes/{node_ident}/management/indicators',
+             'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_node_get_indicator_state,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:node:set_boot_device',
-        'rule:is_admin',
-        'Change Node boot device',
-        [{'path': '/nodes/{node_ident}/management/boot_device',
-          'method': 'PUT'}]),
+        name='baremetal:node:set_indicator_state',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Change Node indicator state',
+        operations=[
+            {'path': '/nodes/{node_ident}/management/indicators/'
+                     '{component}/{indicator}',
+             'method': 'PUT'}
+        ],
+        deprecated_rule=deprecated_node_set_indicator_state,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 
     policy.DocumentedRuleDefault(
-        'baremetal:node:get_indicator_state',
-        'rule:is_admin or rule:is_observer',
-        'Retrieve Node indicators and their states',
-        [{'path': '/nodes/{node_ident}/management/indicators/'
-                  '{component}/{indicator}',
-          'method': 'GET'},
-         {'path': '/nodes/{node_ident}/management/indicators',
-          'method': 'GET'}]),
-    policy.DocumentedRuleDefault(
-        'baremetal:node:set_indicator_state',
-        'rule:is_admin',
-        'Change Node indicator state',
-        [{'path': '/nodes/{node_ident}/management/indicators/'
-                  '{component}/{indicator}',
-          'method': 'PUT'}]),
+        name='baremetal:node:inject_nmi',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Inject NMI for a node',
+        operations=[
+            {'path': '/nodes/{node_ident}/management/inject_nmi',
+             'method': 'PUT'}
+        ],
+        deprecated_rule=deprecated_node_inject_nmi,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 
     policy.DocumentedRuleDefault(
-        'baremetal:node:inject_nmi',
-        'rule:is_admin',
-        'Inject NMI for a node',
-        [{'path': '/nodes/{node_ident}/management/inject_nmi',
-          'method': 'PUT'}]),
+        name='baremetal:node:get_states',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='View Node power and provision state',
+        operations=[{'path': '/nodes/{node_ident}/states', 'method': 'GET'}],
+        deprecated_rule=deprecated_node_get_states,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:set_power_state',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Change Node power status',
+        operations=[
+            {'path': '/nodes/{node_ident}/states/power', 'method': 'PUT'}
+        ],
+        deprecated_rule=deprecated_node_set_power_state,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:set_provision_state',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Change Node provision status',
+        operations=[
+            {'path': '/nodes/{node_ident}/states/provision', 'method': 'PUT'}
+        ],
+        deprecated_rule=deprecated_node_set_provision_state,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:set_raid_state',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Change Node RAID status',
+        operations=[
+            {'path': '/nodes/{node_ident}/states/raid', 'method': 'PUT'}
+        ],
+        deprecated_rule=deprecated_node_set_raid_state,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:get_console',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Get Node console connection information',
+        operations=[
+            {'path': '/nodes/{node_ident}/states/console', 'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_node_get_console,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:set_console_state',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Change Node console status',
+        operations=[
+            {'path': '/nodes/{node_ident}/states/console', 'method': 'PUT'}
+        ],
+        deprecated_rule=deprecated_node_set_console_state,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 
     policy.DocumentedRuleDefault(
-        'baremetal:node:get_states',
-        'rule:is_admin or rule:is_observer',
-        'View Node power and provision state',
-        [{'path': '/nodes/{node_ident}/states', 'method': 'GET'}]),
+        name='baremetal:node:vif:list',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='List VIFs attached to node',
+        operations=[{'path': '/nodes/{node_ident}/vifs', 'method': 'GET'}],
+        deprecated_rule=deprecated_node_vif_list,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:node:set_power_state',
-        'rule:is_admin',
-        'Change Node power status',
-        [{'path': '/nodes/{node_ident}/states/power', 'method': 'PUT'}]),
+        name='baremetal:node:vif:attach',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Attach a VIF to a node',
+        operations=[{'path': '/nodes/{node_ident}/vifs', 'method': 'POST'}],
+        deprecated_rule=deprecated_node_vif_attach,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:node:set_provision_state',
-        'rule:is_admin',
-        'Change Node provision status',
-        [{'path': '/nodes/{node_ident}/states/provision', 'method': 'PUT'}]),
-    policy.DocumentedRuleDefault(
-        'baremetal:node:set_raid_state',
-        'rule:is_admin',
-        'Change Node RAID status',
-        [{'path': '/nodes/{node_ident}/states/raid', 'method': 'PUT'}]),
-    policy.DocumentedRuleDefault(
-        'baremetal:node:get_console',
-        'rule:is_admin',
-        'Get Node console connection information',
-        [{'path': '/nodes/{node_ident}/states/console', 'method': 'GET'}]),
-    policy.DocumentedRuleDefault(
-        'baremetal:node:set_console_state',
-        'rule:is_admin',
-        'Change Node console status',
-        [{'path': '/nodes/{node_ident}/states/console', 'method': 'PUT'}]),
+        name='baremetal:node:vif:detach',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Detach a VIF from a node',
+        operations=[
+            {'path': '/nodes/{node_ident}/vifs/{node_vif_ident}',
+             'method': 'DELETE'}
+        ],
+        deprecated_rule=deprecated_node_vif_detach,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 
     policy.DocumentedRuleDefault(
-        'baremetal:node:vif:list',
-        'rule:is_admin',
-        'List VIFs attached to node',
-        [{'path': '/nodes/{node_ident}/vifs', 'method': 'GET'}]),
+        name='baremetal:node:traits:list',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='List node traits',
+        operations=[{'path': '/nodes/{node_ident}/traits', 'method': 'GET'}],
+        deprecated_rule=deprecated_node_traits_list,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:node:vif:attach',
-        'rule:is_admin',
-        'Attach a VIF to a node',
-        [{'path': '/nodes/{node_ident}/vifs', 'method': 'POST'}]),
+        name='baremetal:node:traits:set',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Add a trait to, or replace all traits of, a node',
+        operations=[
+            {'path': '/nodes/{node_ident}/traits', 'method': 'PUT'},
+            {'path': '/nodes/{node_ident}/traits/{trait}', 'method': 'PUT'}
+        ],
+        deprecated_rule=deprecated_node_traits_set,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:node:vif:detach',
-        'rule:is_admin',
-        'Detach a VIF from a node',
-        [{'path': '/nodes/{node_ident}/vifs/{node_vif_ident}',
-          'method': 'DELETE'}]),
+        name='baremetal:node:traits:delete',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Remove one or all traits from a node',
+        operations=[
+            {'path': '/nodes/{node_ident}/traits', 'method': 'DELETE'},
+            {'path': '/nodes/{node_ident}/traits/{trait}',
+                     'method': 'DELETE'}
+        ],
+        deprecated_rule=deprecated_node_traits_delete,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 
     policy.DocumentedRuleDefault(
-        'baremetal:node:traits:list',
-        'rule:is_admin or rule:is_observer',
-        'List node traits',
-        [{'path': '/nodes/{node_ident}/traits', 'method': 'GET'}]),
+        name='baremetal:node:bios:get',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='Retrieve Node BIOS information',
+        operations=[
+            {'path': '/nodes/{node_ident}/bios', 'method': 'GET'},
+            {'path': '/nodes/{node_ident}/bios/{setting}', 'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_node_bios_get,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:node:traits:set',
-        'rule:is_admin',
-        'Add a trait to, or replace all traits of, a node',
-        [{'path': '/nodes/{node_ident}/traits', 'method': 'PUT'},
-         {'path': '/nodes/{node_ident}/traits/{trait}', 'method': 'PUT'}]),
-    policy.DocumentedRuleDefault(
-        'baremetal:node:traits:delete',
-        'rule:is_admin',
-        'Remove one or all traits from a node',
-        [{'path': '/nodes/{node_ident}/traits', 'method': 'DELETE'},
-         {'path': '/nodes/{node_ident}/traits/{trait}',
-          'method': 'DELETE'}]),
-
-    policy.DocumentedRuleDefault(
-        'baremetal:node:bios:get',
-        'rule:is_admin or rule:is_observer',
-        'Retrieve Node BIOS information',
-        [{'path': '/nodes/{node_ident}/bios', 'method': 'GET'},
-         {'path': '/nodes/{node_ident}/bios/{setting}', 'method': 'GET'}]),
-
-    policy.DocumentedRuleDefault(
-        'baremetal:node:disable_cleaning',
-        'rule:baremetal:node:update',
-        'Disable Node disk cleaning',
-        [{'path': '/nodes/{node_ident}', 'method': 'PATCH'}]),
+        name='baremetal:node:disable_cleaning',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Disable Node disk cleaning',
+        operations=[
+            {'path': '/nodes/{node_ident}', 'method': 'PATCH'}
+        ],
+        deprecated_rule=deprecated_bios_disable_cleaning,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 ]
 
 port_policies = [
