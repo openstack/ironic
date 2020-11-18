@@ -93,7 +93,7 @@ set new values for some or all interfaces:
     export OS_BAREMETAL_API_VERSION=1.31
 
     for uuid in $(baremetal node list --driver pxe_ipmitool -f value -c UUID); do
-        baremetal node set $uuid --driver ipmi --deploy-interface iscsi
+        baremetal node set <node> --driver ipmi --deploy-interface iscsi
     done
 
     for uuid in $(baremetal node list --driver agent_ipmitool -f value -c UUID); do

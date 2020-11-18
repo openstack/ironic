@@ -103,7 +103,7 @@ To check what deploy step the node is performing or attempted to perform and
 failed, run the following command; it will return the value in the node's
 ``driver_internal_info`` field::
 
-    baremetal node show $node_ident -f value -c driver_internal_info
+    baremetal node show <node> -f value -c driver_internal_info
 
 The ``deploy_steps`` field will contain a list of all remaining steps with
 their priorities, and the first one listed is the step currently in progress or
@@ -261,11 +261,11 @@ Example of use with the Compute service
 .. note:: The deploy steps used in this example are for example purposes only.
 
 In the following example, we first add the trait ``CUSTOM_HYPERTHREADING_ON``
-to the node represented by ``$node_ident``:
+to the node represented by ``<node>``:
 
 .. code-block:: console
 
-   baremetal node add trait $node_ident CUSTOM_HYPERTHREADING_ON
+   baremetal node add trait <node> CUSTOM_HYPERTHREADING_ON
 
 We also update the flavor ``bm-hyperthreading-on`` in the Compute
 service with the following property:
@@ -311,7 +311,7 @@ To make this example more dynamic, let's add a second trait
 
 .. code-block:: console
 
-   baremetal node add trait $node_ident CUSTOM_HYPERTHREADING_OFF
+   baremetal node add trait <node> CUSTOM_HYPERTHREADING_OFF
 
 We could also update a second flavor, ``bm-hyperthreading-off``, with the
 following property:
