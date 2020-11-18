@@ -17,10 +17,9 @@ from oslo_log import log
 import pecan
 
 from ironic import api
-from ironic.api.controllers.v1 import collection
-from ironic.api.controllers.v1 import types
 from ironic.api.controllers.v1 import utils as api_utils
-from ironic.api import expose
+from ironic.api import method
+from ironic.common import args
 from ironic.common import exception
 from ironic.common import policy
 
@@ -29,11 +28,64 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 LOG = log.getLogger(__name__)
 
 
-class EvtCollection(collection.Collection):
-    """API representation of a collection of events."""
+NETWORK_EVENT_VALIDATOR = args.and_valid(
+    args.schema({
+        'type': 'object',
+        'properties': {
+            'event': {'type': 'string'},
+            'port_id': {'type': 'string'},
+            'mac_address': {'type': 'string'},
+            'status': {'type': 'string'},
+            'device_id': {'type': ['string', 'null']},
+            'binding:host_id': {'type': ['string', 'null']},
+            'binding:vnic_type': {'type': ['string', 'null']},
+        },
+        'required': ['event', 'port_id', 'mac_address', 'status'],
+        'additionalProperties': False,
+    }),
+    args.dict_valid(**{
+        'port_id': args.uuid,
+        'mac_address': args.mac_address,
+        'device_id': args.uuid,
+        'binding:host_id': args.uuid
+    })
+)
 
-    events = [types.eventtype]
-    """A list containing event dict objects"""
+EVENT_VALIDATORS = {
+    'network.bind_port': NETWORK_EVENT_VALIDATOR,
+    'network.unbind_port': NETWORK_EVENT_VALIDATOR,
+    'network.delete_port': NETWORK_EVENT_VALIDATOR,
+}
+
+EVENTS_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'events': {
+            'type': 'array',
+            'minItems': 1,
+            'items': {
+                'type': 'object',
+                'properties': {
+                    'event': {'type': 'string',
+                              'enum': list(EVENT_VALIDATORS.keys())},
+                },
+                'required': ['event'],
+                'additionalProperties': True,
+            },
+        },
+    },
+    'required': ['events'],
+    'additionalProperties': False,
+}
+
+
+def events_valid(name, value):
+    '''Validator for events'''
+
+    for event in value['events']:
+        validator = EVENT_VALIDATORS[event['event']]
+        validator(name, event)
+    return value
 
 
 class EventsController(pecan.rest.RestController):
@@ -45,12 +97,14 @@ class EventsController(pecan.rest.RestController):
             pecan.abort(http_client.NOT_FOUND)
 
     @METRICS.timer('EventsController.post')
-    @expose.expose(None, body=EvtCollection,
-                   status_code=http_client.NO_CONTENT)
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @method.body('evts')
+    @args.validate(evts=args.and_valid(args.schema(EVENTS_SCHEMA),
+                                       events_valid))
     def post(self, evts):
         if not api_utils.allow_expose_events():
             raise exception.NotFound()
         cdict = api.request.context.to_policy_values()
         policy.authorize('baremetal:events:post', cdict, cdict)
-        for e in evts.events:
+        for e in evts['events']:
             LOG.debug("Received external event: %s", e)
