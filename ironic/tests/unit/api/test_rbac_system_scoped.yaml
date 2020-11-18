@@ -2025,7 +2025,6 @@ chassis_post_admin:
   body: &chassis_body
     description: 'test-chassis'
   assert_status: 201
-  skip_reason: not updated for scope testing
 
 chassis_post_member:
   path: '/v1/chassis'
@@ -2033,78 +2032,67 @@ chassis_post_member:
   headers: *scoped_member_headers
   body: *chassis_body
   assert_status: 403
-  skip_reason: not updated for scope testing
 
-chassis_post_member:
+chassis_post_observer:
   path: '/v1/chassis'
   method: post
   headers: *observer_headers
   body: *chassis_body
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 chassis_get_admin:
   path: '/v1/chassis'
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 chassis_get_member:
   path: '/v1/chassis'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 chassis_get_observer:
   path: '/v1/chassis'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 chassis_detail_get_admin:
   path: '/v1/chassis/detail'
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 chassis_detail_get_member:
   path: '/v1/chassis/detail'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 chassis_detail_get_observer:
   path: '/v1/chassis/detail'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 chassis_chassis_id_get_admin:
   path: '/v1/chassis/{chassis_ident}'
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 chassis_chassis_id_get_member:
   path: '/v1/chassis/{chassis_ident}'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 chassis_chassis_id_get_observer:
   path: '/v1/chassis/{chassis_ident}'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 chassis_chassis_id_patch_admin:
   path: '/v1/chassis/{chassis_ident}'
@@ -2115,15 +2103,13 @@ chassis_chassis_id_patch_admin:
       value: meow
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 chassis_chassis_id_patch_member:
   path: '/v1/chassis/{chassis_ident}'
   method: patch
   body: *chassis_patch
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 chassis_chassis_id_patch_observer:
   path: '/v1/chassis/{chassis_ident}'
@@ -2131,25 +2117,21 @@ chassis_chassis_id_patch_observer:
   body: *chassis_patch
   headers: *observer_headers
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 chassis_chassis_id_delete_admin:
   path: '/v1/chassis/{chassis_ident}'
   method: delete
   headers: *admin_headers
   assert_status: 204
-  skip_reason: not updated for scope testing
 
 chassis_chassis_id_delete_member:
   path: '/v1/chassis/{chassis_ident}'
   method: delete
   headers: *scoped_member_headers
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 chassis_chassis_id_delete_observer:
   path: '/v1/chassis/{chassis_ident}'
   method: delete
   headers: *observer_headers
   assert_status: 403
-  skip_reason: not updated for scope testing
