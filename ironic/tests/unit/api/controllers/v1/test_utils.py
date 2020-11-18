@@ -19,7 +19,6 @@ from http import client as http_client
 import io
 from unittest import mock
 
-import os_traits
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
@@ -27,7 +26,6 @@ from ironic import api
 from ironic.api.controllers.v1 import node as api_node
 from ironic.api.controllers.v1 import utils
 from ironic.api import types as atypes
-from ironic.common import args
 from ironic.common import exception
 from ironic.common import policy
 from ironic.common import states
@@ -63,56 +61,6 @@ class TestApiUtils(base.TestCase):
         self.assertRaises(exception.ClientSideError,
                           utils.validate_sort_dir,
                           'fake-sort')
-
-    def test_validate_trait(self):
-        utils.validate_trait(os_traits.HW_CPU_X86_AVX2)
-        utils.validate_trait("CUSTOM_1")
-        utils.validate_trait("CUSTOM_TRAIT_GOLD")
-        self.assertRaises(exception.ClientSideError,
-                          utils.validate_trait, "A" * 256)
-        self.assertRaises(exception.ClientSideError,
-                          utils.validate_trait, "CuSTOM_1")
-        self.assertRaises(exception.ClientSideError,
-                          utils.validate_trait, "")
-        self.assertRaises(exception.ClientSideError,
-                          utils.validate_trait, "CUSTOM_bob")
-        self.assertRaises(exception.ClientSideError,
-                          utils.validate_trait, "CUSTOM_1-BOB")
-        self.assertRaises(exception.ClientSideError,
-                          utils.validate_trait, "aCUSTOM_1a")
-        large = "CUSTOM_" + ("1" * 248)
-        self.assertEqual(255, len(large))
-        utils.validate_trait(large)
-        self.assertRaises(exception.ClientSideError,
-                          utils.validate_trait, large + "1")
-        # Check custom error prefix.
-        self.assertRaisesRegex(exception.ClientSideError,
-                               "spongebob",
-                               utils.validate_trait, "invalid", "spongebob")
-
-    def test_validate_trait_jsonschema(self):
-
-        validate_trait = args.schema(utils.TRAITS_SCHEMA)
-        validate_trait('foo', os_traits.HW_CPU_X86_AVX2)
-        validate_trait('foo', "CUSTOM_1")
-        validate_trait('foo', "CUSTOM_TRAIT_GOLD")
-        self.assertRaises(exception.InvalidParameterValue,
-                          validate_trait, 'foo', "A" * 256)
-        self.assertRaises(exception.InvalidParameterValue,
-                          validate_trait, 'foo', "CuSTOM_1")
-        self.assertRaises(exception.InvalidParameterValue,
-                          validate_trait, 'foo', "")
-        self.assertRaises(exception.InvalidParameterValue,
-                          validate_trait, 'foo', "CUSTOM_bob")
-        self.assertRaises(exception.InvalidParameterValue,
-                          validate_trait, 'foo', "CUSTOM_1-BOB")
-        self.assertRaises(exception.InvalidParameterValue,
-                          validate_trait, 'foo', "aCUSTOM_1a")
-        large = "CUSTOM_" + ("1" * 248)
-        self.assertEqual(255, len(large))
-        validate_trait('foo', large)
-        self.assertRaises(exception.InvalidParameterValue,
-                          validate_trait, 'foo', large + "1")
 
     def test_apply_jsonpatch(self):
         doc = {"foo": {"bar": "baz"}}

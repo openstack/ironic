@@ -100,13 +100,6 @@ def remove_other_fields(values, allowed_fields):
 
 def node_post_data(**kw):
     node = db_utils.get_test_node(**kw)
-    # These values are not part of the API object
-    node.pop('version')
-    node.pop('conductor_affinity')
-    node.pop('chassis_id')
-    node.pop('tags')
-    node.pop('traits')
-    node.pop('allocation_id')
 
     # NOTE(jroll): pop out fields that were introduced in later API versions,
     # unless explicitly requested. Otherwise, these will cause tests using
@@ -115,8 +108,8 @@ def node_post_data(**kw):
         if field not in kw:
             node.pop(field, None)
 
-    internal = node_controller.NodePatchType.internal_attrs()
-    return remove_internal(node, internal)
+    return remove_other_fields(
+        node, node_controller.NODE_SCHEMA['properties'])
 
 
 def port_post_data(**kw):
