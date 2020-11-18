@@ -19,6 +19,7 @@ import datetime
 import hashlib
 import json
 
+from ironic.api.controllers.v1 import allocation as al_controller
 from ironic.api.controllers.v1 import chassis as chassis_controller
 from ironic.api.controllers.v1 import deploy_template as dt_controller
 from ironic.api.controllers.v1 import node as node_controller
@@ -92,6 +93,10 @@ def remove_internal(values, internal):
     # NOTE(yuriyz): internal attributes should not be posted, except uuid
     int_attr = [attr.lstrip('/') for attr in internal if attr != '/uuid']
     return {k: v for (k, v) in values.items() if k not in int_attr}
+
+
+def remove_other_fields(values, allowed_fields):
+    return {k: v for (k, v) in values.items() if k in allowed_fields}
 
 
 def node_post_data(**kw):
@@ -188,19 +193,14 @@ def post_get_test_portgroup(**kw):
     return portgroup
 
 
-_ALLOCATION_POST_FIELDS = {'resource_class', 'uuid', 'traits',
-                           'candidate_nodes', 'name', 'extra',
-                           'node', 'owner'}
-
-
 def allocation_post_data(node=None, **kw):
     """Return an Allocation object without internal attributes."""
     allocation = db_utils.get_test_allocation(**kw)
     if node:
         # This is not a database field, so it has to be handled explicitly
         allocation['node'] = node
-    return {key: value for key, value in allocation.items()
-            if key in _ALLOCATION_POST_FIELDS}
+    return remove_other_fields(
+        allocation, al_controller.ALLOCATION_SCHEMA['properties'])
 
 
 def fake_event_validator(v):
