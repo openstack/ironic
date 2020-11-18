@@ -220,7 +220,8 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
             internal_info={'tenant_vif_port_id': fake_vif_port_id})
         fake_db_portgroup = db_utils.create_test_portgroup(
             node_id=fake_db_node['id'])
-        fake_db_chassis = db_utils.create_test_chassis()
+        fake_db_chassis = db_utils.create_test_chassis(
+            drivers=['fake-hardware', 'fake-driverz', 'fake-driver'])
         fake_db_deploy_template = db_utils.create_test_deploy_template()
         fake_db_conductor = db_utils.create_test_conductor()
         fake_db_volume_target = db_utils.create_test_volume_target(

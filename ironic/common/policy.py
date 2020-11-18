@@ -898,24 +898,62 @@ chassis_policies = [
     ),
 ]
 
+
+deprecated_driver_get = policy.DeprecatedRule(
+    name='baremetal:driver:get',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_driver_get_properties = policy.DeprecatedRule(
+    name='baremetal:driver:get_properties',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_driver_get_raid_properties = policy.DeprecatedRule(
+    name='baremetal:driver:get_raid_logical_disk_properties',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_driver_reason = """
+The baremetal driver API is now aware of system scope and default roles.
+"""
+
 driver_policies = [
     policy.DocumentedRuleDefault(
-        'baremetal:driver:get',
-        'rule:is_admin or rule:is_observer',
-        'View list of available drivers',
-        [{'path': '/drivers', 'method': 'GET'},
-         {'path': '/drivers/{driver_name}', 'method': 'GET'}]),
+        name='baremetal:driver:get',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='View list of available drivers',
+        operations=[
+            {'path': '/drivers', 'method': 'GET'},
+            {'path': '/drivers/{driver_name}', 'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_driver_get,
+        deprecated_reason=deprecated_driver_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:driver:get_properties',
-        'rule:is_admin or rule:is_observer',
-        'View driver-specific properties',
-        [{'path': '/drivers/{driver_name}/properties', 'method': 'GET'}]),
+        name='baremetal:driver:get_properties',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='View driver-specific properties',
+        operations=[
+            {'path': '/drivers/{driver_name}/properties', 'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_driver_get_properties,
+        deprecated_reason=deprecated_driver_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:driver:get_raid_logical_disk_properties',
-        'rule:is_admin or rule:is_observer',
-        'View driver-specific RAID metadata',
-        [{'path': '/drivers/{driver_name}/raid/logical_disk_properties',
-          'method': 'GET'}]),
+        name='baremetal:driver:get_raid_logical_disk_properties',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='View driver-specific RAID metadata',
+        operations=[
+            {'path': '/drivers/{driver_name}/raid/logical_disk_properties',
+             'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_driver_get_raid_properties,
+        deprecated_reason=deprecated_driver_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 ]
 
 vendor_passthru_policies = [

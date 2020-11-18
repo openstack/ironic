@@ -1449,88 +1449,72 @@ drivers_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 drivers_get_member:
   path: '/v1/drivers'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 drivers_get_observer:
   path: '/v1/drivers'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
-# TODO(TheJulia): This is presently returning a 404,
-# except it should not be. :\
 drivers_driver_name_get_admin:
   path: '/v1/drivers/{driver_name}'
   method: get
   headers: *admin_headers
   assert_status: 404
-  skip_reason: not updated for scope testing
 
 drivers_driver_name_get_member:
   path: '/v1/drivers/{driver_name}'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 404
 
-# TODO(TheJulia): This is presently returning a 404,
-# except it should not be. :\
 drivers_driver_name_get_observer:
   path: '/v1/drivers/{driver_name}'
   method: get
   headers: *observer_headers
   assert_status: 404
-  skip_reason: not updated for scope testing
 
 drivers_properties_get_admin:
   path: '/v1/drivers/{driver_name}/properties'
   method: get
   headers: *admin_headers
   assert_status: 404
-  skip_reason: not updated for scope testing
 
 drivers_properties_get_member:
   path: '/v1/drivers/{driver_name}/properties'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 404
 
 drivers_properties_get_observer:
   path: '/v1/drivers/{driver_name}/properties'
   method: get
   headers: *observer_headers
   assert_status: 404
-  skip_reason: not updated for scope testing
 
 drivers_raid_logical_disk_properties_get_admin:
   path: '/v1/drivers/{driver_name}/raid/logical_disk_properties'
   method: get
   headers: *admin_headers
   assert_status: 404
-  skip_reason: not updated for scope testing
 
 drivers_raid_logical_disk_properties_get_member:
   path: '/v1/drivers/{driver_name}/raid/logical_disk_properties'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 404
 
 drivers_raid_logical_disk_properties_get_observer:
   path: '/v1/drivers/{driver_name}/raid/logical_disk_properties'
   method: get
   headers: *observer_headers
   assert_status: 404
-  skip_reason: not updated for scope testing
 
 # Driver vendor passthru - https://docs.openstack.org/api-ref/baremetal/#driver-vendor-passthru-drivers
 
