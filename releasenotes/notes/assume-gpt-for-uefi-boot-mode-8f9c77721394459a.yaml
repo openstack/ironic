@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes the logic which determines the partition table type to utilize with
+    partition images account for the boot mode of the machine. If no value is
+    set by the API user, Ironic now correctly defaults to GPT if the node
+    has been set in UEFI mode.

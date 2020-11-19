@@ -356,7 +356,13 @@ def get_disk_label(node):
     :returns: the disk label or None if no disk label was specified.
     """
     capabilities = utils.parse_instance_info_capabilities(node)
-    return capabilities.get('disk_label')
+    label = capabilities.get('disk_label')
+    # NOTE(TheJulia): If the node is UEFI based, we should likely just default
+    # the table type to gpt as otherwise we rely upon the user to supply the
+    # right information, and for UEFI mode bios may work, but is wrong.
+    if label is None and boot_mode_utils.get_boot_mode(node) == 'uefi':
+        label = 'gpt'
+    return label
 
 
 def get_pxe_boot_file(node):
