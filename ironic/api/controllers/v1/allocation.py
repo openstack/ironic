@@ -73,9 +73,16 @@ def convert_with_links(rpc_allocation, fields=None, sanitize=True):
     allocation = api_utils.object_to_dict(
         rpc_allocation,
         link_resource='allocations',
-        fields=('extra', 'name', 'state', 'last_error', 'resource_class',
-                'owner'),
-        list_fields=('candidate_nodes', 'traits')
+        fields=(
+            'candidate_nodes',
+            'extra',
+            'last_error',
+            'name',
+            'owner',
+            'resource_class',
+            'state',
+            'traits'
+        )
     )
     try:
         api_utils.populate_node_uuid(rpc_allocation, allocation)

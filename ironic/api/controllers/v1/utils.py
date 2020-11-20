@@ -38,6 +38,7 @@ from ironic.common import policy
 from ironic.common import states
 from ironic.common import utils
 from ironic import objects
+from ironic.objects import fields as ofields
 
 
 CONF = cfg.CONF
@@ -152,18 +153,18 @@ LOCAL_LINK_VALIDATOR = args.and_valid(
 LOCAL_LINK_SMART_NIC_VALIDATOR = args.schema(LOCAL_LINK_SMART_NIC_SCHEMA)
 
 
-def object_to_dict(obj, created_at=True, updated_at=True, uuid=True,
-                   link_resource=None, link_resource_args=None, fields=None,
-                   list_fields=None, date_fields=None, boolean_fields=None):
+def object_to_dict(obj, include_created_at=True, include_updated_at=True,
+                   include_uuid=True, link_resource=None,
+                   link_resource_args=None, fields=None):
     """Helper function to convert RPC objects to REST API dicts.
 
     :param obj:
         RPC object to convert to a dict
-    :param created_at:
+    :param include_created_at:
         Whether to include standard base class attribute created_at
-    :param updated_at:
+    :param include_updated_at:
         Whether to include standard base class attribute updated_at
-    :param uuid:
+    :param include_uuid:
         Whether to include standard base class attribute uuid
     :param link_resource:
         When specified, generate a ``links`` value with a ``self`` and
@@ -172,47 +173,39 @@ def object_to_dict(obj, created_at=True, updated_at=True, uuid=True,
         Resource arguments to be added to generated links. When not specified,
         the object ``uuid`` will be used.
     :param fields:
-        Dict values to populate directly from object attributes
-    :param list_fields:
-        Dict values to populate from object attributes where an empty list is
-        the default for empty attributes
-    :param date_fields:
-        Dict values to populate from object attributes as ISO 8601 dates,
-        or None if the value is None
-    :param boolean_fields:
-        Dict values to populate from object attributes as boolean values
-        or False if the value is empty
+        Key names for dict values to populate directly from object attributes
     :returns: A dict containing values from the object
     """
     url = api.request.public_url
     to_dict = {}
 
-    if uuid:
-        to_dict['uuid'] = obj.uuid
+    all_fields = []
 
-    if created_at:
-        to_dict['created_at'] = (obj.created_at
-                                 and obj.created_at.isoformat() or None)
-    if updated_at:
-        to_dict['updated_at'] = (obj.updated_at
-                                 and obj.updated_at.isoformat() or None)
+    if include_uuid:
+        all_fields.append('uuid')
+    if include_created_at:
+        all_fields.append('created_at')
+    if include_updated_at:
+        all_fields.append('updated_at')
 
     if fields:
-        for field in fields:
-            to_dict[field] = getattr(obj, field)
+        all_fields.extend(fields)
 
-    if list_fields:
-        for field in list_fields:
-            to_dict[field] = getattr(obj, field) or []
+    for field in all_fields:
+        value = to_dict[field] = getattr(obj, field)
+        empty_value = None
+        if isinstance(obj.fields[field], ofields.ListOfStringsField):
+            empty_value = []
+        elif isinstance(obj.fields[field], ofields.FlexibleDictField):
+            empty_value = {}
+        elif isinstance(obj.fields[field], ofields.DateTimeField):
+            if value:
+                value = value.isoformat()
 
-    if date_fields:
-        for field in date_fields:
-            date = getattr(obj, field)
-            to_dict[field] = date and date.isoformat() or None
-
-    if boolean_fields:
-        for field in boolean_fields:
-            to_dict[field] = getattr(obj, field) or False
+        if value is not None:
+            to_dict[field] = value
+        else:
+            to_dict[field] = empty_value
 
     if link_resource:
         if not link_resource_args:

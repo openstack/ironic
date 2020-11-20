@@ -1596,8 +1596,7 @@ class TestObjectToDict(base.TestCase):
             created_at=datetime.datetime(2000, 1, 1, 0, 0),
             updated_at=datetime.datetime(2001, 1, 1, 0, 0),
             inspection_started_at=datetime.datetime(2002, 1, 1, 0, 0),
-            console_enabled=True,
-            tags=['one', 'two', 'three'])
+            console_enabled=True)
 
         p = mock.patch.object(api, 'request', autospec=False)
         mock_req = p.start()
@@ -1614,9 +1613,9 @@ class TestObjectToDict(base.TestCase):
     def test_no_base_attributes(self):
         self.assertEqual({}, utils.object_to_dict(
             self.node,
-            created_at=False,
-            updated_at=False,
-            uuid=False)
+            include_created_at=False,
+            include_updated_at=False,
+            include_uuid=False)
         )
 
     def test_fields(self):
@@ -1628,16 +1627,18 @@ class TestObjectToDict(base.TestCase):
             'inspection_finished_at': None,
             'inspection_started_at': '2002-01-01T00:00:00+00:00',
             'maintenance': False,
-            'tags': ['one', 'two', 'three'],
-            'traits': [],
             'updated_at': '2001-01-01T00:00:00+00:00',
             'uuid': '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'
         }, utils.object_to_dict(
             self.node,
-            fields=['conductor_group', 'driver'],
-            boolean_fields=['maintenance', 'console_enabled'],
-            date_fields=['inspection_started_at', 'inspection_finished_at'],
-            list_fields=['tags', 'traits'])
+            fields=[
+                'conductor_group',
+                'console_enabled',
+                'driver',
+                'inspection_finished_at',
+                'inspection_started_at',
+                'maintenance',
+            ])
         )
 
     def test_links(self):
