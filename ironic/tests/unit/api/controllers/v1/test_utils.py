@@ -25,7 +25,6 @@ from oslo_utils import uuidutils
 from ironic import api
 from ironic.api.controllers.v1 import node as api_node
 from ironic.api.controllers.v1 import utils
-from ironic.api import types as atypes
 from ironic.common import exception
 from ironic.common import policy
 from ironic.common import states
@@ -943,7 +942,7 @@ class TestVendorPassthru(base.TestCase):
         passthru_mock.assert_called_once_with(
             'fake-context', 'fake-ident', 'squarepants', 'POST',
             'fake-data', 'fake-topic')
-        self.assertIsInstance(response, atypes.PassthruResponse)
+        self.assertIsInstance(response, utils.PassthruResponse)
         self.assertEqual('SpongeBob', response.obj)
         sc = http_client.ACCEPTED if async_call else http_client.OK
         self.assertEqual(sc, response.status_code)
@@ -979,7 +978,7 @@ class TestVendorPassthru(base.TestCase):
         self.assertIsInstance(response.obj, io.BytesIO)
         self.assertEqual(expct_return_value, response.obj.read())
         # Assert response message is none
-        self.assertIsInstance(response, atypes.PassthruResponse)
+        self.assertIsInstance(response, utils.PassthruResponse)
         self.assertEqual(http_client.OK, response.status_code)
 
     def test_vendor_passthru_attach(self):

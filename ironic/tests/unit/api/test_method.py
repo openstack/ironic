@@ -22,7 +22,6 @@ from ironic import api
 from ironic.api.controllers import root
 from ironic.api.controllers import v1
 from ironic.api import method
-from ironic.api import types as atypes
 from ironic.common import args
 from ironic.tests.unit.api import base as test_api_base
 
@@ -48,7 +47,7 @@ class MyThingController(pecan.rest.RestController):
 
     @method.expose()
     def response_content(self):
-        resp = atypes.PassthruResponse('nothing', status_code=200)
+        resp = v1.utils.PassthruResponse('nothing', status_code=200)
         api.response.status_code = resp.status_code
         return resp.obj
 

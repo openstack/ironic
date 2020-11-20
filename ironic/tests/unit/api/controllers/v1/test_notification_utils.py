@@ -17,7 +17,6 @@ from unittest import mock
 from oslo_utils import uuidutils
 
 from ironic.api.controllers.v1 import notification_utils as notif_utils
-from ironic.api import types as atypes
 from ironic.objects import fields
 from ironic.objects import notification
 from ironic.tests import base as tests_base
@@ -96,17 +95,6 @@ class APINotifyTestCase(tests_base.TestCase):
         notification.mask_secrets(node)
         self.assertEqual('******', node.driver_info['password'])
         self.assertEqual('fake-value', node.driver_info['some_value'])
-
-    def test_notification_uuid_unset(self):
-        node = obj_utils.get_test_node(self.context)
-        test_level = fields.NotificationLevel.INFO
-        test_status = fields.NotificationStatus.SUCCESS
-        notif_utils._emit_api_notification(self.context, node, 'create',
-                                           test_level, test_status,
-                                           chassis_uuid=atypes.Unset)
-        init_kwargs = self.node_notify_mock.call_args[1]
-        payload = init_kwargs['payload']
-        self.assertIsNone(payload.chassis_uuid)
 
     def test_chassis_notification(self):
         chassis = obj_utils.get_test_chassis(self.context,

@@ -14,9 +14,7 @@
 #    under the License.
 
 from ironic import api
-from ironic.api.controllers import base
 from ironic.api.controllers import link
-from ironic.api import types as atypes
 
 
 def has_next(collection, limit):
@@ -87,30 +85,3 @@ def get_next(collection, limit, url=None, key_field='uuid', **kwargs):
 
     return link.make_link('next', api.request.public_url,
                           url, next_args)['href']
-
-
-class Collection(base.Base):
-
-    next = str
-    """A link to retrieve the next subset of the collection"""
-
-    @property
-    def collection(self):
-        return getattr(self, self._type)
-
-    @classmethod
-    def get_key_field(cls):
-        return 'uuid'
-
-    def has_next(self, limit):
-        """Return whether collection has more items."""
-        return has_next(self.collection, limit)
-
-    def get_next(self, limit, url=None, **kwargs):
-        """Return a link to the next subset of the collection."""
-        resource_url = url or self._type
-        the_next = get_next(self.collection, limit, url=resource_url,
-                            key_field=self.get_key_field(), **kwargs)
-        if the_next is None:
-            return atypes.Unset
-        return the_next
