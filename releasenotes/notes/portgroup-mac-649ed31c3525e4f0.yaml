@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes the issue that when the MAC address of a port group is not set and
+    been attached to instance, the landed bond port cannot get IP address
+    due to inconsistent MAC address between the tenant port and the initially
+    allocated one in the config drive.

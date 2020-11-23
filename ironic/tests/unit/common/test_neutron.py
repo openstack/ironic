@@ -1207,6 +1207,14 @@ class TestUnbindPort(base.TestCase):
         neutron.unbind_neutron_port(port_id, context=self.context)
         mock_unp.assert_has_calls(update_calls)
 
+    def test_unbind_neutron_port_not_reset_mac(self, mock_unp):
+        port_id = 'fake-port-id'
+        attr_unbind = {'binding:host_id': '', 'binding:profile': {}}
+        neutron.unbind_neutron_port(port_id, context=self.context,
+                                    reset_mac=False)
+        mock_unp.assert_called_once_with(self.context, port_id, attr_unbind,
+                                         None)
+
     @mock.patch.object(neutron, 'LOG', autospec=True)
     def test_unbind_neutron_port_not_found(self, mock_log, mock_unp):
         port_id = 'fake-port-id'
