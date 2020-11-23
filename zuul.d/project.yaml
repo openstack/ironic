@@ -10,12 +10,10 @@
     check:
       jobs:
         - ironic-tox-unit-with-driver-libs
-        - ironic-standalone:
-            voting: false
-        - ironic-standalone-redfish:
-            voting: false
         - ironic-tempest-functional-python3
         - ironic-grenade
+        - ironic-standalone
+        - ironic-standalone-redfish
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
@@ -25,10 +23,10 @@
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
-        - ironic-tempest-ipxe-ipv6:
-            voting: false
         - metalsmith-integration-glance-localboot-centos7
         # Non-voting jobs
+        - ironic-tempest-ipxe-ipv6:
+            voting: false
         - ironic-tox-bandit:
             voting: false
         - ironic-inspector-tempest:
@@ -49,6 +47,8 @@
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
         - ironic-grenade
+        - ironic-standalone
+        - ironic-standalone-redfish
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
@@ -56,8 +56,6 @@
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-bios-ipmi-direct-tinyipa
-        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
-        - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-localboot-centos7
