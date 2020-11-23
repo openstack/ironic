@@ -36,17 +36,6 @@ class RequestContext(context.RequestContext):
         })
         return policy_values
 
-    @classmethod
-    def from_dict(cls, values, **kwargs):
-        # TODO(vdrok): these are left so that if older service communicates
-        # with a new one, new one could still understand what old one sends,
-        # remove in Queens
-        kwargs.setdefault('is_public_api', values.get('is_public_api', False))
-        if 'domain_id' in values:
-            kwargs.setdefault('user_domain', values['domain_id'])
-        return super(RequestContext, RequestContext).from_dict(values,
-                                                               **kwargs)
-
     def ensure_thread_contain_context(self):
         """Ensure threading contains context
 

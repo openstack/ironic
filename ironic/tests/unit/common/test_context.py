@@ -23,7 +23,7 @@ class RequestContextTestCase(tests_base.TestCase):
         super(RequestContextTestCase, self).setUp()
         self.context_dict = {
             'auth_token': 'auth_token1',
-            "user": "user1",
+            "user_id": "user1",
             "project_id": "project1",
             "project_name": "somename",
             'is_admin': True,
@@ -31,10 +31,10 @@ class RequestContextTestCase(tests_base.TestCase):
             'show_deleted': True,
             'request_id': 'id1',
             "is_public_api": True,
-            "domain": "domain_id2",
-            "user_domain": "domain_id3",
+            "domain_id": "domain_id2",
+            "user_domain_id": "domain_id3",
             "user_domain_name": "TreeDomain",
-            "project_domain": "domain_id4",
+            "project_domain_id": "domain_id4",
             "roles": None,
             "overwrite": True
         }
@@ -44,14 +44,6 @@ class RequestContextTestCase(tests_base.TestCase):
         test_context = context.RequestContext()
         context_mock.assert_called_once_with(mock.ANY)
         self.assertFalse(test_context.is_public_api)
-
-    def test_from_dict(self):
-        test_context = context.RequestContext.from_dict(
-            {'project_name': 'demo', 'is_public_api': True,
-             'domain_id': 'meow'})
-        self.assertEqual('demo', test_context.project_name)
-        self.assertEqual('meow', test_context.user_domain_id)
-        self.assertTrue(test_context.is_public_api)
 
     def test_to_policy_values(self):
         ctx = context.RequestContext(**self.context_dict)
