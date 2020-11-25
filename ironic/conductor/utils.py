@@ -876,7 +876,15 @@ def skip_automated_cleaning(node):
 
     :param node: the node to consider
     """
-    return not CONF.conductor.automated_clean and not node.automated_clean
+    if node.automated_clean:
+        return False
+    elif node.automated_clean is None:
+        return not CONF.conductor.automated_clean
+    else:
+        LOG.info("Automated cleaning is disabled via the API for "
+                 "node %(node)s",
+                 {'node': node.uuid})
+        return True
 
 
 def power_on_node_if_needed(task):

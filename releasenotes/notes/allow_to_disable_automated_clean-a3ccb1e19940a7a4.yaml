@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Allows disabling automated cleaning per node if it is enabled globally.
+    An existing ``automated_clean`` field will allow disabling of automated
+    cleaning on the node object. A new ``baremetal:node:disable_cleaning``
+    policy is added which defaults to ``baremetal:node:update``.
