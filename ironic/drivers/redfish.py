@@ -24,6 +24,7 @@ from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import inspect as redfish_inspect
 from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic.drivers.modules.redfish import power as redfish_power
+from ironic.drivers.modules.redfish import vendor as redfish_vendor
 
 
 class RedfishHardware(generic.GenericHardware):
@@ -57,3 +58,8 @@ class RedfishHardware(generic.GenericHardware):
         # vendors support.
         return [ipxe.iPXEBoot, pxe.PXEBoot,
                 redfish_boot.RedfishVirtualMediaBoot]
+
+    @property
+    def supported_vendor_interfaces(self):
+        """List of supported vendor interfaces."""
+        return [redfish_vendor.RedfishVendorPassthru, noop.NoVendor]

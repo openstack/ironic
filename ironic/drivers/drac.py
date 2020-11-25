@@ -81,4 +81,5 @@ class IDRACHardware(generic.GenericHardware):
     def supported_vendor_interfaces(self):
         """List of supported vendor interfaces."""
         return [vendor_passthru.DracWSManVendorPassthru,
-                vendor_passthru.DracVendorPassthru, noop.NoVendor]
+                vendor_passthru.DracVendorPassthru,
+                vendor_passthru.DracRedfishVendorPassthru, noop.NoVendor]
