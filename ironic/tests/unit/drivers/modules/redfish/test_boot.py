@@ -568,6 +568,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
                        'clean_up_instance', autospec=True)
+    @mock.patch.object(image_utils, 'prepare_configdrive_image', autospec=True)
     @mock.patch.object(image_utils, 'prepare_boot_iso', autospec=True)
     @mock.patch.object(redfish_boot, 'eject_vmedia', autospec=True)
     @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
@@ -578,13 +579,14 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
     def test_prepare_instance_ramdisk_boot(
             self, mock_boot_mode_utils, mock_deploy_utils, mock_manager_utils,
             mock__parse_deploy_info, mock__insert_vmedia, mock__eject_vmedia,
-            mock_prepare_boot_iso, mock_clean_up_instance):
-
+            mock_prepare_boot_iso, mock_prepare_disk, mock_clean_up_instance):
+        configdrive = 'Y29udGVudA=='
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.provision_state = states.DEPLOYING
             task.node.driver_internal_info[
                 'root_uuid_or_disk_id'] = self.node.uuid
+            task.node.instance_info['configdrive'] = configdrive
 
             mock_deploy_utils.get_boot_option.return_value = 'ramdisk'
 
@@ -596,18 +598,24 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock__parse_deploy_info.return_value = d_info
 
             mock_prepare_boot_iso.return_value = 'image-url'
+            mock_prepare_disk.return_value = 'cd-url'
 
             task.driver.boot.prepare_instance(task)
 
             mock_clean_up_instance.assert_called_once_with(mock.ANY, task)
 
             mock_prepare_boot_iso.assert_called_once_with(task, d_info)
+            mock_prepare_disk.assert_called_once_with(task, configdrive)
 
-            mock__eject_vmedia.assert_called_once_with(
-                task, sushy.VIRTUAL_MEDIA_CD)
+            mock__eject_vmedia.assert_has_calls([
+                mock.call(task, sushy.VIRTUAL_MEDIA_CD),
+                mock.call(task, sushy.VIRTUAL_MEDIA_USBSTICK),
+            ])
 
-            mock__insert_vmedia.assert_called_once_with(
-                task, 'image-url', sushy.VIRTUAL_MEDIA_CD)
+            mock__insert_vmedia.assert_has_calls([
+                mock.call(task, 'image-url', sushy.VIRTUAL_MEDIA_CD),
+                mock.call(task, 'cd-url', sushy.VIRTUAL_MEDIA_USBSTICK),
+            ])
 
             mock_manager_utils.node_set_boot_device.assert_called_once_with(
                 task, boot_devices.CDROM, persistent=True)
@@ -633,6 +641,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             task.node.provision_state = states.DEPLOYING
             task.node.driver_internal_info[
                 'root_uuid_or_disk_id'] = self.node.uuid
+            task.node.instance_info['configdrive'] = None
 
             mock_deploy_utils.get_boot_option.return_value = 'ramdisk'
 
@@ -679,6 +688,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             task.node.provision_state = states.DEPLOYING
             i_info = task.node.instance_info
             i_info['boot_iso'] = "super-magic"
+            del i_info['configdrive']
             task.node.instance_info = i_info
             mock_deploy_utils.get_boot_option.return_value = 'ramdisk'
             mock__parse_deploy_info.return_value = {}
@@ -759,6 +769,29 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
         self.node.driver_info = driver_info
         self.node.save()
         self._test_clean_up_instance()
+
+    @mock.patch.object(deploy_utils, 'get_boot_option', autospec=True)
+    @mock.patch.object(redfish_boot, 'eject_vmedia', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_disk_image', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
+    def test_clean_up_instance_ramdisk(self, mock_cleanup_iso_image,
+                                       mock_cleanup_disk_image,
+                                       mock__eject_vmedia,
+                                       mock_get_boot_option):
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_get_boot_option.return_value = 'ramdisk'
+
+            task.driver.boot.clean_up_instance(task)
+
+            mock_cleanup_iso_image.assert_called_once_with(task)
+            mock_cleanup_disk_image.assert_called_once_with(
+                task, prefix='configdrive')
+            eject_calls = [mock.call(task, sushy.VIRTUAL_MEDIA_CD),
+                           mock.call(task, sushy.VIRTUAL_MEDIA_USBSTICK)]
+
+            mock__eject_vmedia.assert_has_calls(eject_calls)
 
     @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
     def test__insert_vmedia_anew(self, mock_redfish_utils):

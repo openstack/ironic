@@ -217,6 +217,93 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
 
             self.assertEqual(expected_url, url)
 
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    def test_prepare_disk_image(self, mock_publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            expected_url = 'https://a.b/c.f?e=f'
+            expected_object_name = task.node.uuid
+
+            def _publish(img_handler, tmp_file, object_name):
+                self.assertEqual(expected_object_name, object_name)
+                self.assertEqual(b'content', open(tmp_file, 'rb').read())
+                return expected_url
+
+            mock_publish_image.side_effect = _publish
+
+            url = image_utils.prepare_disk_image(task, b'content')
+
+            mock_publish_image.assert_called_once_with(mock.ANY, mock.ANY,
+                                                       expected_object_name)
+
+            self.assertEqual(expected_url, url)
+
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    def test_prepare_disk_image_prefix(self, mock_publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            expected_url = 'https://a.b/c.f?e=f'
+            expected_object_name = 'configdrive-%s' % task.node.uuid
+
+            def _publish(img_handler, tmp_file, object_name):
+                self.assertEqual(expected_object_name, object_name)
+                self.assertEqual(b'content', open(tmp_file, 'rb').read())
+                return expected_url
+
+            mock_publish_image.side_effect = _publish
+
+            url = image_utils.prepare_disk_image(task, b'content',
+                                                 prefix='configdrive')
+
+            mock_publish_image.assert_called_once_with(mock.ANY, mock.ANY,
+                                                       expected_object_name)
+
+            self.assertEqual(expected_url, url)
+
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    def test_prepare_disk_image_file(self, mock_publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            expected_url = 'https://a.b/c.f?e=f'
+            expected_object_name = task.node.uuid
+
+            def _publish(img_handler, tmp_file, object_name):
+                self.assertEqual(expected_object_name, object_name)
+                self.assertEqual(b'content', open(tmp_file, 'rb').read())
+                return expected_url
+
+            mock_publish_image.side_effect = _publish
+
+            with tempfile.NamedTemporaryFile() as fp:
+                fp.write(b'content')
+                fp.flush()
+                url = image_utils.prepare_disk_image(task, fp.name)
+
+            mock_publish_image.assert_called_once_with(mock.ANY, mock.ANY,
+                                                       expected_object_name)
+
+            self.assertEqual(expected_url, url)
+
+    @mock.patch.object(image_utils, 'prepare_disk_image', autospec=True)
+    def test_prepare_configdrive_image(self, mock_prepare):
+        expected_url = 'https://a.b/c.f?e=f'
+        encoded = 'H4sIAPJ8418C/0vOzytJzSsBAKkwxf4HAAAA'
+
+        def _prepare(task, content, prefix):
+            with open(content, 'rb') as fp:
+                self.assertEqual(b'content', fp.read())
+            return expected_url
+
+        mock_prepare.side_effect = _prepare
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = image_utils.prepare_configdrive_image(task, encoded)
+            self.assertEqual(expected_url, result)
+
     @mock.patch.object(image_utils.ImageHandler, 'unpublish_image',
                        autospec=True)
     def test_cleanup_iso_image(self, mock_unpublish):

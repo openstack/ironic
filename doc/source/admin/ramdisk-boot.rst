@@ -60,7 +60,8 @@ The intended use case is for advanced scientific and ephemeral workloads
 where the step of writing an image to the local storage is not required
 or desired. As such, this interface does come with several caveats:
 
-* Configuration drives are not supported.
+* Configuration drives are not supported with network boot, only with Redfish
+  virtual media.
 * Disk image contents are not written to the bare metal node.
 * Users and Operators who intend to leverage this interface should
   expect to leverage a metadata service, custom ramdisk images, or the
