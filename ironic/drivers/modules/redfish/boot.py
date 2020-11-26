@@ -155,19 +155,18 @@ def _test_retry(exception):
 
 @retrying.retry(wait_fixed=3000, stop_max_attempt_number=3,
                 retry_on_exception=_test_retry)
-def _insert_vmedia(task, boot_url, boot_device):
+def _insert_vmedia(task, managers, boot_url, boot_device):
     """Insert bootable ISO image into virtual CD or DVD
 
     :param task: A task from TaskManager.
+    :param managers: A list of System managers.
     :param boot_url: URL to a bootable ISO image
     :param boot_device: sushy boot device e.g. `VIRTUAL_MEDIA_CD`,
         `VIRTUAL_MEDIA_DVD` or `VIRTUAL_MEDIA_FLOPPY`
     :raises: InvalidParameterValue, if no suitable virtual CD or DVD is
         found on the node.
     """
-    system = redfish_utils.get_system(task.node)
-
-    for manager in system.managers:
+    for manager in managers:
         for v_media in manager.virtual_media.get_members():
             if boot_device not in v_media.media_types:
                 continue
@@ -201,19 +200,18 @@ def _insert_vmedia(task, boot_url, boot_device):
         _('No suitable virtual media device found'))
 
 
-def eject_vmedia(task, boot_device=None):
+def _eject_vmedia(task, managers, boot_device=None):
     """Eject virtual CDs and DVDs
 
     :param task: A task from TaskManager.
+    :param managers: A list of System managers.
     :param boot_device: sushy boot device e.g. `VIRTUAL_MEDIA_CD`,
         `VIRTUAL_MEDIA_DVD` or `VIRTUAL_MEDIA_FLOPPY` or `None` to
         eject everything (default).
     :raises: InvalidParameterValue, if no suitable virtual CD or DVD is
         found on the node.
     """
-    system = redfish_utils.get_system(task.node)
-
-    for manager in system.managers:
+    for manager in managers:
         for v_media in manager.virtual_media.get_members():
             if boot_device and boot_device not in v_media.media_types:
                 continue
@@ -230,19 +228,32 @@ def eject_vmedia(task, boot_device=None):
                           'boot_device': v_media.name})
 
 
-def _has_vmedia_device(task, boot_device):
-    """Indicate if device exists at any of the managers
+def eject_vmedia(task, boot_device=None):
+    """Eject virtual CDs and DVDs
 
     :param task: A task from TaskManager.
     :param boot_device: sushy boot device e.g. `VIRTUAL_MEDIA_CD`,
-        `VIRTUAL_MEDIA_DVD` or `VIRTUAL_MEDIA_FLOPPY`.
+        `VIRTUAL_MEDIA_DVD` or `VIRTUAL_MEDIA_FLOPPY` or `None` to
+        eject everything (default).
+    :raises: InvalidParameterValue, if no suitable virtual CD or DVD is
+        found on the node.
     """
     system = redfish_utils.get_system(task.node)
+    _eject_vmedia(task, system.managers, boot_device=boot_device)
 
-    for manager in system.managers:
+
+def _has_vmedia_device(managers, boot_device):
+    """Indicate if device exists at any of the managers
+
+    :param managers: A list of System managers.
+    :param boot_device: sushy boot device e.g. `VIRTUAL_MEDIA_CD`,
+        `VIRTUAL_MEDIA_DVD` or `VIRTUAL_MEDIA_FLOPPY`.
+    """
+    for manager in managers:
         for v_media in manager.virtual_media.get_members():
             if boot_device in v_media.media_types:
                 return True
+    return False
 
 
 def _parse_deploy_info(node):
@@ -438,9 +449,11 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         if CONF.debug and 'ipa-debug' not in ramdisk_params:
             ramdisk_params['ipa-debug'] = '1'
 
+        managers = redfish_utils.get_system(task.node).managers
+
         if config_via_floppy:
 
-            if _has_vmedia_device(task, sushy.VIRTUAL_MEDIA_FLOPPY):
+            if _has_vmedia_device(managers, sushy.VIRTUAL_MEDIA_FLOPPY):
                 # NOTE (etingof): IPA will read the diskette only if
                 # we tell it to
                 ramdisk_params['boot_method'] = 'vmedia'
@@ -448,9 +461,9 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                 floppy_ref = image_utils.prepare_floppy_image(
                     task, params=ramdisk_params)
 
-                eject_vmedia(task, sushy.VIRTUAL_MEDIA_FLOPPY)
+                _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_FLOPPY)
                 _insert_vmedia(
-                    task, floppy_ref, sushy.VIRTUAL_MEDIA_FLOPPY)
+                    task, managers, floppy_ref, sushy.VIRTUAL_MEDIA_FLOPPY)
 
                 LOG.debug('Inserted virtual floppy with configuration for '
                           'node %(node)s', {'node': task.node.uuid})
@@ -465,8 +478,10 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         iso_ref = image_utils.prepare_deploy_iso(task, ramdisk_params,
                                                  mode, d_info)
 
-        eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
-        _insert_vmedia(task, iso_ref, sushy.VIRTUAL_MEDIA_CD)
+        _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_CD)
+        _insert_vmedia(task, managers, iso_ref, sushy.VIRTUAL_MEDIA_CD)
+
+        del managers
 
         boot_mode_utils.sync_boot_mode(task)
 
@@ -492,12 +507,14 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         LOG.debug("Cleaning up deploy boot for "
                   "%(node)s", {'node': task.node.uuid})
 
-        eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
+        managers = redfish_utils.get_system(task.node).managers
+
+        _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_CD)
         image_utils.cleanup_iso_image(task)
 
         if (config_via_floppy
-                and _has_vmedia_device(task, sushy.VIRTUAL_MEDIA_FLOPPY)):
-            eject_vmedia(task, sushy.VIRTUAL_MEDIA_FLOPPY)
+                and _has_vmedia_device(managers, sushy.VIRTUAL_MEDIA_FLOPPY)):
+            _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_FLOPPY)
 
             image_utils.cleanup_floppy_image(task)
 
@@ -551,21 +568,26 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
             params.update(root_uuid=root_uuid)
 
+        managers = redfish_utils.get_system(task.node).managers
+
         deploy_info = _parse_deploy_info(node)
         configdrive = node.instance_info.get('configdrive')
         iso_ref = image_utils.prepare_boot_iso(task, deploy_info, **params)
-        eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
-        _insert_vmedia(task, iso_ref, sushy.VIRTUAL_MEDIA_CD)
+        _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_CD)
+        _insert_vmedia(task, managers, iso_ref, sushy.VIRTUAL_MEDIA_CD)
 
         if configdrive and boot_option == 'ramdisk':
-            eject_vmedia(task, sushy.VIRTUAL_MEDIA_USBSTICK)
+            _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_USBSTICK)
             cd_ref = image_utils.prepare_configdrive_image(task, configdrive)
             try:
-                _insert_vmedia(task, cd_ref, sushy.VIRTUAL_MEDIA_USBSTICK)
+                _insert_vmedia(task, managers, cd_ref,
+                               sushy.VIRTUAL_MEDIA_USBSTICK)
             except exception.InvalidParameterValue:
                 raise exception.InstanceDeployFailure(
                     _('Cannot attach configdrive for node %s: no suitable '
                       'virtual USB slot has been found') % node.uuid)
+
+        del managers
 
         self._set_boot_device(task, boot_devices.CDROM, persistent=True)
 
@@ -585,16 +607,18 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         LOG.debug("Cleaning up instance boot for "
                   "%(node)s", {'node': task.node.uuid})
 
-        eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
+        managers = redfish_utils.get_system(task.node).managers
+
+        _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_CD)
         d_info = task.node.driver_info
         config_via_floppy = d_info.get('config_via_floppy')
         if config_via_floppy:
-            eject_vmedia(task, sushy.VIRTUAL_MEDIA_FLOPPY)
+            _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_FLOPPY)
 
         boot_option = deploy_utils.get_boot_option(task.node)
         if (boot_option == 'ramdisk'
                 and task.node.instance_info.get('configdrive')):
-            eject_vmedia(task, sushy.VIRTUAL_MEDIA_USBSTICK)
+            _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_USBSTICK)
             image_utils.cleanup_disk_image(task, prefix='configdrive')
 
         image_utils.cleanup_iso_image(task)
