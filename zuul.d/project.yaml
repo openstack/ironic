@@ -39,6 +39,8 @@
             voting: false
         - bifrost-integration-tinyipa-ubuntu-focal:
             voting: false
+        - bifrost-integration-redfish-vmedia-uefi-centos-8:
+            voting: false
         - ironic-tempest-pxe_ipmitool-postgres:
             voting: false
     gate:
