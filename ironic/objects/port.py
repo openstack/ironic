@@ -20,6 +20,7 @@ from oslo_utils import versionutils
 from oslo_versionedobjects import base as object_base
 
 from ironic.common import exception
+from ironic.common import utils
 from ironic.db import api as dbapi
 from ironic.objects import base
 from ironic.objects import fields as object_fields
@@ -42,7 +43,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     #              internal_info['tenant_vif_port_id'] (not an explicit db
     #              change)
     # Version 1.9: Add support for Smart NIC port
-    VERSION = '1.9'
+    # Version 1.10: Add name field
+    VERSION = '1.10'
 
     dbapi = dbapi.get_instance()
 
@@ -60,7 +62,25 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         'physical_network': object_fields.StringField(nullable=True),
         'is_smartnic': object_fields.BooleanField(nullable=True,
                                                   default=False),
+        'name': object_fields.StringField(nullable=True),
     }
+
+    def _convert_name_field(self, target_version,
+                            remove_unavailable_fields=True):
+        name_is_set = self.obj_attr_is_set('name')
+        if target_version >= (1, 10):
+            # Target version supports name. Set it to its default
+            # value if it is not set.
+            if not name_is_set:
+                self.name = None
+        elif name_is_set:
+            # Target version does not support name, and it is set.
+            if remove_unavailable_fields:
+                # (De)serialising: remove unavailable fields.
+                delattr(self, 'name')
+            elif self.name is not None:
+                # DB: set unavailable fields to their default.
+                self.name = None
 
     def _convert_to_version(self, target_version,
                             remove_unavailable_fields=True):
@@ -80,6 +100,9 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
             downgrading to an older version.
 
         Version 1.9: remove is_smartnic field for unsupported versions if
+            remove_unavailable_fields is True.
+
+        Version 1.10: remove name field for unsupported versions if
             remove_unavailable_fields is True.
 
         :param target_version: the desired version of the object
@@ -134,6 +157,9 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                 # DB: set unavailable fields to their default.
                 self.is_smartnic = False
 
+        # Convert the name field.
+        self._convert_name_field(target_version, remove_unavailable_fields)
+
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
     # Implications of calling new remote procedures should be thought through.
@@ -142,11 +168,11 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     def get(cls, context, port_id):
         """Find a port.
 
-        Find a port based on its id or uuid or MAC address and return a Port
-        object.
+        Find a port based on its id or uuid or name or MAC address and return
+        a Port object.
 
         :param context: Security context
-        :param port_id: the id *or* uuid *or* MAC address of a port.
+        :param port_id: the id *or* uuid *or* name *or* MAC address of a port.
         :returns: a :class:`Port` object.
         :raises: InvalidIdentity
 
@@ -157,6 +183,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
             return cls.get_by_uuid(context, port_id)
         elif netutils.is_valid_mac(port_id):
             return cls.get_by_address(context, port_id)
+        elif utils.is_valid_logical_name(port_id):
+            return cls.get_by_name(context, port_id)
         else:
             raise exception.InvalidIdentity(identity=port_id)
 
@@ -218,6 +246,25 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         if owner and not project:
             project = owner
         db_port = cls.dbapi.get_port_by_address(address, project=project)
+        port = cls._from_db_object(context, cls(), db_port)
+        return port
+
+    # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
+    # methods can be used in the future to replace current explicit RPC calls.
+    # Implications of calling new remote procedures should be thought through.
+    # @object_base.remotable_classmethod
+    @classmethod
+    def get_by_name(cls, context, name):
+        """Find a port based on name and return a :class:`Port` object.
+
+        :param cls: the :class:`Port`
+        :param context: Security context
+        :param name: the name of a port.
+        :returns: a :class:`Port` object.
+        :raises: PortNotFound
+
+        """
+        db_port = cls.dbapi.get_port_by_name(name)
         port = cls._from_db_object(context, cls(), db_port)
         return port
 
@@ -435,7 +482,8 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
     # Version 1.1: Add "portgroup_uuid" field
     # Version 1.2: Add "physical_network" field
     # Version 1.3: Add "is_smartnic" field
-    VERSION = '1.3'
+    # Version 1.4: Add "name" field
+    VERSION = '1.4'
 
     SCHEMA = {
         'address': ('port', 'address'),
@@ -447,6 +495,7 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
         'updated_at': ('port', 'updated_at'),
         'uuid': ('port', 'uuid'),
         'is_smartnic': ('port', 'is_smartnic'),
+        'name': ('port', 'name'),
     }
 
     fields = {
@@ -463,6 +512,7 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
         'uuid': object_fields.UUIDField(),
         'is_smartnic': object_fields.BooleanField(nullable=True,
                                                   default=False),
+        'name': object_fields.StringField(nullable=True),
     }
 
     def __init__(self, port, node_uuid, portgroup_uuid):

@@ -275,7 +275,7 @@ RELEASE_MAPPING = {
             'Chassis': ['1.3'],
             'Deployment': ['1.0'],
             'DeployTemplate': ['1.1'],
-            'Port': ['1.9'],
+            'Port': ['1.10'],
             'Portgroup': ['1.4'],
             'Trait': ['1.0'],
             'TraitList': ['1.0'],

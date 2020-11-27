@@ -705,6 +705,13 @@ class Connection(api.Connection):
         except NoResultFound:
             raise exception.PortNotFound(port=address)
 
+    def get_port_by_name(self, port_name):
+        query = model_query(models.Port).filter_by(name=port_name)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.PortNotFound(port=port_name)
+
     def get_port_list(self, limit=None, marker=None,
                       sort_key=None, sort_dir=None, owner=None,
                       project=None):
@@ -773,8 +780,11 @@ class Connection(api.Connection):
                 session.flush()
         except NoResultFound:
             raise exception.PortNotFound(port=port_id)
-        except db_exc.DBDuplicateEntry:
-            raise exception.MACAlreadyExists(mac=values['address'])
+        except db_exc.DBDuplicateEntry as exc:
+            if 'name' in exc.columns:
+                raise exception.PortDuplicateName(name=values['name'])
+            else:
+                raise exception.MACAlreadyExists(mac=values['address'])
         return ref
 
     @oslo_db_api.retry_on_deadlock

@@ -1002,6 +1002,11 @@ class MigrationCheckersMixin(object):
         col_names = [column.name for column in nodes.c]
         self.assertIn('lessee', col_names)
 
+    def _check_c0455649680c(self, engine, data):
+        ports = db_utils.get_table(engine, 'ports')
+        col_names = [column.name for column in ports.c]
+        self.assertIn('name', col_names)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

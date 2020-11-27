@@ -252,6 +252,14 @@ class Connection(object, metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
+    def get_port_by_name(self, port_name):
+        """Return a network port representation.
+
+        :param port_name: The name of a port.
+        :returns: A port.
+        """
+
+    @abc.abstractmethod
     def get_port_list(self, limit=None, marker=None,
                       sort_key=None, sort_dir=None):
         """Return a list of ports.

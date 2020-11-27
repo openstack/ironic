@@ -210,6 +210,7 @@ class Port(Base):
     __table_args__ = (
         schema.UniqueConstraint('address', name='uniq_ports0address'),
         schema.UniqueConstraint('uuid', name='uniq_ports0uuid'),
+        schema.UniqueConstraint('name', name='uniq_ports0name'),
         table_args())
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
@@ -222,6 +223,7 @@ class Port(Base):
     internal_info = Column(db_types.JsonEncodedDict)
     physical_network = Column(String(64), nullable=True)
     is_smartnic = Column(Boolean, nullable=True, default=False)
+    name = Column(String(255), nullable=True)
 
 
 class Portgroup(Base):

@@ -77,6 +77,10 @@ class PortAlreadyExists(Conflict):
     _msg_fmt = _("A port with UUID %(uuid)s already exists.")
 
 
+class PortDuplicateName(Conflict):
+    _msg_fmt = _("A port with name %(name)s already exists.")
+
+
 class PortgroupAlreadyExists(Conflict):
     _msg_fmt = _("A portgroup with UUID %(uuid)s already exists.")
 
