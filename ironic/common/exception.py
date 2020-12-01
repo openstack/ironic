@@ -335,10 +335,9 @@ class ConductorAlreadyRegistered(IronicException):
 
 
 class ConductorHardwareInterfacesAlreadyRegistered(IronicException):
-    _msg_fmt = _("At least one of these (hardware type %(hardware_type)s, "
-                 "interface type %(interface_type)s, interfaces "
-                 "%(interfaces)s) combinations are already registered for "
-                 "this conductor.")
+    _msg_fmt = _("Duplication detected for hardware_type, interface_type "
+                 "and interface combinations for this conductor while "
+                 "registering the row %(row)s")
 
 
 class PowerStateFailure(InvalidState):

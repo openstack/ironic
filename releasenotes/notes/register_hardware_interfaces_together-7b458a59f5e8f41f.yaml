@@ -1,0 +1,10 @@
+---
+other:
+  - |
+    Register all conductor hardware interfaces together. Adds
+    all conductor hardware interfaces in to the database in a
+    single transaction and to allow this update the
+    ``register_hardware_interfaces`` API. This allows Restful API
+    consumers to understand if the conductor is fully on-line via
+    the presence of driver entries. Previously this was done one
+    driver at a time.

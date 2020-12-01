@@ -156,21 +156,16 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.unregister_all_hardware_interfaces()
         self.dbapi.unregister_conductor(self.hostname)
 
-    def register_hardware_interfaces(self, hardware_type, interface_type,
-                                     interfaces, default_interface):
+    def register_hardware_interfaces(self, interfaces):
         """Register hardware interfaces with the conductor.
 
-        :param hardware_type: Name of hardware type for the interfaces.
-        :param interface_type: Type of interfaces, e.g. 'deploy' or 'boot'.
-        :param interfaces: List of interface names to register.
-        :param default_interface: String, the default interface for this
-                                  hardware type and interface type.
+        :param interfaces: List of interface to register, each entry should
+            be a dictionary conaining "hardware_type", "interface_type",
+            "interface_name" and "default", e.g.
+            {'hardware_type': 'hardware-type', 'interface_type': 'deploy',
+            'interface_name': 'iscsi', 'default': True}
         """
-        self.dbapi.register_conductor_hardware_interfaces(self.id,
-                                                          hardware_type,
-                                                          interface_type,
-                                                          interfaces,
-                                                          default_interface)
+        self.dbapi.register_conductor_hardware_interfaces(self.id, interfaces)
 
     def unregister_all_hardware_interfaces(self):
         """Unregister all hardware interfaces for this conductor."""

@@ -167,6 +167,10 @@ class TestConductorObject(db_base.DbTestCase):
     def test_register_hardware_interfaces(self):
         host = self.fake_conductor['hostname']
         self.config(default_deploy_interface='iscsi')
+        arg = [{"hardware_type": "hardware-type", "interface_type": "deploy",
+                "interface_name": "iscsi", "default": True},
+               {"hardware_type": "hardware-type", "interface_type": "deploy",
+                "interface_name": "direct", "default": False}]
         with mock.patch.object(self.dbapi, 'get_conductor',
                                autospec=True) as mock_get_cdr:
             with mock.patch.object(self.dbapi,
@@ -174,10 +178,8 @@ class TestConductorObject(db_base.DbTestCase):
                                    autospec=True) as mock_register:
                 mock_get_cdr.return_value = self.fake_conductor
                 c = objects.Conductor.get_by_hostname(self.context, host)
-                args = ('hardware-type', 'deploy', ['iscsi', 'direct'],
-                        'iscsi')
-                c.register_hardware_interfaces(*args)
-                mock_register.assert_called_once_with(c.id, *args)
+                c.register_hardware_interfaces(arg)
+                mock_register.assert_called_once_with(c.id, arg)
 
     def test_unregister_all_hardware_interfaces(self):
         host = self.fake_conductor['hostname']
