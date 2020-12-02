@@ -61,6 +61,9 @@ def expose(status_code=None):
                     pecan.response.status = 500
 
             def _empty():
+                # This is for a pecan workaround originally in WSME,
+                # but the original issue description is in an issue tracker
+                # that is now offline
                 pecan.request.pecan['content_type'] = None
                 pecan.response.content_type = None
 

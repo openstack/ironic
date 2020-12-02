@@ -40,8 +40,7 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 
 DEFAULT_RETURN_FIELDS = ['uuid', 'name']
 
-INTERFACE_NAMES = list(
-    conductor_steps.DEPLOYING_INTERFACE_PRIORITY.keys())
+INTERFACE_NAMES = list(conductor_steps.DEPLOYING_INTERFACE_PRIORITY)
 
 STEP_SCHEMA = {
     'type': 'object',

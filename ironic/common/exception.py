@@ -774,19 +774,6 @@ class UnknownArgument(ClientSideError):
         }
 
 
-class MissingArgument(ClientSideError):
-    def __init__(self, argname, msg=''):
-        self.argname = argname
-        super(MissingArgument, self).__init__(msg)
-
-    @property
-    def faultstring(self):
-        return _('Missing argument: "%(argname)s"%(msg)s') % {
-            'argname': self.argname,
-            'msg': self.msg and ": " + self.msg or ""
-        }
-
-
 class UnknownAttribute(ClientSideError):
     def __init__(self, fieldname, attributes, msg=''):
         self.fieldname = fieldname

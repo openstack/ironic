@@ -597,7 +597,7 @@ class ValidateTypesTest(BaseTest):
 
     def test_types(self):
 
-        @args.validate(foo=args.types(type(None), dict, str))
+        @args.validate(foo=args.types(None, dict, str))
         def doit(foo):
             return foo
 

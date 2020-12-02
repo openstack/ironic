@@ -363,7 +363,7 @@ class TestListDrivers(base.BaseApiTest):
 
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         error = json.loads(response.json['error_message'])
-        self.assertEqual('Missing argument: "method"',
+        self.assertEqual('Missing mandatory parameter: method',
                          error['faultstring'])
 
     @mock.patch.object(rpcapi.ConductorAPI,

@@ -858,14 +858,6 @@ class TestNodeIdent(base.TestCase):
             'node_uuid': '1be26c0b-03f2-4d2e-ae87-c02d7f33c123'
         }, d)
 
-        # not found, don't raise
-        mock_gbi.side_effect = exception.NodeNotFound(node=port.node_id)
-        d = {}
-        utils.populate_node_uuid(port, d, raise_notfound=False)
-        self.assertEqual({
-            'node_uuid': None
-        }, d)
-
         # not found, raise exception
         mock_gbi.side_effect = exception.NodeNotFound(node=port.node_id)
         d = {}
