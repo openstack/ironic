@@ -132,9 +132,8 @@ class ConductorAPI(object):
             self.client = rpc.get_client(target, version_cap=version_cap,
                                          serializer=serializer)
 
-        use_groups = self.client.can_send_version('1.47')
         # NOTE(tenbrae): this is going to be buggy
-        self.ring_manager = hash_ring.HashRingManager(use_groups=use_groups)
+        self.ring_manager = hash_ring.HashRingManager()
 
     def get_conductor_for(self, node):
         """Get the conductor which the node is mapped to.
