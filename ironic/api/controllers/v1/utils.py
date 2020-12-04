@@ -1656,7 +1656,8 @@ def check_port_policy_and_retrieve(policy_name, port_ident, portgroup=False):
                         a port or portgroup by.
 
     :raises: HTTPForbidden if the policy forbids access.
-    :raises: NodeNotFound if the node is not found.
+    :raises: PortNotFound if the port is not found.
+    :raises: PortgroupNotFound if the portgroup is not found.
     :return: RPC port identified by port_ident associated node
     """
     context = api.request.context
@@ -2021,3 +2022,11 @@ def allow_firmware_interface():
     Version 1.84 of the API added support for firmware interface.
     """
     return api.request.version.minor >= versions.MINOR_86_FIRMWARE_INTERFACE
+
+
+def allow_port_name():
+    """Check if name is allowed for ports.
+
+    Version 1.88 of the API added name field to the port object.
+    """
+    return api.request.version.minor >= versions.MINOR_88_PORT_NAME

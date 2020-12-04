@@ -1892,6 +1892,7 @@ class TestPost(test_api_base.BaseApiTest):
         pdict.pop('physical_network')
         pdict.pop('is_smartnic')
         pdict.pop('portgroup_uuid')
+        pdict.pop('name')
         headers = {api_base.Version.string: str(api_v1.min_version())}
         response = self.post_json('/ports', pdict, headers=headers)
         self.assertEqual('application/json', response.content_type)
