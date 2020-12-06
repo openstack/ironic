@@ -36,7 +36,7 @@ DEFAULT_RETURN_FIELDS = ['hostname', 'conductor_group', 'alive']
 def convert_with_links(rpc_conductor, fields=None, sanitize=True):
     conductor = api_utils.object_to_dict(
         rpc_conductor,
-        uuid=False,
+        include_uuid=False,
         fields=('hostname', 'conductor_group', 'drivers'),
         link_resource='conductors',
         link_resource_args=rpc_conductor.hostname

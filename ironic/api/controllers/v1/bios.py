@@ -31,7 +31,7 @@ def convert_with_links(rpc_bios, node_uuid):
     """Build a dict containing a bios setting value."""
     bios = api_utils.object_to_dict(
         rpc_bios,
-        uuid=False,
+        include_uuid=False,
         fields=('name', 'value'),
         link_resource='nodes',
         link_resource_args="%s/bios/%s" % (node_uuid, rpc_bios.name),
