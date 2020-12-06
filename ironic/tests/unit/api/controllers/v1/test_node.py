@@ -3384,6 +3384,38 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
 
+    def test_update_protected_string(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state='active')
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.48'}
+        # Patch with valid boolean string
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/protected',
+                                     'value': "True",
+                                     'op': 'replace'}],
+                                   headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.OK, response.status_code)
+
+    def test_update_protected_string_invalid(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          provision_state='active')
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.48'}
+        # Patch with invalid boolean string
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/protected',
+                                     'value': "YeahNahGood",
+                                     'op': 'replace'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertIn("Invalid protected: Unrecognized value 'YeahNahGood'",
+                      response.json['error_message'])
+
     def test_update_protected_remove(self):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
