@@ -718,3 +718,54 @@ or vendor supplied images. Centos, Ubuntu, Fedora, and Debian all publish
 operating system images which do generally include drivers and firmware for
 physical hardware. Many of these published "cloud" images, also support
 auto-configuration of networking AND population of user keys.
+
+Issues with autoconfigured TLS
+==============================
+
+These issues will manifest as an error in ``ironic-conductor`` logs looking
+similar to (lines are wrapped for readability)::
+
+    ERROR ironic.drivers.modules.agent_client [-]
+    Failed to connect to the agent running on node d7c322f0-0354-4008-92b4-f49fb2201001
+    for invoking command clean.get_clean_steps. Error:
+    HTTPSConnectionPool(host='192.168.123.126', port=9999): Max retries exceeded with url:
+    /v1/commands/?wait=true&agent_token=<token> (Caused by
+    SSLError(SSLError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:897)'),)):
+    requests.exceptions.SSLError: HTTPSConnectionPool(host='192.168.123.126', port=9999):
+    Max retries exceeded with url: /v1/commands/?wait=true&agent_token=<token>
+    (Caused by SSLError(SSLError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed (_ssl.c:897)'),))
+
+The cause of the issue is that the Bare Metal service cannot access the ramdisk
+with the TLS certificate provided by the ramdisk on first heartbeat. You can
+inspect the stored certificate in ``/var/lib/ironic/certificates/<node>.crt``.
+
+You can try connecting to the ramdisk using the IP address in the log message::
+
+    curl -vL https://<IP address>:9999/v1/commands \
+        --cacert /var/lib/ironic/certificates/<node UUID>.crt
+
+You can get the detailed information about the certificate using openSSL::
+
+    openssl x509 -text -noout -in /var/lib/ironic/certificates/<node UUID>.crt
+
+Clock skew
+----------
+
+One possible source of the problem is a discrepancy between the hardware
+clock on the node and the time on the machine with the Bare Metal service.
+It can be detected by comparing the ``Not Before`` field in the ``openssl``
+output with the timestamp of a log message.
+
+The recommended solution is to enable the NTP support in ironic-python-agent by
+passing the ``ipa-ntp-server`` argument with an address of an NTP server
+reachable by the node.
+
+If it is not possible, you need to ensure the correct hardware time on the
+machine. Keep in mind a potential issue with timezones: an ability to store
+timezone in hardware is pretty recent and may not be available. Since
+ironic-python-agent is likely operating in UTC, the hardware clock should also
+be set in UTC.
+
+.. note::
+   Microsoft Windows uses local time by default, so a machine that has
+   previously run Windows will likely have wrong time.
