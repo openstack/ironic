@@ -18,6 +18,7 @@
 import sys
 from unittest import mock
 
+import ddt
 from oslo_config import cfg
 from oslo_policy import policy as oslo_policy
 
@@ -26,110 +27,200 @@ from ironic.common import policy
 from ironic.tests import base
 
 
+@ddt.ddt
 class PolicyInCodeTestCase(base.TestCase):
-    """Tests whether the configuration of the policy engine is corect."""
+    """Tests whether the configuration of the policy engine is correct."""
 
-    def test_admin_api(self):
-        creds = ({'roles': ['admin']},
-                 {'roles': ['administrator']},
-                 {'roles': ['admin', 'administrator']})
+    @ddt.data(
+        dict(
+            rule='admin_api',
+            check=True,
+            targets=[],
+            creds=[
+                {'roles': ['admin']},
+                {'roles': ['administrator']},
+                {'roles': ['admin', 'administrator']}
+            ]),
+        dict(
+            rule='admin_api',
+            check=False,
+            targets=[],
+            creds=[{'roles': ['Member']}]),
+        dict(
+            rule='public_api',
+            check=True,
+            targets=[],
+            creds=[{'is_public_api': 'True'}]),
+        dict(
+            rule='public_api',
+            check=False,
+            targets=[],
+            creds=[
+                {'is_public_api': 'False'},
+                {}
+            ]),
+        dict(
+            rule='show_password',
+            check=False,
+            targets=[],
+            creds=[{
+                'roles': ['admin'],
+                'project_name': 'admin',
+                'project_domain_id': 'default'
+            }, {
+                'roles': ['admin'],
+                'tenant': 'demo'
+            }]),
+        dict(
+            rule='is_member',
+            check=True,
+            targets=[],
+            creds=[
+                {'project_name': 'demo', 'project_domain_id': 'default'},
+                {'project_name': 'baremetal',
+                 'project_domain_id': 'default'},
+                {'project_name': 'demo', 'project_domain_id': None},
+                {'project_name': 'baremetal', 'project_domain_id': None}
+            ]),
+        dict(
+            rule='is_member',
+            check=False,
+            targets=[],
+            creds=[{'project_name': 'demo1',
+                    'project_domain_id': 'default2'}]),
+        dict(
+            rule='is_node_owner',
+            check=True,
+            targets=[{
+                'node.owner': '1234',
+                'project_id': '1234',
+                'project_name': 'demo',
+                'project_domain_id': 'default'
+            }],
+            creds=[{
+                'project_id': '1234',
+                'project_name': 'demo',
+                'project_domain_id': 'default'
+            }]),
+        dict(
+            rule='is_node_owner',
+            check=False,
+            targets=[{
+                'node.owner': '1234',
+                'project_id': '1234',
+                'project_name': 'demo',
+                'project_domain_id': 'default'
+            }],
+            creds=[{
+                'project_id': '5678',
+                'project_name': 'demo',
+                'project_domain_id': 'default'
+            }]),
+        dict(
+            rule='is_node_lessee',
+            check=True,
+            targets=[{
+                'node.lessee': '1234',
+                'project_id': '1234',
+                'project_name': 'demo',
+                'project_domain_id': 'default'
+            }],
+            creds=[{
+                'project_id': '1234',
+                'project_name': 'demo',
+                'project_domain_id': 'default'
+            }]),
+        dict(
+            rule='is_node_lessee',
+            check=False,
+            targets=[{
+                'node.lessee': '1234',
+                'project_id': '1234',
+                'project_name': 'demo',
+                'project_domain_id': 'default'
+            }],
+            creds=[{
+                'project_id': '5678',
+                'project_name': 'demo',
+                'project_domain_id': 'default'
+            }]),
+        dict(
+            rule='is_allocation_owner',
+            check=True,
+            targets=[{
+                'allocation.owner': '1234',
+                'project_id': '1234',
+                'project_name': 'demo',
+                'project_domain_id': 'default'
+            }],
+            creds=[{
+                'project_id': '1234',
+                'project_name': 'demo',
+                'project_domain_id': 'default'
+            }]),
+        dict(
+            rule='is_allocation_owner',
+            check=False,
+            targets=[{
+                'allocation.owner': '1234',
+                'project_id': '1234',
+                'project_name': 'demo',
+                'project_domain_id': 'default'
+            }],
+            creds=[{
+                'project_id': '5678',
+                'project_name': 'demo',
+                'project_domain_id': 'default'
+            }]),
+        dict(
+            rule='baremetal:node:get',
+            check=True,
+            targets=[],
+            creds=[{
+                'roles': ['baremetal_observer'],
+                'project_name': 'demo',
+                'project_domain_id': 'default'
+            }]),
+        dict(
+            rule='baremetal:node:get',
+            check=False,
+            targets=[],
+            creds=[{'roles': ['generic_user'], 'tenant': 'demo'}]),
+        dict(
+            rule='baremetal:node:create',
+            check=True,
+            targets=[],
+            creds=[{
+                'roles': ['baremetal_admin'],
+                'project_name': 'demo',
+                'project_domain_id': 'default'
+            }]),
+        dict(
+            rule='baremetal:node:create',
+            check=False,
+            targets=[],
+            creds=[{
+                'roles': ['baremetal_observer'],
+                'tenant': 'demo'
+            }]),
+    )
+    @ddt.unpack
+    def test_creds(self, rule, check, targets, creds):
+        if not targets:
+            # when targets are not specified in the scenario,
+            # use the creds as the target dict
+            targets = creds
 
-        for c in creds:
-            self.assertTrue(policy.check('admin_api', c, c))
+        for target, creds in zip(targets, creds):
+            result = policy.check(rule, target, creds)
 
-    def test_public_api(self):
-        creds = {'is_public_api': 'True'}
-        self.assertTrue(policy.check('public_api', creds, creds))
-
-    def test_show_password(self):
-        creds = {'roles': [u'admin'], 'project_name': 'admin',
-                 'project_domain_id': 'default'}
-        self.assertFalse(policy.check('show_password', creds, creds))
-
-    def test_is_member(self):
-        creds = [{'project_name': 'demo', 'project_domain_id': 'default'},
-                 {'project_name': 'baremetal', 'project_domain_id': 'default'},
-                 {'project_name': 'demo', 'project_domain_id': None},
-                 {'project_name': 'baremetal', 'project_domain_id': None}]
-        for c in creds:
-            self.assertTrue(policy.check('is_member', c, c))
-        c = {'project_name': 'demo1', 'project_domain_id': 'default2'}
-        self.assertFalse(policy.check('is_member', c, c))
-
-    def test_is_node_owner(self):
-        c1 = {'project_id': '1234',
-              'project_name': 'demo',
-              'project_domain_id': 'default'}
-        c2 = {'project_id': '5678',
-              'project_name': 'demo',
-              'project_domain_id': 'default'}
-        target = dict.copy(c1)
-        target['node.owner'] = '1234'
-
-        self.assertTrue(policy.check('is_node_owner', target, c1))
-        self.assertFalse(policy.check('is_node_owner', target, c2))
-
-    def test_is_node_lessee(self):
-        c1 = {'project_id': '1234',
-              'project_name': 'demo',
-              'project_domain_id': 'default'}
-        c2 = {'project_id': '5678',
-              'project_name': 'demo',
-              'project_domain_id': 'default'}
-        target = dict.copy(c1)
-        target['node.lessee'] = '1234'
-
-        self.assertTrue(policy.check('is_node_lessee', target, c1))
-        self.assertFalse(policy.check('is_node_lessee', target, c2))
-
-    def test_is_allocation_owner(self):
-        c1 = {'project_id': '1234',
-              'project_name': 'demo',
-              'project_domain_id': 'default'}
-        c2 = {'project_id': '5678',
-              'project_name': 'demo',
-              'project_domain_id': 'default'}
-        target = dict.copy(c1)
-        target['allocation.owner'] = '1234'
-
-        self.assertTrue(policy.check('is_allocation_owner', target, c1))
-        self.assertFalse(policy.check('is_allocation_owner', target, c2))
-
-    def test_node_get(self):
-        creds = {'roles': ['baremetal_observer'], 'project_name': 'demo',
-                 'project_domain_id': 'default'}
-        self.assertTrue(policy.check('baremetal:node:get', creds, creds))
-
-    def test_node_create(self):
-        creds = {'roles': ['baremetal_admin'], 'project_name': 'demo',
-                 'project_domain_id': 'default'}
-        self.assertTrue(policy.check('baremetal:node:create', creds, creds))
-
-
-class PolicyInCodeTestCaseNegative(base.TestCase):
-    """Tests whether the configuration of the policy engine is corect."""
-
-    def test_admin_api(self):
-        creds = {'roles': ['Member']}
-        self.assertFalse(policy.check('admin_api', creds, creds))
-
-    def test_public_api(self):
-        creds = ({'is_public_api': 'False'}, {})
-
-        for c in creds:
-            self.assertFalse(policy.check('public_api', c, c))
-
-    def test_show_password(self):
-        creds = {'roles': [u'admin'], 'tenant': 'demo'}
-        self.assertFalse(policy.check('show_password', creds, creds))
-
-    def test_node_get(self):
-        creds = {'roles': ['generic_user'], 'tenant': 'demo'}
-        self.assertFalse(policy.check('baremetal:node:get', creds, creds))
-
-    def test_node_create(self):
-        creds = {'roles': ['baremetal_observer'], 'tenant': 'demo'}
-        self.assertFalse(policy.check('baremetal:node:create', creds, creds))
+            if result != check:
+                msg = '%s should be %s for target %s, creds %s' % (
+                    rule, check, target, creds)
+                if check:
+                    self.assertTrue(result, msg)
+                else:
+                    self.assertFalse(result, msg)
 
 
 class PolicyTestCase(base.TestCase):
