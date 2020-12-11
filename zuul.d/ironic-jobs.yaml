@@ -7,7 +7,8 @@
     required-projects:
       - openstack/ironic
       - openstack/ironic-python-agent
-      - openstack/ironic-python-agent-builder
+      - name: openstack/ironic-python-agent-builder
+        override-checkout: 2.2.0
       - openstack/ironic-tempest-plugin
     irrelevant-files:
       - ^.*\.rst$
@@ -337,12 +338,15 @@
 - job:
     name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
-    parent: tempest-multinode-full
+    parent: tempest-multinode-full-base
+    nodeset: openstack-two-node-bionic
     pre-run: playbooks/ci-workarounds/pre.yaml
     timeout: 10800
     required-projects:
       - openstack/ironic
       - openstack/ironic-python-agent
+      - name: openstack/ironic-python-agent-builder
+        override-checkout: 2.2.0
       - openstack/ironic-tempest-plugin
       - openstack/networking-generic-switch
     irrelevant-files:
