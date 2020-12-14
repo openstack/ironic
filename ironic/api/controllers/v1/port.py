@@ -30,7 +30,6 @@ from ironic.api import method
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import policy
 from ironic.common import states as ir_states
 from ironic import objects
 
@@ -501,8 +500,7 @@ class PortsController(rest.RestController):
             raise exception.OperationNotPermitted()
 
         context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:port:create', cdict, cdict)
+        api_utils.check_policy('baremetal:port:create')
 
         # NOTE(lucasagomes): Create the node_id attribute on-the-fly
         #                    to satisfy the api -> rpc object

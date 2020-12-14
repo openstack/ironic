@@ -24,7 +24,6 @@ from ironic.api.controllers.v1 import volume_connector
 from ironic.api.controllers.v1 import volume_target
 from ironic.api import method
 from ironic.common import exception
-from ironic.common import policy
 
 
 def convert(node_ident=None):
@@ -72,8 +71,7 @@ class VolumeController(rest.RestController):
         if not api_utils.allow_volume():
             raise exception.NotFound()
 
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:volume:get', cdict, cdict)
+        api_utils.check_policy('baremetal:volume:get')
 
         return convert(self.parent_node_ident)
 

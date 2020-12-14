@@ -27,7 +27,6 @@ from ironic.api import method
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import policy
 from ironic.common import states as ir_states
 from ironic import objects
 
@@ -269,8 +268,7 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:portgroup:get', cdict, cdict)
+        api_utils.check_policy('baremetal:portgroup:get')
 
         api_utils.check_allowed_portgroup_fields(fields)
         api_utils.check_allowed_portgroup_fields([sort_key])
@@ -308,8 +306,7 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:portgroup:get', cdict, cdict)
+        api_utils.check_policy('baremetal:portgroup:get')
         api_utils.check_allowed_portgroup_fields([sort_key])
 
         # NOTE: /detail should only work against collections
@@ -335,8 +332,7 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:portgroup:get', cdict, cdict)
+        api_utils.check_policy('baremetal:portgroup:get')
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
@@ -360,8 +356,7 @@ class PortgroupsController(pecan.rest.RestController):
             raise exception.NotFound()
 
         context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:portgroup:create', cdict, cdict)
+        api_utils.check_policy('baremetal:portgroup:create')
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
@@ -414,8 +409,7 @@ class PortgroupsController(pecan.rest.RestController):
             raise exception.NotFound()
 
         context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:portgroup:update', cdict, cdict)
+        api_utils.check_policy('baremetal:portgroup:update')
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
@@ -511,8 +505,7 @@ class PortgroupsController(pecan.rest.RestController):
             raise exception.NotFound()
 
         context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:portgroup:delete', cdict, cdict)
+        api_utils.check_policy('baremetal:portgroup:delete')
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()

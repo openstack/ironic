@@ -506,8 +506,7 @@ class IndicatorController(rest.RestController):
             mod:`ironic.common.indicator_states`.
 
         """
-        cdict = pecan.request.context.to_policy_values()
-        policy.authorize('baremetal:node:set_indicator_state', cdict, cdict)
+        api_utils.check_policy('baremetal:node:set_indicator_state')
 
         rpc_node = api_utils.get_rpc_node(node_ident)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
@@ -529,8 +528,7 @@ class IndicatorController(rest.RestController):
         :returns: a dict with the "state" key and one of
             mod:`ironic.common.indicator_states` as a value.
         """
-        cdict = pecan.request.context.to_policy_values()
-        policy.authorize('baremetal:node:get_indicator_state', cdict, cdict)
+        api_utils.check_policy('baremetal:node:get_indicator_state')
 
         rpc_node = api_utils.get_rpc_node(node_ident)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
@@ -553,8 +551,7 @@ class IndicatorController(rest.RestController):
             (from `get_supported_indicators`) as values.
 
         """
-        cdict = pecan.request.context.to_policy_values()
-        policy.authorize('baremetal:node:get_indicator_state', cdict, cdict)
+        api_utils.check_policy('baremetal:node:get_indicator_state')
 
         rpc_node = api_utils.get_rpc_node(node_ident)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
@@ -1995,8 +1992,7 @@ class NodesController(rest.RestController):
             raise exception.OperationNotPermitted()
 
         context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:node:create', cdict, cdict)
+        api_utils.check_policy('baremetal:node:create')
 
         reject_fields_in_newer_versions(node)
 

@@ -25,7 +25,6 @@ from ironic.api import method
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import policy
 from ironic.common import states
 from ironic.common import utils
 from ironic import objects
@@ -95,8 +94,7 @@ class LookupController(rest.RestController):
         if not api_utils.allow_ramdisk_endpoints():
             raise exception.NotFound()
 
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:driver:ipa_lookup', cdict, cdict)
+        api_utils.check_policy('baremetal:driver:ipa_lookup')
 
         # Validate the list of MAC addresses
         if addresses is None:
@@ -187,8 +185,7 @@ class HeartbeatController(rest.RestController):
             raise exception.InvalidParameterValue(
                 _('Field "agent_version" not recognised'))
 
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:ipa_heartbeat', cdict, cdict)
+        api_utils.check_policy('baremetal:node:ipa_heartbeat')
 
         if (agent_verify_ca is not None
                 and not api_utils.allow_verify_ca_in_heartbeat()):

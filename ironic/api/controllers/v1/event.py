@@ -16,12 +16,10 @@ from ironic_lib import metrics_utils
 from oslo_log import log
 import pecan
 
-from ironic import api
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import method
 from ironic.common import args
 from ironic.common import exception
-from ironic.common import policy
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
@@ -104,7 +102,6 @@ class EventsController(pecan.rest.RestController):
     def post(self, evts):
         if not api_utils.allow_expose_events():
             raise exception.NotFound()
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:events:post', cdict, cdict)
+        api_utils.check_policy('baremetal:events:post')
         for e in evts['events']:
             LOG.debug("Received external event: %s", e)

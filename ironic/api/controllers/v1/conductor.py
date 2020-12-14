@@ -22,7 +22,6 @@ from ironic.api import method
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import policy
 import ironic.conf
 from ironic import objects
 
@@ -122,8 +121,7 @@ class ConductorsController(rest.RestController):
         :param detail: Optional, boolean to indicate whether retrieve a list
                        of conductors with detail.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:conductor:get', cdict, cdict)
+        api_utils.check_policy('baremetal:conductor:get')
 
         if not api_utils.allow_expose_conductors():
             raise exception.NotFound()
@@ -149,8 +147,7 @@ class ConductorsController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:conductor:get', cdict, cdict)
+        api_utils.check_policy('baremetal:conductor:get')
 
         if not api_utils.allow_expose_conductors():
             raise exception.NotFound()
