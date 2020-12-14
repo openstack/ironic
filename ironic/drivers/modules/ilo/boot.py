@@ -1142,6 +1142,8 @@ class IloUefiHttpsBoot(base.BootInterface):
             LOG.debug("Node %(node)s is set to permanently boot from local "
                       "%(device)s", {'node': task.node.uuid,
                                      'device': boot_devices.DISK})
+            # Need to enable secure boot, if being requested
+            ilo_common.update_secure_boot_mode(task, True)
             return
 
         params = {}
@@ -1154,6 +1156,8 @@ class IloUefiHttpsBoot(base.BootInterface):
                     "node %s. Booting instance from disk anyway.", node.uuid)
                 manager_utils.node_set_boot_device(task, boot_devices.DISK,
                                                    persistent=True)
+                # Need to enable secure boot, if being requested
+                ilo_common.update_secure_boot_mode(task, True)
 
                 return
             params.update(root_uuid=root_uuid)
@@ -1167,6 +1171,8 @@ class IloUefiHttpsBoot(base.BootInterface):
             node.instance_info = i_info
             node.save()
 
+        # Need to enable secure boot, if being requested
+        ilo_common.update_secure_boot_mode(task, True)
         ilo_common.setup_uefi_https(task, iso_ref, persistent=True)
 
         LOG.debug("Node %(node)s is set to boot from UEFIHTTP "
@@ -1186,6 +1192,7 @@ class IloUefiHttpsBoot(base.BootInterface):
                   "%(node)s", {'node': task.node.uuid})
 
         image_utils.cleanup_iso_image(task)
+        disable_secure_boot_if_supported(task)
 
     @METRICS.timer('IloUefiHttpsBoot.validate_rescue')
     def validate_rescue(self, task):

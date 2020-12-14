@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Adds secure boot support to ilo-uefi-https boot interface. Secure boot
+    support already exists for other boot interfaces but missing for this
+    interface.
