@@ -198,6 +198,49 @@ See :ref:`static-boot-order`.
 .. TODO(lucasagomes): Write about privilege level
 .. TODO(lucasagomes): Write about force boot device
 
+Vendor Differences
+~~~~~~~~~~~~~~~~~~
+
+While the Intelligent Platform Management Interface (IPMI) interface is based
+upon a defined standard, the Ironic community is aware of at least one vendor
+which utilizes a non-standard boot device selector. In essence, this could be
+something as simple as different interpretation of the standard.
+
+As of October 2020, the known difference is with Supermicro hardware where
+a selector of ``0x24``, signifying a *REMOTE* boot device in the standard,
+must be used when a boot operation from the local disk subsystem is requested
+**in UEFI mode**. This is contrary to BIOS mode where the same BMC's expect
+the selector to be a value of ``0x08``.
+
+Because the BMC does not respond with any sort of error, nor do we want to
+risk BMC connectivity issues by explicitly querying all BMCs what vendor it may
+be before every operation, the vendor can automatically be recorded in the
+``properties`` field ``vendor``. When this is set to a value of
+``supermicro``, Ironic will navigate the UEFI behavior difference enabling
+the UEFI to be requested with boot to disk.
+
+Example::
+
+    baremetal node set <UUID or name> \
+        --properties vendor="supermicro"
+
+Luckily, Ironic will attempt to perform this detection in power
+synchronization process, and record this value if not already set.
+
+While similar issues may exist when setting the boot mode and target
+boot device in other vendors' BMCs, we are not aware of them at present.
+Should you encounter such an issue, please feel free to report this via
+`Storyboard <https://storyboard.openstack.org>`_, and be sure to include
+the ``chassis bootparam get 5`` output value along with the ``mc info``
+output from your BMC.
+
+Example::
+
+    ipmitool -I lanplus -H <BMC ADDRESS> -U <Username> -P <Password> \
+        mc info
+    ipmitool -I lanplus -H <BMC ADDRESS> -U <Username> -P <Password> \
+        chassis bootparam get 5
+
 .. _IPMItool: https://sourceforge.net/projects/ipmitool/
 .. _IPMI: https://en.wikipedia.org/wiki/Intelligent_Platform_Management_Interface
 .. _BMC: https://en.wikipedia.org/wiki/Intelligent_Platform_Management_Interface#Baseboard_management_controller
