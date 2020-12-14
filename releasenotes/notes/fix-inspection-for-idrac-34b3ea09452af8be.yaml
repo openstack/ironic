@@ -1,4 +1,4 @@
 ---
 fixes:
   - |
-    Fix an issue when using idrac with vmedia and trying to inspect a node.
+    Fixes inspection with the ``idrac-redfish-virtual-media`` boot interface.

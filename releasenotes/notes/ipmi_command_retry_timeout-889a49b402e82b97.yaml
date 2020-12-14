@@ -1,9 +1,10 @@
 ---
 fixes:
   - |
-    Calculating the ipmitool `-N` and `-R` arguments from ironic.conf [ipmi]
-    `command_retry_timeout` and `min_command_interval` now takes into account the
-    1 second interval increment that ipmitool adds on each retry event.
+    Calculating the ipmitool ``-N`` and ``-R`` arguments from the configuration
+    options ``[ipmi]command_retry_timeout`` and ``[ipmi]min_command_interval``
+    now takes into account the 1 second interval increment that ipmitool adds
+    on each retry event.
 
     Failure-path ipmitool run duration will now be just less than
-    `command_retry_timeout` instead of much longer.
+    ``command_retry_timeout`` instead of much longer.

@@ -1,4 +1,4 @@
 ---
 features:
   - |
-    The ramdisk log filename will contain the node name when it exists.
+    The ramdisk log file name now contains the node name when it is set.
