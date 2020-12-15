@@ -191,19 +191,27 @@ following the next steps:
   minor (feature) or patch (bugfix).
 
   Note that in this case ``series`` is a code name (train, ussuri), not a
-  branch.
+  branch. That is also valid for the current development branch (master) that
+  takes the code name of the future stable release, for example if the future
+  stable release code name is wallaby, we need to use wallaby as ``series``.
 
   The ``--stable-branch argument`` is used only for branching in the end of a
   cycle, independent projects are not branched this way though.
 
+  The ``--intermediate-branch`` option is used to create an intermediate
+  bugfix branch following the
+  `new release model for ironic projects <https://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/new-release-model.html>`_.
+
   To propose the release, use the script to update the deliverable file, then
   commit the change, and propose it for review.
 
-  For example, to propose a minor release for ironic in the master branch use:
+  For example, to propose a minor release for ironic in the master branch
+  (current development branch), considering that the code name of the future
+  stable release is wallaby, use:
 
   .. code-block:: bash
 
-    tox -e venv -- new-release -v master ironic feature
+    tox -e venv -- new-release -v wallaby ironic feature
 
   Remember to use a meaningful topic, usually using the name of the
   deliverable, the new version and the branch, if applicable.
