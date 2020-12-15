@@ -19,8 +19,7 @@
         - ironic-tempest-wholedisk-bios-snmp-pxe
         - ironic-tempest-ipa-partition-pxe_ipmitool
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
-            voting: false
+        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
@@ -57,6 +56,7 @@
         - ironic-tempest-wholedisk-bios-snmp-pxe
         - ironic-tempest-ipa-partition-pxe_ipmitool
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
+        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2

@@ -414,7 +414,8 @@
 - job:
     name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
-    parent: tempest-multinode-full-py3
+    parent: tempest-multinode-full-base
+    nodeset: openstack-two-node-focal
     pre-run: playbooks/ci-workarounds/pre.yaml
     required-projects:
       - openstack/ironic
