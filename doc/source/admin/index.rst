@@ -52,6 +52,7 @@ Advanced Topics
    Service State Reporting <gmr>
    Agent Token <agent-token>
    Deploying without BMC Credentials <agent-power>
+   Layer 3 or DHCP-less Ramdisk Booting <dhcp-less>
 
 .. toctree::
   :hidden:

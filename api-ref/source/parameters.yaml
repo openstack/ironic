@@ -1079,8 +1079,10 @@ name:
   type: string
 network_data:
   description: |
-    Static network configuration for the node to eventually pass to node's
-    operating system.
+    Static network configuration in the OpenStack network data format to use
+    during deployment and cleaning. Requires a specially crafted ramdisk, see
+    `DHCP-less documentation
+    <https://docs.openstack.org/ironic/latest/admin/dhcp-less.html>`_.
   in: body
   required: false
   type: JSON
