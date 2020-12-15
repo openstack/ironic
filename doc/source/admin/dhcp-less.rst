@@ -1,6 +1,12 @@
 Layer 3 or DHCP-less ramdisk booting
 ====================================
 
+.. warning::
+   As of the Victoria release, the ramdisk side of this feature does **NOT**
+   work out-of-box because of a conflict between NetworkManager and Glean_.
+   To use it properly you need to manually create a ramdisk with Glean_ taking
+   priority over any other network configuration.
+
 Booting nodes via PXE, while universally supported, suffers from one
 disadvantage: it requires a direct L2 connectivity between the node and the
 control plane for DHCP. Using virtual media it is possible to avoid not only
