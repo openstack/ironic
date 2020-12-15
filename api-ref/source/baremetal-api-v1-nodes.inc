@@ -208,6 +208,7 @@ microversion 1.48.
     - lessee: lessee
     - description: n_description
     - allocation_uuid: allocation_uuid
+    - network_data: network_data
 
 **Example JSON representation of a Node:**
 
@@ -562,6 +563,7 @@ Response
     - description: n_description
     - conductor: conductor
     - allocation_uuid: allocation_uuid
+    - network_data: network_data
 
 **Example JSON representation of a Node:**
 
@@ -658,6 +660,7 @@ Response
     - description: n_description
     - conductor: conductor
     - allocation_uuid: allocation_uuid
+    - network_data: network_data
 
 **Example JSON representation of a Node:**
 
