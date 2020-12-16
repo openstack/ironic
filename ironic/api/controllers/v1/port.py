@@ -13,7 +13,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import copy
 from http import client as http_client
 
 from ironic_lib import metrics_utils
@@ -58,10 +57,7 @@ PORT_SCHEMA = {
 }
 
 
-PORT_PATCH_SCHEMA = copy.deepcopy(PORT_SCHEMA)
-# patching /extra/vif_port_id has the side-effect of modifying
-# internal_info values, so include it in the patch schema
-PORT_PATCH_SCHEMA['properties']['internal_info'] = {'type': ['null', 'object']}
+PORT_PATCH_SCHEMA = PORT_SCHEMA
 
 PATCH_ALLOWED_FIELDS = [
     'address',
@@ -576,14 +572,12 @@ class PortsController(rest.RestController):
             raise exception.Invalid('A non-empty value is required when '
                                     'setting physical_network')
 
-        vif = api_utils.handle_post_port_like_extra_vif(port)
-
-        if (portgroup and (port.get('pxe_enabled') or vif)):
+        if (portgroup and (port.get('pxe_enabled'))):
             if not portgroup.standalone_ports_supported:
                 msg = _("Port group %s doesn't support standalone ports. "
                         "This port cannot be created as a member of that "
-                        "port group because either 'extra/vif_port_id' "
-                        "was specified or 'pxe_enabled' was set to True.")
+                        "portgroup as the port's 'pxe_enabled' field was "
+                        "set to True.")
                 raise exception.Conflict(
                     msg % portgroup.uuid)
 
@@ -658,9 +652,6 @@ class PortsController(rest.RestController):
         port_dict['portgroup_uuid'] = portgroup and portgroup.uuid or None
 
         port_dict = api_utils.apply_jsonpatch(port_dict, patch)
-
-        api_utils.handle_patch_port_like_extra_vif(
-            rpc_port, port_dict['internal_info'], patch)
 
         try:
             if api_utils.is_path_updated(patch, '/portgroup_uuid'):

@@ -477,11 +477,8 @@ class TestNeutron(db_base.DbTestCase):
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_fixed_ip_address',
                 autospec=True)
-    def _test__get_ip_addresses_ports(self, key, mock_gfia):
-        if key == "extra":
-            kwargs1 = {key: {'vif_port_id': 'test-vif-A'}}
-        else:
-            kwargs1 = {key: {'tenant_vif_port_id': 'test-vif-A'}}
+    def test__get_ip_addresses_ports_int_info(self, mock_gfia):
+        kwargs1 = {'internal_info': {'tenant_vif_port_id': 'test-vif-A'}}
         ip_address = '10.10.0.1'
         expected = [ip_address]
         port = object_utils.create_test_port(self.context,
@@ -496,19 +493,10 @@ class TestNeutron(db_base.DbTestCase):
                                            mock.sentinel.client)
         self.assertEqual(expected, result)
 
-    def test__get_ip_addresses_ports_extra(self):
-        self._test__get_ip_addresses_ports('extra')
-
-    def test__get_ip_addresses_ports_int_info(self):
-        self._test__get_ip_addresses_ports('internal_info')
-
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_fixed_ip_address',
                 autospec=True)
-    def _test__get_ip_addresses_portgroup(self, key, mock_gfia):
-        if key == "extra":
-            kwargs1 = {key: {'vif_port_id': 'test-vif-A'}}
-        else:
-            kwargs1 = {key: {'tenant_vif_port_id': 'test-vif-A'}}
+    def test__get_ip_addresses_portgroup_int_info(self, mock_gfia):
+        kwargs1 = {'internal_info': {'tenant_vif_port_id': 'test-vif-A'}}
         ip_address = '10.10.0.1'
         expected = [ip_address]
         pg = object_utils.create_test_portgroup(
@@ -520,12 +508,6 @@ class TestNeutron(db_base.DbTestCase):
             api = dhcp_factory.DHCPFactory().provider
             result = api._get_ip_addresses(task, [pg], mock.sentinel.client)
         self.assertEqual(expected, result)
-
-    def test__get_ip_addresses_portgroup_extra(self):
-        self._test__get_ip_addresses_portgroup('extra')
-
-    def test__get_ip_addresses_portgroup_int_info(self):
-        self._test__get_ip_addresses_portgroup('internal_info')
 
     @mock.patch('ironic.common.neutron.get_client', autospec=True)
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi._get_port_ip_address',

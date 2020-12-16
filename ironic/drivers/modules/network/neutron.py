@@ -225,7 +225,7 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         for port_like_obj in ports + portgroups:
             vif_port_id = (
                 port_like_obj.internal_info.get(common.TENANT_VIF_KEY)
-                or port_like_obj.extra.get('vif_port_id'))
+            )
             if not vif_port_id:
                 continue
 

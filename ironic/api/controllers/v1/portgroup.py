@@ -10,7 +10,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import copy
 from http import client as http_client
 
 from ironic_lib import metrics_utils
@@ -50,11 +49,7 @@ PORTGROUP_SCHEMA = {
     'additionalProperties': False,
 }
 
-PORTGROUP_PATCH_SCHEMA = copy.deepcopy(PORTGROUP_SCHEMA)
-# patching /extra/vif_port_id has the side-effect of modifying
-# internal_info values, so include it in the patch schema
-PORTGROUP_PATCH_SCHEMA['properties']['internal_info'] = {
-    'type': ['null', 'object']}
+PORTGROUP_PATCH_SCHEMA = PORTGROUP_SCHEMA
 
 PORTGROUP_VALIDATOR_EXTRA = args.dict_valid(
     address=args.mac_address,
@@ -417,8 +412,6 @@ class PortgroupsController(pecan.rest.RestController):
             raise exception.ClientSideError(
                 error_msg, status_code=http_client.BAD_REQUEST)
 
-        api_utils.handle_post_port_like_extra_vif(portgroup)
-
         # NOTE(yuriyz): UUID is mandatory for notifications payload
         if not portgroup.get('uuid'):
             portgroup['uuid'] = uuidutils.generate_uuid()
@@ -500,9 +493,6 @@ class PortgroupsController(pecan.rest.RestController):
             # response for a POST request to patch a Portgroup
             e.code = http_client.BAD_REQUEST  # BadRequest
             raise
-
-        api_utils.handle_patch_port_like_extra_vif(
-            rpc_portgroup, portgroup_dict.get('internal_info'), patch)
 
         api_utils.patched_validate_with_schema(
             portgroup_dict, PORTGROUP_PATCH_SCHEMA, PORTGROUP_PATCH_VALIDATOR)

@@ -41,11 +41,8 @@ class TestNetwork(db_base.DbTestCase):
             result = network.get_node_vif_ids(task)
         self.assertEqual(expected, result)
 
-    def _test_get_node_vif_ids_one_port(self, key):
-        if key == "extra":
-            kwargs1 = {key: {'vif_port_id': 'test-vif-A'}}
-        else:
-            kwargs1 = {key: {'tenant_vif_port_id': 'test-vif-A'}}
+    def test_get_node_vif_ids_one_port_int_info(self):
+        kwargs1 = {'internal_info': {'tenant_vif_port_id': 'test-vif-A'}}
         port1 = db_utils.create_test_port(node_id=self.node.id,
                                           address='aa:bb:cc:dd:ee:ff',
                                           uuid=uuidutils.generate_uuid(),
@@ -56,17 +53,8 @@ class TestNetwork(db_base.DbTestCase):
             result = network.get_node_vif_ids(task)
         self.assertEqual(expected, result)
 
-    def test_get_node_vif_ids_one_port_extra(self):
-        self._test_get_node_vif_ids_one_port("extra")
-
-    def test_get_node_vif_ids_one_port_int_info(self):
-        self._test_get_node_vif_ids_one_port("internal_info")
-
-    def _test_get_node_vif_ids_one_portgroup(self, key):
-        if key == "extra":
-            kwargs1 = {key: {'vif_port_id': 'test-vif-A'}}
-        else:
-            kwargs1 = {key: {'tenant_vif_port_id': 'test-vif-A'}}
+    def test_get_node_vif_ids_one_portgroup_int_info(self):
+        kwargs1 = {'internal_info': {'tenant_vif_port_id': 'test-vif-A'}}
         pg1 = db_utils.create_test_portgroup(
             node_id=self.node.id, **kwargs1)
 
@@ -76,19 +64,9 @@ class TestNetwork(db_base.DbTestCase):
             result = network.get_node_vif_ids(task)
         self.assertEqual(expected, result)
 
-    def test_get_node_vif_ids_one_portgroup_extra(self):
-        self._test_get_node_vif_ids_one_portgroup("extra")
-
-    def test_get_node_vif_ids_one_portgroup_int_info(self):
-        self._test_get_node_vif_ids_one_portgroup("internal_info")
-
-    def _test_get_node_vif_ids_two_ports(self, key):
-        if key == "extra":
-            kwargs1 = {key: {'vif_port_id': 'test-vif-A'}}
-            kwargs2 = {key: {'vif_port_id': 'test-vif-B'}}
-        else:
-            kwargs1 = {key: {'tenant_vif_port_id': 'test-vif-A'}}
-            kwargs2 = {key: {'tenant_vif_port_id': 'test-vif-B'}}
+    def test_get_node_vif_ids_two_ports_int_info(self):
+        kwargs1 = {'internal_info': {'tenant_vif_port_id': 'test-vif-A'}}
+        kwargs2 = {'internal_info': {'tenant_vif_port_id': 'test-vif-B'}}
         port1 = db_utils.create_test_port(node_id=self.node.id,
                                           address='aa:bb:cc:dd:ee:ff',
                                           uuid=uuidutils.generate_uuid(),
@@ -104,19 +82,9 @@ class TestNetwork(db_base.DbTestCase):
             result = network.get_node_vif_ids(task)
         self.assertEqual(expected, result)
 
-    def test_get_node_vif_ids_two_ports_extra(self):
-        self._test_get_node_vif_ids_two_ports('extra')
-
-    def test_get_node_vif_ids_two_ports_int_info(self):
-        self._test_get_node_vif_ids_two_ports('internal_info')
-
-    def _test_get_node_vif_ids_two_portgroups(self, key):
-        if key == "extra":
-            kwargs1 = {key: {'vif_port_id': 'test-vif-A'}}
-            kwargs2 = {key: {'vif_port_id': 'test-vif-B'}}
-        else:
-            kwargs1 = {key: {'tenant_vif_port_id': 'test-vif-A'}}
-            kwargs2 = {key: {'tenant_vif_port_id': 'test-vif-B'}}
+    def test_get_node_vif_ids_two_portgroups_int_info(self):
+        kwargs1 = {'internal_info': {'tenant_vif_port_id': 'test-vif-A'}}
+        kwargs2 = {'internal_info': {'tenant_vif_port_id': 'test-vif-B'}}
         pg1 = db_utils.create_test_portgroup(
             node_id=self.node.id, **kwargs1)
         pg2 = db_utils.create_test_portgroup(
@@ -130,12 +98,6 @@ class TestNetwork(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             result = network.get_node_vif_ids(task)
         self.assertEqual(expected, result)
-
-    def test_get_node_vif_ids_two_portgroups_extra(self):
-        self._test_get_node_vif_ids_two_portgroups('extra')
-
-    def test_get_node_vif_ids_two_portgroups_int_info(self):
-        self._test_get_node_vif_ids_two_portgroups('internal_info')
 
     def _test_get_node_vif_ids_multitenancy(self, int_info_key):
         port = db_utils.create_test_port(

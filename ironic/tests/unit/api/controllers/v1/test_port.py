@@ -34,7 +34,6 @@ from ironic.api.controllers.v1 import versions
 from ironic.common import exception
 from ironic.common import policy
 from ironic.common import states
-from ironic.common import utils as common_utils
 from ironic.conductor import rpcapi
 from ironic import objects
 from ironic.objects import fields as obj_fields
@@ -1804,155 +1803,6 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
         self.assertEqual('application/json', response.content_type)
 
-    def _test_add_extra_vif_port_id(self, port, headers, mock_warn, mock_upd):
-        response = self.patch_json(
-            '/ports/%s' % port.uuid,
-            [{'path': '/extra/vif_port_id', 'value': 'foo', 'op': 'add'},
-             {'path': '/extra/vif_port_id', 'value': 'bar', 'op': 'add'}],
-            headers=headers)
-        self.assertEqual('application/json', response.content_type)
-        self.assertEqual(http_client.OK, response.status_code)
-        self.assertEqual({'vif_port_id': 'bar'},
-                         response.json['extra'])
-        self.assertTrue(mock_upd.called)
-        return response
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_add_extra_vif_port_id(self, mock_warn, mock_upd):
-        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
-                                          uuid=uuidutils.generate_uuid(),
-                                          address='52:55:00:cf:2d:31')
-        expected_intern_info = port.internal_info
-        expected_intern_info.update({'tenant_vif_port_id': 'bar'})
-        headers = {api_base.Version.string: '1.27'}
-        response = self._test_add_extra_vif_port_id(port, headers,
-                                                    mock_warn, mock_upd)
-        self.assertEqual(expected_intern_info, response.json['internal_info'])
-        self.assertFalse(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_add_extra_vif_port_id_no_internal(self, mock_warn, mock_upd):
-        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
-                                          uuid=uuidutils.generate_uuid(),
-                                          address='52:55:00:cf:2d:31')
-        expected_intern_info = port.internal_info
-        expected_intern_info.update({'tenant_vif_port_id': 'bar'})
-        headers = {api_base.Version.string: '1.27'}
-        response = self._test_add_extra_vif_port_id(port, headers,
-                                                    mock_warn, mock_upd)
-        self.assertEqual(expected_intern_info, response.json['internal_info'])
-        self.assertFalse(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_add_extra_vif_port_id_deprecated(self, mock_warn, mock_upd):
-        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
-                                          uuid=uuidutils.generate_uuid(),
-                                          address='52:55:00:cf:2d:31')
-        expected_intern_info = port.internal_info
-        expected_intern_info.update({'tenant_vif_port_id': 'bar'})
-        headers = {api_base.Version.string: '1.34'}
-        response = self._test_add_extra_vif_port_id(port, headers,
-                                                    mock_warn, mock_upd)
-        self.assertEqual(expected_intern_info, response.json['internal_info'])
-        self.assertTrue(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_replace_extra_vif_port_id(self, mock_warn, mock_upd):
-        extra = {'vif_port_id': 'original'}
-        internal_info = {'tenant_vif_port_id': 'original'}
-        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
-                                          uuid=uuidutils.generate_uuid(),
-                                          address='52:55:00:cf:2d:31',
-                                          extra=extra,
-                                          internal_info=internal_info)
-        expected_intern_info = port.internal_info
-        expected_intern_info.update({'tenant_vif_port_id': 'bar'})
-        headers = {api_base.Version.string: '1.27'}
-        response = self._test_add_extra_vif_port_id(port, headers,
-                                                    mock_warn, mock_upd)
-        self.assertEqual(expected_intern_info, response.json['internal_info'])
-        self.assertFalse(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_add_extra_vif_port_id_diff_internal(self, mock_warn, mock_upd):
-        internal_info = {'tenant_vif_port_id': 'original'}
-        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
-                                          uuid=uuidutils.generate_uuid(),
-                                          address='52:55:00:cf:2d:31',
-                                          internal_info=internal_info)
-        headers = {api_base.Version.string: '1.27'}
-        response = self._test_add_extra_vif_port_id(port, headers,
-                                                    mock_warn, mock_upd)
-        self.assertEqual(internal_info, response.json['internal_info'])
-        self.assertFalse(mock_warn.called)
-
-    def _test_remove_extra_vif_port_id(self, port, headers, mock_warn,
-                                       mock_upd):
-        response = self.patch_json(
-            '/ports/%s' % port.uuid,
-            [{'path': '/extra/vif_port_id', 'op': 'remove'}],
-            headers=headers)
-        self.assertEqual('application/json', response.content_type)
-        self.assertEqual(http_client.OK, response.status_code)
-        self.assertEqual({}, response.json['extra'])
-        self.assertTrue(mock_upd.called)
-        return response
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_remove_extra_vif_port_id(self, mock_warn, mock_upd):
-        internal_info = {'tenant_vif_port_id': 'bar'}
-        extra = {'vif_port_id': 'bar'}
-        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
-                                          uuid=uuidutils.generate_uuid(),
-                                          address='52:55:00:cf:2d:31',
-                                          internal_info=internal_info,
-                                          extra=extra)
-        headers = {api_base.Version.string: '1.27'}
-        response = self._test_remove_extra_vif_port_id(port, headers,
-                                                       mock_warn, mock_upd)
-        self.assertEqual({}, response.json['internal_info'])
-        self.assertFalse(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_remove_extra_vif_port_id_not_same(self, mock_warn, mock_upd):
-        # .internal_info['tenant_vif_port_id'] != .extra['vif_port_id']
-        internal_info = {'tenant_vif_port_id': 'bar'}
-        extra = {'vif_port_id': 'foo'}
-        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
-                                          uuid=uuidutils.generate_uuid(),
-                                          address='52:55:00:cf:2d:31',
-                                          internal_info=internal_info,
-                                          extra=extra)
-        headers = {api_base.Version.string: '1.28'}
-        response = self._test_remove_extra_vif_port_id(port, headers,
-                                                       mock_warn, mock_upd)
-        self.assertEqual(internal_info, response.json['internal_info'])
-        self.assertTrue(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_remove_extra_vif_port_id_not_internal(self, mock_warn, mock_upd):
-        # no .internal_info['tenant_vif_port_id']
-        internal_info = {'foo': 'bar'}
-        extra = {'vif_port_id': 'bar'}
-        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
-                                          uuid=uuidutils.generate_uuid(),
-                                          address='52:55:00:cf:2d:31',
-                                          internal_info=internal_info,
-                                          extra=extra)
-        headers = {api_base.Version.string: '1.28'}
-        response = self._test_remove_extra_vif_port_id(port, headers,
-                                                       mock_warn, mock_upd)
-        self.assertEqual(internal_info, response.json['internal_info'])
-        self.assertTrue(mock_warn.called)
-
     def test_update_in_inspecting_not_allowed(self, mock_upd):
         self.node.provision_state = states.INSPECTING
         self.node.save()
@@ -1997,13 +1847,10 @@ class TestPost(test_api_base.BaseApiTest):
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
 
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
     @mock.patch.object(notification_utils, '_emit_api_notification',
                        autospec=True)
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_create_port(self, mock_utcnow, mock_notify, mock_warn,
-                         mock_create):
+    def test_create_port(self, mock_utcnow, mock_notify, mock_create):
         pdict = post_get_test_port()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
@@ -2033,7 +1880,6 @@ class TestPost(test_api_base.BaseApiTest):
                                       obj_fields.NotificationStatus.END,
                                       node_uuid=self.node.uuid,
                                       portgroup_uuid=self.portgroup.uuid)])
-        self.assertEqual(0, mock_warn.call_count)
 
     def test_create_port_min_api_version(self, mock_create):
         pdict = post_get_test_port(
@@ -2424,43 +2270,10 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
         self.assertFalse(mock_create.called)
 
-    def _test_create_port_with_extra_vif_port_id(self, headers, mock_warn,
-                                                 mock_create):
-        pdict = post_get_test_port(pxe_enabled=False,
-                                   extra={'vif_port_id': 'foo'})
-        pdict.pop('physical_network')
-        pdict.pop('is_smartnic')
-        response = self.post_json('/ports', pdict, headers=headers)
-        self.assertEqual('application/json', response.content_type)
-        self.assertEqual(http_client.CREATED, response.status_int)
-        self.assertEqual({'vif_port_id': 'foo'}, response.json['extra'])
-        self.assertEqual({'tenant_vif_port_id': 'foo'},
-                         response.json['internal_info'])
-        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
-                                            'test-topic')
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_create_port_with_extra_vif_port_id(self, mock_warn, mock_create):
-        headers = {api_base.Version.string: '1.27'}
-        self._test_create_port_with_extra_vif_port_id(headers, mock_warn,
-                                                      mock_create)
-        self.assertFalse(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_create_port_with_extra_vif_port_id_deprecated(self, mock_warn,
-                                                           mock_create):
-        self._test_create_port_with_extra_vif_port_id(self.headers, mock_warn,
-                                                      mock_create)
-        self.assertTrue(mock_warn.called)
-
-    def _test_create_port(self, mock_create, has_vif=False, in_portgroup=False,
+    def _test_create_port(self, mock_create, in_portgroup=False,
                           pxe_enabled=True, standalone_ports=True,
                           http_status=http_client.CREATED):
         extra = {}
-        if has_vif:
-            extra = {'vif_port_id': uuidutils.generate_uuid()}
         pdict = post_get_test_port(
             node_uuid=self.node.uuid,
             pxe_enabled=pxe_enabled,
@@ -2483,88 +2296,78 @@ class TestPost(test_api_base.BaseApiTest):
             self.assertEqual(expected_portgroup_uuid,
                              response.json['portgroup_uuid'])
             self.assertEqual(extra, response.json['extra'])
-            if has_vif:
-                expected = {'tenant_vif_port_id': extra['vif_port_id']}
-                self.assertEqual(expected, response.json['internal_info'])
             mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
                                                 'test-topic')
         else:
             self.assertFalse(mock_create.called)
 
     def test_create_port_novif_pxe_noportgroup(self, mock_create):
-        self._test_create_port(mock_create, has_vif=False, in_portgroup=False,
+        self._test_create_port(mock_create, in_portgroup=False,
                                pxe_enabled=True,
                                http_status=http_client.CREATED)
 
     def test_create_port_novif_nopxe_noportgroup(self, mock_create):
-        self._test_create_port(mock_create, has_vif=False, in_portgroup=False,
+        self._test_create_port(mock_create, in_portgroup=False,
                                pxe_enabled=False,
                                http_status=http_client.CREATED)
 
     def test_create_port_vif_pxe_noportgroup(self, mock_create):
-        self._test_create_port(mock_create, has_vif=True, in_portgroup=False,
+        self._test_create_port(mock_create, in_portgroup=False,
                                pxe_enabled=True,
                                http_status=http_client.CREATED)
 
     def test_create_port_vif_nopxe_noportgroup(self, mock_create):
-        self._test_create_port(mock_create, has_vif=True, in_portgroup=False,
+        self._test_create_port(mock_create, in_portgroup=False,
                                pxe_enabled=False,
                                http_status=http_client.CREATED)
 
     def test_create_port_novif_pxe_portgroup_standalone_ports(self,
                                                               mock_create):
-        self._test_create_port(mock_create, has_vif=False, in_portgroup=True,
+        self._test_create_port(mock_create, in_portgroup=True,
                                pxe_enabled=True,
                                standalone_ports=True,
                                http_status=http_client.CREATED)
 
     def test_create_port_novif_pxe_portgroup_nostandalone_ports(self,
                                                                 mock_create):
-        self._test_create_port(mock_create, has_vif=False, in_portgroup=True,
+        self._test_create_port(mock_create, in_portgroup=True,
                                pxe_enabled=True,
                                standalone_ports=False,
                                http_status=http_client.CONFLICT)
 
     def test_create_port_novif_nopxe_portgroup_standalone_ports(self,
                                                                 mock_create):
-        self._test_create_port(mock_create, has_vif=False, in_portgroup=True,
+        self._test_create_port(mock_create, in_portgroup=True,
                                pxe_enabled=False,
                                standalone_ports=True,
                                http_status=http_client.CREATED)
 
     def test_create_port_novif_nopxe_portgroup_nostandalone_ports(self,
                                                                   mock_create):
-        self._test_create_port(mock_create, has_vif=False, in_portgroup=True,
+        self._test_create_port(mock_create, in_portgroup=True,
                                pxe_enabled=False,
                                standalone_ports=False,
                                http_status=http_client.CREATED)
 
     def test_create_port_vif_pxe_portgroup_standalone_ports(self, mock_create):
-        self._test_create_port(mock_create, has_vif=True, in_portgroup=True,
+        self._test_create_port(mock_create, in_portgroup=True,
                                pxe_enabled=True,
                                standalone_ports=True,
                                http_status=http_client.CREATED)
 
     def test_create_port_vif_pxe_portgroup_nostandalone_ports(self,
                                                               mock_create):
-        self._test_create_port(mock_create, has_vif=True, in_portgroup=True,
+        self._test_create_port(mock_create, in_portgroup=True,
                                pxe_enabled=True,
                                standalone_ports=False,
                                http_status=http_client.CONFLICT)
 
     def test_create_port_vif_nopxe_portgroup_standalone_ports(self,
                                                               mock_create):
-        self._test_create_port(mock_create, has_vif=True, in_portgroup=True,
+        self._test_create_port(mock_create, in_portgroup=True,
                                pxe_enabled=False,
                                standalone_ports=True,
                                http_status=http_client.CREATED)
-
-    def test_create_port_vif_nopxe_portgroup_nostandalone_ports(self,
-                                                                mock_create):
-        self._test_create_port(mock_create, has_vif=True, in_portgroup=True,
-                               pxe_enabled=False,
-                               standalone_ports=False,
-                               http_status=http_client.CONFLICT)
 
     def test_create_port_invalid_physnet_non_text(self, mock_create):
         physnet = 1234

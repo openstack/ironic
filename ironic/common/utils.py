@@ -54,8 +54,6 @@ TZ_RE = r'((?P<tz_sign>[+-])(?P<tz_hour>\d{2}):(?P<tz_min>\d{2}))' + \
 DATETIME_RE = re.compile(
     '%sT%s(%s)?' % (DATE_RE, TIME_RE, TZ_RE))
 
-warn_deprecated_extra_vif_port_id = False
-
 
 def _get_root_helper():
     # NOTE(jlvillal): This function has been moved to ironic-lib. And is
@@ -492,17 +490,6 @@ def render_template(template, params, is_file=True):
                              autoescape=jinja2.select_autoescape())
     tmpl = env.get_template(tmpl_name)
     return tmpl.render(params, enumerate=enumerate)
-
-
-def warn_about_deprecated_extra_vif_port_id():
-    global warn_deprecated_extra_vif_port_id
-    if not warn_deprecated_extra_vif_port_id:
-        warn_deprecated_extra_vif_port_id = True
-        LOG.warning("Starting with API version 1.28, attaching/detaching VIF "
-                    "to/from a port or port group via extra['vif_port_id'] is "
-                    "deprecated and will not be supported starting in the "
-                    "Stein release. API endpoint v1/nodes/<node>/vifs should "
-                    "be used instead.")
 
 
 def parse_instance_info_capabilities(node):

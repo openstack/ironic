@@ -174,9 +174,10 @@ class TestFlatInterface(db_base.DbTestCase):
 
     @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     def test__bind_flat_ports_set_binding_host_id(self, update_mock):
-        extra = {'vif_port_id': 'foo'}
+        internal_info = {'tenant_vif_port_id': 'foo'}
         utils.create_test_port(self.context, node_id=self.node.id,
-                               address='52:54:00:cf:2d:33', extra=extra,
+                               address='52:54:00:cf:2d:33',
+                               internal_info=internal_info,
                                uuid=uuidutils.generate_uuid())
         exp_body = {'binding:host_id': self.node.uuid,
                     'binding:vnic_type': neutron.VNIC_BAREMETAL,
@@ -193,7 +194,8 @@ class TestFlatInterface(db_base.DbTestCase):
             uuid=uuidutils.generate_uuid())
         utils.create_test_port(
             self.context, node_id=self.node.id, address='52:54:00:cf:2d:33',
-            extra={'vif_port_id': 'bar'}, uuid=uuidutils.generate_uuid())
+            internal_info={'tenant_vif_port_id': 'bar'},
+            uuid=uuidutils.generate_uuid())
         exp_body1 = {'binding:host_id': self.node.uuid,
                      'binding:vnic_type': neutron.VNIC_BAREMETAL,
                      'mac_address': '52:54:00:cf:2d:33'}
@@ -208,9 +210,10 @@ class TestFlatInterface(db_base.DbTestCase):
 
     @mock.patch.object(neutron, 'unbind_neutron_port', autospec=True)
     def test__unbind_flat_ports(self, unbind_neutron_port_mock):
-        extra = {'vif_port_id': 'foo'}
+        internal_info = {'tenant_vif_port_id': 'foo'}
         utils.create_test_port(self.context, node_id=self.node.id,
-                               address='52:54:00:cf:2d:33', extra=extra,
+                               address='52:54:00:cf:2d:33',
+                               internal_info=internal_info,
                                uuid=uuidutils.generate_uuid())
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface._unbind_flat_ports(task)
@@ -223,9 +226,10 @@ class TestFlatInterface(db_base.DbTestCase):
         utils.create_test_portgroup(self.context, node_id=self.node.id,
                                     internal_info=internal_info,
                                     uuid=uuidutils.generate_uuid())
-        extra = {'vif_port_id': 'bar'}
+        internal_info = {'tenant_vif_port_id': 'bar'}
         utils.create_test_port(self.context, node_id=self.node.id,
-                               address='52:54:00:cf:2d:33', extra=extra,
+                               address='52:54:00:cf:2d:33',
+                               internal_info=internal_info,
                                uuid=uuidutils.generate_uuid())
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface._unbind_flat_ports(task)
@@ -236,9 +240,10 @@ class TestFlatInterface(db_base.DbTestCase):
     @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     def test__bind_flat_ports_set_binding_host_id_raise(self, update_mock):
         update_mock.side_effect = openstack_exc.OpenStackCloudException()
-        extra = {'vif_port_id': 'foo'}
+        internal_info = {'tenant_vif_port_id': 'foo'}
         utils.create_test_port(self.context, node_id=self.node.id,
-                               address='52:54:00:cf:2d:33', extra=extra,
+                               address='52:54:00:cf:2d:33',
+                               internal_info=internal_info,
                                uuid=uuidutils.generate_uuid())
         with task_manager.acquire(self.context, self.node.id) as task:
             self.assertRaises(exception.NetworkError,

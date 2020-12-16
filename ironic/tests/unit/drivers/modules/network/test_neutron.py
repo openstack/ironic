@@ -53,7 +53,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         self.port = utils.create_test_port(
             self.context, node_id=self.node.id,
             address='52:54:00:cf:2d:32',
-            extra={'vif_port_id': uuidutils.generate_uuid()})
+            internal_info={'tenant_vif_port_id': uuidutils.generate_uuid()})
         self.neutron_port = stubs.FakeNeutronPort(
             id='132f871f-eaec-4fed-9475-0d54465e0f00',
             mac_address='52:54:00:cf:2d:32')
@@ -425,7 +425,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.context, node_id=self.node.id,
             address='52:54:00:cf:2d:33',
             uuid=uuidutils.generate_uuid(),
-            extra={'vif_port_id': uuidutils.generate_uuid()})
+            internal_info={'tenant_vif_port_id': uuidutils.generate_uuid()})
         neutron_other_port = {'id': uuidutils.generate_uuid(),
                               'mac_address': '52:54:00:cf:2d:33'}
         add_ports_mock.return_value = {
@@ -456,7 +456,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.context, node_id=self.node.id,
             address='52:54:00:cf:2d:33',
             uuid=uuidutils.generate_uuid(),
-            extra={'vif_port_id': uuidutils.generate_uuid()})
+            internal_info={'tenant_vif_port_id': uuidutils.generate_uuid()})
         neutron_other_port = {'id': uuidutils.generate_uuid(),
                               'mac_address': '52:54:00:cf:2d:33'}
         add_ports_mock.return_value = {
@@ -514,7 +514,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.context, node_id=self.node.id,
             address='52:54:00:cf:2d:33',
             uuid=uuidutils.generate_uuid(),
-            extra={'vif_port_id': uuidutils.generate_uuid()})
+            internal_info={'tenant_vif_port_id': uuidutils.generate_uuid()})
         other_port.internal_info = {'rescuing_vif_port_id': 'vif-port-id'}
         other_port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -533,7 +533,8 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.unconfigure_tenant_networks(task)
             mock_unbind_port.assert_called_once_with(
-                self.port.extra['vif_port_id'], context=task.context,
+                self.port.internal_info['tenant_vif_port_id'],
+                context=task.context,
                 reset_mac=True)
 
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
@@ -551,7 +552,8 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.unconfigure_tenant_networks(task)
             mock_unbind_port.assert_called_once_with(
-                self.port.extra['vif_port_id'], context=task.context,
+                self.port.internal_info['tenant_vif_port_id'],
+                context=task.context,
                 reset_mac=True)
             wait_agent_mock.assert_called_once_with(nclient, 'hostname')
 
@@ -563,7 +565,8 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.unconfigure_tenant_networks(task)
             mock_unbind_port.assert_has_calls([
-                mock.call(self.port.extra['vif_port_id'], context=task.context,
+                mock.call(self.port.internal_info['tenant_vif_port_id'],
+                          context=task.context,
                           reset_mac=True),
                 mock.call(pg.internal_info['tenant_vif_port_id'],
                           context=task.context, reset_mac=True)])
@@ -576,7 +579,8 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.unconfigure_tenant_networks(task)
             mock_unbind_port.assert_has_calls([
-                mock.call(self.port.extra['vif_port_id'], context=task.context,
+                mock.call(self.port.internal_info['tenant_vif_port_id'],
+                          context=task.context,
                           reset_mac=True),
                 mock.call(pg.internal_info['tenant_vif_port_id'],
                           context=task.context, reset_mac=False)])
@@ -592,7 +596,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
     @mock.patch.object(neutron, 'LOG', autospec=True)
     def test_configure_tenant_networks_no_vif_id(self, log_mock, client_mock):
-        self.port.extra = {}
+        self.port.internal_info = {}
         self.port.save()
         upd_mock = mock.Mock()
         client_mock.return_value.update_port = upd_mock
@@ -624,9 +628,10 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.configure_tenant_networks(task)
             client_mock.assert_called_once_with(context=task.context)
-        update_mock.assert_called_once_with(self.context,
-                                            self.port.extra['vif_port_id'],
-                                            expected_attrs)
+        update_mock.assert_called_once_with(
+            self.context,
+            self.port.internal_info['tenant_vif_port_id'],
+            expected_attrs)
 
     @mock.patch.object(neutron_common, 'wait_for_host_agent', autospec=True)
     @mock.patch.object(neutron_common, 'update_neutron_port', autospec=True)
@@ -647,16 +652,18 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
     @mock.patch.object(neutron_common, 'get_client', autospec=True)
     def _test_configure_tenant_networks(self, client_mock, update_mock,
                                         wait_agent_mock,
-                                        is_client_id=False,
-                                        vif_int_info=False):
-        if vif_int_info:
-            kwargs = {'internal_info': {
+                                        is_client_id=False):
+        # NOTE(TheJulia): Until we have a replacement for infiniband client-id
+        # storage, extra has to stay put. On a plus side, this would be
+        # pointless/difficult to abuse other than just break dhcp for the node.
+        extra = {}
+        tenant_vif = self.port.internal_info['tenant_vif_port_id']
+        kwargs = {
+            'internal_info': {
                 'tenant_vif_port_id': uuidutils.generate_uuid()}}
-            self.port.internal_info = {
-                'tenant_vif_port_id': self.port.extra['vif_port_id']}
-            self.port.extra = {}
-        else:
-            kwargs = {'extra': {'vif_port_id': uuidutils.generate_uuid()}}
+        self.port.internal_info = {
+            'tenant_vif_port_id': tenant_vif}
+        self.port.extra = {}
         second_port = utils.create_test_port(
             self.context, node_id=self.node.id, address='52:54:00:cf:2d:33',
             uuid=uuidutils.generate_uuid(),
@@ -669,7 +676,6 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             client_ids = (CLIENT_ID1, CLIENT_ID2)
             ports = (self.port, second_port)
             for port, client_id in zip(ports, client_ids):
-                extra = port.extra
                 extra['client-id'] = client_id
                 port.extra = extra
                 port.save()
@@ -694,29 +700,17 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.configure_tenant_networks(task)
             client_mock.assert_called_once_with(context=task.context)
-        if vif_int_info:
-            portid1 = self.port.internal_info['tenant_vif_port_id']
-            portid2 = second_port.internal_info['tenant_vif_port_id']
-        else:
-            portid1 = self.port.extra['vif_port_id']
-            portid2 = second_port.extra['vif_port_id']
+        portid1 = self.port.internal_info['tenant_vif_port_id']
+        portid2 = second_port.internal_info['tenant_vif_port_id']
         update_mock.assert_has_calls(
             [mock.call(self.context, portid1, port1_attrs),
              mock.call(self.context, portid2, port2_attrs)],
             any_order=True
         )
 
-    def test_configure_tenant_networks_vif_extra(self):
+    def test_configure_tenant_networks(self):
         self.node.instance_uuid = uuidutils.generate_uuid()
         self.node.save()
-        self._test_configure_tenant_networks()
-
-    def test_configure_tenant_networks_vif_int_info(self):
-        self.node.instance_uuid = uuidutils.generate_uuid()
-        self.node.save()
-        self._test_configure_tenant_networks(vif_int_info=True)
-
-    def test_configure_tenant_networks_no_instance_uuid(self):
         self._test_configure_tenant_networks()
 
     def test_configure_tenant_networks_with_client_id(self):
@@ -735,7 +729,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             port_data_mock):
         pg = utils.create_test_portgroup(
             self.context, node_id=self.node.id, address='ff:54:00:cf:2d:32',
-            extra={'vif_port_id': uuidutils.generate_uuid()})
+            internal_info={'tenant_vif_port_id': uuidutils.generate_uuid()})
         port1 = utils.create_test_port(
             self.context, node_id=self.node.id, address='ff:54:00:cf:2d:33',
             uuid=uuidutils.generate_uuid(),
@@ -777,9 +771,11 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             client_mock.assert_called_once_with(context=task.context)
             glgi_mock.assert_called_once_with(task, pg)
         update_mock.assert_has_calls(
-            [mock.call(self.context, self.port.extra['vif_port_id'],
+            [mock.call(self.context,
+                       self.port.internal_info['tenant_vif_port_id'],
                        call1_attrs),
-             mock.call(self.context, pg.extra['vif_port_id'],
+             mock.call(self.context,
+                       pg.internal_info['tenant_vif_port_id'],
                        call2_attrs)]
         )
 
@@ -794,7 +790,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             port_data_mock):
         pg = utils.create_test_portgroup(
             self.context, node_id=self.node.id, address=None,
-            extra={'vif_port_id': uuidutils.generate_uuid()})
+            internal_info={'tenant_vif_port_id': uuidutils.generate_uuid()})
         port1 = utils.create_test_port(
             self.context, node_id=self.node.id, address='ff:54:00:cf:2d:33',
             uuid=uuidutils.generate_uuid(),
@@ -835,9 +831,11 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             client_mock.assert_called_once_with(context=task.context)
             glgi_mock.assert_called_once_with(task, pg)
         update_mock.assert_has_calls(
-            [mock.call(self.context, self.port.extra['vif_port_id'],
+            [mock.call(self.context,
+                       self.port.internal_info['tenant_vif_port_id'],
                        call1_attrs),
-             mock.call(self.context, pg.extra['vif_port_id'],
+             mock.call(self.context,
+                       pg.internal_info['tenant_vif_port_id'],
                        call2_attrs)]
         )
 

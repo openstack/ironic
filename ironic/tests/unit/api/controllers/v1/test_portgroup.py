@@ -29,7 +29,6 @@ from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import exception
 from ironic.common import states
-from ironic.common import utils as common_utils
 from ironic.conductor import rpcapi
 from ironic import objects
 from ironic.objects import fields as obj_fields
@@ -1087,137 +1086,6 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(address.lower(), kargs.address)
 
 
-@mock.patch.object(rpcapi.ConductorAPI, 'update_portgroup', autospec=True,
-                   side_effect=_rpcapi_update_portgroup)
-class TestPatchExtraVifPortId(test_api_base.BaseApiTest):
-    headers = {api_base.Version.string: str(api_v1.max_version())}
-
-    def setUp(self):
-        super(TestPatchExtraVifPortId, self).setUp()
-        self.node = obj_utils.create_test_node(self.context)
-        self.portgroup = obj_utils.create_test_portgroup(self.context,
-                                                         node_id=self.node.id)
-        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
-                              autospec=True)
-        self.mock_gtf = p.start()
-        self.mock_gtf.return_value = 'test-topic'
-        self.addCleanup(p.stop)
-
-    def _test_add_extra_vif_port_id(self, headers, mock_warn, mock_upd):
-        extra = {'vif_port_id': 'bar'}
-        response = self.patch_json(
-            '/portgroups/%s' % self.portgroup.uuid,
-            [{'path': '/extra/vif_port_id', 'value': 'foo', 'op': 'add'},
-             {'path': '/extra/vif_port_id', 'value': 'bar', 'op': 'add'}],
-            headers=headers)
-        self.assertEqual('application/json', response.content_type)
-        self.assertEqual(http_client.OK, response.status_code)
-        self.assertEqual(extra, response.json['extra'])
-        return response
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_add_extra_vif_port_id(self, mock_warn, mock_upd):
-        expected_intern_info = self.portgroup.internal_info
-        expected_intern_info.update({'tenant_vif_port_id': 'bar'})
-        headers = {api_base.Version.string: '1.27'}
-        response = self._test_add_extra_vif_port_id(headers, mock_warn,
-                                                    mock_upd)
-        self.assertEqual(expected_intern_info, response.json['internal_info'])
-        self.assertFalse(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_add_extra_vif_port_id_deprecated(self, mock_warn, mock_upd):
-        expected_intern_info = self.portgroup.internal_info
-        expected_intern_info.update({'tenant_vif_port_id': 'bar'})
-        response = self._test_add_extra_vif_port_id(self.headers, mock_warn,
-                                                    mock_upd)
-        self.assertEqual(expected_intern_info, response.json['internal_info'])
-        self.assertTrue(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_replace_extra_vif_port_id(self, mock_warn, mock_upd):
-        self.portgroup.extra = {'vif_port_id': 'original'}
-        self.portgroup.internal_info = {'tenant_vif_port_id': 'original'}
-        self.portgroup.save()
-        expected_intern_info = self.portgroup.internal_info
-        expected_intern_info.update({'tenant_vif_port_id': 'bar'})
-        headers = {api_base.Version.string: '1.27'}
-        response = self._test_add_extra_vif_port_id(headers, mock_warn,
-                                                    mock_upd)
-        self.assertEqual(expected_intern_info, response.json['internal_info'])
-        self.assertFalse(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_add_extra_vif_port_id_diff_internal(self, mock_warn, mock_upd):
-        internal_info = {'tenant_vif_port_id': 'original'}
-        self.portgroup.internal_info = internal_info
-        self.portgroup.save()
-        headers = {api_base.Version.string: '1.27'}
-        response = self._test_add_extra_vif_port_id(headers, mock_warn,
-                                                    mock_upd)
-        # not changed
-        self.assertEqual(internal_info, response.json['internal_info'])
-        self.assertFalse(mock_warn.called)
-
-    def _test_remove_extra_vif_port_id(self, headers, mock_warn, mock_upd):
-        response = self.patch_json(
-            '/portgroups/%s' % self.portgroup.uuid,
-            [{'path': '/extra/vif_port_id', 'op': 'remove'}],
-            headers=headers)
-        self.assertEqual('application/json', response.content_type)
-        self.assertEqual(http_client.OK, response.status_code)
-        self.assertEqual({}, response.json['extra'])
-        self.assertTrue(mock_upd.called)
-        return response
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_remove_extra_vif_port_id(self, mock_warn, mock_upd):
-        self.portgroup.extra = {'vif_port_id': 'bar'}
-        orig_info = self.portgroup.internal_info.copy()
-        intern_info = self.portgroup.internal_info
-        intern_info.update({'tenant_vif_port_id': 'bar'})
-        self.portgroup.internal_info = intern_info
-        self.portgroup.save()
-        headers = {api_base.Version.string: '1.27'}
-        response = self._test_remove_extra_vif_port_id(headers, mock_warn,
-                                                       mock_upd)
-        self.assertEqual(orig_info, response.json['internal_info'])
-        self.assertFalse(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_remove_extra_vif_port_id_not_same(self, mock_warn, mock_upd):
-        # .internal_info['tenant_vif_port_id'] != .extra['vif_port_id']
-        self.portgroup.extra = {'vif_port_id': 'foo'}
-        intern_info = self.portgroup.internal_info
-        intern_info.update({'tenant_vif_port_id': 'bar'})
-        self.portgroup.internal_info = intern_info
-        self.portgroup.save()
-        headers = {api_base.Version.string: '1.28'}
-        response = self._test_remove_extra_vif_port_id(headers, mock_warn,
-                                                       mock_upd)
-        self.assertEqual(intern_info, response.json['internal_info'])
-        self.assertTrue(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_remove_extra_vif_port_id_not_internal(self, mock_warn, mock_upd):
-        # no portgroup.internal_info['tenant_vif_port_id']
-        self.portgroup.extra = {'vif_port_id': 'foo'}
-        self.portgroup.save()
-        intern_info = self.portgroup.internal_info
-        headers = {api_base.Version.string: '1.28'}
-        response = self._test_remove_extra_vif_port_id(headers, mock_warn,
-                                                       mock_upd)
-        self.assertEqual(intern_info, response.json['internal_info'])
-        self.assertTrue(mock_warn.called)
-
-
 class TestPost(test_api_base.BaseApiTest):
     headers = {api_base.Version.string: str(api_v1.max_version())}
 
@@ -1227,10 +1095,8 @@ class TestPost(test_api_base.BaseApiTest):
 
     @mock.patch.object(notification_utils, '_emit_api_notification',
                        autospec=True)
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_create_portgroup(self, mock_utcnow, mock_warn, mock_notify):
+    def test_create_portgroup(self, mock_utcnow, mock_notify):
         pdict = apiutils.post_get_test_portgroup()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
         mock_utcnow.return_value = test_time
@@ -1249,7 +1115,6 @@ class TestPost(test_api_base.BaseApiTest):
         expected_location = '/v1/portgroups/%s' % pdict['uuid']
         self.assertEqual(urlparse.urlparse(response.location).path,
                          expected_location)
-        self.assertEqual(0, mock_warn.call_count)
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'create',
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.START,
@@ -1339,41 +1204,6 @@ class TestPost(test_api_base.BaseApiTest):
         result = self.get_json('/portgroups/%s' % pdict['uuid'],
                                headers=self.headers)
         self.assertEqual(pdict['extra'], result['extra'])
-
-    def _test_create_portgroup_with_extra_vif_port_id(self, headers,
-                                                      mock_warn):
-        pgdict = apiutils.post_get_test_portgroup(extra={'vif_port_id': 'foo'})
-        response = self.post_json('/portgroups', pgdict, headers=headers)
-        self.assertEqual('application/json', response.content_type)
-        self.assertEqual(http_client.CREATED, response.status_int)
-        self.assertEqual({'vif_port_id': 'foo'}, response.json['extra'])
-        self.assertEqual({'tenant_vif_port_id': 'foo'},
-                         response.json['internal_info'])
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_create_portgroup_with_extra_vif_port_id(self, mock_warn):
-        headers = {api_base.Version.string: '1.27'}
-        self._test_create_portgroup_with_extra_vif_port_id(headers, mock_warn)
-        self.assertFalse(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_create_portgroup_with_extra_vif_port_id_deprecated(
-            self, mock_warn):
-        self._test_create_portgroup_with_extra_vif_port_id(
-            self.headers, mock_warn)
-        self.assertTrue(mock_warn.called)
-
-    @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
-                       autospec=True)
-    def test_create_portgroup_with_no_extra(self, mock_warn):
-        pgdict = apiutils.post_get_test_portgroup()
-        del pgdict['extra']
-        response = self.post_json('/portgroups', pgdict, headers=self.headers)
-        self.assertEqual('application/json', response.content_type)
-        self.assertEqual(http_client.CREATED, response.status_int)
-        self.assertEqual(0, mock_warn.call_count)
 
     def test_create_portgroup_no_address(self):
         pdict = apiutils.post_get_test_portgroup()
