@@ -44,7 +44,46 @@ Using virtual media:
        --deploy-interface ramdisk \
        --boot-interface redfish-virtual-media
 
-.. TODO(dtantsur): document how exactly to create and boot a ramdisk
+Creating a ramdisk
+------------------
+
+A ramdisk can be created using the ``ironic-ramdisk-base`` element from
+ironic-python-agent-builder_, e.g. with Debian:
+
+.. code-block:: shell
+
+    export ELEMENTS_PATH=/opt/stack/ironic-python-agent-builder/dib
+    disk-image-create -o /output/ramdisk \
+        debian-minimal ironic-ramdisk-base openssh-server dhcp-all-interfaces
+
+You should consider using the following elements:
+
+* openssh-server_ to install the SSH server since it's not provided by default
+  by some minimal images.
+* devuser_ or dynamic-login_ to provide SSH access.
+* dhcp-all-interfaces_ or simple-init_ to configure networking.
+
+The resulting files (``/output/ramdisk.kernel`` and
+``/output/ramdisk.initramfs`` in this case) can then be used when `Booting a
+ramdisk`_.
+
+Booting a ramdisk
+-----------------
+
+Pass the kernel and ramdisk as normally, also providing the ramdisk as an image
+source, for example,
+
+.. code-block:: shell
+
+    baremetal node set <NODE> \
+        --instance-info kernel=http://path/to/ramdisk.kernel \
+        --instance-info ramdisk=http://path/to/ramdisk.initramfs \
+        --instance-info image_source=http://path/to/ramdisk.initramfs
+    baremetal node deploy <NODE>
+
+.. note::
+   The requirement to pass ``image_source`` is artificial and will be fixed
+   in a future version of the Bare Metal service.
 
 Booting an ISO
 --------------
@@ -78,3 +117,10 @@ or desired. As such, this interface does come with several caveats:
 * As with all deployment interfaces, automatic cleaning of the node will
   still occur with the contents of any local storage being wiped between
   deployments.
+
+.. _ironic-python-agent-builder: https://opendev.org/openstack/ironic-python-agent-builder
+.. _openssh-server: https://docs.openstack.org/diskimage-builder/latest/elements/openssh-server/README.html
+.. _devuser: https://docs.openstack.org/diskimage-builder/latest/elements/devuser/README.html
+.. _dynamic-login: https://docs.openstack.org/diskimage-builder/latest/elements/dynamic-login/README.html
+.. _dhcp-all-interfaces: https://docs.openstack.org/diskimage-builder/latest/elements/dhcp-all-interfaces/README.html
+.. _simple-init: https://docs.openstack.org/diskimage-builder/latest/elements/simple-init/README.html
