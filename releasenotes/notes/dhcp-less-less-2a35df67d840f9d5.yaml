@@ -2,4 +2,5 @@
 issues:
   - |
     Building ramdisks for DHCP-less deploy using the ``simple-init`` element
-    does not currently work. The team is looking into possible solutions.
+    is known not to work for distributions using NetworkManager.
+    The ``debian-minimal`` element seems to work.
