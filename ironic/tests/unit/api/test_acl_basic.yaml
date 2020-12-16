@@ -1,0 +1,44 @@
+non_authenticated:
+  path: &node_path '/v1/nodes/{node_uuid}'
+  assert_status: 401
+
+authenticated:
+  path: *node_path
+  headers:
+    X-Auth-Token: &admin_token '4562138218392831'
+  assert_dict_contains:
+    uuid: '{node_uuid}'
+    driver: 'fake-hardware'
+
+non_admin:
+  path: *node_path
+  headers:
+    X-Auth-Token: &member_token '4562138218392832'
+  assert_status: 403
+
+non_admin_with_admin_header:
+  path: *node_path
+  headers:
+    X-Auth-Token: *member_token
+    X-Roles: admin
+  assert_status: 403
+
+public_api:
+  path: /
+  assert_status: 200
+
+public_api_v1:
+  path: /v1
+  assert_status: 200
+
+public_api_v1_slash:
+  path: /v1/
+  assert_status: 200
+
+public_api_v1_json:
+  path: /v1.json
+  assert_status: 200
+  
+public_api_v1_xml:
+  path: /v1.xml
+  assert_status: 404
