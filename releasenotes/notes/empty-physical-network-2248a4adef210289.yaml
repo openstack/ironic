@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    fixes an issue that physical_network could be set to an empty string,
-    which makes the port unusable.
+    It is no longer possible to set a port's ``physical_network`` to an empty
+    string, making the port unusable.
