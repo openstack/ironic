@@ -183,8 +183,8 @@ This default can be overridden by setting the ``boot_option`` capability on a
 node. See :ref:`local-boot-partition-images` for details.
 
 .. note::
-    Currently, network boot is used by default. However, we plan on changing it
-    in the future, so it's safer to set the ``default_boot_option`` explicitly.
+    Currently, local boot is used by default. It's safer to set
+    the ``default_boot_option`` explicitly.
 
 .. _refarch-common-networking:
 
