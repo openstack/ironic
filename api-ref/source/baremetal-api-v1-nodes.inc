@@ -113,28 +113,40 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-   - boot_interface: req_boot_interface
-   - conductor_group: req_conductor_group
-   - console_interface: req_console_interface
-   - deploy_interface: req_deploy_interface
-   - driver_info: req_driver_info
-   - driver: req_driver_name
-   - extra: req_extra
-   - inspect_interface: req_inspect_interface
-   - management_interface: req_management_interface
-   - name: node_name
-   - network_interface: req_network_interface
-   - power_interface: req_power_interface
-   - properties: req_properties
-   - raid_interface: req_raid_interface
-   - rescue_interface: req_rescue_interface
-   - resource_class: req_resource_class_create
-   - storage_interface: req_storage_interface
-   - uuid: req_uuid
-   - vendor_interface: req_vendor_interface
-   - owner: owner
-   - description: n_description
-   - lessee: lessee
+    - boot_interface: req_boot_interface
+    - conductor_group: req_conductor_group
+    - console_interface: req_console_interface
+    - deploy_interface: req_deploy_interface
+    - driver_info: req_driver_info
+    - driver: req_driver_name
+    - extra: req_extra
+    - inspect_interface: req_inspect_interface
+    - management_interface: req_management_interface
+    - name: node_name
+    - network_interface: req_network_interface
+    - power_interface: req_power_interface
+    - properties: req_properties
+    - raid_interface: req_raid_interface
+    - rescue_interface: req_rescue_interface
+    - resource_class: req_resource_class_create
+    - storage_interface: req_storage_interface
+    - uuid: req_uuid
+    - vendor_interface: req_vendor_interface
+    - owner: owner
+    - description: req_n_description
+    - lessee: lessee
+    - automated_clean: req_automated_clean
+    - bios_interface: req_bios_interface
+    - chassis_uuid: req_chassis_uuid
+    - instance_info: req_instance_info
+    - instance_uuid: req_instance_uuid
+    - maintenance: req_maintenance
+    - maintenance_reason: maintenance_reason
+    - network_data: network_data
+    - protected: protected
+    - protected_reason: protected_reason
+    - retired: retired
+    - retired_reason: retired_reason
 
 **Example Node creation request with a dynamic driver:**
 
@@ -208,7 +220,11 @@ microversion 1.48.
     - lessee: lessee
     - description: n_description
     - allocation_uuid: allocation_uuid
+    - automated_clean: automated_clean
+    - bios_interface: bios_interface
     - network_data: network_data
+    - retired: retired
+    - retired_reason: retired_reason
 
 **Example JSON representation of a Node:**
 

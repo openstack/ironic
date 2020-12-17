@@ -167,7 +167,7 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-   - chassis: req_chassis
+   - uuid: req_uuid
    - description: req_description
    - extra: req_extra
 
@@ -228,10 +228,13 @@ Response Parameters
 
 .. rest_parameters:: parameters.yaml
 
-   - uuid: uuid
-   - chassis: chassis
    - description: description
+   - links: links
    - extra: extra
+   - created_at: created_at
+   - updated_at: updated_at
+   - nodes: nodes
+   - uuid: uuid
 
 Response Example
 ----------------

@@ -36,6 +36,16 @@ Request
    - uuid: req_uuid
    - extra: req_extra
 
+Request Step
+------------
+
+.. rest_parameters:: parameters.yaml
+
+   - interface: deploy_template_step_interface
+   - step: deploy_template_step_step
+   - args: deploy_template_step_args
+   - priority: deploy_template_step_priority
+
 Request Example
 ---------------
 

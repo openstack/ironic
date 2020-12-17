@@ -121,6 +121,7 @@ Request
     - physical_network: req_physical_network
     - extra: req_extra
     - is_smartnic: req_is_smartnic
+    - uuid: req_uuid
 
 **Example Port creation request:**
 

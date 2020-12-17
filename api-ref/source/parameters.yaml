@@ -493,6 +493,18 @@ allocation_uuid:
   in: body
   required: true
   type: string
+automated_clean:
+  description: |
+    Indicates whether the node will perform automated clean or not.
+  in: body
+  required: true
+  type: boolean
+bios_interface:
+  description: |
+    The bios interface to be used for this node.
+  in: body
+  required: true
+  type: string
 bios_setting_name:
   description: |
     The name of a Bios setting for a Node, eg. "virtualization".
@@ -721,18 +733,35 @@ deploy_template_name:
   in: body
   required: true
   type: string
+deploy_template_step_args:
+  description: |
+    A dictionary of arguments that are passed to the deploy step method.
+  in: body
+  required: true
+  type: object
+deploy_template_step_interface:
+  description: |
+    The name of the driver interface.
+  in: body
+  required: true
+  type: string
+deploy_template_step_priority:
+  description: |
+    A non-negative integer priority for the step. A value of ``0`` will
+    disable that step.
+  in: body
+  required: true
+  type: integer
+deploy_template_step_step:
+  description: |
+    The name of the deploy step method on the driver interface.
+  in: body
+  required: true
+  type: string
 deploy_template_steps:
   description: |
-    The deploy steps of the deploy template. Must be a list containing at least
-    one deploy step.
-
-    A deploy step is a dictionary with required keys ``interface``, ``step``,
-    ``args``, and ``priority``.  The value for ``interface`` is the name of the
-    driver interface.  The value for ``step`` is the name of the deploy step
-    method on the driver interface. The value for ``args`` is a dictionary of
-    arguments that are passed to the deploy step method. The value for
-    ``priority`` is a non-negative integer priority for the step. A value of
-    ``0`` for ``priority`` will disable that step.
+    The deploy steps of the deploy template. Must be a list of dictionaries
+    containing at least one deploy step. See `Request Step`_ for step parameters.
   in: body
   required: true
   type: array
@@ -1212,7 +1241,7 @@ portgroup_name:
   description: |
     Human-readable identifier for the Portgroup resource. May be undefined.
   in: body
-  required: false
+  required: true
   type: string
 portgroup_properties:
   description: |
@@ -1344,6 +1373,18 @@ req_allocation_traits:
   in: body
   required: false
   type: array
+req_automated_clean:
+  description: |
+    Indicates whether the node will perform automated clean or not.
+  in: body
+  required: false
+  type: boolean
+req_bios_interface:
+  description: |
+    The bios interface to be used for this node.
+  in: body
+  required: false
+  type: string
 req_boot_device:
   description: |
     The boot device for a Node, eg. "pxe" or "disk".
@@ -1369,6 +1410,12 @@ req_chassis:
   in: body
   required: true
   type: array
+req_chassis_uuid:
+  description: |
+    UUID of the chassis associated with this Node. May be empty or None.
+  in: body
+  required: false
+  type: string
 req_conductor_group:
   description: |
     The conductor group for a node. Case-insensitive string up to 255
@@ -1427,6 +1474,21 @@ req_inspect_interface:
   in: body
   required: false
   type: string
+req_instance_info:
+  description: |
+    Information used to customize the deployed image. May include root partition
+    size, a base 64 encoded config drive, and other metadata. Note that this field
+    is erased automatically when the instance is deleted (this is done by requesting
+    the Node provision state be changed to DELETED).
+  in: body
+  required: false
+  type: JSON
+req_instance_uuid:
+  description: |
+    UUID of the Nova instance associated with this Node.
+  in: body
+  required: false
+  type: string
 req_is_smartnic:
   description: |
     Indicates whether the Port is a Smart NIC port.
@@ -1443,9 +1505,25 @@ req_local_link_connection:
   in: body
   required: false
   type: JSON
+req_maintenance:
+  description: |
+    Whether or not this Node is currently in "maintenance mode". Setting a Node
+    into maintenance mode removes it from the available resource pool and halts
+    some internal automation. This can happen manually (eg, via an API request)
+    or automatically when Ironic detects a hardware fault that prevents communication
+    with the machine.
+  in: body
+  required: false
+  type: boolean
 req_management_interface:
   description: |
     Interface for out-of-band node management, e.g. "ipmitool".
+  in: body
+  required: false
+  type: string
+req_n_description:
+  description: |
+    Informational text about this node.
   in: body
   required: false
   type: string
@@ -1467,6 +1545,20 @@ req_node_vif_ident:
     The UUID or name of the VIF.
   in: body
   required: true
+  type: string
+req_node_vif_port_uuid:
+  description: |
+    The UUID of a port to attach the VIF to. Cannot be specified with
+    ``portgroup_uuid``.
+  in: body
+  required: false
+  type: string
+req_node_vif_portgroup_uuid:
+  description: |
+    The UUID of a portgroup to attach the VIF to. Cannot be specified with
+    ``port_uuid``.
+  in: body
+  required: false
   type: string
 req_persistent:
   description: |
@@ -1496,6 +1588,28 @@ req_portgroup_address:
   in: body
   required: false
   type: string
+req_portgroup_mode:
+  description: |
+    Mode of the port group. For possible values, refer to
+    https://www.kernel.org/doc/Documentation/networking/bonding.txt. If not
+    specified in a request to create a port group, it will be set to the value
+    of the ``[DEFAULT]default_portgroup_mode`` configuration option. When set,
+    can not be removed from the port group.
+  in: body
+  required: false
+  type: string
+req_portgroup_name:
+  description: |
+    Human-readable identifier for the Portgroup resource. May be undefined.
+  in: body
+  required: false
+  type: string
+req_portgroup_properties:
+  description: |
+    Key/value properties related to the port group's configuration.
+  in: body
+  required: false
+  type: JSON
 req_portgroup_uuid:
   description: |
     UUID of the Portgroup this resource belongs to.
@@ -1546,6 +1660,13 @@ req_resource_class_create:
   in: body
   required: false
   type: string
+req_standalone_ports_supported:
+  description: |
+    Indicates whether ports that are members of this portgroup can be
+    used as stand-alone ports.
+  in: body
+  required: false
+  type: boolean
 req_storage_interface:
   description: |
     Interface used for attaching and detaching volumes on this node, e.g.
@@ -1581,6 +1702,15 @@ req_vendor_interface:
   in: body
   required: false
   type: string
+req_volume_target_properties:
+  description: |
+    A set of physical information of the volume such as the identifier
+    (eg. IQN) and LUN number of the volume. This information is used to connect
+    the node to the volume by the storage interface. The contents depend on the
+    volume type.
+  in: body
+  required: false
+  type: object
 requested_provision_state:
   description: |
     One of the provisioning verbs: manage, provide, inspect, clean, active,
