@@ -950,6 +950,7 @@ class IPMIPower(base.PowerInterface):
                 # call to store it.
                 vendor = task.driver.management.detect_vendor(task)
                 if vendor:
+                    task.upgrade_lock()
                     props = task.node.properties
                     props['vendor'] = vendor
                     task.node.properties = props
@@ -1241,7 +1242,6 @@ class IPMIManagement(base.ManagementInterface):
         response['persistent'] = 'Options apply to all future boots' in out
         return response
 
-    @task_manager.require_exclusive_lock
     @METRICS.timer('IPMIManagement.detect_vendor')
     def detect_vendor(self, task):
         """Detects, stores, and returns the hardware vendor.
