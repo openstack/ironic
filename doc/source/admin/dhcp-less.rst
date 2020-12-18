@@ -1,12 +1,6 @@
 Layer 3 or DHCP-less ramdisk booting
 ====================================
 
-.. warning::
-   As of the Victoria release, the ramdisk side of this feature does **NOT**
-   work out-of-box because of a conflict between NetworkManager and Glean_.
-   To use it properly you need to manually create a ramdisk with Glean_ taking
-   priority over any other network configuration.
-
 Booting nodes via PXE, while universally supported, suffers from one
 disadvantage: it requires a direct L2 connectivity between the node and the
 control plane for DHCP. Using virtual media it is possible to avoid not only
@@ -20,6 +14,16 @@ The simple-init_ element needs to be used when creating the deployment ramdisk.
 The Glean_ tool will look for a media labeled as ``config-2``. If found, the
 network information from it will be read, and the node's networking stack will
 be configured accordingly.
+
+.. code-block:: console
+
+   ironic-python-agent-builder -o /output/ramdisk \
+        debian-minimal -e simple-init
+
+.. warning::
+   The simple-init_ element is found to conflict to NetworkManager, which makes
+   this feature not operational with ramdisks based on CentOS, RHEL and Fedora.
+   The ``debian-minimal`` element seems to work correctly.
 
 .. note::
    If desired, some interfaces can still be configured to use DHCP.
