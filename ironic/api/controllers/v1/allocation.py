@@ -26,7 +26,6 @@ from ironic.api import method
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import policy
 from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -266,18 +265,17 @@ class AllocationsController(pecan.rest.RestController):
         return convert_with_links(rpc_allocation, fields=fields)
 
     def _authorize_create_allocation(self, allocation):
-        cdict = api.request.context.to_policy_values()
 
         try:
-            policy.authorize('baremetal:allocation:create', cdict, cdict)
+            api_utils.check_policy('baremetal:allocation:create')
             self._check_allowed_allocation_fields(allocation)
         except exception.HTTPForbidden:
+            cdict = api.request.context.to_policy_values()
             owner = cdict.get('project_id')
             if not owner or (allocation.get('owner')
                              and owner != allocation.get('owner')):
                 raise
-            policy.authorize('baremetal:allocation:create_restricted',
-                             cdict, cdict)
+            api_utils.check_policy('baremetal:allocation:create_restricted')
             self._check_allowed_allocation_fields(allocation)
             allocation['owner'] = owner
 
@@ -460,8 +458,7 @@ class NodeAllocationController(pecan.rest.RestController):
     @method.expose()
     @args.validate(fields=args.string_list)
     def get_all(self, fields=None):
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:allocation:get', cdict, cdict)
+        api_utils.check_policy('baremetal:allocation:get')
 
         result = self.inner._get_allocations_collection(self.parent_node_ident,
                                                         fields=fields)
@@ -476,8 +473,7 @@ class NodeAllocationController(pecan.rest.RestController):
     @method.expose(status_code=http_client.NO_CONTENT)
     def delete(self):
         context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:allocation:delete', cdict, cdict)
+        api_utils.check_policy('baremetal:allocation:delete')
 
         rpc_node = api_utils.get_rpc_node_with_suffix(self.parent_node_ident)
         allocations = objects.Allocation.list(

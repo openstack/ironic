@@ -29,7 +29,6 @@ from ironic.api import method
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import policy
 from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -157,8 +156,7 @@ class ChassisController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:chassis:get', cdict, cdict)
+        api_utils.check_policy('baremetal:chassis:get')
 
         api_utils.check_allow_specify_fields(fields)
 
@@ -183,8 +181,7 @@ class ChassisController(rest.RestController):
         :param sort_key: column to sort results by. Default: id.
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:chassis:get', cdict, cdict)
+        api_utils.check_policy('baremetal:chassis:get')
 
         # /detail should only work against collections
         parent = api.request.path.split('/')[:-1][-1]
@@ -205,8 +202,7 @@ class ChassisController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:chassis:get', cdict, cdict)
+        api_utils.check_policy('baremetal:chassis:get')
 
         api_utils.check_allow_specify_fields(fields)
         rpc_chassis = objects.Chassis.get_by_uuid(api.request.context,
@@ -223,8 +219,7 @@ class ChassisController(rest.RestController):
         :param chassis: a chassis within the request body.
         """
         context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:chassis:create', cdict, cdict)
+        api_utils.check_policy('baremetal:chassis:create')
 
         # NOTE(yuriyz): UUID is mandatory for notifications payload
         if not chassis.get('uuid'):
@@ -250,8 +245,7 @@ class ChassisController(rest.RestController):
         :param patch: a json PATCH document to apply to this chassis.
         """
         context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:chassis:update', cdict, cdict)
+        api_utils.check_policy('baremetal:chassis:update')
 
         api_utils.patch_validate_allowed_fields(
             patch, CHASSIS_SCHEMA['properties'])
@@ -282,8 +276,7 @@ class ChassisController(rest.RestController):
         :param chassis_uuid: UUID of a chassis.
         """
         context = api.request.context
-        cdict = context.to_policy_values()
-        policy.authorize('baremetal:chassis:delete', cdict, cdict)
+        api_utils.check_policy('baremetal:chassis:delete')
 
         rpc_chassis = objects.Chassis.get_by_uuid(context, chassis_uuid)
         notify.emit_start_notification(context, rpc_chassis, 'delete')

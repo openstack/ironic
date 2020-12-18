@@ -21,7 +21,6 @@ from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import method
 from ironic.common import args
 from ironic.common import exception
-from ironic.common import policy
 from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -57,8 +56,7 @@ class NodeBiosController(rest.RestController):
     @method.expose()
     def get_all(self):
         """List node bios settings."""
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:bios:get', cdict, cdict)
+        api_utils.check_policy('baremetal:node:bios:get')
 
         node = api_utils.get_rpc_node(self.node_ident)
         settings = objects.BIOSSettingList.get_by_node_id(
@@ -73,8 +71,7 @@ class NodeBiosController(rest.RestController):
 
         :param setting_name: Logical name of the setting to retrieve.
         """
-        cdict = api.request.context.to_policy_values()
-        policy.authorize('baremetal:node:bios:get', cdict, cdict)
+        api_utils.check_policy('baremetal:node:bios:get')
 
         node = api_utils.get_rpc_node(self.node_ident)
         try:
