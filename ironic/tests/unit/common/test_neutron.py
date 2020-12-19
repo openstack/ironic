@@ -30,6 +30,7 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
 from ironic.tests.unit import stubs
 
+
 @mock.patch('ironic.common.keystone.get_service_auth', autospec=True,
             return_value=mock.sentinel.sauth)
 @mock.patch('ironic.common.keystone.get_auth', autospec=True,
