@@ -34,7 +34,7 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
     def setUp(self):
         super(TestPortObject, self).setUp()
-        self.fake_port = db_utils.get_test_port()
+        self.fake_port = db_utils.get_test_port(name='port-name')
 
     def test_get_by_id(self):
         port_id = self.fake_port['id']
@@ -69,9 +69,20 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             mock_get_port.assert_called_once_with(address, project=None)
             self.assertEqual(self.context, port._context)
 
-    def test_get_bad_id_and_uuid_and_address(self):
+    def test_get_by_name(self):
+        name = self.fake_port['name']
+        with mock.patch.object(self.dbapi, 'get_port_by_name',
+                               autospec=True) as mock_get_port:
+            mock_get_port.return_value = self.fake_port
+
+            port = objects.Port.get(self.context, name)
+
+            mock_get_port.assert_called_once_with(name)
+            self.assertEqual(self.context, port._context)
+
+    def test_get_bad_id_and_uuid_and_name_and_address(self):
         self.assertRaises(exception.InvalidIdentity,
-                          objects.Port.get, self.context, 'not-a-uuid')
+                          objects.Port.get, self.context, '#not-valid')
 
     def test_create(self):
         port = objects.Port(self.context, **self.fake_port)
@@ -349,3 +360,59 @@ class TestConvertToVersion(db_base.DbTestCase):
         port._convert_to_version("1.8", False)
         self.assertFalse(port.is_smartnic)
         self.assertNotIn('is_smartnic', port.obj_get_changes())
+
+    def test_name_supported_missing(self):
+        # name not set, should be set to default.
+        port = objects.Port(self.context, **self.fake_port)
+        delattr(port, 'name')
+        port.obj_reset_changes()
+        port._convert_to_version("1.10")
+        self.assertIsNone(port.name)
+        self.assertIn('name', port.obj_get_changes())
+        self.assertIsNone(port.obj_get_changes()['name'])
+
+    def test_name_supported_set(self):
+        # Physical network set, no change required.
+        port = objects.Port(self.context, **self.fake_port)
+        port.name = 'meow'
+        port.obj_reset_changes()
+        port._convert_to_version("1.10")
+        self.assertEqual('meow', port.name)
+        self.assertNotIn('name', port.obj_get_changes())
+
+    def test_name_unsupported_missing(self):
+        # name not set, no change required.
+        port = objects.Port(self.context, **self.fake_port)
+        delattr(port, 'name')
+        port.obj_reset_changes()
+        port._convert_to_version("1.9")
+        self.assertNotIn('name', port)
+        self.assertNotIn('name', port.obj_get_changes())
+
+    def test_name_unsupported_set_remove(self):
+        # name set, should be removed.
+        port = objects.Port(self.context, **self.fake_port)
+        port.name = 'meow'
+        port.obj_reset_changes()
+        port._convert_to_version("1.9")
+        self.assertNotIn('name', port)
+        self.assertNotIn('name', port.obj_get_changes())
+
+    def test_name_unsupported_set_no_remove_non_default(self):
+        # name set, should be set to default.
+        port = objects.Port(self.context, **self.fake_port)
+        port.name = 'meow'
+        port.obj_reset_changes()
+        port._convert_to_version("1.9", False)
+        self.assertIsNone(port.name)
+        self.assertIn('name', port.obj_get_changes())
+        self.assertIsNone(port.obj_get_changes()['name'])
+
+    def test_name_unsupported_set_no_remove_default(self):
+        # name set, no change required.
+        port = objects.Port(self.context, **self.fake_port)
+        port.name = None
+        port.obj_reset_changes()
+        port._convert_to_version("1.9", False)
+        self.assertIsNone(port.name)
+        self.assertNotIn('name', port.obj_get_changes())

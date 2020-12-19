@@ -32,7 +32,8 @@ class DbPortTestCase(base.DbTestCase):
                                               lessee='54321')
         self.portgroup = db_utils.create_test_portgroup(node_id=self.node.id)
         self.port = db_utils.create_test_port(node_id=self.node.id,
-                                              portgroup_id=self.portgroup.id)
+                                              portgroup_id=self.portgroup.id,
+                                              name='port-name')
 
     def test_get_port_by_id(self):
         res = self.dbapi.get_port_by_id(self.port.id)
@@ -67,6 +68,10 @@ class DbPortTestCase(base.DbTestCase):
                           self.dbapi.get_port_by_address,
                           self.port.address,
                           project='55555')
+
+    def test_get_port_by_name(self):
+        res = self.dbapi.get_port_by_name(self.port.name)
+        self.assertEqual(self.port.id, res.id)
 
     def test_get_port_list(self):
         uuids = []
