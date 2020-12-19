@@ -14,6 +14,7 @@
 #    under the License.
 
 import os
+import tempfile
 from unittest import mock
 
 from oslo_utils import importutils
@@ -427,6 +428,52 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock__prepare_iso_image.assert_called_once_with(
                 task, 'kernel', 'ramdisk', bootloader_href=None,
                 params={}, inject_files=expected_files)
+
+            find_mock.assert_has_calls(find_call_list)
+
+    @mock.patch.object(image_utils, '_find_param', autospec=True)
+    @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
+    def test_prepare_deploy_iso_tls(self, mock__prepare_iso_image,
+                                    find_mock):
+        with tempfile.NamedTemporaryFile(delete=False) as tf:
+            temp_name = tf.name
+            self.addCleanup(lambda: os.unlink(temp_name))
+            self.config(api_ca_file=temp_name, group='agent')
+            tf.write(b'I can haz SSLz')
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            d_info = {
+                'ilo_deploy_kernel': 'kernel',
+                'ilo_deploy_ramdisk': 'ramdisk',
+                'ilo_bootloader': 'bootloader'
+            }
+            task.node.driver_info.update(d_info)
+
+            find_call_list = [
+                mock.call('deploy_kernel', d_info),
+                mock.call('deploy_ramdisk', d_info),
+                mock.call('bootloader', d_info)
+            ]
+            find_mock.side_effect = [
+                'kernel', 'ramdisk', 'bootloader'
+            ]
+
+            task.node.instance_info.update(deploy_boot_mode='uefi')
+
+            image_utils.prepare_deploy_iso(task, {}, 'deploy', d_info)
+
+            expected_files = {
+                b"""[DEFAULT]
+cafile = /etc/ironic-python-agent/ironic.crt
+""": 'etc/ironic-python-agent.d/ironic-tls.conf',
+                temp_name: 'etc/ironic-python-agent/ironic.crt'
+            }
+
+            mock__prepare_iso_image.assert_called_once_with(
+                task, 'kernel', 'ramdisk', 'bootloader', params={},
+                inject_files=expected_files)
 
             find_mock.assert_has_calls(find_call_list)
 

@@ -58,6 +58,8 @@ def _create_root_fs(root_directory, files_info):
     :raises: IOError, if copying any of the files failed.
     """
     for src_file, path in files_info.items():
+        LOG.debug('Injecting %(path)s into an ISO from %(source)r',
+                  {'path': path, 'source': src_file})
         target_file = os.path.join(root_directory, path)
         dirname = os.path.dirname(target_file)
         if dirname:

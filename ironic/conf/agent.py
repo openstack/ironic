@@ -159,6 +159,10 @@ opts = [
                       'ramdisk. Set to True to use the system default CA '
                       'storage. Set to False to disable validation. Ignored '
                       'when automatic TLS setup is used.')),
+    cfg.StrOpt('api_ca_file',
+               help=_('Path to the TLS CA that is used to start the bare '
+                      'metal API. In some boot methods this file can be '
+                      'passed to the ramdisk.')),
 ]
 
 
