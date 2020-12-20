@@ -751,6 +751,15 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertRaises(exception.AllocationNotFound,
                           self.dbapi.get_allocation_by_id, allocation.id)
 
+    def test_history_get_destroyed_after_destroying_a_node_by_uuid(self):
+        node = utils.create_test_node()
+
+        history = utils.create_test_history(node_id=node.id)
+
+        self.dbapi.destroy_node(node.uuid)
+        self.assertRaises(exception.NodeHistoryNotFound,
+                          self.dbapi.get_node_history_by_id, history.id)
+
     def test_update_node(self):
         node = utils.create_test_node()
 

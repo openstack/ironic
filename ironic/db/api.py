@@ -1322,3 +1322,61 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param names: List of names to filter by.
         :returns: A list of deploy templates.
         """
+
+    @abc.abstractmethod
+    def create_node_history(self, values):
+        """Create a new history record.
+
+        :param values: Dict of values.
+        """
+
+    @abc.abstractmethod
+    def destroy_node_history_by_uuid(self, history_uuid):
+        """Destroy a history record.
+
+        :param history_uuid: The uuid of a history record
+        """
+
+    @abc.abstractmethod
+    def get_node_history_by_id(self, history_id):
+        """Return a node history representation.
+
+        :param history_id: The id of a history record.
+        :returns: A history.
+        """
+
+    @abc.abstractmethod
+    def get_node_history_by_uuid(self, history_uuid):
+        """Return a node history representation.
+
+        :param history_uuid: The uuid of a history record
+        :returns: A history.
+        """
+
+    @abc.abstractmethod
+    def get_node_history_list(self, limit=None, marker=None,
+                              sort_key=None, sort_dir=None):
+        """Return a list of node history records
+
+        :param limit: Maximum number of history records to return.
+        :param marker: the last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: direction in which results should be sorted.
+                         (asc, desc)
+        """
+
+    @abc.abstractmethod
+    def get_node_history_by_node_id(self, node_id, limit=None, marker=None,
+                                    sort_key=None, sort_dir=None):
+        """List all the history records for a given node.
+
+        :param node_id: The integer node ID.
+        :param limit: Maximum number of history records to return.
+        :param marker: the last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted
+        :param sort_dir: direction in which results should be sorted
+                         (asc, desc)
+        :returns: A list of histories.
+        """

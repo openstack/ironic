@@ -720,6 +720,7 @@ expected_object_fingerprints = {
     'DeployTemplateCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
     'DeployTemplateCRUDPayload': '1.0-200857e7e715f58a5b6d6b700ab73a3b',
     'Deployment': '1.0-ff10ae028c5968f1596131d85d7f5f9d',
+    'NodeHistory': '1.0-9b576c6481071e7f7eac97317fa29418',
 }
 
 

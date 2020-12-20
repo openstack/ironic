@@ -1053,6 +1053,36 @@ class MigrationCheckersMixin(object):
         col_names = [column.name for column in ports.c]
         self.assertIn('name', col_names)
 
+    def _check_9ef41f07cb58(self, engine, data):
+        node_history = db_utils.get_table(engine, 'node_history')
+        col_names = [column.name for column in node_history.c]
+
+        expected_names = ['version', 'created_at', 'updated_at', 'id', 'uuid',
+                          'conductor', 'event_type', 'severity', 'event',
+                          'user', 'node_id']
+        self.assertEqual(sorted(expected_names), sorted(col_names))
+
+        self.assertIsInstance(node_history.c.created_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(node_history.c.updated_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(node_history.c.id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(node_history.c.uuid.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(node_history.c.conductor.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(node_history.c.event_type.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(node_history.c.severity.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(node_history.c.event.type,
+                              sqlalchemy.types.TEXT)
+        self.assertIsInstance(node_history.c.node_id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(node_history.c.user.type,
+                              sqlalchemy.types.String)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

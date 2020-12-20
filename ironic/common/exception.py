@@ -821,3 +821,7 @@ class AgentInProgress(IronicException):
 class InsufficentMemory(IronicException):
     _msg_fmt = _("Available memory at %(free)s, Insufficent as %(required)s "
                  "is required to proceed at this time.")
+
+
+class NodeHistoryNotFound(NotFound):
+    _msg_fmt = _("Node history record %(history)s could not be found.")

@@ -417,6 +417,26 @@ class DeployTemplateStep(Base):
     )
 
 
+class NodeHistory(Base):
+    """Represents a history event of a bare metal node."""
+
+    __tablename__ = 'node_history'
+    __table_args__ = (
+        schema.UniqueConstraint('uuid', name='uniq_history0uuid'),
+        Index('history_node_id_idx', 'node_id'),
+        Index('history_uuid_idx', 'uuid'),
+        Index('history_conductor_idx', 'conductor'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(36), nullable=False)
+    conductor = Column(String(255), nullable=True)
+    event_type = Column(String(255), nullable=True)
+    severity = Column(String(255), nullable=True)
+    event = Column(Text, nullable=True)
+    user = Column(String(32), nullable=True)
+    node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
+
+
 def get_class(model_name):
     """Returns the model class with the specified name.
 
