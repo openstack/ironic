@@ -1,25 +1,30 @@
+values:
+  skip_reason: For value storage
+  admin_headers: &admin_headers
+    X-Auth-Token: 'admin_token'
+  member_headers: &member_headers
+    X-Auth-Token: 'member_token'
+
 non_authenticated:
   path: &node_path '/v1/nodes/{node_uuid}'
-  assert_status: 401
+  assert_status: 403
 
 authenticated:
   path: *node_path
-  headers:
-    X-Auth-Token: &admin_token '4562138218392831'
+  headers: *admin_headers
   assert_dict_contains:
     uuid: '{node_uuid}'
     driver: 'fake-hardware'
 
 non_admin:
   path: *node_path
-  headers:
-    X-Auth-Token: &member_token '4562138218392832'
+  headers: *member_headers
   assert_status: 403
 
 non_admin_with_admin_header:
   path: *node_path
   headers:
-    X-Auth-Token: *member_token
+    X-Auth-Token: 'member_token'
     X-Roles: admin
   assert_status: 403
 

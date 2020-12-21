@@ -33,9 +33,6 @@ from ironic.tests.unit.db import utils as db_utils
 ADMIN_TOKEN = '4562138218392831'
 MEMBER_TOKEN = '4562138218392832'
 
-ADMIN_TOKEN_HASH = hashlib.sha256(ADMIN_TOKEN.encode()).hexdigest()
-MEMBER_TOKEN_HASH = hashlib.sha256(MEMBER_TOKEN.encode()).hexdigest()
-
 ADMIN_BODY = {
     'access': {
         'token': {'id': ADMIN_TOKEN,
@@ -60,21 +57,26 @@ MEMBER_BODY = {
     }
 }
 
+DEFAULT_CACHE_VALUES = {
+    ADMIN_TOKEN: ADMIN_BODY,
+    MEMBER_TOKEN: MEMBER_BODY
+}
+
 
 class FakeMemcache(object):
     """Fake cache that is used for keystone tokens lookup."""
 
-    # NOTE(lucasagomes): keystonemiddleware >= 2.0.0 the token cache
-    # keys are sha256 hashes of the token key. This was introduced in
-    # https://review.opendev.org/#/c/186971
-    _cache = {
-        'tokens/%s' % ADMIN_TOKEN: ADMIN_BODY,
-        'tokens/%s' % ADMIN_TOKEN_HASH: ADMIN_BODY,
-        'tokens/%s' % MEMBER_TOKEN: MEMBER_BODY,
-        'tokens/%s' % MEMBER_TOKEN_HASH: MEMBER_BODY,
-    }
-
-    def __init__(self):
+    def __init__(self, cache_values=None):
+        if not cache_values:
+            cache_values = DEFAULT_CACHE_VALUES
+        self._cache = {}
+        for k, v in cache_values.items():
+            self._cache['tokens/%s' % k] = v
+            # NOTE(lucasagomes): keystonemiddleware >= 2.0.0 the token cache
+            # keys are sha256 hashes of the token key. This was introduced in
+            # https://review.opendev.org/#/c/186971
+            self._cache['tokens/%s' %
+                        hashlib.sha256(k.encode()).hexdigest()] = v
         self.set_key = None
         self.set_value = None
         self.token_expiration = None
