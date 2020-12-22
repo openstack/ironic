@@ -19,6 +19,7 @@ project_admin_can_get_node:
   assert_dict_contains:
     uuid: '{node_uuid}'
     driver: 'fake-hardware'
+  assert_status: 200
 
 project_member_cannot_get_node:
   path: *node_path

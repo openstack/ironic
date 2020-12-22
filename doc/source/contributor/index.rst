@@ -32,6 +32,7 @@ primarily for developers.
   Developing New Notifications <notifications>
   OSProfiler Tracing <osprofiler-support>
   Rolling Upgrades <rolling-upgrades>
+  Role Based Access Control Testing <rbac-testing>
 
 These pages contain information for PTLs, cross-project liaisons, and core
 reviewers.
