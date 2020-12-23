@@ -727,6 +727,15 @@ deploy_step:
   in: body
   required: false
   type: string
+deploy_steps:
+  description: |
+    A list of deploy steps that will be performed on the node. A deploy step is
+    a dictionary with required keys 'interface', 'step', 'priority' and optional
+    key 'args'. If specified, the value for 'args' is a keyword variable
+    argument dictionary that is passed to the deploy step method.
+  in: body
+  required: False
+  type: array
 deploy_template_name:
   description: |
     The unique name of the deploy template.

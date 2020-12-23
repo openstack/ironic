@@ -89,6 +89,31 @@ More deploy steps can be provided by the ramdisk, see
 :ironic-python-agent-doc:`IPA hardware managers documentation
 <admin/hardware_managers.html>` for a listing.
 
+Requesting steps
+----------------
+
+Starting with Bare Metal API version 1.69 user can optionally supply deploy
+steps for node deployment when invoking deployment or rebuilding. Overlapping
+steps will take precedence over `Agent steps`_ and `Deploy Templates`_
+steps.
+
+Using "baremetal" client deploy steps can be passed via ``--deploy-steps``
+argument. The argument ``--deploy-steps`` is one of:
+
+- a JSON string
+- path to a JSON file whose contents are passed to the API
+- '-', to read from stdin. This allows piping in the deploy steps.
+
+An example by passing a JSON string:
+
+.. code-block:: console
+
+    baremetal node deploy <node> \
+        --deloy-steps '[{"interface": "bios", "step": "apply_configuration", "args": {"settings": [{"name": "LogicalProc", "value": "Enabled"}]}, "priority": 150}]'
+
+Format of JSON for deploy steps argument is described in `Deploy step format`_
+section.
+
 Writing a Deploy Step
 ---------------------
 

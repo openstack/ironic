@@ -104,13 +104,14 @@ class ConductorAPI(object):
     |    1.50 - Added set_indicator_state, get_indicator_state and
     |           get_supported_indicators.
     |    1.51 - Added agent_verify_ca to heartbeat.
+    |    1.52 - Added deploy steps argument to provisioning
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.51'
+    RPC_API_VERSION = '1.52'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -399,7 +400,7 @@ class ConductorAPI(object):
                           driver_name=driver_name)
 
     def do_node_deploy(self, context, node_id, rebuild, configdrive,
-                       topic=None):
+                       topic=None, deploy_steps=None):
         """Signal to conductor service to perform a deployment.
 
         :param context: request context.
@@ -407,6 +408,7 @@ class ConductorAPI(object):
         :param rebuild: True if this is a rebuild request.
         :param configdrive: A gzipped and base64 encoded configdrive.
         :param topic: RPC topic. Defaults to self.topic.
+        :param deploy_steps: Deploy steps
         :raises: InstanceDeployFailure
         :raises: InvalidParameterValue if validation fails
         :raises: MissingParameterValue if a required parameter is missing
@@ -417,9 +419,15 @@ class ConductorAPI(object):
         undeployed state before this method is called.
 
         """
-        cctxt = self.client.prepare(topic=topic or self.topic, version='1.22')
+        version = '1.22'
+        new_kws = {}
+        if deploy_steps:
+            version = '1.52'
+            new_kws['deploy_steps'] = deploy_steps
+
+        cctxt = self.client.prepare(topic=topic or self.topic, version=version)
         return cctxt.call(context, 'do_node_deploy', node_id=node_id,
-                          rebuild=rebuild, configdrive=configdrive)
+                          rebuild=rebuild, configdrive=configdrive, **new_kws)
 
     def do_node_tear_down(self, context, node_id, topic=None):
         """Signal to conductor service to tear down a deployment.

@@ -759,6 +759,32 @@ class TestCheckAllowFields(base.TestCase):
         mock_request.version.minor = 61
         self.assertFalse(utils.allow_agent_token())
 
+    def test_allow_deploy_steps(self, mock_request):
+        mock_request.version.minor = 69
+        self.assertTrue(utils.allow_deploy_steps())
+        mock_request.version.minor = 68
+        self.assertFalse(utils.allow_deploy_steps())
+
+    def test_check_allow_deploy_steps(self, mock_request):
+        mock_request.version.minor = 69
+        utils.check_allow_deploy_steps(states.ACTIVE, {'a': 1})
+        utils.check_allow_deploy_steps(states.REBUILD, {'a': 1})
+
+    def test_check_allow_deploy_steps_empty(self, mock_request):
+        utils.check_allow_deploy_steps(states.ACTIVE, None)
+
+    def test_check_allow_deploy_steps_version_older(self, mock_request):
+        mock_request.version.minor = 68
+        self.assertRaises(exception.NotAcceptable,
+                          utils.check_allow_deploy_steps,
+                          states.ACTIVE, {'a': 1})
+
+    def test_check_allow_deploy_steps_target_unsupported(self, mock_request):
+        mock_request.version.minor = 69
+        self.assertRaises(exception.ClientSideError,
+                          utils.check_allow_deploy_steps,
+                          states.MANAGEABLE, {'a': 1})
+
 
 @mock.patch.object(api, 'request', spec_set=['context', 'version'])
 class TestNodeIdent(base.TestCase):

@@ -4978,7 +4978,8 @@ class TestPut(test_api_base.BaseApiTest):
                                               node_id=self.node.uuid,
                                               rebuild=False,
                                               configdrive=None,
-                                              topic='test-topic')
+                                              topic='test-topic',
+                                              deploy_steps=None)
         # Check location header
         self.assertIsNotNone(ret.location)
         expected_location = '/v1/nodes/%s/states' % self.node.uuid
@@ -5002,7 +5003,8 @@ class TestPut(test_api_base.BaseApiTest):
                                               node_id=self.node.uuid,
                                               rebuild=False,
                                               configdrive=None,
-                                              topic='test-topic')
+                                              topic='test-topic',
+                                              deploy_steps=None)
 
     def test_provision_with_deploy_configdrive(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
@@ -5013,7 +5015,8 @@ class TestPut(test_api_base.BaseApiTest):
                                               node_id=self.node.uuid,
                                               rebuild=False,
                                               configdrive='foo',
-                                              topic='test-topic')
+                                              topic='test-topic',
+                                              deploy_steps=None)
         # Check location header
         self.assertIsNotNone(ret.location)
         expected_location = '/v1/nodes/%s/states' % self.node.uuid
@@ -5031,7 +5034,8 @@ class TestPut(test_api_base.BaseApiTest):
                                               node_id=self.node.uuid,
                                               rebuild=False,
                                               configdrive={'user_data': 'foo'},
-                                              topic='test-topic')
+                                              topic='test-topic',
+                                              deploy_steps=None)
 
     def test_provision_with_deploy_configdrive_as_dict_all_fields(self):
         fake_cd = {'user_data': {'serialize': 'me'},
@@ -5048,7 +5052,8 @@ class TestPut(test_api_base.BaseApiTest):
                                               node_id=self.node.uuid,
                                               rebuild=False,
                                               configdrive=fake_cd,
-                                              topic='test-topic')
+                                              topic='test-topic',
+                                              deploy_steps=None)
 
     def test_provision_with_deploy_configdrive_as_dict_unsupported(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
@@ -5056,6 +5061,39 @@ class TestPut(test_api_base.BaseApiTest):
                              'configdrive': {'user_data': 'foo'}},
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+
+    @mock.patch.object(api_utils, 'check_allow_deploy_steps', autospec=True)
+    def test_provision_with_deploy_deploy_steps(self, mock_check):
+        deploy_steps = [{'interface': 'bios',
+                         'step': 'factory_reset',
+                         'priority': 95,
+                         'args': {}}]
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.ACTIVE,
+                             'deploy_steps': deploy_steps})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+                                              node_id=self.node.uuid,
+                                              rebuild=False,
+                                              configdrive=None,
+                                              topic='test-topic',
+                                              deploy_steps=deploy_steps)
+        # Check location header
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/states' % self.node.uuid
+        self.assertEqual(urlparse.urlparse(ret.location).path,
+                         expected_location)
+
+    def test_provision_with_deploy_deploy_steps_fail(self):
+        # Mandatory 'priority' missing in the step
+        deploy_steps = [{'interface': 'bios',
+                         'step': 'factory_reset'}]
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.ACTIVE,
+                             'deploy_steps': deploy_steps},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
 
     def test_provision_with_rebuild(self):
         node = self.node
@@ -5070,7 +5108,8 @@ class TestPut(test_api_base.BaseApiTest):
                                               node_id=self.node.uuid,
                                               rebuild=True,
                                               configdrive=None,
-                                              topic='test-topic')
+                                              topic='test-topic',
+                                              deploy_steps=None)
         # Check location header
         self.assertIsNotNone(ret.location)
         expected_location = '/v1/nodes/%s/states' % self.node.uuid
@@ -5101,7 +5140,8 @@ class TestPut(test_api_base.BaseApiTest):
                                               node_id=self.node.uuid,
                                               rebuild=True,
                                               configdrive='foo',
-                                              topic='test-topic')
+                                              topic='test-topic',
+                                              deploy_steps=None)
         # Check location header
         self.assertIsNotNone(ret.location)
         expected_location = '/v1/nodes/%s/states' % self.node.uuid
@@ -5113,6 +5153,33 @@ class TestPut(test_api_base.BaseApiTest):
                             {'target': states.DELETED, 'configdrive': 'foo'},
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+
+    @mock.patch.object(api_utils, 'check_allow_deploy_steps', autospec=True)
+    def test_provision_with_rebuild_deploy_steps(self, mock_check):
+        node = self.node
+        node.provision_state = states.ACTIVE
+        node.target_provision_state = states.NOSTATE
+        node.save()
+        deploy_steps = [{'interface': 'bios',
+                         'step': 'factory_reset',
+                         'priority': 95,
+                         'args': {}}]
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.REBUILD,
+                             'deploy_steps': deploy_steps})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+                                              node_id=self.node.uuid,
+                                              rebuild=True,
+                                              configdrive=None,
+                                              topic='test-topic',
+                                              deploy_steps=deploy_steps)
+        # Check location header
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/states' % self.node.uuid
+        self.assertEqual(urlparse.urlparse(ret.location).path,
+                         expected_location)
 
     def test_provision_with_tear_down(self):
         node = self.node
@@ -5191,7 +5258,8 @@ class TestPut(test_api_base.BaseApiTest):
                                               node_id=self.node.uuid,
                                               rebuild=False,
                                               configdrive=None,
-                                              topic='test-topic')
+                                              topic='test-topic',
+                                              deploy_steps=None)
         # Check location header
         self.assertIsNotNone(ret.location)
         expected_location = '/v1/nodes/%s/states' % node.uuid

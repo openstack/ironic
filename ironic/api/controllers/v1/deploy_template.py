@@ -30,7 +30,6 @@ from ironic.api import method
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.conductor import steps as conductor_steps
 import ironic.conf
 from ironic import objects
 
@@ -40,30 +39,14 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 
 DEFAULT_RETURN_FIELDS = ['uuid', 'name']
 
-INTERFACE_NAMES = list(conductor_steps.DEPLOYING_INTERFACE_PRIORITY)
-
-STEP_SCHEMA = {
-    'type': 'object',
-    'properties': {
-        'args': {'type': 'object'},
-        'interface': {'type': 'string', 'enum': INTERFACE_NAMES},
-        'priority': {'anyOf': [
-            {'type': 'integer', 'minimum': 0},
-            {'type': 'string', 'minLength': 1, 'pattern': '^[0-9]+$'}
-        ]},
-        'step': {'type': 'string', 'minLength': 1},
-    },
-    'required': ['interface', 'step', 'args', 'priority'],
-    'additionalProperties': False,
-}
-
 TEMPLATE_SCHEMA = {
     'type': 'object',
     'properties': {
         'description': {'type': ['string', 'null'], 'maxLength': 255},
         'extra': {'type': ['object', 'null']},
         'name': api_utils.TRAITS_SCHEMA,
-        'steps': {'type': 'array', 'items': STEP_SCHEMA, 'minItems': 1},
+        'steps': {'type': 'array', 'items': api_utils.DEPLOY_STEP_SCHEMA,
+                  'minItems': 1},
         'uuid': {'type': ['string', 'null']},
     },
     'required': ['steps', 'name'],
@@ -307,7 +290,7 @@ class DeployTemplatesController(rest.RestController):
         # validate the result with the patch schema
         for step in template.get('steps', []):
             api_utils.patched_validate_with_schema(
-                step, STEP_SCHEMA)
+                step, api_utils.DEPLOY_STEP_SCHEMA)
         api_utils.patched_validate_with_schema(
             template, TEMPLATE_SCHEMA, TEMPLATE_VALIDATOR)
 

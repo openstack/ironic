@@ -84,6 +84,13 @@ _CLEAN_STEPS_SCHEMA = {
     }
 }
 
+_DEPLOY_STEPS_SCHEMA = {
+    "$schema": "http://json-schema.org/schema#",
+    "title": "Deploy steps schema",
+    "type": "array",
+    "items": api_utils.DEPLOY_STEP_SCHEMA
+}
+
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 # Vendor information for node's driver:
@@ -784,18 +791,22 @@ class NodeStatesController(rest.RestController):
         api.response.location = link.build_url('nodes', url_args)
 
     def _do_provision_action(self, rpc_node, target, configdrive=None,
-                             clean_steps=None, rescue_password=None):
+                             clean_steps=None, deploy_steps=None,
+                             rescue_password=None):
         topic = api.request.rpcapi.get_topic_for(rpc_node)
         # Note that there is a race condition. The node state(s) could change
         # by the time the RPC call is made and the TaskManager manager gets a
         # lock.
         if target in (ir_states.ACTIVE, ir_states.REBUILD):
             rebuild = (target == ir_states.REBUILD)
+            if deploy_steps:
+                _check_deploy_steps(deploy_steps)
             api.request.rpcapi.do_node_deploy(context=api.request.context,
                                               node_id=rpc_node.uuid,
                                               rebuild=rebuild,
                                               configdrive=configdrive,
-                                              topic=topic)
+                                              topic=topic,
+                                              deploy_steps=deploy_steps)
         elif (target == ir_states.VERBS['unrescue']):
             api.request.rpcapi.do_node_unrescue(
                 api.request.context, rpc_node.uuid, topic)
@@ -836,9 +847,11 @@ class NodeStatesController(rest.RestController):
     @args.validate(node_ident=args.uuid_or_name, target=args.string,
                    configdrive=args.types(type(None), dict, str),
                    clean_steps=args.types(type(None), list),
+                   deploy_steps=args.types(type(None), list),
                    rescue_password=args.string)
     def provision(self, node_ident, target, configdrive=None,
-                  clean_steps=None, rescue_password=None):
+                  clean_steps=None, deploy_steps=None,
+                  rescue_password=None):
         """Asynchronous trigger the provisioning of the node.
 
         This will set the target provision state of the node, and a
@@ -871,6 +884,27 @@ class NodeStatesController(rest.RestController):
                 'args': {'force': True} }
 
             This is required (and only valid) when target is "clean".
+        :param deploy_steps: A list of deploy steps that will be performed on
+            the node. A deploy step is a dictionary with required keys
+            'interface', 'step', 'priority' and 'args'. If specified, the value
+            for 'args' is a keyword variable argument dictionary that is passed
+            to the deploy step method.::
+
+              { 'interface': <driver_interface>,
+                'step': <name_of_deploy_step>,
+                'args': {<arg1>: <value1>, ..., <argn>: <valuen>}
+                'priority': <integer>}
+
+            For example (this isn't a real example, this deploy step doesn't
+            exist)::
+
+              { 'interface': 'deploy',
+                'step': 'upgrade_firmware',
+                'args': {'force': True},
+                'priority': 90 }
+
+            This is used only when target is "active" or "rebuild" and is
+            optional.
         :param rescue_password: A string representing the password to be set
             inside the rescue environment. This is required (and only valid),
             when target is "rescue".
@@ -878,7 +912,7 @@ class NodeStatesController(rest.RestController):
         :raises: ClientSideError (HTTP 409) if the node is already being
                  provisioned.
         :raises: InvalidParameterValue (HTTP 400), if validation of
-                 clean_steps or power driver interface fails.
+                 clean_steps, deploy_steps or power driver interface fails.
         :raises: InvalidStateRequested (HTTP 400) if the requested transition
                  is not possible from the current state.
         :raises: NodeInMaintenance (HTTP 400), if operation cannot be
@@ -923,6 +957,8 @@ class NodeStatesController(rest.RestController):
             raise exception.ClientSideError(
                 msg, status_code=http_client.BAD_REQUEST)
 
+        api_utils.check_allow_deploy_steps(target, deploy_steps)
+
         if (rescue_password is not None
             and target != ir_states.VERBS['rescue']):
             msg = (_('"rescue_password" is only valid when setting target '
@@ -936,7 +972,7 @@ class NodeStatesController(rest.RestController):
                 raise exception.NotAcceptable()
 
         self._do_provision_action(rpc_node, target, configdrive, clean_steps,
-                                  rescue_password)
+                                  deploy_steps, rescue_password)
 
         # Set the HTTP Location Header
         url_args = '/'.join([node_ident, 'states'])
@@ -944,20 +980,43 @@ class NodeStatesController(rest.RestController):
 
 
 def _check_clean_steps(clean_steps):
-    """Ensure all necessary keys are present and correct in clean steps.
+    """Ensure all necessary keys are present and correct in steps for clean
 
-    Check that the user-specified clean steps are in the expected format and
-    include the required information.
-
-    :param clean_steps: a list of clean steps. For more details, see the
+    :param clean_steps: a list of steps. For more details, see the
         clean_steps parameter of :func:`NodeStatesController.provision`.
-    :raises: InvalidParameterValue if validation of clean steps fails.
+    :raises: InvalidParameterValue if validation of steps fails.
+    """
+    _check_steps(clean_steps, 'clean', _CLEAN_STEPS_SCHEMA)
+
+
+def _check_deploy_steps(deploy_steps):
+    """Ensure all necessary keys are present and correct in steps for deploy
+
+    :param deploy_steps: a list of steps. For more details, see the
+        deploy_steps parameter of :func:`NodeStatesController.provision`.
+    :raises: InvalidParameterValue if validation of steps fails.
+    """
+    _check_steps(deploy_steps, 'deploy', _DEPLOY_STEPS_SCHEMA)
+
+
+def _check_steps(steps, step_type, schema):
+    """Ensure all necessary keys are present and correct in steps.
+
+    Check that the user-specified steps are in the expected format and include
+    the required information.
+
+    :param steps: a list of steps. For more details, see the
+        clean_steps and deploy_steps parameter of
+        :func:`NodeStatesController.provision`.
+    :param step_type: 'clean' or 'deploy' step type
+    :param schema: JSON schema to use for validation.
+    :raises: InvalidParameterValue if validation of steps fails.
     """
     try:
-        jsonschema.validate(clean_steps, _CLEAN_STEPS_SCHEMA)
+        jsonschema.validate(steps, schema)
     except jsonschema.ValidationError as exc:
-        raise exception.InvalidParameterValue(_('Invalid clean_steps: %s') %
-                                              exc)
+        raise exception.InvalidParameterValue(_('Invalid %s_steps: %s') %
+                                              (step_type, exc))
 
 
 def _get_chassis_uuid(node):

@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds support for ``deploy_steps`` parameter to provisioning endpoint
+    ``/v1/nodes/{node_ident}/states/provision``. Available and optional when
+    target is 'active' or 'rebuild'. When overlapping, these steps override
+    deploy template and driver steps. ``deploy_steps`` is a list of
+    dictionaries with required keys 'interface', 'step', 'priority' and 'args'.

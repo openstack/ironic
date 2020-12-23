@@ -1454,7 +1454,8 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                                  mock_iwdi):
         self._test_do_node_deploy_validate_fail(mock_validate, mock_iwdi)
 
-    @mock.patch.object(conductor_steps, 'validate_deploy_templates',
+    @mock.patch.object(conductor_steps,
+                       'validate_user_deploy_steps_and_templates',
                        autospec=True)
     def test_do_node_deploy_validate_template_fail(self, mock_validate,
                                                    mock_iwdi):
@@ -1484,7 +1485,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
             # Verify reservation has been cleared.
             self.assertIsNone(node.reservation)
             mock_spawn.assert_called_once_with(mock.ANY, mock.ANY,
-                                               mock.ANY, None)
+                                               mock.ANY, None, None)
             mock_iwdi.assert_called_once_with(self.context, node.instance_info)
             self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
 
@@ -3207,7 +3208,8 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           network_interface='noop')
         with mock.patch(
-                'ironic.conductor.steps.validate_deploy_templates',
+                'ironic.conductor.steps'
+                '.validate_user_deploy_steps_and_templates',
                 autospec=True) as mock_validate:
             reason = 'fake reason'
             mock_validate.side_effect = exception.InvalidParameterValue(reason)
