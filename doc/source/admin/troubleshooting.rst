@@ -769,3 +769,63 @@ be set in UTC.
 .. note::
    Microsoft Windows uses local time by default, so a machine that has
    previously run Windows will likely have wrong time.
+
+I changed ironic.conf, and now I can't edit my nodes.
+=====================================================
+
+Whenever a node is created in ironic, default interfaces are identified
+as part of driver composition. This maybe sourced from explicit default
+values which have been set in ``ironic.conf`` or by the interface order
+for the enabled interfaces list. The result of this is that the
+``ironic-conductor`` cannot spawn a ``task`` using the composed driver,
+as a portion of the driver is no longer enabled. This makes it difficult
+to edit or update the node if the settings have been changed.
+
+For example, with networking interfaces, if you have
+``default_network_interface=neutron`` or
+``enabled_network_interfaces=neutron,flat``
+in your ``ironic.conf``, nodes would have been created with the ``neutron``
+network interface.
+
+This is because ``default_network_interface`` overrides the setting
+for new nodes, and that setting is **saved** to the database nodes table.
+
+Similarly, the order of ``enabled_network_interfaces`` takes priority, and
+the first entry in the list is generally set to the default for the node upon
+creation, and that record is **saved** to the database nodes table.
+
+The only case where driver composition does *not* calculate a default is if
+an explicit value is provided upon the creation of the node.
+
+Example failure
+---------------
+
+A node in this state, when the ``network_interface`` was saved as ``neutron``,
+yet the ``neutron`` interface is no longer enabled will fail basic state
+transition requests.:
+
+  $ baremetal node manage 7164efca-37ab-1213-1112-b731cf795a5a
+  Could not find the following interface in the 'ironic.hardware.interfaces.network' entrypoint: neutron. Valid interfaces are ['flat']. (HTTP 400)
+
+How to fix this?
+----------------
+
+Revert the changes you made to ``ironic.conf``.
+
+This applies to any changes to any ``default_*_interface`` options or the
+order of interfaces in the for the ``enabled_*_interfaces`` options.
+
+Once the conductor has been restarted with the updated configuration, you
+should now be able to update the interface using the ``baremetal node set``
+command. In this example we use the ``network_interface`` as this is most
+commonly where it is encountered.:
+
+  $ baremetal node set $NAME_OR_UUID --network-interface flat
+
+.. note:: There are additional paths one can take to remedy this sort of
+   issue, however we encourage operators to be mindful of operational
+   consistency when making major configuration changes.
+
+Once you have updated the saved interfaces, you should be able to safely
+return the ``ironic.conf`` configuration change in changing what interfaces
+are enabled by the conductor.
