@@ -72,6 +72,36 @@ CLI commands below specify it for completeness.
       cloud-init version 0.7.7 or later is required for bonding configuration
       to work.
 
+      The following is a simple sample for configuring bonding via configdrive:
+
+      When booting an instance, it needs to add user-data file for configuring
+      bonding via ``--user-data`` option. For example:
+
+      .. code-block:: json
+
+          {
+            "networks": [
+              {
+                "type": "physical",
+                "name": "eth0",
+                "mac_address": "fa:ab:25:48:fd:ba"
+              },
+              {
+                "type": "physical",
+                "name": "eth1",
+                "mac_address": "fa:ab:25:48:fd:ab"
+              },
+              {
+                "type": "bond",
+                "name": "bond0",
+                "bond_interfaces": [
+                  "eth0", "eth1"
+                  ],
+                  "mode": "active-backup"
+              }
+            ]
+          }
+
       If the port group's address is not explicitly set in standalone mode, it
       will be set automatically by the process described in
       `kernel documentation on bonding`_.
