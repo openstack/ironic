@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes cleaning with the ``ramdisk`` deploy interface by reusing the same
+    procedure as for the ``direct`` deploy interface.

@@ -37,7 +37,8 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
     capabilities = ['ramdisk_boot', 'pxe_boot']
 
 
-class PXERamdiskDeploy(agent_base.AgentBaseMixin, base.DeployInterface):
+class PXERamdiskDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
+                       base.DeployInterface):
 
     def get_properties(self, task):
         return {}
