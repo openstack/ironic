@@ -5677,7 +5677,41 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(b'', ret.body)
         mock_check.assert_called_once_with(clean_steps)
         mock_rpcapi.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
-                                            clean_steps, 'test-topic')
+                                            clean_steps, None,
+                                            topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_clean', autospec=True)
+    @mock.patch.object(api_node, '_check_clean_steps', autospec=True)
+    def test_clean_disable_ramdisk(self, mock_check, mock_rpcapi):
+        self.node.provision_state = states.MANAGEABLE
+        self.node.save()
+        clean_steps = [{"step": "upgrade_firmware", "interface": "deploy"}]
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['clean'],
+                             'clean_steps': clean_steps,
+                             'disable_ramdisk': True},
+                            headers={api_base.Version.string: "1.70"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        mock_check.assert_called_once_with(clean_steps)
+        mock_rpcapi.assert_called_once_with(mock.ANY, mock.ANY,
+                                            self.node.uuid,
+                                            clean_steps, True,
+                                            topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_clean', autospec=True)
+    @mock.patch.object(api_node, '_check_clean_steps', autospec=True)
+    def test_clean_disable_ramdisk_old_api(self, mock_check, mock_rpcapi):
+        self.node.provision_state = states.MANAGEABLE
+        self.node.save()
+        clean_steps = [{"step": "upgrade_firmware", "interface": "deploy"}]
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['clean'],
+                             'clean_steps': clean_steps,
+                             'disable_ramdisk': True},
+                            headers={api_base.Version.string: "1.69"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
 
     def test_adopt_raises_error_before_1_17(self):
         """Test that a lower API client cannot use the adopt verb"""

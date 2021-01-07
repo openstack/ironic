@@ -418,7 +418,7 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         node.refresh()
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
-        mock_steps.assert_called_once_with(mock.ANY)
+        mock_steps.assert_called_once_with(mock.ANY, disable_ramdisk=False)
         self.assertFalse(node.maintenance)
         self.assertIsNone(node.fault)
 
@@ -439,7 +439,8 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
                 autospec=True)
     def __do_node_clean(self, mock_power_valid, mock_network_valid,
-                        mock_next_step, mock_steps, clean_steps=None):
+                        mock_next_step, mock_steps, clean_steps=None,
+                        disable_ramdisk=False):
         if clean_steps:
             tgt_prov_state = states.MANAGEABLE
             driver_info = {}
@@ -457,14 +458,21 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
-            cleaning.do_node_clean(task, clean_steps=clean_steps)
+            cleaning.do_node_clean(task, clean_steps=clean_steps,
+                                   disable_ramdisk=disable_ramdisk)
 
             node.refresh()
 
             mock_power_valid.assert_called_once_with(mock.ANY, task)
-            mock_network_valid.assert_called_once_with(mock.ANY, task)
-            mock_next_step.assert_called_once_with(task, 0)
-            mock_steps.assert_called_once_with(task)
+            if disable_ramdisk:
+                mock_network_valid.assert_not_called()
+            else:
+                mock_network_valid.assert_called_once_with(mock.ANY, task)
+
+            mock_next_step.assert_called_once_with(
+                task, 0, disable_ramdisk=disable_ramdisk)
+            mock_steps.assert_called_once_with(
+                task, disable_ramdisk=disable_ramdisk)
             if clean_steps:
                 self.assertEqual(clean_steps,
                                  node.driver_internal_info['clean_steps'])
@@ -479,6 +487,10 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
 
     def test__do_node_clean_manual(self):
         self.__do_node_clean(clean_steps=[self.deploy_raid])
+
+    def test__do_node_clean_manual_disable_ramdisk(self):
+        self.__do_node_clean(clean_steps=[self.deploy_raid],
+                             disable_ramdisk=True)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
                 autospec=True)
@@ -623,13 +635,16 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         self._do_next_clean_step_last_step_noop(fast_track=True)
 
     @mock.patch('ironic.drivers.utils.collect_ramdisk_logs', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down_cleaning',
+                autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step',
                 autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
                 autospec=True)
     def _do_next_clean_step_all(self, mock_deploy_execute,
-                                mock_power_execute, mock_collect_logs,
-                                manual=False):
+                                mock_power_execute, mock_tear_down,
+                                mock_collect_logs,
+                                manual=False, disable_ramdisk=False):
         # Run all steps from start to finish (all synchronous)
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
 
@@ -653,7 +668,19 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
-            cleaning.do_next_clean_step(task, 0)
+            cleaning.do_next_clean_step(
+                task, 0, disable_ramdisk=disable_ramdisk)
+
+            mock_power_execute.assert_called_once_with(task.driver.power, task,
+                                                       self.clean_steps[1])
+            mock_deploy_execute.assert_has_calls(
+                [mock.call(task.driver.deploy, task, self.clean_steps[0]),
+                 mock.call(task.driver.deploy, task, self.clean_steps[2])])
+            if disable_ramdisk:
+                mock_tear_down.assert_not_called()
+            else:
+                mock_tear_down.assert_called_once_with(
+                    task.driver.deploy, task)
 
         node.refresh()
 
@@ -664,11 +691,6 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         self.assertNotIn('clean_step_index', node.driver_internal_info)
         self.assertEqual('test', node.driver_internal_info['goober'])
         self.assertIsNone(node.driver_internal_info['clean_steps'])
-        mock_power_execute.assert_called_once_with(mock.ANY, mock.ANY,
-                                                   self.clean_steps[1])
-        mock_deploy_execute.assert_has_calls(
-            [mock.call(mock.ANY, mock.ANY, self.clean_steps[0]),
-             mock.call(mock.ANY, mock.ANY, self.clean_steps[2])])
         self.assertFalse(mock_collect_logs.called)
 
     def test_do_next_clean_step_automated_all(self):
@@ -676,6 +698,9 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
 
     def test_do_next_clean_step_manual_all(self):
         self._do_next_clean_step_all(manual=True)
+
+    def test_do_next_clean_step_manual_all_disable_ramdisk(self):
+        self._do_next_clean_step_all(manual=True, disable_ramdisk=True)
 
     @mock.patch('ironic.drivers.utils.collect_ramdisk_logs', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step',

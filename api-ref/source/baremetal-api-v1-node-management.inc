@@ -363,6 +363,10 @@ detailed documentation of the Ironic State Machine is available
    ``deploy_steps`` can be provided when settings the node's provision target
    state to ``active`` or ``rebuild``.
 
+.. versionadded:: 1.70
+   ``disable_ramdisk`` can be provided to avoid booting the ramdisk during
+   manual cleaning.
+
 Normal response code: 202
 
 Error codes:
@@ -382,6 +386,7 @@ Request
     - clean_steps: clean_steps
     - deploy_steps: deploy_steps
     - rescue_password: rescue_password
+    - disable_ramdisk: disable_ramdisk
 
 **Example request to deploy a Node, using a configdrive served via local webserver:**
 

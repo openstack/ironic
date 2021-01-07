@@ -1972,3 +1972,14 @@ def check_allow_deploy_steps(target, deploy_steps):
                  'provision state to %s or %s') % allowed_states)
         raise exception.ClientSideError(
             msg, status_code=http_client.BAD_REQUEST)
+
+
+def check_allow_clean_disable_ramdisk(target, disable_ramdisk):
+    if disable_ramdisk is None:
+        return
+    elif api.request.version.minor < versions.MINOR_70_CLEAN_DISABLE_RAMDISK:
+        raise exception.NotAcceptable(
+            _("disable_ramdisk is not acceptable in this API version"))
+    elif target != "clean":
+        raise exception.BadRequest(
+            _("disable_ramdisk is supported only with manual cleaning"))

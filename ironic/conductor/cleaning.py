@@ -27,7 +27,7 @@ LOG = log.getLogger(__name__)
 
 
 @task_manager.require_exclusive_lock
-def do_node_clean(task, clean_steps=None):
+def do_node_clean(task, clean_steps=None, disable_ramdisk=False):
     """Internal RPC method to perform cleaning of a node.
 
     :param task: a TaskManager instance with an exclusive lock on its node
@@ -35,6 +35,7 @@ def do_node_clean(task, clean_steps=None):
                         perform. Is None For automated cleaning (default).
                         For more information, see the clean_steps parameter
                         of :func:`ConductorManager.do_node_clean`.
+    :param disable_ramdisk: Whether to skip booting ramdisk for cleaning.
     """
     node = task.node
     manual_clean = clean_steps is not None
@@ -64,7 +65,8 @@ def do_node_clean(task, clean_steps=None):
         # NOTE(ghe): Valid power and network values are needed to perform
         # a cleaning.
         task.driver.power.validate(task)
-        task.driver.network.validate(task)
+        if not disable_ramdisk:
+            task.driver.network.validate(task)
     except exception.InvalidParameterValue as e:
         msg = (_('Validation failed. Cannot clean node %(node)s. '
                  'Error: %(msg)s') %
@@ -74,6 +76,7 @@ def do_node_clean(task, clean_steps=None):
     if manual_clean:
         info = node.driver_internal_info
         info['clean_steps'] = clean_steps
+        info['cleaning_disable_ramdisk'] = disable_ramdisk
         node.driver_internal_info = info
         node.save()
 
@@ -83,7 +86,13 @@ def do_node_clean(task, clean_steps=None):
     # Allow the deploy driver to set up the ramdisk again (necessary for
     # IPA cleaning)
     try:
-        prepare_result = task.driver.deploy.prepare_cleaning(task)
+        if not disable_ramdisk:
+            prepare_result = task.driver.deploy.prepare_cleaning(task)
+        else:
+            LOG.info('Skipping preparing for in-band cleaning since '
+                     'out-of-band only cleaning has been requested for node '
+                     '%s', node.uuid)
+            prepare_result = None
     except Exception as e:
         msg = (_('Failed to prepare node %(node)s for cleaning: %(e)s')
                % {'node': node.uuid, 'e': e})
@@ -102,7 +111,8 @@ def do_node_clean(task, clean_steps=None):
         return
 
     try:
-        conductor_steps.set_node_cleaning_steps(task)
+        conductor_steps.set_node_cleaning_steps(
+            task, disable_ramdisk=disable_ramdisk)
     except (exception.InvalidParameterValue,
             exception.NodeCleaningFailure) as e:
         msg = (_('Cannot clean node %(node)s. Error: %(msg)s')
@@ -111,13 +121,13 @@ def do_node_clean(task, clean_steps=None):
 
     steps = node.driver_internal_info.get('clean_steps', [])
     step_index = 0 if steps else None
-    do_next_clean_step(task, step_index)
+    do_next_clean_step(task, step_index, disable_ramdisk=disable_ramdisk)
 
 
 @utils.fail_on_error(utils.cleaning_error_handler,
                      _("Unexpected error when processing next clean step"))
 @task_manager.require_exclusive_lock
-def do_next_clean_step(task, step_index):
+def do_next_clean_step(task, step_index, disable_ramdisk=None):
     """Do cleaning, starting from the specified clean step.
 
     :param task: a TaskManager instance with an exclusive lock
@@ -125,6 +135,7 @@ def do_next_clean_step(task, step_index):
         is the index (from 0) into the list of clean steps in the node's
         driver_internal_info['clean_steps']. Is None if there are no steps
         to execute.
+    :param disable_ramdisk: Whether to skip booting ramdisk for cleaning.
     """
     node = task.node
     # For manual cleaning, the target provision state is MANAGEABLE,
@@ -134,6 +145,10 @@ def do_next_clean_step(task, step_index):
         steps = []
     else:
         steps = node.driver_internal_info['clean_steps'][step_index:]
+
+    if disable_ramdisk is None:
+        disable_ramdisk = node.driver_internal_info.get(
+            'cleaning_disable_ramdisk', False)
 
     LOG.info('Executing %(state)s on node %(node)s, remaining steps: '
              '%(steps)s', {'node': node.uuid, 'steps': steps,
@@ -182,7 +197,8 @@ def do_next_clean_step(task, step_index):
                      '%(exc)s') %
                    {'node': node.uuid, 'exc': e,
                     'step': node.clean_step})
-            driver_utils.collect_ramdisk_logs(task.node, label='cleaning')
+            if not disable_ramdisk:
+                driver_utils.collect_ramdisk_logs(task.node, label='cleaning')
             utils.cleaning_error_handler(task, msg, traceback=True)
             return
 
@@ -206,22 +222,23 @@ def do_next_clean_step(task, step_index):
         LOG.info('Node %(node)s finished clean step %(step)s',
                  {'node': node.uuid, 'step': step})
 
-    if CONF.agent.deploy_logs_collect == 'always':
+    if CONF.agent.deploy_logs_collect == 'always' and not disable_ramdisk:
         driver_utils.collect_ramdisk_logs(task.node, label='cleaning')
 
     # Clear clean_step
     node.clean_step = None
     utils.wipe_cleaning_internal_info(task)
     node.save()
-    try:
-        task.driver.deploy.tear_down_cleaning(task)
-    except Exception as e:
-        msg = (_('Failed to tear down from cleaning for node %(node)s, '
-                 'reason: %(err)s')
-               % {'node': node.uuid, 'err': e})
-        return utils.cleaning_error_handler(task, msg,
-                                            traceback=True,
-                                            tear_down_cleaning=False)
+    if not disable_ramdisk:
+        try:
+            task.driver.deploy.tear_down_cleaning(task)
+        except Exception as e:
+            msg = (_('Failed to tear down from cleaning for node %(node)s, '
+                     'reason: %(err)s')
+                   % {'node': node.uuid, 'err': e})
+            return utils.cleaning_error_handler(task, msg,
+                                                traceback=True,
+                                                tear_down_cleaning=False)
 
     LOG.info('Node %s cleaning complete', node.uuid)
     event = 'manage' if manual_clean or node.retired else 'done'

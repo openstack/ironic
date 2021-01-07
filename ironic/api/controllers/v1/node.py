@@ -793,7 +793,7 @@ class NodeStatesController(rest.RestController):
 
     def _do_provision_action(self, rpc_node, target, configdrive=None,
                              clean_steps=None, deploy_steps=None,
-                             rescue_password=None):
+                             rescue_password=None, disable_ramdisk=None):
         topic = api.request.rpcapi.get_topic_for(rpc_node)
         # Note that there is a race condition. The node state(s) could change
         # by the time the RPC call is made and the TaskManager manager gets a
@@ -834,7 +834,8 @@ class NodeStatesController(rest.RestController):
                     msg, status_code=http_client.BAD_REQUEST)
             _check_clean_steps(clean_steps)
             api.request.rpcapi.do_node_clean(
-                api.request.context, rpc_node.uuid, clean_steps, topic)
+                api.request.context, rpc_node.uuid, clean_steps,
+                disable_ramdisk, topic=topic)
         elif target in PROVISION_ACTION_STATES:
             api.request.rpcapi.do_provisioning_action(
                 api.request.context, rpc_node.uuid, target, topic)
@@ -849,10 +850,11 @@ class NodeStatesController(rest.RestController):
                    configdrive=args.types(type(None), dict, str),
                    clean_steps=args.types(type(None), list),
                    deploy_steps=args.types(type(None), list),
-                   rescue_password=args.string)
+                   rescue_password=args.string,
+                   disable_ramdisk=args.boolean)
     def provision(self, node_ident, target, configdrive=None,
                   clean_steps=None, deploy_steps=None,
-                  rescue_password=None):
+                  rescue_password=None, disable_ramdisk=None):
         """Asynchronous trigger the provisioning of the node.
 
         This will set the target provision state of the node, and a
@@ -909,6 +911,7 @@ class NodeStatesController(rest.RestController):
         :param rescue_password: A string representing the password to be set
             inside the rescue environment. This is required (and only valid),
             when target is "rescue".
+        :param disable_ramdisk: Whether to skip booting ramdisk for cleaning.
         :raises: NodeLocked (HTTP 409) if the node is currently locked.
         :raises: ClientSideError (HTTP 409) if the node is already being
                  provisioned.
@@ -920,7 +923,7 @@ class NodeStatesController(rest.RestController):
                  performed because the node is in maintenance mode.
         :raises: NoFreeConductorWorker (HTTP 503) if no workers are available.
         :raises: NotAcceptable (HTTP 406) if the API version specified does
-                 not allow the requested state transition.
+                 not allow the requested state transition or parameters.
         """
         rpc_node = api_utils.check_node_policy_and_retrieve(
             'baremetal:node:set_provision_state', node_ident)
@@ -951,6 +954,7 @@ class NodeStatesController(rest.RestController):
                 state=rpc_node.provision_state)
 
         api_utils.check_allow_configdrive(target, configdrive)
+        api_utils.check_allow_clean_disable_ramdisk(target, disable_ramdisk)
 
         if clean_steps and target != ir_states.VERBS['clean']:
             msg = (_('"clean_steps" is only valid when setting target '
@@ -973,7 +977,8 @@ class NodeStatesController(rest.RestController):
                 raise exception.NotAcceptable()
 
         self._do_provision_action(rpc_node, target, configdrive, clean_steps,
-                                  deploy_steps, rescue_password)
+                                  deploy_steps, rescue_password,
+                                  disable_ramdisk)
 
         # Set the HTTP Location Header
         url_args = '/'.join([node_ident, 'states'])

@@ -161,13 +161,15 @@ def _get_deployment_steps(task, enabled=False, sort=True):
                       enabled=enabled, sort_step_key=sort_key)
 
 
-def set_node_cleaning_steps(task):
+def set_node_cleaning_steps(task, disable_ramdisk=False):
     """Set up the node with clean step information for cleaning.
 
     For automated cleaning, get the clean steps from the driver.
     For manual cleaning, the user's clean steps are known but need to be
     validated against the driver's clean steps.
 
+    :param disable_ramdisk: If `True`, only steps with requires_ramdisk=False
+        are accepted.
     :raises: InvalidParameterValue if there is a problem with the user's
              clean steps.
     :raises: NodeCleaningFailure if there was a problem getting the
@@ -190,8 +192,8 @@ def set_node_cleaning_steps(task):
         # Now that we know what the driver's available clean steps are, we can
         # do further checks to validate the user's clean steps.
         steps = node.driver_internal_info['clean_steps']
-        driver_internal_info['clean_steps'] = (
-            _validate_user_clean_steps(task, steps))
+        driver_internal_info['clean_steps'] = _validate_user_clean_steps(
+            task, steps, disable_ramdisk=disable_ramdisk)
 
     node.clean_step = {}
     driver_internal_info['clean_step_index'] = None
@@ -382,7 +384,8 @@ def _validate_deploy_steps_unique(user_steps):
     return errors
 
 
-def _validate_user_step(task, user_step, driver_step, step_type):
+def _validate_user_step(task, user_step, driver_step, step_type,
+                        disable_ramdisk=False):
     """Validate a user-specified step.
 
     :param task: A TaskManager object
@@ -424,6 +427,8 @@ def _validate_user_step(task, user_step, driver_step, step_type):
                                'required': False } } }
 
     :param step_type: either 'clean' or 'deploy'.
+    :param disable_ramdisk: If `True`, only steps with requires_ramdisk=False
+        are accepted. Only makes sense for manual cleaning at the moment.
     :return: a list of validation error strings for the step.
     """
     errors = []
@@ -453,6 +458,9 @@ def _validate_user_step(task, user_step, driver_step, step_type):
                      {'type': step_type, 'step': user_step,
                       'miss': ', '.join(missing)})
             errors.append(error)
+        if disable_ramdisk and driver_step.get('requires_ramdisk', True):
+            error = _('clean step %s requires booting a ramdisk') % user_step
+            errors.append(error)
 
     if step_type == 'clean':
         # Copy fields that should not be provided by a user
@@ -477,7 +485,8 @@ def _validate_user_step(task, user_step, driver_step, step_type):
 
 
 def _validate_user_steps(task, user_steps, driver_steps, step_type,
-                         error_prefix=None, skip_missing=False):
+                         error_prefix=None, skip_missing=False,
+                         disable_ramdisk=False):
     """Validate the user-specified steps.
 
     :param task: A TaskManager object
@@ -522,6 +531,9 @@ def _validate_user_steps(task, user_steps, driver_steps, step_type,
     :param step_type: either 'clean' or 'deploy'.
     :param error_prefix: String to use as a prefix for exception messages, or
         None.
+    :param skip_missing: Whether to silently ignore unknown steps.
+    :param disable_ramdisk: If `True`, only steps with requires_ramdisk=False
+        are accepted. Only makes sense for manual cleaning at the moment.
     :raises: InvalidParameterValue if validation of steps fails.
     :raises: NodeCleaningFailure or InstanceDeployFailure if
         there was a problem getting the steps from the driver.
@@ -554,7 +566,7 @@ def _validate_user_steps(task, user_steps, driver_steps, step_type,
             continue
 
         step_errors = _validate_user_step(task, user_step, driver_step,
-                                          step_type)
+                                          step_type, disable_ramdisk)
         errors.extend(step_errors)
         result.append(user_step)
 
@@ -572,7 +584,7 @@ def _validate_user_steps(task, user_steps, driver_steps, step_type,
     return result
 
 
-def _validate_user_clean_steps(task, user_steps):
+def _validate_user_clean_steps(task, user_steps, disable_ramdisk=False):
     """Validate the user-specified clean steps.
 
     :param task: A TaskManager object
@@ -588,13 +600,16 @@ def _validate_user_clean_steps(task, user_steps):
               { 'interface': 'deploy',
                 'step': 'upgrade_firmware',
                 'args': {'force': True} }
+    :param disable_ramdisk: If `True`, only steps with requires_ramdisk=False
+        are accepted.
     :raises: InvalidParameterValue if validation of clean steps fails.
     :raises: NodeCleaningFailure if there was a problem getting the
         clean steps from the driver.
     :return: validated clean steps update with information from the driver
     """
     driver_steps = _get_cleaning_steps(task, enabled=False, sort=False)
-    return _validate_user_steps(task, user_steps, driver_steps, 'clean')
+    return _validate_user_steps(task, user_steps, driver_steps, 'clean',
+                                disable_ramdisk=disable_ramdisk)
 
 
 def _validate_user_deploy_steps(task, user_steps, error_prefix=None,

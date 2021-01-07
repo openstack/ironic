@@ -245,7 +245,9 @@ class BaseInterface(object, metaclass=abc.ABCMeta):
                         'priority': method._clean_step_priority,
                         'abortable': method._clean_step_abortable,
                         'argsinfo': method._clean_step_argsinfo,
-                        'interface': instance.interface_type}
+                        'interface': instance.interface_type,
+                        'requires_ramdisk':
+                            method._clean_step_requires_ramdisk}
                 instance.clean_steps.append(step)
             if getattr(method, '_is_deploy_step', False):
                 # Create a DeployStep to represent this method
@@ -1716,7 +1718,8 @@ def _validate_argsinfo(argsinfo):
                 {'arg': arg})
 
 
-def clean_step(priority, abortable=False, argsinfo=None):
+def clean_step(priority, abortable=False, argsinfo=None,
+               requires_ramdisk=True):
     """Decorator for cleaning steps.
 
     Cleaning steps may be used in manual or automated cleaning.
@@ -1770,6 +1773,8 @@ def clean_step(priority, abortable=False, argsinfo=None):
             'required': Boolean. Optional; default is False. True if this
                         argument is required.  If so, it must be specified in
                         the clean request; false if it is optional.
+    :param requires_ramdisk: Whether this step requires the ramdisk
+        to be running. Should be set to False for purely out-of-band steps.
     :raises InvalidParameterValue: if any of the arguments are invalid
     """
     def decorator(func):
@@ -1790,6 +1795,7 @@ def clean_step(priority, abortable=False, argsinfo=None):
 
         _validate_argsinfo(argsinfo)
         func._clean_step_argsinfo = argsinfo
+        func._clean_step_requires_ramdisk = requires_ramdisk
         return func
     return decorator
 

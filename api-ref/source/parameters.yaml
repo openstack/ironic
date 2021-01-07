@@ -780,6 +780,14 @@ description:
   in: body
   required: true
   type: string
+disable_ramdisk:
+  description: |
+    If set to ``true``, the ironic-python-agent ramdisk will not be booted for
+    cleaning. Only clean steps explicitly marked as not requiring ramdisk can
+    be executed in this mode. Only allowed for manual cleaning.
+  in: body
+  required: false
+  type: boolean
 driver_info:
   description: |
     All the metadata required by the driver to manage this Node. List of fields

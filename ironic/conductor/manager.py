@@ -91,7 +91,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.52'
+    RPC_API_VERSION = '1.53'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -1036,7 +1036,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.NodeInMaintenance,
                                    exception.NodeLocked,
                                    exception.NoFreeConductorWorker)
-    def do_node_clean(self, context, node_id, clean_steps):
+    def do_node_clean(self, context, node_id, clean_steps,
+                      disable_ramdisk=False):
         """RPC method to initiate manual cleaning.
 
         :param context: an admin context.
@@ -1057,6 +1058,7 @@ class ConductorManager(base_manager.BaseConductorManager):
               { 'interface': deploy',
                 'step': 'upgrade_firmware',
                 'args': {'force': True} }
+        :param disable_ramdisk: Optional. Whether to disable the ramdisk boot.
         :raises: InvalidParameterValue if power validation fails.
         :raises: InvalidStateRequested if the node is not in manageable state.
         :raises: NodeLocked if node is locked by another conductor.
@@ -1093,7 +1095,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                 task.process_event(
                     'clean',
                     callback=self._spawn_worker,
-                    call_args=(cleaning.do_node_clean, task, clean_steps),
+                    call_args=(cleaning.do_node_clean, task, clean_steps,
+                               disable_ramdisk),
                     err_handler=utils.provisioning_error_handler,
                     target_state=states.MANAGEABLE)
             except exception.InvalidState:

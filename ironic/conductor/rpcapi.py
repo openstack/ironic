@@ -105,13 +105,14 @@ class ConductorAPI(object):
     |           get_supported_indicators.
     |    1.51 - Added agent_verify_ca to heartbeat.
     |    1.52 - Added deploy steps argument to provisioning
+    |    1.53 - Added disable_ramdisk to do_node_clean.
 
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.52'
+    RPC_API_VERSION = '1.53'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -890,12 +891,14 @@ class ConductorAPI(object):
         return cctxt.call(context, 'get_raid_logical_disk_properties',
                           driver_name=driver_name)
 
-    def do_node_clean(self, context, node_id, clean_steps, topic=None):
+    def do_node_clean(self, context, node_id, clean_steps,
+                      disable_ramdisk=None, topic=None):
         """Signal to conductor service to perform manual cleaning on a node.
 
         :param context: request context.
         :param node_id: node ID or UUID.
         :param clean_steps: a list of clean step dictionaries.
+        :param disable_ramdisk: Whether to skip booting ramdisk for cleaning.
         :param topic: RPC topic. Defaults to self.topic.
         :raises: InvalidParameterValue if validation of power driver interface
                  failed.
@@ -905,9 +908,16 @@ class ConductorAPI(object):
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
         """
-        cctxt = self.client.prepare(topic=topic or self.topic, version='1.32')
+        # Avoid sending unset parameters to simplify upgrades.
+        params = {}
+        version = '1.32'
+        if disable_ramdisk is not None:
+            params['disable_ramdisk'] = disable_ramdisk
+            version = '1.53'
+
+        cctxt = self.client.prepare(topic=topic or self.topic, version=version)
         return cctxt.call(context, 'do_node_clean',
-                          node_id=node_id, clean_steps=clean_steps)
+                          node_id=node_id, clean_steps=clean_steps, **params)
 
     def heartbeat(self, context, node_id, callback_url, agent_version,
                   agent_token=None, agent_verify_ca=None, topic=None):

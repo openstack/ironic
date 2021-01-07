@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Adds a new ``disable_ramdisk`` parameter to the manual cleaning API. If set
+    to ``true``, IPA won't get booted for cleaning. Only steps explicitly
+    marked as compatible can be executed this way.
+
+    The parameter is available in the API version 1.70.
+other:
+  - |
+    Clean steps can now be marked with ``requires_ramdisk=False`` to make them
+    compatible with the new ``disable_ramdisk`` argument of the manual cleaning
+    API.
