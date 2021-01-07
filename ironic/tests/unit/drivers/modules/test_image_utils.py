@@ -252,10 +252,9 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href='http://bootloader/img',
-                configdrive_href=mock.ANY,
                 kernel_params='nofb nomodeset vga=normal',
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
-                base_iso=None)
+                base_iso=None, inject_files=None)
 
             self.assertEqual(expected_url, url)
 
@@ -275,10 +274,9 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href=None,
-                configdrive_href=mock.ANY,
                 kernel_params='nofb nomodeset vga=normal',
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
-                base_iso='/path/to/baseiso')
+                base_iso='/path/to/baseiso', inject_files=None)
 
     @mock.patch.object(image_utils.ImageHandler, 'publish_image',
                        autospec=True)
@@ -304,10 +302,9 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='bios', esp_image_href=None,
-                configdrive_href=mock.ANY,
                 kernel_params='nofb nomodeset vga=normal',
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
-                base_iso=None)
+                base_iso=None, inject_files=None)
 
             self.assertEqual(expected_url, url)
 
@@ -330,10 +327,9 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='bios', esp_image_href=None,
-                configdrive_href=mock.ANY,
                 kernel_params=kernel_params,
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
-                base_iso='/path/to/baseiso')
+                base_iso='/path/to/baseiso', inject_files=None)
 
     def test__find_param(self):
         param_dict = {
@@ -385,16 +381,15 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             image_utils.prepare_deploy_iso(task, {}, 'deploy', d_info)
 
             mock__prepare_iso_image.assert_called_once_with(
-                task, 'kernel', 'ramdisk', 'bootloader', params={})
+                task, 'kernel', 'ramdisk', 'bootloader', params={},
+                inject_files={})
 
             find_mock.assert_has_calls(find_call_list)
 
     @mock.patch.object(image_utils, '_find_param', autospec=True)
     @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
-    @mock.patch.object(images, 'create_vfat_image', autospec=True)
     def test_prepare_deploy_iso_network_data(
-            self, mock_create_vfat_image, mock__prepare_iso_image,
-            find_mock):
+            self, mock__prepare_iso_image, find_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
 
@@ -421,12 +416,17 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
 
             image_utils.prepare_deploy_iso(task, {}, 'deploy', d_info)
 
-            mock_create_vfat_image.assert_called_once_with(
-                mock.ANY, mock.ANY)
+            expected_files = {
+                b"""{
+  "a": [
+    "b"
+  ]
+}""": 'openstack/latest/network_data.json'
+            }
 
             mock__prepare_iso_image.assert_called_once_with(
                 task, 'kernel', 'ramdisk', bootloader_href=None,
-                configdrive=mock.ANY, params={})
+                params={}, inject_files=expected_files)
 
             find_mock.assert_has_calls(find_call_list)
 

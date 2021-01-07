@@ -14,9 +14,7 @@
         - ironic-tempest-functional-python3
         - ironic-grenade
         - ironic-tempest-partition-bios-redfish-pxe
-        # (rpittau) disabling to prevent chicken-egg effect until fixed
-        - ironic-tempest-partition-uefi-redfish-vmedia:
-            voting: false
+        - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
         - ironic-tempest-ipa-partition-pxe_ipmitool
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
@@ -51,8 +49,7 @@
         - ironic-tempest-functional-python3
         - ironic-grenade
         - ironic-tempest-partition-bios-redfish-pxe
-        # (rpittau) disabling to prevent chicken-egg effect until fixed
-        #- ironic-tempest-partition-uefi-redfish-vmedia
+        - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
         - ironic-tempest-ipa-partition-pxe_ipmitool
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
