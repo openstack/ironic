@@ -18,6 +18,7 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 
 from ironic.common import exception
+from ironic.common import faults
 from ironic.common import states
 from ironic.conductor import cleaning
 from ironic.conductor import steps as conductor_steps
@@ -63,6 +64,8 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         node.refresh()
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertFalse(node.maintenance)
+        self.assertIsNone(node.fault)
         mock_validate.assert_called_once_with(mock.ANY, mock.ANY)
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
@@ -308,6 +311,7 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
             self.assertIn('is not allowed', node.last_error)
             self.assertTrue(node.maintenance)
             self.assertEqual('Original reason', node.maintenance_reason)
+            self.assertIsNone(node.fault)  # no clean step running
         self.assertFalse(mock_prep.called)
         self.assertFalse(mock_tear_down.called)
 
@@ -333,6 +337,8 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
             self.assertEqual(tgt_prov_state, node.target_provision_state)
             mock_prep.assert_called_once_with(mock.ANY, task)
             mock_validate.assert_called_once_with(mock.ANY, task)
+            self.assertFalse(node.maintenance)
+            self.assertIsNone(node.fault)
 
     def test__do_node_clean_automated_prepare_clean_fail(self):
         self.__do_node_clean_prepare_clean_fail()
@@ -390,6 +396,8 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
         mock_steps.assert_called_once_with(mock.ANY)
+        self.assertFalse(node.maintenance)
+        self.assertIsNone(node.fault)
 
     def test__do_node_clean_automated_steps_fail(self):
         for invalid in (True, False):
@@ -437,6 +445,7 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
             if clean_steps:
                 self.assertEqual(clean_steps,
                                  node.driver_internal_info['clean_steps'])
+            self.assertFalse(node.maintenance)
 
         # Check that state didn't change
         self.assertEqual(states.CLEANING, node.provision_state)
@@ -728,6 +737,7 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         self.assertNotIn('clean_step_index', node.driver_internal_info)
         self.assertIsNotNone(node.last_error)
         self.assertTrue(node.maintenance)
+        self.assertEqual(faults.CLEAN_FAILURE, node.fault)
         mock_execute.assert_called_once_with(
             mock.ANY, mock.ANY, self.clean_steps[0])
         mock_collect_logs.assert_called_once_with(mock.ANY, label='cleaning')
@@ -877,7 +887,7 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         self.assertNotIn('clean_step_index', node.driver_internal_info)
         self.assertIsNotNone(node.last_error)
         self.assertEqual(1, tear_mock.call_count)
-        self.assertTrue(node.maintenance)
+        self.assertFalse(node.maintenance)  # no step is running
         deploy_exec_calls = [
             mock.call(mock.ANY, mock.ANY, self.clean_steps[0]),
             mock.call(mock.ANY, mock.ANY, self.clean_steps[2]),
@@ -984,7 +994,7 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         self.assertEqual({}, node.clean_step)
         self.assertNotIn('clean_step_index', node.driver_internal_info)
         self.assertIsNotNone(node.last_error)
-        self.assertTrue(node.maintenance)
+        self.assertTrue(node.maintenance)  # the 1st clean step was running
         deploy_exec_mock.assert_called_once_with(mock.ANY, mock.ANY,
                                                  self.clean_steps[0])
         # Make sure we don't execute any other step and return
