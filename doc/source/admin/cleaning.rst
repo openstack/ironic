@@ -314,9 +314,15 @@ cleaning.
 
 Troubleshooting
 ===============
-If cleaning fails on a node, the node will be put into ``clean failed`` state
-and placed in maintenance mode, to prevent ironic from taking actions on the
-node.
+If cleaning fails on a node, the node will be put into ``clean failed`` state.
+If the failure happens while running a clean step, the node is also placed in
+maintenance mode to prevent ironic from taking actions on the node. The
+operator should validate that no permanent damage has been done to the
+node and no processes are still running on it before removing the maintenance
+mode.
+
+.. note:: Older versions of ironic may put the node to maintenance even when
+          no clean step has been running.
 
 Nodes in ``clean failed`` will not be powered off, as the node might be in a
 state such that powering it off could damage the node or remove useful

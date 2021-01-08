@@ -407,9 +407,9 @@ def cleanup_cleanwait_timeout(task):
 
 
 def cleaning_error_handler(task, logmsg, errmsg=None, traceback=False,
-                           tear_down_cleaning=True,
-                           set_fail_state=True):
-    """Put a failed node in CLEANFAIL and maintenance.
+                           tear_down_cleaning=True, set_fail_state=True,
+                           set_maintenance=None):
+    """Put a failed node in CLEANFAIL and maintenance (if needed).
 
     :param task: a TaskManager instance.
     :param logmsg: Message to be logged.
@@ -420,12 +420,19 @@ def cleaning_error_handler(task, logmsg, errmsg=None, traceback=False,
         cleaning. Default to True.
     :param set_fail_state: Whether to set node to failed state. Default to
         True.
+    :param set_maintenance: Whether to set maintenance mode. If None,
+        maintenance mode will be set if and only if a clean step is being
+        executed on a node.
     """
+    if set_maintenance is None:
+        set_maintenance = bool(task.node.clean_step)
+
     errmsg = errmsg or logmsg
     LOG.error(logmsg, exc_info=traceback)
     node = task.node
-    node.fault = faults.CLEAN_FAILURE
-    node.maintenance = True
+    if set_maintenance:
+        node.fault = faults.CLEAN_FAILURE
+        node.maintenance = True
 
     if tear_down_cleaning:
         try:
@@ -457,7 +464,7 @@ def cleaning_error_handler(task, logmsg, errmsg=None, traceback=False,
     manual_clean = node.target_provision_state == states.MANAGEABLE
     node.last_error = errmsg
     # NOTE(dtantsur): avoid overwriting existing maintenance_reason
-    if not node.maintenance_reason:
+    if not node.maintenance_reason and set_maintenance:
         node.maintenance_reason = errmsg
     node.save()
 

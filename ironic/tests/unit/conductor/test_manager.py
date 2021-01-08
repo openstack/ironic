@@ -36,6 +36,7 @@ from ironic.common import boot_devices
 from ironic.common import components
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common import faults
 from ironic.common import images
 from ironic.common import indicator_states
 from ironic.common import nova
@@ -1858,7 +1859,7 @@ class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNotNone(node.last_error)
         mock_cleanup.assert_called_once_with(mock.ANY, mock.ANY)
 
-    def _check_cleanwait_timeouts(self, manual=False):
+    def _check_cleanwait_timeouts(self, manual=False, with_step=True):
         self._start_service()
         CONF.set_override('clean_callback_timeout', 1, group='conductor')
         tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
@@ -1869,7 +1870,7 @@ class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             provision_updated_at=datetime.datetime(2000, 1, 1, 0, 0),
             clean_step={
                 'interface': 'deploy',
-                'step': 'erase_devices'},
+                'step': 'erase_devices'} if with_step else {},
             driver_internal_info={
                 'cleaning_reboot': manual,
                 'clean_step_index': 0})
@@ -1880,6 +1881,9 @@ class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
+        self.assertEqual(with_step, node.maintenance)
+        self.assertEqual(faults.CLEAN_FAILURE if with_step else None,
+                         node.fault)
         # Test that cleaning parameters have been purged in order
         # to prevent looping of the cleaning sequence
         self.assertEqual({}, node.clean_step)
@@ -1891,6 +1895,9 @@ class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test__check_cleanwait_timeouts_manual_clean(self):
         self._check_cleanwait_timeouts(manual=True)
+
+    def test__check_cleanwait_timeouts_boot_timeout(self):
+        self._check_cleanwait_timeouts(with_step=False)
 
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.clean_up',
                 autospec=True)

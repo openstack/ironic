@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Failed cleaning no longer results in maintenance mode if no clean step is
+    running, e.g. on PXE timeout or failed clean steps validation.
