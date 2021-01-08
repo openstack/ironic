@@ -1238,7 +1238,7 @@ class CleanUpFullFlowTestCase(db_base.DbTestCase):
         mock_get_deploy_image_info.return_value = {}
 
         with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
+                                  shared=False) as task:
             task.driver.deploy.clean_up(task)
             mock_get_instance_image_info.assert_called_with(task,
                                                             ipxe_enabled=False)

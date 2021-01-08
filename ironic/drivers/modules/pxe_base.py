@@ -133,6 +133,8 @@ class PXEBaseMixin(object):
             pxe_utils.clean_up_pxe_env(task, images_info,
                                        ipxe_enabled=self.ipxe_enabled)
 
+        boot_mode_utils.deconfigure_secure_boot_if_needed(task)
+
     @METRICS.timer('PXEBaseMixin.prepare_ramdisk')
     def prepare_ramdisk(self, task, ramdisk_params):
         """Prepares the boot of Ironic ramdisk using PXE.
@@ -240,6 +242,7 @@ class PXEBaseMixin(object):
         :returns: None
         """
         boot_mode_utils.sync_boot_mode(task)
+        boot_mode_utils.configure_secure_boot_if_needed(task)
 
         node = task.node
         boot_option = deploy_utils.get_boot_option(node)

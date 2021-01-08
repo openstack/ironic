@@ -34,6 +34,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import agent_base
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import pxe_base
@@ -890,10 +891,13 @@ class iPXEBootTestCase(db_base.DbTestCase):
                                                          boot_devices.PXE,
                                                          persistent=True)
 
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
+                       autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
     def test_prepare_instance_localboot(self, clean_up_pxe_config_mock,
-                                        set_boot_device_mock):
+                                        set_boot_device_mock,
+                                        secure_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             instance_info = task.node.instance_info
             instance_info['capabilities'] = {'boot_option': 'local'}
@@ -905,6 +909,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.DISK,
                                                          persistent=True)
+            secure_boot_mock.assert_called_once_with(task)
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
@@ -957,10 +962,13 @@ class iPXEBootTestCase(db_base.DbTestCase):
             self.assertFalse(cache_mock.called)
             self.assertFalse(dhcp_factory_mock.return_value.update_dhcp.called)
 
+    @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
+                       autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_env', autospec=True)
     @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     def test_clean_up_instance(self, get_image_info_mock,
-                               clean_up_pxe_env_mock):
+                               clean_up_pxe_env_mock,
+                               secure_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             image_info = {'kernel': ['', '/path/to/kernel'],
                           'ramdisk': ['', '/path/to/ramdisk']}
@@ -970,6 +978,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
                 task, image_info, ipxe_enabled=True)
             get_image_info_mock.assert_called_once_with(
                 task, ipxe_enabled=True)
+            secure_boot_mock.assert_called_once_with(task)
 
 
 @mock.patch.object(ipxe.iPXEBoot, '__init__', lambda self: None)
