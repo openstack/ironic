@@ -308,9 +308,20 @@ We need to submit patches for changes on master to:
 
   * remove any model class names from ``ironic.cmd.dbsync.NEW_MODELS``.
 
+Ironic Tempest plugin
+~~~~~~~~~~~~~~~~~~~~~
+
 As **ironic-tempest-plugin** is branchless, we need to submit a patch adding
 stable jobs to its master branch. `Example for Queens
 <https://review.opendev.org/#/c/543555/>`_.
+
+Bifrost
+~~~~~~~
+
+Bifrost needs to be updated to install dependencies using the stable branch.
+`Example for Victoria <https://review.opendev.org/#/c/756289/>`_. The upper
+constraints file referenced in ``scripts/install-deps.sh`` needs to be updated
+to the new release.
 
 For all releases
 ----------------
