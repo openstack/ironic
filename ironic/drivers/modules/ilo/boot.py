@@ -325,24 +325,6 @@ def prepare_node_for_deploy(task):
             task.node.save()
 
 
-def disable_secure_boot_if_supported(task):
-    """Disables secure boot on node, does not throw if its not supported.
-
-    :param task: a TaskManager instance containing the node to act on.
-    :raises: IloOperationError, if some operation on iLO failed.
-    """
-    try:
-        ilo_common.update_secure_boot_mode(task, False)
-    # We need to handle IloOperationNotSupported exception so that if
-    # the user has incorrectly specified the Node capability
-    # 'secure_boot' to a node that does not have that capability and
-    # attempted deploy. Handling this exception here, will help the
-    # user to tear down such a Node.
-    except exception.IloOperationNotSupported:
-        LOG.warning('Secure boot mode is not supported for node %s',
-                    task.node.uuid)
-
-
 class IloVirtualMediaBoot(base.BootInterface):
 
     capabilities = ['iscsi_volume_boot', 'ramdisk_boot']
@@ -541,7 +523,7 @@ class IloVirtualMediaBoot(base.BootInterface):
         # Set boot mode
         ilo_common.update_boot_mode(task)
         # Need to enable secure boot, if being requested
-        ilo_common.update_secure_boot_mode(task, True)
+        boot_mode_utils.configure_secure_boot_if_needed(task)
 
     @METRICS.timer('IloVirtualMediaBoot.clean_up_instance')
     def clean_up_instance(self, task):
@@ -558,7 +540,7 @@ class IloVirtualMediaBoot(base.BootInterface):
         """
         LOG.debug("Cleaning up the instance.")
         manager_utils.node_power_action(task, states.POWER_OFF)
-        disable_secure_boot_if_supported(task)
+        boot_mode_utils.deconfigure_secure_boot_if_needed(task)
 
         if (deploy_utils.is_iscsi_boot(task)
             and task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
@@ -673,15 +655,14 @@ class IloPXEBoot(pxe.PXEBoot):
         :returns: None
         :raises: IloOperationError, if some operation on iLO failed.
         """
-
         # Set boot mode
         ilo_common.update_boot_mode(task)
-        # Need to enable secure boot, if being requested
-        ilo_common.update_secure_boot_mode(task, True)
 
         boot_mode = boot_mode_utils.get_boot_mode(task.node)
 
         if deploy_utils.is_iscsi_boot(task) and boot_mode == 'uefi':
+            # Need to enable secure boot, if being requested
+            boot_mode_utils.configure_secure_boot_if_needed(task)
             # Need to set 'ilo_uefi_iscsi_boot' param for clean up
             driver_internal_info = task.node.driver_internal_info
             driver_internal_info['ilo_uefi_iscsi_boot'] = True
@@ -711,11 +692,11 @@ class IloPXEBoot(pxe.PXEBoot):
         :raises: IloOperationError, if some operation on iLO failed.
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
-        disable_secure_boot_if_supported(task)
         driver_internal_info = task.node.driver_internal_info
 
         if (deploy_utils.is_iscsi_boot(task)
-            and task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
+                and task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
+            boot_mode_utils.deconfigure_secure_boot_if_needed(task)
             # It will clear iSCSI info from iLO in case of booting from
             # volume in UEFI boot mode
             task.driver.management.clear_iscsi_boot_target(task)
@@ -774,12 +755,11 @@ class IloiPXEBoot(ipxe.iPXEBoot):
 
         # Set boot mode
         ilo_common.update_boot_mode(task)
-        # Need to enable secure boot, if being requested
-        ilo_common.update_secure_boot_mode(task, True)
-
         boot_mode = boot_mode_utils.get_boot_mode(task.node)
 
         if deploy_utils.is_iscsi_boot(task) and boot_mode == 'uefi':
+            # Need to enable secure boot, if being requested
+            boot_mode_utils.configure_secure_boot_if_needed(task)
             # Need to set 'ilo_uefi_iscsi_boot' param for clean up
             driver_internal_info = task.node.driver_internal_info
             driver_internal_info['ilo_uefi_iscsi_boot'] = True
@@ -809,11 +789,11 @@ class IloiPXEBoot(ipxe.iPXEBoot):
         :raises: IloOperationError, if some operation on iLO failed.
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
-        disable_secure_boot_if_supported(task)
         driver_internal_info = task.node.driver_internal_info
 
         if (deploy_utils.is_iscsi_boot(task)
-            and task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
+                and task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
+            boot_mode_utils.deconfigure_secure_boot_if_needed(task)
             # It will clear iSCSI info from iLO in case of booting from
             # volume in UEFI boot mode
             task.driver.management.clear_iscsi_boot_target(task)
@@ -1144,7 +1124,7 @@ class IloUefiHttpsBoot(base.BootInterface):
                       "%(device)s", {'node': task.node.uuid,
                                      'device': boot_devices.DISK})
             # Need to enable secure boot, if being requested
-            ilo_common.update_secure_boot_mode(task, True)
+            boot_mode_utils.configure_secure_boot_if_needed(task)
             return
 
         params = {}
@@ -1158,7 +1138,7 @@ class IloUefiHttpsBoot(base.BootInterface):
                 manager_utils.node_set_boot_device(task, boot_devices.DISK,
                                                    persistent=True)
                 # Need to enable secure boot, if being requested
-                ilo_common.update_secure_boot_mode(task, True)
+                boot_mode_utils.configure_secure_boot_if_needed(task)
 
                 return
             params.update(root_uuid=root_uuid)
@@ -1173,7 +1153,7 @@ class IloUefiHttpsBoot(base.BootInterface):
             node.save()
 
         # Need to enable secure boot, if being requested
-        ilo_common.update_secure_boot_mode(task, True)
+        boot_mode_utils.configure_secure_boot_if_needed(task)
         ilo_common.setup_uefi_https(task, iso_ref, persistent=True)
 
         LOG.debug("Node %(node)s is set to boot from UEFIHTTP "
@@ -1193,7 +1173,7 @@ class IloUefiHttpsBoot(base.BootInterface):
                   "%(node)s", {'node': task.node.uuid})
 
         image_utils.cleanup_iso_image(task)
-        disable_secure_boot_if_supported(task)
+        boot_mode_utils.deconfigure_secure_boot_if_needed(task)
 
     @METRICS.timer('IloUefiHttpsBoot.validate_rescue')
     def validate_rescue(self, task):

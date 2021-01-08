@@ -34,7 +34,6 @@ from ironic.common import images
 from ironic.common import swift
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
-from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -1093,32 +1092,6 @@ class IloCommonMethodsTestCase(BaseIloTest):
             func_setup_vmedia_for_boot.assert_called_once_with(task, iso, None)
             func_set_boot_device.assert_called_once_with(task,
                                                          boot_devices.CDROM)
-
-    @mock.patch.object(deploy_utils, 'is_secure_boot_requested', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(ilo_common, 'set_secure_boot_mode', spec_set=True,
-                       autospec=True)
-    def test_update_secure_boot_mode_passed_true(self,
-                                                 func_set_secure_boot_mode,
-                                                 func_is_secure_boot_req):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            func_is_secure_boot_req.return_value = True
-            ilo_common.update_secure_boot_mode(task, True)
-            func_set_secure_boot_mode.assert_called_once_with(task, True)
-
-    @mock.patch.object(deploy_utils, 'is_secure_boot_requested', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(ilo_common, 'set_secure_boot_mode', spec_set=True,
-                       autospec=True)
-    def test_update_secure_boot_mode_passed_false(self,
-                                                  func_set_secure_boot_mode,
-                                                  func_is_secure_boot_req):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            func_is_secure_boot_req.return_value = False
-            ilo_common.update_secure_boot_mode(task, False)
-            self.assertFalse(func_set_secure_boot_mode.called)
 
     @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
                        autospec=True)

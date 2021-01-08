@@ -1384,121 +1384,27 @@ class IRMCPXEBootTestCase(test_common.BaseIRMCTest):
             mock_parent_prepare.assert_called_once_with(
                 task.driver.boot, task, {})
 
-    @mock.patch.object(irmc_common, 'set_secure_boot_mode', spec_set=True,
-                       autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', spec_set=True,
                        autospec=True)
-    def test_prepare_instance_with_secure_boot(self, mock_prepare_instance,
-                                               mock_set_secure_boot_mode):
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
-        self.node.instance_info = {
-            'capabilities': {
-                "secure_boot": "true"
-            }
-        }
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.boot.prepare_instance(task)
-            mock_set_secure_boot_mode.assert_called_once_with(task.node,
-                                                              enable=True)
-            mock_prepare_instance.assert_called_once_with(
-                task.driver.boot, task)
-
-    @mock.patch.object(irmc_common, 'set_secure_boot_mode', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', spec_set=True,
-                       autospec=True)
-    def test_prepare_instance_with_secure_boot_false(
-            self, mock_prepare_instance, mock_set_secure_boot_mode):
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
-        self.node.instance_info = {
-            'capabilities': {
-                "secure_boot": "false"
-            }
-        }
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.boot.prepare_instance(task)
-            self.assertFalse(mock_set_secure_boot_mode.called)
-            mock_prepare_instance.assert_called_once_with(
-                task.driver.boot, task)
-
-    @mock.patch.object(irmc_common, 'set_secure_boot_mode', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', spec_set=True,
-                       autospec=True)
-    def test_prepare_instance_without_secure_boot(self, mock_prepare_instance,
-                                                  mock_set_secure_boot_mode):
+    def test_prepare_instance(self, mock_prepare_instance):
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.boot.prepare_instance(task)
-            self.assertFalse(mock_set_secure_boot_mode.called)
             mock_prepare_instance.assert_called_once_with(
                 task.driver.boot, task)
 
-    @mock.patch.object(irmc_common, 'set_secure_boot_mode', spec_set=True,
-                       autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', spec_set=True,
                        autospec=True)
-    def test_clean_up_instance_with_secure_boot(self, mock_clean_up_instance,
-                                                mock_set_secure_boot_mode):
-        self.node.provision_state = states.CLEANING
-        self.node.target_provision_state = states.AVAILABLE
-        self.node.instance_info = {
-            'capabilities': {
-                "secure_boot": "true"
-            }
-        }
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.boot.clean_up_instance(task)
-            mock_set_secure_boot_mode.assert_called_once_with(task.node,
-                                                              enable=False)
-            mock_clean_up_instance.assert_called_once_with(
-                task.driver.boot, task)
-
-    @mock.patch.object(irmc_common, 'set_secure_boot_mode', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', spec_set=True,
-                       autospec=True)
-    def test_clean_up_instance_secure_boot_false(self, mock_clean_up_instance,
-                                                 mock_set_secure_boot_mode):
-        self.node.provision_state = states.CLEANING
-        self.node.target_provision_state = states.AVAILABLE
-        self.node.instance_info = {
-            'capabilities': {
-                "secure_boot": "false"
-            }
-        }
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.boot.clean_up_instance(task)
-            self.assertFalse(mock_set_secure_boot_mode.called)
-            mock_clean_up_instance.assert_called_once_with(
-                task.driver.boot, task)
-
-    @mock.patch.object(irmc_common, 'set_secure_boot_mode', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', spec_set=True,
-                       autospec=True)
-    def test_clean_up_instance_without_secure_boot(
-            self, mock_clean_up_instance, mock_set_secure_boot_mode):
+    def test_clean_up_instance(self, mock_clean_up_instance):
         self.node.provision_state = states.CLEANING
         self.node.target_provision_state = states.AVAILABLE
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.boot.clean_up_instance(task)
-            self.assertFalse(mock_set_secure_boot_mode.called)
             mock_clean_up_instance.assert_called_once_with(
                 task.driver.boot, task)
 
