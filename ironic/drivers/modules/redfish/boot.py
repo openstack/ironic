@@ -279,7 +279,8 @@ class RedfishVirtualMediaBoot(base.BootInterface):
     `[instance_info]image_source` node property.
     """
 
-    capabilities = ['iscsi_volume_boot', 'ramdisk_boot']
+    capabilities = ['iscsi_volume_boot', 'ramdisk_boot',
+                    'ramdisk_boot_configdrive']
 
     def __init__(self):
         """Initialize the Redfish virtual media boot interface.

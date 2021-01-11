@@ -346,7 +346,7 @@ def create_esp_image_for_uefi(
             raise exception.ImageCreationFailed(image_type='iso', error=e)
 
 
-def fetch(context, image_href, path, force_raw=False):
+def fetch_into(context, image_href, image_file):
     # TODO(vish): Improve context handling and add owner and auth data
     #             when it is added to glance.  Right now there is no
     #             auth checking in glance, so we assume that access was
@@ -357,9 +357,13 @@ def fetch(context, image_href, path, force_raw=False):
               {'image_service': image_service.__class__,
                'image_href': image_href})
 
+    image_service.download(image_href, image_file)
+
+
+def fetch(context, image_href, path, force_raw=False):
     with fileutils.remove_path_on_error(path):
         with open(path, "wb") as image_file:
-            image_service.download(image_href, image_file)
+            fetch_into(context, image_href, image_file)
 
     if force_raw:
         image_to_raw(image_href, path, "%s.part" % path)
