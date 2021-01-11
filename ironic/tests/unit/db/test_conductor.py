@@ -48,18 +48,25 @@ class DbConductorTestCase(base.DbTestCase):
         c = utils.get_test_conductor(**kwargs)
         cdr = self.dbapi.register_conductor(c)
         for ht in hardware_types:
-            self.dbapi.register_conductor_hardware_interfaces(cdr.id, ht,
-                                                              'power',
-                                                              ['ipmi', 'fake'],
-                                                              'ipmi')
+            self.dbapi.register_conductor_hardware_interfaces(
+                cdr.id,
+                [{'hardware_type': ht, 'interface_type': 'power',
+                  'interface_name': 'ipmi', 'default': True},
+                 {'hardware_type': ht, 'interface_type': 'power',
+                  'interface_name': 'fake', 'default': False}]
+            )
         return cdr
 
     def test_register_conductor_hardware_interfaces(self):
         c = self._create_test_cdr()
         interfaces = ['direct', 'iscsi']
-        self.dbapi.register_conductor_hardware_interfaces(c.id, 'generic',
-                                                          'deploy', interfaces,
-                                                          'iscsi')
+        self.dbapi.register_conductor_hardware_interfaces(
+            c.id,
+            [{'hardware_type': 'generic', 'interface_type': 'deploy',
+              'interface_name': interfaces[0], 'default': False},
+             {'hardware_type': 'generic', 'interface_type': 'deploy',
+              'interface_name': interfaces[1], 'default': True}]
+        )
         ifaces = self.dbapi.list_conductor_hardware_interfaces(c.id)
         ci1, ci2 = ifaces
         self.assertEqual(2, len(ifaces))
@@ -74,10 +81,13 @@ class DbConductorTestCase(base.DbTestCase):
 
     def test_register_conductor_hardware_interfaces_duplicate(self):
         c = self._create_test_cdr()
-        interfaces = ['direct', 'iscsi']
-        self.dbapi.register_conductor_hardware_interfaces(c.id, 'generic',
-                                                          'deploy', interfaces,
-                                                          'iscsi')
+        interfaces = [
+            {'hardware_type': 'generic', 'interface_type': 'deploy',
+             'interface_name': 'direct', 'default': False},
+            {'hardware_type': 'generic', 'interface_type': 'deploy',
+             'interface_name': 'iscsi', 'default': True}
+        ]
+        self.dbapi.register_conductor_hardware_interfaces(c.id, interfaces)
         ifaces = self.dbapi.list_conductor_hardware_interfaces(c.id)
         ci1, ci2 = ifaces
         self.assertEqual(2, len(ifaces))
@@ -86,14 +96,18 @@ class DbConductorTestCase(base.DbTestCase):
         self.assertRaises(
             exception.ConductorHardwareInterfacesAlreadyRegistered,
             self.dbapi.register_conductor_hardware_interfaces,
-            c.id, 'generic', 'deploy', interfaces, 'iscsi')
+            c.id, interfaces)
 
     def test_unregister_conductor_hardware_interfaces(self):
         c = self._create_test_cdr()
         interfaces = ['direct', 'iscsi']
-        self.dbapi.register_conductor_hardware_interfaces(c.id, 'generic',
-                                                          'deploy', interfaces,
-                                                          'iscsi')
+        self.dbapi.register_conductor_hardware_interfaces(
+            c.id,
+            [{'hardware_type': 'generic', 'interface_type': 'deploy',
+              'interface_name': interfaces[0], 'default': False},
+             {'hardware_type': 'generic', 'interface_type': 'deploy',
+              'interface_name': interfaces[1], 'default': True}]
+        )
         self.dbapi.unregister_conductor_hardware_interfaces(c.id)
 
         ifaces = self.dbapi.list_conductor_hardware_interfaces(c.id)

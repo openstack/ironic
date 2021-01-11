@@ -59,7 +59,12 @@ class HashRingManagerTestCase(db_base.DbTestCase):
         })
         for c in (c1, c2, c3, c4, c5):
             self.dbapi.register_conductor_hardware_interfaces(
-                c.id, 'hardware-type', 'deploy', ['iscsi', 'direct'], 'iscsi')
+                c.id,
+                [{'hardware_type': 'hardware-type', 'interface_type': 'deploy',
+                  'interface_name': 'iscsi', 'default': True},
+                 {'hardware_type': 'hardware-type', 'interface_type': 'deploy',
+                  'interface_name': 'direct', 'default': False}]
+            )
 
     def test_hash_ring_manager_hardware_type_success(self):
         self.register_conductors()
@@ -100,13 +105,23 @@ class HashRingManagerTestCase(db_base.DbTestCase):
             'drivers': ['driver1'],
         })
         self.dbapi.register_conductor_hardware_interfaces(
-            c1.id, 'hardware-type', 'deploy', ['iscsi', 'direct'], 'iscsi')
+            c1.id,
+            [{'hardware_type': 'hardware-type', 'interface_type': 'deploy',
+              'interface_name': 'iscsi', 'default': True},
+             {'hardware_type': 'hardware-type', 'interface_type': 'deploy',
+              'interface_name': 'direct', 'default': False}]
+        )
 
         ring = self.ring_manager.get_ring('hardware-type', '')
         self.assertEqual(1, len(ring))
 
         self.dbapi.register_conductor_hardware_interfaces(
-            c2.id, 'hardware-type', 'deploy', ['iscsi', 'direct'], 'iscsi')
+            c2.id,
+            [{'hardware_type': 'hardware-type', 'interface_type': 'deploy',
+              'interface_name': 'iscsi', 'default': True},
+             {'hardware_type': 'hardware-type', 'interface_type': 'deploy',
+              'interface_name': 'direct', 'default': False}]
+        )
         ring = self.ring_manager.get_ring('hardware-type', '')
         # The new conductor is not known yet. Automatic retry does not kick in,
         # since there is an active conductor for the requested hardware type.

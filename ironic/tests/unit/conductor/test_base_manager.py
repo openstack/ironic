@@ -420,14 +420,37 @@ class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
         ]
         default_mock.side_effect = ('fake', 'agent', 'fake', 'agent')
         expected_calls = [
-            mock.call(mock.ANY, 'fake-hardware', 'management',
-                      ['fake', 'noop'], 'fake'),
-            mock.call(mock.ANY, 'fake-hardware', 'deploy', ['agent', 'iscsi'],
-                      'agent'),
-            mock.call(mock.ANY, 'manual-management', 'management', ['fake'],
-                      'fake'),
-            mock.call(mock.ANY, 'manual-management', 'deploy',
-                      ['agent', 'fake'], 'agent'),
+            mock.call(
+                mock.ANY,
+                [{'hardware_type': 'fake-hardware',
+                  'interface_type': 'management',
+                  'interface_name': 'fake',
+                  'default': True},
+                 {'hardware_type': 'fake-hardware',
+                  'interface_type': 'management',
+                  'interface_name': 'noop',
+                  'default': False},
+                 {'hardware_type': 'fake-hardware',
+                  'interface_type': 'deploy',
+                  'interface_name': 'agent',
+                  'default': True},
+                 {'hardware_type': 'fake-hardware',
+                  'interface_type': 'deploy',
+                  'interface_name': 'iscsi',
+                  'default': False},
+                 {'hardware_type': 'manual-management',
+                  'interface_type': 'management',
+                  'interface_name': 'fake',
+                  'default': True},
+                 {'hardware_type': 'manual-management',
+                  'interface_type': 'deploy',
+                  'interface_name': 'agent',
+                  'default': True},
+                 {'hardware_type': 'manual-management',
+                  'interface_type': 'deploy',
+                  'interface_name': 'fake',
+                  'default': False}]
+            )
         ]
 
         self.service._register_and_validate_hardware_interfaces(hardware_types)

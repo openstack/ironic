@@ -12,6 +12,7 @@
 
 """Base conductor manager functionality."""
 
+import copy
 import inspect
 import threading
 
@@ -372,15 +373,21 @@ class BaseConductorManager(object):
         # first unregister, in case we have cruft laying around
         self.conductor.unregister_all_hardware_interfaces()
 
+        interfaces = []
         for ht_name, ht in hardware_types.items():
             interface_map = driver_factory.enabled_supported_interfaces(ht)
             for interface_type, interface_names in interface_map.items():
                 default_interface = driver_factory.default_interface(
                     ht, interface_type, driver_name=ht_name)
-                self.conductor.register_hardware_interfaces(ht_name,
-                                                            interface_type,
-                                                            interface_names,
-                                                            default_interface)
+                interface = {}
+                interface["hardware_type"] = ht_name
+                interface["interface_type"] = interface_type
+                for interface_name in interface_names:
+                    interface["interface_name"] = interface_name
+                    interface["default"] = \
+                        (interface_name == default_interface)
+                    interfaces.append(copy.copy(interface))
+        self.conductor.register_hardware_interfaces(interfaces)
 
         # TODO(jroll) validate against other conductor, warn if different
         # how do we do this performantly? :|

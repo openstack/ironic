@@ -44,9 +44,19 @@ class TestListDrivers(base.BaseApiTest):
         })
         for c in (c1, c2):
             self.dbapi.register_conductor_hardware_interfaces(
-                c.id, self.hw1, 'deploy', ['iscsi', 'direct'], 'direct')
+                c.id,
+                [{'hardware_type': self.hw1, 'interface_type': 'deploy',
+                  'interface_name': 'iscsi', 'default': False},
+                 {'hardware_type': self.hw1, 'interface_type': 'deploy',
+                  'interface_name': 'direct', 'default': True}]
+            )
         self.dbapi.register_conductor_hardware_interfaces(
-            c1.id, self.hw2, 'deploy', ['iscsi', 'direct'], 'direct')
+            c1.id,
+            [{'hardware_type': self.hw2, 'interface_type': 'deploy',
+              'interface_name': 'iscsi', 'default': False},
+             {'hardware_type': self.hw2, 'interface_type': 'deploy',
+              'interface_name': 'direct', 'default': True}]
+        )
 
     def _test_drivers(self, use_dynamic, detail=False, latest_if=False):
         self.register_fake_conductors()

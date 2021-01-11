@@ -1110,26 +1110,20 @@ class Connection(api.Connection):
         return query.all()
 
     @oslo_db_api.retry_on_deadlock
-    def register_conductor_hardware_interfaces(self, conductor_id,
-                                               hardware_type, interface_type,
-                                               interfaces, default_interface):
+    def register_conductor_hardware_interfaces(self, conductor_id, interfaces):
         with _session_for_write() as session:
             try:
                 for iface in interfaces:
                     conductor_hw_iface = models.ConductorHardwareInterfaces()
                     conductor_hw_iface['conductor_id'] = conductor_id
-                    conductor_hw_iface['hardware_type'] = hardware_type
-                    conductor_hw_iface['interface_type'] = interface_type
-                    conductor_hw_iface['interface_name'] = iface
-                    is_default = (iface == default_interface)
-                    conductor_hw_iface['default'] = is_default
+                    for k, v in iface.items():
+                        conductor_hw_iface[k] = v
                     session.add(conductor_hw_iface)
                 session.flush()
-            except db_exc.DBDuplicateEntry:
-                raise exception.ConductorHardwareInterfacesAlreadyRegistered(
-                    hardware_type=hardware_type,
-                    interface_type=interface_type,
-                    interfaces=interfaces)
+            except db_exc.DBDuplicateEntry as e:
+                r = exception.ConductorHardwareInterfacesAlreadyRegistered(
+                    row=str(e.inner_exception.params))
+                raise r
 
     @oslo_db_api.retry_on_deadlock
     def unregister_conductor_hardware_interfaces(self, conductor_id):
