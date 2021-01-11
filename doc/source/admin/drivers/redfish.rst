@@ -269,7 +269,11 @@ of ``ACTIVE``.
 
 This initial interface does not support bootloader configuration
 parameter injection, as such the ``[instance_info]/kernel_append_params``
-setting is ignored. Configuration drives are not supported yet.
+setting is ignored.
+
+Configuration drives are supported starting with the Wallaby release
+for nodes that have a free virtual USB slot. The configuration option
+``[deploy]configdrive_use_object_store`` must be set to ``False`` for now.
 
 Layer 3 or DHCP-less ramdisk booting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

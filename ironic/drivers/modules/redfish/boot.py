@@ -532,9 +532,20 @@ class RedfishVirtualMediaBoot(base.BootInterface):
             params.update(root_uuid=root_uuid)
 
         deploy_info = _parse_deploy_info(node)
+        configdrive = node.instance_info.get('configdrive')
         iso_ref = image_utils.prepare_boot_iso(task, deploy_info, **params)
         eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
         _insert_vmedia(task, iso_ref, sushy.VIRTUAL_MEDIA_CD)
+
+        if configdrive and boot_option == 'ramdisk':
+            eject_vmedia(task, sushy.VIRTUAL_MEDIA_USBSTICK)
+            cd_ref = image_utils.prepare_configdrive_image(task, configdrive)
+            try:
+                _insert_vmedia(task, cd_ref, sushy.VIRTUAL_MEDIA_USBSTICK)
+            except exception.InvalidParameterValue:
+                raise exception.InstanceDeployFailure(
+                    _('Cannot attach configdrive for node %s: no suitable '
+                      'virtual USB slot has been found') % node.uuid)
 
         boot_mode_utils.sync_boot_mode(task)
 
@@ -561,6 +572,12 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         config_via_floppy = d_info.get('config_via_floppy')
         if config_via_floppy:
             eject_vmedia(task, sushy.VIRTUAL_MEDIA_FLOPPY)
+
+        boot_option = deploy_utils.get_boot_option(task.node)
+        if (boot_option == 'ramdisk'
+                and task.node.instance_info.get('configdrive')):
+            eject_vmedia(task, sushy.VIRTUAL_MEDIA_USBSTICK)
+            image_utils.cleanup_disk_image(task, prefix='configdrive')
 
         image_utils.cleanup_iso_image(task)
 

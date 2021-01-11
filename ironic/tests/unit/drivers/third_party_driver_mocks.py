@@ -217,6 +217,7 @@ if not sushy:
         STATE_ABSENT='absent',
         VIRTUAL_MEDIA_CD='cd',
         VIRTUAL_MEDIA_FLOPPY='floppy',
+        VIRTUAL_MEDIA_USBSTICK='usb',
         APPLY_TIME_ON_RESET='on reset',
         TASK_STATE_COMPLETED='completed',
         HEALTH_OK='ok',

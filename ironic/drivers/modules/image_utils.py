@@ -13,7 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import base64
 import functools
+import gzip
 import json
 import os
 import shutil
@@ -118,6 +120,23 @@ class ImageHandler(object):
 
             ironic_utils.unlink_without_raise(published_file)
 
+    @classmethod
+    def unpublish_image_for_node(cls, node, prefix='', suffix=''):
+        """Withdraw the image previously made downloadable.
+
+        Depending on ironic settings, removes previously published file
+        from where it has been published - Swift or local HTTP server's
+        document root.
+
+        :param node: the node for which image was published.
+        :param prefix: object name prefix.
+        :param suffix: object name suffix.
+        """
+        name = _get_name(node, prefix=prefix, suffix=suffix)
+        cls(node.driver).unpublish_image(name)
+        LOG.debug('Removed image %(name)s for node %(node)s',
+                  {'node': node.uuid, 'name': name})
+
     def _append_filename_param(self, url, filename):
         """Append 'filename=<file>' parameter to given URL.
 
@@ -205,20 +224,16 @@ class ImageHandler(object):
         return image_url
 
 
-def _get_floppy_image_name(node):
-    """Returns the floppy image name for a given node.
+def _get_name(node, prefix='', suffix=''):
+    """Get an object name for a given node.
 
     :param node: the node for which image name is to be provided.
     """
-    return "image-%s" % node.uuid
-
-
-def _get_iso_image_name(node):
-    """Returns the boot iso image name for a given node.
-
-    :param node: the node for which image name is to be provided.
-    """
-    return "boot-%s.iso" % node.uuid
+    if prefix:
+        name = "%s-%s" % (prefix, node.uuid)
+    else:
+        name = node.uuid
+    return name + suffix
 
 
 def cleanup_iso_image(task):
@@ -226,10 +241,8 @@ def cleanup_iso_image(task):
 
     :param task: A task from TaskManager.
     """
-    iso_object_name = _get_iso_image_name(task.node)
-    img_handler = ImageHandler(task.node.driver)
-
-    img_handler.unpublish_image(iso_object_name)
+    ImageHandler.unpublish_image_for_node(task.node, prefix='boot',
+                                          suffix='.iso')
 
 
 def prepare_floppy_image(task, params=None):
@@ -251,7 +264,7 @@ def prepare_floppy_image(task, params=None):
     :raises: SwiftOperationError, if any operation with Swift fails.
     :returns: image URL for the floppy image.
     """
-    object_name = _get_floppy_image_name(task.node)
+    object_name = _get_name(task.node, prefix='image')
 
     LOG.debug("Trying to create floppy image for node "
               "%(node)s", {'node': task.node.uuid})
@@ -280,10 +293,79 @@ def cleanup_floppy_image(task):
 
     :param task: an ironic node object.
     """
-    floppy_object_name = _get_floppy_image_name(task.node)
+    ImageHandler.unpublish_image_for_node(task.node, prefix='image')
+
+
+def prepare_configdrive_image(task, content):
+    """Prepare an image with configdrive.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param content: Config drive as a base64-encoded string.
+    :raises: ImageCreationFailed, if it failed while creating the image.
+    :raises: SwiftOperationError, if any operation with Swift fails.
+    :returns: image URL for the image.
+    """
+    # FIXME(dtantsur): download and convert?
+    if '://' in content:
+        raise exception.ImageCreationFailed(
+            _('URLs are not supported for configdrive images yet'))
+
+    with tempfile.TemporaryFile(dir=CONF.tempdir) as comp_tmpfile_obj:
+        comp_tmpfile_obj.write(base64.b64decode(content))
+        comp_tmpfile_obj.seek(0)
+        gz = gzip.GzipFile(fileobj=comp_tmpfile_obj, mode='rb')
+        with tempfile.NamedTemporaryFile(
+                dir=CONF.tempdir, suffix='.img') as image_tmpfile_obj:
+            shutil.copyfileobj(gz, image_tmpfile_obj)
+            image_tmpfile_obj.flush()
+            return prepare_disk_image(task, image_tmpfile_obj.name,
+                                      prefix='configdrive')
+
+
+def prepare_disk_image(task, content, prefix=None):
+    """Prepare an image with the given content.
+
+    If content is already an HTTP URL, return it unchanged.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param content: Content as a string with a file name or bytes with
+        contents.
+    :param prefix: Prefix to use for the object name.
+    :raises: ImageCreationFailed, if it failed while creating the image.
+    :raises: SwiftOperationError, if any operation with Swift fails.
+    :returns: image URL for the image.
+    """
+    object_name = _get_name(task.node, prefix=prefix)
+
+    LOG.debug("Creating a disk image for node %s", task.node.uuid)
 
     img_handler = ImageHandler(task.node.driver)
-    img_handler.unpublish_image(floppy_object_name)
+    if isinstance(content, str):
+        image_url = img_handler.publish_image(content, object_name)
+    else:
+        with tempfile.NamedTemporaryFile(
+                dir=CONF.tempdir, suffix='.img') as image_tmpfile_obj:
+            image_tmpfile_obj.write(content)
+            image_tmpfile_obj.flush()
+
+            image_tmpfile = image_tmpfile_obj.name
+            image_url = img_handler.publish_image(image_tmpfile, object_name)
+
+    LOG.debug("Created a disk image %(name)s for node %(node)s, "
+              "exposed as URL %(url)s", {'node': task.node.uuid,
+                                         'name': object_name,
+                                         'url': image_url})
+
+    return image_url
+
+
+def cleanup_disk_image(task, prefix=None):
+    """Deletes the image if it was created for the node.
+
+    :param task: an ironic node object.
+    :param prefix: Prefix to use for the object name.
+    """
+    ImageHandler.unpublish_image_for_node(task.node, prefix=prefix)
 
 
 def _prepare_iso_image(task, kernel_href, ramdisk_href,
@@ -366,7 +448,7 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
             base_iso=base_iso,
             inject_files=inject_files)
 
-        iso_object_name = _get_iso_image_name(task.node)
+        iso_object_name = _get_name(task.node, prefix='boot', suffix='.iso')
 
         image_url = img_handler.publish_image(
             boot_iso_tmp_file, iso_object_name)
