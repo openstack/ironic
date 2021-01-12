@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Retries virtual media insert on failure to allow
+    for an eject that may not have finished.
+    https://storyboard.openstack.org/#!/story/2008504
