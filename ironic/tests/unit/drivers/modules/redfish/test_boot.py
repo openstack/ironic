@@ -844,6 +844,36 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertFalse(mock_vmedia_cd.insert_media.call_count)
 
     @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
+    def test__insert_vmedia_while_ejecting(self, mock_redfish_utils):
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_cd = mock.MagicMock(
+                inserted=False,
+                image='img-url',
+                media_types=[sushy.VIRTUAL_MEDIA_CD],
+            )
+            mock_manager = mock.MagicMock()
+
+            def clear_and_raise(*args, **kwargs):
+                mock_vmedia_cd.insert_media.side_effect = None
+                raise sushy.exceptions.ServerSideError(
+                    "POST", 'img-url', mock.MagicMock())
+            mock_vmedia_cd.insert_media.side_effect = clear_and_raise
+            mock_manager.virtual_media.get_members.return_value = [
+                mock_vmedia_cd]
+
+            mock_redfish_utils.get_system.return_value.managers = [
+                mock_manager]
+
+            redfish_boot._insert_vmedia(
+                task, 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            self.assertEqual(mock_vmedia_cd.insert_media.call_count, 2)
+
+    @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
     def test__insert_vmedia_bad_device(self, mock_redfish_utils):
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -863,6 +893,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 exception.InvalidParameterValue,
                 redfish_boot._insert_vmedia,
                 task, 'img-url', sushy.VIRTUAL_MEDIA_CD)
+            self.assertEqual(mock_redfish_utils.get_system.call_count, 1)
 
     @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
     def test_eject_vmedia_everything(self, mock_redfish_utils):

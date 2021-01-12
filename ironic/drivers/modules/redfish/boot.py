@@ -15,6 +15,7 @@
 
 from oslo_log import log
 from oslo_utils import importutils
+import retrying
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -141,6 +142,19 @@ def _parse_instance_info(node):
     return deploy_info
 
 
+def _test_retry(exception):
+    if isinstance(exception, sushy.exceptions.ServerSideError):
+        # On some Dell hw, the eject media may still be in progress
+        # https://storyboard.openstack.org/#!/story/2008504
+        LOG.warning("Boot media insert failed for node %(node)s, "
+                    "will retry after 3 seconds",
+                    {'node': exception.node_uuid})
+        return True
+    return False
+
+
+@retrying.retry(wait_fixed=3000, stop_max_attempt_number=3,
+                retry_on_exception=_test_retry)
 def _insert_vmedia(task, boot_url, boot_device):
     """Insert bootable ISO image into virtual CD or DVD
 
@@ -169,8 +183,12 @@ def _insert_vmedia(task, boot_url, boot_device):
 
                 continue
 
-            v_media.insert_media(boot_url, inserted=True,
-                                 write_protected=True)
+            try:
+                v_media.insert_media(boot_url, inserted=True,
+                                     write_protected=True)
+            except sushy.exceptions.ServerSideError as e:
+                e.node_uuid = task.node.uuid
+                raise
 
             LOG.info("Inserted boot media %(boot_url)s into "
                      "%(boot_device)s for node "
