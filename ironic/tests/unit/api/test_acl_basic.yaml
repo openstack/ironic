@@ -1,31 +1,28 @@
 values:
   skip_reason: For value storage
-  admin_headers: &admin_headers
-    X-Auth-Token: 'admin_token'
-  member_headers: &member_headers
-    X-Auth-Token: 'member_token'
+  project_admin_headers: &project_admin_headers
+    X-Auth-Token: project-admin-token
+    X-Roles: admin,member,reader
+    X-Project-Id: 66140b35c7524c6da836ca834e3fd3f9
+  project_member_headers: &project_member_headers
+    X-Auth-Token: project-member-token
+    X-Roles: member,reader
+    X-Project-Id: 66140b35c7524c6da836ca834e3fd3f9
 
-non_authenticated:
+unauthenticated_user_cannot_get_node:
   path: &node_path '/v1/nodes/{node_uuid}'
   assert_status: 403
 
-authenticated:
+project_admin_can_get_node:
   path: *node_path
-  headers: *admin_headers
+  headers: *project_admin_headers
   assert_dict_contains:
     uuid: '{node_uuid}'
     driver: 'fake-hardware'
 
-non_admin:
+project_member_cannot_get_node:
   path: *node_path
-  headers: *member_headers
-  assert_status: 403
-
-non_admin_with_admin_header:
-  path: *node_path
-  headers:
-    X-Auth-Token: 'member_token'
-    X-Roles: admin
+  headers: *project_member_headers
   assert_status: 403
 
 public_api:
