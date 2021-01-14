@@ -505,6 +505,8 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         """
         node = task.node
 
+        boot_mode_utils.sync_boot_mode(task)
+
         boot_option = deploy_utils.get_boot_option(node)
         self.clean_up_instance(task)
         iwdi = node.driver_internal_info.get('is_whole_disk_image')
@@ -546,8 +548,6 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                 raise exception.InstanceDeployFailure(
                     _('Cannot attach configdrive for node %s: no suitable '
                       'virtual USB slot has been found') % node.uuid)
-
-        boot_mode_utils.sync_boot_mode(task)
 
         self._set_boot_device(task, boot_devices.CDROM, persistent=True)
 
