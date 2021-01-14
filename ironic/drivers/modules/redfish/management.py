@@ -1004,3 +1004,116 @@ class RedfishManagement(base.ManagementInterface):
                       'firmware %(firmware_image)s.',
                       {'node': node.uuid,
                        'firmware_image': current_update['url']})
+
+    def get_secure_boot_state(self, task):
+        """Get the current secure boot state for the node.
+
+        :param task: A task from TaskManager.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: RedfishError or its derivative in case of a driver
+            runtime error.
+        :raises: UnsupportedDriverExtension if secure boot is
+                 not supported by the hardware.
+        :returns: Boolean
+        """
+        system = redfish_utils.get_system(task.node)
+        try:
+            return system.secure_boot.enabled
+        except sushy.exceptions.MissingAttributeError:
+            raise exception.UnsupportedDriverExtension(
+                driver=task.node.driver, extension='get_secure_boot_state')
+
+    def set_secure_boot_state(self, task, state):
+        """Set the current secure boot state for the node.
+
+        :param task: A task from TaskManager.
+        :param state: A new state as a boolean.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: RedfishError or its derivative in case of a driver
+            runtime error.
+        :raises: UnsupportedDriverExtension if secure boot is
+                 not supported by the hardware.
+        """
+        system = redfish_utils.get_system(task.node)
+        try:
+            sb = system.secure_boot
+        except sushy.exceptions.MissingAttributeError:
+            LOG.error('Secure boot has been requested for node %s but its '
+                      'Redfish BMC does not have a SecureBoot object',
+                      task.node.uuid)
+            raise exception.UnsupportedDriverExtension(
+                driver=task.node.driver, extension='set_secure_boot_state')
+
+        if sb.enabled == state:
+            LOG.info('Secure boot state for node %(node)s is already '
+                     '%(value)s', {'node': task.node.uuid, 'value': state})
+            return
+
+        boot_mode = system.boot.get('mode')
+        if boot_mode == sushy.BOOT_SOURCE_MODE_BIOS:
+            # NOTE(dtantsur): the case of disabling secure boot when boot mode
+            # is legacy should be covered by the check above.
+            msg = (_("Configuring secure boot requires UEFI for node %s")
+                   % task.node.uuid)
+            LOG.error(msg)
+            raise exception.RedfishError(error=msg)
+
+        try:
+            sb.set_enabled(state)
+        except sushy.exceptions.SushyError as exc:
+            msg = (_('Failed to set secure boot state on node %(node)s to '
+                     '%(value)s: %(exc)s')
+                   % {'node': task.node.uuid, 'value': state, 'exc': exc})
+            LOG.error(msg)
+            raise exception.RedfishError(error=msg)
+        else:
+            LOG.info('Secure boot state for node %(node)s has been set to '
+                     '%(value)s', {'node': task.node.uuid, 'value': state})
+
+    def _reset_keys(self, task, reset_type):
+        system = redfish_utils.get_system(task.node)
+        try:
+            sb = system.secure_boot
+        except sushy.exceptions.MissingAttributeError:
+            LOG.error('Resetting secure boot keys has been requested for node '
+                      '%s but its Redfish BMC does not have a SecureBoot '
+                      'object', task.node.uuid)
+            raise exception.UnsupportedDriverExtension(
+                driver=task.node.driver, extension='reset_keys')
+
+        try:
+            sb.reset_keys(reset_type)
+        except sushy.exceptions.SushyError as exc:
+            msg = (_('Failed to reset secure boot keys on node %(node)s: '
+                     '%(exc)s')
+                   % {'node': task.node.uuid, 'exc': exc})
+            LOG.error(msg)
+            raise exception.RedfishError(error=msg)
+
+    @METRICS.timer('RedfishManagement.reset_secure_boot_keys_to_default')
+    @base.deploy_step(priority=0)
+    @base.clean_step(priority=0)
+    def reset_secure_boot_keys_to_default(self, task):
+        """Reset secure boot keys to manufacturing defaults.
+
+        :param task: a task from TaskManager.
+        :raises: UnsupportedDriverExtension if secure boot is now supported.
+        :raises: RedfishError on runtime driver error.
+        """
+        self._reset_keys(task, sushy.SECURE_BOOT_RESET_KEYS_TO_DEFAULT)
+        LOG.info('Secure boot keys have been reset to their defaults on '
+                 'node %s', task.node.uuid)
+
+    @METRICS.timer('RedfishManagement.clear_secure_boot_keys')
+    @base.deploy_step(priority=0)
+    @base.clean_step(priority=0)
+    def clear_secure_boot_keys(self, task):
+        """Clear all secure boot keys.
+
+        :param task: a task from TaskManager.
+        :raises: UnsupportedDriverExtension if secure boot is now supported.
+        :raises: RedfishError on runtime driver error.
+        """
+        self._reset_keys(task, sushy.SECURE_BOOT_RESET_KEYS_DELETE_ALL)
+        LOG.info('Secure boot keys have been removed from node %s',
+                 task.node.uuid)

@@ -117,6 +117,19 @@ bare metal node as well as set it to either Legacy BIOS or UEFI.
    it remains the responsibility of the operator to configure proper
    boot mode to their bare metal nodes.
 
+UEFI secure boot
+~~~~~~~~~~~~~~~~
+
+Secure boot mode can be automatically set and unset during deployment for nodes
+in UEFI boot mode, see :ref:`secure-boot` for an explanation how to use it.
+
+Two clean and deploy steps are provided for key management:
+
+``management.reset_secure_boot_keys_to_default``
+    resets secure boot keys to their manufacturing defaults.
+``management.clear_secure_boot_keys``
+    removes all secure boot keys from the node.
+
 Out-Of-Band inspection
 ======================
 
