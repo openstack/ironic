@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Boot mode is now correctly handled when using ``redfish-virtual-media``
+    boot with locally booted images.

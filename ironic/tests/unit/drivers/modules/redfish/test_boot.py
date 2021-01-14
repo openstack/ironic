@@ -700,12 +700,13 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
 
+    @mock.patch.object(boot_mode_utils, 'sync_boot_mode', autospec=True)
     @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
     @mock.patch.object(redfish_boot, 'manager_utils', autospec=True)
     def _test_prepare_instance_local_boot(
             self, mock_manager_utils,
-            mock_cleanup_iso_image, mock__eject_vmedia):
+            mock_cleanup_iso_image, mock__eject_vmedia, mock_sync_boot_mode):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -720,6 +721,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_cleanup_iso_image.assert_called_once_with(task)
             mock__eject_vmedia.assert_called_once_with(
                 task, sushy.VIRTUAL_MEDIA_CD)
+            mock_sync_boot_mode.assert_called_once_with(task)
 
     def test_prepare_instance_local_whole_disk_image(self):
         self.node.driver_internal_info = {'is_whole_disk_image': True}
