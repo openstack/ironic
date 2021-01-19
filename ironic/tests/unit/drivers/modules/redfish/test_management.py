@@ -90,9 +90,13 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.driver.management.set_boot_device(task, target)
 
                 # Asserts
-                fake_system.set_system_boot_options.assert_called_once_with(
-                    expected, enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
-                mock_get_system.assert_called_once_with(task.node)
+                fake_system.set_system_boot_options.assert_has_calls(
+                    [mock.call(expected,
+                               enabled=sushy.BOOT_SOURCE_ENABLED_ONCE),
+                     mock.call(mode=sushy.BOOT_SOURCE_MODE_BIOS)])
+                mock_get_system.assert_called_with(task.node)
+                self.assertNotIn('redfish_boot_device',
+                                 task.node.driver_internal_info)
 
                 # Reset mocks
                 fake_system.set_system_boot_options.reset_mock()
@@ -115,9 +119,10 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.driver.management.set_boot_device(task, target)
 
                 # Asserts
-                fake_system.set_system_boot_source.assert_called_once_with(
-                    expected, enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
-                mock_get_system.assert_called_once_with(task.node)
+                fake_system.set_system_boot_source.assert_has_calls([
+                    mock.call(expected,
+                              enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)])
+                self.assertEqual(3, mock_get_system.call_count)
                 self.assertNotIn('redfish_boot_device',
                                  task.node.driver_internal_info)
 
@@ -140,9 +145,11 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.driver.management.set_boot_device(
                     task, boot_devices.PXE, persistent=target)
 
-                fake_system.set_system_boot_options.assert_called_once_with(
-                    sushy.BOOT_SOURCE_TARGET_PXE, enabled=expected)
-                mock_get_system.assert_called_once_with(task.node)
+                fake_system.set_system_boot_options.assert_has_calls(
+                    [mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
+                               enabled=expected),
+                     mock.call(mode=sushy.BOOT_SOURCE_MODE_BIOS)])
+                mock_get_system.assert_called_with(task.node)
                 self.assertNotIn('redfish_boot_device',
                                  task.node.driver_internal_info)
 
@@ -167,9 +174,10 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.driver.management.set_boot_device(
                     task, boot_devices.PXE, persistent=target)
 
-                fake_system.set_system_boot_options.assert_called_once_with(
-                    sushy.BOOT_SOURCE_TARGET_PXE, enabled=None)
-                mock_get_system.assert_called_once_with(task.node)
+                fake_system.set_system_boot_options.assert_has_calls(
+                    [mock.call(sushy.BOOT_SOURCE_TARGET_PXE, enabled=None),
+                     mock.call(mode=sushy.BOOT_SOURCE_MODE_BIOS)])
+                mock_get_system.assert_called_with(task.node)
 
                 # Reset mocks
                 fake_system.set_system_boot_options.reset_mock()
@@ -234,6 +242,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         fake_system.set_system_boot_options.side_effect = [
             sushy.exceptions.SushyError(),
             None,
+            None
         ]
         mock_get_system.return_value = fake_system
         with task_manager.acquire(self.context, self.node.uuid,
@@ -244,9 +253,9 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
                           enabled=sushy.BOOT_SOURCE_ENABLED_CONTINUOUS),
                 mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
-                          enabled=sushy.BOOT_SOURCE_ENABLED_ONCE),
+                          enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
             ])
-            mock_get_system.assert_called_once_with(task.node)
+            mock_get_system.assert_called_with(task.node)
 
             task.node.refresh()
             self.assertEqual(
