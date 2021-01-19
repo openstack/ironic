@@ -15,10 +15,15 @@
 import sys
 
 from oslo_config import cfg
+from oslo_upgradecheck import common_checks
 from oslo_upgradecheck import upgradecheck
 
 from ironic.cmd import dbsync
 from ironic.common.i18n import _
+from ironic.common import policy  # noqa importing to load policy config.
+import ironic.conf
+
+CONF = ironic.conf.CONF
 
 
 class Checks(upgradecheck.UpgradeCommands):
@@ -54,6 +59,9 @@ class Checks(upgradecheck.UpgradeCommands):
     # summary will be rolled up at the end of the check() method.
     _upgrade_checks = (
         (_('Object versions'), _check_obj_versions),
+        # Victoria -> Wallaby migration
+        (_('Policy File JSON to YAML Migration'),
+         (common_checks.check_policy_json, {'conf': CONF})),
     )
 
 
