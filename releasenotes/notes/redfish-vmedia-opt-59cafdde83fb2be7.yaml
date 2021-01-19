@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The ``redfish-virtual-media`` boot interface now makes fewer calls to
+    the BMC when preparing boot.
