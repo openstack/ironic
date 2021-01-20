@@ -928,3 +928,34 @@ def remove_agent_url(node):
     info = node.driver_internal_info
     info.pop('agent_url', None)
     node.driver_internal_info = info
+
+
+def node_cache_vendor(task):
+    """Cache the vendor if it can be detected."""
+    properties = task.node.properties
+    if properties.get('vendor'):
+        return  # assume that vendors don't change on fly
+
+    try:
+        # We have no vendor stored, so we'll go ahead and
+        # call to store it.
+        vendor = task.driver.management.detect_vendor(task)
+        if not vendor:
+            return
+
+        # This function may be called without an exclusive lock, so get one
+        task.upgrade_lock(purpose='caching node vendor')
+    except exception.UnsupportedDriverExtension:
+        return
+    except Exception as exc:
+        LOG.warning('Unexpected exception when trying to detect vendor '
+                    'for node %(node)s. %(class)s: %(exc)s',
+                    {'node': task.node.uuid,
+                     'class': type(exc).__name__, 'exc': exc},
+                    exc_info=not isinstance(exc, exception.IronicException))
+        return
+
+    props = task.node.properties
+    props['vendor'] = vendor
+    task.node.properties = props
+    task.node.save()

@@ -632,3 +632,11 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             fake_system.reset_system.assert_called_once_with(
                 sushy.RESET_NMI)
             mock_get_system.assert_called_once_with(task.node)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_detect_vendor(self, mock_get_system):
+        mock_get_system.return_value.manufacturer = "Fake GmbH"
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            response = task.driver.management.detect_vendor(task)
+            self.assertEqual("Fake GmbH", response)
