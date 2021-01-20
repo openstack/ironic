@@ -166,6 +166,12 @@ BIOS boot mode, it suffice to set ironic boot interface to
 
   openstack baremetal node set --boot-interface redfish-virtual-media node-0
 
+.. warning::
+   Dell hardware requires a non-standard Redfish call to boot from virtual
+   media, thus you **must** use the ``idrac`` hardware type and the
+   ``idrac-redfish-virtual-media`` boot interface with it instead. See
+   :doc:`/admin/drivers/idrac` for more details on this hardware type.
+
 If UEFI boot mode is desired, the user should additionally supply EFI
 System Partition image (ESP_) via ``[driver-info]/bootloader`` ironic node
 property or ironic configuration file in form of Glance image UUID or a URL.
