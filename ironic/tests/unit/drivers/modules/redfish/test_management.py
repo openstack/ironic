@@ -702,6 +702,14 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
             self.assertEqual(indicator_states.ON, state)
 
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_detect_vendor(self, mock_get_system):
+        mock_get_system.return_value.manufacturer = "Fake GmbH"
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            response = task.driver.management.detect_vendor(task)
+            self.assertEqual("Fake GmbH", response)
+
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     @mock.patch.object(deploy_utils, 'get_async_step_return_state',
                        autospec=True)

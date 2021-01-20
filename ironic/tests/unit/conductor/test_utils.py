@@ -2195,3 +2195,76 @@ class StoreAgentCertificateTestCase(db_base.DbTestCase):
         self.assertEqual(self.fname, result)
         with open(self.fname, 'rt') as fp:
             self.assertEqual('cert text', fp.read())
+
+
+@mock.patch.object(fake.FakeManagement, 'detect_vendor', autospec=True,
+                   return_value="Fake Inc.")
+class CacheVendorTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(CacheVendorTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake-hardware',
+                                               properties={})
+
+    def test_ok(self, mock_detect):
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            conductor_utils.node_cache_vendor(task)
+            self.assertFalse(task.shared)
+            mock_detect.assert_called_once_with(task.driver.management, task)
+
+        self.node.refresh()
+        self.assertEqual("Fake Inc.", self.node.properties['vendor'])
+
+    def test_already_present(self, mock_detect):
+        self.node.properties = {'vendor': "Fake GmbH"}
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            conductor_utils.node_cache_vendor(task)
+            self.assertTrue(task.shared)
+
+        self.node.refresh()
+        self.assertEqual("Fake GmbH", self.node.properties['vendor'])
+        self.assertFalse(mock_detect.called)
+
+    def test_empty(self, mock_detect):
+        mock_detect.return_value = None
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            conductor_utils.node_cache_vendor(task)
+            self.assertTrue(task.shared)
+            mock_detect.assert_called_once_with(task.driver.management, task)
+
+        self.node.refresh()
+        self.assertNotIn('vendor', self.node.properties)
+
+    @mock.patch.object(conductor_utils.LOG, 'warning', autospec=True)
+    def test_unsupported(self, mock_log, mock_detect):
+        mock_detect.side_effect = exception.UnsupportedDriverExtension
+
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            conductor_utils.node_cache_vendor(task)
+            self.assertTrue(task.shared)
+            mock_detect.assert_called_once_with(task.driver.management, task)
+
+        self.node.refresh()
+        self.assertNotIn('vendor', self.node.properties)
+        self.assertFalse(mock_log.called)
+
+    @mock.patch.object(conductor_utils.LOG, 'warning', autospec=True)
+    def test_failed(self, mock_log, mock_detect):
+        mock_detect.side_effect = RuntimeError
+
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            conductor_utils.node_cache_vendor(task)
+            self.assertTrue(task.shared)
+            mock_detect.assert_called_once_with(task.driver.management, task)
+
+        self.node.refresh()
+        self.assertNotIn('vendor', self.node.properties)
+        self.assertTrue(mock_log.called)

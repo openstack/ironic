@@ -677,6 +677,21 @@ class RedfishManagement(base.ManagementInterface):
                                 'component': component,
                                 'uuid': task.node.uuid})
 
+    def detect_vendor(self, task):
+        """Detects and returns the hardware vendor.
+
+        Uses the System's Manufacturer field.
+
+        :param task: A task from TaskManager.
+        :raises: InvalidParameterValue if an invalid component, indicator
+            or state is specified.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: RedfishError on driver-specific problems.
+        :returns: String representing the BMC reported Vendor or
+                  Manufacturer, otherwise returns None.
+        """
+        return redfish_utils.get_system(task.node).manufacturer
+
     @METRICS.timer('RedfishManagement.update_firmware')
     @base.clean_step(priority=0, abortable=False, argsinfo={
         'firmware_images': {
