@@ -295,6 +295,55 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
     @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
     @mock.patch.object(deploy_utils, 'validate_image_properties',
                        autospec=True)
+    def test_validate_correct_vendor(self, mock_validate_image_properties,
+                                     mock_parse_driver_info):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.instance_info.update(
+                {'kernel': 'kernel',
+                 'ramdisk': 'ramdisk',
+                 'image_source': 'http://image/source'}
+            )
+
+            task.node.driver_info.update(
+                {'deploy_kernel': 'kernel',
+                 'deploy_ramdisk': 'ramdisk',
+                 'bootloader': 'bootloader'}
+            )
+
+            task.node.properties['vendor'] = "Ironic Co."
+
+            task.driver.boot.validate(task)
+
+    @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
+                       autospec=True)
+    def test_validate_incompatible_with_idrac(self,
+                                              mock_validate_image_properties,
+                                              mock_parse_driver_info):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.instance_info.update(
+                {'kernel': 'kernel',
+                 'ramdisk': 'ramdisk',
+                 'image_source': 'http://image/source'}
+            )
+
+            task.node.driver_info.update(
+                {'deploy_kernel': 'kernel',
+                 'deploy_ramdisk': 'ramdisk',
+                 'bootloader': 'bootloader'}
+            )
+
+            task.node.properties['vendor'] = "Dell Inc."
+
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "with vendor Dell Inc.",
+                                   task.driver.boot.validate, task)
+
+    @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
+                       autospec=True)
     def test_validate_missing(self, mock_validate_image_properties,
                               mock_parse_driver_info):
         with task_manager.acquire(self.context, self.node.uuid,
