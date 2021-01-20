@@ -3037,11 +3037,12 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
 
 @mgr_utils.mock_record_keepalive
 class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
+    @mock.patch.object(conductor_utils, 'node_cache_vendor', autospec=True)
     @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification')
     @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state')
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate')
     def test__do_node_verify(self, mock_validate, mock_get_power_state,
-                             mock_notif):
+                             mock_notif, mock_cache_vendor):
         self._start_service()
         mock_get_power_state.return_value = states.POWER_OFF
         # Required for exception handling
@@ -3056,6 +3057,7 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         with task_manager.acquire(
                 self.context, node['id'], shared=False) as task:
             self.service._do_node_verify(task)
+            mock_cache_vendor.assert_called_once_with(task)
 
         self._stop_service()
 
@@ -4674,6 +4676,8 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         super(ManagerDoSyncPowerStateTestCase, self).setUp()
         self.service = manager.ConductorManager('hostname', 'test-topic')
         self.driver = mock.Mock(spec_set=drivers_base.BareDriver)
+        self.driver.management.detect_vendor.side_effect = \
+            exception.UnsupportedDriverExtension
         self.power = self.driver.power
         self.node = obj_utils.create_test_node(
             self.context, driver='fake-hardware', maintenance=False,
@@ -4968,6 +4972,24 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self.power.get_power_state.assert_called_once_with(self.task)
         self.assertFalse(node_power_action.called)
         self.task.upgrade_lock.assert_called_once_with()
+
+    @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_vendor_detection(self, mock_power_update, node_power_action):
+        self.driver.management.detect_vendor.side_effect = [
+            "Fake Inc."
+        ]
+        self._do_sync_power_state(states.POWER_ON, states.POWER_OFF)
+
+        self.assertFalse(self.power.validate.called)
+        self.power.get_power_state.assert_called_once_with(self.task)
+        self.assertFalse(node_power_action.called)
+        self.assertEqual(states.POWER_OFF, self.node.power_state)
+        # node_cache_vendor calls upgrade_lock, then power update does it once
+        # more (which is safe because TaskManager checks its state)
+        self.assertEqual(2, self.task.upgrade_lock.call_count)
+        mock_power_update.assert_called_once_with(
+            self.task.context, self.node.instance_uuid, states.POWER_OFF)
+        self.assertEqual("Fake Inc.", self.node.properties['vendor'])
 
 
 @mock.patch.object(waiters, 'wait_for_all',

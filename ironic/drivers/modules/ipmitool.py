@@ -950,24 +950,6 @@ class IPMIPower(base.PowerInterface):
             call).
 
         """
-        # NOTE(TheJulia): Temporary until we promote detect_vendor as
-        # a higher level management method and able to automatically
-        # run detection upon either power state sync or in the enrollment
-        # to management step.
-        try:
-            properties = task.node.properties
-            if not properties.get('vendor'):
-                # We have no vendor stored, so we'll go ahead and
-                # call to store it.
-                vendor = task.driver.management.detect_vendor(task)
-                if vendor:
-                    props = task.node.properties
-                    props['vendor'] = vendor
-                    task.node.properties = props
-                    task.node.save()
-        except exception.UnsupportedDriverExtension:
-            pass
-
         driver_info = _parse_driver_info(task.node)
         return _power_status(driver_info)
 
@@ -1255,12 +1237,7 @@ class IPMIManagement(base.ManagementInterface):
     @task_manager.require_exclusive_lock
     @METRICS.timer('IPMIManagement.detect_vendor')
     def detect_vendor(self, task):
-        """Detects, stores, and returns the hardware vendor.
-
-        If the Node object ``properties`` field does not already contain
-        a ``vendor`` field, then this method is intended to query
-        Detects the BMC hardware vendor and stores the returned value
-        with-in the Node object ``properties`` field if detected.
+        """Detects and returns the hardware vendor.
 
         :param task: A task from TaskManager.
         :raises: InvalidParameterValue if an invalid component, indicator
@@ -1269,20 +1246,11 @@ class IPMIManagement(base.ManagementInterface):
         :returns: String representing the BMC reported Vendor or
                   Manufacturer, otherwise returns None.
         """
-        try:
-            driver_info = _parse_driver_info(task.node)
-            out, err = _exec_ipmitool(driver_info, "mc info")
-            re_obj = re.search("Manufacturer Name .*: (.+)", out)
-            if re_obj:
-                bmc_vendor = str(re_obj.groups('')[0]).lower().split(':')
-                # Pull unparsed data and save the vendor
-                return bmc_vendor[-1]
-        except (exception.PasswordFileFailedToCreate,
-                processutils.ProcessExecutionError) as e:
-            LOG.warning('IPMI get boot device failed to detect vendor '
-                        'of bmc for %(node)s. Error %(err)s',
-                        {'node': task.node.uuid,
-                         'err': e})
+        driver_info = _parse_driver_info(task.node)
+        out, err = _exec_ipmitool(driver_info, "mc info")
+        re_obj = re.search("Manufacturer Name *: (.+)", out)
+        if re_obj:
+            return re_obj.group(1).lower()
 
     @METRICS.timer('IPMIManagement.get_sensors_data')
     def get_sensors_data(self, task):

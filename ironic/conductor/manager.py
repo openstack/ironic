@@ -1237,6 +1237,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                          {'node': node.uuid, 'msg': e})
 
         if error is None:
+            # Cache the vendor if possible
+            utils.node_cache_vendor(task)
+
             if power_state != node.power_state:
                 old_power_state = node.power_state
                 node.power_state = power_state
@@ -3645,6 +3648,10 @@ def do_sync_power_state(task, count):
                         {'node': node.uuid, 'attempt': count,
                          'retries': max_retries, 'err': e})
         return count
+
+    # Make sure we have the vendor cached (if for some reason it failed during
+    # the transition to manageable or a really old API version was used).
+    utils.node_cache_vendor(task)
 
     if node.power_state and node.power_state == power_state:
         # No action is needed
