@@ -93,11 +93,11 @@ following configuration:
 Below is the list of supported interface implementations in priority
 order:
 
-================     ===================================================
+================     ============================================================
 Interface            Supported Implementations
-================     ===================================================
+================     ============================================================
 ``bios``             ``idrac-wsman``, ``idrac-redfish``, ``no-bios``
-``boot``             ``ipxe``, ``pxe``
+``boot``             ``ipxe``, ``pxe``, ``idrac-redfish-virtual-media``
 ``console``          ``no-console``
 ``deploy``           ``iscsi``, ``direct``, ``ansible``, ``ramdisk``
 ``inspect``          ``idrac-wsman``, ``idrac``, ``idrac-redfish``,
@@ -108,8 +108,8 @@ Interface            Supported Implementations
 ``raid``             ``idrac-wsman``, ``idrac``, ``no-raid``
 ``rescue``           ``no-rescue``, ``agent``
 ``storage``          ``noop``, ``cinder``, ``external``
-``vendor``           ``idrac-wsman``, ``idrac``, ``no-vendor``
-================     ===================================================
+``vendor``           ``idrac-wsman``, ``idrac``, ``idrac-redfish``, ``no-vendor``
+================     ============================================================
 
 .. NOTE::
    ``idrac`` is the legacy name of the WSMAN interface. It has been
