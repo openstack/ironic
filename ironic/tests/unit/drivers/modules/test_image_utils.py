@@ -304,6 +304,30 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             result = image_utils.prepare_configdrive_image(task, encoded)
             self.assertEqual(expected_url, result)
 
+    @mock.patch.object(images, 'fetch_into', autospec=True)
+    @mock.patch.object(image_utils, 'prepare_disk_image', autospec=True)
+    def test_prepare_configdrive_image_url(self, mock_prepare, mock_fetch):
+        content = 'https://swift/path'
+        expected_url = 'https://a.b/c.f?e=f'
+        encoded = b'H4sIAPJ8418C/0vOzytJzSsBAKkwxf4HAAAA'
+
+        def _fetch(context, image_href, image_file):
+            self.assertEqual(content, image_href)
+            image_file.write(encoded)
+
+        def _prepare(task, content, prefix):
+            with open(content, 'rb') as fp:
+                self.assertEqual(b'content', fp.read())
+            return expected_url
+
+        mock_fetch.side_effect = _fetch
+        mock_prepare.side_effect = _prepare
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = image_utils.prepare_configdrive_image(task, content)
+            self.assertEqual(expected_url, result)
+
     @mock.patch.object(image_utils.ImageHandler, 'unpublish_image',
                        autospec=True)
     def test_cleanup_iso_image(self, mock_unpublish):

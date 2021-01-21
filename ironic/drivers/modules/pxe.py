@@ -58,12 +58,15 @@ class PXERamdiskDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
     @base.deploy_step(priority=100)
     @task_manager.require_exclusive_lock
     def deploy(self, task):
-        if 'configdrive' in task.node.instance_info:
-            LOG.warning('A configuration drive is present with '
-                        'in the deployment request of node %(node)s. '
-                        'The configuration drive will be ignored for '
-                        'this deployment.',
-                        {'node': task.node})
+        if ('configdrive' in task.node.instance_info
+                and 'ramdisk_boot_configdrive' not in
+                task.driver.boot.capabilities):
+            # TODO(dtantsur): make it an actual error?
+            LOG.warning('A configuration drive is present in the ramdisk '
+                        'deployment request of node %(node)s with boot '
+                        'interface %(drv)s. The configuration drive will be '
+                        'ignored for this deployment.',
+                        {'node': task.node, 'drv': task.node.boot_interface})
         manager_utils.node_power_action(task, states.POWER_OFF)
         # Tenant neworks must enable connectivity to the boot
         # location, as reboot() can otherwise be very problematic.

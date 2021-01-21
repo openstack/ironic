@@ -299,20 +299,26 @@ def cleanup_floppy_image(task):
 def prepare_configdrive_image(task, content):
     """Prepare an image with configdrive.
 
+    Decodes base64 contents and writes it into a disk image that can be
+    attached e.g. to a virtual USB device. Images stored in Swift are
+    downloaded first.
+
     :param task: a TaskManager instance containing the node to act on.
     :param content: Config drive as a base64-encoded string.
     :raises: ImageCreationFailed, if it failed while creating the image.
     :raises: SwiftOperationError, if any operation with Swift fails.
     :returns: image URL for the image.
     """
-    # FIXME(dtantsur): download and convert?
-    if '://' in content:
-        raise exception.ImageCreationFailed(
-            _('URLs are not supported for configdrive images yet'))
-
     with tempfile.TemporaryFile(dir=CONF.tempdir) as comp_tmpfile_obj:
-        comp_tmpfile_obj.write(base64.b64decode(content))
+        if '://' in content:
+            with tempfile.TemporaryFile(dir=CONF.tempdir) as tmpfile2:
+                images.fetch_into(task.context, content, tmpfile2)
+                tmpfile2.seek(0)
+                base64.decode(tmpfile2, comp_tmpfile_obj)
+        else:
+            comp_tmpfile_obj.write(base64.b64decode(content))
         comp_tmpfile_obj.seek(0)
+
         gz = gzip.GzipFile(fileobj=comp_tmpfile_obj, mode='rb')
         with tempfile.NamedTemporaryFile(
                 dir=CONF.tempdir, suffix='.img') as image_tmpfile_obj:

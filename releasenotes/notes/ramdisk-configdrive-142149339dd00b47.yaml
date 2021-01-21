@@ -3,5 +3,4 @@ features:
   - |
     Supports attaching configdrives when doing ``ramdisk`` deploy with the
     ``redfish-virtual-media`` boot. A configdrive is attached to a free USB
-    slot. Swift must not be used for configdrive storage (this limitation will
-    be fixed later).
+    slot.
