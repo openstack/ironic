@@ -78,6 +78,10 @@ class TestACLBase(base.BaseApiTest):
     def _check_skip(self, **kwargs):
         if kwargs.get('skip_reason'):
             self.skipTest(kwargs.get('skip_reason'))
+        # Remove ASAP, but as a few hundred tests use this, we can
+        # rip it out later.
+        if kwargs.get('skip'):
+            self.skipTest(kwargs.get('skip_reason', 'Not implemented'))
 
     def _fake_process_request(self, request, meow):
         if self.fake_token:
@@ -105,29 +109,34 @@ class TestACLBase(base.BaseApiTest):
                 headers['X_ROLES'] = ','.join(USERS[auth_token]['roles'])
                 self.mock_auth.side_effect = self._fake_process_request
 
-        expect_errors = bool(assert_status)
         if method == 'get':
             response = self.get_json(
                 path,
                 headers=headers,
-                expect_errors=expect_errors,
+                expect_errors=True,
                 extra_environ=self.environ,
                 path_prefix=''
             )
         else:
             assert False, 'Unimplemented test method: %s' % method
 
+        other_asserts = bool(assert_dict_contains)
+
         if assert_status:
             self.assertEqual(assert_status, response.status_int)
+        else:
+            self.assertIsNotNone(other_asserts,
+                                 'Tests must include an assert_status')
 
         if assert_dict_contains:
             for k, v in assert_dict_contains.items():
                 self.assertIn(k, response)
-                self.assertEqual(v.format(**self.format_data), response[k])
+                self.assertEqual(v.format(**self.format_data),
+                                 response.json[k])
 
 
 @ddt.ddt
-class TestACLBasic(TestACLBase):
+class TestRBACBasic(TestACLBase):
 
     def _create_test_data(self):
         fake_db_node = db_utils.create_test_node(chassis_id=None)
@@ -138,5 +147,19 @@ class TestACLBasic(TestACLBase):
     @ddt.file_data('test_acl_basic.yaml')
     @ddt.unpack
     def test_basic(self, **kwargs):
+        self._check_skip(**kwargs)
+        self._test_request(**kwargs)
+
+
+@ddt.ddt
+class TestRBACModelBeforeScopes(TestACLBase):
+
+    def _create_test_data(self):
+        fake_db_node = db_utils.create_test_node(chassis_id=None)
+        self.format_data['node_ident'] = fake_db_node['uuid']
+
+    @ddt.file_data('test_rbac_legacy.yaml')
+    @ddt.unpack
+    def test_rbac_legacy(self, **kwargs):
         self._check_skip(**kwargs)
         self._test_request(**kwargs)

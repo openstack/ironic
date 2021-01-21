@@ -1,0 +1,643 @@
+# Nodes - https://docs.openstack.org/api-ref/baremetal/?expanded=#nodes-nodes
+
+nodes_post_allow:
+  path: '/v1/nodes'
+  method: post
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_get_allow:
+  path: '/v1/nodes'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_detail_get_allow:
+  path: '/v1/nodes/detail'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_node_ident_get_allow:
+  path: '/v1/nodes/{node_ident}'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_node_ident_patch_allow:
+  path: '/v1/nodes/{node_ident}'
+  method: patch
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_node_ident_delete_allow:
+  path: '/v1/nodes/{node_ident}'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Node Management - https://docs.openstack.org/api-ref/baremetal/?expanded=#node-management-nodes
+
+nodes_validate_get_allow:
+  path: '/v1/nodes/{node_ident}/validate'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_maintenance_put_allow:
+  path: '/v1/nodes/{node_ident}/maintenance'
+  method: put
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_maintenance_delete_allow:
+  path: '/v1/nodes/{node_ident}/maintenance'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_management_boot_device_put_allow:
+  path: '/v1/nodes/{node_ident}/management/boot_device'
+  method: put
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_management_boot_device_get_allow:
+  path: '/v1/nodes/{node_ident}/management/boot_device'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_management_boot_device_supported_get_allow:
+  path: '/v1/nodes/{node_ident}/management/boot_device/supported'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_management_inject_nmi_put_allow:
+  path: '/v1/nodes/{node_ident}/management/inject_nmi'
+  method: put
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_states_get_allow:
+  path: '/v1/nodes/{node_ident}/states'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_states_power_put_allow:
+  path: '/v1/nodes/{node_ident}/states/power'
+  method: put
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_states_provision_put_allow:
+  path: '/v1/nodes/{node_ident}/states/provision'
+  method: put
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_states_raid_put_allow:
+  path: '/v1/nodes/{node_ident}/states/raid'
+  method: put
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_states_console_get_allow:
+  path: '/v1/nodes/{node_ident}/states/console'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_states_console_put_allow:
+  path: '/v1/nodes/{node_ident}/states/console'
+  method: put
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Node Traits - https://docs.openstack.org/api-ref/baremetal/?expanded=#node-vendor-passthru-nodes
+
+nodes_vendor_passthru_methods_get_allow:
+  path: '/v1/nodes/{node_ident}/vendor_passthru/methods'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_vendor_passthru_get_allow:
+  path: '/v1/nodes/{node_ident}/vendor_passthru'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_vendor_passthru_post_allow:
+  path: '/v1/nodes/{node_ident}/vendor_passthru'
+  method: post
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_vendor_passthru_put_allow:
+  path: '/v1/nodes/{node_ident}/vendor_passthru'
+  method: put
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_vendor_passthru_delete_allow:
+  path: '/v1/nodes/{node_ident}/vendor_passthru'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Node Traits - https://docs.openstack.org/api-ref/baremetal/#node-traits-nodes
+
+nodes_traits_get_allow:
+  path: '/v1/nodes/{node_ident}/traits'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_traits_put_allow:
+  path: '/v1/nodes/{node_ident}/traits'
+  method: put
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_traits_delete_allow:
+  path: '/v1/nodes/{node_ident}/traits'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_traits_trait_put_allow:
+  path: '/v1/nodes/{node_ident}/traits/{trait}'
+  method: put
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_traits_trait_delete_allow:
+  path: '/v1/nodes/{node_ident}/traits/{trait}'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# VIFS - https://docs.openstack.org/api-ref/baremetal/#vifs-virtual-interfaces-of-nodes
+# TODO(TheJulia): VIFS will need fairly exhaustive testing given the use path.
+# i.e. ensure user has rights to a vif and all.
+
+nodes_vifs_get_allow:
+  path: '/v1/nodes/{node_ident}/vifs'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_vifs_post_allow:
+  path: '/v1/nodes/{node_ident}/vifs'
+  method: post
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_vifs_node_vif_ident_delete_allow:
+  path: '/v1/nodes/{node_ident}/vifs/{node_vif_ident}'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Indicators - https://docs.openstack.org/api-ref/baremetal/#indicators-management
+
+nodes_management_indicators_get_allow:
+  path: '/v1/nodes/{node_ident}/management/indicators'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_management_indicators_component_get_allow:
+  path: '/v1/nodes/{node_ident}/management/indicators/{component}'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_management_indicators_component_ind_ident_get_allow:
+  path: '/v1/nodes/{node_ident}/management/indicators/{component}/{ind_ident}'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_management_indicators_component_ind_ident_put_allow:
+  path: '/v1/nodes/{node_ident}/management/indicators/{component}/{ind_ident}'
+  method: put
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Portgroups -  https://docs.openstack.org/api-ref/baremetal/#portgroups-portgroups
+
+portgroups_get_allow:
+  path: '/v1/portgroups'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+portgroups_post_allow:
+  path: '/v1/portgroups'
+  method: post
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+portgroups_detail_get_allow:
+  path: '/v1/portgroups/detail'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+portgroups_portgroup_ident_get_allow:
+  path: '/v1/portgroups/{portgroup_ident}'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+portgroups_portgroup_ident_patch_allow:
+  path: '/v1/portgroups/{portgroup_ident}'
+  method: patch
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+portgroups_portgroup_ident_delete_allow:
+  path: '/v1/portgroups/{portgroup_ident}'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Portgroups by node - https://docs.openstack.org/api-ref/baremetal/#listing-portgroups-by-node-nodes-portgroups
+
+nodes_portgroups_get_allow:
+  path: '/v1/nodes/{node_ident}/portgroups'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_portgroups_detail_get_allow:
+  path: '/v1/nodes/{node_ident}/portgroups/detail'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Ports - https://docs.openstack.org/api-ref/baremetal/#ports-ports
+
+ports_get_allow:
+  path: '/v1/ports'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+ports_post_allow:
+  path: '/v1/ports'
+  method: post
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+ports_detail_get_allow:
+  path: '/v1/ports/detail'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+ports_port_id_get_allow:
+  path: '/v1/ports/{port_id}'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+ports_port_id_patch_allow:
+  path: '/v1/ports/{port_id}'
+  method: patch
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+ports_port_id_delete_allow:
+  path: '/v1/ports/{port_id}'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Ports by node - https://docs.openstack.org/api-ref/baremetal/#listing-ports-by-node-nodes-ports
+
+nodes_ports_get_allow:
+  path: '/v1/nodes/{node_ident}/ports'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_ports_detail_get_allow:
+  path: '/v1/nodes/{node_ident}/ports/detail'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Ports by portgroup - https://docs.openstack.org/api-ref/baremetal/#listing-ports-by-portgroup-portgroup-ports
+
+portgroups_ports_get_allow:
+  path: '/v1/portgroups/{portgroup_ident}/ports'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+portgroups_ports_detail_get_allow:
+  path: '/v1/portgroups/{portgroup_ident}/ports/detail'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Volume(s) - https://docs.openstack.org/api-ref/baremetal/#volume-volume
+# TODO(TheJulia): volumes will likely need some level of exhaustive testing.
+# i.e. ensure that the volume is permissible. However this may not be possible
+# here.
+
+volume_get_allow:
+  path: '/v1/volume'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Volume connectors
+
+volume_connectors_get_allow:
+  path: '/v1/volume/connectors'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+volume_connectors_post_allow:
+  path: '/v1/volume/connectors'
+  method: post
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+volume_volume_connector_id_get_allow:
+  path: '/v1/volume/connectors/{volume_connector_id}'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+volume_volume_connector_id_patch_allow:
+  path: '/v1/volume/connectors/{volume_connector_id}'
+  method: patch
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+volume_volume_connector_id_delete_allow:
+  path: '/v1/volume/connectors/{volume_connector_id}'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Volume targets
+
+volume_targets_get_allow:
+  path: '/v1/volume/targets'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+volume_targets_post_allow:
+  path: '/v1/volume/targets'
+  method: post
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+volume_volume_target_id_get_allow:
+  path: '/v1/volume/targets/{volume_target_id}'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+volume_volume_target_id_patch_allow:
+  path: '/v1/volume/targets/{volume_target_id}'
+  method: patch
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+volume_volume_target_id_delete_allow:
+  path: '/v1/volume/targets/{volume_target_id}'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Get Volumes by Node - https://docs.openstack.org/api-ref/baremetal/#listing-volume-resources-by-node-nodes-volume
+
+nodes_volume_get_allow:
+  path: '/v1/nodes/{node_ident}/volume'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_volume_connectors_get_allow:
+  path: '/v1/nodes/{node_ident}/volume/connectors'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_volume_targets_get_allow:
+  path: '/v1/nodes/{node_ident}/volume/targets'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Drivers - https://docs.openstack.org/api-ref/baremetal/#drivers-drivers
+
+drivers_get_allow:
+  path: '/v1/drivers'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+drivers_driver_name_get_allow:
+  path: '/v1/drivers/{driver_name}'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+drivers_properties_get_allow:
+  path: '/v1/drivers/{driver_name}/properties'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+drivers_raid_logical_disk_properties_get_allow:
+  path: '/v1/drivers/{driver_name}/raid/logical_disk_properties'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Driver vendor passthru - https://docs.openstack.org/api-ref/baremetal/#driver-vendor-passthru-drivers
+
+drivers_vendor_passthru_methods_get_allow:
+  path: '/v1/drivers/{driver_name}/vendor_passthru/methods'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+drivers_vendor_passthru_get_allow:
+  path: '/v1/drivers/{driver_name}/vendor_passthru'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+drivers_vendor_passthru_post_allow:
+  path: '/v1/drivers/{driver_name}/vendor_passthru'
+  method: post
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+drivers_vendor_passthru_put_allow:
+  path: '/v1/drivers/{driver_name}/vendor_passthru'
+  method: put
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+drivers_vendor_passthru_delete_allow:
+  path: '/v1/drivers/{driver_name}/vendor_passthru'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Node Bios - https://docs.openstack.org/api-ref/baremetal/#node-bios-nodes
+
+nodes_bios_get_allow:
+  path: '/v1/nodes/{node_ident}/bios'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_bios_bios_setting_get_allow:
+  path: '/v1/nodes/{node_ident}/bios/{bios_setting}'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Conductors - https://docs.openstack.org/api-ref/baremetal/#allocations-allocations
+
+conductors_get_allow:
+  path: '/v1/conductors'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+conductors_hostname_get_allow:
+  path: '/v1/conductors/{hostname}'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Allocations - https://docs.openstack.org/api-ref/baremetal/#allocations-allocations
+
+allocations_post_allow:
+  path: '/v1/allocations'
+  method: post
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+allocations_get_allow:
+  path: '/v1/allocations'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+allocations_allocation_id_get_allow:
+  path: '/v1/allocations/{allocation_id}'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+allocations_allocation_id_patch_allow:
+  path: '/v1/allocations/{allocation_id}'
+  method: patch
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+allocations_allocation_id_delete_allow:
+  path: '/v1/allocations/{allocation_id}'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Allocations ( Node level) - https://docs.openstack.org/api-ref/baremetal/#node-allocation-allocations-nodes
+nodes_allocation_get_allow:
+  path: '/v1/nodes/{node_ident}/allocation'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+nodes_allocation_delete_allow:
+  path: '/v1/nodes/{node_ident}/allocation'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Deploy Templates - https://docs.openstack.org/api-ref/baremetal/#deploy-templates-deploy-templates
+
+deploy_templates_post_allow:
+  path: '/v1/deploy_templates'
+  method: post
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+deploy_templates_get_allow:
+  path: '/v1/deploy_templates'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+deploy_templates_deploy_template_id_get_allow:
+  path: '/v1/deploy_templates/{deploy_template_id}'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+deploy_templates_deploy_template_id_patch_allow:
+  path: '/v1/deploy_templates/{deploy_template_id}'
+  method: patch
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+deploy_templates_deploy_template_id_delete_allow:
+  path: '/v1/deploy_templates/{deploy_template_id}'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+# Chassis endpoints - https://docs.openstack.org/api-ref/baremetal/#chassis-chassis
+
+chassis_post_allow:
+  path: '/v1/chassis'
+  method: post
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+chassis_get_allow:
+  path: '/v1/chassis'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+chassis_detail_get_allow:
+  path: '/v1/chassis/detail'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+chassis_chassis_id_get_allow:
+  path: '/v1/chassis/{chassis_id}'
+  method: get
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+chassis_chassis_id_patch_allow:
+  path: '/v1/chassis/{chassis_id}'
+  method: patch
+  skip: true
+  skip_reason: 'Not implemented yet'
+
+chassis_chassis_id_delete_allow:
+  path: '/v1/chassis/{chassis_id}'
+  method: delete
+  skip: true
+  skip_reason: 'Not implemented yet'
