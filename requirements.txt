@@ -14,7 +14,6 @@ ironic-lib>=4.3.0 # Apache-2.0
 python-swiftclient>=3.2.0 # Apache-2.0
 pytz>=2013.6 # MIT
 stevedore>=1.20.0 # Apache-2.0
-pysendfile>=2.0.0;sys_platform!='win32' # MIT
 oslo.concurrency>=4.2.0 # Apache-2.0
 oslo.config>=6.8.0 # Apache-2.0
 oslo.context>=2.19.2 # Apache-2.0

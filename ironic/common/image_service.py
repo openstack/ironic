@@ -26,7 +26,6 @@ from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import uuidutils
 import requests
-import sendfile
 
 from ironic.common import exception
 from ironic.common.glance_service.image_service import GlanceImageService
@@ -235,13 +234,11 @@ class FileImageService(BaseImageService):
                 offset = 0
                 with open(source_image_path, 'rb') as input_img:
                     while offset < filesize:
-                        # TODO(kaifeng) Use os.sendfile() and remove sendfile
-                        # dependency when python2 support is dropped.
                         count = min(SENDFILE_CHUNK_SIZE, filesize - offset)
-                        nbytes_out = sendfile.sendfile(image_file.fileno(),
-                                                       input_img.fileno(),
-                                                       offset,
-                                                       count)
+                        nbytes_out = os.sendfile(image_file.fileno(),
+                                                 input_img.fileno(),
+                                                 offset,
+                                                 count)
                         offset += nbytes_out
         except Exception as e:
             raise exception.ImageDownloadFailed(image_href=image_href,

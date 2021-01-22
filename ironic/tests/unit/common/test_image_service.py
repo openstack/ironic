@@ -21,7 +21,6 @@ from unittest import mock
 from oslo_config import cfg
 from oslo_utils import uuidutils
 import requests
-import sendfile
 
 from ironic.common import exception
 from ironic.common.glance_service import image_service as glance_v2_service
@@ -447,7 +446,7 @@ class FileImageServiceTestCase(base.TestCase):
         remove_mock.assert_called_once_with('file')
         link_mock.assert_called_once_with(self.href_path, 'file')
 
-    @mock.patch.object(sendfile, 'sendfile', return_value=42, autospec=True)
+    @mock.patch.object(os, 'sendfile', return_value=42, autospec=True)
     @mock.patch.object(os.path, 'getsize', return_value=42, autospec=True)
     @mock.patch.object(builtins, 'open', autospec=True)
     @mock.patch.object(os, 'access', return_value=False, autospec=True)
@@ -470,7 +469,7 @@ class FileImageServiceTestCase(base.TestCase):
                                           input_mock.__enter__().fileno(),
                                           0, 42)
 
-    @mock.patch.object(sendfile, 'sendfile', autospec=True)
+    @mock.patch.object(os, 'sendfile', autospec=True)
     @mock.patch.object(os.path, 'getsize', return_value=42, autospec=True)
     @mock.patch.object(builtins, 'open', autospec=True)
     @mock.patch.object(os, 'access', return_value=False, autospec=True)
@@ -520,8 +519,7 @@ class FileImageServiceTestCase(base.TestCase):
         self.assertEqual(2, stat_mock.call_count)
         access_mock.assert_called_once_with(self.href_path, os.R_OK | os.W_OK)
 
-    @mock.patch.object(sendfile, 'sendfile', side_effect=OSError,
-                       autospec=True)
+    @mock.patch.object(os, 'sendfile', side_effect=OSError, autospec=True)
     @mock.patch.object(os.path, 'getsize', return_value=42, autospec=True)
     @mock.patch.object(builtins, 'open', autospec=True)
     @mock.patch.object(os, 'access', return_value=False, autospec=True)

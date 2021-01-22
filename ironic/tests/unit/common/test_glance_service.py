@@ -228,7 +228,7 @@ class TestGlanceImageService(base.TestCase):
                                    'image contains no data',
                                    self.service.download, image_id)
 
-    @mock.patch('sendfile.sendfile', autospec=True)
+    @mock.patch('os.sendfile', autospec=True)
     @mock.patch('os.path.getsize', autospec=True)
     @mock.patch('%s.open' % __name__, new=mock.mock_open(), create=True)
     def test_download_file_url(self, mock_getsize, mock_sendfile):

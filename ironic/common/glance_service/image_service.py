@@ -25,7 +25,6 @@ from glanceclient import client
 from glanceclient import exc as glance_exc
 from oslo_log import log
 from oslo_utils import uuidutils
-import sendfile
 from swiftclient import utils as swift_utils
 import tenacity
 
@@ -196,7 +195,7 @@ class GlanceImageService(object):
             if url.scheme == "file":
                 with open(url.path, "r") as f:
                     filesize = os.path.getsize(f.name)
-                    sendfile.sendfile(data.fileno(), f.fileno(), 0, filesize)
+                    os.sendfile(data.fileno(), f.fileno(), 0, filesize)
                 return
 
         image_chunks = self.call('data', image_id)
