@@ -580,3 +580,9 @@ def wrap_ipv6(ip):
     if ipaddress.ip_address(ip).version == 6:
         return "[%s]" % ip
     return ip
+
+
+def file_mime_type(path):
+    """Gets a mime type of the given file."""
+    return execute('file', '--brief', '--mime-type', path,
+                   use_standard_locale=True)[0].strip()
