@@ -25,6 +25,7 @@ from oslo_utils import uuidutils
 from ironic import api
 from ironic.api.controllers.v1 import node as api_node
 from ironic.api.controllers.v1 import utils
+from ironic.common import context as ironic_context
 from ironic.common import exception
 from ironic.common import policy
 from ironic.common import states
@@ -992,9 +993,12 @@ class TestVendorPassthru(base.TestCase):
     @mock.patch.object(api, 'request', spec_set=["context"])
     @mock.patch.object(policy, 'authorize', spec=True)
     def test_check_policy(self, mock_authorize, mock_pr):
+        fake_context = ironic_context.RequestContext()
+        mock_pr.context = fake_context
+        expected_target = dict(fake_context.to_policy_values())
         utils.check_policy('fake-policy')
-        cdict = api.request.context.to_policy_values()
-        mock_authorize.assert_called_once_with('fake-policy', cdict, cdict)
+        mock_authorize.assert_called_once_with('fake-policy', expected_target,
+                                               fake_context)
 
     @mock.patch.object(api, 'request', spec_set=["context"])
     @mock.patch.object(policy, 'authorize', spec=True)
@@ -1048,15 +1052,18 @@ class TestCheckOwnerPolicy(base.TestCase):
     def test_check_owner_policy(
             self, mock_authorize, mock_pr
     ):
+        fake_context = ironic_context.RequestContext()
         mock_pr.version.minor = 50
-        mock_pr.context.to_policy_values.return_value = {}
+        mock_pr.context = fake_context
+        expected_target = dict(fake_context.to_policy_values())
+        expected_target['node.owner'] = '12345'
+        expected_target['node.lessee'] = '54321'
 
         utils.check_owner_policy(
             'node', 'fake_policy', self.node['owner'], self.node['lessee']
         )
         mock_authorize.assert_called_once_with(
-            'fake_policy',
-            {'node.owner': '12345', 'node.lessee': '54321'}, {})
+            'fake_policy', expected_target, fake_context)
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
@@ -1091,8 +1098,13 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
     def test_check_node_policy_and_retrieve(
             self, mock_grnws, mock_grn, mock_authorize, mock_pr
     ):
+        fake_context = ironic_context.RequestContext()
+        expected_target = dict(fake_context.to_policy_values())
+        expected_target['node.owner'] = '12345'
+        expected_target['node.lessee'] = '54321'
+        mock_pr.context = fake_context
+
         mock_pr.version.minor = 50
-        mock_pr.context.to_policy_values.return_value = {}
         mock_grn.return_value = self.node
 
         rpc_node = utils.check_node_policy_and_retrieve(
@@ -1101,8 +1113,7 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
         mock_grn.assert_called_once_with(self.valid_node_uuid)
         mock_grnws.assert_not_called()
         mock_authorize.assert_called_once_with(
-            'fake_policy',
-            {'node.owner': '12345', 'node.lessee': '54321'}, {})
+            'fake_policy', expected_target, fake_context)
         self.assertEqual(self.node, rpc_node)
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
@@ -1112,8 +1123,12 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
     def test_check_node_policy_and_retrieve_with_suffix(
             self, mock_grnws, mock_grn, mock_authorize, mock_pr
     ):
+        fake_context = ironic_context.RequestContext()
+        expected_target = fake_context.to_policy_values()
+        expected_target['node.owner'] = '12345'
+        expected_target['node.lessee'] = '54321'
+        mock_pr.context = fake_context
         mock_pr.version.minor = 50
-        mock_pr.context.to_policy_values.return_value = {}
         mock_grnws.return_value = self.node
 
         rpc_node = utils.check_node_policy_and_retrieve(
@@ -1122,8 +1137,7 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
         mock_grn.assert_not_called()
         mock_grnws.assert_called_once_with(self.valid_node_uuid)
         mock_authorize.assert_called_once_with(
-            'fake_policy',
-            {'node.owner': '12345', 'node.lessee': '54321'}, {})
+            'fake_policy', expected_target, fake_context)
         self.assertEqual(self.node, rpc_node)
 
     @mock.patch.object(api, 'request', spec_set=["context"])
@@ -1193,8 +1207,11 @@ class TestCheckAllocationPolicyAndRetrieve(base.TestCase):
     def test_check_node_policy_and_retrieve(
             self, mock_graws, mock_authorize, mock_pr
     ):
+        fake_context = ironic_context.RequestContext()
+        expected_target = dict(fake_context.to_policy_values())
+        expected_target['allocation.owner'] = '12345'
         mock_pr.version.minor = 60
-        mock_pr.context.to_policy_values.return_value = {}
+        mock_pr.context = fake_context
         mock_graws.return_value = self.allocation
 
         rpc_allocation = utils.check_allocation_policy_and_retrieve(
@@ -1202,7 +1219,7 @@ class TestCheckAllocationPolicyAndRetrieve(base.TestCase):
         )
         mock_graws.assert_called_once_with(self.valid_allocation_uuid)
         mock_authorize.assert_called_once_with(
-            'fake_policy', {'allocation.owner': '12345'}, {})
+            'fake_policy', expected_target, fake_context)
         self.assertEqual(self.allocation, rpc_allocation)
 
     @mock.patch.object(api, 'request', spec_set=["context"])
@@ -1444,8 +1461,12 @@ class TestCheckPortPolicyAndRetrieve(base.TestCase):
     def test_check_port_policy_and_retrieve(
             self, mock_ngbi, mock_pgbu, mock_authorize, mock_pr
     ):
+        fake_context = ironic_context.RequestContext()
+        expected_target = fake_context.to_policy_values()
+        expected_target['node.owner'] = '12345'
+        expected_target['node.lessee'] = '54321'
+        mock_pr.context = fake_context
         mock_pr.version.minor = 50
-        mock_pr.context.to_policy_values.return_value = {}
         mock_pgbu.return_value = self.port
         mock_ngbi.return_value = self.node
 
@@ -1456,9 +1477,7 @@ class TestCheckPortPolicyAndRetrieve(base.TestCase):
                                           self.valid_port_uuid)
         mock_ngbi.assert_called_once_with(mock_pr.context, 42)
         mock_authorize.assert_called_once_with(
-            'fake_policy',
-            {'node.owner': '12345', 'node.lessee': '54321'},
-            {})
+            'fake_policy', expected_target, fake_context)
         self.assertEqual(self.port, rpc_port)
         self.assertEqual(self.node, rpc_node)
 

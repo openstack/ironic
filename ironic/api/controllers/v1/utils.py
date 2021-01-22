@@ -1458,8 +1458,11 @@ def check_policy(policy_name):
     :policy_name: Name of the policy to check.
     :raises: HTTPForbidden if the policy forbids access.
     """
+    # NOTE(lbragstad): Mapping context attributes into a target dictionary is
+    # effectively a noop from an authorization perspective because the values
+    # we're comparing are coming from the same place.
     cdict = api.request.context.to_policy_values()
-    policy.authorize(policy_name, cdict, cdict)
+    policy.authorize(policy_name, cdict, api.request.context)
 
 
 def check_owner_policy(object_type, policy_name, owner, lessee=None):
@@ -1478,7 +1481,7 @@ def check_owner_policy(object_type, policy_name, owner, lessee=None):
     target_dict[object_type + '.owner'] = owner
     if lessee:
         target_dict[object_type + '.lessee'] = lessee
-    policy.authorize(policy_name, target_dict, cdict)
+    policy.authorize(policy_name, target_dict, api.request.context)
 
 
 def check_node_policy_and_retrieve(policy_name, node_ident,
@@ -1502,7 +1505,7 @@ def check_node_policy_and_retrieve(policy_name, node_ident,
         # don't expose non-existence of node unless requester
         # has generic access to policy
         cdict = api.request.context.to_policy_values()
-        policy.authorize(policy_name, cdict, cdict)
+        policy.authorize(policy_name, cdict, api.request.context)
         raise
 
     check_owner_policy('node', policy_name,
@@ -1527,7 +1530,7 @@ def check_allocation_policy_and_retrieve(policy_name, allocation_ident):
         # don't expose non-existence unless requester
         # has generic access to policy
         cdict = api.request.context.to_policy_values()
-        policy.authorize(policy_name, cdict, cdict)
+        policy.authorize(policy_name, cdict, api.request.context)
         raise
 
     check_owner_policy('allocation', policy_name, rpc_allocation['owner'])
@@ -1571,12 +1574,13 @@ def check_list_policy(object_type, owner=None):
     cdict = api.request.context.to_policy_values()
     try:
         policy.authorize('baremetal:%s:list_all' % object_type,
-                         cdict, cdict)
+                         cdict, api.request.context)
     except exception.HTTPForbidden:
         project_owner = cdict.get('project_id')
         if (not project_owner or (owner and owner != project_owner)):
             raise
-        policy.authorize('baremetal:%s:list' % object_type, cdict, cdict)
+        policy.authorize('baremetal:%s:list' % object_type,
+                         cdict, api.request.context)
         return project_owner
     return owner
 
@@ -1599,14 +1603,14 @@ def check_port_policy_and_retrieve(policy_name, port_uuid):
     except exception.PortNotFound:
         # don't expose non-existence of port unless requester
         # has generic access to policy
-        policy.authorize(policy_name, cdict, cdict)
+        policy.authorize(policy_name, cdict, context)
         raise
 
     rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
     target_dict = dict(cdict)
     target_dict['node.owner'] = rpc_node['owner']
     target_dict['node.lessee'] = rpc_node['lessee']
-    policy.authorize(policy_name, target_dict, cdict)
+    policy.authorize(policy_name, target_dict, context)
 
     return rpc_port, rpc_node
 
@@ -1619,12 +1623,14 @@ def check_port_list_policy():
     """
     cdict = api.request.context.to_policy_values()
     try:
-        policy.authorize('baremetal:port:list_all', cdict, cdict)
+        policy.authorize('baremetal:port:list_all',
+                         cdict, api.request.context)
     except exception.HTTPForbidden:
         owner = cdict.get('project_id')
         if not owner:
             raise
-        policy.authorize('baremetal:port:list', cdict, cdict)
+        policy.authorize('baremetal:port:list',
+                         cdict, api.request.context)
         return owner
 
 
