@@ -32,6 +32,14 @@ opts = [
                 mutable=True,
                 help=_('Whether to support the use of ATA Secure Erase '
                        'during the cleaning process. Defaults to True.')),
+    cfg.BoolOpt('enable_nvme_secure_erase',
+                default=True,
+                mutable=True,
+                help=_('Whether to support the use of NVMe Secure Erase '
+                       'during the cleaning process. Currently nvme-cli '
+                       'format command is supported with user-data and '
+                       'crypto modes, depending on device capabilities.'
+                       'Defaults to True.')),
     cfg.IntOpt('erase_devices_priority',
                mutable=True,
                help=_('Priority to run in-band erase devices via the Ironic '
@@ -66,12 +74,12 @@ opts = [
     cfg.BoolOpt('continue_if_disk_secure_erase_fails',
                 default=False,
                 mutable=True,
-                help=_('Defines what to do if an ATA secure erase operation '
-                       'fails during cleaning in the Ironic Python Agent. '
-                       'If False, the cleaning operation will fail and the '
-                       'node will be put in ``clean failed`` state. '
-                       'If True, shred will be invoked and cleaning will '
-                       'continue.')),
+                help=_('Defines what to do if a secure erase operation '
+                       '(NVMe or ATA) fails during cleaning in the Ironic '
+                       'Python Agent. If False, the cleaning operation will '
+                       'fail and the node will be put in ``clean failed`` '
+                       'state. If True, shred will be invoked and cleaning '
+                       'will continue.')),
     cfg.IntOpt('disk_erasure_concurrency',
                default=1,
                min=1,
