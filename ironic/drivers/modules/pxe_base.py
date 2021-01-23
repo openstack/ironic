@@ -331,6 +331,21 @@ class PXEBaseMixin(object):
                     "iPXE boot is enabled but no HTTP URL or HTTP "
                     "root was specified."))
 
+        # NOTE(zer0c00l): When 'kickstart' boot option is used we need to store
+        # kickstart and squashfs files in http_root directory. These files
+        # will be eventually requested by anaconda installer during deployment
+        # over http(s).
+        if deploy_utils.get_boot_option(node) == 'kickstart':
+            if not CONF.deploy.http_url or not CONF.deploy.http_root:
+                raise exception.MissingParameterValue(_(
+                    "'kickstart' boot option is set on the node but no HTTP "
+                    "URL or HTTP root was specified."))
+
+            if not CONF.anaconda.default_ks_template:
+                raise exception.MissingParameterValue(_(
+                    "'kickstart' boot option is set on the node but no "
+                    "default kickstart template is specified."))
+
         # Check the trusted_boot capabilities value.
         deploy_utils.validate_capabilities(node)
         if deploy_utils.is_trusted_boot_requested(node):
@@ -390,6 +405,8 @@ class PXEBaseMixin(object):
             props = ['boot_iso']
         elif service_utils.is_glance_image(d_info['image_source']):
             props = ['kernel_id', 'ramdisk_id']
+            if deploy_utils.get_boot_option(node) == 'kickstart':
+                props.append('squashfs_id')
         else:
             props = ['kernel', 'ramdisk']
         deploy_utils.validate_image_properties(task.context, d_info, props)

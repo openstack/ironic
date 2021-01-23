@@ -16,6 +16,7 @@
 from oslo_config import cfg
 
 from ironic.conf import agent
+from ironic.conf import anaconda
 from ironic.conf import ansible
 from ironic.conf import api
 from ironic.conf import audit
@@ -68,6 +69,7 @@ inspector.register_opts(CONF)
 ipmi.register_opts(CONF)
 irmc.register_opts(CONF)
 iscsi.register_opts(CONF)
+anaconda.register_opts(CONF)
 metrics.register_opts(CONF)
 metrics_statsd.register_opts(CONF)
 neutron.register_opts(CONF)

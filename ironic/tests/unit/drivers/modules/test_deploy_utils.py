@@ -772,6 +772,21 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         result = utils.get_boot_option(self.node)
         self.assertEqual("local", result)
 
+    @mock.patch.object(utils, 'is_anaconda_deploy', autospec=True)
+    def test_get_boot_option_anaconda_deploy(self, mock_is_anaconda_deploy):
+        mock_is_anaconda_deploy.return_value = True
+        result = utils.get_boot_option(self.node)
+        self.assertEqual("kickstart", result)
+
+    def test_is_anaconda_deploy(self):
+        self.node.deploy_interface = 'anaconda'
+        result = utils.is_anaconda_deploy(self.node)
+        self.assertTrue(result)
+
+    def test_is_anaconda_deploy_false(self):
+        result = utils.is_anaconda_deploy(self.node)
+        self.assertFalse(result)
+
     def test_is_software_raid(self):
         self.node.target_raid_config = {
             "logical_disks": [
@@ -989,7 +1004,7 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
                           utils.validate_capabilities, self.node)
 
     def test_all_supported_capabilities(self):
-        self.assertEqual(('local', 'netboot', 'ramdisk'),
+        self.assertEqual(('local', 'netboot', 'ramdisk', 'kickstart'),
                          utils.SUPPORTED_CAPABILITIES['boot_option'])
         self.assertEqual(('bios', 'uefi'),
                          utils.SUPPORTED_CAPABILITIES['boot_mode'])

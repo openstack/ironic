@@ -55,7 +55,7 @@ LOG = logging.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 SUPPORTED_CAPABILITIES = {
-    'boot_option': ('local', 'netboot', 'ramdisk'),
+    'boot_option': ('local', 'netboot', 'ramdisk', 'kickstart'),
     'boot_mode': ('bios', 'uefi'),
     'secure_boot': ('true', 'false'),
     'trusted_boot': ('true', 'false'),
@@ -581,9 +581,23 @@ def get_boot_option(node):
     # NOTE(TheJulia): Software raid always implies local deployment
     if is_software_raid(node):
         return 'local'
+    if is_anaconda_deploy(node):
+        return 'kickstart'
     capabilities = utils.parse_instance_info_capabilities(node)
     return capabilities.get('boot_option',
                             CONF.deploy.default_boot_option).lower()
+
+
+def is_anaconda_deploy(node):
+    """Determine if Anaconda deploy interface is in use for the deployment.
+
+    :param node: A single Node.
+    :returns: A boolean value of True when Anaconda deploy interface is in use
+              otherwise False
+    """
+    if node.deploy_interface == 'anaconda':
+        return True
+    return False
 
 
 def is_software_raid(node):
