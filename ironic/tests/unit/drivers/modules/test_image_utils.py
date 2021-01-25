@@ -20,6 +20,7 @@ from unittest import mock
 from oslo_utils import importutils
 
 from ironic.common import images
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules import image_utils
 from ironic.tests.unit.db import base as db_base
@@ -304,9 +305,11 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             result = image_utils.prepare_configdrive_image(task, encoded)
             self.assertEqual(expected_url, result)
 
+    @mock.patch.object(utils, 'execute', autospec=True)
     @mock.patch.object(images, 'fetch_into', autospec=True)
     @mock.patch.object(image_utils, 'prepare_disk_image', autospec=True)
-    def test_prepare_configdrive_image_url(self, mock_prepare, mock_fetch):
+    def test_prepare_configdrive_image_url(self, mock_prepare, mock_fetch,
+                                           mock_execute):
         content = 'https://swift/path'
         expected_url = 'https://a.b/c.f?e=f'
         encoded = b'H4sIAPJ8418C/0vOzytJzSsBAKkwxf4HAAAA'
@@ -322,6 +325,33 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
 
         mock_fetch.side_effect = _fetch
         mock_prepare.side_effect = _prepare
+        mock_execute.return_value = 'text/plain', ''
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = image_utils.prepare_configdrive_image(task, content)
+            self.assertEqual(expected_url, result)
+
+    @mock.patch.object(utils, 'execute', autospec=True)
+    @mock.patch.object(images, 'fetch_into', autospec=True)
+    @mock.patch.object(image_utils, 'prepare_disk_image', autospec=True)
+    def test_prepare_configdrive_image_binary_url(self, mock_prepare,
+                                                  mock_fetch, mock_execute):
+        content = 'https://swift/path'
+        expected_url = 'https://a.b/c.f?e=f'
+
+        def _fetch(context, image_href, image_file):
+            self.assertEqual(content, image_href)
+            image_file.write(b'content')
+
+        def _prepare(task, content, prefix):
+            with open(content, 'rb') as fp:
+                self.assertEqual(b'content', fp.read())
+            return expected_url
+
+        mock_fetch.side_effect = _fetch
+        mock_prepare.side_effect = _prepare
+        mock_execute.return_value = 'application/octet-stream'
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:

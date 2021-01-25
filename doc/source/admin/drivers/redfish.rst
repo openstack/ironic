@@ -272,7 +272,19 @@ parameter injection, as such the ``[instance_info]/kernel_append_params``
 setting is ignored.
 
 Configuration drives are supported starting with the Wallaby release
-for nodes that have a free virtual USB slot.
+for nodes that have a free virtual USB slot:
+
+.. code-block:: bash
+
+  baremetal node deploy <node name or UUID> \
+      --config-drive '{"meta_data": {...}, "user_data": "..."}'
+
+or via a link to a raw image:
+
+.. code-block:: bash
+
+  baremetal node deploy <node name or UUID> \
+      --config-drive http://example.com/config.img
 
 Layer 3 or DHCP-less ramdisk booting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

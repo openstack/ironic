@@ -29,6 +29,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import swift
+from ironic.common import utils
 from ironic.conf import CONF
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
@@ -311,10 +312,17 @@ def prepare_configdrive_image(task, content):
     """
     with tempfile.TemporaryFile(dir=CONF.tempdir) as comp_tmpfile_obj:
         if '://' in content:
-            with tempfile.TemporaryFile(dir=CONF.tempdir) as tmpfile2:
+            with tempfile.NamedTemporaryFile(dir=CONF.tempdir) as tmpfile2:
                 images.fetch_into(task.context, content, tmpfile2)
-                tmpfile2.seek(0)
-                base64.decode(tmpfile2, comp_tmpfile_obj)
+                tmpfile2.flush()
+
+                if utils.file_mime_type(tmpfile2.name) == "text/plain":
+                    tmpfile2.seek(0)
+                    base64.decode(tmpfile2, comp_tmpfile_obj)
+                else:
+                    # A binary image, use it as it is.
+                    return prepare_disk_image(task, tmpfile2.name,
+                                              prefix='configdrive')
         else:
             comp_tmpfile_obj.write(base64.b64decode(content))
         comp_tmpfile_obj.seek(0)
