@@ -121,7 +121,7 @@ include:
 
 - installing signed firmware for BIOS and peripheral devices
 - using a TPM (Trusted Platform Module) to validate signatures at boot time
-- booting machines in :ref:`iLO UEFI Secure Boot Support`, rather than BIOS mode, to
+- booting machines in `UEFI secure boot mode`_, rather than BIOS mode, to
   validate kernel signatures
 - disabling local (in-band) access from the host OS to the management controller (BMC)
 - disabling modifications to boot settings from the host OS
@@ -130,6 +130,81 @@ Additional references:
 
 - :ref:`cleaning`
 
+.. _secure-boot:
+
+UEFI secure boot mode
+=====================
+
+Some hardware types support turning `UEFI secure boot`_ dynamically when
+deploying an instance. Currently these are :doc:`/admin/drivers/ilo` and
+:doc:`/admin/drivers/irmc`.
+
+Support for the UEFI secure boot is declared by adding the ``secure_boot``
+capability in the ``capabilities`` parameter in the ``properties`` field of
+a node. ``secure_boot`` is a boolean parameter and takes value as ``true`` or
+``false``.
+
+To enable ``secure_boot`` on a node add it to ``capabilities``::
+
+ baremetal node set <node> --property capabilities='secure_boot:true'
+
+Alternatively use :doc:`/admin/inspection`  to automatically populate
+the secure boot capability.
+
+.. warning::
+   UEFI secure boot only works in UEFI boot mode, see :ref:`boot_mode_support`
+   for how to turn it on and off.
+
+Compatible images
+-----------------
+
+Use element ``ubuntu-signed`` or ``fedora`` to build signed deploy ISO and
+user images with `diskimage-builder
+<https://pypi.org/project/diskimage-builder>`_.
+
+The below command creates files named cloud-image-boot.iso, cloud-image.initrd,
+cloud-image.vmlinuz and cloud-image.qcow2 in the current working directory::
+
+ cd <path-to-diskimage-builder>
+ ./bin/disk-image-create -o cloud-image ubuntu-signed baremetal iso
+
+Ensure the public key of the signed image is loaded into bare metal to deploy
+signed images.
+
+Enabling with OpenStack Compute
+-------------------------------
+
+Nodes having ``secure_boot`` set to ``true`` may be requested by adding an
+``extra_spec`` to the nova flavor::
+
+  openstack flavor set <flavor> --property capabilities:secure_boot="true"
+  openstack server create --flavor <flavor> --image <image> instance-1
+
+If ``capabilities`` is used in ``extra_spec`` as above, nova scheduler
+(``ComputeCapabilitiesFilter``) will match only ironic nodes which have
+the ``secure_boot`` set appropriately in ``properties/capabilities``. It will
+filter out rest of the nodes.
+
+The above facility for matching in nova can be used in heterogeneous
+environments where there is a mix of machines supporting and not supporting
+UEFI secure boot, and operator wants to provide a choice to the user
+regarding secure boot.  If the flavor doesn't contain ``secure_boot`` then
+nova scheduler will not consider secure boot mode as a placement criteria,
+hence user may get a secure boot capable machine that matches with user
+specified flavors but deployment would not use its secure boot capability.
+Secure boot deploy would happen only when it is explicitly specified through
+flavor.
+
+Enabling standalone
+-------------------
+
+To request secure boot for an instance in standalone mode (without OpenStack
+Compute), you need to add the capability directly to the node's
+``instance_info``::
+
+  baremetal node set <node> --instance-info capabilities='{"secure_boot": "true"}'
+
+.. _UEFI secure boot: https://en.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface#Secure_boot
 
 Other considerations
 ====================

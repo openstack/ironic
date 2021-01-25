@@ -80,3 +80,6 @@ following way:
   boot modes. If the flavor doesn't contain ``boot_mode`` and ``boot_mode``
   is configured for bare metal nodes, then nova scheduler will consider all
   nodes and user may get either ``bios`` or ``uefi`` machine.
+
+Some hardware support setting secure boot mode, see :ref:`secure-boot` for
+details.

@@ -189,29 +189,11 @@ Optional functionalities for the ``irmc`` hardware type
 
 UEFI Secure Boot Support
 ^^^^^^^^^^^^^^^^^^^^^^^^
-The hardware type ``irmc`` supports secure boot deploy.
+The hardware type ``irmc`` supports secure boot deploy, see :ref:`secure-boot`
+for details.
 
 .. warning::
      Secure boot feature is not supported with ``pxe`` boot interface.
-
-The UEFI secure boot can be configured by adding ``secure_boot`` parameter,
-which is a boolean value. Enabling the secure boot is different when
-Bare Metal service is used with Compute service or without Compute service. The
-following sections describe both methods:
-
-* Enabling secure boot with Compute service:
-  To enable secure boot we need to set a capability on the bare metal node
-  and the bare metal flavor, for example::
-
-    baremetal node set <node> --property capabilities='secure_boot:true'
-    openstack flavor set FLAVOR-NAME --property capabilities:secure_boot="true"
-
-* Enabling secure boot without Compute service:
-  Since adding capabilities to the node's properties is only used by the nova
-  scheduler to perform more advanced scheduling of instances, we need
-  to enable secure boot without nova, for example::
-
-    baremetal node set <node> --instance-info capabilities='{"secure_boot": "true"}'
 
 .. _irmc_node_cleaning:
 
