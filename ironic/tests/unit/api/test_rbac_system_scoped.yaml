@@ -10,12 +10,11 @@ values:
     X-Auth-Token: 'baremetal-member-token'
     X-Roles: member,reader
     OpenStack-System-Scope: all
-  # Project Scoped Observer Token
-  # TODO(TheJulia): s/observer/reader/
-  observer_headers: &observer_headers
-    X-Auth-Token: 'baremetal-observer-token'
-    # TODO(TheJulia): observer shouldn't require member in the
-    # future universe, seems counter to the intent unless observer
+  # Project Scoped Reader Token
+  reader_headers: &reader_headers
+    X-Auth-Token: 'baremetal-reader-token'
+    # TODO(TheJulia): reader shouldn't require member in the
+    # future universe, seems counter to the intent unless reader
     # is auditor, and in this case it explicitly is not.
     X-Roles: reader
     OpenStack-System-Scope: all
@@ -46,10 +45,10 @@ nodes_post_member:
   body: *node_post_body
   assert_status: 403
 
-nodes_post_observer:
+nodes_post_reader:
   path: '/v1/nodes'
   method: post
-  headers: *observer_headers
+  headers: *reader_headers
   body: *node_post_body
   assert_status: 403
 
@@ -68,10 +67,10 @@ nodes_get_node_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_get_node_observer:
+nodes_get_node_reader:
   path: '/v1/nodes/{node_ident}'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_dict_contains:
     #uuid: '{node_ident}'
     driver: 'fake-driverz'
@@ -114,10 +113,10 @@ nodes_detail_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_detail_get_observer:
+nodes_detail_get_reader:
   path: '/v1/nodes/detail'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 nodes_node_ident_get_admin:
@@ -132,10 +131,10 @@ nodes_node_ident_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_node_ident_get_observer:
+nodes_node_ident_get_reader:
   path: '/v1/nodes/{node_ident}'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 nodes_node_ident_patch_admin:
@@ -155,10 +154,10 @@ nodes_node_ident_patch_member:
   body: *extra_patch
   assert_status: 503
 
-nodes_node_ident_patch_observer:
+nodes_node_ident_patch_reader:
   path: '/v1/nodes/{node_ident}'
   method: patch
-  headers: *observer_headers
+  headers: *reader_headers
   body: *extra_patch
   assert_status: 403
 
@@ -174,10 +173,10 @@ nodes_node_ident_delete_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-nodes_node_ident_delete_observer:
+nodes_node_ident_delete_reader:
   path: '/v1/nodes/{node_ident}'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 # Node Management - https://docs.openstack.org/api-ref/baremetal/?expanded=#node-management-nodes
@@ -197,10 +196,10 @@ nodes_validate_get_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-nodes_validate_get_observer:
+nodes_validate_get_reader:
   path: '/v1/nodes/{node_ident}/validate'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 nodes_maintenance_put_admin:
@@ -215,10 +214,10 @@ nodes_maintenance_put_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-nodes_maintenance_put_observer:
+nodes_maintenance_put_reader:
   path: '/v1/nodes/{node_ident}/maintenance'
   method: put
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 nodes_maintenance_delete_admin:
@@ -233,10 +232,10 @@ nodes_maintenance_delete_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-nodes_maintenance_delete_observer:
+nodes_maintenance_delete_reader:
   path: '/v1/nodes/{node_ident}/maintenance'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 nodes_management_boot_device_put_admin:
@@ -254,10 +253,10 @@ nodes_management_boot_device_put_member:
   body: *boot_device_body
   assert_status: 503
 
-nodes_management_boot_device_put_observer:
+nodes_management_boot_device_put_reader:
   path: '/v1/nodes/{node_ident}/management/boot_device'
   method: put
-  headers: *observer_headers
+  headers: *reader_headers
   body: *boot_device_body
   assert_status: 403
 
@@ -273,10 +272,10 @@ nodes_management_boot_device_get_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-nodes_management_boot_device_get_observer:
+nodes_management_boot_device_get_reader:
   path: '/v1/nodes/{node_ident}/management/boot_device'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 nodes_management_boot_device_supported_get_admin:
@@ -291,10 +290,10 @@ nodes_management_boot_device_supported_get_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-nodes_management_boot_device_supported_get_observer:
+nodes_management_boot_device_supported_get_reader:
   path: '/v1/nodes/{node_ident}/management/boot_device/supported'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 nodes_management_inject_nmi_put_admin:
@@ -311,10 +310,10 @@ nodes_management_inject_nmi_put_member:
   body: {}
   assert_status: 503
 
-nodes_management_inject_nmi_put_observer:
+nodes_management_inject_nmi_put_reader:
   path: '/v1/nodes/{node_ident}/management/inject_nmi'
   method: put
-  headers: *observer_headers
+  headers: *reader_headers
   body: {}
   assert_status: 403
 
@@ -331,10 +330,10 @@ nodes_states_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_states_get_observer:
+nodes_states_get_reader:
   path: '/v1/nodes/{node_ident}/states'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 nodes_states_power_put_admin:
@@ -352,10 +351,10 @@ nodes_states_power_put_member:
   body: *power_body
   assert_status: 503
 
-nodes_states_power_put_observer:
+nodes_states_power_put_reader:
   path: '/v1/nodes/{node_ident}/states/power'
   method: put
-  headers: *observer_headers
+  headers: *reader_headers
   body: *power_body
   assert_status: 403
 
@@ -374,10 +373,10 @@ nodes_states_provision_put_member:
   body: *provision_body
   assert_status: 503
 
-nodes_states_provision_put_observer:
+nodes_states_provision_put_reader:
   path: '/v1/nodes/{node_ident}/states/provision'
   method: put
-  headers: *observer_headers
+  headers: *reader_headers
   body: *provision_body
   assert_status: 403
 
@@ -400,10 +399,10 @@ nodes_states_raid_put_member:
   body: *raid_body
   assert_status: 503
 
-nodes_states_raid_put_observer:
+nodes_states_raid_put_reader:
   path: '/v1/nodes/{node_ident}/states/raid'
   method: put
-  headers: *observer_headers
+  headers: *reader_headers
   body: *raid_body
   assert_status: 403
 
@@ -422,7 +421,7 @@ nodes_states_console_get_member:
 nodes_states_console_get_admin:
   path: '/v1/nodes/{node_ident}/states/console'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 nodes_states_console_put_admin:
@@ -440,10 +439,10 @@ nodes_states_console_put_member:
   body: *console_body_put
   assert_status: 503
 
-nodes_states_console_put_observer:
+nodes_states_console_put_reader:
   path: '/v1/nodes/{node_ident}/states/console'
   method: put
-  headers: *observer_headers
+  headers: *reader_headers
   body: *console_body_put
   assert_status: 403
 
@@ -462,10 +461,10 @@ nodes_vendor_passthru_methods_get_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-nodes_vendor_passthru_methods_get_observer:
+nodes_vendor_passthru_methods_get_reader:
   path: '/v1/nodes/{node_ident}/vendor_passthru/methods'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 nodes_vendor_passthru_get_admin:
@@ -480,10 +479,10 @@ nodes_vendor_passthru_get_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-nodes_vendor_passthru_get_observer:
+nodes_vendor_passthru_get_reader:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 nodes_vendor_passthru_post_admin:
@@ -498,10 +497,10 @@ nodes_vendor_passthru_post_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-nodes_vendor_passthru_post_observer:
+nodes_vendor_passthru_post_reader:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: post
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 nodes_vendor_passthru_put_admin:
@@ -516,10 +515,10 @@ nodes_vendor_passthru_put_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-nodes_vendor_passthru_put_observer:
+nodes_vendor_passthru_put_reader:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: put
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 nodes_vendor_passthru_delete_admin:
@@ -534,10 +533,10 @@ nodes_vendor_passthru_delete_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-nodes_vendor_passthru_delete_observer:
+nodes_vendor_passthru_delete_reader:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 # Node Traits - https://docs.openstack.org/api-ref/baremetal/#node-traits-nodes
@@ -554,10 +553,10 @@ nodes_traits_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_traits_get_observer:
+nodes_traits_get_reader:
   path: '/v1/nodes/{node_ident}/traits'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 nodes_traits_put_admin:
@@ -577,10 +576,10 @@ nodes_traits_put_member:
   assert_status: 503
   body: *traits_body
 
-nodes_traits_put_observer:
+nodes_traits_put_reader:
   path: '/v1/nodes/{node_ident}/traits'
   method: put
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
   body: *traits_body
 
@@ -596,10 +595,10 @@ nodes_traits_delete_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-nodes_traits_delete_observer:
+nodes_traits_delete_reader:
   path: '/v1/nodes/{node_ident}/traits/{trait}'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 nodes_traits_trait_put_admin:
@@ -614,10 +613,10 @@ nodes_traits_trait_put_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-nodes_traits_trait_put_observer:
+nodes_traits_trait_put_reader:
   path: '/v1/nodes/{node_ident}/traits/CUSTOM_TRAIT2'
   method: put
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 nodes_traits_trait_delete_admin:
@@ -632,10 +631,10 @@ nodes_traits_trait_delete_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-nodes_traits_trait_delete_observer:
+nodes_traits_trait_delete_reader:
   path: '/v1/nodes/{node_ident}/traits/{trait}'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 # VIFS - https://docs.openstack.org/api-ref/baremetal/#vifs-virtual-interfaces-of-nodes
@@ -656,10 +655,10 @@ nodes_vifs_get_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-nodes_vifs_get_observer:
+nodes_vifs_get_reader:
   path: '/v1/nodes/{node_ident}/vifs'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 503
 
 nodes_vifs_post_admin:
@@ -677,10 +676,10 @@ nodes_vifs_post_member:
   assert_status: 503
   body: *vif_body
 
-nodes_vifs_post_observer:
+nodes_vifs_post_reader:
   path: '/v1/nodes/{node_ident}/vifs'
   method: post
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
   body: *vif_body
 
@@ -697,10 +696,10 @@ nodes_vifs_node_vif_ident_delete_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-nodes_vifs_node_vif_ident_delete_observer:
+nodes_vifs_node_vif_ident_delete_reader:
   path: '/v1/nodes/{node_ident}/vifs/{vif_ident}'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 # Indicators - https://docs.openstack.org/api-ref/baremetal/#indicators-management
@@ -739,10 +738,10 @@ portgroups_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-portgroups_get_observer:
+portgroups_get_reader:
   path: '/v1/portgroups'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 portgroups_post_admin:
@@ -760,10 +759,10 @@ portgroups_post_member:
   body: *portgroup_body
   assert_status: 403
 
-portgroups_post_observer:
+portgroups_post_reader:
   path: '/v1/portgroups'
   method: post
-  headers: *observer_headers
+  headers: *reader_headers
   body: *portgroup_body
   assert_status: 403
 
@@ -779,10 +778,10 @@ portgroups_detail_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-portgroups_detail_get_observer:
+portgroups_detail_get_reader:
   path: '/v1/portgroups/detail'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 portgroups_portgroup_ident_get_admin:
@@ -797,10 +796,10 @@ portgroups_portgroup_ident_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-portgroups_portgroup_ident_get_observer:
+portgroups_portgroup_ident_get_reader:
   path: '/v1/portgroups/{portgroup_ident}'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 portgroups_portgroup_ident_patch_admin:
@@ -820,10 +819,10 @@ portgroups_portgroup_ident_patch_member:
   body: *portgroup_patch_body
   assert_status: 503
 
-portgroups_portgroup_ident_patch_observer:
+portgroups_portgroup_ident_patch_reader:
   path: '/v1/portgroups/{portgroup_ident}'
   method: patch
-  headers: *observer_headers
+  headers: *reader_headers
   body: *portgroup_patch_body
   assert_status: 403
 
@@ -841,10 +840,10 @@ portgroups_portgroup_ident_delete_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-portgroups_portgroup_ident_delete_observer:
+portgroups_portgroup_ident_delete_reader:
   path: '/v1/portgroups/{portgroup_ident}'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 # Portgroups by node - https://docs.openstack.org/api-ref/baremetal/#listing-portgroups-by-node-nodes-portgroups
@@ -861,10 +860,10 @@ nodes_portgroups_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_portgroups_get_observer:
+nodes_portgroups_get_reader:
   path: '/v1/nodes/{node_ident}/portgroups'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 nodes_portgroups_detail_get_admin:
@@ -879,10 +878,10 @@ nodes_portgroups_detail_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_portgroups_detail_get_observer:
+nodes_portgroups_detail_get_reader:
   path: '/v1/nodes/{node_ident}/portgroups/detail'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 # Ports - https://docs.openstack.org/api-ref/baremetal/#ports-ports
@@ -899,10 +898,10 @@ ports_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-ports_get_observer:
+ports_get_reader:
   path: '/v1/ports'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 # NOTE(TheJulia): Returns 400 when the conductor calls are
@@ -924,10 +923,10 @@ ports_post_member:
   assert_status: 403
   body: *port_body
 
-ports_post_observer:
+ports_post_reader:
   path: '/v1/ports'
   method: post
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
   body: *port_body
 
@@ -943,10 +942,10 @@ ports_detail_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-ports_detail_get_observer:
+ports_detail_get_reader:
   path: '/v1/ports/detail'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 ports_port_id_get_admin:
@@ -961,10 +960,10 @@ ports_port_id_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-ports_port_id_get_observer:
+ports_port_id_get_reader:
   path: '/v1/ports/{port_ident}'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 # NOTE(TheJulia): Returns 500 without the ability to update
@@ -986,10 +985,10 @@ ports_port_id_patch_member:
   assert_status: 503
   body: *port_patch_body
 
-ports_port_id_patch_observer:
+ports_port_id_patch_reader:
   path: '/v1/ports/{port_ident}'
   method: patch
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
   body: *port_patch_body
 
@@ -1007,10 +1006,10 @@ ports_port_id_delete_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-ports_port_id_delete_observer:
+ports_port_id_delete_reader:
   path: '/v1/ports/{port_ident}'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 # Ports by node - https://docs.openstack.org/api-ref/baremetal/#listing-ports-by-node-nodes-ports
@@ -1027,10 +1026,10 @@ nodes_ports_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_ports_get_observer:
+nodes_ports_get_reader:
   path: '/v1/nodes/{node_ident}/ports'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 nodes_ports_detail_get_admin:
@@ -1045,10 +1044,10 @@ nodes_ports_detail_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_ports_detail_get_observer:
+nodes_ports_detail_get_reader:
   path: '/v1/nodes/{node_ident}/ports/detail'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 # Ports by portgroup - https://docs.openstack.org/api-ref/baremetal/#listing-ports-by-portgroup-portgroup-ports
@@ -1065,10 +1064,10 @@ portgroups_ports_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-portgroups_ports_get_observer:
+portgroups_ports_get_reader:
   path: '/v1/portgroups/{portgroup_ident}/ports'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 portgroups_ports_detail_get_admin:
@@ -1083,10 +1082,10 @@ portgroups_ports_detail_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-portgroups_ports_detail_get_observer:
+portgroups_ports_detail_get_reader:
   path: '/v1/portgroups/{portgroup_ident}/ports/detail'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 
@@ -1107,10 +1106,10 @@ volume_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-volume_get_observer:
+volume_get_reader:
   path: '/v1/volume'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 # Volume connectors
@@ -1127,10 +1126,10 @@ volume_connectors_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-volume_connectors_get_observer:
+volume_connectors_get_reader:
   path: '/v1/volume/connectors'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 # NOTE(TheJulia): This ends up returning a 400 due to the
@@ -1154,10 +1153,10 @@ volume_connectors_post_member:
   assert_status: 400
   body: *volume_connector_body
 
-volume_connectors_post_observer:
+volume_connectors_post_reader:
   path: '/v1/volume/connectors'
   method: post
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
   body: *volume_connector_body
 
@@ -1173,10 +1172,10 @@ volume_volume_connector_id_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-volume_volume_connector_id_get_observer:
+volume_volume_connector_id_get_reader:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 volume_volume_connector_id_patch_admin:
@@ -1196,10 +1195,10 @@ volume_volume_connector_id_patch_member:
   body: *connector_patch_body
   assert_status: 503
 
-volume_volume_connector_id_patch_observer:
+volume_volume_connector_id_patch_reader:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: patch
-  headers: *observer_headers
+  headers: *reader_headers
   body: *connector_patch_body
   assert_status: 403
 
@@ -1215,10 +1214,10 @@ volume_volume_connector_id_delete_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-volume_volume_connector_id_delete_observer:
+volume_volume_connector_id_delete_reader:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 # Volume targets
@@ -1235,10 +1234,10 @@ volume_targets_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-volume_targets_get_observer:
+volume_targets_get_reader:
   path: '/v1/volume/targets'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 # NOTE(TheJulia): Because we can't seem to get the uuid
@@ -1262,10 +1261,10 @@ volume_targets_post_member:
   assert_status: 400
   body: *volume_target_body
 
-volume_targets_post_observer:
+volume_targets_post_reader:
   path: '/v1/volume/targets'
   method: post
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
   body: *volume_target_body
 
@@ -1281,10 +1280,10 @@ volume_volume_target_id_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-volume_volume_target_id_get_observer:
+volume_volume_target_id_get_reader:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 # NOTE(TheJulia): This triggers a call to the conductor and
@@ -1306,11 +1305,11 @@ volume_volume_target_id_patch_admin:
   headers: *scoped_member_headers
   assert_status: 503
 
-volume_volume_target_id_patch_observer:
+volume_volume_target_id_patch_reader:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: patch
   body: *volume_target_patch
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 volume_volume_target_id_delete_admin:
@@ -1325,10 +1324,10 @@ volume_volume_target_id_delete_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-volume_volume_target_id_delete_observer:
+volume_volume_target_id_delete_reader:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 # Get Volumes by Node - https://docs.openstack.org/api-ref/baremetal/#listing-volume-resources-by-node-nodes-volume
@@ -1345,10 +1344,10 @@ nodes_volume_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_volume_get_observer:
+nodes_volume_get_reader:
   path: '/v1/nodes/{node_ident}/volume'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 nodes_volume_connectors_get_admin:
@@ -1363,10 +1362,10 @@ nodes_volume_connectors_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_volume_connectors_get_observer:
+nodes_volume_connectors_get_reader:
   path: '/v1/nodes/{node_ident}/volume/connectors'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 nodes_volume_targets_get_admin:
@@ -1381,10 +1380,10 @@ nodes_volume_targets_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_volume_targets_get_observer:
+nodes_volume_targets_get_reader:
   path: '/v1/nodes/{node_ident}/volume/targets'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 # Drivers - https://docs.openstack.org/api-ref/baremetal/#drivers-drivers
@@ -1401,10 +1400,10 @@ drivers_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-drivers_get_observer:
+drivers_get_reader:
   path: '/v1/drivers'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 drivers_driver_name_get_admin:
@@ -1419,10 +1418,10 @@ drivers_driver_name_get_member:
   headers: *scoped_member_headers
   assert_status: 404
 
-drivers_driver_name_get_observer:
+drivers_driver_name_get_reader:
   path: '/v1/drivers/{driver_name}'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 404
 
 drivers_properties_get_admin:
@@ -1437,10 +1436,10 @@ drivers_properties_get_member:
   headers: *scoped_member_headers
   assert_status: 404
 
-drivers_properties_get_observer:
+drivers_properties_get_reader:
   path: '/v1/drivers/{driver_name}/properties'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 404
 
 drivers_raid_logical_disk_properties_get_admin:
@@ -1455,10 +1454,10 @@ drivers_raid_logical_disk_properties_get_member:
   headers: *scoped_member_headers
   assert_status: 404
 
-drivers_raid_logical_disk_properties_get_observer:
+drivers_raid_logical_disk_properties_get_reader:
   path: '/v1/drivers/{driver_name}/raid/logical_disk_properties'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 404
 
 # Driver vendor passthru - https://docs.openstack.org/api-ref/baremetal/#driver-vendor-passthru-drivers
@@ -1475,10 +1474,10 @@ drivers_vendor_passthru_methods_get_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-drivers_vendor_passthru_methods_get_observer:
+drivers_vendor_passthru_methods_get_reader:
   path: '/v1/drivers/{driver_name}/vendor_passthru/methods'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 drivers_vendor_passthru_get_admin:
@@ -1493,10 +1492,10 @@ drivers_vendor_passthru_get_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-drivers_vendor_passthru_get_observer:
+drivers_vendor_passthru_get_reader:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 drivers_vendor_passthru_post_admin:
@@ -1511,10 +1510,10 @@ drivers_vendor_passthru_post_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-drivers_vendor_passthru_post_observer:
+drivers_vendor_passthru_post_reader:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: post
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 drivers_vendor_passthru_put_admin:
@@ -1529,10 +1528,10 @@ drivers_vendor_passthru_put_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-drivers_vendor_passthru_put_observer:
+drivers_vendor_passthru_put_reader:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: put
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 # NOTE(TheJulia): Returns an error due to the driver name
@@ -1544,16 +1543,16 @@ drivers_vendor_passthru_delete_admin:
   headers: *admin_headers
   assert_status: 404
 
-drivers_vendor_passthru_delete_observer:
+drivers_vendor_passthru_delete_reader:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: delete
   headers: *scoped_member_headers
   assert_status: 403
 
-drivers_vendor_passthru_delete_observer:
+drivers_vendor_passthru_delete_reader:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 # Node Bios - https://docs.openstack.org/api-ref/baremetal/#node-bios-nodes
@@ -1570,10 +1569,10 @@ nodes_bios_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_bios_get_observer:
+nodes_bios_get_reader:
   path: '/v1/nodes/{node_ident}/bios'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 nodes_bios_bios_setting_get_admin:
@@ -1588,10 +1587,10 @@ nodes_bios_bios_setting_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_bios_bios_setting_get_observer:
+nodes_bios_bios_setting_get_reader:
   path: '/v1/nodes/{node_ident}/bios/{bios_setting}'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 # Conductors - https://docs.openstack.org/api-ref/baremetal/#allocations-allocations
@@ -1608,10 +1607,10 @@ conductors_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-conductors_get_observer:
+conductors_get_reader:
   path: '/v1/conductors'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 conductors_hostname_get_admin:
@@ -1626,10 +1625,10 @@ conductors_hostname_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-conductors_hostname_get_observer:
+conductors_hostname_get_reader:
   path: '/v1/conductors/{conductor_ident}'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 # Allocations - https://docs.openstack.org/api-ref/baremetal/#allocations-allocations
@@ -1652,10 +1651,10 @@ allocations_post_member:
   body: *allocation_body
   assert_status: 503
 
-allocations_post_observer:
+allocations_post_reader:
   path: '/v1/allocations'
   method: post
-  headers: *observer_headers
+  headers: *reader_headers
   body: *allocation_body
   assert_status: 403
 
@@ -1671,10 +1670,10 @@ allocations_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-allocations_get_observer:
+allocations_get_reader:
   path: '/v1/allocations'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 allocations_allocation_id_get_admin:
@@ -1689,10 +1688,10 @@ allocations_allocation_id_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-allocations_allocation_id_get_observer:
+allocations_allocation_id_get_reader:
   path: '/v1/allocations/{allocation_ident}'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 allocations_allocation_id_patch_admin:
@@ -1712,10 +1711,10 @@ allocations_allocation_id_patch_member:
   body: *allocation_patch
   assert_status: 200
 
-allocations_allocation_id_patch_observer:
+allocations_allocation_id_patch_reader:
   path: '/v1/allocations/{allocation_ident}'
   method: patch
-  headers: *observer_headers
+  headers: *reader_headers
   body: *allocation_patch
   assert_status: 403
 
@@ -1734,10 +1733,10 @@ allocations_allocation_id_delete_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-allocations_allocation_id_delete_observer:
+allocations_allocation_id_delete_reader:
   path: '/v1/allocations/{allocation_ident}'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 # Allocations ( Node level) - https://docs.openstack.org/api-ref/baremetal/#node-allocation-allocations-nodes
@@ -1753,10 +1752,10 @@ nodes_allocation_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-nodes_allocation_get_observer:
+nodes_allocation_get_reader:
   path: '/v1/nodes/{allocated_node_ident}/allocation'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 # NOTE(TheJulia): Currently returns an HTTP 503
@@ -1774,10 +1773,10 @@ nodes_allocation_delete_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-nodes_allocation_delete_observer:
+nodes_allocation_delete_reader:
   path: '/v1/nodes/{allocated_node_ident}/allocation'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 # Deploy Templates - https://docs.openstack.org/api-ref/baremetal/#deploy-templates-deploy-templates
@@ -1802,11 +1801,11 @@ deploy_templates_post_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-deploy_templates_post_observer:
+deploy_templates_post_reader:
   path: '/v1/deploy_templates'
   method: post
   body: *deploy_template_body
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 deploy_templates_get_admin:
@@ -1821,10 +1820,10 @@ deploy_templates_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-deploy_templates_get_observer:
+deploy_templates_get_reader:
   path: '/v1/deploy_templates'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 deploy_templates_deploy_template_id_get_admin:
@@ -1839,10 +1838,10 @@ deploy_templates_deploy_template_id_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-deploy_templates_deploy_template_id_get_observer:
+deploy_templates_deploy_template_id_get_reader:
   path: '/v1/deploy_templates/{deploy_template_ident}'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 deploy_templates_deploy_template_id_patch_admin:
@@ -1862,11 +1861,11 @@ deploy_templates_deploy_template_id_patch_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-deploy_templates_deploy_template_id_patch_observer:
+deploy_templates_deploy_template_id_patch_reader:
   path: '/v1/deploy_templates/{deploy_template_ident}'
   method: patch
   body: *template_patch
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 deploy_templates_deploy_template_id_delete_admin:
@@ -1881,10 +1880,10 @@ deploy_templates_deploy_template_id_delete_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-deploy_templates_deploy_template_id_delete_observer:
+deploy_templates_deploy_template_id_delete_reader:
   path: '/v1/deploy_templates/{deploy_template_ident}'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 # Chassis endpoints - https://docs.openstack.org/api-ref/baremetal/#chassis-chassis
@@ -1904,10 +1903,10 @@ chassis_post_member:
   body: *chassis_body
   assert_status: 403
 
-chassis_post_observer:
+chassis_post_reader:
   path: '/v1/chassis'
   method: post
-  headers: *observer_headers
+  headers: *reader_headers
   body: *chassis_body
   assert_status: 403
 
@@ -1923,10 +1922,10 @@ chassis_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-chassis_get_observer:
+chassis_get_reader:
   path: '/v1/chassis'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 chassis_detail_get_admin:
@@ -1941,10 +1940,10 @@ chassis_detail_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-chassis_detail_get_observer:
+chassis_detail_get_reader:
   path: '/v1/chassis/detail'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 chassis_chassis_id_get_admin:
@@ -1959,10 +1958,10 @@ chassis_chassis_id_get_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-chassis_chassis_id_get_observer:
+chassis_chassis_id_get_reader:
   path: '/v1/chassis/{chassis_ident}'
   method: get
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 200
 
 chassis_chassis_id_patch_admin:
@@ -1982,11 +1981,11 @@ chassis_chassis_id_patch_member:
   headers: *scoped_member_headers
   assert_status: 200
 
-chassis_chassis_id_patch_observer:
+chassis_chassis_id_patch_reader:
   path: '/v1/chassis/{chassis_ident}'
   method: patch
   body: *chassis_patch
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
 
 chassis_chassis_id_delete_admin:
@@ -2001,8 +2000,8 @@ chassis_chassis_id_delete_member:
   headers: *scoped_member_headers
   assert_status: 403
 
-chassis_chassis_id_delete_observer:
+chassis_chassis_id_delete_reader:
   path: '/v1/chassis/{chassis_ident}'
   method: delete
-  headers: *observer_headers
+  headers: *reader_headers
   assert_status: 403
