@@ -240,6 +240,36 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 sushy.BOOT_SOURCE_TARGET_PXE,
                 task.node.driver_internal_info['redfish_boot_device'])
 
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_boot_device_persistency_vendor(self, mock_get_system):
+        fake_system = mock_get_system.return_value
+        fake_system.boot.get.return_value = \
+            sushy.BOOT_SOURCE_ENABLED_CONTINUOUS
+
+        values = [
+            ('SuperMicro', sushy.BOOT_SOURCE_ENABLED_CONTINUOUS),
+            ('SomeVendor', None)
+        ]
+
+        for vendor, expected in values:
+            properties = self.node.properties
+            properties['vendor'] = vendor
+            self.node.properties = properties
+            self.node.save()
+            with task_manager.acquire(self.context, self.node.uuid,
+                                      shared=False) as task:
+                task.driver.management.set_boot_device(
+                    task, boot_devices.PXE, persistent=True)
+
+                fake_system.set_system_boot_options.assert_has_calls(
+                    [mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
+                               enabled=expected),
+                     mock.call(mode=sushy.BOOT_SOURCE_MODE_BIOS)])
+
+                # Reset mocks
+                fake_system.set_system_boot_options.reset_mock()
+                mock_get_system.reset_mock()
+
     def test_restore_boot_device(self):
         fake_system = mock.Mock()
         with task_manager.acquire(self.context, self.node.uuid,

@@ -81,12 +81,26 @@ def _set_boot_device(task, system, device, persistent=False):
                        Default: False.
     :raises: SushyError on an error from the Sushy library
     """
-    desired_enabled = BOOT_DEVICE_PERSISTENT_MAP_REV[persistent]
-    current_enabled = system.boot.get('enabled')
 
-    # NOTE(etingof): this can be racy, esp if BMC is not RESTful
-    enabled = (desired_enabled
-               if desired_enabled != current_enabled else None)
+    # The BMC handling of the persistent setting is vendor specific.
+    # Some vendors require that it not be set if currently equal to
+    # desired state (see https://storyboard.openstack.org/#!/story/2007355).
+    # Supermicro BMCs handle it in the opposite manner - the
+    # persistent setting must be set when setting the boot device
+    # (see https://storyboard.openstack.org/#!/story/2008547).
+    vendor = task.node.properties.get('vendor', None)
+    if vendor and vendor.lower() == 'supermicro':
+        enabled = BOOT_DEVICE_PERSISTENT_MAP_REV[persistent]
+        LOG.debug('Setting BootSourceOverrideEnable to %(enable)s '
+                  'on Supermicro BMC, node %(node)s',
+                  {'enable': enabled, 'node': task.node.uuid})
+    else:
+        desired_enabled = BOOT_DEVICE_PERSISTENT_MAP_REV[persistent]
+        current_enabled = system.boot.get('enabled')
+
+        # NOTE(etingof): this can be racy, esp if BMC is not RESTful
+        enabled = (desired_enabled
+                   if desired_enabled != current_enabled else None)
 
     try:
         system.set_system_boot_options(device, enabled=enabled)

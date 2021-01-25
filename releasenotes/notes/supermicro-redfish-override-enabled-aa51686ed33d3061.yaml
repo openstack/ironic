@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    When Ironic configures the BootSourceOverrideTarget setting via Redfish,
+    on Supermicro BMCs it must always configure BootSourceOverrideEnabled or
+    that will revert to default (Once) on the BMC, see `story 2008547
+    <https://storyboard.openstack.org/#!/story/2008547>`_ for details.
+    This is different than what is currently implemented for other BMCs in
+    which the BootSourceOverrideEnabled is not configured if it matches the
+    current setting (see `story 2007355
+    <https://storyboard.openstack.org/#!/story/2007355>`_).
+
+    This requires that node.properties['vendor'] be 'supermicro' which will
+    be set by Ironic from the Redfish system response or can be set
+    manually.
