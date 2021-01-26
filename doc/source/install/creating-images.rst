@@ -23,6 +23,10 @@ the end user. There are two types of user images:
         The kernel/initramfs pair must not be used with whole disk images,
         otherwise they'll be mistaken for partition images.
 
+Many distributions publish their own cloud images. These are usually whole disk
+images that are built for legacy boot mode (not UEFI), with Ubuntu being an
+exception (they publish images that work in both modes).
+
 Building user images
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -53,6 +57,12 @@ deployment and the actual OS which the user is going to run.
     .. code-block:: console
 
        $ disk-image-create ubuntu vm dhcp-all-interfaces -o my-image
+
+    … with an EFI partition:
+
+    .. code-block:: console
+
+       $ disk-image-create ubuntu vm block-device-efi dhcp-all-interfaces -o my-image
 
 The partition image command creates ``my-image.qcow2``,
 ``my-image.vmlinuz`` and ``my-image.initrd`` files. The ``grub2`` element
