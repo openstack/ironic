@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    The ``pxe`` and ``ipxe`` boot interfaces now automatically configure
+    secure boot if the management interface supports it.
+deprecations:
+  - |
+    Currently the bare metal API permits setting the ``secure_boot`` capability
+    for nodes, which driver does not support setting secure boot. This is
+    deprecated and will become a failure in the Xena cycle.
+other:
+  - |
+    Extends ``ManagementInterface`` with two new calls:
+    ``get_secure_boot_state`` and ``set_secure_boot_state``. They are
+    optional and may be implemented for hardware that supports dynamically
+    enabling/disabling secure boot.

@@ -14,11 +14,13 @@
 #    under the License.
 
 from oslo_log import log as logging
+from oslo_utils import excutils
 
 from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils as common_utils
+from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import utils as driver_utils
@@ -296,3 +298,53 @@ def get_boot_mode(node):
                      'bios': boot_modes.LEGACY_BIOS,
                      'uefi': boot_modes.UEFI})
     return CONF.deploy.default_boot_mode
+
+
+@task_manager.require_exclusive_lock
+def configure_secure_boot_if_needed(task):
+    """Configures secure boot if it has been requested for the node."""
+    if not is_secure_boot_requested(task.node):
+        return
+
+    try:
+        task.driver.management.set_secure_boot_state(task, True)
+    except exception.UnsupportedDriverExtension:
+        # TODO(dtantsur): make a failure in Xena
+        LOG.warning('Secure boot was requested for node %(node)s but its '
+                    'management interface %(driver)s does not support it. '
+                    'This warning will become an error in a future release.',
+                    {'node': task.node.uuid,
+                     'driver': task.node.management_interface})
+    except Exception as exc:
+        with excutils.save_and_reraise_exception():
+            LOG.error('Failed to configure secure boot for node %(node)s: '
+                      '%(error)s',
+                      {'node': task.node.uuid, 'error': exc},
+                      exc_info=not isinstance(exc, exception.IronicException))
+    else:
+        LOG.info('Secure boot has been enabled for node %s', task.node.uuid)
+
+
+@task_manager.require_exclusive_lock
+def deconfigure_secure_boot_if_needed(task):
+    """Deconfigures secure boot if it has been requested for the node."""
+    if not is_secure_boot_requested(task.node):
+        return
+
+    try:
+        task.driver.management.set_secure_boot_state(task, False)
+    except exception.UnsupportedDriverExtension:
+        # NOTE(dtantsur): don't make it a hard failure to allow tearing down
+        # misconfigured nodes.
+        LOG.debug('Secure boot was requested for node %(node)s but its '
+                  'management interface %(driver)s does not support it.',
+                  {'node': task.node.uuid,
+                   'driver': task.node.management_interface})
+    except Exception as exc:
+        with excutils.save_and_reraise_exception():
+            LOG.error('Failed to deconfigure secure boot for node %(node)s: '
+                      '%(error)s',
+                      {'node': task.node.uuid, 'error': exc},
+                      exc_info=not isinstance(exc, exception.IronicException))
+    else:
+        LOG.info('Secure boot has been disabled for node %s', task.node.uuid)

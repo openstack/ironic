@@ -972,6 +972,40 @@ class ManagementInterface(BaseInterface):
         raise exception.UnsupportedDriverExtension(
             driver=task.node.driver, extension='get_boot_mode')
 
+    def get_secure_boot_state(self, task):
+        """Get the current secure boot state for the node.
+
+        NOTE: Not all drivers support this method. Older hardware
+              may not implement that.
+
+        :param task: A task from TaskManager.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: DriverOperationError or its derivative in case
+                 of driver runtime error.
+        :raises: UnsupportedDriverExtension if secure boot is
+                 not supported by the driver or the hardware
+        :returns: Boolean
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='get_secure_boot_state')
+
+    def set_secure_boot_state(self, task, state):
+        """Set the current secure boot state for the node.
+
+        NOTE: Not all drivers support this method. Older hardware
+              may not implement that.
+
+        :param task: A task from TaskManager.
+        :param state: A new state as a boolean.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: DriverOperationError or its derivative in case
+                 of driver runtime error.
+        :raises: UnsupportedDriverExtension if secure boot is
+                 not supported by the driver or the hardware
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='set_secure_boot_state')
+
     @abc.abstractmethod
     def get_sensors_data(self, task):
         """Get sensors data method.

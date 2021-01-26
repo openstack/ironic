@@ -16,8 +16,12 @@
 from unittest import mock
 
 from ironic.common import boot_modes
+from ironic.common import exception
+from ironic.conductor import task_manager
 from ironic.drivers.modules import boot_mode_utils
+from ironic.drivers.modules import fake
 from ironic.tests import base as tests_base
+from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
 
@@ -64,3 +68,67 @@ class GetBootModeTestCase(tests_base.TestCase):
         boot_mode = boot_mode_utils.get_boot_mode(self.node)
         self.assertEqual(boot_modes.UEFI, boot_mode)
         self.assertEqual(0, mock_log.warning.call_count)
+
+
+@mock.patch.object(fake.FakeManagement, 'set_secure_boot_state', autospec=True)
+class SecureBootTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(SecureBootTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            instance_info={'capabilities': {'secure_boot': 'true'}})
+        self.task = task_manager.TaskManager(self.context, self.node.id)
+
+    def test_configure_none_requested(self, mock_set_state):
+        self.task.node.instance_info = {}
+        boot_mode_utils.configure_secure_boot_if_needed(self.task)
+        self.assertFalse(mock_set_state.called)
+
+    @mock.patch.object(boot_mode_utils.LOG, 'warning', autospec=True)
+    def test_configure_unsupported(self, mock_warn, mock_set_state):
+        mock_set_state.side_effect = exception.UnsupportedDriverExtension
+        # Will become a failure in Xena
+        boot_mode_utils.configure_secure_boot_if_needed(self.task)
+        mock_set_state.assert_called_once_with(self.task.driver.management,
+                                               self.task, True)
+        self.assertTrue(mock_warn.called)
+
+    def test_configure_exception(self, mock_set_state):
+        mock_set_state.side_effect = RuntimeError('boom')
+        self.assertRaises(RuntimeError,
+                          boot_mode_utils.configure_secure_boot_if_needed,
+                          self.task)
+        mock_set_state.assert_called_once_with(self.task.driver.management,
+                                               self.task, True)
+
+    def test_configure(self, mock_set_state):
+        boot_mode_utils.configure_secure_boot_if_needed(self.task)
+        mock_set_state.assert_called_once_with(self.task.driver.management,
+                                               self.task, True)
+
+    def test_deconfigure_none_requested(self, mock_set_state):
+        self.task.node.instance_info = {}
+        boot_mode_utils.deconfigure_secure_boot_if_needed(self.task)
+        self.assertFalse(mock_set_state.called)
+
+    @mock.patch.object(boot_mode_utils.LOG, 'warning', autospec=True)
+    def test_deconfigure_unsupported(self, mock_warn, mock_set_state):
+        mock_set_state.side_effect = exception.UnsupportedDriverExtension
+        boot_mode_utils.deconfigure_secure_boot_if_needed(self.task)
+        mock_set_state.assert_called_once_with(self.task.driver.management,
+                                               self.task, False)
+        self.assertFalse(mock_warn.called)
+
+    def test_deconfigure(self, mock_set_state):
+        boot_mode_utils.deconfigure_secure_boot_if_needed(self.task)
+        mock_set_state.assert_called_once_with(self.task.driver.management,
+                                               self.task, False)
+
+    def test_deconfigure_exception(self, mock_set_state):
+        mock_set_state.side_effect = RuntimeError('boom')
+        self.assertRaises(RuntimeError,
+                          boot_mode_utils.deconfigure_secure_boot_if_needed,
+                          self.task)
+        mock_set_state.assert_called_once_with(self.task.driver.management,
+                                               self.task, False)
