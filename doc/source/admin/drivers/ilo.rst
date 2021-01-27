@@ -582,69 +582,22 @@ element to the diskimage-builder command to build the image.  For example::
 
 UEFI Secure Boot Support
 ^^^^^^^^^^^^^^^^^^^^^^^^
-The hardware type ``ilo`` supports secure boot deploy.
+The hardware type ``ilo`` supports secure boot deploy, see :ref:`secure-boot`
+for details.
 
-The UEFI secure boot can be configured in ironic by adding
-``secure_boot`` parameter in the ``capabilities`` parameter  within
-``properties`` field of an ironic node.
+iLO specific notes:
 
-``secure_boot`` is a boolean parameter and takes value as ``true`` or
-``false``.
+In UEFI secure boot, digitally signed bootloader should be able to validate
+digital signatures of kernel during boot process. This requires that the
+bootloader contains the digital signatures of the kernel.
+For the ``ilo-virtual-media`` boot interface, it is recommended that
+``boot_iso`` property for user image contains the glance UUID of the boot
+ISO.  If ``boot_iso`` property is not updated in glance for the user image,
+it would create the ``boot_iso`` using bootloader from the deploy iso. This
+``boot_iso`` will be able to boot the user image in UEFI secure boot
+environment only if the bootloader is signed and can validate digital
+signatures of user image kernel.
 
-To enable ``secure_boot`` on a node add it to ``capabilities`` as below::
-
- baremetal node set <node> --property capabilities='secure_boot:true'
-
-Alternatively see `Hardware Inspection Support`_ to know how to
-automatically populate the secure boot capability.
-
-Nodes having ``secure_boot`` set to ``true`` may be requested by adding an
-``extra_spec`` to the nova flavor::
-
-  nova flavor-key ironic-test-3 set capabilities:secure_boot="true"
-  nova boot --flavor ironic-test-3 --image test-image instance-1
-
-If ``capabilities`` is used in ``extra_spec`` as above, nova scheduler
-(``ComputeCapabilitiesFilter``) will match only ironic nodes which have
-the ``secure_boot`` set appropriately in ``properties/capabilities``. It will
-filter out rest of the nodes.
-
-The above facility for matching in nova can be used in heterogeneous
-environments where there is a mix of machines supporting and not supporting
-UEFI secure boot, and operator wants to provide a choice to the user
-regarding secure boot.  If the flavor doesn't contain ``secure_boot`` then
-nova scheduler will not consider secure boot mode as a placement criteria,
-hence user may get a secure boot capable machine that matches with user
-specified flavors but deployment would not use its secure boot capability.
-Secure boot deploy would happen only when it is explicitly specified through
-flavor.
-
-Use element ``ubuntu-signed`` or ``fedora`` to build signed deploy iso and
-user images from
-`diskimage-builder <https://pypi.org/project/diskimage-builder>`_.
-Please refer to :ref:`deploy-ramdisk` for more information on building
-deploy ramdisk.
-
-The below command creates files named cloud-image-boot.iso, cloud-image.initrd,
-cloud-image.vmlinuz and cloud-image.qcow2 in the current working directory::
-
- cd <path-to-diskimage-builder>
- ./bin/disk-image-create -o cloud-image ubuntu-signed baremetal iso
-
-.. note::
-   In UEFI secure boot, digitally signed bootloader should be able to validate
-   digital signatures of kernel during boot process. This requires that the
-   bootloader contains the digital signatures of the kernel.
-   For the ``ilo-virtual-media`` boot interface, it is recommended that
-   ``boot_iso`` property for user image contains the glance UUID of the boot
-   ISO.  If ``boot_iso`` property is not updated in glance for the user image,
-   it would create the ``boot_iso`` using bootloader from the deploy iso. This
-   ``boot_iso`` will be able to boot the user image in UEFI secure boot
-   environment only if the bootloader is signed and can validate digital
-   signatures of user image kernel.
-
-Ensure the public key of the signed image is loaded into bare metal to deploy
-signed images.
 For HPE ProLiant Gen9 servers, one can enroll public key using iLO System
 Utilities UI. Please refer to section ``Accessing Secure Boot options`` in
 `HP UEFI System Utilities User Guide <https://h20628.www2.hp.com/km-ext/kmcsdirect/emr_na-c03886429-5.pdf>`_.
