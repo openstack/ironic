@@ -2,7 +2,6 @@
     templates:
       - check-requirements
       - openstack-cover-jobs
-      - openstack-lower-constraints-jobs
       - openstack-python-jobs
       - openstack-python36-jobs
       - periodic-stable-jobs
@@ -15,15 +14,9 @@
         - ironic-standalone
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
-        - ironic-grenade-dsvm
-        # Disable to get the fix for other jobs
-        - ironic-grenade-dsvm-multinode-multitenant:
-            voting: false
         - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-ipa-partition-redfish-tinyipa
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
-            voting: false
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
@@ -47,12 +40,9 @@
         - ironic-standalone
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
-        - ironic-grenade-dsvm
-        # - ironic-grenade-dsvm-multinode-multitenant
         - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-ipa-partition-redfish-tinyipa
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
-        # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
