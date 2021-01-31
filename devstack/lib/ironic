@@ -271,6 +271,13 @@ if [[ "$hostdomain" =~ "rax" ]]; then
     fi
 fi
 
+# Which deploy driver to use - valid choices right now
+# are ``ipmi``, ``snmp`` and ``redfish``.
+#
+# Additional valid choices if IRONIC_IS_HARDWARE == true are:
+# ``idrac`` and ``irmc``.
+IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-ipmi}
+
 # If present, these files are used as deploy ramdisk/kernel.
 # (The value must be an absolute path)
 IRONIC_DEPLOY_RAMDISK=${IRONIC_DEPLOY_RAMDISK:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.initramfs}
@@ -333,12 +340,6 @@ if [[ "$IRONIC_DEPLOY_ISO_REQUIRED" = "True" \
     die "Prebuilt ISOs are not available, provide an ISO via IRONIC_DEPLOY_ISO \
         or set IRONIC_BUILD_DEPLOY_RAMDISK=True to use ISOs"
 fi
-# Which deploy driver to use - valid choices right now
-# are ``ipmi``, ``snmp`` and ``redfish``.
-#
-# Additional valid choices if IRONIC_IS_HARDWARE == true are:
-# ``idrac`` and ``irmc``.
-IRONIC_DEPLOY_DRIVER=${IRONIC_DEPLOY_DRIVER:-ipmi}
 
 # If the requested driver is not yet enable, enable it, if it is not it will fail anyway
 if [[ -z "$(echo ${IRONIC_ENABLED_HARDWARE_TYPES} | grep -w ${IRONIC_DEPLOY_DRIVER})" ]]; then
