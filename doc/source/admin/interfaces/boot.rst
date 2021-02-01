@@ -39,12 +39,15 @@ specific implementations of the PXE boot interface.
 Additional configuration is required for this boot interface - see
 :doc:`/install/configure-pxe` for details.
 
+Common options
+--------------
+
 Enable persistent boot device for deploy/clean operation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Ironic uses non-persistent boot for cleaning/deploying phases as default,
-in PXE interface. For some drivers, a persistent change is far more
-costly than a non-persistent one, so this can bring performance improvements.
+Ironic uses non-persistent boot for cleaning/deploying phases as default.
+For some drivers, a persistent change is far more costly than a non-persistent
+one, so this can bring performance improvements.
 
 Set the flag ``force_persistent_boot_device`` to ``True`` in the node's
 ``driver_info``::

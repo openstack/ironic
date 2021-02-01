@@ -37,6 +37,7 @@ from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import image_utils
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import pxe
+from ironic.drivers import utils as driver_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -350,7 +351,7 @@ class IloVirtualMediaBoot(base.BootInterface):
         # TODO(stendulker): COMMON_PROPERTIES should also include rescue
         # related properties (RESCUE_PROPERTIES). We can add them in Rocky,
         # when classic drivers get removed.
-        return COMMON_PROPERTIES
+        return dict(driver_utils.OPTIONAL_PROPERTIES, **COMMON_PROPERTIES)
 
     @METRICS.timer('IloVirtualMediaBoot.validate')
     def validate(self, task):

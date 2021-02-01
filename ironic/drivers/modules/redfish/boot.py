@@ -29,6 +29,7 @@ from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
+from ironic.drivers import utils as driver_utils
 
 LOG = log.getLogger(__name__)
 
@@ -68,6 +69,7 @@ RESCUE_PROPERTIES = {
 }
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
+COMMON_PROPERTIES.update(driver_utils.OPTIONAL_PROPERTIES)
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 COMMON_PROPERTIES.update(RESCUE_PROPERTIES)
 

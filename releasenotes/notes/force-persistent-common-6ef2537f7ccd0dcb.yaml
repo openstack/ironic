@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The ``force_persistent_boot_device`` parameter now consistently applies
+    to all boot interfaces, rather than only PXE and iPXE.

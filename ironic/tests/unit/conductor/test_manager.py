@@ -5718,14 +5718,9 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                              'image_http_proxy', 'image_https_proxy',
                              'image_no_proxy'])
         if pxe_common:
-            expected.extend(['force_persistent_boot_device',
-                             'rescue_kernel', 'rescue_ramdisk'])
+            expected.extend(['rescue_kernel', 'rescue_ramdisk'])
+        expected.append('force_persistent_boot_device')
         self.assertCountEqual(expected, properties)
-
-    def test_driver_properties_fake(self):
-        expected = ['B1', 'B2']
-        self._check_driver_properties("fake-hardware", expected,
-                                      agent_common=False, pxe_common=False)
 
     def test_driver_properties_ipmi(self):
         self.config(enabled_hardware_types='ipmi',

@@ -17,7 +17,6 @@ from futurist import periodics
 from ironic_lib import metrics_utils
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_utils import strutils
 
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
@@ -45,18 +44,6 @@ REQUIRED_PROPERTIES = {
     'deploy_ramdisk': _("UUID (from Glance) of the ramdisk that is "
                         "mounted at boot time. Required."),
 }
-OPTIONAL_PROPERTIES = {
-    'force_persistent_boot_device': _("Controls the persistency of boot order "
-                                      "changes. 'Always' will make all "
-                                      "changes persistent, 'Default' will "
-                                      "make all but the final one upon "
-                                      "instance deployment non-persistent, "
-                                      "and 'Never' will make no persistent "
-                                      "changes at all. The old values 'True' "
-                                      "and 'False' are still supported but "
-                                      "deprecated in favor of the new ones."
-                                      "Defaults to 'Default'. Optional."),
-}
 RESCUE_PROPERTIES = {
     'rescue_kernel': _('UUID (from Glance) of the rescue kernel. This value '
                        'is required for rescue mode.'),
@@ -65,7 +52,7 @@ RESCUE_PROPERTIES = {
                         'required for rescue mode.'),
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
-COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
+COMMON_PROPERTIES.update(driver_utils.OPTIONAL_PROPERTIES)
 COMMON_PROPERTIES.update(RESCUE_PROPERTIES)
 
 
@@ -211,9 +198,8 @@ class PXEBaseMixin(object):
         pxe_utils.create_pxe_config(task, pxe_options,
                                     pxe_config_template,
                                     ipxe_enabled=self.ipxe_enabled)
-        persistent = self._persistent_ramdisk_boot(node)
         manager_utils.node_set_boot_device(task, boot_devices.PXE,
-                                           persistent=persistent)
+                                           persistent=False)
 
         if self.ipxe_enabled and CONF.pxe.ipxe_use_swift:
             kernel_label = '%s_kernel' % mode
@@ -328,12 +314,8 @@ class PXEBaseMixin(object):
         # NOTE(pas-ha) do not re-set boot device on ACTIVE nodes
         # during takeover
         if boot_device and task.node.provision_state != states.ACTIVE:
-            persistent = True
-            if node.driver_info.get('force_persistent_boot_device',
-                                    'Default') == 'Never':
-                persistent = False
             manager_utils.node_set_boot_device(task, boot_device,
-                                               persistent=persistent)
+                                               persistent=True)
 
     def _validate_common(self, task):
         node = task.node
@@ -436,14 +418,6 @@ class PXEBaseMixin(object):
             raise exception.UnsupportedDriverExtension(
                 driver=task.node.driver, extension='inspection')
 
-    def _persistent_ramdisk_boot(self, node):
-        """If the ramdisk should be configured as a persistent boot device."""
-        value = node.driver_info.get('force_persistent_boot_device', 'Default')
-        if value in {'Always', 'Default', 'Never'}:
-            return value == 'Always'
-        else:
-            return strutils.bool_from_string(value, False)
-
     _RETRY_ALLOWED_STATES = {states.DEPLOYWAIT, states.CLEANWAIT,
                              states.RESCUEWAIT}
 
@@ -493,11 +467,8 @@ class PXEBaseMixin(object):
                   'timeout': CONF.pxe.boot_retry_timeout})
 
         manager_utils.node_power_action(task, states.POWER_OFF)
-        # NOTE(dtantsur): retry even persistent boot setting in case it did not
-        # work for some reason.
-        persistent = self._persistent_ramdisk_boot(task.node)
         manager_utils.node_set_boot_device(task, boot_devices.PXE,
-                                           persistent=persistent)
+                                           persistent=False)
         manager_utils.node_power_action(task, states.POWER_ON)
 
 

@@ -370,3 +370,17 @@ def collect_ramdisk_logs(node, label=None):
         LOG.exception('Unknown error when storing logs from the node '
                       '%(node)s deployment. Error: %(error)s',
                       {'node': node.uuid, 'error': e})
+
+
+OPTIONAL_PROPERTIES = {
+    'force_persistent_boot_device': _("Controls the persistency of boot order "
+                                      "changes. 'Always' will make all "
+                                      "changes persistent, 'Default' will "
+                                      "make all but the final one upon "
+                                      "instance deployment non-persistent, "
+                                      "and 'Never' will make no persistent "
+                                      "changes at all. The old values 'True' "
+                                      "and 'False' are still supported but "
+                                      "deprecated in favor of the new ones."
+                                      "Defaults to 'Default'. Optional."),
+}
