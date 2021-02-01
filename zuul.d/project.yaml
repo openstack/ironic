@@ -2,7 +2,6 @@
     templates:
       - check-requirements
       - openstack-cover-jobs
-      - openstack-lower-constraints-jobs
       - openstack-python-jobs
       - openstack-python3-train-jobs
       - periodic-stable-jobs
@@ -15,11 +14,6 @@
         - ironic-standalone
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
-        - ironic-grenade-dsvm:
-            voting: false
-        # Temporary disable voting because of end of cycle CI instability.
-        - ironic-grenade-dsvm-multinode-multitenant:
-            voting: false
         - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-ipa-partition-redfish-tinyipa
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
@@ -51,9 +45,6 @@
         - ironic-standalone
         - ironic-tempest-functional-python2
         - ironic-tempest-functional-python3
-        # - ironic-grenade-dsvm
-        # removing from voting due to end of cycle gate instability.
-        # - ironic-grenade-dsvm-multinode-multitenant
         - ironic-tempest-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-ipa-partition-redfish-tinyipa
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool-tinyipa
