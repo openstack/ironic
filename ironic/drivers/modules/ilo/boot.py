@@ -318,9 +318,9 @@ def prepare_node_for_deploy(task):
         # not provided.
         # Since secure boot was disabled, we are in 'uefi' boot mode.
         if boot_mode_utils.get_boot_mode_for_deploy(task.node) is None:
-            instance_info = task.node.instance_info
-            instance_info['deploy_boot_mode'] = 'uefi'
-            task.node.instance_info = instance_info
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['deploy_boot_mode'] = 'uefi'
+            task.node.driver_internal_info = driver_internal_info
             task.node.save()
 
 
