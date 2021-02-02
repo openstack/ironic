@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Supports setting boot mode via an ``instance_info`` capability.
+deprecations:
+  - |
+    Using ``instance_info/deploy_boot_mode`` is deprecated, use the
+    ``boot_mode`` capability in ``instance_info/capabilities`` instead.
