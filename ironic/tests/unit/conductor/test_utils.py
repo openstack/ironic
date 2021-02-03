@@ -86,6 +86,37 @@ class NodeSetBootDeviceTestCase(db_base.DbTestCase):
         conductor_utils.node_set_boot_device(self.task, device='pxe')
         self.assertFalse(mock_sbd.called)
 
+    @mock.patch.object(fake.FakeManagement, 'set_boot_device', autospec=True)
+    def test_node_set_boot_device_force_default(self, mock_sbd):
+        # Boolean value False was equivalent to the default
+        for value in ('false', False, 'Default'):
+            self.task.node.driver_info['force_persistent_boot_device'] = value
+            for request in (True, False):
+                mock_sbd.reset_mock()
+                conductor_utils.node_set_boot_device(self.task, device='pxe',
+                                                     persistent=request)
+                mock_sbd.assert_called_once_with(mock.ANY, self.task,
+                                                 device='pxe',
+                                                 persistent=request)
+
+    @mock.patch.object(fake.FakeManagement, 'set_boot_device', autospec=True)
+    def test_node_set_boot_device_force_always(self, mock_sbd):
+        for value in ('true', True, 'Always'):
+            mock_sbd.reset_mock()
+            self.task.node.driver_info['force_persistent_boot_device'] = value
+            conductor_utils.node_set_boot_device(self.task, device='pxe',
+                                                 persistent=False)
+            mock_sbd.assert_called_once_with(mock.ANY, self.task,
+                                             device='pxe', persistent=True)
+
+    @mock.patch.object(fake.FakeManagement, 'set_boot_device', autospec=True)
+    def test_node_set_boot_device_force_never(self, mock_sbd):
+        self.task.node.driver_info['force_persistent_boot_device'] = 'Never'
+        conductor_utils.node_set_boot_device(self.task, device='pxe',
+                                             persistent=True)
+        mock_sbd.assert_called_once_with(mock.ANY, self.task,
+                                         device='pxe', persistent=False)
+
 
 class NodeGetBootModeTestCase(db_base.DbTestCase):
 

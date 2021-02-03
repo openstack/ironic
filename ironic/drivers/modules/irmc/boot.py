@@ -41,6 +41,7 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules import pxe
+from ironic.drivers import utils as driver_utils
 
 
 scci = importutils.try_import('scciclient.irmc.scci')
@@ -83,6 +84,7 @@ OPTIONAL_PROPERTIES = {
 }
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
+COMMON_PROPERTIES.update(driver_utils.OPTIONAL_PROPERTIES)
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 
 

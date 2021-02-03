@@ -26,6 +26,7 @@ from oslo_log import log
 from oslo_serialization import jsonutils
 from oslo_service import loopingcall
 from oslo_utils import excutils
+from oslo_utils import strutils
 from oslo_utils import timeutils
 
 from ironic.common import boot_devices
@@ -67,10 +68,22 @@ def node_set_boot_device(task, device, persistent=False):
 
     """
     task.driver.management.validate(task)
-    if task.node.provision_state != states.ADOPTING:
-        task.driver.management.set_boot_device(task,
-                                               device=device,
-                                               persistent=persistent)
+    if task.node.provision_state == states.ADOPTING:
+        return
+
+    force_persistent = task.node.driver_info.get(
+        'force_persistent_boot_device')
+    if force_persistent == 'Always':
+        persistent = True
+    elif force_persistent == 'Never':
+        persistent = False
+    elif force_persistent not in (None, 'Default'):
+        # Backward compatibility (used to be a boolean and only True mattered)
+        if strutils.bool_from_string(force_persistent, strict=False):
+            persistent = True
+
+    task.driver.management.set_boot_device(task, device=device,
+                                           persistent=persistent)
 
 
 def node_get_boot_mode(task):
