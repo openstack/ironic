@@ -1136,10 +1136,13 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
         rpc_node = utils.check_node_policy_and_retrieve(
             'fake_policy', self.valid_node_uuid
         )
+        authorize_calls = [
+            mock.call('baremetal:node:get', expected_target, fake_context),
+            mock.call('fake_policy', expected_target, fake_context)]
+
         mock_grn.assert_called_once_with(self.valid_node_uuid)
         mock_grnws.assert_not_called()
-        mock_authorize.assert_called_once_with(
-            'fake_policy', expected_target, fake_context)
+        mock_authorize.assert_has_calls(authorize_calls)
         self.assertEqual(self.node, rpc_node)
 
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
@@ -1162,14 +1165,16 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
         )
         mock_grn.assert_not_called()
         mock_grnws.assert_called_once_with(self.valid_node_uuid)
-        mock_authorize.assert_called_once_with(
-            'fake_policy', expected_target, fake_context)
+        authorize_calls = [
+            mock.call('baremetal:node:get', expected_target, fake_context),
+            mock.call('fake_policy', expected_target, fake_context)]
+        mock_authorize.assert_has_calls(authorize_calls)
         self.assertEqual(self.node, rpc_node)
 
     @mock.patch.object(api, 'request', spec_set=["context"])
     @mock.patch.object(policy, 'authorize', spec=True)
     @mock.patch.object(utils, 'get_rpc_node', autospec=True)
-    def test_check_node_policy_and_retrieve_no_node_policy_forbidden(
+    def test_check_node_policy_and_retrieve_no_node_policy_notfound(
             self, mock_grn, mock_authorize, mock_pr
     ):
         mock_pr.context.to_policy_values.return_value = {}
@@ -1178,7 +1183,7 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
             node=self.valid_node_uuid)
 
         self.assertRaises(
-            exception.HTTPForbidden,
+            exception.NodeNotFound,
             utils.check_node_policy_and_retrieve,
             'fake-policy',
             self.valid_node_uuid
@@ -1213,7 +1218,7 @@ class TestCheckNodePolicyAndRetrieve(base.TestCase):
         mock_grn.return_value = self.node
 
         self.assertRaises(
-            exception.HTTPForbidden,
+            exception.NodeNotFound,
             utils.check_node_policy_and_retrieve,
             'fake-policy',
             self.valid_node_uuid

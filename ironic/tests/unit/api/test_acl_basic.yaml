@@ -11,7 +11,7 @@ values:
 
 unauthenticated_user_cannot_get_node:
   path: &node_path '/v1/nodes/{node_uuid}'
-  assert_status: 403
+  assert_status: 404
 
 project_admin_can_get_node:
   path: *node_path
@@ -24,7 +24,7 @@ project_admin_can_get_node:
 project_member_cannot_get_node:
   path: *node_path
   headers: *project_member_headers
-  assert_status: 403
+  assert_status: 404
 
 public_api:
   path: /

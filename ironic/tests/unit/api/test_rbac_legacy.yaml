@@ -78,7 +78,7 @@ nodes_get_node_member:
   path: '/v1/nodes/{node_ident}'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_get_node_observer:
@@ -152,7 +152,7 @@ nodes_node_ident_get_member:
   path: '/v1/nodes/{node_ident}'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_node_ident_get_observer:
@@ -178,7 +178,7 @@ nodes_node_ident_patch_member:
   method: patch
   headers: *member_headers
   body: *extra_patch
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_node_ident_patch_observer:
@@ -200,7 +200,7 @@ nodes_node_ident_delete_member:
   path: '/v1/nodes/{node_ident}'
   method: delete
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_node_ident_delete_observer:
@@ -223,7 +223,7 @@ nodes_validate_get_member:
   path: '/v1/nodes/{node_ident}/validate'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_validate_get_observer:
@@ -244,7 +244,7 @@ nodes_maintenance_put_member:
   path: '/v1/nodes/{node_ident}/maintenance'
   method: put
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_maintenance_put_observer:
@@ -265,7 +265,7 @@ nodes_maintenance_delete_member:
   path: '/v1/nodes/{node_ident}/maintenance'
   method: delete
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_maintenance_delete_observer:
@@ -289,7 +289,7 @@ nodes_management_boot_device_put_member:
   method: put
   headers: *member_headers
   body: *boot_device_body
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_management_boot_device_put_observer:
@@ -311,7 +311,7 @@ nodes_management_boot_device_get_member:
   path: '/v1/nodes/{node_ident}/management/boot_device'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_management_boot_device_get_observer:
@@ -332,7 +332,7 @@ nodes_management_boot_device_supported_get_member:
   path: '/v1/nodes/{node_ident}/management/boot_device/supported'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_management_boot_device_supported_get_observer:
@@ -355,7 +355,7 @@ nodes_management_inject_nmi_put_member:
   method: put
   headers: *member_headers
   body: {}
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_management_inject_nmi_put_observer:
@@ -377,7 +377,7 @@ nodes_states_get_member:
   path: '/v1/nodes/{node_ident}/states'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_states_get_observer:
@@ -401,7 +401,7 @@ nodes_states_power_put_member:
   method: put
   headers: *member_headers
   body: *power_body
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_states_power_put_observer:
@@ -426,7 +426,7 @@ nodes_states_provision_put_member:
   method: put
   headers: *member_headers
   body: *provision_body
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_states_provision_put_observer:
@@ -455,7 +455,7 @@ nodes_states_raid_put_member:
   method: put
   headers: *member_headers
   body: *raid_body
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_states_raid_put_observer:
@@ -477,7 +477,7 @@ nodes_states_console_get_member:
   path: '/v1/nodes/{node_ident}/states/console'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_states_console_get_admin:
@@ -501,7 +501,7 @@ nodes_states_console_put_member:
   method: put
   headers: *member_headers
   body: *console_body_put
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_states_console_put_observer:
@@ -526,7 +526,7 @@ nodes_vendor_passthru_methods_get_member:
   path: '/v1/nodes/{node_ident}/vendor_passthru/methods'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_vendor_passthru_methods_get_observer:
@@ -547,7 +547,7 @@ nodes_vendor_passthru_get_member:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_vendor_passthru_get_observer:
@@ -568,7 +568,7 @@ nodes_vendor_passthru_post_member:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: post
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_vendor_passthru_post_observer:
@@ -589,7 +589,7 @@ nodes_vendor_passthru_put_member:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: put
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_vendor_passthru_put_observer:
@@ -610,7 +610,7 @@ nodes_vendor_passthru_delete_member:
   path: '/v1/nodes/{node_ident}/vendor_passthru?method=test'
   method: delete
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_vendor_passthru_delete_observer:
@@ -633,7 +633,7 @@ nodes_traits_get_member:
   path: '/v1/nodes/{node_ident}/traits'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_traits_get_observer:
@@ -658,7 +658,7 @@ nodes_traits_put_member:
   path: '/v1/nodes/{node_ident}/traits'
   method: put
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   body: *traits_body
   deprecated: true
 
@@ -681,7 +681,7 @@ nodes_traits_delete_member:
   path: '/v1/nodes/{node_ident}/traits/{trait}'
   method: delete
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_traits_delete_observer:
@@ -702,7 +702,7 @@ nodes_traits_trait_put_member:
   path: '/v1/nodes/{node_ident}/traits/CUSTOM_TRAIT2'
   method: put
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_traits_trait_put_observer:
@@ -723,7 +723,7 @@ nodes_traits_trait_delete_member:
   path: '/v1/nodes/{node_ident}/traits/{trait}'
   method: delete
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_traits_trait_delete_observer:
@@ -750,7 +750,7 @@ nodes_vifs_get_member:
   path: '/v1/nodes/{node_ident}/vifs'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_vifs_get_observer:
@@ -773,7 +773,7 @@ nodes_vifs_post_member:
   path: '/v1/nodes/{node_ident}/vifs'
   method: post
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   body: *vif_body
   deprecated: true
 
@@ -797,7 +797,7 @@ nodes_vifs_node_vif_ident_delete_member:
   path: '/v1/nodes/{node_ident}/vifs/{vif_ident}'
   method: delete
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_vifs_node_vif_ident_delete_observer:
@@ -820,7 +820,7 @@ nodes_management_indicators_get_member:
   path: '/v1/nodes/{node_ident}/management/indicators'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_management_indicators_get_observer:
@@ -1804,7 +1804,7 @@ nodes_bios_get_member:
   path: '/v1/nodes/{node_ident}/bios'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_bios_get_observer:
@@ -1825,7 +1825,7 @@ nodes_bios_bios_setting_get_member:
   path: '/v1/nodes/{node_ident}/bios/{bios_setting}'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_bios_bios_setting_get_observer:

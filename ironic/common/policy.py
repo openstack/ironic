@@ -80,12 +80,35 @@ PROJECT_READER = ('role:reader and '
 # protecting APIs designed to operate with multiple scopes (e.g., a system
 # administrator should be able to delete any baremetal host in the deployment,
 # a project member should only be able to delete hosts in their project).
-SYSTEM_ADMIN_OR_PROJECT_MEMBER = (
-    '(' + SYSTEM_ADMIN + ') or (' + PROJECT_MEMBER + ')'
+SYSTEM_OR_PROJECT_MEMBER = (
+    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_MEMBER + ')'
 )
 SYSTEM_OR_PROJECT_READER = (
     '(' + SYSTEM_READER + ') or (' + PROJECT_READER + ')'
 )
+
+PROJECT_OWNER_ADMIN = ('role:admin and project_id:%(node.owner)s')
+PROJECT_OWNER_MEMBER = ('role:member and project_id:%(node.owner)s')
+PROJECT_OWNER_READER = ('role:reader and project_id:%(node.owner)s')
+PROJECT_LESSEE_ADMIN = ('role:admin and project_id:%(node.lessee)s')
+
+SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN = (
+    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_MEMBER + ') or (' + PROJECT_LESSEE_ADMIN + ')'  # noqa
+)
+
+SYSTEM_MEMBER_OR_OWNER_ADMIN = (
+    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_ADMIN + ')'
+)
+
+SYSTEM_MEMBER_OR_OWNER_MEMBER = (
+    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_MEMBER + ')'
+)
+
+SYSTEM_OR_OWNER_READER = (
+    '(' + SYSTEM_READER + ') or (' + PROJECT_OWNER_READER + ')'
+)
+
+API_READER = ('role:reader')
 
 default_policies = [
     # Legacy setting, don't remove. Likely to be overridden by operators who
@@ -283,20 +306,11 @@ node_policies = [
         deprecated_since=versionutils.deprecated.WALLABY
     ),
     policy.DocumentedRuleDefault(
-        name='baremetal:node:get',
-        check_str=SYSTEM_READER,
-        scope_types=['system'],
-        description='Retrieve a single Node record',
-        operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
-        deprecated_rule=deprecated_node_get,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
-    ),
-    policy.DocumentedRuleDefault(
         name='baremetal:node:list',
-        check_str=SYSTEM_READER,
-        scope_types=['system'],
-        description='Retrieve multiple Node records, filtered by owner',
+        check_str=API_READER,
+        scope_types=['system', 'project'],
+        description='Retrieve multiple Node records, filtered by '
+                    'an explicit owner or the client project_id',
         operations=[{'path': '/nodes', 'method': 'GET'},
                     {'path': '/nodes/detail', 'method': 'GET'}],
         deprecated_rule=deprecated_node_list,
@@ -315,38 +329,246 @@ node_policies = [
         deprecated_since=versionutils.deprecated.WALLABY
     ),
     policy.DocumentedRuleDefault(
-        name='baremetal:node:update',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
-        description='Update Node records',
+        name='baremetal:node:get',
+        check_str=SYSTEM_OR_PROJECT_READER,
+        scope_types=['system', 'project'],
+        description='Retrieve a single Node record',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
+        deprecated_rule=deprecated_node_get,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:get:filter_threshold',
+        check_str=SYSTEM_READER,
+        scope_types=['system', 'project'],
+        description='Filter to allow operators to govern the threshold '
+                    'where information should be filtered. Non-authorized '
+                    'users will be subjected to additional API policy '
+                    'checks for API content response bodies.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
+        # This rule fallsback to deprecated_node_get in order to provide a
+        # mechanism so the additional policies only engage in an updated
+        # operating context.
+        deprecated_rule=deprecated_node_get,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY,
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:get:last_error',
+        check_str=SYSTEM_OR_OWNER_READER,
+        scope_types=['system', 'project'],
+        description='Governs if the node last_error field is masked from API'
+                    'clients with insufficent privileges.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
+        deprecated_rule=deprecated_node_get,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:get:reservation',
+        check_str=SYSTEM_OR_OWNER_READER,
+        scope_types=['system', 'project'],
+        description='Governs if the node reservation field is masked from API'
+                    'clients with insufficent privileges.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
+        deprecated_rule=deprecated_node_get,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:get:driver_internal_info',
+        check_str=SYSTEM_OR_OWNER_READER,
+        scope_types=['system', 'project'],
+        description='Governs if the node driver_internal_info field is '
+                    'masked from API clients with insufficent privileges.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
+        deprecated_rule=deprecated_node_get,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:get:driver_info',
+        check_str=SYSTEM_OR_OWNER_READER,
+        scope_types=['system', 'project'],
+        description='Governs if the driver_info field is masked from API'
+                    'clients with insufficent privileges.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
+        deprecated_rule=deprecated_node_get,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:update:driver_info',
+        check_str=SYSTEM_MEMBER_OR_OWNER_MEMBER,
+        scope_types=['system', 'project'],
+        description='Governs if node driver_info field can be updated via '
+                    'the API clients.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
         deprecated_rule=deprecated_node_update,
         deprecated_reason=deprecated_node_reason,
         deprecated_since=versionutils.deprecated.WALLABY
     ),
-    # TODO(TheJulia): Explicit RBAC testing needed for this.
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:update:properties',
+        check_str=SYSTEM_MEMBER_OR_OWNER_MEMBER,
+        scope_types=['system', 'project'],
+        description='Governs if node properties field can be updated via '
+                    'the API clients.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:update:chassis_uuid',
+        check_str=SYSTEM_ADMIN,
+        scope_types=['system', 'project'],
+        description='Governs if node chassis_uuid field can be updated via '
+                    'the API clients.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:update:instance_uuid',
+        check_str=SYSTEM_MEMBER_OR_OWNER_MEMBER,
+        scope_types=['system', 'project'],
+        description='Governs if node instance_uuid field can be updated via '
+                    'the API clients.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:update:lessee',
+        check_str=SYSTEM_MEMBER_OR_OWNER_MEMBER,
+        scope_types=['system', 'project'],
+        description='Governs if node lessee field can be updated via '
+                    'the API clients.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:update:owner',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system', 'project'],
+        description='Governs if node owner field can be updated via '
+                    'the API clients.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:update:driver_interfaces',
+        check_str=SYSTEM_MEMBER_OR_OWNER_ADMIN,
+        scope_types=['system', 'project'],
+        description='Governs if node driver and driver interfaces field '
+                    'can be updated via the API clients.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:update:network_data',
+        check_str=SYSTEM_MEMBER_OR_OWNER_MEMBER,
+        scope_types=['system', 'project'],
+        description='Governs if node driver_info field can be updated via '
+                    'the API clients.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:update:conductor_group',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system', 'project'],
+        description='Governs if node conductor_group field can be updated '
+                    'via the API clients.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:update:name',
+        check_str=SYSTEM_MEMBER_OR_OWNER_MEMBER,
+        scope_types=['system', 'project'],
+        description='Governs if node name field can be updated via '
+                    'the API clients.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:update:retired',
+        check_str=SYSTEM_MEMBER_OR_OWNER_MEMBER,
+        scope_types=['system', 'project'],
+        description='Governs if node retired and retired reason '
+                    'can be updated by API clients.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+
+    # If this role is denied we should likely roll into the other rules
+    # Like, this rule could match "SYSTEM_MEMBER" by default and then drill
+    # further into each field, which would maintain what we do today, and
+    # enable further testing.
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:update',
+        check_str=SYSTEM_OR_PROJECT_MEMBER,
+        scope_types=['system', 'project'],
+        description='Generalized update of node records',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_node_update,
+        deprecated_reason=deprecated_node_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update_extra',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_PROJECT_MEMBER,
+        scope_types=['system', 'project'],
         description='Update Node extra field',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
         deprecated_rule=deprecated_node_update_extra,
         deprecated_reason=deprecated_node_reason,
         deprecated_since=versionutils.deprecated.WALLABY
     ),
-    # TODO(TheJulia): Explicit RBAC testing needed for this.
+    # TODO(TheJulia): So multiple additional fields need policies. This needs
+    # to be reviewed/audited/addressed.
+    # * Get ability on last_error - policy added
+    # * Get ability on reservation (conductor names) - policy added
+    # * get ability on driver_internal_info (internal addressing) added
+    # * ability to get driver_info - policy added
+    # * ability to set driver_info - policy added
+    # * ability to set properties. - added
+    # * ability to set chassis_uuid - added
+    # * ability to set instance_uuid - added
+    # * ability to set a lessee - default only to admin or owner. added
+    # * ability to set driver/*_interface - added
+    # * ability to set network_data - added
+    # * ability to set conductor_group -added
+    # * ability to set name -added
     policy.DocumentedRuleDefault(
         name='baremetal:node:update_instance_info',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN,
+        scope_types=['system', 'project'],
         description='Update Node instance_info field',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
         deprecated_rule=deprecated_node_update_instance_info,
         deprecated_reason=deprecated_node_reason,
         deprecated_since=versionutils.deprecated.WALLABY
     ),
-    # TODO(TheJulia): Explicit RBAC testing needed for this.
     policy.DocumentedRuleDefault(
         name='baremetal:node:update_owner_provisioned',
         check_str=SYSTEM_MEMBER,
@@ -357,11 +579,10 @@ node_policies = [
         deprecated_reason=deprecated_node_reason,
         deprecated_since=versionutils.deprecated.WALLABY
     ),
-    # TODO(TheJulia): Explicit RBAC testing needed for this... Maybe?
     policy.DocumentedRuleDefault(
         name='baremetal:node:delete',
         check_str=SYSTEM_ADMIN,
-        scope_types=['system'],
+        scope_types=['system', 'project'],
         description='Delete Node records',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'DELETE'}],
         deprecated_rule=deprecated_node_delete,
@@ -371,8 +592,8 @@ node_policies = [
 
     policy.DocumentedRuleDefault(
         name='baremetal:node:validate',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN,
+        scope_types=['system', 'project'],
         description='Request active validation of Nodes',
         operations=[
             {'path': '/nodes/{node_ident}/validate', 'method': 'GET'}
@@ -384,8 +605,8 @@ node_policies = [
 
     policy.DocumentedRuleDefault(
         name='baremetal:node:set_maintenance',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN,
+        scope_types=['system', 'project'],
         description='Set maintenance flag, taking a Node out of service',
         operations=[
             {'path': '/nodes/{node_ident}/maintenance', 'method': 'PUT'}
@@ -396,8 +617,8 @@ node_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:clear_maintenance',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN,
+        scope_types=['system', 'project'],
         description=(
             'Clear maintenance flag, placing the Node into service again'
         ),
@@ -413,8 +634,8 @@ node_policies = [
     # a cached object.
     policy.DocumentedRuleDefault(
         name='baremetal:node:get_boot_device',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_MEMBER_OR_OWNER_ADMIN,
+        scope_types=['system', 'project'],
         description='Retrieve Node boot device metadata',
         operations=[
             {'path': '/nodes/{node_ident}/management/boot_device',
@@ -428,8 +649,8 @@ node_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:set_boot_device',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_MEMBER_OR_OWNER_ADMIN,
+        scope_types=['system', 'project'],
         description='Change Node boot device',
         operations=[
             {'path': '/nodes/{node_ident}/management/boot_device',
@@ -442,8 +663,8 @@ node_policies = [
 
     policy.DocumentedRuleDefault(
         name='baremetal:node:get_indicator_state',
-        check_str=SYSTEM_READER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_PROJECT_READER,
+        scope_types=['system', 'project'],
         description='Retrieve Node indicators and their states',
         operations=[
             {'path': '/nodes/{node_ident}/management/indicators/'
@@ -458,8 +679,8 @@ node_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:set_indicator_state',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_MEMBER_OR_OWNER_MEMBER,
+        scope_types=['system', 'project'],
         description='Change Node indicator state',
         operations=[
             {'path': '/nodes/{node_ident}/management/indicators/'
@@ -473,8 +694,8 @@ node_policies = [
 
     policy.DocumentedRuleDefault(
         name='baremetal:node:inject_nmi',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_MEMBER_OR_OWNER_ADMIN,
+        scope_types=['system', 'project'],
         description='Inject NMI for a node',
         operations=[
             {'path': '/nodes/{node_ident}/management/inject_nmi',
@@ -487,8 +708,8 @@ node_policies = [
 
     policy.DocumentedRuleDefault(
         name='baremetal:node:get_states',
-        check_str=SYSTEM_READER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_PROJECT_READER,
+        scope_types=['system', 'project'],
         description='View Node power and provision state',
         operations=[{'path': '/nodes/{node_ident}/states', 'method': 'GET'}],
         deprecated_rule=deprecated_node_get_states,
@@ -497,8 +718,8 @@ node_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:set_power_state',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_PROJECT_MEMBER,
+        scope_types=['system', 'project'],
         description='Change Node power status',
         operations=[
             {'path': '/nodes/{node_ident}/states/power', 'method': 'PUT'}
@@ -509,8 +730,8 @@ node_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:set_provision_state',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN,
+        scope_types=['system', 'project'],
         description='Change Node provision status',
         operations=[
             {'path': '/nodes/{node_ident}/states/provision', 'method': 'PUT'}
@@ -521,8 +742,8 @@ node_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:set_raid_state',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_MEMBER_OR_OWNER_MEMBER,
+        scope_types=['system', 'project'],
         description='Change Node RAID status',
         operations=[
             {'path': '/nodes/{node_ident}/states/raid', 'method': 'PUT'}
@@ -533,8 +754,8 @@ node_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:get_console',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_MEMBER_OR_OWNER_MEMBER,
+        scope_types=['system', 'project'],
         description='Get Node console connection information',
         operations=[
             {'path': '/nodes/{node_ident}/states/console', 'method': 'GET'}
@@ -545,8 +766,8 @@ node_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:set_console_state',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_MEMBER_OR_OWNER_MEMBER,
+        scope_types=['system', 'project'],
         description='Change Node console status',
         operations=[
             {'path': '/nodes/{node_ident}/states/console', 'method': 'PUT'}
@@ -558,8 +779,8 @@ node_policies = [
 
     policy.DocumentedRuleDefault(
         name='baremetal:node:vif:list',
-        check_str=SYSTEM_READER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_PROJECT_READER,
+        scope_types=['system', 'project'],
         description='List VIFs attached to node',
         operations=[{'path': '/nodes/{node_ident}/vifs', 'method': 'GET'}],
         deprecated_rule=deprecated_node_vif_list,
@@ -568,8 +789,8 @@ node_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:vif:attach',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN,
+        scope_types=['system', 'project'],
         description='Attach a VIF to a node',
         operations=[{'path': '/nodes/{node_ident}/vifs', 'method': 'POST'}],
         deprecated_rule=deprecated_node_vif_attach,
@@ -578,8 +799,8 @@ node_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:vif:detach',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN,
+        scope_types=['system', 'project'],
         description='Detach a VIF from a node',
         operations=[
             {'path': '/nodes/{node_ident}/vifs/{node_vif_ident}',
@@ -589,11 +810,10 @@ node_policies = [
         deprecated_reason=deprecated_node_reason,
         deprecated_since=versionutils.deprecated.WALLABY
     ),
-
     policy.DocumentedRuleDefault(
         name='baremetal:node:traits:list',
-        check_str=SYSTEM_READER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_PROJECT_READER,
+        scope_types=['system', 'project'],
         description='List node traits',
         operations=[{'path': '/nodes/{node_ident}/traits', 'method': 'GET'}],
         deprecated_rule=deprecated_node_traits_list,
@@ -602,8 +822,8 @@ node_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:traits:set',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_MEMBER_OR_OWNER_ADMIN,
+        scope_types=['system', 'project'],
         description='Add a trait to, or replace all traits of, a node',
         operations=[
             {'path': '/nodes/{node_ident}/traits', 'method': 'PUT'},
@@ -615,8 +835,8 @@ node_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:traits:delete',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_MEMBER_OR_OWNER_ADMIN,
+        scope_types=['system', 'project'],
         description='Remove one or all traits from a node',
         operations=[
             {'path': '/nodes/{node_ident}/traits', 'method': 'DELETE'},
@@ -630,8 +850,8 @@ node_policies = [
 
     policy.DocumentedRuleDefault(
         name='baremetal:node:bios:get',
-        check_str=SYSTEM_READER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_PROJECT_READER,
+        scope_types=['system', 'project'],
         description='Retrieve Node BIOS information',
         operations=[
             {'path': '/nodes/{node_ident}/bios', 'method': 'GET'},
@@ -975,7 +1195,10 @@ vendor_passthru_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:node:vendor_passthru',
         check_str=SYSTEM_ADMIN,
-        scope_types=['system'],
+        # NOTE(TheJulia): Project scope listed, but not a project scoped role
+        # as some operators may find it useful to provide access to say owner
+        # admins.
+        scope_types=['system', 'project'],
         description='Access vendor-specific Node functions',
         operations=[
             {'path': 'nodes/{node_ident}/vendor_passthru/methods',
@@ -1501,5 +1724,18 @@ def check(rule, target, creds, *args, **kwargs):
     Checks authorization of a rule against the target and credentials
     and returns True or False.
     """
+    enforcer = get_enforcer()
+    return enforcer.enforce(rule, target, creds, *args, **kwargs)
+
+
+def check_policy(rule, target, creds, *args, **kwargs):
+    """Configuration aware role policy check wrapper.
+
+    Checks authorization of a rule against the target and credentials
+    and returns True or False.
+    Always returns true if CONF.auth_strategy is not keystone.
+    """
+    if CONF.auth_strategy != 'keystone':
+        return True
     enforcer = get_enforcer()
     return enforcer.enforce(rule, target, creds, *args, **kwargs)

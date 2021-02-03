@@ -142,9 +142,22 @@ class TestACLBase(base.BaseApiTest):
             )
         else:
             assert False, 'Unimplemented test method: %s' % method
-
+        # Once miggrated:
+        # Items will return:
+        # 403 - Trying to access something that is generally denied.
+        #       Example: PATCH /v1/nodes/<uuid> as a reader.
+        # 404 - Trying to access something where we don't have permissions
+        #       in a project scope. This is particularly true where implied
+        #       permissions or assocation exists. Ports are attempted to be
+        #       accessed when the underlying node is inaccessible as owner
+        #       nor node matches.
+        #       Example: GET /v1/portgroups or /v1/nodes/<uuid>/ports
+        # 500 - Attempting to access something such an system scoped endpoint
+        #       with a project scoped request. Example: /v1/conductors.
         if not (bool(deprecated)
-                and ('403' in response.status or '500' in response.status)
+                and ('404' in response.status
+                     or '500' in response.status
+                     or '403' in response.status)
                 and cfg.CONF.oslo_policy.enforce_scope
                 and cfg.CONF.oslo_policy.enforce_new_defaults):
             # NOTE(TheJulia): Everything, once migrated, should
@@ -152,7 +165,9 @@ class TestACLBase(base.BaseApiTest):
             self.assertEqual(assert_status, response.status_int)
         else:
             self.assertTrue(
-                '403' in response.status or '500' in response.status)
+                '404' in response.status
+                or '500' in response.status
+                or '403' in response.status)
             # We can't check the contents of the response if there is no
             # response.
             return
@@ -163,8 +178,23 @@ class TestACLBase(base.BaseApiTest):
         if assert_dict_contains:
             for k, v in assert_dict_contains.items():
                 self.assertIn(k, response)
-                self.assertEqual(v.format(**self.format_data),
-                                 response.json[k])
+                print(k)
+                print(v)
+                if str(v) == "None":
+                    # Compare since the variable loaded from the
+                    # json ends up being null in json or None.
+                    self.assertIsNone(response.json[k])
+                elif str(v) == "{}":
+                    # Special match for signifying a dictonary.
+                    self.assertEqual({}, response.json[k])
+                elif isinstance(v, dict):
+                    # The value from the YAML can be a dictionary,
+                    # which cannot be formatted, so we're likely doing
+                    # direct matching.
+                    self.assertEqual(str(v), str(response.json[k]))
+                else:
+                    self.assertEqual(v.format(**self.format_data),
+                                     response.json[k])
 
         if assert_list_length:
             for root, length in assert_list_length.items():
@@ -173,7 +203,14 @@ class TestACLBase(base.BaseApiTest):
                 #          important for owner/lessee testing.
                 items = response.json[root]
                 self.assertIsInstance(items, list)
-                self.assertEqual(length, len(items))
+                if not (bool(deprecated)
+                        and cfg.CONF.oslo_policy.enforce_scope):
+                    self.assertEqual(length, len(items))
+                else:
+                    # If we have scope enforcement, we likely have different
+                    # views, such as "other" admins being subjected to
+                    # a filtered view in these cases.
+                    self.assertEqual(0, len(items))
 
         # NOTE(TheJulia): API tests in Ironic tend to have a pattern
         # to print request and response data to aid in development
@@ -207,13 +244,15 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
             resource_class="CUSTOM_TEST")
         fake_db_node = db_utils.create_test_node(
             chassis_id=None,
-            driver='fake-driverz')
+            driver='fake-driverz',
+            owner='z')
         fake_db_node_alloced = db_utils.create_test_node(
             id=allocated_node_id,
             chassis_id=None,
             allocation_id=fake_db_allocation['id'],
             uuid='22e26c0b-03f2-4d2e-ae87-c02d7f33c000',
-            driver='fake-driverz')
+            driver='fake-driverz',
+            owner='z')
         fake_vif_port_id = "ee21d58f-5de2-4956-85ff-33935ea1ca00"
         fake_db_port = db_utils.create_test_port(
             node_id=fake_db_node['id'],
@@ -242,7 +281,6 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
         # false positives with test runners.
         db_utils.create_test_node(
             uuid='18a552fb-dcd2-43bf-9302-e4c93287be11')
-
         self.format_data.update({
             'node_ident': fake_db_node['uuid'],
             'allocated_node_ident': fake_db_node_alloced['uuid'],
@@ -337,11 +375,15 @@ class TestRBACProjectScoped(TestACLBase):
         # owner/lesse checks
         db_utils.create_test_node(
             uuid=owner_node_ident,
-            owner=owner_node_ident)
+            owner=owner_project_id,
+            last_error='meow',
+            reservation='lolcats')
         leased_node = db_utils.create_test_node(
             uuid=lessee_node_ident,
             owner=owner_project_id,
-            lessee=lessee_project_id)
+            lessee=lessee_project_id,
+            last_error='meow',
+            reservation='lolcats')
         fake_db_volume_target = db_utils.create_test_volume_target(
             node_id=leased_node['id'])
         fake_db_volume_connector = db_utils.create_test_volume_connector(
@@ -350,6 +392,8 @@ class TestRBACProjectScoped(TestACLBase):
             node_id=leased_node['id'])
         fake_db_portgroup = db_utils.create_test_portgroup(
             node_id=leased_node['id'])
+        fake_trait = 'CUSTOM_MEOW'
+        fake_vif_port_id = "0e21d58f-5de2-4956-85ff-33935ea1ca01"
 
         self.format_data.update({
             'node_ident': unowned_node['uuid'],
@@ -359,7 +403,11 @@ class TestRBACProjectScoped(TestACLBase):
             'volume_target_ident': fake_db_volume_target['uuid'],
             'volume_connector_ident': fake_db_volume_connector['uuid'],
             'port_ident': fake_db_port['uuid'],
-            'portgroup_ident': fake_db_portgroup['uuid']})
+            'portgroup_ident': fake_db_portgroup['uuid'],
+            'trait': fake_trait,
+            'vif_ident': fake_vif_port_id,
+            'ind_component': 'component',
+            'ind_ident': 'magic_light'})
 
     @ddt.file_data('test_rbac_project_scoped.yaml')
     @ddt.unpack

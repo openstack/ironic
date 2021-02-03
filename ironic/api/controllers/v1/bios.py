@@ -56,9 +56,9 @@ class NodeBiosController(rest.RestController):
     @method.expose()
     def get_all(self):
         """List node bios settings."""
-        api_utils.check_policy('baremetal:node:bios:get')
+        node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:bios:get', self.node_ident)
 
-        node = api_utils.get_rpc_node(self.node_ident)
         settings = objects.BIOSSettingList.get_by_node_id(
             api.request.context, node.id)
         return collection_from_list(self.node_ident, settings)
@@ -71,9 +71,9 @@ class NodeBiosController(rest.RestController):
 
         :param setting_name: Logical name of the setting to retrieve.
         """
-        api_utils.check_policy('baremetal:node:bios:get')
+        node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:bios:get', self.node_ident)
 
-        node = api_utils.get_rpc_node(self.node_ident)
         try:
             setting = objects.BIOSSetting.get(api.request.context, node.id,
                                               setting_name)

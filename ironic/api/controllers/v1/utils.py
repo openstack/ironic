@@ -25,6 +25,7 @@ import jsonschema
 from jsonschema import exceptions as json_schema_exc
 import os_traits
 from oslo_config import cfg
+from oslo_policy import policy as oslo_policy
 from oslo_utils import uuidutils
 from pecan import rest
 
@@ -1502,23 +1503,34 @@ def check_policy(policy_name):
     policy.authorize(policy_name, cdict, api.request.context)
 
 
-def check_owner_policy(object_type, policy_name, owner, lessee=None):
+def check_owner_policy(object_type, policy_name, owner, lessee=None,
+                       conceal_node=False):
     """Check if the policy authorizes this request on an object.
 
     :param: object_type: type of object being checked
     :param: policy_name: Name of the policy to check.
     :param: owner: the owner
     :param: lessee: the lessee
+    :param: conceal_node: the UUID of the node IF we should
+                          conceal the existence of the node with a
+                          404 Error instead of a 403 Error.
 
     :raises: HTTPForbidden if the policy forbids access.
     """
     cdict = api.request.context.to_policy_values()
-
     target_dict = dict(cdict)
     target_dict[object_type + '.owner'] = owner
     if lessee:
         target_dict[object_type + '.lessee'] = lessee
-    policy.authorize(policy_name, target_dict, api.request.context)
+    try:
+        policy.authorize(policy_name, target_dict, api.request.context)
+    except exception.HTTPForbidden:
+        if conceal_node:
+            # The caller does NOT have access to the node and we've been told
+            # we should return a 404 instead of HTTPForbidden.
+            raise exception.NodeNotFound(node=conceal_node)
+        else:
+            raise
 
 
 def check_node_policy_and_retrieve(policy_name, node_ident,
@@ -1533,20 +1545,30 @@ def check_node_policy_and_retrieve(policy_name, node_ident,
     :raises: NodeNotFound if the node is not found.
     :return: RPC node identified by node_ident
     """
+    conceal_node = False
     try:
         if with_suffix:
             rpc_node = get_rpc_node_with_suffix(node_ident)
         else:
             rpc_node = get_rpc_node(node_ident)
     except exception.NodeNotFound:
-        # don't expose non-existence of node unless requester
-        # has generic access to policy
-        cdict = api.request.context.to_policy_values()
-        policy.authorize(policy_name, cdict, api.request.context)
         raise
-
+    # Project scoped users will get a 404 where as system
+    # scoped should get a 403
+    cdict = api.request.context.to_policy_values()
+    if cdict.get('project_id', False):
+        conceal_node = node_ident
+    try:
+        # Always check the ability to see the node BEFORE anything else.
+        check_owner_policy('node', 'baremetal:node:get', rpc_node['owner'],
+                           rpc_node['lessee'], conceal_node=conceal_node)
+    except exception.NotAuthorized:
+        raise exception.NodeNotFound(node=node_ident)
+    # If we've reached here, we can see the node and we have
+    # access to view it.
     check_owner_policy('node', policy_name,
-                       rpc_node['owner'], rpc_node['lessee'])
+                       rpc_node['owner'], rpc_node['lessee'],
+                       conceal_node=False)
     return rpc_node
 
 
@@ -1612,7 +1634,9 @@ def check_list_policy(object_type, owner=None):
     try:
         policy.authorize('baremetal:%s:list_all' % object_type,
                          cdict, api.request.context)
-    except exception.HTTPForbidden:
+    except (exception.HTTPForbidden, oslo_policy.InvalidScope):
+        # In the event the scoped policy fails, falling back to the
+        # policy governing a filtered view.
         project_owner = cdict.get('project_id')
         if (not project_owner or (owner and owner != project_owner)):
             raise

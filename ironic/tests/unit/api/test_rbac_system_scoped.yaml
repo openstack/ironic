@@ -147,6 +147,26 @@ nodes_node_ident_patch_admin:
       value: {'test': 'testing'}
   assert_status: 503
 
+system_admin_can_patch_chassis:
+  path: '/v1/nodes/{node_ident}'
+  method: patch
+  headers: *admin_headers
+  body:
+    - op: replace
+      path: /chassis_uuid
+      value: 'e74c40e0-d825-11e2-a28f-0800200c9a66'
+  assert_status: 503
+
+system_member_can_patch_conductor_group:
+  path: '/v1/nodes/{node_ident}'
+  method: patch
+  headers: *scoped_member_headers
+  body:
+    - op: replace
+      path: /conductor_group
+      value: "DC04-ROW39"
+  assert_status: 503
+
 nodes_node_ident_patch_member:
   path: '/v1/nodes/{node_ident}'
   method: patch

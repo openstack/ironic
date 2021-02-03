@@ -47,6 +47,7 @@ from ironic.common import policy
 from ironic.common import states as ir_states
 from ironic.conductor import steps as conductor_steps
 import ironic.conf
+from ironic.drivers import base as driver_base
 from ironic import objects
 
 
@@ -513,9 +514,9 @@ class IndicatorController(rest.RestController):
             mod:`ironic.common.indicator_states`.
 
         """
-        api_utils.check_policy('baremetal:node:set_indicator_state')
-
-        rpc_node = api_utils.get_rpc_node(node_ident)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:set_indicator_state',
+            node_ident)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
         indicator_at_component = IndicatorAtComponent(unique_name=indicator)
         pecan.request.rpcapi.set_indicator_state(
@@ -535,9 +536,9 @@ class IndicatorController(rest.RestController):
         :returns: a dict with the "state" key and one of
             mod:`ironic.common.indicator_states` as a value.
         """
-        api_utils.check_policy('baremetal:node:get_indicator_state')
-
-        rpc_node = api_utils.get_rpc_node(node_ident)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:get_indicator_state',
+            node_ident)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
         indicator_at_component = IndicatorAtComponent(unique_name=indicator)
         state = pecan.request.rpcapi.get_indicator_state(
@@ -558,9 +559,9 @@ class IndicatorController(rest.RestController):
             (from `get_supported_indicators`) as values.
 
         """
-        api_utils.check_policy('baremetal:node:get_indicator_state')
-
-        rpc_node = api_utils.get_rpc_node(node_ident)
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:get_indicator_state',
+            node_ident)
         topic = pecan.request.rpcapi.get_topic_for(rpc_node)
         indicators = pecan.request.rpcapi.get_supported_indicators(
             pecan.request.context, rpc_node.uuid, topic=topic)
@@ -1324,13 +1325,64 @@ def node_sanitize(node, fields):
     :type fields: list of str
     """
     cdict = api.request.context.to_policy_values()
+    target_dict = dict(cdict)
+    owner = node.get('owner')
+    lessee = node.get('lessee')
+
+    if owner:
+        target_dict['node.owner'] = owner
+    if lessee:
+        target_dict['node.lessee'] = lessee
+
     # NOTE(tenbrae): the 'show_password' policy setting name exists for
     #             legacy purposes and can not be changed. Changing it will
     #             cause upgrade problems for any operators who have
     #             customized the value of this field
-    show_driver_secrets = policy.check("show_password", cdict, cdict)
+    # NOTE(TheJulia): These methods use policy.check and normally return
+    # False in a noauth or password auth based situation, because the
+    # effective caller doesn't match the policy check rule.
+    show_driver_secrets = policy.check("show_password", cdict, target_dict)
     show_instance_secrets = policy.check("show_instance_secrets",
-                                         cdict, cdict)
+                                         cdict, target_dict)
+    # TODO(TheJulia): The above checks need to be migrated in some direction,
+    # but until we have auditing clarity, it might not be a big deal.
+
+    # Determine if we need to do the additional checks. Keep in mind
+    # nova integrated with ironic is API read heavy, so it is ideal
+    # to keep the policy checks for say system-member based roles to
+    # a minimum as they are likely the regular API users as well.
+    # Also, the default for the filter_threshold is system-member.
+    evaluate_additional_policies = not policy.check_policy(
+        "baremetal:node:get:filter_threshold",
+        target_dict, cdict)
+    if evaluate_additional_policies:
+        # NOTE(TheJulia): The net effect of this is that by default,
+        # at least matching common/policy.py defaults. is these should
+        # be stripped out.
+        if not policy.check("baremetal:node:get:last_error",
+                            target_dict, cdict):
+            # Guard the last error from being visible as it can contain
+            # hostnames revealing infrastucture internal details.
+            node['last_error'] = ('** Value Redacted - Requires '
+                                  'baremetal:node:get:last_error '
+                                  'permission. **')
+        if not policy.check("baremetal:node:get:reservation",
+                            target_dict, cdict):
+            # Guard conductor names from being visible.
+            node['reservation'] = ('** Redacted - requires baremetal:'
+                                   'node:get:reservation permission. **')
+        if not policy.check("baremetal:node:get:driver_internal_info",
+                            target_dict, cdict):
+            # Guard conductor names from being visible.
+            node['driver_internal_info'] = {
+                'content': '** Redacted - Requires baremetal:node:get:'
+                           'driver_internal_info permission. **'}
+        if not policy.check("baremetal:node:get:driver_info",
+                            target_dict, cdict):
+            # Guard infrastructure intenral details from being visible.
+            node['driver_info'] = {
+                'content': '** Redacted - requires baremetal:node:get:'
+                           'driver_info permission. **'}
 
     if not show_driver_secrets and node.get('driver_info'):
         node['driver_info'] = strutils.mask_dict_password(
@@ -2148,6 +2200,36 @@ class NodesController(rest.RestController):
                   and strutils.bool_from_string(p['value'], default=None)
                   is False):
                 policy_checks.append('baremetal:node:disable_cleaning')
+            elif p['path'].startswith('/driver_info'):
+                policy_checks.append('baremetal:node:update:driver_info')
+            elif p['path'].startswith('/properties'):
+                policy_checks.append('baremetal:node:update:properties')
+            elif p['path'].startswith('/chassis_uuid'):
+                policy_checks.append('baremetal:node:update:chassis_uuid')
+            elif p['path'].startswith('/instance_uuid'):
+                policy_checks.append('baremetal:node:update:instance_uuid')
+            elif p['path'].startswith('/lessee'):
+                policy_checks.append('baremetal:node:update:lessee')
+            elif p['path'].startswith('/owner'):
+                policy_checks.append('baremetal:node:update:owner')
+            elif p['path'].startswith('/driver'):
+                policy_checks.append('baremetal:node:update:driver_interfaces')
+            elif ((p['path'].lstrip('/').rsplit(sep="_", maxsplit=1)[0]
+                   in driver_base.ALL_INTERFACES)
+                  and (p['path'].lstrip('/').rsplit(sep="_", maxsplit=1)[-1]
+                       == "interface")):
+                # TODO(TheJulia): Replace the above check with something like
+                # elif (p['path'].lstrip('/').removesuffix('_interface')
+                # when the minimum supported version is Python 3.9.
+                policy_checks.append('baremetal:node:update:driver_interfaces')
+            elif p['path'].startswith('/network_data'):
+                policy_checks.append('baremetal:node:update:network_data')
+            elif p['path'].startswith('/conductor_group'):
+                policy_checks.append('baremetal:node:update:conductor_group')
+            elif p['path'].startswith('/name'):
+                policy_checks.append('baremetal:node:update:name')
+            elif p['path'].startswith('/retired'):
+                policy_checks.append('baremetal:node:update:retired')
             else:
                 generic_update = True
 

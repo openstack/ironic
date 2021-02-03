@@ -54,6 +54,7 @@ Advanced Topics
    Deploying without BMC Credentials <agent-power>
    Layer 3 or DHCP-less Ramdisk Booting <dhcp-less>
    Tuning Ironic <tuning>
+   Role Based Access Control <secure-rbac>
 
 .. toctree::
   :hidden:

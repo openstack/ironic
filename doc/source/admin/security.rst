@@ -23,6 +23,13 @@ OpenStack deployment.
 REST API: user roles and policy settings
 ========================================
 
+.. WARNING::
+   This information is presently in flux as of the Wallaby release with the
+   implementation of ``Secure RBAC`` where ``system`` and ``project``
+   scoped requests are able to be parsed and default access controls support
+   a delineation of roles and responsibilities through the roles.
+   Please see :doc:`/admin/secure-rbac`.
+
 Beginning with the Newton (6.1.0) release, the Bare Metal service allows
 operators significant control over API access:
 
