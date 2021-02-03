@@ -136,8 +136,8 @@ UEFI secure boot mode
 =====================
 
 Some hardware types support turning `UEFI secure boot`_ dynamically when
-deploying an instance. Currently these are :doc:`/admin/drivers/ilo` and
-:doc:`/admin/drivers/irmc`.
+deploying an instance. Currently these are :doc:`/admin/drivers/ilo`,
+:doc:`/admin/drivers/irmc` and :doc:`/admin/drivers/redfish`.
 
 Support for the UEFI secure boot is declared by adding the ``secure_boot``
 capability in the ``capabilities`` parameter in the ``properties`` field of

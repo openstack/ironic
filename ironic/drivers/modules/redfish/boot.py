@@ -543,10 +543,12 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         """
         node = task.node
 
+        self._eject_all(task)
+
         boot_mode_utils.sync_boot_mode(task)
+        boot_mode_utils.configure_secure_boot_if_needed(task)
 
         boot_option = deploy_utils.get_boot_option(node)
-        self.clean_up_instance(task)
         iwdi = node.driver_internal_info.get('is_whole_disk_image')
         if boot_option == "local" or iwdi:
             self._set_boot_device(task, boot_devices.DISK, persistent=True)
@@ -598,18 +600,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                   "%(device)s", {'node': task.node.uuid,
                                  'device': boot_devices.CDROM})
 
-    def clean_up_instance(self, task):
-        """Cleans up the boot of instance.
-
-        This method cleans up the environment that was setup for booting
-        the instance.
-
-        :param task: A task from TaskManager.
-        :returns: None
-        """
-        LOG.debug("Cleaning up instance boot for "
-                  "%(node)s", {'node': task.node.uuid})
-
+    def _eject_all(self, task):
         managers = redfish_utils.get_system(task.node).managers
 
         _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_CD)
@@ -625,6 +616,20 @@ class RedfishVirtualMediaBoot(base.BootInterface):
             image_utils.cleanup_disk_image(task, prefix='configdrive')
 
         image_utils.cleanup_iso_image(task)
+
+    def clean_up_instance(self, task):
+        """Cleans up the boot of instance.
+
+        This method cleans up the environment that was setup for booting
+        the instance.
+
+        :param task: A task from TaskManager.
+        :returns: None
+        """
+        LOG.debug("Cleaning up instance boot for "
+                  "%(node)s", {'node': task.node.uuid})
+        self._eject_all(task)
+        boot_mode_utils.deconfigure_secure_boot_if_needed(task)
 
     @classmethod
     def _set_boot_device(cls, task, device, persistent=False):

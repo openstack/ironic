@@ -221,7 +221,9 @@ if not sushy:
         APPLY_TIME_ON_RESET='on reset',
         TASK_STATE_COMPLETED='completed',
         HEALTH_OK='ok',
-        HEALTH_WARNING='warning'
+        HEALTH_WARNING='warning',
+        SECURE_BOOT_RESET_KEYS_TO_DEFAULT="ResetAllKeysToDefault",
+        SECURE_BOOT_RESET_KEYS_DELETE_ALL="DeleteAllKeys",
     )
 
     sys.modules['sushy'] = sushy

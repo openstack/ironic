@@ -1304,3 +1304,145 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.node.driver_internal_info['firmware_updates'])
             task.node.save.assert_called_once_with()
             mock_node_power_action.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_secure_boot_state(self, mock_get_system):
+        fake_system = mock_get_system.return_value
+        fake_system.secure_boot.enabled = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            response = task.driver.management.get_secure_boot_state(task)
+            self.assertIs(False, response)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_secure_boot_state_not_implemented(self, mock_get_system):
+        # Yes, seriously, that's the only way to do it.
+        class NoSecureBoot(mock.Mock):
+            @property
+            def secure_boot(self):
+                raise sushy.exceptions.MissingAttributeError("boom")
+
+        mock_get_system.return_value = NoSecureBoot()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.UnsupportedDriverExtension,
+                              task.driver.management.get_secure_boot_state,
+                              task)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_secure_boot_state(self, mock_get_system):
+        fake_system = mock_get_system.return_value
+        fake_system.secure_boot.enabled = False
+        fake_system.boot = {'mode': sushy.BOOT_SOURCE_MODE_UEFI}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.management.set_secure_boot_state(task, True)
+            fake_system.secure_boot.set_enabled.assert_called_once_with(True)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_secure_boot_state_boot_mode_unknown(self, mock_get_system):
+        fake_system = mock_get_system.return_value
+        fake_system.secure_boot.enabled = False
+        fake_system.boot = {}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.management.set_secure_boot_state(task, True)
+            fake_system.secure_boot.set_enabled.assert_called_once_with(True)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_secure_boot_state_boot_mode_no_change(self, mock_get_system):
+        fake_system = mock_get_system.return_value
+        fake_system.secure_boot.enabled = False
+        fake_system.boot = {'mode': sushy.BOOT_SOURCE_MODE_BIOS}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.management.set_secure_boot_state(task, False)
+            self.assertFalse(fake_system.secure_boot.set_enabled.called)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_secure_boot_state_boot_mode_incorrect(self, mock_get_system):
+        fake_system = mock_get_system.return_value
+        fake_system.secure_boot.enabled = False
+        fake_system.boot = {'mode': sushy.BOOT_SOURCE_MODE_BIOS}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaisesRegex(
+                exception.RedfishError, 'requires UEFI',
+                task.driver.management.set_secure_boot_state, task, True)
+            self.assertFalse(fake_system.secure_boot.set_enabled.called)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_secure_boot_state_boot_mode_fails(self, mock_get_system):
+        fake_system = mock_get_system.return_value
+        fake_system.secure_boot.enabled = False
+        fake_system.secure_boot.set_enabled.side_effect = \
+            sushy.exceptions.SushyError
+        fake_system.boot = {'mode': sushy.BOOT_SOURCE_MODE_UEFI}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaisesRegex(
+                exception.RedfishError, 'Failed to set secure boot',
+                task.driver.management.set_secure_boot_state, task, True)
+            fake_system.secure_boot.set_enabled.assert_called_once_with(True)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_secure_boot_state_not_implemented(self, mock_get_system):
+        # Yes, seriously, that's the only way to do it.
+        class NoSecureBoot(mock.Mock):
+            @property
+            def secure_boot(self):
+                raise sushy.exceptions.MissingAttributeError("boom")
+
+        mock_get_system.return_value = NoSecureBoot()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.UnsupportedDriverExtension,
+                              task.driver.management.set_secure_boot_state,
+                              task, True)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_reset_secure_boot_to_default(self, mock_get_system):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.management.reset_secure_boot_keys_to_default(task)
+            sb = mock_get_system.return_value.secure_boot
+            sb.reset_keys.assert_called_once_with(
+                sushy.SECURE_BOOT_RESET_KEYS_TO_DEFAULT)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_reset_secure_boot_to_default_not_implemented(self,
+                                                          mock_get_system):
+        class NoSecureBoot(mock.Mock):
+            @property
+            def secure_boot(self):
+                raise sushy.exceptions.MissingAttributeError("boom")
+
+        mock_get_system.return_value = NoSecureBoot()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(
+                exception.UnsupportedDriverExtension,
+                task.driver.management.reset_secure_boot_keys_to_default, task)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_clear_secure_boot(self, mock_get_system):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.management.clear_secure_boot_keys(task)
+            sb = mock_get_system.return_value.secure_boot
+            sb.reset_keys.assert_called_once_with(
+                sushy.SECURE_BOOT_RESET_KEYS_DELETE_ALL)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_clear_secure_boot_not_implemented(self, mock_get_system):
+        class NoSecureBoot(mock.Mock):
+            @property
+            def secure_boot(self):
+                raise sushy.exceptions.MissingAttributeError("boom")
+
+        mock_get_system.return_value = NoSecureBoot()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(
+                exception.UnsupportedDriverExtension,
+                task.driver.management.clear_secure_boot_keys, task)

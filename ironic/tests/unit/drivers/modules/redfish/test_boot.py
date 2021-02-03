@@ -524,7 +524,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock__eject_vmedia.assert_has_calls(eject_calls)
 
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       'clean_up_instance', autospec=True)
+                       '_eject_all', autospec=True)
     @mock.patch.object(image_utils, 'prepare_boot_iso', autospec=True)
     @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
     @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
@@ -576,9 +576,11 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, boot_devices.CDROM, persistent=True)
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
+            csb = mock_boot_mode_utils.configure_secure_boot_if_needed
+            csb.assert_called_once_with(task)
 
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       'clean_up_instance', autospec=True)
+                       '_eject_all', autospec=True)
     @mock.patch.object(image_utils, 'prepare_configdrive_image', autospec=True)
     @mock.patch.object(image_utils, 'prepare_boot_iso', autospec=True)
     @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
@@ -640,7 +642,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
 
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       'clean_up_instance', autospec=True)
+                       '_eject_all', autospec=True)
     @mock.patch.object(image_utils, 'prepare_boot_iso', autospec=True)
     @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
     @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
@@ -689,7 +691,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
 
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
-                       'clean_up_instance', autospec=True)
+                       '_eject_all', autospec=True)
     @mock.patch.object(image_utils, 'prepare_boot_iso', autospec=True)
     @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
     @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
@@ -731,6 +733,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
 
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
+                       autospec=True)
     @mock.patch.object(boot_mode_utils, 'sync_boot_mode', autospec=True)
     @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
@@ -738,7 +742,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def _test_prepare_instance_local_boot(
             self, mock_system, mock_manager_utils,
-            mock_cleanup_iso_image, mock__eject_vmedia, mock_sync_boot_mode):
+            mock_cleanup_iso_image, mock__eject_vmedia, mock_sync_boot_mode,
+            mock_secure_boot):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -755,6 +760,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, mock_system.return_value.managers,
                 sushy.VIRTUAL_MEDIA_CD)
             mock_sync_boot_mode.assert_called_once_with(task)
+            mock_secure_boot.assert_called_once_with(task)
 
     def test_prepare_instance_local_whole_disk_image(self):
         self.node.driver_internal_info = {'is_whole_disk_image': True}
@@ -768,11 +774,13 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_prepare_instance_local_boot()
 
+    @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
+                       autospec=True)
     @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def _test_clean_up_instance(self, mock_system, mock_cleanup_iso_image,
-                                mock__eject_vmedia):
+                                mock__eject_vmedia, mock_secure_boot):
         managers = mock_system.return_value.managers
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -786,6 +794,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                                              sushy.VIRTUAL_MEDIA_FLOPPY))
 
             mock__eject_vmedia.assert_has_calls(eject_calls)
+            mock_secure_boot.assert_called_once_with(task)
 
     def test_clean_up_instance_only_cdrom(self):
         self._test_clean_up_instance()
@@ -797,6 +806,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_clean_up_instance()
 
+    @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
+                       autospec=True)
     @mock.patch.object(deploy_utils, 'get_boot_option', autospec=True)
     @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_disk_image', autospec=True)
@@ -806,7 +817,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                                        mock_cleanup_iso_image,
                                        mock_cleanup_disk_image,
                                        mock__eject_vmedia,
-                                       mock_get_boot_option):
+                                       mock_get_boot_option,
+                                       mock_secure_boot):
         managers = mock_system.return_value.managers
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -824,6 +836,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             ]
 
             mock__eject_vmedia.assert_has_calls(eject_calls)
+            mock_secure_boot.assert_called_once_with(task)
 
     def test__insert_vmedia_anew(self):
 
