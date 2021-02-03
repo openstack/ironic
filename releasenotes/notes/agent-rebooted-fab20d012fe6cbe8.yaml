@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes fast-track to prevent marking the agent as alive if
+    trying to rebuild a node before the fast-track timeout has
+    expired.
