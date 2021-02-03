@@ -177,13 +177,36 @@ class IronicImagesTestCase(base.TestCase):
                                           'image_service')
 
     @mock.patch.object(disk_utils, 'qemu_img_info', autospec=True)
-    def test_converted_size(self, qemu_img_info_mock):
+    def test_converted_size_estimate_default(self, qemu_img_info_mock):
         info = self.FakeImgInfo()
-        info.virtual_size = 1
+        info.disk_size = 2
+        info.virtual_size = 10 ** 10
         qemu_img_info_mock.return_value = info
-        size = images.converted_size('path')
+        size = images.converted_size('path', estimate=True)
         qemu_img_info_mock.assert_called_once_with('path')
-        self.assertEqual(1, size)
+        self.assertEqual(4, size)
+
+    @mock.patch.object(disk_utils, 'qemu_img_info', autospec=True)
+    def test_converted_size_estimate_custom(self, qemu_img_info_mock):
+        CONF.set_override('raw_image_growth_factor', 3)
+        info = self.FakeImgInfo()
+        info.disk_size = 2
+        info.virtual_size = 10 ** 10
+        qemu_img_info_mock.return_value = info
+        size = images.converted_size('path', estimate=True)
+        qemu_img_info_mock.assert_called_once_with('path')
+        self.assertEqual(6, size)
+
+    @mock.patch.object(disk_utils, 'qemu_img_info', autospec=True)
+    def test_converted_size_estimate_raw_smaller(self, qemu_img_info_mock):
+        CONF.set_override('raw_image_growth_factor', 3)
+        info = self.FakeImgInfo()
+        info.disk_size = 2
+        info.virtual_size = 5
+        qemu_img_info_mock.return_value = info
+        size = images.converted_size('path', estimate=True)
+        qemu_img_info_mock.assert_called_once_with('path')
+        self.assertEqual(5, size)
 
     @mock.patch.object(images, 'get_image_properties', autospec=True)
     @mock.patch.object(glance_utils, 'is_glance_image', autospec=True)

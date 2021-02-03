@@ -314,9 +314,23 @@ def _fetch(context, image_href, path, force_raw=False):
     # then we can firstly clean cache and then invoke images.fetch().
     if force_raw:
         if images.force_raw_will_convert(image_href, path_tmp):
-            required_space = images.converted_size(path_tmp)
+            required_space = images.converted_size(path_tmp, estimate=False)
             directory = os.path.dirname(path_tmp)
-            _clean_up_caches(directory, required_space)
+            try:
+                _clean_up_caches(directory, required_space)
+            except exception.InsufficientDiskSpace:
+
+                # try again with an estimated raw size instead of the full size
+                required_space = images.converted_size(path_tmp, estimate=True)
+                try:
+                    _clean_up_caches(directory, required_space)
+                except exception.InsufficientDiskSpace:
+                    LOG.warning('Not enough space for estimated image size. '
+                                'Consider lowering '
+                                '[DEFAULT]raw_image_growth_factor=%s',
+                                CONF.raw_image_growth_factor)
+                    raise
+
         images.image_to_raw(image_href, path, path_tmp)
     else:
         os.rename(path_tmp, path)

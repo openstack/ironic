@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds the `[DEFAULT]raw_image_growth_factor` configuration option which
+    is a scale factor used for estimating the size of a raw image converted
+    from compact image formats such as QCOW2. By default this is set to 2.0.
+
+    When clearing the cache to make space for a converted raw image, the full
+    virtual size is attempted first, and if not enough space is available a
+    second attempt is made with the (smaller) estimated size.

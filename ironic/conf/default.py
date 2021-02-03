@@ -201,6 +201,13 @@ image_opts = [
                 mutable=True,
                 help=_('If True, convert backing images to "raw" disk image '
                        'format.')),
+    cfg.FloatOpt('raw_image_growth_factor',
+                 default=2.0,
+                 min=1.0,
+                 help=_('The scale factor used for estimating the size of a '
+                        'raw image converted from compact image '
+                        'formats such as QCOW2. '
+                        'Default is 2.0, must be greater than 1.0.')),
     cfg.StrOpt('isolinux_bin',
                default='/usr/lib/syslinux/isolinux.bin',
                help=_('Path to isolinux binary file.')),
