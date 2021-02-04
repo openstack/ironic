@@ -1403,3 +1403,5 @@ def node_cache_vendor(task):
     props['vendor'] = vendor
     task.node.properties = props
     task.node.save()
+    LOG.info("Detected vendor %(vendor)s for node %(node)s",
+             {'vendor': vendor, 'node': task.node.uuid})
