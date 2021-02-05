@@ -540,7 +540,7 @@ class IloCommonMethodsTestCase(BaseIloTest):
                                                    set_boot_mode_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.node.instance_info['deploy_boot_mode'] = 'bios'
+            task.node.driver_internal_info['deploy_boot_mode'] = 'bios'
             ilo_common.update_boot_mode(task)
             set_boot_mode_mock.assert_called_once_with(task.node, 'bios')
 
@@ -563,8 +563,8 @@ class IloCommonMethodsTestCase(BaseIloTest):
                                   shared=False) as task:
             ilo_common.update_boot_mode(task)
             set_boot_mode_mock.assert_called_once_with(task.node, 'bios')
-            self.assertEqual('bios',
-                             task.node.instance_info['deploy_boot_mode'])
+            self.assertEqual(
+                'bios', task.node.driver_internal_info['deploy_boot_mode'])
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
@@ -578,8 +578,8 @@ class IloCommonMethodsTestCase(BaseIloTest):
             ilo_common.update_boot_mode(task)
             get_ilo_object_mock.assert_called_once_with(task.node)
             ilo_mock_obj.get_pending_boot_mode.assert_called_once_with()
-            self.assertEqual('bios',
-                             task.node.instance_info['deploy_boot_mode'])
+            self.assertEqual(
+                'bios', task.node.driver_internal_info['deploy_boot_mode'])
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
@@ -595,8 +595,8 @@ class IloCommonMethodsTestCase(BaseIloTest):
             get_ilo_object_mock.assert_called_once_with(task.node)
             ilo_mock_obj.get_pending_boot_mode.assert_called_once_with()
             set_pending_boot_mode_mock.assert_called_once_with('UEFI')
-            self.assertEqual('uefi',
-                             task.node.instance_info['deploy_boot_mode'])
+            self.assertEqual(
+                'uefi', task.node.driver_internal_info['deploy_boot_mode'])
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
@@ -628,8 +628,8 @@ class IloCommonMethodsTestCase(BaseIloTest):
             ilo_common.update_boot_mode(task)
             get_ilo_object_mock.assert_called_once_with(task.node)
             ilo_mock_obj.get_pending_boot_mode.assert_called_once_with()
-            self.assertEqual('bios',
-                             task.node.instance_info['deploy_boot_mode'])
+            self.assertEqual(
+                'bios', task.node.driver_internal_info['deploy_boot_mode'])
 
     @mock.patch.object(ilo_common, 'set_boot_mode', spec_set=True,
                        autospec=True)

@@ -354,7 +354,7 @@ class IloBootPrivateMethodsTestCase(test_common.BaseIloTest):
                                                            states.POWER_OFF)
             func_disable_secure_boot.assert_called_once_with(task)
             self.assertFalse(func_update_boot_mode.called)
-            ret_boot_mode = task.node.instance_info['deploy_boot_mode']
+            ret_boot_mode = task.node.driver_internal_info['deploy_boot_mode']
             self.assertEqual('uefi', ret_boot_mode)
             bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
             self.assertIsNone(bootmode)
@@ -381,7 +381,8 @@ class IloBootPrivateMethodsTestCase(test_common.BaseIloTest):
             func_update_boot_mode.assert_called_once_with(task)
             bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
             self.assertIsNone(bootmode)
-            self.assertNotIn('deploy_boot_mode', task.node.instance_info)
+            self.assertNotIn('deploy_boot_mode',
+                             task.node.driver_internal_info)
 
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
@@ -404,7 +405,8 @@ class IloBootPrivateMethodsTestCase(test_common.BaseIloTest):
             self.assertFalse(func_update_boot_mode.called)
             bootmode = driver_utils.get_node_capability(task.node, "boot_mode")
             self.assertIsNone(bootmode)
-            self.assertNotIn('deploy_boot_mode', task.node.instance_info)
+            self.assertNotIn('deploy_boot_mode',
+                             task.node.driver_internal_info)
 
 
 class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
