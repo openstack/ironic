@@ -55,16 +55,12 @@ Enabling
 
 The iDRAC driver supports WSMAN for the bios, inspect, management, power,
 raid, and vendor interfaces. In addition, it supports Redfish for
-the bios, inspect, management, and power interfaces. The iDRAC driver
+the bios, inspect, management, power, and raid interfaces. The iDRAC driver
 allows you to mix and match WSMAN and Redfish interfaces.
 
 The ``idrac-wsman`` implementation must be enabled to use WSMAN for
 an interface. The ``idrac-redfish`` implementation must be enabled
 to use Redfish for an interface.
-
-.. NOTE::
-   Redfish is supported for only the bios, inspect, management, and power
-   interfaces at the present time.
 
 To enable the ``idrac`` hardware type with the minimum interfaces,
 all using WSMAN, add the following to your ``/etc/ironic/ironic.conf``:
@@ -88,7 +84,7 @@ following configuration:
     enabled_inspect_interfaces=idrac-redfish
     enabled_management_interfaces=idrac-redfish
     enabled_power_interfaces=idrac-redfish
-    enabled_raid_interfaces=idrac-wsman
+    enabled_raid_interfaces=idrac-redfish
     enabled_vendor_interfaces=idrac-redfish
 
 Below is the list of supported interface implementations in priority
@@ -106,7 +102,7 @@ Interface            Supported Implementations
 ``management``       ``idrac-wsman``, ``idrac``, ``idrac-redfish``
 ``network``          ``flat``, ``neutron``, ``noop``
 ``power``            ``idrac-wsman``, ``idrac``, ``idrac-redfish``
-``raid``             ``idrac-wsman``, ``idrac``, ``no-raid``
+``raid``             ``idrac-wsman``, ``idrac``, ``idrac-redfish``, ``no-raid``
 ``rescue``           ``no-rescue``, ``agent``
 ``storage``          ``noop``, ``cinder``, ``external``
 ``vendor``           ``idrac-wsman``, ``idrac``, ``idrac-redfish``,
@@ -180,7 +176,7 @@ hardware type using Redfish for all interfaces:
         --inspect-interface idrac-redfish \
         --management-interface idrac-redfish \
         --power-interface idrac-redfish \
-        --raid-interface no-raid \
+        --raid-interface idrac-redfish \
         --vendor-interface idrac-redfish
 
 The following command enrolls a bare metal node with the ``idrac``
@@ -283,9 +279,12 @@ RAID Interface
 
 See :doc:`/admin/raid` for more information on Ironic RAID support.
 
-The following properties are supported by the iDRAC WSMAN raid interface
-implementation, ``idrac-wsman``:
+The following properties are supported by the iDRAC WSMAN and Redfish RAID
+interface implementation:
 
+.. NOTE::
+  When using ``idrac-redfish`` for RAID interface iDRAC firmware greater than
+  4.40.00.00 is required.
 
 Mandatory properties
 --------------------
@@ -309,6 +308,11 @@ Optional properties
 
 Backing physical disk hints
 ---------------------------
+
+.. NOTE::
+  Backing physical disk hints are not widely tested with ``idrac-redfish`` yet
+  and they might not work as desired. This will be addressed in future
+  releases.
 
 See :doc:`/admin/raid` for more information on backing disk hints.
 
@@ -408,6 +412,20 @@ be used to fetch the information directly from the Dell bare metal:
   physical_disks = client.list_physical_disks()
   print(physical_disks)
 
+Or using ``sushy`` with Redfish:
+
+.. code-block:: python
+
+  import sushy
+
+
+  client = sushy.Sushy('https://192.168.1.1', username='root', password='calvin', verify=False)
+  for s in client.get_system_collection().get_members():
+    print("System: %(id)s" % {'id': s.identity})
+    for c in system1.storage.get_members():
+        print("\tController: %(id)s" % {'id': c.identity})
+        for d in c.drives:
+          print("\t\tDrive: %(id)s" % {'id': d.identity})
 
 Vendor Interface
 ================

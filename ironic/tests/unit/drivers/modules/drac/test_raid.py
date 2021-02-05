@@ -20,6 +20,8 @@ from unittest import mock
 
 from dracclient import constants
 from dracclient import exceptions as drac_exceptions
+from oslo_utils import importutils
+import tenacity
 
 from ironic.common import exception
 from ironic.common import states
@@ -28,8 +30,12 @@ from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.drac import raid as drac_raid
+from ironic.drivers.modules.redfish import raid as redfish_raid
+from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
+
+sushy = importutils.try_import('sushy')
 
 INFO_DICT = test_utils.INFO_DICT
 
@@ -2239,3 +2245,159 @@ class DracRaidInterfaceTestCase(test_utils.BaseDracTest):
             mock_apply_configuration.assert_called_once_with(
                 task.driver.raid, task,
                 self.target_raid_configuration, False, True, False)
+
+
+class DracRedfishRAIDTestCase(test_utils.BaseDracTest):
+
+    def setUp(self):
+        super(DracRedfishRAIDTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='idrac',
+                                               driver_info=INFO_DICT)
+        self.raid = drac_raid.DracRedfishRAID()
+
+    @mock.patch.object(drac_raid, '_wait_till_realtime_ready', autospec=True)
+    @mock.patch.object(redfish_raid.RedfishRAID, 'create_configuration',
+                       autospec=True)
+    def test_create_configuration(self, mock_redfish_create, mock_wait):
+        task = mock.Mock(node=self.node, context=self.context)
+
+        self.raid.create_configuration(task)
+
+        mock_wait.assert_called_once_with(task)
+        mock_redfish_create.assert_called_once_with(
+            self.raid, task, True, True, False)
+
+    @mock.patch.object(drac_raid, '_wait_till_realtime_ready', autospec=True)
+    @mock.patch.object(redfish_raid.RedfishRAID, 'delete_configuration',
+                       autospec=True)
+    def test_delete_configuration(self, mock_redfish_delete, mock_wait):
+        task = mock.Mock(node=self.node, context=self.context)
+
+        self.raid.delete_configuration(task)
+
+        mock_wait.assert_called_once_with(task)
+        mock_redfish_delete.assert_called_once_with(self.raid, task)
+
+    @mock.patch.object(drac_raid, '_retry_till_realtime_ready', autospec=True)
+    def test__wait_till_realtime_ready(self, mock_ready):
+        task = mock.Mock(node=self.node, context=self.context)
+        drac_raid._wait_till_realtime_ready(task)
+        mock_ready.assert_called_once_with(task)
+
+    @mock.patch.object(drac_raid, 'LOG', autospec=True)
+    @mock.patch.object(drac_raid, '_retry_till_realtime_ready', autospec=True)
+    def test__wait_till_realtime_ready_retryerror(self, mock_ready, mock_log):
+        task = mock.Mock(node=self.node, context=self.context)
+        mock_ready.side_effect = tenacity.RetryError(3)
+        drac_raid._wait_till_realtime_ready(task)
+        mock_ready.assert_called_once_with(task)
+        self.assertEqual(mock_log.debug.call_count, 1)
+
+    @mock.patch.object(drac_raid, '_is_realtime_ready', autospec=True)
+    def test__retry_till_realtime_ready_retry_exceeded(self, mock_ready):
+        drac_raid._retry_till_realtime_ready.retry.sleep = mock.Mock()
+        drac_raid._retry_till_realtime_ready.retry.stop =\
+            tenacity.stop_after_attempt(3)
+        task = mock.Mock(node=self.node, context=self.context)
+        mock_ready.return_value = False
+
+        self.assertRaises(
+            tenacity.RetryError,
+            drac_raid._retry_till_realtime_ready, task)
+
+        self.assertEqual(3, mock_ready.call_count)
+
+    @mock.patch.object(drac_raid, '_is_realtime_ready', autospec=True)
+    def test__retry_till_realtime_ready_retry_fails(self, mock_ready):
+        drac_raid._retry_till_realtime_ready.retry.sleep = mock.Mock()
+        drac_raid._retry_till_realtime_ready.retry.stop =\
+            tenacity.stop_after_attempt(3)
+        task = mock.Mock(node=self.node, context=self.context)
+        mock_ready.side_effect = [False, exception.RedfishError]
+
+        self.assertRaises(
+            exception.RedfishError,
+            drac_raid._retry_till_realtime_ready, task)
+
+        self.assertEqual(2, mock_ready.call_count)
+
+    @mock.patch.object(drac_raid, '_is_realtime_ready', autospec=True)
+    def test__retry_till_realtime_ready(self, mock_ready):
+        drac_raid._retry_till_realtime_ready.retry.sleep = mock.Mock()
+        task = mock.Mock(node=self.node, context=self.context)
+        mock_ready.side_effect = [False, True]
+
+        is_ready = drac_raid._retry_till_realtime_ready(task)
+
+        self.assertTrue(is_ready)
+        self.assertEqual(2, mock_ready.call_count)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__is_realtime_ready_no_managers(self, mock_get_system):
+        task = mock.Mock(node=self.node, context=self.context)
+        fake_system = mock.Mock(managers=[])
+        mock_get_system.return_value = fake_system
+        self.assertRaises(exception.RedfishError,
+                          drac_raid._is_realtime_ready, task)
+
+    @mock.patch.object(drac_raid, 'LOG', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__is_realtime_ready_oem_not_found(self, mock_get_system, mock_log):
+        task = mock.Mock(node=self.node, context=self.context)
+        fake_manager1 = mock.Mock()
+        fake_manager1.get_oem_extension.side_effect = (
+            sushy.exceptions.OEMExtensionNotFoundError)
+        fake_system = mock.Mock(managers=[fake_manager1])
+        mock_get_system.return_value = fake_system
+        self.assertRaises(exception.RedfishError,
+                          drac_raid._is_realtime_ready, task)
+        self.assertEqual(mock_log.error.call_count, 1)
+
+    @mock.patch.object(drac_raid, 'LOG', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__is_realtime_ready_all_managers_fail(self, mock_get_system,
+                                                  mock_log):
+        task = mock.Mock(node=self.node, context=self.context)
+        fake_manager_oem1 = mock.Mock()
+        fake_manager_oem1.lifecycle_service.is_realtime_ready.side_effect = (
+            sushy.exceptions.SushyError)
+        fake_manager1 = mock.Mock()
+        fake_manager1.get_oem_extension.return_value = fake_manager_oem1
+        fake_manager_oem2 = mock.Mock()
+        fake_manager_oem2.lifecycle_service.is_realtime_ready.side_effect = (
+            sushy.exceptions.SushyError)
+        fake_manager2 = mock.Mock()
+        fake_manager2.get_oem_extension.return_value = fake_manager_oem2
+        fake_system = mock.Mock(managers=[fake_manager1, fake_manager2])
+        mock_get_system.return_value = fake_system
+        self.assertRaises(exception.RedfishError,
+                          drac_raid._is_realtime_ready, task)
+        self.assertEqual(mock_log.debug.call_count, 2)
+
+    @mock.patch.object(drac_raid, 'LOG', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__is_realtime_ready(self, mock_get_system, mock_log):
+        task = mock.Mock(node=self.node, context=self.context)
+        fake_manager_oem1 = mock.Mock()
+        fake_manager_oem1.lifecycle_service.is_realtime_ready.side_effect = (
+            sushy.exceptions.SushyError)
+        fake_manager1 = mock.Mock()
+        fake_manager1.get_oem_extension.return_value = fake_manager_oem1
+        fake_manager_oem2 = mock.Mock()
+        fake_manager_oem2.lifecycle_service.is_realtime_ready.return_value = (
+            True)
+        fake_manager2 = mock.Mock()
+        fake_manager2.get_oem_extension.return_value = fake_manager_oem2
+        fake_system = mock.Mock(managers=[fake_manager1, fake_manager2])
+        mock_get_system.return_value = fake_system
+
+        is_ready = drac_raid._is_realtime_ready(task)
+
+        self.assertTrue(is_ready)
+        self.assertEqual(mock_log.debug.call_count, 1)
+
+    def test_validate_correct_vendor(self):
+        task = mock.Mock(node=self.node, context=self.context)
+        self.node.properties['vendor'] = 'Dell Inc.'
+        self.raid.validate(task)

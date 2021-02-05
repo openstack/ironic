@@ -687,6 +687,32 @@ class RedfishRAID(base.RAIDInterface):
         """
         return redfish_utils.COMMON_PROPERTIES.copy()
 
+    def _validate_vendor(self, task):
+        vendor = task.node.properties.get('vendor')
+        if not vendor:
+            return
+
+        if 'dell' in vendor.lower().split():
+            raise exception.InvalidParameterValue(
+                _("The %(iface)s raid interface is not suitable for node "
+                  "%(node)s with vendor %(vendor)s, use idrac-redfish instead")
+                % {'iface': task.node.raid_interface,
+                   'node': task.node.uuid, 'vendor': vendor})
+
+    def validate(self, task):
+        """Validates the RAID Interface.
+
+        This method validates the properties defined by Ironic for RAID
+        configuration. Driver implementations of this interface can override
+        this method for doing more validations (such as BMC's credentials).
+
+        :param task: A TaskManager instance.
+        :raises: InvalidParameterValue, if the RAID configuration is invalid.
+        :raises: MissingParameterValue, if some parameters are missing.
+        """
+        self._validate_vendor(task)
+        super(RedfishRAID, self).validate(task)
+
     @base.deploy_step(priority=0,
                       argsinfo=base.RAID_APPLY_CONFIGURATION_ARGSINFO)
     def apply_configuration(self, task, raid_config, create_root_volume=True,

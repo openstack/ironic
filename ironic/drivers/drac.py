@@ -74,8 +74,9 @@ class IDRACHardware(generic.GenericHardware):
     @property
     def supported_raid_interfaces(self):
         """List of supported raid interfaces."""
-        return [raid.DracWSManRAID, raid.DracRAID] + super(
-            IDRACHardware, self).supported_raid_interfaces
+        return [raid.DracWSManRAID, raid.DracRAID,
+                raid.DracRedfishRAID] + super(
+                    IDRACHardware, self).supported_raid_interfaces
 
     @property
     def supported_vendor_interfaces(self):
