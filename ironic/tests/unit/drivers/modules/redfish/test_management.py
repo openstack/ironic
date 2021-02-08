@@ -17,6 +17,7 @@ import datetime
 from unittest import mock
 
 from oslo_utils import importutils
+from oslo_utils import units
 
 from ironic.common import boot_devices
 from ironic.common import boot_modes
@@ -55,6 +56,28 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         self.system_uuid = 'ZZZ--XXX-YYY'
         self.chassis_uuid = 'XXX-YYY-ZZZ'
         self.drive_uuid = 'ZZZ-YYY-XXX'
+
+    def init_system_mock(self, system_mock, **properties):
+
+        system_mock.reset()
+
+        system_mock.boot.mode = 'uefi'
+
+        system_mock.memory_summary.size_gib = 2
+
+        system_mock.processors.summary = '8', 'MIPS'
+
+        system_mock.simple_storage.disks_sizes_bytes = (
+            1 * units.Gi, units.Gi * 3, units.Gi * 5)
+        system_mock.storage.volumes_sizes_bytes = (
+            2 * units.Gi, units.Gi * 4, units.Gi * 6)
+
+        system_mock.ethernet_interfaces.summary = {
+            '00:11:22:33:44:55': sushy.STATE_ENABLED,
+            '66:77:88:99:AA:BB': sushy.STATE_DISABLED,
+        }
+
+        return system_mock
 
     @mock.patch.object(redfish_mgmt, 'sushy', None)
     def test_loading_error(self):
@@ -1446,3 +1469,25 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             self.assertRaises(
                 exception.UnsupportedDriverExtension,
                 task.driver.management.clear_secure_boot_keys, task)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_mac_addresses_success(self, mock_get_system):
+        expected_properties = {'00:11:22:33:44:55': 'enabled'}
+
+        self.init_system_mock(mock_get_system.return_value)
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertEqual(expected_properties,
+                             task.driver.management.get_mac_addresses(task))
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_mac_addresses_no_ports_found(self, mock_get_system):
+        expected_properties = None
+
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        system_mock.ethernet_interfaces.summary = None
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertEqual(expected_properties,
+                             task.driver.management.get_mac_addresses(task))
