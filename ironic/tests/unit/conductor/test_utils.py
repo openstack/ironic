@@ -1965,7 +1965,8 @@ class FastTrackTestCase(db_base.DbTestCase):
             self.context, driver='fake-hardware',
             uuid=uuidutils.generate_uuid(),
             driver_internal_info={
-                'agent_last_heartbeat': str(timeutils.utcnow().isoformat())})
+                'agent_last_heartbeat': str(timeutils.utcnow().isoformat()),
+                'agent_url': 'a_url'})
         self.config(fast_track=True, group='deploy')
 
     def test_is_fast_track(self, mock_get_power):
@@ -1995,6 +1996,14 @@ class FastTrackTestCase(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
+            self.assertFalse(conductor_utils.is_fast_track(task))
+
+    def test_is_fast_track_powered_after_heartbeat(self, mock_get_power):
+        mock_get_power.return_value = states.POWER_ON
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            conductor_utils.node_power_action(task, states.POWER_OFF)
+            conductor_utils.node_power_action(task, states.POWER_ON)
             self.assertFalse(conductor_utils.is_fast_track(task))
 
     def test_is_fast_track_error_blocks(self, mock_get_power):
