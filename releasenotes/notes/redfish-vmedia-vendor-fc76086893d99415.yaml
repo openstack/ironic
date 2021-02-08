@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The ``redfish-virtual-media`` boot interface no longer passes validation
+    for Dell nodes. The ``idrac-redfish-virtual-media`` boot interface must
+    be used for these nodes instead.
