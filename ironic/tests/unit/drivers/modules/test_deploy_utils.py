@@ -31,7 +31,6 @@ from ironic.common import states
 from ironic.common import utils as common_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
-from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils as utils
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import image_cache
@@ -954,40 +953,6 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
     def test_is_trusted_boot_requested_invalid(self):
         self.node.instance_info = {'capabilities': {"trusted_boot": "invalid"}}
         self.assertFalse(utils.is_trusted_boot_requested(self.node))
-
-    def test_get_boot_mode_for_deploy_using_capabilities(self):
-        properties = {'capabilities': 'boot_mode:uefi,cap2:value2'}
-        self.node.properties = properties
-
-        result = boot_mode_utils.get_boot_mode_for_deploy(self.node)
-        self.assertEqual('uefi', result)
-
-    def test_get_boot_mode_for_deploy_using_instance_info_cap(self):
-        instance_info = {'capabilities': {'secure_boot': 'True'}}
-        self.node.instance_info = instance_info
-
-        result = boot_mode_utils.get_boot_mode_for_deploy(self.node)
-        self.assertEqual('uefi', result)
-
-        instance_info = {'capabilities': {'trusted_boot': 'True'}}
-        self.node.instance_info = instance_info
-
-        result = boot_mode_utils.get_boot_mode_for_deploy(self.node)
-        self.assertEqual('bios', result)
-
-        instance_info = {'capabilities': {'trusted_boot': 'True',
-                                          'secure_boot': 'True'}}
-        self.node.instance_info = instance_info
-
-        result = boot_mode_utils.get_boot_mode_for_deploy(self.node)
-        self.assertEqual('uefi', result)
-
-    def test_get_boot_mode_for_deploy_using_instance_info(self):
-        instance_info = {'deploy_boot_mode': 'bios'}
-        self.node.instance_info = instance_info
-
-        result = boot_mode_utils.get_boot_mode_for_deploy(self.node)
-        self.assertEqual('bios', result)
 
     def test_validate_boot_mode_capability(self):
         prop = {'capabilities': 'boot_mode:uefi,cap2:value2'}

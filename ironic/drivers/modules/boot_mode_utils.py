@@ -224,27 +224,35 @@ def get_boot_mode_for_deploy(node):
     # NOTE(etingof):
     # The search for a boot mode should be in the priority order:
     #
-    # 1) instance_info
-    # 2) properties.capabilities
-    # 3) driver_internal_info
+    # 1) instance_info.capabilities
+    # 2) instance_info.deploy_boot_mode (deprecated in Wallaby)
+    # 3) properties.capabilities
+    # 4) driver_internal_info.deploy_boot_mode (internal)
     #
     # Because:
     #
-    # (1) can be deleted before teardown
-    # (3) will never be touched if node properties/capabilities
+    # (1) and (2) are deleted during teardown
+    # (4) will never be touched if node properties/capabilities
     #     are still present.
-    # (2) becomes operational default as the last resort
+    # (3) becomes operational default as the last resort
 
-    instance_info = node.instance_info
-
+    inst_boot_mode = (
+        common_utils.parse_instance_info_capabilities(node).get('boot_mode')
+    )
     cap_boot_mode = driver_utils.get_node_capability(node, 'boot_mode')
 
-    boot_mode = instance_info.get('deploy_boot_mode')
-    if boot_mode is None:
-        boot_mode = cap_boot_mode
-        if cap_boot_mode is None:
-            driver_internal_info = node.driver_internal_info
-            boot_mode = driver_internal_info.get('deploy_boot_mode')
+    old_boot_mode = node.instance_info.get('deploy_boot_mode')
+    if old_boot_mode:
+        LOG.warning('Using instance_info/deploy_boot_mode is deprecated, '
+                    'please use instance_info/capabilities with boot mode '
+                    'for node %s', node.uuid)
+
+    boot_mode = (
+        inst_boot_mode
+        or old_boot_mode
+        or cap_boot_mode
+        or node.driver_internal_info.get('deploy_boot_mode')
+    )
 
     if not boot_mode:
         return

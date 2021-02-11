@@ -266,7 +266,7 @@ Populating instance_info
 #. :ref:`Boot mode <boot_mode_support>` can be specified per instance::
 
     baremetal node set $NODE_UUID \
-        --instance-info deploy_boot_mode=uefi
+        --instance-info capabilities='{"boot_mode": "uefi"}'
 
    Otherwise, the ``boot_mode`` capability from the node's ``properties`` will
    be used.
@@ -275,9 +275,9 @@ Populating instance_info
         The two settings must not contradict each other.
 
    .. note::
-        The ``boot_mode`` capability is only used in the node's ``properties``,
-        not in ``instance_info`` like most other capabilities. Use the separate
-        ``instance_info/deploy_boot_mode`` field instead.
+        This capability was introduced in the Wallaby release series,
+        previously ironic used a separate ``instance_info/deploy_boot_mode``
+        field instead.
 
 #. To override the :ref:`boot option <local-boot-partition-images>` used for
    this instance, set the ``boot_option`` capability::
