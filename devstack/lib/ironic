@@ -2765,6 +2765,11 @@ function build_ipa_dib_ramdisk {
         install_diskimage_builder
     fi
 
+    if -e $DEST/ironic-lib; then
+        export IRONIC_LIB_FROM_SOURCE=true
+        export DIB_REPOLOCATION_ironic_lib=$DEST/ironic-lib
+    fi
+
     echo "Building IPA ramdisk with DIB options: $IRONIC_DIB_RAMDISK_OPTIONS"
     if is_deploy_iso_required; then
         IRONIC_DIB_RAMDISK_OPTIONS+=" iso"
