@@ -1,7 +1,7 @@
 ---
 features:
   - |
-    Adds the `[DEFAULT]raw_image_growth_factor` configuration option which
+    Adds the ``[DEFAULT]raw_image_growth_factor`` configuration option which
     is a scale factor used for estimating the size of a raw image converted
     from compact image formats such as QCOW2. By default this is set to 2.0.
 

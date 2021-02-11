@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    The default value of ``[oslo_policy] policy_file`` config option has been
+    The default value of ``[oslo_policy]policy_file`` config option has been
     changed from ``policy.json`` to ``policy.yaml``.
     Operators who are utilizing customized policy files or previously generated
     static policy files (which are not needed by default), should generate

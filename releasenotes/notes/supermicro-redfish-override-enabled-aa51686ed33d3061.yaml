@@ -10,6 +10,6 @@ fixes:
     current setting (see `story 2007355
     <https://storyboard.openstack.org/#!/story/2007355>`_).
 
-    This requires that node.properties['vendor'] be 'supermicro' which will
-    be set by Ironic from the Redfish system response or can be set
-    manually.
+    This requires that ``node.properties['vendor']`` be ``supermicro`` which
+    will be set on transition to ``manageable`` based on the Redfish system
+    object or can be set manually.
