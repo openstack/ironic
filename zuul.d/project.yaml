@@ -22,8 +22,6 @@
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
-        - ironic-tempest-ipxe-ipv6:
-            voting: false
         - metalsmith-integration-glance-localboot-centos7
         # Non-voting jobs
         - ironic-tox-bandit:
@@ -62,8 +60,10 @@
         - metalsmith-integration-glance-localboot-centos7
     experimental:
       jobs:
-        # TODO(dtantsur): these two jobs are useful but currently hopelessly
+        # TODO(dtantsur): these jobs are useful but currently hopelessly
         # broken. Fix them and bring back to the gate.
+        - ironic-tempest-ipxe-ipv6:
+            voting: false
         - ironic-grenade-multinode-multitenant:
             voting: false
         - ironic-inspector-tempest-discovery-fast-track:
