@@ -327,6 +327,15 @@ class RPCAPITestCase(db_base.DbTestCase):
                           rebuild=False,
                           configdrive=None)
 
+    def test_do_node_deploy_with_deploy_steps(self):
+        self._test_rpcapi('do_node_deploy',
+                          'call',
+                          version='1.52',
+                          node_id=self.fake_node['uuid'],
+                          rebuild=False,
+                          configdrive=None,
+                          deploy_steps={'key': 'value'})
+
     def test_do_node_tear_down(self):
         self._test_rpcapi('do_node_tear_down',
                           'call',

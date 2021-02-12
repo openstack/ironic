@@ -388,33 +388,37 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate',
                 autospec=True)
-    @mock.patch.object(conductor_steps, 'validate_deploy_templates',
+    @mock.patch.object(conductor_steps,
+                       'validate_user_deploy_steps_and_templates',
                        autospec=True)
     @mock.patch.object(conductor_utils, 'validate_instance_info_traits',
                        autospec=True)
     @mock.patch.object(images, 'is_whole_disk_image', autospec=True)
     def test_start_deploy(self, mock_iwdi, mock_validate_traits,
-                          mock_validate_templates, mock_deploy_validate,
+                          mock_validate_deploy_user_steps_and_templates,
+                          mock_deploy_validate,
                           mock_power_validate, mock_process_event):
         self._start_service()
         mock_iwdi.return_value = False
+        deploy_steps = [{"interface": "bios", "step": "factory_reset",
+                         "priority": 95}]
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=states.AVAILABLE,
                                           target_provision_state=states.ACTIVE)
         task = task_manager.TaskManager(self.context, node.uuid)
 
         deployments.start_deploy(task, self.service, configdrive=None,
-                                 event='deploy')
+                                 event='deploy', deploy_steps=deploy_steps)
         node.refresh()
         self.assertTrue(mock_iwdi.called)
         mock_power_validate.assert_called_once_with(task.driver.power, task)
         mock_deploy_validate.assert_called_once_with(task.driver.deploy, task)
         mock_validate_traits.assert_called_once_with(task.node)
-        mock_validate_templates.assert_called_once_with(
-            task, skip_missing=True)
+        mock_validate_deploy_user_steps_and_templates.assert_called_once_with(
+            task, deploy_steps, skip_missing=True)
         mock_process_event.assert_called_with(
             mock.ANY, 'deploy', call_args=(
-                deployments.do_node_deploy, task, 1, None),
+                deployments.do_node_deploy, task, 1, None, deploy_steps),
             callback=mock.ANY, err_handler=mock.ANY)
 
 
@@ -849,9 +853,12 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
             mock.ANY, mock.ANY, self.deploy_steps[0])
 
     @mock.patch.object(deployments, 'do_next_deploy_step', autospec=True)
-    def _continue_node_deploy(self, mock_next_step, skip=True):
+    @mock.patch.object(conductor_steps, '_get_steps', autospec=True)
+    def _continue_node_deploy(self, mock__get_steps, mock_next_step,
+                              skip=True):
+        mock__get_steps.return_value = self.deploy_steps
         driver_info = {'deploy_steps': self.deploy_steps,
-                       'deploy_step_index': 0,
+                       'deploy_step_index': 1,
                        'deployment_polling': 'value'}
         if not skip:
             driver_info['skip_current_deploy_step'] = skip
@@ -862,7 +869,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
             deploy_step=self.deploy_steps[0])
         with task_manager.acquire(self.context, node.uuid) as task:
             deployments.continue_node_deploy(task)
-            expected_step_index = None if skip else 0
+            expected_step_index = None if skip else 1
             self.assertNotIn(
                 'skip_current_deploy_step', task.node.driver_internal_info)
             self.assertNotIn(
@@ -899,7 +906,8 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
             mock_next_step.assert_called_once_with(task, 1)
 
     @mock.patch.object(deployments, 'do_next_deploy_step', autospec=True)
-    @mock.patch.object(conductor_steps, 'validate_deploy_templates',
+    @mock.patch.object(conductor_steps,
+                       'validate_user_deploy_steps_and_templates',
                        autospec=True)
     def test_continue_node_steps_validation(self, mock_validate,
                                             mock_next_step):

@@ -1,0 +1,14 @@
+{
+    "target": "active",
+    "deploy_steps": [
+        {
+            "interface": "deploy",
+            "step": "upgrade_firmware",
+            "args": {
+                "force": "True"
+            },
+            "priority": 95
+        }
+    ]
+}
+

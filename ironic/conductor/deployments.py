@@ -58,7 +58,8 @@ def validate_node(task, event='deploy'):
 
 @METRICS.timer('start_deploy')
 @task_manager.require_exclusive_lock
-def start_deploy(task, manager, configdrive=None, event='deploy'):
+def start_deploy(task, manager, configdrive=None, event='deploy',
+                 deploy_steps=None):
     """Start deployment or rebuilding on a node.
 
     This function does not check the node suitability for deployment, it's left
@@ -68,6 +69,7 @@ def start_deploy(task, manager, configdrive=None, event='deploy'):
     :param manager: a ConductorManager to run tasks on.
     :param configdrive: a configdrive, if requested.
     :param event: event to process: deploy or rebuild.
+    :param deploy_steps: Optional deploy steps.
     """
     node = task.node
 
@@ -98,7 +100,8 @@ def start_deploy(task, manager, configdrive=None, event='deploy'):
         task.driver.power.validate(task)
         task.driver.deploy.validate(task)
         utils.validate_instance_info_traits(task.node)
-        conductor_steps.validate_deploy_templates(task, skip_missing=True)
+        conductor_steps.validate_user_deploy_steps_and_templates(
+            task, deploy_steps, skip_missing=True)
     except exception.InvalidParameterValue as e:
         raise exception.InstanceDeployFailure(
             _("Failed to validate deploy or power info for node "
@@ -110,7 +113,7 @@ def start_deploy(task, manager, configdrive=None, event='deploy'):
             event,
             callback=manager._spawn_worker,
             call_args=(do_node_deploy, task,
-                       manager.conductor.id, configdrive),
+                       manager.conductor.id, configdrive, deploy_steps),
             err_handler=utils.provisioning_error_handler)
     except exception.InvalidState:
         raise exception.InvalidStateRequested(
@@ -120,7 +123,8 @@ def start_deploy(task, manager, configdrive=None, event='deploy'):
 
 @METRICS.timer('do_node_deploy')
 @task_manager.require_exclusive_lock
-def do_node_deploy(task, conductor_id=None, configdrive=None):
+def do_node_deploy(task, conductor_id=None, configdrive=None,
+                   deploy_steps=None):
     """Prepare the environment and deploy a node."""
     node = task.node
     utils.wipe_deploy_internal_info(task)
@@ -181,7 +185,16 @@ def do_node_deploy(task, conductor_id=None, configdrive=None):
                 traceback=True, clean_up=False)
 
     try:
-        # This gets the deploy steps (if any) and puts them in the node's
+        # If any deploy steps provided by user, save them to node. They will be
+        # validated & processed later together with driver and deploy template
+        # steps.
+        if deploy_steps:
+            info = node.driver_internal_info
+            info['user_deploy_steps'] = deploy_steps
+            node.driver_internal_info = info
+            node.save()
+        # This gets the deploy steps (if any) from driver, deploy template and
+        # deploy_steps argument and updates them in the node's
         # driver_internal_info['deploy_steps']. In-band steps are skipped since
         # we know that an agent is not running yet.
         conductor_steps.set_node_deployment_steps(task, skip_missing=True)
@@ -350,7 +363,7 @@ def continue_node_deploy(task):
     # Agent is now running, we're ready to validate the remaining steps
     if not node.driver_internal_info.get('steps_validated'):
         try:
-            conductor_steps.validate_deploy_templates(task)
+            conductor_steps.validate_user_deploy_steps_and_templates(task)
             conductor_steps.set_node_deployment_steps(
                 task, reset_current=False)
         except exception.IronicException as exc:

@@ -523,6 +523,7 @@ def wipe_deploy_internal_info(task):
     # Clear any leftover metadata about deployment.
     info = task.node.driver_internal_info
     info['deploy_steps'] = None
+    info.pop('user_deploy_steps', None)
     info.pop('agent_cached_deploy_steps', None)
     info.pop('deploy_step_index', None)
     info.pop('deployment_reboot', None)

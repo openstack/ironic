@@ -191,7 +191,7 @@ def deploy_template_post_data(**kw):
     # These values are not part of the API object
     template.pop('version')
     # Remove internal attributes from each step.
-    step_internal = dt_controller.STEP_SCHEMA['properties']
+    step_internal = api_utils.DEPLOY_STEP_SCHEMA['properties']
     template['steps'] = [remove_other_fields(step, step_internal)
                          for step in template['steps']]
     # Remove internal attributes from the template.

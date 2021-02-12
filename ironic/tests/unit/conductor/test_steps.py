@@ -182,63 +182,111 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
                 task, [template1, template2])
             self.assertEqual(expected, steps)
 
+    @mock.patch.object(conductor_steps, '_get_validated_user_deploy_steps',
+                       autospec=True)
     @mock.patch.object(conductor_steps, '_get_validated_steps_from_templates',
                        autospec=True)
     @mock.patch.object(conductor_steps, '_get_deployment_steps', autospec=True)
-    def _test__get_all_deployment_steps(self, user_steps, driver_steps,
-                                        expected_steps, mock_steps,
-                                        mock_validated):
-        mock_validated.return_value = user_steps
+    def _test__get_all_deployment_steps(self, user_steps, template_steps,
+                                        driver_steps, expected_steps,
+                                        mock_steps, mock_validated_template,
+                                        mock_validated_user):
+        returned_user_steps = user_steps.copy()
+        mock_validated_user.return_value = returned_user_steps
+        mock_validated_template.return_value = template_steps
         mock_steps.return_value = driver_steps
-
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
+
             steps = conductor_steps._get_all_deployment_steps(task)
             self.assertEqual(expected_steps, steps)
-            mock_validated.assert_called_once_with(task, skip_missing=False)
+            mock_validated_template.assert_called_once_with(task,
+                                                            skip_missing=False)
             mock_steps.assert_called_once_with(task, enabled=True, sort=False)
+            mock_validated_user.assert_called_once_with(
+                task, skip_missing=False)
 
     def test__get_all_deployment_steps_no_steps(self):
         # Nothing in -> nothing out.
         user_steps = []
+        template_steps = []
         driver_steps = []
         expected_steps = []
-        self._test__get_all_deployment_steps(user_steps, driver_steps,
-                                             expected_steps)
+        self._test__get_all_deployment_steps(user_steps, template_steps,
+                                             driver_steps, expected_steps)
 
-    def test__get_all_deployment_steps_no_user_steps(self):
+    def test__get_all_deployment_steps_no_template_and_user_steps(self):
         # Only driver steps in -> only driver steps out.
         user_steps = []
+        template_steps = []
         driver_steps = self.deploy_steps
         expected_steps = self.deploy_steps
-        self._test__get_all_deployment_steps(user_steps, driver_steps,
-                                             expected_steps)
+        self._test__get_all_deployment_steps(user_steps, template_steps,
+                                             driver_steps, expected_steps)
 
-    def test__get_all_deployment_steps_no_driver_steps(self):
-        # Only user steps in -> only user steps out.
-        user_steps = self.deploy_steps
+    def test__get_all_deployment_steps_no_user_and_driver_steps(self):
+        # Only template steps in -> only template steps out.
+        user_steps = []
+        template_steps = self.deploy_steps
         driver_steps = []
         expected_steps = self.deploy_steps
-        self._test__get_all_deployment_steps(user_steps, driver_steps,
-                                             expected_steps)
+        self._test__get_all_deployment_steps(user_steps, template_steps,
+                                             driver_steps, expected_steps)
+
+    def test__get_all_deployment_steps_no_template_and_driver_steps(self):
+        # Only template steps in -> only template steps out.
+        user_steps = self.deploy_steps
+        template_steps = []
+        driver_steps = []
+        expected_steps = self.deploy_steps
+        self._test__get_all_deployment_steps(user_steps, template_steps,
+                                             driver_steps, expected_steps)
+
+    def test__get_all_deployment_steps_template_and_driver_steps(self):
+        # Driver and template steps in -> driver and template steps out.
+        user_steps = []
+        template_steps = self.deploy_steps[:2]
+        driver_steps = self.deploy_steps[2:]
+        expected_steps = self.deploy_steps
+        self._test__get_all_deployment_steps(user_steps, template_steps,
+                                             driver_steps, expected_steps)
 
     def test__get_all_deployment_steps_user_and_driver_steps(self):
         # Driver and user steps in -> driver and user steps out.
         user_steps = self.deploy_steps[:2]
+        template_steps = []
         driver_steps = self.deploy_steps[2:]
         expected_steps = self.deploy_steps
-        self._test__get_all_deployment_steps(user_steps, driver_steps,
-                                             expected_steps)
+        self._test__get_all_deployment_steps(user_steps, template_steps,
+                                             driver_steps, expected_steps)
+
+    def test__get_all_deployment_steps_user_and_template_steps(self):
+        # Template and user steps in -> template and user steps out.
+        user_steps = self.deploy_steps[:2]
+        template_steps = self.deploy_steps[2:]
+        driver_steps = []
+        expected_steps = self.deploy_steps
+        self._test__get_all_deployment_steps(user_steps, template_steps,
+                                             driver_steps, expected_steps)
+
+    def test__get_all_deployment_steps_all_steps(self):
+        # All steps in -> all steps out.
+        user_steps = self.deploy_steps[:1]
+        template_steps = self.deploy_steps[1:3]
+        driver_steps = self.deploy_steps[3:]
+        expected_steps = self.deploy_steps
+        self._test__get_all_deployment_steps(user_steps, template_steps,
+                                             driver_steps, expected_steps)
 
     @mock.patch.object(conductor_steps, '_get_validated_steps_from_templates',
                        autospec=True)
     @mock.patch.object(conductor_steps, '_get_deployment_steps', autospec=True)
     def test__get_all_deployment_steps_skip_missing(self, mock_steps,
                                                     mock_validated):
-        user_steps = self.deploy_steps[:2]
+        template_steps = self.deploy_steps[:2]
         driver_steps = self.deploy_steps[2:]
         expected_steps = self.deploy_steps
-        mock_validated.return_value = user_steps
+        mock_validated.return_value = template_steps
         mock_steps.return_value = driver_steps
 
         with task_manager.acquire(
@@ -251,39 +299,75 @@ class NodeDeployStepsTestCase(db_base.DbTestCase):
 
     def test__get_all_deployment_steps_disable_core_steps(self):
         # User steps can disable core driver steps.
-        user_steps = [self.deploy_core.copy()]
-        user_steps[0].update({'priority': 0})
+        template_steps = [self.deploy_core.copy()]
+        template_steps[0].update({'priority': 0})
         driver_steps = [self.deploy_core]
         expected_steps = []
-        self._test__get_all_deployment_steps(user_steps, driver_steps,
+        self._test__get_all_deployment_steps([], template_steps, driver_steps,
                                              expected_steps)
 
     def test__get_all_deployment_steps_override_driver_steps(self):
         # User steps override non-core driver steps.
-        user_steps = [step.copy() for step in self.deploy_steps[:2]]
-        user_steps[0].update({'priority': 200})
-        user_steps[1].update({'priority': 100})
+        template_steps = [step.copy() for step in self.deploy_steps[:2]]
+        template_steps[0].update({'priority': 200})
+        template_steps[1].update({'priority': 100})
         driver_steps = self.deploy_steps
-        expected_steps = user_steps + self.deploy_steps[2:]
-        self._test__get_all_deployment_steps(user_steps, driver_steps,
+        expected_steps = template_steps + self.deploy_steps[2:]
+        self._test__get_all_deployment_steps([], template_steps, driver_steps,
                                              expected_steps)
 
-    def test__get_all_deployment_steps_duplicate_user_steps(self):
-        # Duplicate user steps override non-core driver steps.
+    def test__get_all_deployment_steps_override_template_steps(self):
+        # User steps override template steps.
+        user_steps = [step.copy() for step in self.deploy_steps[:1]]
+        user_steps[0].update({'priority': 300})
+        template_steps = [step.copy() for step in self.deploy_steps[:2]]
+        template_steps[0].update({'priority': 200})
+        template_steps[1].update({'priority': 100})
+        driver_steps = self.deploy_steps
+        expected_steps = (user_steps[:1]
+                          + template_steps[1:2]
+                          + self.deploy_steps[2:])
+        self._test__get_all_deployment_steps(user_steps, template_steps,
+                                             driver_steps, expected_steps)
+
+    def test__get_all_deployment_steps_duplicate_template_steps(self):
+        # Duplicate template steps override non-core driver steps.
 
         # NOTE(mgoddard): This case is currently prevented by the API and
         # conductor - the interface/step must be unique across all enabled
         # steps. This test ensures that we can support this case, in case we
         # choose to allow it in future.
-        user_steps = [self.deploy_start.copy(), self.deploy_start.copy()]
-        user_steps[0].update({'priority': 200})
-        user_steps[1].update({'priority': 100})
+        template_steps = [self.deploy_start.copy(), self.deploy_start.copy()]
+        template_steps[0].update({'priority': 200})
+        template_steps[1].update({'priority': 100})
+        driver_steps = self.deploy_steps
+        # Each user invocation of the deploy_start step should be included, but
+        # not the default deploy_start from the driver.
+        expected_steps = template_steps + self.deploy_steps[1:]
+        self._test__get_all_deployment_steps([], template_steps, driver_steps,
+                                             expected_steps)
+
+    def test__get_all_deployment_steps_duplicate_template_and_user_steps(self):
+        # Duplicate user steps override non-core driver steps.
+
+        # NOTE(ajya):
+        # See also test__get_all_deployment_steps_duplicate_template_steps.
+        # As user steps provided via API arguments take over template steps,
+        # currently it will override all duplicated steps as it cannot know
+        # which to keep. If duplicates are getting supported, then
+        # _get_all_deployment_steps needs to be updated. Until then this case
+        # tests currently desired outcome.
+        user_steps = [self.deploy_start.copy()]
+        user_steps[0].update({'priority': 300})
+        template_steps = [self.deploy_start.copy(), self.deploy_start.copy()]
+        template_steps[0].update({'priority': 200})
+        template_steps[1].update({'priority': 100})
         driver_steps = self.deploy_steps
         # Each user invocation of the deploy_start step should be included, but
         # not the default deploy_start from the driver.
         expected_steps = user_steps + self.deploy_steps[1:]
-        self._test__get_all_deployment_steps(user_steps, driver_steps,
-                                             expected_steps)
+        self._test__get_all_deployment_steps(user_steps, template_steps,
+                                             driver_steps, expected_steps)
 
     @mock.patch.object(conductor_steps, '_get_validated_steps_from_templates',
                        autospec=True)
@@ -775,32 +859,104 @@ class GetValidatedStepsFromTemplatesTestCase(db_base.DbTestCase):
 
 @mock.patch.object(conductor_steps, '_get_validated_steps_from_templates',
                    autospec=True)
-class ValidateDeployTemplatesTestCase(db_base.DbTestCase):
+@mock.patch.object(conductor_steps, '_get_validated_user_deploy_steps',
+                   autospec=True)
+class ValidateUserDeployStepsAndTemplatesTestCase(db_base.DbTestCase):
 
     def setUp(self):
-        super(ValidateDeployTemplatesTestCase, self).setUp()
+        super(ValidateUserDeployStepsAndTemplatesTestCase, self).setUp()
         self.node = obj_utils.create_test_node(self.context,
                                                driver='fake-hardware')
 
-    def test_ok(self, mock_validated):
+    def test_ok(self, mock_validated_steps, mock_validated_template):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            result = conductor_steps.validate_deploy_templates(task)
+            result = conductor_steps.validate_user_deploy_steps_and_templates(
+                task, {'key': 'value'})
             self.assertIsNone(result)
-            mock_validated.assert_called_once_with(task, skip_missing=False)
+            mock_validated_template.assert_called_once_with(
+                task, skip_missing=False)
+            mock_validated_steps.assert_called_once_with(
+                task, {'key': 'value'}, skip_missing=False)
 
-    def test_skip_missing(self, mock_validated):
+    def test_skip_missing(self, mock_validated_steps, mock_validated_template):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            result = conductor_steps.validate_deploy_templates(
+            result = conductor_steps.validate_user_deploy_steps_and_templates(
+                task, {'key': 'value'}, skip_missing=True)
+            self.assertIsNone(result)
+            mock_validated_template.assert_called_once_with(
                 task, skip_missing=True)
-            self.assertIsNone(result)
-            mock_validated.assert_called_once_with(task, skip_missing=True)
+            mock_validated_steps.assert_called_once_with(
+                task, {'key': 'value'}, skip_missing=True)
 
-    def test_error(self, mock_validated):
+    def test_error_on_template(
+            self, mock_validated_steps, mock_validated_template):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            mock_validated.side_effect = exception.InvalidParameterValue('foo')
-            self.assertRaises(exception.InvalidParameterValue,
-                              conductor_steps.validate_deploy_templates, task)
-            mock_validated.assert_called_once_with(task, skip_missing=False)
+            mock_validated_template.side_effect =\
+                exception.InvalidParameterValue('foo')
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                conductor_steps.validate_user_deploy_steps_and_templates,
+                task,
+                {'key': 'value'})
+            mock_validated_template.assert_called_once_with(
+                task, skip_missing=False)
+
+    def test_error_on_usersteps(
+            self, mock_validated_steps, mock_validated_template):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            mock_validated_steps.side_effect =\
+                exception.InvalidParameterValue('foo')
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                conductor_steps.validate_user_deploy_steps_and_templates,
+                task,
+                {'key': 'value'})
+            mock_validated_template.assert_called_once_with(
+                task, skip_missing=False)
+            mock_validated_steps.assert_called_once_with(
+                task, {'key': 'value'}, skip_missing=False)
+
+
+@mock.patch.object(conductor_steps, '_validate_user_deploy_steps',
+                   autospec=True)
+class ValidateUserDeployStepsTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(ValidateUserDeployStepsTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake-hardware')
+
+    def test__get_validate_user_deploy_steps(self, mock_validated):
+        deploy_steps = [{"interface": "bios", "step": "factory_reset",
+                         "priority": 95}]
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            result = conductor_steps._get_validated_user_deploy_steps(
+                task, deploy_steps)
+            self.assertIsNotNone(result)
+            mock_validated.assert_called_once_with(task, deploy_steps,
+                                                   mock.ANY,
+                                                   skip_missing=False)
+
+    def test__get_validate_user_deploy_steps_on_node(self, mock_validated):
+        deploy_steps = [{"interface": "bios", "step": "factory_reset",
+                         "priority": 95}]
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            task.node.driver_internal_info['user_deploy_steps'] = deploy_steps
+            result = conductor_steps._get_validated_user_deploy_steps(task)
+            self.assertIsNotNone(result)
+            mock_validated.assert_called_once_with(task, deploy_steps,
+                                                   mock.ANY,
+                                                   skip_missing=False)
+
+    def test__get_validate_user_deploy_steps_no_steps(self, mock_validated):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            result = conductor_steps._get_validated_user_deploy_steps(task)
+            self.assertEqual([], result)
+            mock_validated.assert_not_called()

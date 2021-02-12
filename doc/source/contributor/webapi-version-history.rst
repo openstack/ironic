@@ -2,6 +2,13 @@
 REST API Version History
 ========================
 
+1.69 (Wallaby, master)
+----------------------
+
+Add support for ``deploy-steps`` parameter to provisioning endpoint
+``/v1/nodes/{node_ident}/states/provision``. Available and optional when target
+is 'active' or 'rebuild'.
+
 1.68 (Victoria, 16.0)
 -----------------------
 

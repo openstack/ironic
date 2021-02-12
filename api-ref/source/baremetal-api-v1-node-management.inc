@@ -359,6 +359,10 @@ detailed documentation of the Ironic State Machine is available
 .. versionadded:: 1.59
    A ``configdrive`` now accepts ``vendor_data``.
 
+.. versionadded:: 1.69
+   ``deploy_steps`` can be provided when settings the node's provision target
+   state to ``active`` or ``rebuild``.
+
 Normal response code: 202
 
 Error codes:
@@ -376,11 +380,16 @@ Request
     - target: req_provision_state
     - configdrive: configdrive
     - clean_steps: clean_steps
+    - deploy_steps: deploy_steps
     - rescue_password: rescue_password
 
 **Example request to deploy a Node, using a configdrive served via local webserver:**
 
 .. literalinclude:: samples/node-set-active-state.json
+
+**Example request to deploy a Node with custom deploy step:**
+
+.. literalinclude:: samples/node-set-active-state-deploy-steps.json
 
 **Example request to clean a Node, with custom clean step:**
 

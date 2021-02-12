@@ -284,12 +284,23 @@ def _get_all_deployment_steps(task, skip_missing=False):
         deploy steps.
     :returns: A list of deploy step dictionaries
     """
+    # Get deploy steps provided by user via argument if any. These steps
+    # override template and driver steps when overlap.
+    user_steps = _get_validated_user_deploy_steps(
+        task, skip_missing=skip_missing)
+
     # Gather deploy steps from deploy templates and validate.
     # NOTE(mgoddard): although we've probably just validated the templates in
     # do_node_deploy, they may have changed in the DB since we last checked, so
     # validate again.
-    user_steps = _get_validated_steps_from_templates(task,
-                                                     skip_missing=skip_missing)
+    template_steps = _get_validated_steps_from_templates(
+        task, skip_missing=skip_missing)
+
+    # Take only template steps that are not already provided by user
+    user_step_keys = {(s['interface'], s['step']) for s in user_steps}
+    new_template_steps = [s for s in template_steps
+                          if (s['interface'], s['step']) not in user_step_keys]
+    user_steps.extend(new_template_steps)
 
     # Gather enabled deploy steps from drivers.
     driver_steps = _get_deployment_steps(task, enabled=True, sort=False)
@@ -548,7 +559,8 @@ def _validate_user_steps(task, user_steps, driver_steps, step_type,
         result.append(user_step)
 
     if step_type == 'deploy':
-        # Deploy steps should be unique across all combined templates.
+        # Deploy steps should be unique across all combined templates or passed
+        # deploy_steps argument.
         dup_errors = _validate_deploy_steps_unique(result)
         errors.extend(dup_errors)
 
@@ -617,14 +629,49 @@ def _validate_user_deploy_steps(task, user_steps, error_prefix=None,
                                 skip_missing=skip_missing)
 
 
-def validate_deploy_templates(task, skip_missing=False):
-    """Validate the deploy templates for a node.
+def _get_validated_user_deploy_steps(task, deploy_steps=None,
+                                     skip_missing=False):
+    """Validate the deploy steps for a node.
 
     :param task: A TaskManager object
+    :param deploy_steps: Deploy steps to validate. Optional. If not provided
+        then will check node's driver internal info.
+    :param skip_missing: whether skip missing steps that are not yet available
+        at the time of validation.
+    :raises: InvalidParameterValue if deploy steps are unsupported by the
+        node's driver interfaces.
+    :raises: InstanceDeployFailure if there was a problem getting the deploy
+        steps from the driver.
+    """
+    if not deploy_steps:
+        deploy_steps = task.node.driver_internal_info.get('user_deploy_steps')
+
+    if deploy_steps:
+        error_prefix = (_('Validation of deploy steps from "deploy steps" '
+                          'argument failed.'))
+        return _validate_user_deploy_steps(task, deploy_steps,
+                                           error_prefix=error_prefix,
+                                           skip_missing=skip_missing)
+    else:
+        return []
+
+
+def validate_user_deploy_steps_and_templates(task, deploy_steps=None,
+                                             skip_missing=False):
+    """Validate the user deploy steps and the deploy templates for a node.
+
+    :param task: A TaskManager object
+    :param deploy_steps: Deploy steps to validate. Optional. If not provided
+        then will check node's driver internal info.
+    :param skip_missing: whether skip missing steps that are not yet available
+        at the time of validation.
     :raises: InvalidParameterValue if the instance has traits that map to
-        deploy steps that are unsupported by the node's driver interfaces.
+        deploy steps that are unsupported by the node's driver interfaces or
+        user deploy steps are unsupported by the node's driver interfaces
     :raises: InstanceDeployFailure if there was a problem getting the deploy
         steps from the driver.
     """
     # Gather deploy steps from matching deploy templates and validate them.
     _get_validated_steps_from_templates(task, skip_missing=skip_missing)
+    # Validate steps from passed argument or stored on the node.
+    _get_validated_user_deploy_steps(task, deploy_steps, skip_missing)

@@ -37,6 +37,7 @@ from ironic.common.i18n import _
 from ironic.common import policy
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import steps as conductor_steps
 from ironic import objects
 from ironic.objects import fields as ofields
 
@@ -120,6 +121,24 @@ LOCAL_LINK_CONN_SCHEMA = {'anyOf': [
     LOCAL_LINK_UNMANAGED_SCHEMA,
     {'type': 'object', 'additionalProperties': False},
 ]}
+
+DEPLOY_STEP_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'args': {'type': 'object'},
+        'interface': {
+            'type': 'string',
+            'enum': list(conductor_steps.DEPLOYING_INTERFACE_PRIORITY)
+        },
+        'priority': {'anyOf': [
+            {'type': 'integer', 'minimum': 0},
+            {'type': 'string', 'minLength': 1, 'pattern': '^[0-9]+$'}
+        ]},
+        'step': {'type': 'string', 'minLength': 1},
+    },
+    'required': ['interface', 'step', 'args', 'priority'],
+    'additionalProperties': False,
+}
 
 
 def local_link_normalize(name, value):
@@ -1689,3 +1708,29 @@ def allow_local_link_connection_network_type():
 def allow_verify_ca_in_heartbeat():
     """Check if heartbeat accepts agent_verify_ca."""
     return api.request.version.minor >= versions.MINOR_68_HEARTBEAT_VERIFY_CA
+
+
+def allow_deploy_steps():
+    """Check if deploy_steps are available."""
+    return api.request.version.minor >= versions.MINOR_69_DEPLOY_STEPS
+
+
+def check_allow_deploy_steps(target, deploy_steps):
+    """Check if deploy steps are allowed"""
+
+    if not deploy_steps:
+        return
+
+    if not allow_deploy_steps():
+        raise exception.NotAcceptable(_(
+            "Request not acceptable. The minimal required API version "
+            "should be %(base)s.%(opr)s") %
+            {'base': versions.BASE_VERSION,
+             'opr': versions.MINOR_69_DEPLOY_STEPS})
+
+    allowed_states = (states.ACTIVE, states.REBUILD)
+    if target not in allowed_states:
+        msg = (_('"deploy_steps" is only valid when setting target '
+                 'provision state to %s or %s') % allowed_states)
+        raise exception.ClientSideError(
+            msg, status_code=http_client.BAD_REQUEST)

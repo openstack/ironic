@@ -91,7 +91,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.51'
+    RPC_API_VERSION = '1.52'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -809,7 +809,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.InvalidStateRequested,
                                    exception.NodeProtected)
     def do_node_deploy(self, context, node_id, rebuild=False,
-                       configdrive=None):
+                       configdrive=None, deploy_steps=None):
         """RPC method to initiate deployment to a node.
 
         Initiate the deployment of a node. Validations are done
@@ -823,6 +823,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                         all disk. The ephemeral partition, if it exists, can
                         optionally be preserved.
         :param configdrive: Optional. A gzipped and base64 encoded configdrive.
+        :param deploy_steps: Optional. Deploy steps.
         :raises: InstanceDeployFailure
         :raises: NodeInMaintenance if the node is in maintenance mode.
         :raises: NoFreeConductorWorker when there is no free worker to start
@@ -841,7 +842,8 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='node deployment') as task:
             deployments.validate_node(task, event=event)
-            deployments.start_deploy(task, self, configdrive, event=event)
+            deployments.start_deploy(task, self, configdrive, event=event,
+                                     deploy_steps=deploy_steps)
 
     @METRICS.timer('ConductorManager.continue_node_deploy')
     def continue_node_deploy(self, context, node_id):
@@ -1890,8 +1892,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                         # NOTE(dtantsur): without the agent running we cannot
                         # have the complete list of steps, so skip ones that we
                         # don't know.
-                        conductor_steps.validate_deploy_templates(
-                            task, skip_missing=True)
+                        (conductor_steps
+                         .validate_user_deploy_steps_and_templates(
+                             task, skip_missing=True))
                     result = True
                 except (exception.InvalidParameterValue,
                         exception.UnsupportedDriverExtension) as e:
