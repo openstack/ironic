@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Adds support for fast-tracking to ``ansible`` deploy interface.
