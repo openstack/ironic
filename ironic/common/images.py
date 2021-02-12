@@ -402,6 +402,8 @@ def image_to_raw(image_href, path, path_tmp):
 
         if fmt != "raw":
             staged = "%s.converted" % path
+
+            utils.is_memory_insufficent(raise_if_fail=True)
             LOG.debug("%(image)s was %(format)s, converting to raw",
                       {'image': image_href, 'format': fmt})
             with fileutils.remove_path_on_error(staged):

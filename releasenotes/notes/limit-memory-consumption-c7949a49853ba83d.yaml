@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    The ``ironic-conductor`` process now has a concept of an internal
+    memory limit. The intent of this is to prevent the conductor from running
+    the host out of memory when a large number of deployments have been
+    requested.
+
+    These settings can be tuned using
+    ``[DEFAULT]minimum_required_memory``,
+    ``[DEFAULT]mimimum_memory_wait_time``,
+    ``[DEFAULT]minimum_memory_wait_retries``, and
+    ``[DEFAULT]minimum_memory_warning_only``.
+
+    Where possible, Ironic will attempt to wait out the time window, thus
+    consuming the conductor worker thread which will resume if the memory
+    becomes available. This will effectively rate limit concurrency.
+
+    If raw image conversions with-in the conductor is required, and a
+    situation exists where insufficent memory exists and it cannot be waited,
+    the deployment operation will fail. For the ``iscsi`` deployment
+    interface, which is the other location in ironic that may consume large
+    amounts of memory, the conductor will wait until the next agent heartbeat.

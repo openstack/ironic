@@ -359,6 +359,32 @@ service_opts = [
                         ('json-rpc', _('use JSON RPC transport'))],
                help=_('Which RPC transport implementation to use between '
                       'conductor and API services')),
+    cfg.BoolOpt('minimum_memory_warning_only',
+                mutable=True,
+                default=True,
+                help=_('Setting to govern if Ironic should only warn instead '
+                       'of attempting to hold back the request in order to '
+                       'prevent the exhaustion of system memory.')),
+    cfg.IntOpt('minimum_required_memory',
+               mutable=True,
+               default=1024,
+               help=_('Minimum memory in MiB for the system to have '
+                      'available prior to starting a memory intensive '
+                      'process on the conductor.')),
+    cfg.IntOpt('minimum_memory_wait_time',
+               mutable=True,
+               default=15,
+               help=_('Seconds to wait between retries for free memory '
+                      'before launching the process. This, combined with '
+                      '``memory_wait_retries`` allows the conductor to '
+                      'determine how long we should attempt to directly '
+                      'retry.')),
+    cfg.IntOpt('minimum_memory_wait_retries',
+               mutable=True,
+               default=6,
+               help=_('Number of retries to hold onto the worker before '
+                      'failing or returning the thread to the pool if '
+                      'the conductor can automatically retry.')),
 ]
 
 utils_opts = [

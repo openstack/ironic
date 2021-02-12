@@ -611,6 +611,9 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
         )
         self.node.driver_internal_info['agent_url'] = 'http://1.2.3.4:1234'
         dhcp_factory.DHCPFactory._dhcp_provider = None
+        # Memory checks shoudn't apply here as they will lead to
+        # false positives for unit testing in CI.
+        self.config(minimum_memory_warning_only=True)
 
     def test_get_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1080,6 +1083,23 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 efi_system_part_uuid='efi-part-uuid', prep_boot_part_uuid=None)
             set_boot_device_mock.assert_called_once_with(
                 mock.ANY, task, device=boot_devices.DISK, persistent=True)
+
+    @mock.patch.object(iscsi_deploy, 'do_agent_iscsi_deploy', autospec=True)
+    @mock.patch.object(utils, 'is_memory_insufficent', autospec=True)
+    def test_write_image_out_of_memory(self, mock_memory_check,
+                                       mock_do_iscsi_deploy):
+        mock_memory_check.return_value = True
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            value = task.driver.deploy.write_image(task)
+            self.assertEqual(states.DEPLOYWAIT, value)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
+            self.assertIn('skip_current_deploy_step',
+                          task.node.driver_internal_info)
+        self.assertTrue(mock_memory_check.called)
+        self.assertFalse(mock_do_iscsi_deploy.called)
 
     @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
                        autospec=True)

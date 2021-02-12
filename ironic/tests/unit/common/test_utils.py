@@ -19,12 +19,14 @@ import os
 import os.path
 import shutil
 import tempfile
+import time
 from unittest import mock
 
 import jinja2
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_utils import netutils
+import psutil
 
 from ironic.common import exception
 from ironic.common import utils
@@ -446,6 +448,49 @@ class TempFilesTestCase(base.TestCase):
         self.assertRaises(exception.InsufficientDiskSpace,
                           utils._check_dir_free_space, "/fake/path")
         mock_stat.assert_called_once_with("/fake/path")
+
+    @mock.patch.object(time, 'sleep', autospec=True)
+    @mock.patch.object(psutil, 'virtual_memory', autospec=True)
+    def test_is_memory_insufficent(self, mock_vm_check, mock_sleep):
+        self.config(minimum_memory_warning_only=False)
+
+        class vm_check(object):
+            available = 1000000000
+
+        mock_vm_check.return_value = vm_check
+        self.assertTrue(utils.is_memory_insufficent())
+        self.assertEqual(14, mock_vm_check.call_count)
+
+    @mock.patch.object(time, 'sleep', autospec=True)
+    @mock.patch.object(psutil, 'virtual_memory', autospec=True)
+    def test_is_memory_insufficent_good(self, mock_vm_check,
+                                        mock_sleep):
+        self.config(minimum_memory_warning_only=False)
+
+        class vm_check(object):
+            available = 3276700000
+
+        mock_vm_check.return_value = vm_check
+        self.assertFalse(utils.is_memory_insufficent())
+        self.assertEqual(1, mock_vm_check.call_count)
+
+    @mock.patch.object(time, 'sleep', autospec=True)
+    @mock.patch.object(psutil, 'virtual_memory', autospec=True)
+    def test_is_memory_insufficent_recovers(self, mock_vm_check,
+                                            mock_sleep):
+
+        class vm_check_bad(object):
+            available = 1023000000
+
+        class vm_check_good(object):
+            available = 3276700000
+
+        self.config(minimum_memory_warning_only=False)
+        mock_vm_check.side_effect = iter([vm_check_bad,
+                                          vm_check_bad,
+                                          vm_check_good])
+        self.assertFalse(utils.is_memory_insufficent())
+        self.assertEqual(3, mock_vm_check.call_count)
 
 
 class GetUpdatedCapabilitiesTestCase(base.TestCase):

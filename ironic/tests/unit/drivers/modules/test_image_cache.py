@@ -62,6 +62,24 @@ class TestImageCacheFetch(base.TestCase):
             None, self.uuid, self.dest_path, True)
         self.assertFalse(mock_clean_up.called)
 
+    @mock.patch.object(image_cache, '_fetch', autospec=True)
+    @mock.patch.object(image_cache.ImageCache, 'clean_up', autospec=True)
+    @mock.patch.object(image_cache.ImageCache, '_download_image',
+                       autospec=True)
+    def test_fetch_image_no_master_dir_memory_low(self,
+                                                  mock_download,
+                                                  mock_clean_up,
+                                                  mock_fetch):
+        mock_fetch.side_effect = exception.InsufficentMemory
+        self.cache.master_dir = None
+        self.assertRaises(exception.InsufficentMemory,
+                          self.cache.fetch_image,
+                          self.uuid, self.dest_path)
+        self.assertFalse(mock_download.called)
+        mock_fetch.assert_called_once_with(
+            None, self.uuid, self.dest_path, True)
+        self.assertFalse(mock_clean_up.called)
+
     @mock.patch.object(image_cache.ImageCache, 'clean_up', autospec=True)
     @mock.patch.object(image_cache.ImageCache, '_download_image',
                        autospec=True)
@@ -219,6 +237,14 @@ class TestImageCacheFetch(base.TestCase):
         self.assertTrue(mock_fetch.called)
         self.assertEqual(2, mock_link.call_count)
         self.assertTrue(mock_log.error.called)
+
+    @mock.patch.object(image_cache, '_fetch', autospec=True)
+    def test__download_image_raises_memory_guard(self, mock_fetch):
+        mock_fetch.side_effect = exception.InsufficentMemory
+        self.assertRaises(exception.InsufficentMemory,
+                          self.cache._download_image,
+                          self.uuid, self.master_path,
+                          self.dest_path)
 
 
 @mock.patch.object(os, 'unlink', autospec=True)

@@ -27,6 +27,7 @@ import os
 import re
 import shutil
 import tempfile
+import time
 
 import jinja2
 from oslo_concurrency import processutils
@@ -35,6 +36,7 @@ from oslo_serialization import jsonutils
 from oslo_utils import fileutils
 from oslo_utils import netutils
 from oslo_utils import timeutils
+import psutil
 import pytz
 
 from ironic.common import exception
@@ -586,3 +588,61 @@ def file_mime_type(path):
     """Gets a mime type of the given file."""
     return execute('file', '--brief', '--mime-type', path,
                    use_standard_locale=True)[0].strip()
+
+
+def _get_mb_ram_available():
+    # NOTE(TheJulia): The .available value is the memory that can be given
+    # to a process without this process beginning to swap itself.
+    return psutil.virtual_memory().available / 1024 / 1024
+
+
+def is_memory_insufficent(raise_if_fail=False):
+    """Checks available system memory and holds the deployment process.
+
+    Evaluates the current system memory available, meaning can be
+    allocated to a process by the kernel upon allocation request,
+    and delays the execution until memory has been freed,
+    or until it has timed out.
+
+    This method will issue a sleep, if the amount of available memory is
+    insufficent. This is configured using the
+    ``[DEFAULT]minimum_memory_wait_time`` and the
+    ``[DEFAULT]minimum_memory_wait_retries``.
+
+    :param raise_if_fail: Default False, but if set to true an
+                          InsufficentMemory exception is raised
+                          upon insufficent memory.
+    :returns: True if the check has timed out. Otherwise None is returned.
+    :raises: InsufficentMemory if the raise_if_fail parameter is set to
+             True.
+    """
+    required_memory = CONF.minimum_required_memory
+    loop_count = 0
+
+    while _get_mb_ram_available() < required_memory:
+        log_values = {
+            'available': _get_mb_ram_available(),
+            'required': required_memory,
+        }
+        if CONF.minimum_memory_warning_only:
+            LOG.warning('Memory is at %(available)s MiB, required is '
+                        '%(required)s. Ironic is in warning-only mode '
+                        'which can be changed by altering the '
+                        '[DEFAULT]minimum_memory_warning_only',
+                        log_values)
+            return False
+        if loop_count >= CONF.minimum_memory_wait_retries:
+            LOG.error('Memory is at %(available)s MiB, required is '
+                      '%(required)s. Notifying caller that we have '
+                      'exceeded retries.',
+                      log_values)
+            if raise_if_fail:
+                raise exception.InsufficentMemory(
+                    free=_get_mb_ram_available(),
+                    required=required_memory)
+            return True
+        LOG.warning('Memory is at %(available)s MiB, required is '
+                    '%(required)s, waiting.', log_values)
+        # Sleep so interpreter can switch threads.
+        time.sleep(CONF.minimum_memory_wait_time)
+        loop_count = loop_count + 1
