@@ -361,7 +361,7 @@ service_opts = [
                       'conductor and API services')),
     cfg.BoolOpt('minimum_memory_warning_only',
                 mutable=True,
-                default=True,
+                default=False,
                 help=_('Setting to govern if Ironic should only warn instead '
                        'of attempting to hold back the request in order to '
                        'prevent the exhaustion of system memory.')),
