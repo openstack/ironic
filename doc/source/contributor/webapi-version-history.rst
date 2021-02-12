@@ -2,7 +2,7 @@
 REST API Version History
 ========================
 
-1.69 (Wallaby, master)
+1.69 (Wallaby, 16.2)
 ----------------------
 
 Add support for ``deploy-steps`` parameter to provisioning endpoint
