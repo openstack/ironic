@@ -37,6 +37,55 @@ LOG = log.getLogger(__name__)
 DEFAULT_POLICY_FILE = 'policy.yaml'
 opts.set_defaults(cfg.CONF, DEFAULT_POLICY_FILE)
 
+# Generic policy check string for system administrators. These are the people
+# who need the highest level of authorization to operate the deployment.
+# They're allowed to create, read, update, or delete any system-specific
+# resource. They can also operate on project-specific resources where
+# applicable (e.g., cleaning up baremetal hosts)
+SYSTEM_ADMIN = 'role:admin and system_scope:all'
+
+# Generic policy check string for system users who don't require all the
+# authorization that system administrators typically have. This persona, or
+# check string, typically isn't used by default, but it's existence it useful
+# in the event a deployment wants to offload some administrative action from
+# system administrator to system members
+SYSTEM_MEMBER = 'role:member and system_scope:all'
+
+# Generic policy check string for read-only access to system-level resources.
+# This persona is useful for someone who needs access for auditing or even
+# support. These uses are also able to view project-specific resources where
+# applicable (e.g., listing all volumes in the deployment, regardless of the
+# project they belong to).
+SYSTEM_READER = 'role:reader and system_scope:all'
+
+# This check string is reserved for actions that require the highest level of
+# authorization on a project or resources within the project (e.g., setting the
+# default volume type for a project)
+PROJECT_ADMIN = ('role:admin and '
+                 'project_id:%(node.owner)s')
+# This check string is the primary use case for typical end-users, who are
+# working with resources that belong to a project (e.g., creating volumes and
+# backups).
+PROJECT_MEMBER = ('role:member and '
+                  '(project_id:%(node.owner)s or project_id:%(node.lessee)s)')
+
+# This check string should only be used to protect read-only project-specific
+# resources. It should not be used to protect APIs that make writable changes
+# (e.g., updating a volume or deleting a backup).
+PROJECT_READER = ('role:reader and '
+                  '(project_id:%(node.owner)s or project_id:%(node.lessee)s)')
+
+# The following are common composite check strings that are useful for
+# protecting APIs designed to operate with multiple scopes (e.g., a system
+# administrator should be able to delete any baremetal host in the deployment,
+# a project member should only be able to delete hosts in their project).
+SYSTEM_ADMIN_OR_PROJECT_MEMBER = (
+    '(' + SYSTEM_ADMIN + ') or (' + PROJECT_MEMBER + ')'
+)
+SYSTEM_OR_PROJECT_READER = (
+    '(' + SYSTEM_READER + ') or (' + PROJECT_READER + ')'
+)
+
 default_policies = [
     # Legacy setting, don't remove. Likely to be overridden by operators who
     # forget to update their policy.json configuration file.
@@ -62,6 +111,7 @@ default_policies = [
                        '!',
                        description='Show or mask secrets within instance information in API responses'),  # noqa
     # Roles likely to be overridden by operator
+    # TODO(TheJulia): Lets nuke demo from high orbit.
     policy.RuleDefault('is_member',
                        '(project_domain_id:default or project_domain_id:None) and (project_name:demo or project_name:baremetal)',  # noqa
                        description='May be used to restrict access to specific projects'),  # noqa
