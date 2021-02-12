@@ -112,7 +112,7 @@ class BaseApiTest(db_base.DbTestCase):
         return response
 
     def put_json(self, path, params, expect_errors=False, headers=None,
-                 extra_environ=None, status=None):
+                 extra_environ=None, status=None, path_prefix=PATH_PREFIX):
         """Sends simulated HTTP PUT request to Pecan test app.
 
         :param path: url path of target service
@@ -127,10 +127,11 @@ class BaseApiTest(db_base.DbTestCase):
         return self._request_json(path=path, params=params,
                                   expect_errors=expect_errors,
                                   headers=headers, extra_environ=extra_environ,
-                                  status=status, method="put")
+                                  status=status, method="put",
+                                  path_prefix=path_prefix)
 
     def post_json(self, path, params, expect_errors=False, headers=None,
-                  extra_environ=None, status=None):
+                  extra_environ=None, status=None, path_prefix=PATH_PREFIX):
         """Sends simulated HTTP POST request to Pecan test app.
 
         :param path: url path of target service
@@ -145,10 +146,11 @@ class BaseApiTest(db_base.DbTestCase):
         return self._request_json(path=path, params=params,
                                   expect_errors=expect_errors,
                                   headers=headers, extra_environ=extra_environ,
-                                  status=status, method="post")
+                                  status=status, method="post",
+                                  path_prefix=path_prefix)
 
     def patch_json(self, path, params, expect_errors=False, headers=None,
-                   extra_environ=None, status=None):
+                   extra_environ=None, status=None, path_prefix=PATH_PREFIX):
         """Sends simulated HTTP PATCH request to Pecan test app.
 
         :param path: url path of target service
@@ -163,7 +165,8 @@ class BaseApiTest(db_base.DbTestCase):
         return self._request_json(path=path, params=params,
                                   expect_errors=expect_errors,
                                   headers=headers, extra_environ=extra_environ,
-                                  status=status, method="patch")
+                                  status=status, method="patch",
+                                  path_prefix=path_prefix)
 
     def delete(self, path, expect_errors=False, headers=None,
                extra_environ=None, status=None, path_prefix=PATH_PREFIX):
