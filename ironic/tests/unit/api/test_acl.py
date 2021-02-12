@@ -246,3 +246,19 @@ class TestRBACModelBeforeScopes(TestACLBase):
     def test_rbac_legacy(self, **kwargs):
         self._check_skip(**kwargs)
         self._test_request(**kwargs)
+
+
+@ddt.ddt
+class TestRBACScoped(TestRBACModelBeforeScopes):
+    """Test Scoped ACL access using our existing access policy."""
+
+    def setUp(self):
+        super(TestRBACScoped, self).setUp()
+
+        cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
+        cfg.CONF.set_override('enforce_new_defaults', True,
+                              group='oslo_policy')
+        # NOTE(TheJulia): The purpose of this class is to execute the legacy
+        # RBAC tests with the new configuration, which forces us to
+        # explicity mark each test as a deprecated test later on. That
+        # funcationality will be added in a later patch when needed,
