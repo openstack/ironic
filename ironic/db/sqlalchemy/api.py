@@ -162,6 +162,13 @@ def add_port_filter_by_node_project(query, value):
                         | (models.Node.lessee == value))
 
 
+def add_portgroup_filter_by_node_project(query, value):
+    query = query.join(models.Node,
+                       models.Portgroup.node_id == models.Node.id)
+    return query.filter((models.Node.owner == value)
+                        | (models.Node.lessee == value))
+
+
 def add_portgroup_filter(query, value):
     """Adds a portgroup-specific filter to a query.
 
@@ -796,8 +803,10 @@ class Connection(api.Connection):
             if count == 0:
                 raise exception.PortNotFound(port=port_id)
 
-    def get_portgroup_by_id(self, portgroup_id):
+    def get_portgroup_by_id(self, portgroup_id, project=None):
         query = model_query(models.Portgroup).filter_by(id=portgroup_id)
+        if project:
+            query = add_portgroup_filter_by_node_project(query, project)
         try:
             return query.one()
         except NoResultFound:
@@ -810,8 +819,10 @@ class Connection(api.Connection):
         except NoResultFound:
             raise exception.PortgroupNotFound(portgroup=portgroup_uuid)
 
-    def get_portgroup_by_address(self, address):
+    def get_portgroup_by_address(self, address, project=None):
         query = model_query(models.Portgroup).filter_by(address=address)
+        if project:
+            query = add_portgroup_filter_by_node_project(query, project)
         try:
             return query.one()
         except NoResultFound:
@@ -825,14 +836,19 @@ class Connection(api.Connection):
             raise exception.PortgroupNotFound(portgroup=name)
 
     def get_portgroup_list(self, limit=None, marker=None,
-                           sort_key=None, sort_dir=None):
+                           sort_key=None, sort_dir=None, project=None):
+        query = model_query(models.Portgroup)
+        if project:
+            query = add_portgroup_filter_by_node_project(query, project)
         return _paginate_query(models.Portgroup, limit, marker,
-                               sort_key, sort_dir)
+                               sort_key, sort_dir, query)
 
     def get_portgroups_by_node_id(self, node_id, limit=None, marker=None,
-                                  sort_key=None, sort_dir=None):
+                                  sort_key=None, sort_dir=None, project=None):
         query = model_query(models.Portgroup)
         query = query.filter_by(node_id=node_id)
+        if project:
+            query = add_portgroup_filter_by_node_project(query, project)
         return _paginate_query(models.Portgroup, limit, marker,
                                sort_key, sort_dir, query)
 

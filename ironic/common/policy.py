@@ -96,6 +96,10 @@ SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN = (
     '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_MEMBER + ') or (' + PROJECT_LESSEE_ADMIN + ')'  # noqa
 )
 
+SYSTEM_ADMIN_OR_OWNER_ADMIN = (
+    '(' + SYSTEM_ADMIN + ') or (' + PROJECT_OWNER_ADMIN + ')'
+)
+
 SYSTEM_MEMBER_OR_OWNER_ADMIN = (
     '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_ADMIN + ')'
 )
@@ -906,8 +910,8 @@ The baremetal port API is now aware of system scope and default roles.
 port_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:port:get',
-        check_str=SYSTEM_READER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_PROJECT_READER,
+        scope_types=['system', 'project'],
         description='Retrieve Port records',
         operations=[
             {'path': '/ports/{port_id}', 'method': 'GET'},
@@ -923,8 +927,8 @@ port_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:port:list',
-        check_str=SYSTEM_READER,
-        scope_types=['system'],
+        check_str=API_READER,
+        scope_types=['system', 'project'],
         description='Retrieve multiple Port records, filtered by owner',
         operations=[
             {'path': '/ports', 'method': 'GET'},
@@ -937,7 +941,7 @@ port_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:port:list_all',
         check_str=SYSTEM_READER,
-        scope_types=['system'],
+        scope_types=['system', 'project'],
         description='Retrieve multiple Port records',
         operations=[
             {'path': '/ports', 'method': 'GET'},
@@ -949,8 +953,8 @@ port_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:port:create',
-        check_str=SYSTEM_ADMIN,
-        scope_types=['system'],
+        check_str=SYSTEM_ADMIN_OR_OWNER_ADMIN,
+        scope_types=['system', 'project'],
         description='Create Port records',
         operations=[{'path': '/ports', 'method': 'POST'}],
         deprecated_rule=deprecated_port_create,
@@ -959,8 +963,8 @@ port_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:port:delete',
-        check_str=SYSTEM_ADMIN,
-        scope_types=['system'],
+        check_str=SYSTEM_ADMIN_OR_OWNER_ADMIN,
+        scope_types=['system', 'project'],
         description='Delete Port records',
         operations=[{'path': '/ports/{port_id}', 'method': 'DELETE'}],
         deprecated_rule=deprecated_port_delete,
@@ -969,8 +973,8 @@ port_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:port:update',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_MEMBER_OR_OWNER_ADMIN,
+        scope_types=['system', 'project'],
         description='Update Port records',
         operations=[{'path': '/ports/{port_id}', 'method': 'PATCH'}],
         deprecated_rule=deprecated_port_update,
@@ -1002,8 +1006,8 @@ The baremetal port groups API is now aware of system scope and default roles.
 portgroup_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:portgroup:get',
-        check_str=SYSTEM_READER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_PROJECT_READER,
+        scope_types=['system', 'project'],
         description='Retrieve Portgroup records',
         operations=[
             {'path': '/portgroups', 'method': 'GET'},
@@ -1018,8 +1022,8 @@ portgroup_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:portgroup:create',
-        check_str=SYSTEM_ADMIN,
-        scope_types=['system'],
+        check_str=SYSTEM_ADMIN_OR_OWNER_ADMIN,
+        scope_types=['system', 'project'],
         description='Create Portgroup records',
         operations=[{'path': '/portgroups', 'method': 'POST'}],
         deprecated_rule=deprecated_portgroup_create,
@@ -1028,8 +1032,8 @@ portgroup_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:portgroup:delete',
-        check_str=SYSTEM_ADMIN,
-        scope_types=['system'],
+        check_str=SYSTEM_ADMIN_OR_OWNER_ADMIN,
+        scope_types=['system', 'project'],
         description='Delete Portgroup records',
         operations=[
             {'path': '/portgroups/{portgroup_ident}', 'method': 'DELETE'}
@@ -1040,13 +1044,39 @@ portgroup_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:portgroup:update',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_MEMBER_OR_OWNER_ADMIN,
+        scope_types=['system', 'project'],
         description='Update Portgroup records',
         operations=[
             {'path': '/portgroups/{portgroup_ident}', 'method': 'PATCH'}
         ],
         deprecated_rule=deprecated_portgroup_update,
+        deprecated_reason=deprecated_portgroup_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:portgroup:list',
+        check_str=API_READER,
+        scope_types=['system', 'project'],
+        description='Retrieve multiple Port records, filtered by owner',
+        operations=[
+            {'path': '/portgroups', 'method': 'GET'},
+            {'path': '/portgroups/detail', 'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_portgroup_get,
+        deprecated_reason=deprecated_portgroup_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:portgroup:list_all',
+        check_str=SYSTEM_READER,
+        scope_types=['system', 'project'],
+        description='Retrieve multiple Port records',
+        operations=[
+            {'path': '/portgroups', 'method': 'GET'},
+            {'path': '/portgroups/detail', 'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_portgroup_get,
         deprecated_reason=deprecated_portgroup_reason,
         deprecated_since=versionutils.deprecated.WALLABY
     ),
@@ -1714,7 +1744,9 @@ def authorize(rule, target, creds, *args, **kwargs):
     try:
         return enforcer.authorize(rule, target, creds, do_raise=True,
                                   *args, **kwargs)
-    except policy.PolicyNotAuthorized:
+    except policy.PolicyNotAuthorized as e:
+        LOG.error('Rejecting authorzation: %(error)s',
+                  {'error': e})
         raise exception.HTTPForbidden(resource=rule)
 
 

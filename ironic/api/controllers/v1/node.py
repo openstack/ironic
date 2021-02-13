@@ -2232,7 +2232,6 @@ class NodesController(rest.RestController):
                 policy_checks.append('baremetal:node:update:retired')
             else:
                 generic_update = True
-
         # always do at least one check
         if generic_update or not policy_checks:
             policy_checks.append('baremetal:node:update')
@@ -2334,7 +2333,6 @@ class NodesController(rest.RestController):
             node_dict, NODE_PATCH_SCHEMA, NODE_PATCH_VALIDATOR)
 
         self._update_changed_fields(node_dict, rpc_node)
-
         # NOTE(tenbrae): we calculate the rpc topic here in case node.driver
         #             has changed, so that update is sent to the
         #             new conductor, not the old one which may fail to

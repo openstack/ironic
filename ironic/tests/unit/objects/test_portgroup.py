@@ -58,7 +58,7 @@ class TestPortgroupObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
             portgroup = objects.Portgroup.get(self.context, address)
 
-            mock_get_portgroup.assert_called_once_with(address)
+            mock_get_portgroup.assert_called_once_with(address, project=None)
             self.assertEqual(self.context, portgroup._context)
 
     def test_get_by_name(self):

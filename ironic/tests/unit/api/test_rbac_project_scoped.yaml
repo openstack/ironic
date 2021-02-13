@@ -69,7 +69,7 @@ values:
   owner_project_id: &owner_project_id 70e5e25a-2ca2-4cb1-8ae8-7d8739cee205
   lessee_project_id: &lessee_project_id f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
   owned_node_ident: &owned_node_ident f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
-  lessee_node_ident: &lessee_node_ident <TBD>
+  lessee_node_ident: &lessee_node_ident 38d5abed-c585-4fce-a57e-a2ffc2a2ec6f
 
 # Nodes - https://docs.openstack.org/api-ref/baremetal/?expanded=#nodes-nodes
 
@@ -1493,44 +1493,42 @@ owner_reader_can_list_portgroups:
   method: get
   headers: *owner_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
+  assert_list_length:
+    portgroups: 2
 
 lessee_reader_can_list_portgroups:
   path: '/v1/portgroups'
   method: get
   headers: *lessee_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
+  assert_list_length:
+    portgroups: 1
 
 third_party_admin_cannot_list_portgroups:
   path: '/v1/portgroups'
   method: get
   headers: *third_party_admin_headers
-  assert_status: 99 # TODO This should be 200
+  assert_status: 200
   assert_list_length:
     portgroups: 0
-  skip_reason: policy not implemented
 
 owner_reader_can_read_portgroup:
   path: '/v1/portgroups/{owner_portgroup_ident}'
   method: get
   headers: *owner_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 lessee_reader_can_read_portgroup:
   path: '/v1/portgroups/{lessee_portgroup_ident}'
   method: get
   headers: *lessee_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_read_portgroup:
-  path: '/v1/portgroups/{portgroup_ident}'
+  path: '/v1/portgroups/{owner_portgroup_ident}'
   method: get
   headers: *third_party_admin_headers
-  assert_status: 200
-  skip_reason: policy not implemented
+  assert_status: 404
 
 # NB: Ports have to be posted with a node UUID to associate to,
 # so that seems policy-check-able.
@@ -1539,9 +1537,8 @@ owner_admin_can_add_portgroup:
   method: post
   headers: *owner_admin_headers
   body: &owner_portgroup_body
-    node_uuid: 18a552fb-dcd2-43bf-9302-e4c93287be11
+    node_uuid: 1ab63b9e-66d7-4cd7-8618-dddd0f9f7881
   assert_status: 201
-  skip_reason: policy not implemented
 
 owner_member_cannot_add_portgroup:
   path: '/v1/portgroups'
@@ -1549,16 +1546,14 @@ owner_member_cannot_add_portgroup:
   headers: *owner_member_headers
   body: *owner_portgroup_body
   assert_status: 403
-  skip_reason: policy not implemented
 
 lessee_admin_cannot_add_portgroup:
   path: '/v1/portgroups'
   method: post
   headers: *lessee_admin_headers
   body: &lessee_portgroup_body
-    node_uuid: 18a552fb-dcd2-43bf-9302-e4c93287be11
+    node_uuid: 38d5abed-c585-4fce-a57e-a2ffc2a2ec6f
   assert_status: 403
-  skip_reason: policy not implemented
 
 # TODO, likely will need separate port/port groups established for the tests
 
@@ -1568,7 +1563,6 @@ lessee_member_cannot_add_portgroup:
   headers: *lessee_member_headers
   body: *lessee_portgroup_body
   assert_status: 403
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_add_portgroup:
   path: '/v1/portgroups'
@@ -1576,7 +1570,6 @@ third_party_admin_cannot_add_portgroup:
   headers: *third_party_admin_headers
   body: *lessee_portgroup_body
   assert_status: 403
-  skip_reason: policy not implemented
 
 owner_admin_can_modify_portgroup:
   path: '/v1/portgroups/{owner_portgroup_ident}'
@@ -1587,15 +1580,13 @@ owner_admin_can_modify_portgroup:
       path: /extra
       value: {'test': 'testing'}
   assert_status: 503
-  skip_reason: policy not implemented
 
-owner_member_can_modify_portgroup:
+owner_member_cannot_modify_portgroup:
   path: '/v1/portgroups/{owner_portgroup_ident}'
   method: patch
   headers: *owner_member_headers
   body: *portgroup_patch_body
-  assert_status: 503
-  skip_reason: policy not implemented
+  assert_status: 403
 
 lessee_admin_cannot_modify_portgroup:
   path: '/v1/portgroups/{lessee_portgroup_ident}'
@@ -1603,7 +1594,6 @@ lessee_admin_cannot_modify_portgroup:
   headers: *lessee_admin_headers
   body: *portgroup_patch_body
   assert_status: 403
-  skip_reason: policy not implemented
 
 lessee_member_cannot_modify_portgroup:
   path: '/v1/portgroups/{lessee_portgroup_ident}'
@@ -1611,50 +1601,43 @@ lessee_member_cannot_modify_portgroup:
   headers: *lessee_member_headers
   body: *portgroup_patch_body
   assert_status: 403
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_modify_portgroup:
   path: '/v1/portgroups/{lessee_portgroup_ident}'
   method: patch
   headers: *third_party_admin_headers
   body: *portgroup_patch_body
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 404
 
 owner_admin_can_delete_portgroup:
   path: '/v1/portgroups/{owner_portgroup_ident}'
   method: delete
   headers: *owner_admin_headers
   assert_status: 503
-  skip_reason: policy not implemented
 
 owner_member_cannot_delete_portgroup:
   path: '/v1/portgroups/{owner_portgroup_ident}'
   method: delete
   headers: *owner_member_headers
   assert_status: 403
-  skip_reason: policy not implemented
 
 lessee_admin_cannot_delete_portgroup:
   path: '/v1/portgroups/{lessee_portgroup_ident}'
   method: delete
   headers: *lessee_admin_headers
   assert_status: 403
-  skip_reason: policy not implemented
 
 lessee_member_cannot_delete_portgroup:
   path: '/v1/portgroups/{lessee_portgroup_ident}'
   method: delete
   headers: *lessee_member_headers
   assert_status: 403
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_delete_portgroup:
   path: '/v1/portgroups/{lessee_portgroup_ident}'
   method: delete
   headers: *third_party_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 404
 
 # Portgroups by node - https://docs.openstack.org/api-ref/baremetal/#listing-portgroups-by-node-nodes-portgroups
 
@@ -1662,22 +1645,19 @@ owner_reader_can_get_node_portgroups:
   path: '/v1/nodes/{owner_node_ident}/portgroups'
   method: get
   headers: *owner_reader_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 200
 
 lessee_reader_can_get_node_porgtroups:
   path: '/v1/nodes/{lessee_node_ident}/portgroups'
   method: get
   headers: *lessee_reader_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 200
 
 third_party_admin_cannot_get_portgroups:
   path: '/v1/nodes/{lessee_node_ident}/portgroups'
   method: get
   headers: *third_party_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 404
 
 # Ports - https://docs.openstack.org/api-ref/baremetal/#ports-ports
 
@@ -1688,43 +1668,43 @@ owner_reader_can_list_ports:
   method: get
   headers: *owner_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
+  # Two ports owned, one on the leased node. 1 invisible.
+  assert_list_length:
+    ports: 3
 
 lessee_reader_can_list_ports:
   path: '/v1/ports'
   method: get
   headers: *lessee_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
+  assert_list_length:
+    ports: 1
 
 third_party_admin_cannot_list_ports:
   path: '/v1/ports'
   method: get
   headers: *third_party_admin_headers
-  assert_status: 99 # TODO This should be 200
-  # TODO(Assert list has zero members!)
-  skip_reason: policy not implemented
+  assert_status: 200
+  assert_list_length:
+    ports: 0
 
 owner_reader_can_read_port:
   path: '/v1/ports/{owner_port_ident}'
   method: get
   headers: *owner_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 lessee_reader_can_read_port:
   path: '/v1/ports/{lessee_port_ident}'
   method: get
   headers: *lessee_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_read_port:
-  path: '/v1/ports/{port_ident}'
+  path: '/v1/ports/{other_port_ident}'
   method: get
   headers: *third_party_admin_headers
-  assert_status: 200
-  skip_reason: policy not implemented
+  assert_status: 404
 
 # NB: Ports have to be posted with a node UUID to associate to,
 # so that seems policy-check-able.
@@ -1733,10 +1713,18 @@ owner_admin_can_add_ports:
   method: post
   headers: *owner_admin_headers
   body: &owner_port_body
-    node_uuid: 18a552fb-dcd2-43bf-9302-e4c93287be11
+    node_uuid: 1ab63b9e-66d7-4cd7-8618-dddd0f9f7881
     address: 00:01:02:03:04:05
-  assert_status: 201
-  skip_reason: policy not implemented
+  assert_status: 503
+
+owner_admin_cannot_add_ports_to_other_nodes:
+  path: '/v1/ports'
+  method: post
+  headers: *owner_admin_headers
+  body:
+    node_uuid: 573208e5-cd41-4e26-8f06-ef44022b3793
+    address: 09:01:02:03:04:09
+  assert_status: 403
 
 owner_member_cannot_add_port:
   path: '/v1/ports'
@@ -1744,19 +1732,15 @@ owner_member_cannot_add_port:
   headers: *owner_member_headers
   body: *owner_port_body
   assert_status: 403
-  skip_reason: policy not implemented
 
 lessee_admin_cannot_add_port:
   path: '/v1/ports'
   method: post
   headers: *lessee_admin_headers
   body: &lessee_port_body
-    node_uuid: 18a552fb-dcd2-43bf-9302-e4c93287be11
+    node_uuid: 38d5abed-c585-4fce-a57e-a2ffc2a2ec6f
     address: 00:01:02:03:04:05
   assert_status: 403
-  skip_reason: policy not implemented
-
-# TODO, likely will need separate port/port groups established for the tests
 
 lessee_member_cannot_add_port:
   path: '/v1/ports'
@@ -1764,7 +1748,6 @@ lessee_member_cannot_add_port:
   headers: *lessee_member_headers
   body: *lessee_port_body
   assert_status: 403
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_add_port:
   path: '/v1/ports'
@@ -1772,7 +1755,6 @@ third_party_admin_cannot_add_port:
   headers: *third_party_admin_headers
   body: *lessee_port_body
   assert_status: 403
-  skip_reason: policy not implemented
 
 owner_admin_can_modify_port:
   path: '/v1/ports/{owner_port_ident}'
@@ -1783,15 +1765,13 @@ owner_admin_can_modify_port:
       path: /extra
       value: {'test': 'testing'}
   assert_status: 503
-  skip_reason: policy not implemented
 
-owner_member_can_modify_port:
+owner_member_cannot_modify_port:
   path: '/v1/ports/{owner_port_ident}'
   method: patch
   headers: *owner_member_headers
   body: *port_patch_body
-  assert_status: 503
-  skip_reason: policy not implemented
+  assert_status: 403
 
 lessee_admin_cannot_modify_port:
   path: '/v1/ports/{lessee_port_ident}'
@@ -1799,7 +1779,6 @@ lessee_admin_cannot_modify_port:
   headers: *lessee_admin_headers
   body: *port_patch_body
   assert_status: 403
-  skip_reason: policy not implemented
 
 lessee_member_cannot_modify_port:
   path: '/v1/ports/{lessee_port_ident}'
@@ -1807,50 +1786,43 @@ lessee_member_cannot_modify_port:
   headers: *lessee_member_headers
   body: *port_patch_body
   assert_status: 403
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_modify_port:
   path: '/v1/ports/{lessee_port_ident}'
   method: patch
   headers: *third_party_admin_headers
   body: *port_patch_body
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 404
 
 owner_admin_can_delete_port:
   path: '/v1/ports/{owner_port_ident}'
   method: delete
   headers: *owner_admin_headers
   assert_status: 503
-  skip_reason: policy not implemented
 
 owner_member_cannot_delete_port:
   path: '/v1/ports/{owner_port_ident}'
   method: delete
   headers: *owner_member_headers
   assert_status: 403
-  skip_reason: policy not implemented
 
 lessee_admin_cannot_delete_port:
   path: '/v1/ports/{lessee_port_ident}'
   method: delete
   headers: *lessee_admin_headers
   assert_status: 403
-  skip_reason: policy not implemented
 
 lessee_member_cannot_delete_port:
   path: '/v1/ports/{lessee_port_ident}'
   method: delete
   headers: *lessee_member_headers
   assert_status: 403
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_delete_port:
   path: '/v1/ports/{lessee_port_ident}'
   method: delete
   headers: *third_party_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 404
 
 # Ports by node - https://docs.openstack.org/api-ref/baremetal/#listing-ports-by-node-nodes-ports
 
@@ -1858,47 +1830,45 @@ owner_reader_can_get_node_ports:
   path: '/v1/nodes/{owner_node_ident}/ports'
   method: get
   headers: *owner_reader_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 200
+  assert_list_length:
+    ports: 2
 
-lessee_reader_can_get_node_porgtroups:
+lessee_reader_can_get_node_port:
   path: '/v1/nodes/{lessee_node_ident}/ports'
   method: get
   headers: *lessee_reader_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 200
+  assert_list_length:
+    ports: 1
 
 third_party_admin_cannot_get_ports:
   path: '/v1/nodes/{lessee_node_ident}/ports'
   method: get
   headers: *third_party_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 404
 
 # Ports by portgroup - https://docs.openstack.org/api-ref/baremetal/#listing-ports-by-portgroup-portgroup-ports
 
-# Based on potgroups_ports_get* tests
+# Based on portgroups_ports_get* tests
 
 owner_reader_can_get_ports_by_portgroup:
   path: '/v1/portgroups/{owner_portgroup_ident}/ports'
   method: get
   headers: *owner_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 lessee_reader_can_get_ports_by_portgroup:
   path: '/v1/portgroups/{lessee_portgroup_ident}/ports'
   method: get
   headers: *lessee_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_get_ports_by_portgroup:
   path: '/v1/portgroups/{other_portgroup_ident}/ports'
   method: get
   headers: *third_party_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 404
 
 # Volume(s) - https://docs.openstack.org/api-ref/baremetal/#volume-volume
 # TODO(TheJulia): volumes will likely need some level of exhaustive testing.

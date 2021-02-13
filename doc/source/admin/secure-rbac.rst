@@ -2,6 +2,33 @@
 Secure RBAC
 ===========
 
+Suggested Reading
+=================
+
+It is likely an understatement to say that policy enforcement is a complex
+subject. It requires operational context to craft custom policy to meet
+general use needs. Part of this is why the Secure RBAC effort was started,
+to provide consistency and a "good" starting place for most users who need
+a higher level of granularity.
+
+That being said, it would likely help anyone working to implement
+customization of these policies to consult some reference material
+in hopes of understanding the context.
+
+* `Keystone Adminstrator Guide - Service API Protection <https://docs.openstack.org/keystone/latest/admin/service-api-protection.html>`_
+* `Ironic Scoped Role Based Access Control Specification <https://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/secure-rbac.html>`_
+
+Historical Context - How we reached our access model
+----------------------------------------------------
+
+Ironic has reached the access model through an evolution the API and the data
+stored. Along with the data stored, the enforcement of policy based upon data
+stored in these fields.
+
+* `Ownership Information Storage <https://specs.openstack.org/openstack/ironic-specs/specs/12.1/ownership-field.html>`_
+* `Allow Node owners to Administer <https://specs.openstack.org/openstack/ironic-specs/specs/14.0/node-owner-policy.html>`_
+* `Allow Leasable Nodes <https://specs.openstack.org/openstack/ironic-specs/specs/15.0/node-lessee.html>`_
+
 System Scoped
 =============
 
@@ -37,6 +64,10 @@ Supported Endpoints
 -------------------
 
 * /nodes
+* /nodes/<uuid>/ports
+* /nodes/<uuid>/portgroups
+* /ports
+* /portgroups
 
 How Project Scoped Works
 ------------------------
@@ -51,17 +82,12 @@ of the node. Regardless of the use model that the fields and mechanics
 support, these fields are to support humans, and possibly services where
 applicable.
 
-.. todo: Add link to owner spec.
-
 The purpose of a lessee is more for a *tenant* in their *project* to
 be able to have access to perform basic actions with the API. In some cases
 that may be to reprovision or rebuild a node. Ultimately that is the lessee's
 progative, but by default there are actions and field updates that cannot
 be performed by default. This is also governed by access level within
 a project.
-
-.. todo: Add link to lessee spec.
-
 
 These policies are applied in the way data is viewed and how data can be
 updated. Generally, an inability to view a node is an access permission issue
@@ -71,7 +97,6 @@ The ironic project has attempted to generally codify what we believe is
 reasonable, however operators may wish to override these policy settings.
 For details general policy setting details, please see
 :doc:`/configuration/policy`.
-
 
 Field value visibility restrictions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -117,3 +142,31 @@ change the owner.
              it is restricted to system scoped administrators.
 
 More information is available on these fields in :doc:`/configuration/policy`.
+
+Pratical differences
+--------------------
+
+Most users, upon implementing the use of ``system`` scoped authenticaiton,
+should not notice a difference as long as their authentication token is
+properly scoped to ``system`` and with the appropriate role for their
+access level. For most users who used a ``baremetal`` project,
+or other custom project via a custom policy file, along with a custom
+role name such as ``baremetal_admin``, this will require changing
+the user to be a ``system`` scoped user with ``admin`` privilges.
+
+The most noticable difference for API consumers is the HTTP 403 access
+code is now mainly a HTTP 404 access code. The access concept has changed
+from "Does the user user broadly has access to the API?" to
+"Does user have access to the node, and then do they have access
+to the specific resource?".
+
+How do I assign an owner?
+-------------------------
+
+.. todo: need to add information on the owner assignment
+   and also cover what this generally means... maybe?
+
+How do I assign a lessee?
+-------------------------
+
+.. todo: Need to cover how to assign a lessee.

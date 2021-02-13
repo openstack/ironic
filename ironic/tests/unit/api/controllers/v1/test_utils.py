@@ -891,14 +891,18 @@ class TestNodeIdent(base.TestCase):
         self.assertRaises(exception.NodeNotFound,
                           utils.populate_node_uuid, port, d)
 
+    @mock.patch.object(utils, 'check_owner_policy', autospec=True)
     @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
-    def test_replace_node_uuid_with_id(self, mock_gbu, mock_pr):
+    def test_replace_node_uuid_with_id(self, mock_gbu, mock_check, mock_pr):
         node = obj_utils.get_test_node(self.context, id=1)
         mock_gbu.return_value = node
         to_dict = {'node_uuid': self.valid_uuid}
 
         self.assertEqual(node, utils.replace_node_uuid_with_id(to_dict))
         self.assertEqual({'node_id': 1}, to_dict)
+        mock_check.assert_called_once_with('node', 'baremetal:node:get',
+                                           None, None,
+                                           conceal_node=mock.ANY)
 
     @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
     def test_replace_node_uuid_with_id_not_found(self, mock_gbu, mock_pr):
@@ -1507,8 +1511,12 @@ class TestCheckPortPolicyAndRetrieve(base.TestCase):
         mock_pgbu.assert_called_once_with(mock_pr.context,
                                           self.valid_port_uuid)
         mock_ngbi.assert_called_once_with(mock_pr.context, 42)
-        mock_authorize.assert_called_once_with(
-            'fake_policy', expected_target, fake_context)
+        expected = [
+            mock.call('baremetal:node:get', expected_target, fake_context),
+            mock.call('fake_policy', expected_target, fake_context)]
+
+        mock_authorize.assert_has_calls(expected)
+
         self.assertEqual(self.port, rpc_port)
         self.assertEqual(self.node, rpc_node)
 
@@ -1524,7 +1532,7 @@ class TestCheckPortPolicyAndRetrieve(base.TestCase):
             port=self.valid_port_uuid)
 
         self.assertRaises(
-            exception.HTTPForbidden,
+            exception.PortNotFound,
             utils.check_port_policy_and_retrieve,
             'fake-policy',
             self.valid_port_uuid
@@ -1551,7 +1559,7 @@ class TestCheckPortPolicyAndRetrieve(base.TestCase):
     @mock.patch.object(policy, 'authorize', spec=True)
     @mock.patch.object(objects.Port, 'get_by_uuid', autospec=True)
     @mock.patch.object(objects.Node, 'get_by_id', autospec=True)
-    def test_check_port_policy_and_retrieve_policy_forbidden(
+    def test_check_port_policy_and_retrieve_policy_notfound(
             self, mock_ngbi, mock_pgbu, mock_authorize, mock_pr
     ):
         mock_pr.version.minor = 50
@@ -1561,7 +1569,7 @@ class TestCheckPortPolicyAndRetrieve(base.TestCase):
         mock_ngbi.return_value = self.node
 
         self.assertRaises(
-            exception.HTTPForbidden,
+            exception.PortNotFound,
             utils.check_port_policy_and_retrieve,
             'fake-policy',
             self.valid_port_uuid

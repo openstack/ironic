@@ -344,10 +344,11 @@ class Connection(object, metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def get_portgroup_by_address(self, address):
+    def get_portgroup_by_address(self, address, project=None):
         """Return a network portgroup representation.
 
         :param address: The MAC address of a portgroup.
+        :param project: A node owner or lessee to filter by.
         :returns: A portgroup.
         :raises: PortgroupNotFound
         """
@@ -363,7 +364,8 @@ class Connection(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_portgroup_list(self, limit=None, marker=None,
-                           sort_key=None, sort_dir=None):
+                           sort_key=None, sort_dir=None,
+                           project=None):
         """Return a list of portgroups.
 
         :param limit: Maximum number of portgroups to return.
@@ -372,12 +374,14 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param sort_key: Attribute by which results should be sorted.
         :param sort_dir: Direction in which results should be sorted.
                          (asc, desc)
+        :param project: A node owner or lessee to filter by.
         :returns: A list of portgroups.
         """
 
     @abc.abstractmethod
     def get_portgroups_by_node_id(self, node_id, limit=None, marker=None,
-                                  sort_key=None, sort_dir=None):
+                                  sort_key=None, sort_dir=None,
+                                  project=None):
         """List all the portgroups for a given node.
 
         :param node_id: The integer node ID.
@@ -387,6 +391,7 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param sort_key: Attribute by which results should be sorted
         :param sort_dir: Direction in which results should be sorted
                          (asc, desc)
+        :param project: A node owner or lessee to filter by.
         :returns: A list of portgroups.
         """
 

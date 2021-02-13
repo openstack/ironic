@@ -927,7 +927,7 @@ portgroups_portgroup_ident_get_member:
   path: '/v1/portgroups/{portgroup_ident}'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 portgroups_portgroup_ident_get_observer:
@@ -953,7 +953,7 @@ portgroups_portgroup_ident_patch_member:
   method: patch
   headers: *member_headers
   body: *portgroup_patch_body
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 portgroups_portgroup_ident_patch_observer:
@@ -975,7 +975,7 @@ portgroups_portgroup_ident_delete_member:
   path: '/v1/portgroups/{portgroup_ident}'
   method: delete
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 portgroups_portgroup_ident_delete_observer:
@@ -998,7 +998,7 @@ nodes_portgroups_get_member:
   path: '/v1/nodes/{node_ident}/portgroups'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_portgroups_get_observer:
@@ -1019,7 +1019,7 @@ nodes_portgroups_detail_get_member:
   path: '/v1/nodes/{node_ident}/portgroups/detail'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_portgroups_detail_get_observer:
@@ -1113,7 +1113,7 @@ ports_port_id_get_member:
   path: '/v1/ports/{port_ident}'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 ports_port_id_get_observer:
@@ -1138,7 +1138,7 @@ ports_port_id_patch_member:
   path: '/v1/ports/{port_ident}'
   method: patch
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   body: *port_patch_body
   deprecated: true
 
@@ -1161,7 +1161,7 @@ ports_port_id_delete_member:
   path: '/v1/ports/{port_ident}'
   method: delete
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 ports_port_id_delete_observer:
@@ -1184,7 +1184,7 @@ nodes_ports_get_member:
   path: '/v1/nodes/{node_ident}/ports'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_ports_get_observer:
@@ -1205,7 +1205,7 @@ nodes_ports_detail_get_member:
   path: '/v1/nodes/{node_ident}/ports/detail'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_ports_detail_get_observer:
@@ -1228,7 +1228,7 @@ portgroups_ports_get_member:
   path: '/v1/portgroups/{portgroup_ident}/ports'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 portgroups_ports_get_observer:
@@ -1249,7 +1249,7 @@ portgroups_ports_detail_get_member:
   path: '/v1/portgroups/{portgroup_ident}/ports/detail'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 portgroups_ports_detail_get_observer:

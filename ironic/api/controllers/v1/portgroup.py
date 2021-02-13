@@ -170,7 +170,7 @@ class PortgroupsController(pecan.rest.RestController):
     def _get_portgroups_collection(self, node_ident, address,
                                    marker, limit, sort_key, sort_dir,
                                    resource_url=None, fields=None,
-                                   detail=None):
+                                   detail=None, project=None):
         """Return portgroups collection.
 
         :param node_ident: UUID or name of a node.
@@ -182,6 +182,7 @@ class PortgroupsController(pecan.rest.RestController):
         :param resource_url: Optional, URL to the portgroup resource.
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
+        :param project: Optional, project ID to filter the request by.
         """
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -206,13 +207,16 @@ class PortgroupsController(pecan.rest.RestController):
             node = api_utils.get_rpc_node(node_ident)
             portgroups = objects.Portgroup.list_by_node_id(
                 api.request.context, node.id, limit,
-                marker_obj, sort_key=sort_key, sort_dir=sort_dir)
+                marker_obj, sort_key=sort_key, sort_dir=sort_dir,
+                project=project)
         elif address:
-            portgroups = self._get_portgroups_by_address(address)
+            portgroups = self._get_portgroups_by_address(address,
+                                                         project=project)
         else:
             portgroups = objects.Portgroup.list(api.request.context, limit,
                                                 marker_obj, sort_key=sort_key,
-                                                sort_dir=sort_dir)
+                                                sort_dir=sort_dir,
+                                                project=project)
         parameters = {}
         if detail is not None:
             parameters['detail'] = detail
@@ -224,7 +228,7 @@ class PortgroupsController(pecan.rest.RestController):
                                        sort_dir=sort_dir,
                                        **parameters)
 
-    def _get_portgroups_by_address(self, address):
+    def _get_portgroups_by_address(self, address, project=None):
         """Retrieve a portgroup by its address.
 
         :param address: MAC address of a portgroup, to get the portgroup
@@ -235,7 +239,8 @@ class PortgroupsController(pecan.rest.RestController):
         """
         try:
             portgroup = objects.Portgroup.get_by_address(api.request.context,
-                                                         address)
+                                                         address,
+                                                         project=project)
             return [portgroup]
         except exception.PortgroupNotFound:
             return []
@@ -268,7 +273,14 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        api_utils.check_policy('baremetal:portgroup:get')
+        if self.parent_node_ident:
+            # Override the node, since this is being called by another
+            # controller with a linked view.
+            node = self.parent_node_ident
+
+        project = api_utils.check_port_list_policy(
+            portgroup=True,
+            parent_node=self.parent_node_ident)
 
         api_utils.check_allowed_portgroup_fields(fields)
         api_utils.check_allowed_portgroup_fields([sort_key])
@@ -280,7 +292,8 @@ class PortgroupsController(pecan.rest.RestController):
                                                marker, limit,
                                                sort_key, sort_dir,
                                                fields=fields,
-                                               detail=detail)
+                                               detail=detail,
+                                               project=project)
 
     @METRICS.timer('PortgroupsController.detail')
     @method.expose()
@@ -306,7 +319,15 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        api_utils.check_policy('baremetal:portgroup:get')
+        if self.parent_node_ident:
+            # If we have a parent node, then we need to override this method's
+            # node filter.
+            node = self.parent_node_ident
+
+        project = api_utils.check_port_list_policy(
+            portgroup=True,
+            parent_node=self.parent_node_ident)
+
         api_utils.check_allowed_portgroup_fields([sort_key])
 
         # NOTE: /detail should only work against collections
@@ -317,7 +338,7 @@ class PortgroupsController(pecan.rest.RestController):
         resource_url = '/'.join(['portgroups', 'detail'])
         return self._get_portgroups_collection(
             node, address, marker, limit, sort_key, sort_dir,
-            resource_url=resource_url)
+            resource_url=resource_url, project=project)
 
     @METRICS.timer('PortgroupsController.get_one')
     @method.expose()
@@ -332,7 +353,8 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
-        api_utils.check_policy('baremetal:portgroup:get')
+        rpc_portgroup, rpc_node = api_utils.check_port_policy_and_retrieve(
+            'baremetal:portgroup:get', portgroup_ident, portgroup=True)
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
@@ -355,8 +377,31 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
+        raise_node_not_found = False
+        node = None
+        owner = None
+        lessee = None
+        node_uuid = portgroup.get('node_uuid')
+        try:
+            # The replace_node_uuid_with_id also checks access to the node
+            # and will raise an exception if access is not permitted.
+            node = api_utils.replace_node_uuid_with_id(portgroup)
+            owner = node.owner
+            lessee = node.lessee
+        except exception.NotFound:
+            raise_node_not_found = True
+
+        # While the rule is for the port, the base object that controls access
+        # is the node.
+        api_utils.check_owner_policy('node', 'baremetal:portgroup:create',
+                                     owner, lessee=lessee,
+                                     conceal_node=False)
+        if raise_node_not_found:
+            # Delayed raise of NodeNotFound because we want to check
+            # the access policy first.
+            raise exception.NodeNotFound(node=node_uuid,
+                                         code=http_client.BAD_REQUEST)
         context = api.request.context
-        api_utils.check_policy('baremetal:portgroup:create')
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
@@ -377,8 +422,6 @@ class PortgroupsController(pecan.rest.RestController):
         # NOTE(yuriyz): UUID is mandatory for notifications payload
         if not portgroup.get('uuid'):
             portgroup['uuid'] = uuidutils.generate_uuid()
-
-        node = api_utils.replace_node_uuid_with_id(portgroup)
 
         new_portgroup = objects.Portgroup(context, **portgroup)
 
@@ -409,7 +452,9 @@ class PortgroupsController(pecan.rest.RestController):
             raise exception.NotFound()
 
         context = api.request.context
-        api_utils.check_policy('baremetal:portgroup:update')
+
+        rpc_portgroup, rpc_node = api_utils.check_port_policy_and_retrieve(
+            'baremetal:portgroup:update', portgroup_ident, portgroup=True)
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
@@ -420,9 +465,6 @@ class PortgroupsController(pecan.rest.RestController):
             raise exception.NotAcceptable()
 
         api_utils.patch_validate_allowed_fields(patch, PATCH_ALLOWED_FIELDS)
-
-        rpc_portgroup = api_utils.get_rpc_portgroup_with_suffix(
-            portgroup_ident)
 
         names = api_utils.get_patch_values(patch, '/name')
         for name in names:
@@ -440,8 +482,8 @@ class PortgroupsController(pecan.rest.RestController):
         # 1) Remove node_id because it's an internal value and
         #    not present in the API object
         # 2) Add node_uuid
-        rpc_node = api_utils.replace_node_id_with_uuid(portgroup_dict)
-
+        portgroup_dict.pop('node_id')
+        portgroup_dict['node_uuid'] = rpc_node.uuid
         portgroup_dict = api_utils.apply_jsonpatch(portgroup_dict, patch)
 
         if 'mode' not in portgroup_dict:
@@ -504,16 +546,13 @@ class PortgroupsController(pecan.rest.RestController):
         if not api_utils.allow_portgroups():
             raise exception.NotFound()
 
+        rpc_portgroup, rpc_node = api_utils.check_port_policy_and_retrieve(
+            'baremetal:portgroup:delete', portgroup_ident, portgroup=True)
+
         context = api.request.context
-        api_utils.check_policy('baremetal:portgroup:delete')
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
-
-        rpc_portgroup = api_utils.get_rpc_portgroup_with_suffix(
-            portgroup_ident)
-        rpc_node = objects.Node.get_by_id(api.request.context,
-                                          rpc_portgroup.node_id)
 
         notify.emit_start_notification(context, rpc_portgroup, 'delete',
                                        node_uuid=rpc_node.uuid)

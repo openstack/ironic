@@ -383,7 +383,15 @@ class PortsController(rest.RestController):
                                    for that portgroup.
         :raises: NotAcceptable, HTTPNotFound
         """
-        project = api_utils.check_port_list_policy()
+        project = api_utils.check_port_list_policy(
+            parent_node=self.parent_node_ident,
+            parent_portgroup=self.parent_portgroup_ident)
+
+        if self.parent_node_ident:
+            node = self.parent_node_ident
+
+        if self.parent_portgroup_ident:
+            portgroup = self.parent_portgroup_ident
 
         api_utils.check_allow_specify_fields(fields)
         self._check_allowed_port_fields(fields)
@@ -439,7 +447,9 @@ class PortsController(rest.RestController):
         :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
         :raises: NotAcceptable, HTTPNotFound
         """
-        project = api_utils.check_port_list_policy()
+        project = api_utils.check_port_list_policy(
+            parent_node=self.parent_node_ident,
+            parent_portgroup=self.parent_portgroup_ident)
 
         self._check_allowed_port_fields([sort_key])
         if portgroup and not api_utils.allow_portgroups_subcontrollers():
@@ -499,13 +509,36 @@ class PortsController(rest.RestController):
         if self.parent_node_ident or self.parent_portgroup_ident:
             raise exception.OperationNotPermitted()
 
-        context = api.request.context
-        api_utils.check_policy('baremetal:port:create')
-
         # NOTE(lucasagomes): Create the node_id attribute on-the-fly
         #                    to satisfy the api -> rpc object
         #                    conversion.
-        node = api_utils.replace_node_uuid_with_id(port)
+        # NOTE(TheJulia): The get of the node *does* check if the node
+        # can be accessed. We need to be able to get the node regardless
+        # in order to perform the actual policy check.
+        raise_node_not_found = False
+        node = None
+        owner = None
+        lessee = None
+        node_uuid = port.get('node_uuid')
+        try:
+            node = api_utils.replace_node_uuid_with_id(port)
+            owner = node.owner
+            lessee = node.lessee
+        except exception.NotFound:
+            raise_node_not_found = True
+
+        # While the rule is for the port, the base object that controls access
+        # is the node.
+        api_utils.check_owner_policy('node', 'baremetal:port:create',
+                                     owner, lessee=lessee,
+                                     conceal_node=False)
+        if raise_node_not_found:
+            # Delayed raise of NodeNotFound because we want to check
+            # the access policy first.
+            raise exception.NodeNotFound(node=node_uuid,
+                                         code=http_client.BAD_REQUEST)
+
+        context = api.request.context
 
         self._check_allowed_port_fields(port)
 

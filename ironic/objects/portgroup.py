@@ -152,17 +152,19 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Implications of calling new remote procedures should be thought through.
     # @object_base.remotable_classmethod
     @classmethod
-    def get_by_address(cls, context, address):
+    def get_by_address(cls, context, address, project=None):
         """Find portgroup by address and return a :class:`Portgroup` object.
 
         :param cls: the :class:`Portgroup`
         :param context: Security context
         :param address: The MAC address of a portgroup.
+        :param project: a node owner or lessee to match against.
         :returns: A :class:`Portgroup` object.
         :raises: PortgroupNotFound
 
         """
-        db_portgroup = cls.dbapi.get_portgroup_by_address(address)
+        db_portgroup = cls.dbapi.get_portgroup_by_address(address,
+                                                          project=project)
         portgroup = cls._from_db_object(context, cls(), db_portgroup)
         return portgroup
 
@@ -191,7 +193,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def list(cls, context, limit=None, marker=None,
-             sort_key=None, sort_dir=None):
+             sort_key=None, sort_dir=None, project=None):
         """Return a list of Portgroup objects.
 
         :param cls: the :class:`Portgroup`
@@ -200,6 +202,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         :param marker: Pagination marker for large data sets.
         :param sort_key: Column to sort results by.
         :param sort_dir: Direction to sort. "asc" or "desc".
+        :param project: a node owner or lessee to match against.
         :returns: A list of :class:`Portgroup` object.
         :raises: InvalidParameterValue
 
@@ -207,7 +210,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         db_portgroups = cls.dbapi.get_portgroup_list(limit=limit,
                                                      marker=marker,
                                                      sort_key=sort_key,
-                                                     sort_dir=sort_dir)
+                                                     sort_dir=sort_dir,
+                                                     project=project)
         return cls._from_db_object_list(context, db_portgroups)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -216,7 +220,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def list_by_node_id(cls, context, node_id, limit=None, marker=None,
-                        sort_key=None, sort_dir=None):
+                        sort_key=None, sort_dir=None, project=None):
         """Return a list of Portgroup objects associated with a given node ID.
 
         :param cls: the :class:`Portgroup`
@@ -226,6 +230,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         :param marker: Pagination marker for large data sets.
         :param sort_key: Column to sort results by.
         :param sort_dir: Direction to sort. "asc" or "desc".
+        :param project: a node owner or lessee to match against.
         :returns: A list of :class:`Portgroup` object.
         :raises: InvalidParameterValue
 
@@ -234,7 +239,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                             limit=limit,
                                                             marker=marker,
                                                             sort_key=sort_key,
-                                                            sort_dir=sort_dir)
+                                                            sort_dir=sort_dir,
+                                                            project=project)
         return cls._from_db_object_list(context, db_portgroups)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable

@@ -160,14 +160,12 @@ class TestACLBase(base.BaseApiTest):
                      or '403' in response.status)
                 and cfg.CONF.oslo_policy.enforce_scope
                 and cfg.CONF.oslo_policy.enforce_new_defaults):
-            # NOTE(TheJulia): Everything, once migrated, should
-            # return a 403.
             self.assertEqual(assert_status, response.status_int)
         else:
             self.assertTrue(
-                '404' in response.status
-                or '500' in response.status
-                or '403' in response.status)
+                ('404' in response.status
+                 or '500' in response.status
+                 or '403' in response.status))
             # We can't check the contents of the response if there is no
             # response.
             return
@@ -258,6 +256,7 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
             node_id=fake_db_node['id'],
             internal_info={'tenant_vif_port_id': fake_vif_port_id})
         fake_db_portgroup = db_utils.create_test_portgroup(
+            uuid="6eb02b44-18a3-4659-8c0b-8d2802581ae4",
             node_id=fake_db_node['id'])
         fake_db_chassis = db_utils.create_test_chassis(
             drivers=['fake-hardware', 'fake-driverz', 'fake-driver'])
@@ -371,13 +370,29 @@ class TestRBACProjectScoped(TestACLBase):
         owner_project_id = '70e5e25a-2ca2-4cb1-8ae8-7d8739cee205'
         lessee_project_id = 'f11853c7-fa9c-4db3-a477-c9d8e0dbbf13'
         unowned_node = db_utils.create_test_node(chassis_id=None)
+
         # owned node - since the tests use the same node for
         # owner/lesse checks
-        db_utils.create_test_node(
+        owned_node = db_utils.create_test_node(
             uuid=owner_node_ident,
             owner=owner_project_id,
             last_error='meow',
             reservation='lolcats')
+        owned_node_port = db_utils.create_test_port(
+            uuid='ebe30f19-358d-41e1-8d28-fd7357a0164c',
+            node_id=owned_node['id'],
+            address='00:00:00:00:00:01')
+        db_utils.create_test_port(
+            uuid='21a3c5a7-1e14-44dc-a9dd-0c84d5477a57',
+            node_id=owned_node['id'],
+            address='00:00:00:00:00:02')
+        owner_pgroup = db_utils.create_test_portgroup(
+            uuid='b16efcf3-2990-41a1-bc1d-5e2c16f3d5fc',
+            node_id=owned_node['id'],
+            name='magicfoo',
+            address='01:03:09:ff:01:01')
+
+        # Leased nodes
         leased_node = db_utils.create_test_node(
             uuid=lessee_node_ident,
             owner=owner_project_id,
@@ -395,6 +410,19 @@ class TestRBACProjectScoped(TestACLBase):
         fake_trait = 'CUSTOM_MEOW'
         fake_vif_port_id = "0e21d58f-5de2-4956-85ff-33935ea1ca01"
 
+        # Random objects that shouldn't be project visible
+        other_port = db_utils.create_test_port(
+            uuid='abfd8dbb-1732-449a-b760-2224035c6b99',
+            address='00:00:00:00:00:ff')
+
+        other_node = db_utils.create_test_node(
+            uuid='573208e5-cd41-4e26-8f06-ef44022b3793')
+        other_pgroup = db_utils.create_test_portgroup(
+            uuid='5810f41c-6585-41fc-b9c9-a94f50d421b5',
+            node_id=other_node['id'],
+            name='corgis_rule_the_world',
+            address='ff:ff:ff:ff:ff:0f')
+
         self.format_data.update({
             'node_ident': unowned_node['uuid'],
             'owner_node_ident': owner_node_ident,
@@ -402,12 +430,16 @@ class TestRBACProjectScoped(TestACLBase):
             'allocated_node_ident': lessee_node_ident,
             'volume_target_ident': fake_db_volume_target['uuid'],
             'volume_connector_ident': fake_db_volume_connector['uuid'],
-            'port_ident': fake_db_port['uuid'],
-            'portgroup_ident': fake_db_portgroup['uuid'],
+            'lessee_port_ident': fake_db_port['uuid'],
+            'lessee_portgroup_ident': fake_db_portgroup['uuid'],
             'trait': fake_trait,
             'vif_ident': fake_vif_port_id,
             'ind_component': 'component',
-            'ind_ident': 'magic_light'})
+            'ind_ident': 'magic_light',
+            'owner_port_ident': owned_node_port['uuid'],
+            'other_port_ident': other_port['uuid'],
+            'owner_portgroup_ident': owner_pgroup['uuid'],
+            'other_portgroup_ident': other_pgroup['uuid']})
 
     @ddt.file_data('test_rbac_project_scoped.yaml')
     @ddt.unpack

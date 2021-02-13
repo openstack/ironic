@@ -941,7 +941,9 @@ ports_post_member:
   method: post
   headers: *scoped_member_headers
   assert_status: 403
-  body: *port_body
+  body:
+    node_uuid: 22e26c0b-03f2-4d2e-ae87-c02d7f33c000
+    address: 03:04:05:06:07:08
 
 ports_post_reader:
   path: '/v1/ports'

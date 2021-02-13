@@ -2383,6 +2383,16 @@ class TestPatch(test_api_base.BaseApiTest):
         self.node_no_name = obj_utils.create_test_node(
             self.context, uuid='deadbeef-0000-1111-2222-333333333333',
             chassis_id=self.chassis.id)
+        self.port = obj_utils.create_test_port(
+            self.context,
+            uuid='9bb50f13-0b8d-4ade-ad2d-d91fefdef9cc',
+            address='00:01:02:03:04:05',
+            node_id=self.node.id)
+        self.portgroup = obj_utils.create_test_portgroup(
+            self.context,
+            uuid='9bb50f13-0b8d-4ade-ad2d-d91fefdef9ff',
+            address='00:00:00:00:00:ff',
+            node_id=self.node.id)
         p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
                               autospec=True)
         self.mock_gtf = p.start()
@@ -2693,7 +2703,7 @@ class TestPatch(test_api_base.BaseApiTest):
 
     def test_patch_portgroups_subresource(self):
         response = self.patch_json(
-            '/nodes/%s/portgroups/9bb50f13-0b8d-4ade-ad2d-d91fefdef9cc' %
+            '/nodes/%s/portgroups/9bb50f13-0b8d-4ade-ad2d-d91fefdef9ff' %
             self.node.uuid,
             [{'path': '/extra/foo', 'value': 'bar',
               'op': 'add'}], expect_errors=True,

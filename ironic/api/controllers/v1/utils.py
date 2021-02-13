@@ -275,6 +275,13 @@ def replace_node_uuid_with_id(to_dict):
         node = objects.Node.get_by_uuid(api.request.context,
                                         to_dict.pop('node_uuid'))
         to_dict['node_id'] = node.id
+        # if they cannot get the node, then this will error
+        # helping guard access to all users of this method as
+        # users which may have rights at a minimum need to be able
+        # to see the node they are trying to do something with.
+        check_owner_policy('node', 'baremetal:node:get', node['owner'],
+                           node['lessee'], conceal_node=node.uuid)
+
     except exception.NodeNotFound as e:
         # Change error code because 404 (NotFound) is inappropriate
         # response for requests acting on non-nodes
@@ -1646,52 +1653,137 @@ def check_list_policy(object_type, owner=None):
     return owner
 
 
-def check_port_policy_and_retrieve(policy_name, port_uuid):
+def check_port_policy_and_retrieve(policy_name, port_ident, portgroup=False):
     """Check if the specified policy authorizes this request on a port.
 
     :param: policy_name: Name of the policy to check.
-    :param: port_uuid: the UUID of a port.
+    :param: port_ident: The name, uuid, or other valid ID value to find
+                        a port or portgroup by.
 
     :raises: HTTPForbidden if the policy forbids access.
     :raises: NodeNotFound if the node is not found.
-    :return: RPC port identified by port_uuid and associated node
+    :return: RPC port identified by port_ident associated node
     """
     context = api.request.context
     cdict = context.to_policy_values()
-
+    owner = None
+    lessee = None
     try:
-        rpc_port = objects.Port.get_by_uuid(context, port_uuid)
-    except exception.PortNotFound:
+        if not portgroup:
+            rpc_port = objects.Port.get(context, port_ident)
+        else:
+            rpc_port = objects.Portgroup.get(context, port_ident)
+    except (exception.PortNotFound, exception.PortgroupNotFound):
         # don't expose non-existence of port unless requester
         # has generic access to policy
-        policy.authorize(policy_name, cdict, context)
         raise
 
-    rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
     target_dict = dict(cdict)
-    target_dict['node.owner'] = rpc_node['owner']
-    target_dict['node.lessee'] = rpc_node['lessee']
+    try:
+        rpc_node = objects.Node.get_by_id(context, rpc_port.node_id)
+        owner = rpc_node['owner']
+        lessee = rpc_node['lessee']
+    except exception.NodeNotFound:
+        # There is no spoon, err, node.
+        rpc_node = None
+        pass
+    target_dict = dict(cdict)
+    target_dict['node.owner'] = owner
+    target_dict['node.lessee'] = lessee
+    try:
+        policy.authorize('baremetal:node:get', target_dict, context)
+    except exception.NotAuthorized:
+        if not portgroup:
+            raise exception.PortNotFound(port=port_ident)
+        else:
+            raise exception.PortgroupNotFound(portgroup=port_ident)
+
     policy.authorize(policy_name, target_dict, context)
 
     return rpc_port, rpc_node
 
 
-def check_port_list_policy():
+def check_port_list_policy(portgroup=False, parent_node=None,
+                           parent_portgroup=None):
     """Check if the specified policy authorizes this request on a port.
+
+    :param portgroup: Boolean value, default false, indicating if the list
+                      policy check is for a portgroup as the policy names
+                      are different between ports and portgroups.
+    :param parent_node: The UUID of a node, if any, to apply a policy
+                        check to as well before applying other policy
+                        check operations.
+    :param parent_portgroup: The UUID of the parent portgroup if the list
+                             of ports was retrieved via the
+                             /v1/portgroups/<uuid>/ports.
 
     :raises: HTTPForbidden if the policy forbids access.
     :return: owner that should be used for list query, if needed
     """
+
     cdict = api.request.context.to_policy_values()
+
+    # No node is associated with this request, yet.
+    rpc_node = None
+    conceal_linked_node = None
+
+    if parent_portgroup:
+        # lookup the portgroup via the db, and then set parent_node
+        rpc_portgroup = objects.Portgroup.get_by_uuid(api.request.context,
+                                                      parent_portgroup)
+        rpc_node = objects.Node.get_by_id(api.request.context,
+                                          rpc_portgroup.node_id)
+        parent_node = rpc_node.uuid
+
+    if parent_node and not rpc_node:
+        try:
+            rpc_node = objects.Node.get_by_uuid(api.request.context,
+                                                parent_node)
+            conceal_linked_node = rpc_node.uuid
+        except exception.NotFound:
+            # NOTE(TheJulia): This only covers portgroups since
+            # you can't go from ports to other items.
+            raise exception.PortgroupNotFound(portgroup=parent_portgroup)
+
+    if parent_node:
+        try:
+            check_owner_policy(
+                'node', 'baremetal:node:get',
+                rpc_node.owner, rpc_node.lessee,
+                conceal_node=conceal_linked_node)
+        except exception.NotAuthorized:
+            if parent_portgroup:
+                # If this call was invoked with a parent portgroup
+                # then we need to signal the parent portgroup was not
+                # found.
+                raise exception.PortgroupNotFound(
+                    portgroup=parent_portgroup)
+            if parent_node:
+                # This should likely never be hit, because
+                # the existence of a parent node should
+                # trigger the node not found exception to be
+                # explicitly raised.
+                raise exception.NodeNotFound(
+                    node=parent_node)
+            raise
+
     try:
-        policy.authorize('baremetal:port:list_all',
-                         cdict, api.request.context)
+        if not portgroup:
+            policy.authorize('baremetal:port:list_all',
+                             cdict, api.request.context)
+        else:
+            policy.authorize('baremetal:portgroup:list_all',
+                             cdict, api.request.context)
     except exception.HTTPForbidden:
         owner = cdict.get('project_id')
         if not owner:
             raise
-        policy.authorize('baremetal:port:list',
-                         cdict, api.request.context)
+        if not portgroup:
+            policy.authorize('baremetal:port:list',
+                             cdict, api.request.context)
+        else:
+            policy.authorize('baremetal:portgroup:list',
+                             cdict, api.request.context)
         return owner
 
 
