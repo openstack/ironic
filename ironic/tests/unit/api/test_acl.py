@@ -261,4 +261,4 @@ class TestRBACScoped(TestRBACModelBeforeScopes):
         # NOTE(TheJulia): The purpose of this class is to execute the legacy
         # RBAC tests with the new configuration, which forces us to
         # explicity mark each test as a deprecated test later on. That
-        # funcationality will be added in a later patch when needed,
+        # functionality will be added in a later patch when needed,

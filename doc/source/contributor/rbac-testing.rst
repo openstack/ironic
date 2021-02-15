@@ -1,6 +1,6 @@
-==================================
-Role Based Acces Control - Testing
-==================================
+===================================
+Role Based Access Control - Testing
+===================================
 
 .. todo: This entire file is being added in to provide context for
    reviewers so we can keep in-line comments to the necessary points
@@ -8,7 +8,7 @@ Role Based Acces Control - Testing
    later patches, but it is also broad in nature attempting to provide
    context to aid in review.
 
-The Role Based Access control testing is a minor departure from the ironic
+The Role Based Access control testing is a minor departure from the Ironic
 standard pattern of entirely python based unit testing. In part this was done
 for purposes of speed and to keep the declaration of the test context.
 
@@ -46,7 +46,7 @@ one of the following error codes.
 * 403 - Forbidden - This tells us the policy worked as expected where
         access was denied.
 * 404 - NotFound - This is typically when objects were not found. Before
-        ironic becomes scope aware, these are generally only in the drivers
+        Ironic becomes scope aware, these are generally only in the drivers
         API endpoint's behavior. In System scope aware Project scoped
         configuration, i.e. later RBAC tests, this will become the dominant
         response for project scoped users as responding with a 403 if they
@@ -74,7 +74,8 @@ and ``lessee`` having slightly different views of the universe.
 
 Some general rules apply
 
-* Admins can do things
+* Admins can do things, at least as far as their scope or rights apply.
+  Remember: owner and lessee admins are closer to System scoped Admin Members.
 * Members can do some things, but not everything
 * Readers can always read, but as we get into sensitive data later on
   such as fields containing infrastucture internal addresses, these values
