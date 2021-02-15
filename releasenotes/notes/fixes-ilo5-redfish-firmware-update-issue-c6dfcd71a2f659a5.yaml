@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes redfish firmware update for ilo5 based hardware by
+    making necessary changes to check whether sushy_task.messages
+    is present, since in case of iLo task data does not contain
+    messages attribute. Also it was not calling prepare_ramdisk()
+    before rebooting the system to update the firmware which has
+    been fixed in this patch.
