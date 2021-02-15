@@ -861,7 +861,7 @@
           IRONIC_DEPLOY_DRIVER: ipmi
           IRONIC_VM_COUNT: 4
           IRONIC_VM_EPHEMERAL_DISK: 1
-          IRONIC_VM_SPECS_RAM: 384
+          IRONIC_VM_SPECS_RAM: 512
           IRONIC_RAMDISK_TYPE: tinyipa
           IRONIC_TEMPEST_BUILD_TIMEOUT: 1200
           IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
@@ -952,7 +952,7 @@
             IRONIC_USE_LINK_LOCAL: True
             IRONIC_VM_COUNT: 4
             IRONIC_VM_EPHEMERAL_DISK: 0
-            IRONIC_VM_SPECS_RAM: 384
+            IRONIC_VM_SPECS_RAM: 512
             IRONIC_VM_NETWORK_BRIDGE: sub1brbm
             OVS_BRIDGE_MAPPINGS: 'mynetwork:sub1brbm,public:br-infra'
             OVS_PHYSICAL_BRIDGE: sub1brbm
