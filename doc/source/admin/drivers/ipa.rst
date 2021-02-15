@@ -44,6 +44,8 @@ Requirements
 Using IPA requires it to be present and configured on the deploy ramdisk, see
 :ref:`deploy-ramdisk`
 
+.. _ipa-proxies:
+
 Using proxies for image download
 ================================
 
