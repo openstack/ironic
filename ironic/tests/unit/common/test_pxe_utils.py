@@ -103,6 +103,17 @@ class TestPXEUtils(db_base.DbTestCase):
             'password': 'fake_password',
         })
 
+        self.ipxe_options_boot_from_volume_multipath = \
+            self.ipxe_options.copy()
+        self.ipxe_options_boot_from_volume_multipath.update({
+            'boot_from_volume': True,
+            'iscsi_boot_url': 'iscsi:fake_host::3260:0:fake_iqn '
+                              'iscsi:faker_host::3260:0:fake_iqn',
+            'iscsi_initiator_iqn': 'fake_iqn',
+            'username': 'fake_username',
+            'password': 'fake_password',
+        })
+
         self.ipxe_options_boot_from_volume_no_extra_volume.pop(
             'initrd_filename', None)
         self.ipxe_options_boot_from_volume_extra_volume.pop(
@@ -178,6 +189,25 @@ class TestPXEUtils(db_base.DbTestCase):
              'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'})
 
         templ_file = 'ironic/tests/unit/drivers/ipxe_config_timeout.template'
+        with open(templ_file) as f:
+            expected_template = f.read().rstrip()
+
+        self.assertEqual(str(expected_template), rendered_template)
+
+    def test_default_ipxe_boot_from_volume_config_multipath(self):
+        self.config(
+            pxe_config_template='ironic/drivers/modules/ipxe_config.template',
+            group='pxe'
+        )
+        self.config(http_url='http://1.2.3.4:1234', group='deploy')
+        rendered_template = utils.render_template(
+            CONF.pxe.pxe_config_template,
+            {'pxe_options': self.ipxe_options_boot_from_volume_multipath,
+             'ROOT': '{{ ROOT }}',
+             'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'})
+
+        templ_file = 'ironic/tests/unit/drivers/' \
+                     'ipxe_config_boot_from_volume_multipath.template'
         with open(templ_file) as f:
             expected_template = f.read().rstrip()
 
@@ -1492,7 +1522,8 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                                             debug=False,
                                             boot_from_volume=False,
                                             mode='deploy',
-                                            iso_boot=False):
+                                            iso_boot=False,
+                                            multipath=False):
         self.config(debug=debug)
         self.config(pxe_append_params='test_param', group='pxe')
         self.config(ipxe_timeout=ipxe_timeout, group='pxe')
@@ -1587,7 +1618,6 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
         if boot_from_volume:
             expected_options.update({
                 'boot_from_volume': True,
-                'iscsi_boot_url': 'iscsi:fake_host::3260:0:fake_iqn',
                 'iscsi_initiator_iqn': 'fake_iqn_initiator',
                 'iscsi_volumes': [{'url': 'iscsi:fake_host::3260:1:fake_iqn',
                                    'username': 'fake_username_1',
@@ -1596,6 +1626,15 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                 'username': 'fake_username',
                 'password': 'fake_password'
             })
+            if multipath:
+                expected_options.update({
+                    'iscsi_boot_url': 'iscsi:fake_host::3260:0:fake_iqn '
+                                      'iscsi:faker_host::3261:0:fake_iqn',
+                })
+            else:
+                expected_options.update({
+                    'iscsi_boot_url': 'iscsi:fake_host::3260:0:fake_iqn',
+                })
             expected_options.pop('deployment_aki_path')
             expected_options.pop('deployment_ari_path')
             expected_options.pop('initrd_filename')
@@ -1701,7 +1740,8 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                         'auth_username': 'fake_username_1',
                         'auth_password': 'fake_password_1'})
         self.node.driver_internal_info.update({'boot_from_volume': vol_id})
-        self._test_build_pxe_config_options_ipxe(boot_from_volume=True)
+        self._test_build_pxe_config_options_ipxe(boot_from_volume=True,
+                                                 multipath=True)
 
     def test_get_volume_pxe_options(self):
         vol_id = uuidutils.generate_uuid()

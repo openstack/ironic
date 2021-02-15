@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds support for multipath volumes. If the volume properties have
+    multiple portals, then it will generate multiple iscsi urls and
+    append them together for use in the generated ipxe file.
+
