@@ -1424,6 +1424,13 @@ function configure_ironic {
 
     # Set requirement for agent tokens
     iniset $IRONIC_CONF_FILE DEFAULT require_agent_token $IRONIC_REQUIRE_AGENT_TOKEN
+
+    # FIXME(dtantsur): configdrive downloading code does not respect IPA TLS
+    # configuration, not even ipa-insecure.
+    if is_service_enabled swift && ! is_service_enabled tls-proxy; then
+        iniset $IRONIC_CONF_FILE deploy configdrive_use_object_store True
+    fi
+
     # No need to check if RabbitMQ is enabled, this call does it in a smart way
     if [[ "$IRONIC_RPC_TRANSPORT" == "oslo" ]]; then
         iniset_rpc_backend ironic $IRONIC_CONF_FILE

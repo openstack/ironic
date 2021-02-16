@@ -242,7 +242,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertRaises(exception.SwiftOperationError,
                           deployments.do_node_deploy, task,
                           self.service.conductor.id,
-                          configdrive=b'fake config drive')
+                          configdrive='fake config drive')
         node.refresh()
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
         self.assertEqual(states.ACTIVE, node.target_provision_state)
@@ -265,8 +265,8 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.assertRaises(db_exception.DBDataError,
                               deployments.do_node_deploy, task,
                               self.service.conductor.id,
-                              configdrive=b'fake config drive')
-            expected_instance_info.update(configdrive=b'fake config drive')
+                              configdrive='fake config drive')
+            expected_instance_info.update(configdrive='fake config drive')
             expected_calls = [
                 mock.call(node.uuid,
                           {'version': mock.ANY,
@@ -301,7 +301,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertRaises(RuntimeError,
                           deployments.do_node_deploy, task,
                           self.service.conductor.id,
-                          configdrive=b'fake config drive')
+                          configdrive='fake config drive')
         node.refresh()
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
         self.assertEqual(states.ACTIVE, node.target_provision_state)
@@ -834,7 +834,7 @@ class StoreConfigDriveTestCase(db_base.DbTestCase):
                           group='conductor')
         mock_swift.return_value.get_temp_url.return_value = 'http://1.2.3.4'
 
-        deployments._store_configdrive(self.node, b'foo')
+        deployments._store_configdrive(self.node, 'foo')
 
         mock_swift.assert_called_once_with()
         mock_swift.return_value.create_object.assert_called_once_with(
@@ -862,7 +862,7 @@ class StoreConfigDriveTestCase(db_base.DbTestCase):
                           group='conductor')
         mock_swift.return_value.get_temp_url.return_value = 'http://1.2.3.4'
 
-        deployments._store_configdrive(self.node, b'foo')
+        deployments._store_configdrive(self.node, 'foo')
 
         mock_swift.assert_called_once_with()
         mock_swift.return_value.create_object.assert_called_once_with(
@@ -889,7 +889,7 @@ class StoreConfigDriveTestCase(db_base.DbTestCase):
                           group='conductor')
         mock_swift.return_value.get_temp_url.return_value = 'http://1.2.3.4'
 
-        deployments._store_configdrive(self.node, b'foo')
+        deployments._store_configdrive(self.node, 'foo')
 
         mock_swift.assert_called_once_with()
         mock_swift.return_value.create_object.assert_called_once_with(
