@@ -131,7 +131,8 @@ def _replace_root_uuid(path, root_uuid):
 
 def _replace_boot_line(path, boot_mode, is_whole_disk_image,
                        trusted_boot=False, iscsi_boot=False,
-                       ramdisk_boot=False, ipxe_enabled=False):
+                       ramdisk_boot=False, ipxe_enabled=False,
+                       anaconda_boot=False):
     if is_whole_disk_image:
         boot_disk_type = 'boot_whole_disk'
     elif trusted_boot:
@@ -140,6 +141,8 @@ def _replace_boot_line(path, boot_mode, is_whole_disk_image,
         boot_disk_type = 'boot_iscsi'
     elif ramdisk_boot:
         boot_disk_type = 'boot_ramdisk'
+    elif anaconda_boot:
+        boot_disk_type = 'boot_anaconda'
     else:
         boot_disk_type = 'boot_partition'
 
@@ -163,7 +166,7 @@ def _replace_disk_identifier(path, disk_identifier):
 def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
                       is_whole_disk_image, trusted_boot=False,
                       iscsi_boot=False, ramdisk_boot=False,
-                      ipxe_enabled=False):
+                      ipxe_enabled=False, anaconda_boot=False):
     """Switch a pxe config from deployment mode to service mode.
 
     :param path: path to the pxe config file in tftpboot.
@@ -178,15 +181,17 @@ def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
     :param ramdisk_boot: if the boot is to be to a ramdisk configuration.
     :param ipxe_enabled: A default False boolean value to tell the method
                          if the caller is using iPXE.
+    :param anaconda_boot: if the boot is to be to an anaconda configuration.
     """
-    if not ramdisk_boot and root_uuid_or_disk_id is not None:
+    if (not (ramdisk_boot or anaconda_boot)
+            and root_uuid_or_disk_id is not None):
         if not is_whole_disk_image:
             _replace_root_uuid(path, root_uuid_or_disk_id)
         else:
             _replace_disk_identifier(path, root_uuid_or_disk_id)
 
     _replace_boot_line(path, boot_mode, is_whole_disk_image, trusted_boot,
-                       iscsi_boot, ramdisk_boot, ipxe_enabled)
+                       iscsi_boot, ramdisk_boot, ipxe_enabled, anaconda_boot)
 
 
 def check_for_missing_params(info_dict, error_msg, param_prefix=''):

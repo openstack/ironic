@@ -600,7 +600,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'bios', False, False, False, False, ipxe_enabled=True)
+                'bios', False, False, False, False, ipxe_enabled=True,
+                anaconda_boot=False)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)
@@ -649,7 +650,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
                 ipxe_enabled=True)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'bios', False, False, False, False, ipxe_enabled=True)
+                'bios', False, False, False, False, ipxe_enabled=True,
+                anaconda_boot=False)
             self.assertFalse(set_boot_device_mock.called)
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
@@ -766,7 +768,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
                 ipxe_enabled=True)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, None, boot_modes.LEGACY_BIOS, False,
-                ipxe_enabled=True, iscsi_boot=True, ramdisk_boot=False)
+                ipxe_enabled=True, iscsi_boot=True, ramdisk_boot=False,
+                anaconda_boot=False)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)
@@ -812,7 +815,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
                 ipxe_enabled=True)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, None, boot_modes.LEGACY_BIOS, False,
-                ipxe_enabled=True, iscsi_boot=False, ramdisk_boot=True)
+                ipxe_enabled=True, iscsi_boot=False, ramdisk_boot=True,
+                anaconda_boot=False)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)
@@ -880,7 +884,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
                                                          persistent=True)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'bios', True, False, False, False, ipxe_enabled=True)
+                'bios', True, False, False, False, ipxe_enabled=True,
+                anaconda_boot=False)
             # No clean up
             self.assertFalse(clean_up_pxe_config_mock.called)
             # No netboot configuration beyond the PXE files

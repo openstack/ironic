@@ -74,6 +74,7 @@ class PXEBootTestCase(db_base.DbTestCase):
                     group='anaconda')
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
+        instance_info['image_url'] = 'http://fakeserver/os.tar.gz'
 
         self.config(enabled_boot_interfaces=[self.boot_interface,
                                              'ipxe', 'fake'])
@@ -527,7 +528,8 @@ class PXEBootTestCase(db_base.DbTestCase):
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'bios', False, False, False, False, ipxe_enabled=False)
+                'bios', False, False, False, False, ipxe_enabled=False,
+                anaconda_boot=False)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)
@@ -575,7 +577,8 @@ class PXEBootTestCase(db_base.DbTestCase):
                 ipxe_enabled=False)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'bios', False, False, False, False, ipxe_enabled=False)
+                'bios', False, False, False, False, ipxe_enabled=False,
+                anaconda_boot=False)
             self.assertFalse(set_boot_device_mock.called)
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
@@ -727,7 +730,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, None,
                 'bios', False, ipxe_enabled=False, iscsi_boot=False,
-                ramdisk_boot=True)
+                ramdisk_boot=True, anaconda_boot=False)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)
@@ -739,6 +742,63 @@ class PXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(os.path, 'isfile', lambda path: False)
     def test_prepare_instance_ramdisk_pxe_conf_exists(self):
         self._test_prepare_instance_ramdisk(config_file_exits=False)
+
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
+    @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
+    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
+    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
+                return_value='kickstart', autospec=True)
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url',
+                return_value='http://fakeserver/api', autospec=True)
+    @mock.patch('ironic.common.utils.render_template', autospec=True)
+    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
+    def test_prepare_instance_kickstart(
+            self, write_file_mock, render_mock, api_url_mock, boot_opt_mock,
+            get_image_info_mock, cache_mock, dhcp_factory_mock,
+            create_pxe_config_mock, switch_pxe_config_mock,
+            set_boot_device_mock):
+        image_info = {'kernel': ['ins_kernel_id', '/path/to/kernel'],
+                      'ramdisk': ['ins_ramdisk_id', '/path/to/ramdisk'],
+                      'stage2': ['ins_stage2_id', '/path/to/stage2'],
+                      'ks_cfg': ['', '/path/to/ks.cfg'],
+                      'ks_template': ['template_id', '/path/to/ks_template']}
+        get_image_info_mock.return_value = image_info
+        provider_mock = mock.MagicMock()
+        dhcp_factory_mock.return_value = provider_mock
+        self.node.provision_state = states.DEPLOYING
+        self.config(http_url='http://fake_url', group='deploy')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=False)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=False, ip_version=6)
+            pxe_config_path = pxe_utils.get_pxe_config_file_path(
+                task.node.uuid)
+
+            task.driver.boot.prepare_instance(task)
+
+            get_image_info_mock.assert_called_once_with(task,
+                                                        ipxe_enabled=False)
+            cache_mock.assert_called_once_with(
+                task, image_info, False)
+            provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
+            render_mock.assert_called()
+            write_file_mock.assert_called_with(
+                '/path/to/ks.cfg', render_mock.return_value
+            )
+            create_pxe_config_mock.assert_called_once_with(
+                task, mock.ANY, CONF.pxe.pxe_config_template,
+                ipxe_enabled=False)
+            switch_pxe_config_mock.assert_called_once_with(
+                pxe_config_path, None,
+                'bios', False, ipxe_enabled=False, iscsi_boot=False,
+                ramdisk_boot=False, anaconda_boot=True)
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.PXE,
+                                                         persistent=True)
 
     @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
                        autospec=True)
@@ -826,7 +886,7 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, None,
                 'bios', False, ipxe_enabled=False, iscsi_boot=False,
-                ramdisk_boot=True)
+                ramdisk_boot=True, anaconda_boot=False)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)

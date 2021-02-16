@@ -22,3 +22,8 @@ append tboot.gz --- {{pxe_options.aki_path}} root={{ ROOT }} ro text {{ pxe_opti
 label boot_ramdisk
 kernel {{ pxe_options.aki_path }}
 append initrd={{ pxe_options.ari_path }} root=/dev/ram0 text {{ pxe_options.pxe_append_params|default("", true) }} {{ pxe_options.ramdisk_opts|default('', true) }}
+
+label boot_anaconda
+kernel {{ pxe_options.aki_path }}
+append initrd={{ pxe_options.ari_path }} text {{ pxe_options.pxe_append_params|default("", true) }} inst.ks={{ pxe_options.ks_cfg_url }} inst.stage2={{ pxe_options.stage2_url }}
+ipappend 2
