@@ -5007,14 +5007,44 @@ class TestPut(test_api_base.BaseApiTest):
                                               deploy_steps=None)
 
     def test_provision_with_deploy_configdrive(self):
+        FAKE_CD = """
+w7FJYV8ywqx+wqnCpwPCoXHDisO6HMO2w4nDsBBJccOvXsKUMsO9OcOPCQLCnMKoPSFLwp
+DDhj7Ck8KqwprDpcKWw6XChsOMw5lSEcKUZcO0PUJiWcK4wq0owr4ye8Ozw67ClzXDmsO7
+UxvCpjnCkFQgw73Ch8Kaw5HCicKlXMOvUnDDvg5uwoFkwqDCl8KAEWwCbUQvw7I5JcKUw7
+VbKl3Di8O4LMKuwrHChMOBw5plaVJKci04w7fCgcOgVhkwwoLCgilxwqTCpDNCGzdNw5N6
+wpgAw6jDn8ODLBBlMGcawrEZwr3DiVPDtMKTwpcxwrpBwrrDtcOEw5YTw7MMwqnCsMKqwp
+PCkMK1wpTDssKfwrDCscOsEEDDo8OAw5DCqsKKGBRqwqPDqx7Cg8KkDcOkwoIuwo/CgcK0
+ZcKNf3N7wqIYQcKgQDnCq8KFw6DCvMOwWAHChMO3w5xWb8O3wq7Dn8K4eXgWw742woUqw5
+/DvcK+ScKcX8KzwprCuD3DgcOsC8Oqwp0CwqB8TsOIHsKVwozCv8O+w4LCmE9GCMORw63D
+icOQw4ZFasOzw4Uvw7NSw6Qbw77DkBgkwo4COcOzOWLClRNQXcOHwojCrsOdHMKIw6nDuM
+ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
-                            {'target': states.ACTIVE, 'configdrive': 'foo'})
+                            {'target': states.ACTIVE,
+                             'configdrive': FAKE_CD})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.mock_dnd.assert_called_once_with(context=mock.ANY,
                                               node_id=self.node.uuid,
                                               rebuild=False,
-                                              configdrive='foo',
+                                              configdrive=FAKE_CD,
+                                              topic='test-topic',
+                                              deploy_steps=None)
+        # Check location header
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/states' % self.node.uuid
+        self.assertEqual(urlparse.urlparse(ret.location).path,
+                         expected_location)
+
+    def test_provision_with_deploy_configdrive_url(self):
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.ACTIVE,
+                             'configdrive': 'http://example.com'})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+                                              node_id=self.node.uuid,
+                                              rebuild=False,
+                                              configdrive='http://example.com',
                                               topic='test-topic',
                                               deploy_steps=None)
         # Check location header
@@ -5055,10 +5085,20 @@ class TestPut(test_api_base.BaseApiTest):
                                               topic='test-topic',
                                               deploy_steps=None)
 
-    def test_provision_with_deploy_configdrive_as_dict_unsupported(self):
+    def test_provision_with_deploy_configdrive_invalid_type(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
                             {'target': states.ACTIVE,
-                             'configdrive': {'user_data': 'foo'}},
+                             'configdrive': ["aabb"]},
+                            headers={api_base.Version.string: '1.60'},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+
+    def test_provision_with_deploy_configdrive_not_base64(self):
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.ACTIVE,
+                             # Simulate invalid JSON provided to CLI
+                             'configdrive': '{"meta_data": '},
+                            headers={api_base.Version.string: '1.60'},
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
