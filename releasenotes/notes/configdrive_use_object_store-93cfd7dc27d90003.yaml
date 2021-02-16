@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes the ``[deploy]configdrive_use_object_store`` option that was
+    broken during the Python 3 transition.
