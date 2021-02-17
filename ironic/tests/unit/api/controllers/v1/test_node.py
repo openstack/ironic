@@ -61,7 +61,8 @@ class TestListNodes(test_api_base.BaseApiTest):
     def setUp(self):
         super(TestListNodes, self).setUp()
         self.chassis = obj_utils.create_test_chassis(self.context)
-        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
@@ -1472,7 +1473,7 @@ class TestListNodes(test_api_base.BaseApiTest):
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def _test_node_states(self, mock_utcnow, api_version=None):
         fake_state = 'fake-state'
         fake_error = 'fake-error'
@@ -1511,7 +1512,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual({'foo': 'bar'}, data['raid_config'])
         self.assertEqual({'foo': 'bar'}, data['target_raid_config'])
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_node_states_by_name(self, mock_utcnow):
         fake_state = 'fake-state'
         fake_error = 'fake-error'
@@ -2057,13 +2058,16 @@ class TestListNodes(test_api_base.BaseApiTest):
         expected_data = {'console_enabled': True,
                          'console_info': expected_console_info}
         with mock.patch.object(rpcapi.ConductorAPI,
-                               'get_console_information') as mock_gci:
+                               'get_console_information',
+                               autospec=True) as mock_gci:
             mock_gci.return_value = expected_console_info
             data = self.get_json('/nodes/%s/states/console' % node.uuid)
             self.assertEqual(expected_data, data)
-            mock_gci.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+            mock_gci.assert_called_once_with(
+                mock.ANY, mock.ANY, node.uuid, 'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_console_information')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_console_information',
+                       autospec=True)
     def test_get_console_information_by_name(self, mock_gci):
         node = obj_utils.create_test_node(self.context, name='spam')
         expected_console_info = {'test': 'test-data'}
@@ -2073,41 +2077,49 @@ class TestListNodes(test_api_base.BaseApiTest):
         data = self.get_json('/nodes/%s/states/console' % node.name,
                              headers={api_base.Version.string: "1.5"})
         self.assertEqual(expected_data, data)
-        mock_gci.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_gci.assert_called_once_with(
+            mock.ANY, mock.ANY, node.uuid, 'test-topic')
 
     def test_get_console_information_console_disabled(self):
         node = obj_utils.create_test_node(self.context)
         expected_data = {'console_enabled': False,
                          'console_info': None}
         with mock.patch.object(rpcapi.ConductorAPI,
-                               'get_console_information') as mock_gci:
+                               'get_console_information',
+                               autospec=True) as mock_gci:
             mock_gci.side_effect = (
                 exception.NodeConsoleNotEnabled(node=node.uuid))
             data = self.get_json('/nodes/%s/states/console' % node.uuid)
             self.assertEqual(expected_data, data)
-            mock_gci.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+            mock_gci.assert_called_once_with(
+                mock.ANY, mock.ANY, node.uuid, 'test-topic')
 
     def test_get_console_information_not_supported(self):
         node = obj_utils.create_test_node(self.context)
         with mock.patch.object(rpcapi.ConductorAPI,
-                               'get_console_information') as mock_gci:
+                               'get_console_information',
+                               autospec=True) as mock_gci:
             mock_gci.side_effect = exception.UnsupportedDriverExtension(
                 extension='console', driver='test-driver')
             ret = self.get_json('/nodes/%s/states/console' % node.uuid,
                                 expect_errors=True)
             self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
-            mock_gci.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+            mock_gci.assert_called_once_with(
+                mock.ANY, mock.ANY, node.uuid, 'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_boot_device')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_boot_device',
+                       autospec=True)
     def test_get_boot_device(self, mock_gbd):
         node = obj_utils.create_test_node(self.context)
         expected_data = {'boot_device': boot_devices.PXE, 'persistent': True}
         mock_gbd.return_value = expected_data
         data = self.get_json('/nodes/%s/management/boot_device' % node.uuid)
         self.assertEqual(expected_data, data)
-        mock_gbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_gbd.assert_called_once_with(
+            mock.ANY, mock.ANY, node.uuid, 'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_boot_device')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_boot_device',
+                       autospec=True)
     def test_get_boot_device_by_name(self, mock_gbd):
         node = obj_utils.create_test_node(self.context, name='spam')
         expected_data = {'boot_device': boot_devices.PXE, 'persistent': True}
@@ -2115,9 +2127,11 @@ class TestListNodes(test_api_base.BaseApiTest):
         data = self.get_json('/nodes/%s/management/boot_device' % node.name,
                              headers={api_base.Version.string: "1.5"})
         self.assertEqual(expected_data, data)
-        mock_gbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_gbd.assert_called_once_with(
+            mock.ANY, mock.ANY, node.uuid, 'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_boot_device')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_boot_device',
+                       autospec=True)
     def test_get_boot_device_iface_not_supported(self, mock_gbd):
         node = obj_utils.create_test_node(self.context)
         mock_gbd.side_effect = exception.UnsupportedDriverExtension(
@@ -2126,9 +2140,11 @@ class TestListNodes(test_api_base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
-        mock_gbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_gbd.assert_called_once_with(
+            mock.ANY, mock.ANY, node.uuid, 'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_boot_devices')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_boot_devices',
+                       autospec=True)
     def test_get_supported_boot_devices(self, mock_gsbd):
         mock_gsbd.return_value = [boot_devices.PXE]
         node = obj_utils.create_test_node(self.context)
@@ -2136,9 +2152,11 @@ class TestListNodes(test_api_base.BaseApiTest):
                              % node.uuid)
         expected_data = {'supported_boot_devices': [boot_devices.PXE]}
         self.assertEqual(expected_data, data)
-        mock_gsbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_gsbd.assert_called_once_with(
+            mock.ANY, mock.ANY, node.uuid, 'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_boot_devices')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_boot_devices',
+                       autospec=True)
     def test_get_supported_boot_devices_by_name(self, mock_gsbd):
         mock_gsbd.return_value = [boot_devices.PXE]
         node = obj_utils.create_test_node(self.context, name='spam')
@@ -2147,9 +2165,11 @@ class TestListNodes(test_api_base.BaseApiTest):
             headers={api_base.Version.string: "1.5"})
         expected_data = {'supported_boot_devices': [boot_devices.PXE]}
         self.assertEqual(expected_data, data)
-        mock_gsbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_gsbd.assert_called_once_with(mock.ANY, mock.ANY, node.uuid,
+                                          'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_boot_devices')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_boot_devices',
+                       autospec=True)
     def test_get_supported_boot_devices_iface_not_supported(self, mock_gsbd):
         node = obj_utils.create_test_node(self.context)
         mock_gsbd.side_effect = exception.UnsupportedDriverExtension(
@@ -2158,7 +2178,8 @@ class TestListNodes(test_api_base.BaseApiTest):
                             node.uuid, expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
-        mock_gsbd.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_gsbd.assert_called_once_with(
+            mock.ANY, mock.ANY, node.uuid, 'test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces',
                        autospec=True, return_value={})
@@ -2179,7 +2200,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         mock_vdi.assert_called_once_with(mock.ANY, mock.ANY,
                                          node.uuid, 'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces')
+    @mock.patch.object(rpcapi.ConductorAPI, 'validate_driver_interfaces',
+                       autospec=True)
     def test_validate_by_name_unsupported(self, mock_vdi):
         node = obj_utils.create_test_node(self.context, name='spam')
         ret = self.get_json('/nodes/validate?node=%s' % node.name,
@@ -2198,7 +2220,8 @@ class TestListNodes(test_api_base.BaseApiTest):
         mock_vdi.assert_called_once_with(mock.ANY, mock.ANY,
                                          node.uuid, 'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_indicator_state')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_indicator_state',
+                       autospec=True)
     def test_get_indicator_state(self, mock_gis):
         node = obj_utils.create_test_node(self.context)
         expected_data = {
@@ -2213,10 +2236,11 @@ class TestListNodes(test_api_base.BaseApiTest):
             '/%s' % (node.uuid, indicator_name))
         self.assertEqual(expected_data, data)
         mock_gis.assert_called_once_with(
-            mock.ANY, node.uuid, component, indicator_id,
+            mock.ANY, mock.ANY, node.uuid, component, indicator_id,
             topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_indicator_state')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_indicator_state',
+                       autospec=True)
     def test_get_indicator_state_versioning(self, mock_gis):
         node = obj_utils.create_test_node(self.context, name='spam')
         expected_data = {
@@ -2232,10 +2256,11 @@ class TestListNodes(test_api_base.BaseApiTest):
             headers={api_base.Version.string: "1.63"})
         self.assertEqual(expected_data, data)
         mock_gis.assert_called_once_with(
-            mock.ANY, node.uuid, component, indicator_id,
+            mock.ANY, mock.ANY, node.uuid, component, indicator_id,
             topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_indicator_state')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_indicator_state',
+                       autospec=True)
     def test_get_indicator_state_iface_not_supported(self, mock_gis):
         node = obj_utils.create_test_node(self.context)
         mock_gis.side_effect = exception.UnsupportedDriverExtension(
@@ -2250,10 +2275,11 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
         mock_gis.assert_called_once_with(
-            mock.ANY, node.uuid, component, indicator_id,
+            mock.ANY, mock.ANY, node.uuid, component, indicator_id,
             topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_indicators')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_indicators',
+                       autospec=True)
     def test_get_supported_indicators(self, mock_gsi):
         mock_gsi.return_value = {
             components.CHASSIS: {
@@ -2290,9 +2316,10 @@ class TestListNodes(test_api_base.BaseApiTest):
                              % node.uuid)
         self.assertEqual(expected_data, data)
         mock_gsi.assert_called_once_with(
-            mock.ANY, node.uuid, topic='test-topic')
+            mock.ANY, mock.ANY, node.uuid, topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_indicators')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_indicators',
+                       autospec=True)
     def test_get_supported_indicators_versioning(self, mock_gsi):
         mock_gsi.return_value = {
             components.CHASSIS: {
@@ -2330,9 +2357,10 @@ class TestListNodes(test_api_base.BaseApiTest):
                              headers={api_base.Version.string: "1.63"})
         self.assertEqual(expected_data, data)
         mock_gsi.assert_called_once_with(
-            mock.ANY, node.uuid, topic='test-topic')
+            mock.ANY, mock.ANY, node.uuid, topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_indicators')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_supported_indicators',
+                       autospec=True)
     def test_get_supported_indicators_iface_not_supported(self, mock_gsi):
         node = obj_utils.create_test_node(self.context)
         mock_gsi.side_effect = exception.UnsupportedDriverExtension(
@@ -2342,7 +2370,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
         mock_gsi.assert_called_once_with(
-            mock.ANY, node.uuid, topic='test-topic')
+            mock.ANY, mock.ANY, node.uuid, topic='test-topic')
 
 
 class TestPatch(test_api_base.BaseApiTest):
@@ -2355,18 +2383,22 @@ class TestPatch(test_api_base.BaseApiTest):
         self.node_no_name = obj_utils.create_test_node(
             self.context, uuid='deadbeef-0000-1111-2222-333333333333',
             chassis_id=self.chassis.id)
-        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
-        p = mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'update_node',
+                              autospec=True)
         self.mock_update_node = p.start()
         self.addCleanup(p.stop)
-        p = mock.patch.object(rpcapi.ConductorAPI, 'change_node_power_state')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'change_node_power_state',
+                              autospec=True)
         self.mock_cnps = p.start()
         self.addCleanup(p.stop)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_update_ok(self, mock_notify):
         self.mock_update_node.return_value = self.node
         (self
@@ -2383,7 +2415,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(self.mock_update_node.return_value.updated_at,
                          timeutils.parse_isotime(response.json['updated_at']))
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic', None)
+            mock.ANY, mock.ANY, mock.ANY, 'test-topic', None)
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.START,
@@ -2425,7 +2457,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(self.mock_update_node.return_value.updated_at,
                          timeutils.parse_isotime(response.json['updated_at']))
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic', None)
+            mock.ANY, mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_update_ok_by_name_with_json(self):
         self.mock_update_node.return_value = self.node
@@ -2444,7 +2476,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(self.mock_update_node.return_value.updated_at,
                          timeutils.parse_isotime(response.json['updated_at']))
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic', None)
+            mock.ANY, mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_update_state(self):
         response = self.patch_json('/nodes/%s' % self.node.uuid,
@@ -2454,7 +2486,8 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
         self.assertTrue(response.json['error_message'])
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_update_fails_bad_driver_info(self, mock_notify):
         fake_err = 'Fake Error Message'
         self.mock_update_node.side_effect = (
@@ -2472,7 +2505,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic', None)
+            mock.ANY, mock.ANY, mock.ANY, 'test-topic', None)
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.START,
@@ -2509,7 +2542,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(self.mock_update_node.return_value.updated_at,
                          timeutils.parse_isotime(response.json['updated_at']))
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic', True)
+            mock.ANY, mock.ANY, mock.ANY, 'test-topic', True)
 
     def test_reset_interfaces_without_driver(self):
         response = self.patch_json(
@@ -2541,7 +2574,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic', None)
+            mock.ANY, mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_add_root(self):
         self.mock_update_node.return_value = self.node
@@ -2553,7 +2586,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic', None)
+            mock.ANY, mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_add_root_non_existent(self):
         response = self.patch_json('/nodes/%s' % self.node.uuid,
@@ -2574,7 +2607,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic', None)
+            mock.ANY, mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_remove_non_existent_property_fail(self):
         response = self.patch_json('/nodes/%s' % self.node.uuid,
@@ -2642,7 +2675,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic', None)
+            mock.ANY, mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_patch_ports_subresource_no_port_id(self):
         response = self.patch_json('/nodes/%s/ports' % self.node.uuid,
@@ -2768,7 +2801,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
         self.assertTrue(response.json['error_message'])
 
-    @mock.patch('ironic.api.request')
+    @mock.patch('ironic.api.request')  # noqa
     def test__update_changed_fields_lowers_conductor_group(self,
                                                            mock_pecan_req):
         mock_pecan_req.version.minor = versions.MINOR_MAX_VERSION
@@ -2780,7 +2813,7 @@ class TestPatch(test_api_base.BaseApiTest):
         controller._update_changed_fields(node_dict, self.node)
         self.assertEqual('new-group', self.node.conductor_group)
 
-    @mock.patch("ironic.api.request")
+    @mock.patch('ironic.api.request')  # noqa
     def test__update_changed_fields_remove_chassis_uuid(self, mock_pecan_req):
         mock_pecan_req.version.minor = versions.MINOR_MAX_VERSION
         controller = api_node.NodesController()
@@ -2857,7 +2890,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic', None)
+            mock.ANY, mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_replace_maintenance_by_name(self):
         self.mock_update_node.return_value = self.node
@@ -2871,7 +2904,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
 
         self.mock_update_node.assert_called_once_with(
-            mock.ANY, mock.ANY, 'test-topic', None)
+            mock.ANY, mock.ANY, mock.ANY, 'test-topic', None)
 
     def test_replace_consoled_enabled(self):
         response = self.patch_json('/nodes/%s' % self.node.uuid,
@@ -3017,7 +3050,8 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.CONFLICT, response.status_code)
         self.assertTrue(response.json['error_message'])
 
-    @mock.patch.object(api_node.NodesController, '_check_names_acceptable')
+    @mock.patch.object(api_node.NodesController, '_check_names_acceptable',
+                       autospec=True)
     def test_patch_name_remove_ok(self, cna_mock):
         self.mock_update_node.return_value = self.node
         response = self.patch_json('/nodes/%s' % self.node.uuid,
@@ -3029,7 +3063,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
         self.assertFalse(cna_mock.called)
 
-    @mock.patch.object(api_utils, 'get_rpc_node')
+    @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
     def test_patch_update_drive_console_enabled(self, mock_rpc_node):
         self.node.console_enabled = True
         mock_rpc_node.return_value = self.node
@@ -3943,12 +3977,13 @@ class TestPost(test_api_base.BaseApiTest):
     def setUp(self):
         super(TestPost, self).setUp()
         self.chassis = obj_utils.create_test_chassis(self.context)
-        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
 
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def _test_create_node(self, mock_utcnow, headers=None,
                           remove_chassis_uuid=False, **kwargs):
         headers = headers or {}
@@ -4201,7 +4236,7 @@ class TestPost(test_api_base.BaseApiTest):
         response = self.post_json('/nodes/%s/vendor_passthru/test' % node.uuid,
                                   info)
         mock_vendor.assert_called_once_with(
-            mock.ANY, node.uuid, 'test', 'POST', info, 'test-topic')
+            mock.ANY, mock.ANY, node.uuid, 'test', 'POST', info, 'test-topic')
         self.assertEqual(expected_return_value, response.body)
         self.assertEqual(expected_status, response.status_code)
 
@@ -4222,21 +4257,21 @@ class TestPost(test_api_base.BaseApiTest):
                                   info,
                                   headers={api_base.Version.string: "1.5"})
         mock_vendor.assert_called_once_with(
-            mock.ANY, node.uuid, 'test', 'POST', info, 'test-topic')
+            mock.ANY, mock.ANY, node.uuid, 'test', 'POST', info, 'test-topic')
         self.assertEqual(expected_return_value, response.body)
         self.assertEqual(expected_status, response.status_code)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru', autospec=True)
     def test_vendor_passthru_async(self, mock_vendor):
         self._test_vendor_passthru_ok(mock_vendor)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru', autospec=True)
     def test_vendor_passthru_sync(self, mock_vendor):
         return_value = {'cat': 'meow'}
         self._test_vendor_passthru_ok(mock_vendor, return_value=return_value,
                                       is_async=False)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru', autospec=True)
     def test_vendor_passthru_put(self, mocked_vendor_passthru):
         node = obj_utils.create_test_node(self.context)
         return_value = {'return': None, 'async': True, 'attach': False}
@@ -4247,11 +4282,11 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru', autospec=True)
     def test_vendor_passthru_by_name(self, mock_vendor):
         self._test_vendor_passthru_ok_by_name(mock_vendor)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru', autospec=True)
     def test_vendor_passthru_get(self, mocked_vendor_passthru):
         node = obj_utils.create_test_node(self.context)
         return_value = {'return': 'foo', 'async': False, 'attach': False}
@@ -4260,7 +4295,7 @@ class TestPost(test_api_base.BaseApiTest):
             '/nodes/%s/vendor_passthru/do_test' % node.uuid)
         self.assertEqual(return_value['return'], response)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vendor_passthru', autospec=True)
     def test_vendor_passthru_delete(self, mock_vendor_passthru):
         node = obj_utils.create_test_node(self.context)
         return_value = {'return': None, 'async': True, 'attach': False}
@@ -4275,14 +4310,15 @@ class TestPost(test_api_base.BaseApiTest):
         uuid = node.uuid
         info = {'foo': 'bar'}
 
-        with mock.patch.object(
-                rpcapi.ConductorAPI, 'vendor_passthru') as mock_vendor:
+        with mock.patch.object(rpcapi.ConductorAPI,
+                               'vendor_passthru',
+                               autospec=True) as mock_vendor:
             mock_vendor.side_effect = exception.UnsupportedDriverExtension(
                 **{'driver': node.driver, 'node': uuid, 'extension': 'test'})
             response = self.post_json('/nodes/%s/vendor_passthru/test' % uuid,
                                       info, expect_errors=True)
             mock_vendor.assert_called_once_with(
-                mock.ANY, uuid, 'test', 'POST', info, 'test-topic')
+                mock.ANY, mock.ANY, uuid, 'test', 'POST', info, 'test-topic')
             self.assertEqual(http_client.BAD_REQUEST, response.status_code)
 
     def test_vendor_passthru_without_method(self):
@@ -4376,7 +4412,8 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(urlparse.urlparse(response.location).path,
                          expected_location)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_create_node_with_chassis_uuid(self, mock_notify):
         ndict = test_api_utils.post_get_test_node(
             chassis_uuid=self.chassis.uuid)
@@ -4415,7 +4452,8 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertTrue(response.json['error_message'])
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_node_vendor_passthru_methods')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_node_vendor_passthru_methods',
+                       autospec=True)
     def test_vendor_passthru_methods(self, get_methods_mock):
         return_value = {'foo': 'bar'}
         get_methods_mock.return_value = return_value
@@ -4424,7 +4462,7 @@ class TestPost(test_api_base.BaseApiTest):
 
         data = self.get_json(path)
         self.assertEqual(return_value, data)
-        get_methods_mock.assert_called_once_with(mock.ANY, node.uuid,
+        get_methods_mock.assert_called_once_with(mock.ANY, mock.ANY, node.uuid,
                                                  topic=mock.ANY)
 
         # Now let's test the cache: Reset the mock
@@ -4600,17 +4638,20 @@ class TestDelete(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestDelete, self).setUp()
-        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node', autospec=True)
     def test_delete_node(self, mock_dn, mock_notify):
         node = obj_utils.create_test_node(self.context)
         self.delete('/nodes/%s' % node.uuid)
-        mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_dn.assert_called_once_with(mock.ANY, mock.ANY, node.uuid,
+                                        'test-topic')
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'delete',
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.START,
@@ -4620,28 +4661,30 @@ class TestDelete(test_api_base.BaseApiTest):
                                       obj_fields.NotificationStatus.END,
                                       chassis_uuid=None)])
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
+    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node', autospec=True)
     def test_delete_node_by_name_unsupported(self, mock_dn):
         node = obj_utils.create_test_node(self.context, name='foo')
         self.delete('/nodes/%s' % node.name,
                     expect_errors=True)
         self.assertFalse(mock_dn.called)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
+    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node', autospec=True)
     def test_delete_node_by_name(self, mock_dn):
         node = obj_utils.create_test_node(self.context, name='foo.1')
         self.delete('/nodes/%s' % node.name,
                     headers={api_base.Version.string: "1.5"})
-        mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_dn.assert_called_once_with(mock.ANY, mock.ANY, node.uuid,
+                                        'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
+    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node', autospec=True)
     def test_delete_node_by_name_with_json(self, mock_dn):
         node = obj_utils.create_test_node(self.context, name='foo')
         self.delete('/nodes/%s.json' % node.name,
                     headers={api_base.Version.string: "1.5"})
-        mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_dn.assert_called_once_with(mock.ANY, mock.ANY, node.uuid,
+                                        'test-topic')
 
-    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
     def test_delete_node_not_found(self, mock_gbu):
         node = obj_utils.get_test_node(self.context)
         mock_gbu.side_effect = exception.NodeNotFound(node=node.uuid)
@@ -4652,7 +4695,7 @@ class TestDelete(test_api_base.BaseApiTest):
         self.assertTrue(response.json['error_message'])
         mock_gbu.assert_called_once_with(mock.ANY, node.uuid)
 
-    @mock.patch.object(objects.Node, 'get_by_name')
+    @mock.patch.object(objects.Node, 'get_by_name', autospec=True)
     def test_delete_node_not_found_by_name_unsupported(self, mock_gbn):
         node = obj_utils.get_test_node(self.context, name='foo')
         mock_gbn.side_effect = exception.NodeNotFound(node=node.name)
@@ -4662,7 +4705,7 @@ class TestDelete(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
         self.assertFalse(mock_gbn.called)
 
-    @mock.patch.object(objects.Node, 'get_by_name')
+    @mock.patch.object(objects.Node, 'get_by_name', autospec=True)
     def test_delete_node_not_found_by_name(self, mock_gbn):
         node = obj_utils.get_test_node(self.context, name='foo')
         mock_gbn.side_effect = exception.NodeNotFound(node=node.name)
@@ -4728,8 +4771,9 @@ class TestDelete(test_api_base.BaseApiTest):
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'destroy_node', autospec=True)
     def test_delete_associated(self, mock_dn, mock_notify):
         node = obj_utils.create_test_node(
             self.context,
@@ -4739,7 +4783,8 @@ class TestDelete(test_api_base.BaseApiTest):
 
         response = self.delete('/nodes/%s' % node.uuid, expect_errors=True)
         self.assertEqual(http_client.CONFLICT, response.status_int)
-        mock_dn.assert_called_once_with(mock.ANY, node.uuid, 'test-topic')
+        mock_dn.assert_called_once_with(mock.ANY, mock.ANY, node.uuid,
+                                        'test-topic')
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'delete',
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.START,
@@ -4749,8 +4794,8 @@ class TestDelete(test_api_base.BaseApiTest):
                                       obj_fields.NotificationStatus.ERROR,
                                       chassis_uuid=None)])
 
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'update_node', autospec=True)
     def test_delete_node_maintenance_mode(self, mock_update, mock_get):
         node = obj_utils.create_test_node(self.context, maintenance=True,
                                           maintenance_reason='blah')
@@ -4761,11 +4806,11 @@ class TestDelete(test_api_base.BaseApiTest):
         self.assertFalse(node.maintenance)
         self.assertIsNone(node.maintenance_reason)
         mock_get.assert_called_once_with(mock.ANY, node.uuid)
-        mock_update.assert_called_once_with(mock.ANY, mock.ANY,
+        mock_update.assert_called_once_with(mock.ANY, mock.ANY, node,
                                             topic='test-topic')
 
-    @mock.patch.object(objects.Node, 'get_by_name')
-    @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+    @mock.patch.object(objects.Node, 'get_by_name', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'update_node', autospec=True)
     def test_delete_node_maintenance_mode_by_name(self, mock_update,
                                                   mock_get):
         node = obj_utils.create_test_node(self.context, maintenance=True,
@@ -4779,7 +4824,7 @@ class TestDelete(test_api_base.BaseApiTest):
         self.assertFalse(node.maintenance)
         self.assertIsNone(node.maintenance_reason)
         mock_get.assert_called_once_with(mock.ANY, node.name)
-        mock_update.assert_called_once_with(mock.ANY, mock.ANY,
+        mock_update.assert_called_once_with(mock.ANY, mock.ANY, node,
                                             topic='test-topic')
 
 
@@ -4790,26 +4835,33 @@ class TestPut(test_api_base.BaseApiTest):
         self.node = obj_utils.create_test_node(
             self.context,
             provision_state=states.AVAILABLE, name='node-39')
-        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
-        p = mock.patch.object(rpcapi.ConductorAPI, 'change_node_power_state')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'change_node_power_state',
+                              autospec=True)
         self.mock_cnps = p.start()
         self.addCleanup(p.stop)
-        p = mock.patch.object(rpcapi.ConductorAPI, 'do_node_deploy')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'do_node_deploy',
+                              autospec=True)
         self.mock_dnd = p.start()
         self.addCleanup(p.stop)
-        p = mock.patch.object(rpcapi.ConductorAPI, 'do_node_tear_down')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'do_node_tear_down',
+                              autospec=True)
         self.mock_dntd = p.start()
         self.addCleanup(p.stop)
-        p = mock.patch.object(rpcapi.ConductorAPI, 'inspect_hardware')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'inspect_hardware',
+                              autospec=True)
         self.mock_dnih = p.start()
         self.addCleanup(p.stop)
-        p = mock.patch.object(rpcapi.ConductorAPI, 'do_node_rescue')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'do_node_rescue',
+                              autospec=True)
         self.mock_dnr = p.start()
         self.addCleanup(p.stop)
-        p = mock.patch.object(rpcapi.ConductorAPI, 'do_node_unrescue')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'do_node_unrescue',
+                              autospec=True)
         self.mock_dnur = p.start()
         self.addCleanup(p.stop)
 
@@ -4830,6 +4882,7 @@ class TestPut(test_api_base.BaseApiTest):
         self.assertEqual(http_client.ACCEPTED, response.status_code)
         self.assertEqual(b'', response.body)
         self.mock_cnps.assert_called_once_with(mock.ANY,
+                                               mock.ANY,
                                                self.node.uuid,
                                                target_state,
                                                timeout=timeout,
@@ -4940,6 +4993,7 @@ class TestPut(test_api_base.BaseApiTest):
         self.assertEqual(http_client.ACCEPTED, response.status_code)
         self.assertEqual(b'', response.body)
         self.mock_cnps.assert_called_once_with(mock.ANY,
+                                               mock.ANY,
                                                self.node.uuid,
                                                states.POWER_ON,
                                                timeout=None,
@@ -4974,7 +5028,8 @@ class TestPut(test_api_base.BaseApiTest):
                             {'target': states.ACTIVE})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+        self.mock_dnd.assert_called_once_with(mock.ANY,
+                                              context=mock.ANY,
                                               node_id=self.node.uuid,
                                               rebuild=False,
                                               configdrive=None,
@@ -4999,7 +5054,8 @@ class TestPut(test_api_base.BaseApiTest):
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
 
-        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+        self.mock_dnd.assert_called_once_with(mock.ANY,
+                                              context=mock.ANY,
                                               node_id=self.node.uuid,
                                               rebuild=False,
                                               configdrive=None,
@@ -5023,7 +5079,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                              'configdrive': FAKE_CD})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+        self.mock_dnd.assert_called_once_with(mock.ANY,
+                                              context=mock.ANY,
                                               node_id=self.node.uuid,
                                               rebuild=False,
                                               configdrive=FAKE_CD,
@@ -5041,7 +5098,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                              'configdrive': 'http://example.com'})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+        self.mock_dnd.assert_called_once_with(mock.ANY,
+                                              context=mock.ANY,
                                               node_id=self.node.uuid,
                                               rebuild=False,
                                               configdrive='http://example.com',
@@ -5060,7 +5118,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             headers={api_base.Version.string: '1.56'})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+        self.mock_dnd.assert_called_once_with(mock.ANY,
+                                              context=mock.ANY,
                                               node_id=self.node.uuid,
                                               rebuild=False,
                                               configdrive={'user_data': 'foo'},
@@ -5078,7 +5137,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             headers={api_base.Version.string: '1.60'})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+        self.mock_dnd.assert_called_once_with(mock.ANY,
+                                              context=mock.ANY,
                                               node_id=self.node.uuid,
                                               rebuild=False,
                                               configdrive=fake_cd,
@@ -5113,7 +5173,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                              'deploy_steps': deploy_steps})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+        self.mock_dnd.assert_called_once_with(mock.ANY,
+                                              context=mock.ANY,
                                               node_id=self.node.uuid,
                                               rebuild=False,
                                               configdrive=None,
@@ -5144,7 +5205,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             {'target': states.REBUILD})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+        self.mock_dnd.assert_called_once_with(mock.ANY,
+                                              context=mock.ANY,
                                               node_id=self.node.uuid,
                                               rebuild=True,
                                               configdrive=None,
@@ -5176,7 +5238,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             headers={api_base.Version.string: '1.35'})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+        self.mock_dnd.assert_called_once_with(mock.ANY,
+                                              context=mock.ANY,
                                               node_id=self.node.uuid,
                                               rebuild=True,
                                               configdrive='foo',
@@ -5209,7 +5272,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                              'deploy_steps': deploy_steps})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+        self.mock_dnd.assert_called_once_with(mock.ANY,
+                                              context=mock.ANY,
                                               node_id=self.node.uuid,
                                               rebuild=True,
                                               configdrive=None,
@@ -5231,7 +5295,7 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.mock_dntd.assert_called_once_with(
-            mock.ANY, node.uuid, 'test-topic')
+            mock.ANY, mock.ANY, node.uuid, 'test-topic')
         # Check location header
         self.assertIsNotNone(ret.location)
         expected_location = '/v1/nodes/%s/states' % node.uuid
@@ -5273,7 +5337,7 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.mock_dntd.assert_called_once_with(
-            mock.ANY, node.uuid, 'test-topic')
+            mock.ANY, mock.ANY, node.uuid, 'test-topic')
         # Check location header
         self.assertIsNotNone(ret.location)
         expected_location = '/v1/nodes/%s/states' % node.uuid
@@ -5294,7 +5358,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             {'target': states.ACTIVE})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        self.mock_dnd.assert_called_once_with(context=mock.ANY,
+        self.mock_dnd.assert_called_once_with(mock.ANY,
+                                              context=mock.ANY,
                                               node_id=self.node.uuid,
                                               rebuild=False,
                                               configdrive=None,
@@ -5314,7 +5379,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
+                       autospec=True)
     def test_provide_from_manage(self, mock_dpa):
         self.node.provision_state = states.MANAGEABLE
         self.node.save()
@@ -5324,7 +5390,7 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             headers={api_base.Version.string: "1.4"})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_dpa.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                          states.VERBS['provide'],
                                          'test-topic')
 
@@ -5395,7 +5461,7 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.mock_dnr.assert_called_once_with(
-            mock.ANY, self.node.uuid, 'password', 'test-topic')
+            mock.ANY, mock.ANY, self.node.uuid, 'password', 'test-topic')
         self.mock_dnr.reset_mock()
 
     def test_provision_rescue_in_allowed_states(self):
@@ -5434,7 +5500,7 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.mock_dnur.assert_called_once_with(
-            mock.ANY, self.node.uuid, 'test-topic')
+            mock.ANY, mock.ANY, self.node.uuid, 'test-topic')
         self.mock_dnur.reset_mock()
 
     def test_provision_unrescue_in_allowed_states(self):
@@ -5499,7 +5565,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
+                       autospec=True)
     def test_manage_from_available(self, mock_dpa):
         self.node.provision_state = states.AVAILABLE
         self.node.save()
@@ -5509,11 +5576,12 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             headers={api_base.Version.string: "1.4"})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_dpa.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                          states.VERBS['manage'],
                                          'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
+                       autospec=True)
     def test_bad_requests_in_managed_state(self, mock_dpa):
         self.node.provision_state = states.MANAGEABLE
         self.node.save()
@@ -5525,7 +5593,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
             self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertEqual(0, mock_dpa.call_count)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
+                       autospec=True)
     def test_abort_cleanwait(self, mock_dpa):
         self.node.provision_state = states.CLEANWAIT
         self.node.save()
@@ -5535,7 +5604,7 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             headers={api_base.Version.string: "1.13"})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_dpa.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                          states.VERBS['abort'],
                                          'test-topic')
 
@@ -5568,8 +5637,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_clean')
-    @mock.patch.object(api_node, '_check_clean_steps')
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_clean', autospec=True)
+    @mock.patch.object(api_node, '_check_clean_steps', autospec=True)
     def test_clean_check_steps_fail(self, mock_check, mock_rpcapi):
         self.node.provision_state = states.MANAGEABLE
         self.node.save()
@@ -5584,8 +5653,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         mock_check.assert_called_once_with(clean_steps)
         self.assertFalse(mock_rpcapi.called)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_clean')
-    @mock.patch.object(api_node, '_check_clean_steps')
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_clean', autospec=True)
+    @mock.patch.object(api_node, '_check_clean_steps', autospec=True)
     def test_clean(self, mock_check, mock_rpcapi):
         self.node.provision_state = states.MANAGEABLE
         self.node.save()
@@ -5597,7 +5666,7 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_check.assert_called_once_with(clean_steps)
-        mock_rpcapi.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_rpcapi.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                             clean_steps, 'test-topic')
 
     def test_adopt_raises_error_before_1_17(self):
@@ -5608,7 +5677,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
+                       autospec=True)
     def test_adopt_from_manage(self, mock_dpa):
         """Test that a node can be adopted from the manageable state"""
         self.node.provision_state = states.MANAGEABLE
@@ -5619,11 +5689,12 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             headers={api_base.Version.string: "1.17"})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_dpa.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                          states.VERBS['adopt'],
                                          'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
+                       autospec=True)
     def test_adopt_from_adoptfail(self, mock_dpa):
         """Test that a node in ADOPTFAIL can be adopted"""
         self.node.provision_state = states.ADOPTFAIL
@@ -5634,11 +5705,12 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             headers={api_base.Version.string: "1.17"})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_dpa.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                          states.VERBS['adopt'],
                                          'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
+                       autospec=True)
     def test_adopt_from_active_fails(self, mock_dpa):
         """Test that an ACTIVE node cannot be adopted"""
         self.node.provision_state = states.ACTIVE
@@ -5651,7 +5723,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertEqual(0, mock_dpa.call_count)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
+                       autospec=True)
     def test_manage_from_adoptfail(self, mock_dpa):
         """Test that a node can be sent to MANAGEABLE from ADOPTFAIL"""
         self.node.provision_state = states.ADOPTFAIL
@@ -5662,11 +5735,12 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             headers={api_base.Version.string: "1.17"})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        mock_dpa.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_dpa.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                          states.VERBS['manage'],
                                          'test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
+                       autospec=True)
     def test_bad_requests_in_adopting_state(self, mock_dpa):
         """Test that a node in ADOPTING fails with invalid requests
 
@@ -5684,7 +5758,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
             self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertEqual(0, mock_dpa.call_count)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
+                       autospec=True)
     def test_bad_requests_in_adoption_failed_state(self, mock_dpa):
         """Test that a node in ADOPTFAIL fails with invalid requests
 
@@ -5704,12 +5779,14 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
 
     def test_set_console_mode_enabled(self):
         with mock.patch.object(rpcapi.ConductorAPI,
-                               'set_console_mode') as mock_scm:
+                               'set_console_mode',
+                               autospec=True) as mock_scm:
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {'enabled': "true"})
             self.assertEqual(http_client.ACCEPTED, ret.status_code)
             self.assertEqual(b'', ret.body)
-            mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
+            mock_scm.assert_called_once_with(mock.ANY, mock.ANY,
+                                             self.node.uuid,
                                              True, 'test-topic')
             # Check location header
             self.assertIsNotNone(ret.location)
@@ -5717,31 +5794,33 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
             self.assertEqual(urlparse.urlparse(ret.location).path,
                              expected_location)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode')
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode', autospec=True)
     def test_set_console_by_name_unsupported(self, mock_scm):
         ret = self.put_json('/nodes/%s/states/console' % self.node.name,
                             {'enabled': "true"},
                             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode')
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_console_mode', autospec=True)
     def test_set_console_by_name(self, mock_scm):
         ret = self.put_json('/nodes/%s/states/console' % self.node.name,
                             {'enabled': "true"},
                             headers={api_base.Version.string: "1.5"})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
-        mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_scm.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                          True, 'test-topic')
 
     def test_set_console_mode_disabled(self):
         with mock.patch.object(rpcapi.ConductorAPI,
-                               'set_console_mode') as mock_scm:
+                               'set_console_mode',
+                               autospec=True) as mock_scm:
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {'enabled': "false"})
             self.assertEqual(http_client.ACCEPTED, ret.status_code)
             self.assertEqual(b'', ret.body)
-            mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
+            mock_scm.assert_called_once_with(mock.ANY, mock.ANY,
+                                             self.node.uuid,
                                              False, 'test-topic')
             # Check location header
             self.assertIsNotNone(ret.location)
@@ -5751,7 +5830,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
 
     def test_set_console_mode_bad_request(self):
         with mock.patch.object(rpcapi.ConductorAPI,
-                               'set_console_mode') as mock_scm:
+                               'set_console_mode',
+                               autospec=True) as mock_scm:
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {'enabled': "invalid-value"},
                                 expect_errors=True)
@@ -5761,7 +5841,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
 
     def test_set_console_mode_bad_request_missing_parameter(self):
         with mock.patch.object(rpcapi.ConductorAPI,
-                               'set_console_mode') as mock_scm:
+                               'set_console_mode',
+                               autospec=True) as mock_scm:
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {}, expect_errors=True)
             self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
@@ -5770,13 +5851,15 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
 
     def test_set_console_mode_console_not_supported(self):
         with mock.patch.object(rpcapi.ConductorAPI,
-                               'set_console_mode') as mock_scm:
+                               'set_console_mode',
+                               autospec=True) as mock_scm:
             mock_scm.side_effect = exception.UnsupportedDriverExtension(
                 extension='console', driver='test-driver')
             ret = self.put_json('/nodes/%s/states/console' % self.node.uuid,
                                 {'enabled': "true"}, expect_errors=True)
             self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
-            mock_scm.assert_called_once_with(mock.ANY, self.node.uuid,
+            mock_scm.assert_called_once_with(mock.ANY, mock.ANY,
+                                             self.node.uuid,
                                              True, 'test-topic')
 
     def test_provision_node_in_maintenance_fail(self):
@@ -5843,18 +5926,18 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         set_raid_config_mock.assert_called_once_with(
             mock.ANY, mock.ANY, self.node.uuid, raid_config, topic=mock.ANY)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device')
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device', autospec=True)
     def test_set_boot_device(self, mock_sbd):
         device = boot_devices.PXE
         ret = self.put_json('/nodes/%s/management/boot_device'
                             % self.node.uuid, {'boot_device': device})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         self.assertEqual(b'', ret.body)
-        mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_sbd.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                          device, persistent=False,
                                          topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device')
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device', autospec=True)
     def test_set_boot_device_by_name(self, mock_sbd):
         device = boot_devices.PXE
         ret = self.put_json('/nodes/%s/management/boot_device'
@@ -5862,11 +5945,11 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             headers={api_base.Version.string: "1.5"})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         self.assertEqual(b'', ret.body)
-        mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_sbd.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                          device, persistent=False,
                                          topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device')
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device', autospec=True)
     def test_set_boot_device_not_supported(self, mock_sbd):
         mock_sbd.side_effect = exception.UnsupportedDriverExtension(
             extension='management', driver='test-driver')
@@ -5876,22 +5959,22 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
-        mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_sbd.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                          device, persistent=False,
                                          topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device')
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device', autospec=True)
     def test_set_boot_device_persistent(self, mock_sbd):
         device = boot_devices.PXE
         ret = self.put_json('/nodes/%s/management/boot_device?persistent=True'
                             % self.node.uuid, {'boot_device': device})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         self.assertEqual(b'', ret.body)
-        mock_sbd.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_sbd.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                          device, persistent=True,
                                          topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device')
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_boot_device', autospec=True)
     def test_set_boot_device_persistent_invalid_value(self, mock_sbd):
         device = boot_devices.PXE
         ret = self.put_json('/nodes/%s/management/boot_device?persistent=blah'
@@ -5900,17 +5983,18 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual('application/json', ret.content_type)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'inject_nmi')
+    @mock.patch.object(rpcapi.ConductorAPI, 'inject_nmi', autospec=True)
     def test_inject_nmi(self, mock_inject_nmi):
         ret = self.put_json('/nodes/%s/management/inject_nmi'
                             % self.node.uuid, {},
                             headers={api_base.Version.string: "1.29"})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         self.assertEqual(b'', ret.body)
-        mock_inject_nmi.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_inject_nmi.assert_called_once_with(mock.ANY, mock.ANY,
+                                                self.node.uuid,
                                                 topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'inject_nmi')
+    @mock.patch.object(rpcapi.ConductorAPI, 'inject_nmi', autospec=True)
     def test_inject_nmi_not_allowed(self, mock_inject_nmi):
         ret = self.put_json('/nodes/%s/management/inject_nmi'
                             % self.node.uuid, {},
@@ -5920,7 +6004,7 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertTrue(ret.json['error_message'])
         self.assertFalse(mock_inject_nmi.called)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'inject_nmi')
+    @mock.patch.object(rpcapi.ConductorAPI, 'inject_nmi', autospec=True)
     def test_inject_nmi_not_supported(self, mock_inject_nmi):
         mock_inject_nmi.side_effect = exception.UnsupportedDriverExtension(
             extension='management', driver='test-driver')
@@ -5930,7 +6014,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
-        mock_inject_nmi.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_inject_nmi.assert_called_once_with(mock.ANY, mock.ANY,
+                                                self.node.uuid,
                                                 topic='test-topic')
 
     def _test_set_node_maintenance_mode(self, mock_update, mock_get, reason,
@@ -5952,12 +6037,13 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertTrue(self.node.maintenance)
         self.assertEqual(reason, self.node.maintenance_reason)
         mock_get.assert_called_once_with(mock.ANY, node_ident)
-        mock_update.assert_called_once_with(mock.ANY, mock.ANY,
+        mock_update.assert_called_once_with(mock.ANY, mock.ANY, self.node,
                                             topic='test-topic')
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'update_node', autospec=True)
     def test_set_node_maintenance_mode(self, mock_update, mock_get,
                                        mock_notify):
         self._test_set_node_maintenance_mode(mock_update, mock_get,
@@ -5971,29 +6057,30 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                                      obj_fields.NotificationLevel.INFO,
                                      obj_fields.NotificationStatus.END)])
 
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'update_node', autospec=True)
     def test_set_node_maintenance_mode_no_reason(self, mock_update, mock_get):
         self._test_set_node_maintenance_mode(mock_update, mock_get, None,
                                              self.node.uuid)
 
-    @mock.patch.object(objects.Node, 'get_by_name')
-    @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+    @mock.patch.object(objects.Node, 'get_by_name', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'update_node', autospec=True)
     def test_set_node_maintenance_mode_by_name(self, mock_update, mock_get):
         self._test_set_node_maintenance_mode(mock_update, mock_get,
                                              'fake_reason', self.node.name,
                                              is_by_name=True)
 
-    @mock.patch.object(objects.Node, 'get_by_name')
-    @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+    @mock.patch.object(objects.Node, 'get_by_name', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'update_node', autospec=True)
     def test_set_node_maintenance_mode_no_reason_by_name(self, mock_update,
                                                          mock_get):
         self._test_set_node_maintenance_mode(mock_update, mock_get, None,
                                              self.node.name, is_by_name=True)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(rpcapi.ConductorAPI, 'update_node')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'update_node', autospec=True)
     def test_set_node_maintenance_mode_error(self, mock_update, mock_get,
                                              mock_notify):
         mock_get.return_value = self.node
@@ -6018,7 +6105,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action')
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
+                       autospec=True)
     def test_inspect_abort_accepted_after_1_41(self, mock_provision):
         self.node.provision_state = states.INSPECTWAIT
         self.node.save()
@@ -6027,7 +6115,8 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             headers={api_base.Version.string: "1.41"})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state')
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state',
+                       autospec=True)
     def test_set_indicator_state(self, mock_sis):
         component = components.SYSTEM
         indicator_id = 'led'
@@ -6040,10 +6129,11 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_sis.assert_called_once_with(
-            mock.ANY, self.node.uuid, component, indicator_id, state,
+            mock.ANY, mock.ANY, self.node.uuid, component, indicator_id, state,
             topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state')
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state',
+                       autospec=True)
     def test_set_indicator_state_versioning(self, mock_sis):
         component = components.SYSTEM
         indicator_id = 'led'
@@ -6057,10 +6147,11 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_sis.assert_called_once_with(
-            mock.ANY, self.node.uuid, component, indicator_id, state,
+            mock.ANY, mock.ANY, self.node.uuid, component, indicator_id, state,
             topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state')
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state',
+                       autospec=True)
     def test_set_indicator_state_not_supported(self, mock_sis):
         mock_sis.side_effect = exception.UnsupportedDriverExtension(
             extension='management', driver='test-driver')
@@ -6075,10 +6166,11 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
         mock_sis.assert_called_once_with(
-            mock.ANY, self.node.uuid, component, indicator_id, state,
+            mock.ANY, mock.ANY, self.node.uuid, component, indicator_id, state,
             topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state')
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state',
+                       autospec=True)
     def test_set_indicator_state_qs(self, mock_sis):
         component = components.SYSTEM
         indicator_id = 'led'
@@ -6090,10 +6182,11 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         self.assertEqual(b'', ret.body)
         mock_sis.assert_called_once_with(
-            mock.ANY, self.node.uuid, component, indicator_id, state,
+            mock.ANY, mock.ANY, self.node.uuid, component, indicator_id, state,
             topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state')
+    @mock.patch.object(rpcapi.ConductorAPI, 'set_indicator_state',
+                       autospec=True)
     def test_set_indicator_state_invalid_value(self, mock_sis):
         mock_sis.side_effect = exception.InvalidParameterValue('error')
         component = components.SYSTEM
@@ -6184,12 +6277,13 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
         self.node = obj_utils.create_test_node(
             self.context,
             provision_state=states.AVAILABLE, name='node-39')
-        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
 
-    @mock.patch.object(objects.Node, 'get_by_uuid')
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
     def test_vif_subcontroller_old_version(self, mock_get):
         mock_get.return_value = self.node
         ret = self.get_json('/nodes/%s/vifs' % self.node.uuid,
@@ -6197,8 +6291,8 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
 
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(rpcapi.ConductorAPI, 'vif_list')
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_list', autospec=True)
     def test_vif_list(self, mock_list, mock_get):
         mock_get.return_value = self.node
         mock_list.return_value = []
@@ -6207,11 +6301,11 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
                                self.vif_version})
 
         mock_get.assert_called_once_with(mock.ANY, self.node.uuid)
-        mock_list.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_list.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                           topic='test-topic')
 
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach', autospec=True)
     def test_vif_attach(self, mock_attach, mock_get):
         vif_id = uuidutils.generate_uuid()
         request_body = {
@@ -6227,12 +6321,12 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
 
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         mock_get.assert_called_once_with(mock.ANY, self.node.uuid)
-        mock_attach.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_attach.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                             vif_info=request_body,
                                             topic='test-topic')
 
-    @mock.patch.object(objects.Node, 'get_by_name')
-    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    @mock.patch.object(objects.Node, 'get_by_name', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach', autospec=True)
     def test_vif_attach_by_node_name(self, mock_attach, mock_get):
         vif_id = uuidutils.generate_uuid()
         request_body = {
@@ -6248,11 +6342,11 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
 
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         mock_get.assert_called_once_with(mock.ANY, self.node.name)
-        mock_attach.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_attach.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                             vif_info=request_body,
                                             topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach', autospec=True)
     def test_vif_attach_node_not_found(self, mock_attach):
         vif_id = uuidutils.generate_uuid()
         request_body = {
@@ -6268,8 +6362,8 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
         self.assertTrue(ret.json['error_message'])
         self.assertFalse(mock_attach.called)
 
-    @mock.patch.object(objects.Node, 'get_by_name')
-    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    @mock.patch.object(objects.Node, 'get_by_name', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach', autospec=True)
     def test_vif_attach_conductor_unavailable(self, mock_attach, mock_get):
         vif_id = uuidutils.generate_uuid()
         request_body = {
@@ -6286,8 +6380,8 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
         self.assertTrue(ret.json['error_message'])
         self.assertFalse(mock_attach.called)
 
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach', autospec=True)
     def test_vif_attach_no_vif_id(self, mock_attach, mock_get):
         vif_id = uuidutils.generate_uuid()
         request_body = {
@@ -6304,8 +6398,8 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
 
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach', autospec=True)
     def test_vif_attach_invalid_vif_id(self, mock_attach, mock_get):
         request_body = {
             'id': "invalid%id^"
@@ -6321,8 +6415,8 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
         self.assertTrue(ret.json['error_message'])
 
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach', autospec=True)
     def test_vif_attach_node_locked(self, mock_attach, mock_get):
         vif_id = uuidutils.generate_uuid()
         request_body = {
@@ -6340,8 +6434,8 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
         self.assertEqual(http_client.CONFLICT, ret.status_code)
         self.assertTrue(ret.json['error_message'])
 
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach', autospec=True)
     def test_vif_attach_port_uuid_and_portgroup_uuid(self, mock_attach,
                                                      mock_get):
         vif_id = uuidutils.generate_uuid()
@@ -6361,8 +6455,8 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
         self.assertTrue(ret.json['error_message'])
 
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach')
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_attach', autospec=True)
     def test_vif_attach_port_uuid_and_portgroup_uuid_old(self, mock_attach,
                                                          mock_get):
         vif_id = uuidutils.generate_uuid()
@@ -6381,12 +6475,12 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
 
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         mock_get.assert_called_once_with(mock.ANY, self.node.uuid)
-        mock_attach.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_attach.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                             vif_info=request_body,
                                             topic='test-topic')
 
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(rpcapi.ConductorAPI, 'vif_detach')
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_detach', autospec=True)
     def test_vif_detach(self, mock_detach, mock_get):
         vif_id = uuidutils.generate_uuid()
 
@@ -6398,12 +6492,12 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
 
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         mock_get.assert_called_once_with(mock.ANY, self.node.uuid)
-        mock_detach.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_detach.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                             vif_id=vif_id,
                                             topic='test-topic')
 
-    @mock.patch.object(objects.Node, 'get_by_name')
-    @mock.patch.object(rpcapi.ConductorAPI, 'vif_detach')
+    @mock.patch.object(objects.Node, 'get_by_name', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_detach', autospec=True)
     def test_vif_detach_by_node_name(self, mock_detach, mock_get):
         vif_id = uuidutils.generate_uuid()
 
@@ -6414,11 +6508,11 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
 
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
         mock_get.assert_called_once_with(mock.ANY, self.node.name)
-        mock_detach.assert_called_once_with(mock.ANY, self.node.uuid,
+        mock_detach.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
                                             vif_id=vif_id,
                                             topic='test-topic')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'vif_detach')
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_detach', autospec=True)
     def test_vif_detach_node_not_found(self, mock_detach):
         vif_id = uuidutils.generate_uuid()
 
@@ -6430,8 +6524,8 @@ class TestAttachDetachVif(test_api_base.BaseApiTest):
         self.assertTrue(ret.json['error_message'])
         self.assertFalse(mock_detach.called)
 
-    @mock.patch.object(objects.Node, 'get_by_uuid')
-    @mock.patch.object(rpcapi.ConductorAPI, 'vif_detach')
+    @mock.patch.object(objects.Node, 'get_by_uuid', autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'vif_detach', autospec=True)
     def test_vif_detach_node_locked(self, mock_detach, mock_get):
         vif_id = uuidutils.generate_uuid()
 
@@ -6519,7 +6613,8 @@ class TestTraits(test_api_base.BaseApiTest):
         self.traits = ['CUSTOM_1', 'CUSTOM_2']
         self._add_traits(self.node, self.traits)
         self.node.obj_reset_changes()
-        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
@@ -6546,8 +6641,9 @@ class TestTraits(test_api_base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_set_all_traits(self, mock_notify, mock_add):
         traits = ['CUSTOM_3']
         request_body = {'traits': traits}
@@ -6555,7 +6651,7 @@ class TestTraits(test_api_base.BaseApiTest):
                             request_body,
                             headers={api_base.Version.string: self.version})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
-        mock_add.assert_called_once_with(mock.ANY, self.node.id,
+        mock_add.assert_called_once_with(mock.ANY, mock.ANY, self.node.id,
                                          traits, replace=True,
                                          topic='test-topic')
         mock_notify.assert_has_calls(
@@ -6571,8 +6667,9 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
         self.assertIsNone(ret.location)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_set_all_traits_with_chassis(self, mock_notify, mock_add):
         traits = ['CUSTOM_3']
         chassis = obj_utils.create_test_chassis(self.context)
@@ -6583,7 +6680,7 @@ class TestTraits(test_api_base.BaseApiTest):
                             request_body,
                             headers={api_base.Version.string: self.version})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
-        mock_add.assert_called_once_with(mock.ANY, self.node.id,
+        mock_add.assert_called_once_with(mock.ANY, mock.ANY, self.node.id,
                                          traits, replace=True,
                                          topic='test-topic')
         mock_notify.assert_has_calls(
@@ -6600,15 +6697,16 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
         self.assertIsNone(ret.location)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_set_all_traits_empty(self, mock_notify, mock_add):
         request_body = {'traits': []}
         ret = self.put_json('/nodes/%s/traits' % self.node.name,
                             request_body,
                             headers={api_base.Version.string: self.version})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
-        mock_add.assert_called_once_with(mock.ANY, self.node.id,
+        mock_add.assert_called_once_with(mock.ANY, mock.ANY, self.node.id,
                                          [], replace=True,
                                          topic='test-topic')
         mock_notify.assert_has_calls(
@@ -6624,8 +6722,9 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual([], notify_args[1][0][1].traits.get_trait_names())
         self.assertIsNone(ret.location)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_set_all_traits_rejects_bad_trait(self, mock_notify, mock_add):
         request_body = {'traits': ['CUSTOM_3', 'BAD_TRAIT']}
         ret = self.put_json('/nodes/%s/traits' % self.node.name,
@@ -6636,8 +6735,9 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertFalse(mock_add.called)
         self.assertFalse(mock_notify.called)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_set_all_traits_rejects_too_long_trait(self, mock_notify,
                                                    mock_add):
         # Maximum length is 255.
@@ -6651,8 +6751,9 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertFalse(mock_add.called)
         self.assertFalse(mock_notify.called)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_set_all_traits_rejects_no_body(self, mock_notify, mock_add):
         ret = self.put_json('/nodes/%s/traits' % self.node.name, {},
                             headers={api_base.Version.string: self.version},
@@ -6668,13 +6769,14 @@ class TestTraits(test_api_base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, ret.status_code)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_add_single_trait(self, mock_notify, mock_add):
         ret = self.put_json('/nodes/%s/traits/CUSTOM_3' % self.node.name, {},
                             headers={api_base.Version.string: self.version})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
-        mock_add.assert_called_once_with(mock.ANY, self.node.id,
+        mock_add.assert_called_once_with(mock.ANY, mock.ANY, self.node.id,
                                          ['CUSTOM_3'], replace=False,
                                          topic='test-topic')
         mock_notify.assert_has_calls(
@@ -6695,8 +6797,9 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(expected_location,
                          urlparse.urlparse(ret.location).path)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_no_add_single_trait_via_body(self, mock_notify, mock_add):
         request_body = {'trait': 'CUSTOM_3'}
         ret = self.put_json('/nodes/%s/traits' % self.node.name,
@@ -6707,8 +6810,9 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertFalse(mock_add.called)
         self.assertFalse(mock_notify.called)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_no_add_single_trait_via_body_2(self, mock_notify, mock_add):
         request_body = {'traits': ['CUSTOM_3']}
         ret = self.put_json('/nodes/%s/traits/CUSTOM_3' % self.node.name,
@@ -6719,8 +6823,9 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertFalse(mock_add.called)
         self.assertFalse(mock_notify.called)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_add_single_trait_rejects_bad_trait(self, mock_notify, mock_add):
         ret = self.put_json('/nodes/%s/traits/bad_trait' % self.node.name, {},
                             headers={api_base.Version.string: self.version},
@@ -6729,8 +6834,9 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertFalse(mock_add.called)
         self.assertFalse(mock_notify.called)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_add_single_trait_rejects_too_long_trait(self, mock_notify,
                                                      mock_add):
         # Maximum length is 255.
@@ -6743,8 +6849,9 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertFalse(mock_add.called)
         self.assertFalse(mock_notify.called)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_add_single_trait_fails_max_trait_limit(self, mock_notify,
                                                     mock_add):
         mock_add.side_effect = exception.InvalidParameterValue(
@@ -6753,7 +6860,7 @@ class TestTraits(test_api_base.BaseApiTest):
                             headers={api_base.Version.string: self.version},
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
-        mock_add.assert_called_once_with(mock.ANY, self.node.id,
+        mock_add.assert_called_once_with(mock.ANY, mock.ANY, self.node.id,
                                          ['CUSTOM_3'], replace=False,
                                          topic='test-topic')
         mock_notify.assert_has_calls(
@@ -6769,8 +6876,9 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
         self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_add_single_trait_fails_if_node_locked(self, mock_notify,
                                                    mock_add):
         mock_add.side_effect = exception.NodeLocked(
@@ -6779,7 +6887,7 @@ class TestTraits(test_api_base.BaseApiTest):
                             headers={api_base.Version.string: self.version},
                             expect_errors=True)
         self.assertEqual(http_client.CONFLICT, ret.status_code)
-        mock_add.assert_called_once_with(mock.ANY, self.node.id,
+        mock_add.assert_called_once_with(mock.ANY, mock.ANY, self.node.id,
                                          ['CUSTOM_3'], replace=False,
                                          topic='test-topic')
         mock_notify.assert_has_calls(
@@ -6795,8 +6903,9 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
         self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'add_node_traits', autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_add_single_trait_fails_if_node_not_found(self, mock_notify,
                                                       mock_add):
         mock_add.side_effect = exception.NodeNotFound(node=self.node.uuid)
@@ -6804,7 +6913,7 @@ class TestTraits(test_api_base.BaseApiTest):
                             headers={api_base.Version.string: self.version},
                             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
-        mock_add.assert_called_once_with(mock.ANY, self.node.id,
+        mock_add.assert_called_once_with(mock.ANY, mock.ANY, self.node.id,
                                          ['CUSTOM_3'], replace=False,
                                          topic='test-topic')
         mock_notify.assert_has_calls(
@@ -6826,13 +6935,15 @@ class TestTraits(test_api_base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.METHOD_NOT_ALLOWED, ret.status_code)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits',
+                       autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_all_traits(self, mock_notify, mock_remove):
         ret = self.delete('/nodes/%s/traits' % self.node.name,
                           headers={api_base.Version.string: self.version})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
-        mock_remove.assert_called_once_with(mock.ANY, self.node.id,
+        mock_remove.assert_called_once_with(mock.ANY, mock.ANY, self.node.id,
                                             None, topic='test-topic')
         mock_notify.assert_has_calls(
             [mock.call(mock.ANY, mock.ANY, 'update',
@@ -6846,8 +6957,10 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual([], notify_args[0][0][1].traits.get_trait_names())
         self.assertEqual([], notify_args[1][0][1].traits.get_trait_names())
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits',
+                       autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_all_traits_with_chassis(self, mock_notify, mock_remove):
         chassis = obj_utils.create_test_chassis(self.context)
         self.node.chassis_id = chassis.id
@@ -6855,7 +6968,7 @@ class TestTraits(test_api_base.BaseApiTest):
         ret = self.delete('/nodes/%s/traits' % self.node.name,
                           headers={api_base.Version.string: self.version})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
-        mock_remove.assert_called_once_with(mock.ANY, self.node.id,
+        mock_remove.assert_called_once_with(mock.ANY, mock.ANY, self.node.id,
                                             None, topic='test-topic')
         mock_notify.assert_has_calls(
             [mock.call(mock.ANY, mock.ANY, 'update',
@@ -6876,13 +6989,15 @@ class TestTraits(test_api_base.BaseApiTest):
                           expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits',
+                       autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_trait(self, mock_notify, mock_remove):
         ret = self.delete('/nodes/%s/traits/CUSTOM_1' % self.node.name,
                           headers={api_base.Version.string: self.version})
         self.assertEqual(http_client.NO_CONTENT, ret.status_code)
-        mock_remove.assert_called_once_with(mock.ANY, self.node.id,
+        mock_remove.assert_called_once_with(mock.ANY, mock.ANY, self.node.id,
                                             ['CUSTOM_1'], topic='test-topic')
         mock_notify.assert_has_calls(
             [mock.call(mock.ANY, mock.ANY, 'update',
@@ -6897,8 +7012,10 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
         self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits',
+                       autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_trait_fails_if_node_locked(self, mock_notify, mock_remove):
         mock_remove.side_effect = exception.NodeLocked(
             node=self.node.uuid, host='host1')
@@ -6906,7 +7023,7 @@ class TestTraits(test_api_base.BaseApiTest):
                           headers={api_base.Version.string: self.version},
                           expect_errors=True)
         self.assertEqual(http_client.CONFLICT, ret.status_code)
-        mock_remove.assert_called_once_with(mock.ANY, self.node.id,
+        mock_remove.assert_called_once_with(mock.ANY, mock.ANY, self.node.id,
                                             ['CUSTOM_1'], topic='test-topic')
         mock_notify.assert_has_calls(
             [mock.call(mock.ANY, mock.ANY, 'update',
@@ -6921,8 +7038,10 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
         self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits',
+                       autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_trait_fails_if_node_not_found(self, mock_notify,
                                                   mock_remove):
         mock_remove.side_effect = exception.NodeNotFound(node=self.node.uuid)
@@ -6930,7 +7049,7 @@ class TestTraits(test_api_base.BaseApiTest):
                           headers={api_base.Version.string: self.version},
                           expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
-        mock_remove.assert_called_once_with(mock.ANY, self.node.id,
+        mock_remove.assert_called_once_with(mock.ANY, mock.ANY, self.node.id,
                                             ['CUSTOM_1'], topic='test-topic')
         mock_notify.assert_has_calls(
             [mock.call(mock.ANY, mock.ANY, 'update',
@@ -6945,8 +7064,10 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(traits, notify_args[0][0][1].traits.get_trait_names())
         self.assertEqual(traits, notify_args[1][0][1].traits.get_trait_names())
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits')
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(rpcapi.ConductorAPI, 'remove_node_traits',
+                       autospec=True)
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_trait_fails_if_trait_not_found(self, mock_notify,
                                                    mock_remove):
         mock_remove.side_effect = exception.NodeTraitNotFound(
@@ -6957,7 +7078,7 @@ class TestTraits(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
         self.assertIn(self.node.uuid, ret.json['error_message'])
         self.assertNotIn(self.node.id, ret.json['error_message'])
-        mock_remove.assert_called_once_with(mock.ANY, self.node.id,
+        mock_remove.assert_called_once_with(mock.ANY, mock.ANY, self.node.id,
                                             ['CUSTOM_12'], topic='test-topic')
         mock_notify.assert_has_calls(
             [mock.call(mock.ANY, mock.ANY, 'update',
