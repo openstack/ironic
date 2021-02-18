@@ -360,6 +360,19 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         deploy_utils.validate_image_properties(task.context, d_info, props)
 
+    def _validate_vendor(self, task):
+        vendor = task.node.properties.get('vendor')
+        if not vendor:
+            return
+
+        if 'Dell' in vendor.split():
+            raise exception.InvalidParameterValue(
+                _("The %(iface)s boot interface is not suitable for node "
+                  "%(node)s with vendor %(vendor)s, use "
+                  "idrac-redfish-virtual-media instead")
+                % {'iface': task.node.boot_interface,
+                   'node': task.node.uuid, 'vendor': vendor})
+
     def validate(self, task):
         """Validate the deployment information for the task's node.
 
@@ -371,6 +384,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         :raises: InvalidParameterValue on malformed parameter(s)
         :raises: MissingParameterValue on missing parameter(s)
         """
+        self._validate_vendor(task)
         self._validate_driver_info(task)
 
         if task.driver.storage.should_write_image(task):

@@ -70,6 +70,9 @@ class DracRedfishVirtualMediaBoot(redfish_boot.RedfishVirtualMediaBoot):
             boot_devices.CDROM: sushy.VIRTUAL_MEDIA_CD
         }
 
+    def _validate_vendor(self, task):
+        pass  # assume people are doing the right thing
+
     @classmethod
     def _set_boot_device(cls, task, device, persistent=False):
         """Set boot device for a node.

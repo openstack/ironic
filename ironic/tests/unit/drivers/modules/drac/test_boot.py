@@ -25,13 +25,15 @@ from oslo_utils import importutils
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.conductor import task_manager
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.drac import boot as drac_boot
+from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 sushy = importutils.try_import('sushy')
 
-INFO_DICT = test_utils.INFO_DICT
+INFO_DICT = dict(db_utils.get_test_redfish_info(), **test_utils.INFO_DICT)
 
 
 @mock.patch.object(drac_boot, 'redfish_utils', autospec=True)
@@ -41,6 +43,28 @@ class DracBootTestCase(test_utils.BaseDracTest):
         super(DracBootTestCase, self).setUp()
         self.node = obj_utils.create_test_node(
             self.context, driver='idrac', driver_info=INFO_DICT)
+
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
+                       autospec=True)
+    def test_validate_correct_vendor(self, mock_redfish_utils,
+                                     mock_validate_image_properties):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.instance_info.update(
+                {'kernel': 'kernel',
+                 'ramdisk': 'ramdisk',
+                 'image_source': 'http://image/source'}
+            )
+
+            task.node.driver_info.update(
+                {'deploy_kernel': 'kernel',
+                 'deploy_ramdisk': 'ramdisk',
+                 'bootloader': 'bootloader'}
+            )
+
+            task.node.properties['vendor'] = "Dell Inc."
+
+            task.driver.boot.validate(task)
 
     def test__set_boot_device_persistent(self, mock_redfish_utils):
 
