@@ -284,8 +284,8 @@ RELEASE_MAPPING = {
         }
     },
     '16.2': {
-        'api': '1.68',
-        'rpc': '1.51',
+        'api': '1.69',
+        'rpc': '1.52',
         'objects': {
             'Allocation': ['1.1'],
             'Node': ['1.35'],
