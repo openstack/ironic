@@ -20,6 +20,7 @@ from keystoneauth1 import loading as ks_loading
 import openstack
 from openstack.connection import exceptions as openstack_exc
 from oslo_utils import uuidutils
+import tenacity
 
 from ironic.common import context
 from ironic.common import exception
@@ -886,12 +887,14 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         validate_agent_mock.return_value = True
         self.assertTrue(neutron.wait_for_host_agent(
             self.client_mock, 'hostname'))
-        sleep_mock.assert_not_called()
+        validate_agent_mock.assert_called_once()
 
     @mock.patch.object(neutron, '_validate_agent', autospec=True)
     @mock.patch.object(time, 'sleep', autospec=True)
     def test_wait_for_host_agent_down_target_state_up(
             self, sleep_mock, validate_agent_mock):
+        neutron.wait_for_host_agent.retry.stop = (
+            tenacity.stop_after_attempt(3))
         validate_agent_mock.return_value = False
         self.assertRaises(exception.NetworkError,
                           neutron.wait_for_host_agent,
@@ -901,27 +904,31 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
     @mock.patch.object(time, 'sleep', autospec=True)
     def test_wait_for_host_agent_up_target_state_down(
             self, sleep_mock, validate_agent_mock):
+        neutron.wait_for_host_agent.retry.stop = (
+            tenacity.stop_after_attempt(3))
         validate_agent_mock.return_value = True
         self.assertRaises(exception.NetworkError,
                           neutron.wait_for_host_agent,
                           self.client_mock, 'hostname', target_state='down')
 
     @mock.patch.object(neutron, '_validate_agent', autospec=True)
-    @mock.patch.object(time, 'sleep', autospec=True)
     def test_wait_for_host_agent_down_target_state_down(
-            self, sleep_mock, validate_agent_mock):
+            self, validate_agent_mock):
         validate_agent_mock.return_value = False
         self.assertTrue(
             neutron.wait_for_host_agent(self.client_mock, 'hostname',
                                         target_state='down'))
+        sleep_mock = mock.Mock()
+        neutron.wait_for_host_agent.retry.sleep = sleep_mock
         sleep_mock.assert_not_called()
+        validate_agent_mock.assert_called_once()
 
     @mock.patch.object(neutron, '_get_port_by_uuid', autospec=True)
     @mock.patch.object(time, 'sleep', autospec=True)
     def test_wait_for_port_status_up(self, sleep_mock, get_port_mock):
         get_port_mock.return_value = stubs.FakeNeutronPort(status='ACTIVE')
         neutron.wait_for_port_status(self.client_mock, 'port_id', 'ACTIVE')
-        sleep_mock.assert_not_called()
+        get_port_mock.assert_called_once()
 
     @mock.patch.object(neutron, '_get_port_by_uuid', autospec=True)
     @mock.patch.object(time, 'sleep', autospec=True)
@@ -929,12 +936,14 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         get_port_mock.side_effect = [stubs.FakeNeutronPort(status='DOWN'),
                                      stubs.FakeNeutronPort(status='ACTIVE')]
         neutron.wait_for_port_status(self.client_mock, 'port_id', 'ACTIVE')
-        sleep_mock.assert_called_once()
+        self.assertEqual(get_port_mock.call_count, 2)
 
     @mock.patch.object(neutron, '_get_port_by_uuid', autospec=True)
     @mock.patch.object(time, 'sleep', autospec=True)
-    def test_wait_for_port_status_active_max_retry(self, sleep_mock,
-                                                   get_port_mock):
+    def test_wait_for_port_status_active_max_retry(
+            self, sleep_mock, get_port_mock):
+        neutron.wait_for_port_status.retry.stop = (
+            tenacity.stop_after_attempt(3))
         get_port_mock.return_value = stubs.FakeNeutronPort(status='DOWN')
         self.assertRaises(exception.NetworkError,
                           neutron.wait_for_port_status,
@@ -942,8 +951,10 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
 
     @mock.patch.object(neutron, '_get_port_by_uuid', autospec=True)
     @mock.patch.object(time, 'sleep', autospec=True)
-    def test_wait_for_port_status_down_max_retry(self, sleep_mock,
-                                                 get_port_mock):
+    def test_wait_for_port_status_down_max_retry(
+            self, sleep_mock, get_port_mock):
+        neutron.wait_for_port_status.retry.stop = (
+            tenacity.stop_after_attempt(3))
         get_port_mock.return_value = stubs.FakeNeutronPort(status='ACTIVE')
         self.assertRaises(exception.NetworkError,
                           neutron.wait_for_port_status,

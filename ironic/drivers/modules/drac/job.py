@@ -17,7 +17,7 @@ DRAC Lifecycle job specific methods
 
 from oslo_log import log as logging
 from oslo_utils import importutils
-import retrying
+import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -91,10 +91,11 @@ def list_unfinished_jobs(node):
         raise exception.DracOperationError(error=exc)
 
 
-@retrying.retry(
-    retry_on_exception=lambda e: isinstance(e, exception.DracOperationError),
-    stop_max_attempt_number=CONF.drac.config_job_max_retries,
-    wait_fixed=WAIT_CLOCK * 1000)
+@tenacity.retry(
+    retry=tenacity.retry_if_exception_type(exception.DracOperationError),
+    stop=tenacity.stop_after_attempt(CONF.drac.config_job_max_retries),
+    wait=tenacity.wait_fixed(WAIT_CLOCK),
+    reraise=True)
 def wait_for_job_completion(node,
                             retries=CONF.drac.config_job_max_retries):
     """Wait for job to complete

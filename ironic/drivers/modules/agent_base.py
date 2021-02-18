@@ -22,7 +22,7 @@ from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import timeutils
-import retrying
+import tenacity
 
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
@@ -1168,14 +1168,15 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
 
         :param task: a TaskManager object containing the node
         """
-        wait = CONF.agent.post_deploy_get_power_state_retry_interval * 1000
+        wait = CONF.agent.post_deploy_get_power_state_retry_interval
         attempts = CONF.agent.post_deploy_get_power_state_retries + 1
 
-        @retrying.retry(
-            stop_max_attempt_number=attempts,
-            retry_on_result=lambda state: state != states.POWER_OFF,
-            wait_fixed=wait
-        )
+        @tenacity.retry(stop=tenacity.stop_after_attempt(attempts),
+                        retry=(tenacity.retry_if_result(
+                            lambda state: state != states.POWER_OFF)
+                            | tenacity.retry_if_exception_type(Exception)),
+                        wait=tenacity.wait_fixed(wait),
+                        reraise=True)
         def _wait_until_powered_off(task):
             return task.driver.power.get_power_state(task)
 
@@ -1219,7 +1220,7 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                                 'in at least %(timeout)d seconds. Forcing '
                                 'hard power off and proceeding.',
                                 {'node_uuid': node.uuid,
-                                 'timeout': (wait * (attempts - 1)) / 1000})
+                                 'timeout': (wait * (attempts - 1))})
                     manager_utils.node_power_action(task, states.POWER_OFF)
             else:
                 # Flush the file system prior to hard rebooting the node

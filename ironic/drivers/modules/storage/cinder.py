@@ -16,7 +16,7 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
 from oslo_utils import strutils
-import retrying
+import tenacity
 
 from ironic.common import cinder
 from ironic.common import exception
@@ -307,10 +307,11 @@ class CinderStorage(base.StorageInterface):
         if not connector:
             connector = self._generate_connector(task)
 
-        @retrying.retry(
-            retry_on_exception=lambda e: isinstance(e, exception.StorageError),
-            stop_max_attempt_number=CONF.cinder.action_retries + 1,
-            wait_fixed=CONF.cinder.action_retry_interval * 1000)
+        @tenacity.retry(
+            retry=tenacity.retry_if_exception_type(exception.StorageError),
+            stop=tenacity.stop_after_attempt(CONF.cinder.action_retries + 1),
+            wait=tenacity.wait_fixed(CONF.cinder.action_retry_interval),
+            reraise=True)
         def detach_volumes():
             try:
                 # NOTE(TheJulia): If the node is in ACTIVE state, we can

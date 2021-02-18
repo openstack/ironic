@@ -20,7 +20,7 @@ from oslo_log import log
 from oslo_serialization import jsonutils
 from oslo_utils import strutils
 import requests
-import retrying
+import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -103,11 +103,12 @@ class AgentClient(object):
                                           error=get_command_error(result))
 
     @METRICS.timer('AgentClient._wait_for_command')
-    @retrying.retry(
-        retry_on_exception=(
-            lambda e: isinstance(e, exception.AgentCommandTimeout)),
-        stop_max_attempt_number=CONF.agent.command_wait_attempts,
-        wait_fixed=CONF.agent.command_wait_interval * 1000)
+    @tenacity.retry(
+        retry=tenacity.retry_if_exception_type(
+            exception.AgentCommandTimeout),
+        stop=tenacity.stop_after_attempt(CONF.agent.command_wait_attempts),
+        wait=tenacity.wait_fixed(CONF.agent.command_wait_interval),
+        reraise=True)
     def _wait_for_command(self, node, method):
         """Wait for a command to complete.
 
@@ -134,10 +135,11 @@ class AgentClient(object):
             return result
 
     @METRICS.timer('AgentClient._command')
-    @retrying.retry(
-        retry_on_exception=(
-            lambda e: isinstance(e, exception.AgentConnectionFailed)),
-        stop_max_attempt_number=CONF.agent.max_command_attempts)
+    @tenacity.retry(
+        retry=tenacity.retry_if_exception_type(
+            exception.AgentConnectionFailed),
+        stop=tenacity.stop_after_attempt(CONF.agent.max_command_attempts),
+        reraise=True)
     def _command(self, node, method, params, wait=False, poll=False):
         """Sends command to agent.
 
@@ -300,10 +302,12 @@ class AgentClient(object):
                 raise exception.AgentConnectionFailed(reason=msg)
 
         if retry_connection:
-            _get = retrying.retry(
-                retry_on_exception=(
-                    lambda e: isinstance(e, exception.AgentConnectionFailed)),
-                stop_max_attempt_number=CONF.agent.max_command_attempts)(_get)
+            _get = tenacity.retry(
+                retry=tenacity.retry_if_exception_type(
+                    exception.AgentConnectionFailed),
+                stop=tenacity.stop_after_attempt(
+                    CONF.agent.max_command_attempts),
+                reraise=True)(_get)
 
         result = _get().json()['commands']
         status = '; '.join('%(cmd)s: result "%(res)s", error "%(err)s"' %

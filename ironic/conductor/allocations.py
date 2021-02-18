@@ -18,7 +18,7 @@ from ironic_lib import metrics_utils
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
-import retrying
+import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -187,10 +187,13 @@ def _verify_node(node, allocation):
 # node_locked_retry_attempt times, we try to allocate *any* node the same
 # number of times. This avoids getting stuck on a node reserved e.g. for power
 # sync periodic task.
-@retrying.retry(
-    retry_on_exception=lambda e: isinstance(e, exception.AllocationFailed),
-    stop_max_attempt_number=CONF.conductor.node_locked_retry_attempts,
-    wait_fixed=CONF.conductor.node_locked_retry_interval * 1000)
+@tenacity.retry(
+    retry=tenacity.retry_if_exception_type(exception.AllocationFailed),
+    stop=tenacity.stop_after_attempt(
+        CONF.conductor.node_locked_retry_attempts),
+    wait=tenacity.wait_fixed(
+        CONF.conductor.node_locked_retry_interval),
+    reraise=True)
 def _allocate_node(context, allocation, nodes):
     """Go through the list of nodes and try to allocate one of them."""
     retry_nodes = []

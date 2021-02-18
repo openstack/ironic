@@ -15,7 +15,7 @@
 
 from oslo_log import log
 from oslo_utils import importutils
-import retrying
+import tenacity
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -155,8 +155,10 @@ def _test_retry(exception):
     return False
 
 
-@retrying.retry(wait_fixed=3000, stop_max_attempt_number=3,
-                retry_on_exception=_test_retry)
+@tenacity.retry(retry=tenacity.retry_if_exception(_test_retry),
+                stop=tenacity.stop_after_attempt(3),
+                wait=tenacity.wait_fixed(3),
+                reraise=True)
 def _insert_vmedia(task, managers, boot_url, boot_device):
     """Insert bootable ISO image into virtual CD or DVD
 

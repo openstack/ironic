@@ -26,7 +26,7 @@ from oslo_concurrency import processutils
 from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import units
-import retrying
+import tenacity
 import yaml
 
 from ironic.common import dhcp_factory
@@ -624,14 +624,16 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
 
         :param task: a TaskManager object containing the node
         """
-        wait = CONF.ansible.post_deploy_get_power_state_retry_interval * 1000
+        wait = CONF.ansible.post_deploy_get_power_state_retry_interval
         attempts = CONF.ansible.post_deploy_get_power_state_retries + 1
 
-        @retrying.retry(
-            stop_max_attempt_number=attempts,
-            retry_on_result=lambda state: state != states.POWER_OFF,
-            wait_fixed=wait
-        )
+        @tenacity.retry(
+            stop=tenacity.stop_after_attempt(attempts),
+            retry=(tenacity.retry_if_result(
+                lambda state: state != states.POWER_OFF)
+                | tenacity.retry_if_exception_type(Exception)),
+            wait=tenacity.wait_fixed(wait),
+            reraise=True)
         def _wait_until_powered_off(task):
             return task.driver.power.get_power_state(task)
 

@@ -31,6 +31,7 @@ import oslo_messaging as messaging
 from oslo_utils import uuidutils
 from oslo_versionedobjects import base as ovo_base
 from oslo_versionedobjects import fields
+import tenacity
 
 from ironic.common import boot_devices
 from ironic.common import components
@@ -1786,12 +1787,14 @@ class ContinueNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
                                       deployments.continue_node_deploy,
                                       mock.ANY)
 
+    @mock.patch.object(tenacity, 'stop_after_attempt',
+                       return_value=tenacity.stop_after_attempt(4),
+                       autospec=True)
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
-    def test_continue_node_deploy_locked(self, mock_spawn):
+    def test_continue_node_deploy_locked(self, mock_spawn, mock_stop):
         """Test that continuing a deploy via RPC cannot fail due to locks."""
         max_attempts = 3
-        self.config(node_locked_retry_attempts=max_attempts, group='conductor')
         prv_state = states.DEPLOYWAIT
         tgt_prv_state = states.ACTIVE
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -2611,9 +2614,12 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_continue_node_clean_manual_abort_last_clean_step(self):
         self._continue_node_clean_abort_last_clean_step(manual=True)
 
+    @mock.patch.object(tenacity, 'stop_after_attempt',
+                       return_value=tenacity.stop_after_attempt(4),
+                       autospec=True)
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
-    def test_continue_node_clean_locked(self, mock_spawn):
+    def test_continue_node_clean_locked(self, mock_spawn, mock_stop):
         """Test that continuing a clean via RPC cannot fail due to locks."""
         max_attempts = 3
         self.config(node_locked_retry_attempts=max_attempts, group='conductor')

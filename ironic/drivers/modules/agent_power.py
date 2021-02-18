@@ -18,7 +18,7 @@ import time
 
 from oslo_config import cfg
 from oslo_log import log
-import retrying
+import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -179,13 +179,13 @@ class AgentPower(base.PowerInterface):
         if not timeout:
             timeout = CONF.agent.post_deploy_get_power_state_retries * wait
 
-        @retrying.retry(
-            stop_max_delay=timeout,
-            retry_on_result=lambda result: not result,
-            retry_on_exception=(
-                lambda e: isinstance(e, exception.AgentConnectionFailed)),
-            wait_fixed=wait * 1000
-        )
+        @tenacity.retry(
+            stop=tenacity.stop_after_delay(timeout),
+            retry=(tenacity.retry_if_result(lambda result: not result)
+                   | tenacity.retry_if_exception_type(
+                exception.AgentConnectionFailed)),
+            wait=tenacity.wait_fixed(wait),
+            reraise=True)
         def _wait_until_rebooted(task):
             try:
                 status = self._client.get_commands_status(

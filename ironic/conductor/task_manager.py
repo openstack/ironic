@@ -108,7 +108,7 @@ from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import timeutils
-import retrying
+import tenacity
 
 from ironic.common import driver_factory
 from ironic.common import exception
@@ -275,12 +275,13 @@ class TaskManager(object):
             attempts = 1
 
         # NodeLocked exceptions can be annoying. Let's try to alleviate
-        # some of that pain by retrying our lock attempts. The retrying
-        # module expects a wait_fixed value in milliseconds.
-        @retrying.retry(
-            retry_on_exception=lambda e: isinstance(e, exception.NodeLocked),
-            stop_max_attempt_number=attempts,
-            wait_fixed=CONF.conductor.node_locked_retry_interval * 1000)
+        # some of that pain by retrying our lock attempts.
+        @tenacity.retry(
+            retry=tenacity.retry_if_exception_type(exception.NodeLocked),
+            stop=tenacity.stop_after_attempt(attempts),
+            wait=tenacity.wait_fixed(
+                CONF.conductor.node_locked_retry_interval),
+            reraise=True)
         def reserve_node():
             self.node = objects.Node.reserve(self.context, CONF.host,
                                              self.node_id)
@@ -300,8 +301,8 @@ class TaskManager(object):
         when provided with one.
 
         :param purpose: optionally change the purpose of the lock
-        :param retry: whether to retry locking if it fails, the class-level
-            value is used by default
+        :param retry: whether to retry locking if it fails, the
+            class-level value is used by default
         :raises: NodeLocked if an exclusive lock remains on the node after
                             "node_locked_retry_attempts"
         """
