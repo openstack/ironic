@@ -66,8 +66,12 @@ Supported Endpoints
 * /nodes
 * /nodes/<uuid>/ports
 * /nodes/<uuid>/portgroups
+* /nodes/<uuid>/volume/connectors
+* /nodes/<uuid>/volume/targets
 * /ports
 * /portgroups
+* /volume/connectors
+* /volume/targets
 
 How Project Scoped Works
 ------------------------
@@ -146,7 +150,7 @@ More information is available on these fields in :doc:`/configuration/policy`.
 Pratical differences
 --------------------
 
-Most users, upon implementing the use of ``system`` scoped authenticaiton,
+Most users, upon implementing the use of ``system`` scoped authentication
 should not notice a difference as long as their authentication token is
 properly scoped to ``system`` and with the appropriate role for their
 access level. For most users who used a ``baremetal`` project,
@@ -154,7 +158,7 @@ or other custom project via a custom policy file, along with a custom
 role name such as ``baremetal_admin``, this will require changing
 the user to be a ``system`` scoped user with ``admin`` privilges.
 
-The most noticable difference for API consumers is the HTTP 403 access
+The most noticeable difference for API consumers is the HTTP 403 access
 code is now mainly a HTTP 404 access code. The access concept has changed
 from "Does the user user broadly has access to the API?" to
 "Does user have access to the node, and then do they have access

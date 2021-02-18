@@ -111,7 +111,8 @@ class VolumeConnectorsController(rest.RestController):
     def _get_volume_connectors_collection(self, node_ident, marker, limit,
                                           sort_key, sort_dir,
                                           resource_url=None,
-                                          fields=None, detail=None):
+                                          fields=None, detail=None,
+                                          project=None):
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
 
@@ -135,13 +136,15 @@ class VolumeConnectorsController(rest.RestController):
             node = api_utils.get_rpc_node(node_ident)
             connectors = objects.VolumeConnector.list_by_node_id(
                 api.request.context, node.id, limit, marker_obj,
-                sort_key=sort_key, sort_dir=sort_dir)
+                sort_key=sort_key, sort_dir=sort_dir,
+                project=project)
         else:
             connectors = objects.VolumeConnector.list(api.request.context,
                                                       limit,
                                                       marker_obj,
                                                       sort_key=sort_key,
-                                                      sort_dir=sort_dir)
+                                                      sort_dir=sort_dir,
+                                                      project=project)
         return list_convert_with_links(connectors, limit,
                                        url=resource_url,
                                        fields=fields,
@@ -156,7 +159,7 @@ class VolumeConnectorsController(rest.RestController):
                    sort_dir=args.string, fields=args.string_list,
                    detail=args.boolean)
     def get_all(self, node=None, marker=None, limit=None, sort_key='id',
-                sort_dir='asc', fields=None, detail=None):
+                sort_dir='asc', fields=None, detail=None, project=None):
         """Retrieve a list of volume connectors.
 
         :param node: UUID or name of a node, to get only volume connectors
@@ -179,7 +182,8 @@ class VolumeConnectorsController(rest.RestController):
         :raises: InvalidParameterValue if sort key is invalid for sorting.
         :raises: InvalidParameterValue if both fields and detail are specified.
         """
-        api_utils.check_policy('baremetal:volume:get')
+        project = api_utils.check_volume_list_policy(
+            parent_node=self.parent_node_ident)
 
         if fields is None and not detail:
             fields = _DEFAULT_RETURN_FIELDS
@@ -191,7 +195,7 @@ class VolumeConnectorsController(rest.RestController):
         resource_url = 'volume/connectors'
         return self._get_volume_connectors_collection(
             node, marker, limit, sort_key, sort_dir, resource_url=resource_url,
-            fields=fields, detail=detail)
+            fields=fields, detail=detail, project=project)
 
     @METRICS.timer('VolumeConnectorsController.get_one')
     @method.expose()
@@ -210,13 +214,15 @@ class VolumeConnectorsController(rest.RestController):
         :raises: VolumeConnectorNotFound if no volume connector exists with
                  the specified UUID.
         """
-        api_utils.check_policy('baremetal:volume:get')
+
+        rpc_connector, _ = api_utils.check_volume_policy_and_retrieve(
+            'baremetal:volume:get',
+            connector_uuid,
+            target=False)
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
 
-        rpc_connector = objects.VolumeConnector.get_by_uuid(
-            api.request.context, connector_uuid)
         return convert_with_links(rpc_connector, fields=fields)
 
     @METRICS.timer('VolumeConnectorsController.post')
@@ -238,7 +244,23 @@ class VolumeConnectorsController(rest.RestController):
                  same UUID already exists
         """
         context = api.request.context
-        api_utils.check_policy('baremetal:volume:create')
+        owner = None
+        lessee = None
+        raise_node_not_found = False
+        node_uuid = connector.get('node_uuid')
+
+        try:
+            node = api_utils.replace_node_uuid_with_id(connector)
+            owner = node.owner
+            lessee = node.lessee
+        except exception.NotFound:
+            raise_node_not_found = True
+        api_utils.check_owner_policy('node', 'baremetal:volume:create',
+                                     owner, lessee=lessee, conceal_node=False)
+
+        if raise_node_not_found:
+            raise exception.InvalidInput(fieldname='node_uuid',
+                                         value=node_uuid)
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
@@ -246,8 +268,6 @@ class VolumeConnectorsController(rest.RestController):
         # NOTE(hshiina): UUID is mandatory for notification payload
         if not connector.get('uuid'):
             connector['uuid'] = uuidutils.generate_uuid()
-
-        node = api_utils.replace_node_uuid_with_id(connector)
 
         new_connector = objects.VolumeConnector(context, **connector)
 
@@ -294,7 +314,11 @@ class VolumeConnectorsController(rest.RestController):
                  volume connector is not powered off.
         """
         context = api.request.context
-        api_utils.check_policy('baremetal:volume:update')
+
+        rpc_connector, rpc_node = api_utils.check_volume_policy_and_retrieve(
+            'baremetal:volume:update',
+            connector_uuid,
+            target=False)
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
@@ -306,9 +330,6 @@ class VolumeConnectorsController(rest.RestController):
                 message = _("Expected a UUID for node_uuid, but received "
                             "%(uuid)s.") % {'uuid': str(value)}
                 raise exception.InvalidUUID(message=message)
-
-        rpc_connector = objects.VolumeConnector.get_by_uuid(context,
-                                                            connector_uuid)
 
         connector_dict = rpc_connector.as_dict()
         # NOTE(smoriya):
@@ -370,14 +391,14 @@ class VolumeConnectorsController(rest.RestController):
                  volume connector is not powered off.
         """
         context = api.request.context
-        api_utils.check_policy('baremetal:volume:delete')
 
+        rpc_connector, rpc_node = api_utils.check_volume_policy_and_retrieve(
+            'baremetal:volume:delete',
+            connector_uuid,
+            target=False)
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
 
-        rpc_connector = objects.VolumeConnector.get_by_uuid(context,
-                                                            connector_uuid)
-        rpc_node = objects.Node.get_by_id(context, rpc_connector.node_id)
         notify.emit_start_notification(context, rpc_connector, 'delete',
                                        node_uuid=rpc_node.uuid)
         with notify.handle_error_notification(context, rpc_connector,

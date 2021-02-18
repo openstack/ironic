@@ -391,6 +391,13 @@ class TestRBACProjectScoped(TestACLBase):
             node_id=owned_node['id'],
             name='magicfoo',
             address='01:03:09:ff:01:01')
+        db_utils.create_test_volume_target(
+            uuid='a265e2f0-e97f-4177-b1c0-8298add53086',
+            node_id=owned_node['id'])
+        db_utils.create_test_volume_connector(
+            uuid='65ea0296-219b-4635-b0c8-a6e055da878d',
+            node_id=owned_node['id'],
+            connector_id='iqn.2012-06.org.openstack.magic')
 
         # Leased nodes
         leased_node = db_utils.create_test_node(

@@ -714,7 +714,8 @@ class Connection(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_volume_connector_list(self, limit=None, marker=None,
-                                  sort_key=None, sort_dir=None):
+                                  sort_key=None, sort_dir=None,
+                                  project=None):
         """Return a list of volume connectors.
 
         :param limit: Maximum number of volume connectors to return.
@@ -723,6 +724,8 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param sort_key: Attribute by which results should be sorted.
         :param sort_dir: Direction in which results should be sorted.
                          (asc, desc)
+        :param project: The associated node project to search with.
+        :returns: a list of :class:`VolumeConnector` objects
         :returns: A list of volume connectors.
         :raises: InvalidParameterValue If sort_key does not exist.
         """
@@ -750,7 +753,7 @@ class Connection(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_volume_connectors_by_node_id(self, node_id, limit=None,
                                          marker=None, sort_key=None,
-                                         sort_dir=None):
+                                         sort_dir=None, project=None):
         """List all the volume connectors for a given node.
 
         :param node_id: The integer node ID.
@@ -760,6 +763,8 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param sort_key: Attribute by which results should be sorted
         :param sort_dir: Direction in which results should be sorted
                          (asc, desc)
+        :param project: The associated node project to search with.
+        :returns: a list of :class:`VolumeConnector` objects
         :returns: A list of volume connectors.
         :raises: InvalidParameterValue If sort_key does not exist.
         """
@@ -813,7 +818,8 @@ class Connection(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_volume_target_list(self, limit=None, marker=None,
-                               sort_key=None, sort_dir=None):
+                               sort_key=None, sort_dir=None,
+                               project=None):
         """Return a list of volume targets.
 
         :param limit: Maximum number of volume targets to return.
@@ -822,6 +828,8 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param sort_key: Attribute by which results should be sorted.
         :param sort_dir: direction in which results should be sorted.
                          (asc, desc)
+        :param project: The associated node project to search with.
+        :returns: a list of :class:`VolumeConnector` objects
         :returns: A list of volume targets.
         :raises: InvalidParameterValue if sort_key does not exist.
         """
@@ -849,7 +857,7 @@ class Connection(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_volume_targets_by_node_id(self, node_id, limit=None,
                                       marker=None, sort_key=None,
-                                      sort_dir=None):
+                                      sort_dir=None, project=None):
         """List all the volume targets for a given node.
 
         :param node_id: The integer node ID.
@@ -859,6 +867,8 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param sort_key: Attribute by which results should be sorted
         :param sort_dir: direction in which results should be sorted
                          (asc, desc)
+        :param project: The associated node project to search with.
+        :returns: a list of :class:`VolumeConnector` objects
         :returns: A list of volume targets.
         :raises: InvalidParameterValue if sort_key does not exist.
         """
@@ -866,7 +876,7 @@ class Connection(object, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_volume_targets_by_volume_id(self, volume_id, limit=None,
                                         marker=None, sort_key=None,
-                                        sort_dir=None):
+                                        sort_dir=None, project=None):
         """List all the volume targets for a given volume id.
 
         :param volume_id: The UUID of the volume.
