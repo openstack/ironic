@@ -314,8 +314,9 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_replace_singular(self, mock_utcnow, mock_notify):
         chassis = obj_utils.get_test_chassis(self.context)
         description = 'chassis-new-description'
@@ -339,8 +340,9 @@ class TestPatch(test_api_base.BaseApiTest):
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.END)])
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(objects.Chassis, 'save')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(objects.Chassis, 'save', autospec=True)
     def test_update_error(self, mock_save, mock_notify):
         mock_save.side_effect = Exception()
         chassis = obj_utils.get_test_chassis(self.context)
@@ -470,8 +472,9 @@ class TestPatch(test_api_base.BaseApiTest):
 
 class TestPost(test_api_base.BaseApiTest):
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_create_chassis(self, mock_utcnow, mock_notify):
         cdict = apiutils.chassis_post_data()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
@@ -497,8 +500,9 @@ class TestPost(test_api_base.BaseApiTest):
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.END)])
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(objects.Chassis, 'create')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(objects.Chassis, 'create', autospec=True)
     def test_create_chassis_error(self, mock_save, mock_notify):
         mock_save.side_effect = Exception()
         cdict = apiutils.chassis_post_data()
@@ -579,7 +583,8 @@ class TestPost(test_api_base.BaseApiTest):
 
 class TestDelete(test_api_base.BaseApiTest):
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_chassis(self, mock_notify):
         chassis = obj_utils.create_test_chassis(self.context)
         self.delete('/chassis/%s' % chassis.uuid)
@@ -595,7 +600,8 @@ class TestDelete(test_api_base.BaseApiTest):
                                       obj_fields.NotificationLevel.INFO,
                                       obj_fields.NotificationStatus.END)])
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_chassis_with_node(self, mock_notify):
         chassis = obj_utils.create_test_chassis(self.context)
         obj_utils.create_test_node(self.context, chassis_id=chassis.id)
