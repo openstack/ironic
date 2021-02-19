@@ -18,6 +18,7 @@ from http import client as http_client
 import inspect
 import io
 import re
+import string
 
 import jsonpatch
 import jsonschema
@@ -932,6 +933,10 @@ _CONFIG_DRIVE_SCHEMA = {
 }
 
 
+# Include newlines and spaces since they're common in base64 values.
+_B64_ALPHABET = frozenset(string.ascii_letters + string.digits + '+/=\n\r\t ')
+
+
 def check_allow_configdrive(target, configdrive=None):
     if not configdrive:
         return
@@ -967,6 +972,19 @@ def check_allow_configdrive(target, configdrive=None):
                     ' starting with API version %(base)s.%(opr)s') % {
                         'base': versions.BASE_VERSION,
                         'opr': versions.MINOR_59_CONFIGDRIVE_VENDOR_DATA}
+            raise exception.ClientSideError(
+                msg, status_code=http_client.BAD_REQUEST)
+    else:
+        # : is not a valid base64 symbol, so we can use this simple check
+        if '://' in configdrive:
+            return
+
+        # This is not 100% robust but it does solve the case of invalid
+        # JSON assumed to be a base64 string.
+        letters = set(configdrive)
+        if letters - _B64_ALPHABET:
+            msg = _('Invalid configdrive format: it is neither a JSON, nor '
+                    'a URL, nor a base64 string')
             raise exception.ClientSideError(
                 msg, status_code=http_client.BAD_REQUEST)
 

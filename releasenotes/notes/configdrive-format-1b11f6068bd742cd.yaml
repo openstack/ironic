@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Rejects ``configdrive`` that is not a JSON, a URL or a base64 string.
+    Previously invalid JSON supplied to ironicclient could end up accepted
+    as a configdrive, which would cause a failure much later.
