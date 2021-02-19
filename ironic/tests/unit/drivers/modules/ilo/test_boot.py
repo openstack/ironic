@@ -1080,8 +1080,8 @@ class IloPXEBootTestCase(test_common.BaseIloTest):
                                is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.boot.clean_up_instance(task)
             is_iscsi_boot_mock.return_value = False
+            task.driver.boot.clean_up_instance(task)
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
             update_secure_boot_mode_mock.assert_called_once_with(task, False)
             pxe_cleanup_mock.assert_called_once_with(mock.ANY, task)
@@ -1099,8 +1099,8 @@ class IloPXEBootTestCase(test_common.BaseIloTest):
             update_secure_boot_mode_mock, is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.boot.clean_up_instance(task)
             is_iscsi_boot_mock.return_value = True
+            task.driver.boot.clean_up_instance(task)
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
             update_secure_boot_mode_mock.assert_called_once_with(task, False)
             pxe_cleanup_mock.assert_called_once_with(mock.ANY, task)
@@ -1149,9 +1149,9 @@ class IloPXEBootTestCase(test_common.BaseIloTest):
                               is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.boot.prepare_instance(task)
             is_iscsi_boot_mock.return_value = False
             get_boot_mode_mock.return_value = 'uefi'
+            task.driver.boot.prepare_instance(task)
             update_boot_mode_mock.assert_called_once_with(task)
             update_secure_boot_mode_mock.assert_called_once_with(task, True)
             pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
@@ -1175,9 +1175,9 @@ class IloPXEBootTestCase(test_common.BaseIloTest):
                                    is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.boot.prepare_instance(task)
             is_iscsi_boot_mock.return_value = False
             get_boot_mode_mock.return_value = 'bios'
+            task.driver.boot.prepare_instance(task)
             update_boot_mode_mock.assert_called_once_with(task)
             update_secure_boot_mode_mock.assert_called_once_with(task, True)
             pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
@@ -1263,8 +1263,8 @@ class IloiPXEBootTestCase(test_common.BaseIloTest):
                                is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.boot.clean_up_instance(task)
             is_iscsi_boot_mock.return_value = False
+            task.driver.boot.clean_up_instance(task)
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
             update_secure_boot_mode_mock.assert_called_once_with(task, False)
             pxe_cleanup_mock.assert_called_once_with(mock.ANY, task)
@@ -1282,8 +1282,8 @@ class IloiPXEBootTestCase(test_common.BaseIloTest):
             update_secure_boot_mode_mock, is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.boot.clean_up_instance(task)
             is_iscsi_boot_mock.return_value = True
+            task.driver.boot.clean_up_instance(task)
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
             update_secure_boot_mode_mock.assert_called_once_with(task, False)
             pxe_cleanup_mock.assert_called_once_with(mock.ANY, task)
@@ -1332,9 +1332,9 @@ class IloiPXEBootTestCase(test_common.BaseIloTest):
                               is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.boot.prepare_instance(task)
             is_iscsi_boot_mock.return_value = False
             get_boot_mode_mock.return_value = 'uefi'
+            task.driver.boot.prepare_instance(task)
             update_boot_mode_mock.assert_called_once_with(task)
             update_secure_boot_mode_mock.assert_called_once_with(task, True)
             pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
@@ -1358,9 +1358,9 @@ class IloiPXEBootTestCase(test_common.BaseIloTest):
                                    is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.boot.prepare_instance(task)
             is_iscsi_boot_mock.return_value = False
             get_boot_mode_mock.return_value = 'bios'
+            task.driver.boot.prepare_instance(task)
             update_boot_mode_mock.assert_called_once_with(task)
             update_secure_boot_mode_mock.assert_called_once_with(task, True)
             pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
