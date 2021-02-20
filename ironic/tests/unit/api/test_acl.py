@@ -446,7 +446,8 @@ class TestRBACProjectScoped(TestACLBase):
             'owner_port_ident': owned_node_port['uuid'],
             'other_port_ident': other_port['uuid'],
             'owner_portgroup_ident': owner_pgroup['uuid'],
-            'other_portgroup_ident': other_pgroup['uuid']})
+            'other_portgroup_ident': other_pgroup['uuid'],
+            'driver_name': 'fake-driverz'})
 
     @ddt.file_data('test_rbac_project_scoped.yaml')
     @ddt.unpack
