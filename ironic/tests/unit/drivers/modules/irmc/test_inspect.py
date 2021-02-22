@@ -205,24 +205,7 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
             _inspect_hardware_mock.assert_called_once_with(task.node,
                                                            existing_traits)
 
-            # note (naohirot):
-            # as of mock 1.2, assert_has_calls has a bug which returns
-            # "AssertionError: Calls not found." if mock_calls has class
-            # method call such as below:
-
-            # AssertionError: Calls not found.
-            # Expected: [call.list_by_node_id(
-            #  <oslo_context.context.RequestContext object at 0x7f1a34f8c0d0>,
-            #  1)]
-            # Actual: [call.list_by_node_id(
-            #  <oslo_context.context.RequestContext object at 0x7f1a34f8c0d0>,
-            #  1)]
-            #
-            # workaround, remove class method call from mock_calls list
-            del port_mock.mock_calls[0]
             port_mock.assert_has_calls([
-                # workaround, comment out class method call from expected list
-                # mock.call.list_by_node_id(task.context, node_id),
                 mock.call(task.context, address=inspected_macs[0],
                           node_id=node_id),
                 mock.call(task.context, address=inspected_macs[1],
