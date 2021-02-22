@@ -347,7 +347,7 @@ node_policies = [
     # TODO(TheJulia): Explicit RBAC testing needed for this.
     policy.DocumentedRuleDefault(
         name='baremetal:node:update_owner_provisioned',
-        check_str=SYSTEM_MEMBER,
+        check_str=SYSTEM_ADMIN,
         scope_types=['system'],
         description='Update Node owner even when Node is provisioned',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
@@ -641,7 +641,7 @@ node_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:disable_cleaning',
-        check_str=SYSTEM_MEMBER,
+        check_str=SYSTEM_ADMIN,
         scope_types=['system'],
         description='Disable Node disk cleaning',
         operations=[
