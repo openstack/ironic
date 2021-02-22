@@ -5135,9 +5135,9 @@ class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                           console_enabled=True)
         self._start_service()
         self.service.set_console_mode(self.context, node.uuid, True)
-        self._stop_service()
         self.assertFalse(mock_sc.called)
         self.assertFalse(mock_notify.called)
+        self._stop_service()
 
     @mock.patch.object(fake.FakeConsole, 'stop_console', autospec=True)
     @mock.patch.object(notification_utils, 'emit_console_notification')
