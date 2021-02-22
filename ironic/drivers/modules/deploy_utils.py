@@ -308,7 +308,16 @@ def agent_add_clean_params(task):
     zeroize = CONF.deploy.shred_final_overwrite_with_zeros
     info['agent_erase_devices_zeroize'] = zeroize
     erase_fallback = CONF.deploy.continue_if_disk_secure_erase_fails
+    info['agent_continue_if_secure_erase_failed'] = erase_fallback
+    # NOTE(janders) ``agent_continue_if_ata_erase_failed`` is deprecated and
+    # will be removed in the "Y" cycle. The replacement option
+    # ``agent_continue_if_secure_erase_failed`` is used to control shred
+    #  fallback for both ATA Secure Erase and NVMe Secure Erase.
+    # The ``agent_continue_if_ata_erase_failed`` line can
+    # be deleted along with this comment when support for it is fully removed.
     info['agent_continue_if_ata_erase_failed'] = erase_fallback
+    nvme_secure_erase = CONF.deploy.enable_nvme_secure_erase
+    info['agent_enable_nvme_secure_erase'] = nvme_secure_erase
     secure_erase = CONF.deploy.enable_ata_secure_erase
     info['agent_enable_ata_secure_erase'] = secure_erase
     info['disk_erasure_concurrency'] = CONF.deploy.disk_erasure_concurrency

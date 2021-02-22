@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Adds the ``[deploy]enable_nvme_secure_erase`` option which allows the
+    operator to enable NVMe format option for all nodes being managed by
+    the conductor.
+deprecations:
+  - |
+    Deprecates ATA specific ``agent_continue_if_ata_erase_failed`` agent's
+    option which is replaced with ``agent_continue_if_secure_erase_failed``.
+    The new option supports both ATA and NVMe secure erase. In order to ensure
+    a smooth migration to the new configuration option, the operators need to
+    upgrade Ironic Python Agent image to Wallaby release prior to upgrading
+    Ironic Conductor to Xena.
