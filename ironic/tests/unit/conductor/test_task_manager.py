@@ -113,7 +113,13 @@ class TaskManagerTestCase(db_base.DbTestCase):
         get_voltgt_mock.return_value = mock.sentinel.voltgt1
         build_driver_mock.return_value = mock.sentinel.driver1
 
+        # Note(arne_wiebalck): Force loading of lazy-loaded properties.
+        def _eval_all(task):
+            return task.ports, task.portgroups, task.volume_targets, \
+                task.volume_connectors
+
         with task_manager.TaskManager(self.context, 'node-id1') as task:
+            _eval_all(task)
             reserve_mock.return_value = node2
             get_ports_mock.return_value = mock.sentinel.ports2
             get_portgroups_mock.return_value = mock.sentinel.portgroups2
@@ -121,6 +127,7 @@ class TaskManagerTestCase(db_base.DbTestCase):
             get_voltgt_mock.return_value = mock.sentinel.voltgt2
             build_driver_mock.return_value = mock.sentinel.driver2
             with task_manager.TaskManager(self.context, 'node-id2') as task2:
+                _eval_all(task2)
                 self.assertEqual(self.context, task.context)
                 self.assertEqual(self.node, task.node)
                 self.assertEqual(mock.sentinel.ports1, task.ports)
@@ -273,16 +280,18 @@ class TaskManagerTestCase(db_base.DbTestCase):
         reserve_mock.return_value = self.node
         get_ports_mock.side_effect = exception.IronicException('foo')
 
-        self.assertRaises(exception.IronicException,
-                          task_manager.TaskManager,
-                          self.context,
-                          'fake-node-id')
+        # Note(arne_wiebalck): Force loading of lazy-loaded properties.
+        def _eval_ports(task):
+            return task.ports
+
+        with task_manager.TaskManager(self.context, 'fake-node-id') as task:
+            self.assertRaises(exception.IronicException, _eval_ports, task)
 
         node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
         reserve_mock.assert_called_once_with(self.context, self.host,
                                              'fake-node-id')
         get_ports_mock.assert_called_once_with(self.context, self.node.id)
-        self.assertFalse(build_driver_mock.called)
+        self.assertTrue(build_driver_mock.called)
         release_mock.assert_called_once_with(self.context, self.host,
                                              self.node.id)
 
@@ -293,16 +302,19 @@ class TaskManagerTestCase(db_base.DbTestCase):
         reserve_mock.return_value = self.node
         get_portgroups_mock.side_effect = exception.IronicException('foo')
 
-        self.assertRaises(exception.IronicException,
-                          task_manager.TaskManager,
-                          self.context,
-                          'fake-node-id')
+        # Note(arne_wiebalck): Force loading of lazy-loaded properties.
+        def _eval_portgroups(task):
+            return task.portgroups
+
+        with task_manager.TaskManager(self.context, 'fake-node-id') as task:
+            self.assertRaises(exception.IronicException, _eval_portgroups,
+                              task)
 
         node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
         reserve_mock.assert_called_once_with(self.context, self.host,
                                              'fake-node-id')
         get_portgroups_mock.assert_called_once_with(self.context, self.node.id)
-        self.assertFalse(build_driver_mock.called)
+        self.assertTrue(build_driver_mock.called)
         release_mock.assert_called_once_with(self.context, self.host,
                                              self.node.id)
 
@@ -313,15 +325,18 @@ class TaskManagerTestCase(db_base.DbTestCase):
         reserve_mock.return_value = self.node
         get_volconn_mock.side_effect = exception.IronicException('foo')
 
-        self.assertRaises(exception.IronicException,
-                          task_manager.TaskManager,
-                          self.context,
-                          'fake-node-id')
+        # Note(arne_wiebalck): Force loading of lazy-loaded properties.
+        def _eval_volconn(task):
+            return task.volume_connectors
+
+        with task_manager.TaskManager(self.context, 'fake-node-id') as task:
+            self.assertRaises(exception.IronicException, _eval_volconn,
+                              task)
 
         reserve_mock.assert_called_once_with(self.context, self.host,
                                              'fake-node-id')
         get_volconn_mock.assert_called_once_with(self.context, self.node.id)
-        self.assertFalse(build_driver_mock.called)
+        self.assertTrue(build_driver_mock.called)
         release_mock.assert_called_once_with(self.context, self.host,
                                              self.node.id)
         node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
@@ -333,15 +348,17 @@ class TaskManagerTestCase(db_base.DbTestCase):
         reserve_mock.return_value = self.node
         get_voltgt_mock.side_effect = exception.IronicException('foo')
 
-        self.assertRaises(exception.IronicException,
-                          task_manager.TaskManager,
-                          self.context,
-                          'fake-node-id')
+        # Note(arne_wiebalck): Force loading of lazy-loaded properties.
+        def _eval_voltgt(task):
+            return task.volume_targets
+
+        with task_manager.TaskManager(self.context, 'fake-node-id') as task:
+            self.assertRaises(exception.IronicException, _eval_voltgt, task)
 
         reserve_mock.assert_called_once_with(self.context, self.host,
                                              'fake-node-id')
         get_voltgt_mock.assert_called_once_with(self.context, self.node.id)
-        self.assertFalse(build_driver_mock.called)
+        self.assertTrue(build_driver_mock.called)
         release_mock.assert_called_once_with(self.context, self.host,
                                              self.node.id)
         node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
@@ -362,8 +379,10 @@ class TaskManagerTestCase(db_base.DbTestCase):
         node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
         reserve_mock.assert_called_once_with(self.context, self.host,
                                              'fake-node-id')
-        get_ports_mock.assert_called_once_with(self.context, self.node.id)
-        get_portgroups_mock.assert_called_once_with(self.context, self.node.id)
+        self.assertFalse(get_ports_mock.called)
+        self.assertFalse(get_portgroups_mock.called)
+        self.assertFalse(get_volconn_mock.called)
+        self.assertFalse(get_voltgt_mock.called)
         build_driver_mock.assert_called_once_with(mock.ANY)
         release_mock.assert_called_once_with(self.context, self.host,
                                              self.node.id)
@@ -423,17 +442,19 @@ class TaskManagerTestCase(db_base.DbTestCase):
         node_get_mock.return_value = self.node
         get_ports_mock.side_effect = exception.IronicException('foo')
 
-        self.assertRaises(exception.IronicException,
-                          task_manager.TaskManager,
-                          self.context,
-                          'fake-node-id',
-                          shared=True)
+        # Note(arne_wiebalck): Force loading of lazy-loaded properties.
+        def _eval_ports(task):
+            return task.ports
+
+        with task_manager.TaskManager(self.context, 'fake-node-id',
+                                      shared=True) as task:
+            self.assertRaises(exception.IronicException, _eval_ports, task)
 
         self.assertFalse(reserve_mock.called)
         self.assertFalse(release_mock.called)
         node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
         get_ports_mock.assert_called_once_with(self.context, self.node.id)
-        self.assertFalse(build_driver_mock.called)
+        self.assertTrue(build_driver_mock.called)
 
     def test_shared_lock_get_portgroups_exception(
             self, get_voltgt_mock, get_volconn_mock, get_portgroups_mock,
@@ -442,17 +463,20 @@ class TaskManagerTestCase(db_base.DbTestCase):
         node_get_mock.return_value = self.node
         get_portgroups_mock.side_effect = exception.IronicException('foo')
 
-        self.assertRaises(exception.IronicException,
-                          task_manager.TaskManager,
-                          self.context,
-                          'fake-node-id',
-                          shared=True)
+        # Note(arne_wiebalck): Force loading of lazy-loaded properties.
+        def _eval_portgroups(task):
+            return task.portgroups
+
+        with task_manager.TaskManager(self.context, 'fake-node-id',
+                                      shared=True) as task:
+            self.assertRaises(exception.IronicException, _eval_portgroups,
+                              task)
 
         self.assertFalse(reserve_mock.called)
         self.assertFalse(release_mock.called)
         node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
         get_portgroups_mock.assert_called_once_with(self.context, self.node.id)
-        self.assertFalse(build_driver_mock.called)
+        self.assertTrue(build_driver_mock.called)
 
     def test_shared_lock_get_volconn_exception(
             self, get_voltgt_mock, get_volconn_mock, get_portgroups_mock,
@@ -461,17 +485,19 @@ class TaskManagerTestCase(db_base.DbTestCase):
         node_get_mock.return_value = self.node
         get_volconn_mock.side_effect = exception.IronicException('foo')
 
-        self.assertRaises(exception.IronicException,
-                          task_manager.TaskManager,
-                          self.context,
-                          'fake-node-id',
-                          shared=True)
+        # Note(arne_wiebalck): Force loading of lazy-loaded properties.
+        def _eval_volconn(task):
+            return task.volume_connectors
+
+        with task_manager.TaskManager(self.context, 'fake-node-id',
+                                      shared=True) as task:
+            self.assertRaises(exception.IronicException, _eval_volconn, task)
 
         self.assertFalse(reserve_mock.called)
         self.assertFalse(release_mock.called)
         node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
         get_volconn_mock.assert_called_once_with(self.context, self.node.id)
-        self.assertFalse(get_voltgt_mock.called)
+        self.assertTrue(build_driver_mock.called)
 
     def test_shared_lock_get_voltgt_exception(
             self, get_voltgt_mock, get_volconn_mock, get_portgroups_mock,
@@ -480,17 +506,19 @@ class TaskManagerTestCase(db_base.DbTestCase):
         node_get_mock.return_value = self.node
         get_voltgt_mock.side_effect = exception.IronicException('foo')
 
-        self.assertRaises(exception.IronicException,
-                          task_manager.TaskManager,
-                          self.context,
-                          'fake-node-id',
-                          shared=True)
+        # Note(arne_wiebalck): Force loading of lazy-loaded properties.
+        def _eval_voltgt(task):
+            return task.volume_targets
+
+        with task_manager.TaskManager(self.context, 'fake-node-id',
+                                      shared=True) as task:
+            self.assertRaises(exception.IronicException, _eval_voltgt, task)
 
         self.assertFalse(reserve_mock.called)
         self.assertFalse(release_mock.called)
         node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
         get_voltgt_mock.assert_called_once_with(self.context, self.node.id)
-        self.assertFalse(build_driver_mock.called)
+        self.assertTrue(build_driver_mock.called)
 
     def test_shared_lock_build_driver_exception(
             self, get_voltgt_mock, get_volconn_mock, get_portgroups_mock,
@@ -509,10 +537,10 @@ class TaskManagerTestCase(db_base.DbTestCase):
         self.assertFalse(reserve_mock.called)
         self.assertFalse(release_mock.called)
         node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
-        get_ports_mock.assert_called_once_with(self.context, self.node.id)
-        get_portgroups_mock.assert_called_once_with(self.context, self.node.id)
-        get_volconn_mock.assert_called_once_with(self.context, self.node.id)
-        get_voltgt_mock.assert_called_once_with(self.context, self.node.id)
+        self.assertFalse(get_ports_mock.called)
+        self.assertFalse(get_portgroups_mock.called)
+        self.assertFalse(get_voltgt_mock.called)
+        self.assertFalse(get_volconn_mock.called)
         build_driver_mock.assert_called_once_with(mock.ANY)
 
     def test_upgrade_lock(

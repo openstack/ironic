@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Introduces lazy-loading of ports, portgroups, volume connections
+    and volume targets in task manager to fix performance issues.
+    For periodic tasks which create a task manager object but don't
+    require the aforementioned data (e.g. power sync), this change
+    should reduce the number of database interactions by around two
+    thirds, speeding up overall execution.

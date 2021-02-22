@@ -206,6 +206,10 @@ class TaskManager(object):
 
         self.context = context
         self._node = None
+        self._ports = None
+        self._portgroups = None
+        self._volume_connectors = None
+        self._volume_targets = None
         self.node_id = node_id
         self.shared = shared
         self._retry = retry
@@ -233,13 +237,6 @@ class TaskManager(object):
                 self._debug_timer.restart()
                 self.node = node
 
-            self.ports = objects.Port.list_by_node_id(context, self.node.id)
-            self.portgroups = objects.Portgroup.list_by_node_id(context,
-                                                                self.node.id)
-            self.volume_connectors = objects.VolumeConnector.list_by_node_id(
-                context, self.node.id)
-            self.volume_targets = objects.VolumeTarget.list_by_node_id(
-                context, self.node.id)
             if load_driver:
                 self.driver = driver_factory.build_driver_for_task(self)
             else:
@@ -259,6 +256,67 @@ class TaskManager(object):
         if node is not None:
             self.fsm.initialize(start_state=self.node.provision_state,
                                 target_state=self.node.target_provision_state)
+
+    @property
+    def ports(self):
+        try:
+            if self._ports is None:
+                self._ports = objects.Port.list_by_node_id(self.context,
+                                                           self.node.id)
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                self.release_resources()
+        return self._ports
+
+    @ports.setter
+    def ports(self, ports):
+        self._ports = ports
+
+    @property
+    def portgroups(self):
+        try:
+            if self._portgroups is None:
+                self._portgroups = objects.Portgroup.list_by_node_id(
+                    self.context, self.node.id)
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                self.release_resources()
+        return self._portgroups
+
+    @portgroups.setter
+    def portgroups(self, portgroups):
+        self._portgroups = portgroups
+
+    @property
+    def volume_connectors(self):
+        try:
+            if self._volume_connectors is None:
+                self._volume_connectors = \
+                    objects.VolumeConnector.list_by_node_id(
+                        self.context, self.node.id)
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                self.release_resources()
+        return self._volume_connectors
+
+    @volume_connectors.setter
+    def volume_connectors(self, volume_connectors):
+        self._volume_connectors = volume_connectors
+
+    @property
+    def volume_targets(self):
+        try:
+            if self._volume_targets is None:
+                self._volume_targets = objects.VolumeTarget.list_by_node_id(
+                    self.context, self.node.id)
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                self.release_resources()
+        return self._volume_targets
+
+    @volume_targets.setter
+    def volume_targets(self, volume_targets):
+        self._volume_targets = volume_targets
 
     def load_driver(self):
         if self.driver is None:
