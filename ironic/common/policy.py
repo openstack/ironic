@@ -1176,44 +1176,120 @@ conductor_policies = [
     ),
 ]
 
+
+deprecated_allocation_get = policy.DeprecatedRule(
+    name='baremetal:allocation:get',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_allocation_list = policy.DeprecatedRule(
+    name='baremetal:allocation:list',
+    check_str='rule:baremetal:allocation:get'
+)
+deprecated_allocation_list_all = policy.DeprecatedRule(
+    name='baremetal:allocation:list_all',
+    check_str='rule:baremetal:allocation:get'
+)
+deprecated_allocation_create = policy.DeprecatedRule(
+    name='baremetal:allocation:create',
+    check_str='rule:is_admin'
+)
+deprecated_allocation_create_restricted = policy.DeprecatedRule(
+    name='baremetal:allocation:create_restricted',
+    check_str='rule:baremetal:allocation:create'
+)
+deprecated_allocation_delete = policy.DeprecatedRule(
+    name='baremetal:allocation:delete',
+    check_str='rule:is_admin'
+)
+deprecated_allocation_update = policy.DeprecatedRule(
+    name='baremetal:allocation:update',
+    check_str='rule:is_admin'
+)
+deprecated_allocation_reason = """
+The baremetal allocation API is now aware of system scope and default
+roles.
+"""
+
 allocation_policies = [
     policy.DocumentedRuleDefault(
-        'baremetal:allocation:get',
-        'rule:is_admin or rule:is_observer',
-        'Retrieve Allocation records',
-        [{'path': '/allocations/{allocation_id}', 'method': 'GET'},
-         {'path': '/nodes/{node_ident}/allocation', 'method': 'GET'}]),
+        name='baremetal:allocation:get',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='Retrieve Allocation records',
+        operations=[
+            {'path': '/allocations/{allocation_id}', 'method': 'GET'},
+            {'path': '/nodes/{node_ident}/allocation', 'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_allocation_get,
+        deprecated_reason=deprecated_allocation_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:allocation:list',
-        'rule:baremetal:allocation:get',
-        'Retrieve multiple Allocation records, filtered by owner',
-        [{'path': '/allocations', 'method': 'GET'}]),
+        name='baremetal:allocation:list',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='Retrieve multiple Allocation records, filtered by owner',
+        operations=[{'path': '/allocations', 'method': 'GET'}],
+        deprecated_rule=deprecated_allocation_list,
+        deprecated_reason=deprecated_allocation_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:allocation:list_all',
-        'rule:baremetal:allocation:get',
-        'Retrieve multiple Allocation records',
-        [{'path': '/allocations', 'method': 'GET'}]),
+        name='baremetal:allocation:list_all',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='Retrieve multiple Allocation records',
+        operations=[{'path': '/allocations', 'method': 'GET'}],
+        deprecated_rule=deprecated_allocation_list_all,
+        deprecated_reason=deprecated_allocation_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:allocation:create',
-        'rule:is_admin',
-        'Create Allocation records',
-        [{'path': '/allocations', 'method': 'POST'}]),
+        name='baremetal:allocation:create',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Create Allocation records',
+        operations=[{'path': '/allocations', 'method': 'POST'}],
+        deprecated_rule=deprecated_allocation_create,
+        deprecated_reason=deprecated_allocation_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:allocation:create_restricted',
-        'rule:baremetal:allocation:create',
-        'Create Allocation records that are restricted to an owner',
-        [{'path': '/allocations', 'method': 'POST'}]),
+        name='baremetal:allocation:create_restricted',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description=(
+            'Create Allocation records that are restricted to an owner'
+        ),
+        operations=[{'path': '/allocations', 'method': 'POST'}],
+        deprecated_rule=deprecated_allocation_create_restricted,
+        deprecated_reason=deprecated_allocation_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:allocation:delete',
-        'rule:is_admin',
-        'Delete Allocation records',
-        [{'path': '/allocations/{allocation_id}', 'method': 'DELETE'},
-         {'path': '/nodes/{node_ident}/allocation', 'method': 'DELETE'}]),
+        name='baremetal:allocation:delete',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Delete Allocation records',
+        operations=[
+            {'path': '/allocations/{allocation_id}', 'method': 'DELETE'},
+            {'path': '/nodes/{node_ident}/allocation', 'method': 'DELETE'}],
+        deprecated_rule=deprecated_allocation_delete,
+        deprecated_reason=deprecated_allocation_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:allocation:update',
-        'rule:is_admin',
-        'Change name and extra fields of an allocation',
-        [{'path': '/allocations/{allocation_id}', 'method': 'PATCH'}]),
+        name='baremetal:allocation:update',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Change name and extra fields of an allocation',
+        operations=[
+            {'path': '/allocations/{allocation_id}', 'method': 'PATCH'},
+        ],
+        deprecated_rule=deprecated_allocation_update,
+        deprecated_reason=deprecated_allocation_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 ]
 
 event_policies = [
