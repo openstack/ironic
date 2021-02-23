@@ -90,7 +90,7 @@ nodes_get_admin:
   method: get
   headers: *admin_headers
   assert_list_length:
-    nodes: 2
+    nodes: 3
   assert_status: 200
 
 nodes_get_other_admin:
@@ -99,7 +99,7 @@ nodes_get_other_admin:
   skip_reason: 'Not implemented yet'
   headers: *other_admin_headers
   assert_list_length:
-    nodes: 2
+    nodes: 3
   assert_status: 200
 
 nodes_detail_get_admin:
@@ -747,38 +747,33 @@ portgroups_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 portgroups_get_member:
   path: '/v1/portgroups'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 portgroups_get_observer:
   path: '/v1/portgroups'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 portgroups_post_admin:
   path: '/v1/portgroups'
   method: post
   headers: *admin_headers
   body: &portgroup_body
-    node_uuid: 68a552fb-dcd2-43bf-9302-e4c93287be16
-  assert_status: 204
-  skip_reason: not updated for scope testing
+    node_uuid: 18a552fb-dcd2-43bf-9302-e4c93287be11
+  assert_status: 201
 
-portgroups_post_admin:
+portgroups_post_member:
   path: '/v1/portgroups'
   method: post
   headers: *scoped_member_headers
   body: *portgroup_body
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 portgroups_post_observer:
   path: '/v1/portgroups'
@@ -786,49 +781,42 @@ portgroups_post_observer:
   headers: *observer_headers
   body: *portgroup_body
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 portgroups_detail_get_admin:
   path: '/v1/portgroups/detail'
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
-portgroups_detail_get_admin:
+portgroups_detail_get_member:
   path: '/v1/portgroups/detail'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 portgroups_detail_get_observer:
   path: '/v1/portgroups/detail'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 portgroups_portgroup_ident_get_admin:
   path: '/v1/portgroups/{portgroup_ident}'
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 portgroups_portgroup_ident_get_member:
   path: '/v1/portgroups/{portgroup_ident}'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 portgroups_portgroup_ident_get_observer:
   path: '/v1/portgroups/{portgroup_ident}'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 portgroups_portgroup_ident_patch_admin:
   path: '/v1/portgroups/{portgroup_ident}'
@@ -839,15 +827,13 @@ portgroups_portgroup_ident_patch_admin:
       path: /extra
       value: {'test': 'testing'}
   assert_status: 503
-  skip_reason: not updated for scope testing
 
 portgroups_portgroup_ident_patch_member:
   path: '/v1/portgroups/{portgroup_ident}'
   method: patch
   headers: *scoped_member_headers
   body: *portgroup_patch_body
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 503
 
 portgroups_portgroup_ident_patch_observer:
   path: '/v1/portgroups/{portgroup_ident}'
@@ -855,7 +841,6 @@ portgroups_portgroup_ident_patch_observer:
   headers: *observer_headers
   body: *portgroup_patch_body
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 # NOTE(TheJulia): Calls the conductor, so not 403 to validate
 # successful access control check.
@@ -864,21 +849,18 @@ portgroups_portgroup_ident_delete_admin:
   method: delete
   headers: *admin_headers
   assert_status: 503
-  skip_reason: not updated for scope testing
 
 portgroups_portgroup_ident_delete_member:
   path: '/v1/portgroups/{portgroup_ident}'
   method: delete
   headers: *scoped_member_headers
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 portgroups_portgroup_ident_delete_observer:
   path: '/v1/portgroups/{portgroup_ident}'
   method: delete
   headers: *observer_headers
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 # Portgroups by node - https://docs.openstack.org/api-ref/baremetal/#listing-portgroups-by-node-nodes-portgroups
 
@@ -887,42 +869,36 @@ nodes_portgroups_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 nodes_portgroups_get_member:
   path: '/v1/nodes/{node_ident}/portgroups'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 nodes_portgroups_get_observer:
   path: '/v1/nodes/{node_ident}/portgroups'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 nodes_portgroups_detail_get_admin:
   path: '/v1/nodes/{node_ident}/portgroups/detail'
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 nodes_portgroups_detail_get_member:
   path: '/v1/nodes/{node_ident}/portgroups/detail'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 nodes_portgroups_detail_get_observer:
   path: '/v1/nodes/{node_ident}/portgroups/detail'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 # Ports - https://docs.openstack.org/api-ref/baremetal/#ports-ports
 
@@ -1097,42 +1073,36 @@ portgroups_ports_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 portgroups_ports_get_member:
   path: '/v1/portgroups/{portgroup_ident}/ports'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 portgroups_ports_get_observer:
   path: '/v1/portgroups/{portgroup_ident}/ports'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 portgroups_ports_detail_get_admin:
   path: '/v1/portgroups/{portgroup_ident}/ports/detail'
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 portgroups_ports_detail_get_member:
   path: '/v1/portgroups/{portgroup_ident}/ports/detail'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 portgroups_ports_detail_get_observer:
   path: '/v1/portgroups/{portgroup_ident}/ports/detail'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 
 # Volume(s) - https://docs.openstack.org/api-ref/baremetal/#volume-volume
