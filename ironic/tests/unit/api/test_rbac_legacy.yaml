@@ -1270,18 +1270,21 @@ volume_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 volume_get_member:
   path: '/v1/volume'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 volume_get_observer:
   path: '/v1/volume'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 # Volume connectors
 
@@ -1290,18 +1293,21 @@ volume_connectors_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 volume_connectors_get_member:
   path: '/v1/volume/connectors'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 volume_connectors_get_observer:
   path: '/v1/volume/connectors'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 # NOTE(TheJulia): This ends up returning a 400 due to the
 # UUID not already being in ironic.
@@ -1314,6 +1320,7 @@ volume_connectors_post_admin:
     node_uuid: 68a552fb-dcd2-43bf-9302-e4c93287be16
     type: ip
     connector_id: 192.168.1.100
+  deprecated: true
 
 volume_connectors_post_member:
   path: '/v1/volume/connectors'
@@ -1321,6 +1328,7 @@ volume_connectors_post_member:
   headers: *member_headers
   assert_status: 403
   body: *volume_connector_body
+  deprecated: true
 
 volume_connectors_post_observer:
   path: '/v1/volume/connectors'
@@ -1328,24 +1336,28 @@ volume_connectors_post_observer:
   headers: *observer_headers
   assert_status: 403
   body: *volume_connector_body
+  deprecated: true
 
 volume_volume_connector_id_get_admin:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 volume_volume_connector_id_get_member:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 volume_volume_connector_id_get_observer:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 volume_volume_connector_id_patch_admin:
   path: '/v1/volume/connectors/{volume_connector_ident}'
@@ -1356,6 +1368,7 @@ volume_volume_connector_id_patch_admin:
       path: /extra
       value: {'test': 'testing'}
   assert_status: 503
+  deprecated: true
 
 volume_volume_connector_id_patch_member:
   path: '/v1/volume/connectors/{volume_connector_ident}'
@@ -1363,6 +1376,7 @@ volume_volume_connector_id_patch_member:
   headers: *member_headers
   body: *connector_patch_body
   assert_status: 403
+  deprecated: true
 
 volume_volume_connector_id_patch_observer:
   path: '/v1/volume/connectors/{volume_connector_ident}'
@@ -1370,24 +1384,28 @@ volume_volume_connector_id_patch_observer:
   headers: *observer_headers
   body: *connector_patch_body
   assert_status: 403
+  deprecated: true
 
 volume_volume_connector_id_delete_admin:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
   headers: *admin_headers
   assert_status: 503
+  deprecated: true
 
 volume_volume_connector_id_delete_member:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 volume_volume_connector_id_delete_observer:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 # Volume targets
 
@@ -1396,11 +1414,13 @@ volume_targets_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 volume_targets_get_member:
   path: '/v1/volume/targets'
   method: get
   headers: *member_headers
+  deprecated: true
   assert_status: 403
 
 volume_targets_get_observer:
@@ -1408,6 +1428,7 @@ volume_targets_get_observer:
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 # NOTE(TheJulia): Because we can't seem to get the uuid
 # to load from an existing uuid, since we're not subsituting
@@ -1422,6 +1443,7 @@ volume_targets_post_admin:
     volume_type: iscsi
     boot_index: 0
     volume_id: 'test-id'
+  deprecated: true
 
 volume_targets_post_member:
   path: '/v1/volume/targets'
@@ -1429,6 +1451,7 @@ volume_targets_post_member:
   headers: *member_headers
   assert_status: 403
   body: *volume_target_body
+  deprecated: true
 
 volume_targets_post_observer:
   path: '/v1/volume/targets'
@@ -1436,24 +1459,28 @@ volume_targets_post_observer:
   headers: *observer_headers
   assert_status: 403
   body: *volume_target_body
+  deprecated: true
 
 volume_volume_target_id_get_admin:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 volume_volume_target_id_get_member:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 volume_volume_target_id_get_observer:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 volume_volume_target_id_patch_admin:
   path: '/v1/volume/targets/{volume_target_ident}'
@@ -1464,6 +1491,7 @@ volume_volume_target_id_patch_admin:
       value: {'test': 'testing'}
   headers: *admin_headers
   assert_status: 503
+  deprecated: true
 
 volume_volume_target_id_patch_admin:
   path: '/v1/volume/targets/{volume_target_ident}'
@@ -1471,6 +1499,7 @@ volume_volume_target_id_patch_admin:
   body: *volume_target_patch
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 volume_volume_target_id_patch_observer:
   path: '/v1/volume/targets/{volume_target_ident}'
@@ -1478,24 +1507,28 @@ volume_volume_target_id_patch_observer:
   body: *volume_target_patch
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 volume_volume_target_id_delete_admin:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *admin_headers
   assert_status: 503
+  deprecated: true
 
 volume_volume_target_id_delete_member:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 volume_volume_target_id_delete_observer:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 # Get Volumes by Node - https://docs.openstack.org/api-ref/baremetal/#listing-volume-resources-by-node-nodes-volume
 
@@ -1504,54 +1537,63 @@ nodes_volume_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 nodes_volume_get_member:
   path: '/v1/nodes/{node_ident}/volume'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 nodes_volume_get_observer:
   path: '/v1/nodes/{node_ident}/volume'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 nodes_volume_connectors_get_admin:
   path: '/v1/nodes/{node_ident}/volume/connectors'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 nodes_volume_connectors_get_member:
   path: '/v1/nodes/{node_ident}/volume/connectors'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 nodes_volume_connectors_get_observer:
   path: '/v1/nodes/{node_ident}/volume/connectors'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 nodes_volume_targets_get_admin:
   path: '/v1/nodes/{node_ident}/volume/targets'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 nodes_volume_targets_get_member:
   path: '/v1/nodes/{node_ident}/volume/targets'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 nodes_volume_targets_get_observer:
   path: '/v1/nodes/{node_ident}/volume/targets'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 # Drivers - https://docs.openstack.org/api-ref/baremetal/#drivers-drivers
 

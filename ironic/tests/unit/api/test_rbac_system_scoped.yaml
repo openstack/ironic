@@ -1100,21 +1100,18 @@ volume_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 volume_get_member:
   path: '/v1/volume'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 volume_get_observer:
   path: '/v1/volume'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 # Volume connectors
 
@@ -1123,23 +1120,20 @@ volume_connectors_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 volume_connectors_get_member:
   path: '/v1/volume/connectors'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 volume_connectors_get_observer:
   path: '/v1/volume/connectors'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
-# NOTE(TheJulia): This ends up returning a 403 due to the
+# NOTE(TheJulia): This ends up returning a 400 due to the
 # UUID not already being in ironic.
 volume_connectors_post_admin:
   path: '/v1/volume/connectors'
@@ -1150,15 +1144,15 @@ volume_connectors_post_admin:
     node_uuid: 68a552fb-dcd2-43bf-9302-e4c93287be16
     type: ip
     connector_id: 192.168.1.100
-  skip_reason: not updated for scope testing
 
+# If nova-compute is to operate as member rights, it needs to be able
+# to add volumes.
 volume_connectors_post_member:
   path: '/v1/volume/connectors'
   method: post
   headers: *scoped_member_headers
-  assert_status: 403
+  assert_status: 400
   body: *volume_connector_body
-  skip_reason: not updated for scope testing
 
 volume_connectors_post_observer:
   path: '/v1/volume/connectors'
@@ -1166,28 +1160,24 @@ volume_connectors_post_observer:
   headers: *observer_headers
   assert_status: 403
   body: *volume_connector_body
-  skip_reason: not updated for scope testing
 
 volume_volume_connector_id_get_admin:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 volume_volume_connector_id_get_member:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 volume_volume_connector_id_get_observer:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 volume_volume_connector_id_patch_admin:
   path: '/v1/volume/connectors/{volume_connector_ident}'
@@ -1198,15 +1188,13 @@ volume_volume_connector_id_patch_admin:
       path: /extra
       value: {'test': 'testing'}
   assert_status: 503
-  skip_reason: not updated for scope testing
 
 volume_volume_connector_id_patch_member:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: patch
   headers: *scoped_member_headers
   body: *connector_patch_body
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 503
 
 volume_volume_connector_id_patch_observer:
   path: '/v1/volume/connectors/{volume_connector_ident}'
@@ -1214,28 +1202,24 @@ volume_volume_connector_id_patch_observer:
   headers: *observer_headers
   body: *connector_patch_body
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 volume_volume_connector_id_delete_admin:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
   headers: *admin_headers
   assert_status: 503
-  skip_reason: not updated for scope testing
 
 volume_volume_connector_id_delete_member:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 503
 
 volume_volume_connector_id_delete_observer:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
   headers: *observer_headers
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 # Volume targets
 
@@ -1244,21 +1228,18 @@ volume_targets_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 volume_targets_get_member:
   path: '/v1/volume/targets'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 volume_targets_get_observer:
   path: '/v1/volume/targets'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 # NOTE(TheJulia): Because we can't seem to get the uuid
 # to load from an existing uuid, since we're not subsituting
@@ -1273,15 +1254,13 @@ volume_targets_post_admin:
     volume_type: iscsi
     boot_index: 0
     volume_id: 'test-id'
-  skip_reason: not updated for scope testing
 
 volume_targets_post_member:
   path: '/v1/volume/targets'
   method: post
   headers: *scoped_member_headers
-  assert_status: 403
+  assert_status: 400
   body: *volume_target_body
-  skip_reason: not updated for scope testing
 
 volume_targets_post_observer:
   path: '/v1/volume/targets'
@@ -1289,28 +1268,24 @@ volume_targets_post_observer:
   headers: *observer_headers
   assert_status: 403
   body: *volume_target_body
-  skip_reason: not updated for scope testing
 
 volume_volume_target_id_get_admin:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 volume_volume_target_id_get_member:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 volume_volume_target_id_get_observer:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 # NOTE(TheJulia): This triggers a call to the conductor and
 # thus will fail, but does not return a 403 which means success.
@@ -1323,15 +1298,13 @@ volume_volume_target_id_patch_admin:
       value: {'test': 'testing'}
   headers: *admin_headers
   assert_status: 503
-  skip_reason: not updated for scope testing
 
 volume_volume_target_id_patch_admin:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: patch
   body: *volume_target_patch
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 503
 
 volume_volume_target_id_patch_observer:
   path: '/v1/volume/targets/{volume_target_ident}'
@@ -1339,28 +1312,24 @@ volume_volume_target_id_patch_observer:
   body: *volume_target_patch
   headers: *observer_headers
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 volume_volume_target_id_delete_admin:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *admin_headers
   assert_status: 503
-  skip_reason: not updated for scope testing
 
 volume_volume_target_id_delete_member:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 503
 
 volume_volume_target_id_delete_observer:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *observer_headers
   assert_status: 403
-  skip_reason: not updated for scope testing
 
 # Get Volumes by Node - https://docs.openstack.org/api-ref/baremetal/#listing-volume-resources-by-node-nodes-volume
 
@@ -1369,63 +1338,54 @@ nodes_volume_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 nodes_volume_get_member:
   path: '/v1/nodes/{node_ident}/volume'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 nodes_volume_get_observer:
   path: '/v1/nodes/{node_ident}/volume'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 nodes_volume_connectors_get_admin:
   path: '/v1/nodes/{node_ident}/volume/connectors'
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 nodes_volume_connectors_get_member:
   path: '/v1/nodes/{node_ident}/volume/connectors'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 nodes_volume_connectors_get_observer:
   path: '/v1/nodes/{node_ident}/volume/connectors'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 nodes_volume_targets_get_admin:
   path: '/v1/nodes/{node_ident}/volume/targets'
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 nodes_volume_targets_get_member:
   path: '/v1/nodes/{node_ident}/volume/targets'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 nodes_volume_targets_get_observer:
   path: '/v1/nodes/{node_ident}/volume/targets'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 # Drivers - https://docs.openstack.org/api-ref/baremetal/#drivers-drivers
 
