@@ -1601,43 +1601,36 @@ conductors_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 conductors_get_member:
   path: '/v1/conductors'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 conductors_get_observer:
   path: '/v1/conductors'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
-
 
 conductors_hostname_get_admin:
   path: '/v1/conductors/{conductor_ident}'
   method: get
   headers: *admin_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 conductors_hostname_get_member:
   path: '/v1/conductors/{conductor_ident}'
   method: get
   headers: *scoped_member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
+  assert_status: 200
 
 conductors_hostname_get_observer:
   path: '/v1/conductors/{conductor_ident}'
   method: get
   headers: *observer_headers
   assert_status: 200
-  skip_reason: not updated for scope testing
 
 # Allocations - https://docs.openstack.org/api-ref/baremetal/#allocations-allocations
 

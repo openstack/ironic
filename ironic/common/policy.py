@@ -1150,13 +1150,30 @@ volume_policies = [
     ),
 ]
 
+
+deprecated_conductor_get = policy.DeprecatedRule(
+    name='baremetal:conductor:get',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_conductor_reason = """
+The baremetal conductor API is now aware of system scope and default
+roles.
+"""
+
 conductor_policies = [
     policy.DocumentedRuleDefault(
-        'baremetal:conductor:get',
-        'rule:is_admin or rule:is_observer',
-        'Retrieve Conductor records',
-        [{'path': '/conductors', 'method': 'GET'},
-         {'path': '/conductors/{hostname}', 'method': 'GET'}]),
+        name='baremetal:conductor:get',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='Retrieve Conductor records',
+        operations=[
+            {'path': '/conductors', 'method': 'GET'},
+            {'path': '/conductors/{hostname}', 'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_conductor_get,
+        deprecated_reason=deprecated_conductor_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 ]
 
 allocation_policies = [
