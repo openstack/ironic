@@ -51,7 +51,6 @@ _opts = [
     ('ipmi', ironic.conf.ipmi.opts),
     ('irmc', ironic.conf.irmc.opts),
     ('iscsi', ironic.conf.iscsi.opts),
-    ('json_rpc', ironic.conf.json_rpc.list_opts()),
     ('metrics', ironic.conf.metrics.opts),
     ('metrics_statsd', ironic.conf.metrics_statsd.opts),
     ('neutron', ironic.conf.neutron.list_opts()),
