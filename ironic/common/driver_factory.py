@@ -69,7 +69,9 @@ def _attach_interfaces_to_driver(bare_driver, node, hw_type):
              the requested implementation is not compatible with it.
     """
     for iface in _INTERFACE_LOADERS:
-        impl_name = getattr(node, '%s_interface' % iface)
+        iface_name = '%s_interface' % iface
+        impl_name = node.instance_info.get(iface_name,
+                                           getattr(node, iface_name))
         impl = get_interface(hw_type, iface, impl_name)
         setattr(bare_driver, iface, impl)
 
@@ -204,20 +206,29 @@ def check_and_update_node_interfaces(node, hw_type=None):
         # NOTE(dtantsur): objects raise NotImplementedError on accessing fields
         # that are known, but missing from an object. Thus, we cannot just use
         # getattr(node, field_name, None) here.
+        set_default = True
+        if 'instance_info' in node and field_name in node.instance_info:
+            impl_name = node.instance_info.get(field_name)
+            if impl_name is not None:
+                # Check that the provided value is correct for this type
+                get_interface(hw_type, iface, impl_name)
+                set_default = False
+
         if field_name in node:
             impl_name = getattr(node, field_name)
             if impl_name is not None:
                 # Check that the provided value is correct for this type
                 get_interface(hw_type, iface, impl_name)
-                # Not changing the result, proceeding with the next interface
-                continue
+                set_default = False
 
-        impl_name = default_interface(hw_type, iface,
-                                      driver_name=node.driver, node=node.uuid)
+        if set_default:
+            impl_name = default_interface(hw_type, iface,
+                                          driver_name=node.driver,
+                                          node=node.uuid)
 
-        # Set the calculated default and set result to True
-        setattr(node, field_name, impl_name)
-        result = True
+            # Set the calculated default and set result to True
+            setattr(node, field_name, impl_name)
+            result = True
 
     return result
 

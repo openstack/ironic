@@ -214,6 +214,26 @@ class CheckAndUpdateNodeInterfacesTestCase(db_base.DbTestCase):
                           driver_factory.check_and_update_node_interfaces,
                           node)
 
+    def test_create_node_valid_network_interface_instance_info_override(self):
+        instance_info = {'network_interface': 'noop',
+                         'storage_interface': 'noop'}
+        node = obj_utils.get_test_node(self.context,
+                                       instance_info=instance_info)
+        self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
+        self.assertIsNone(node.network_interface)
+        self.assertIsNone(node.storage_interface)
+        self.assertEqual('noop', node.instance_info.get('network_interface'))
+        self.assertEqual('noop', node.instance_info.get('storage_interface'))
+
+    def test_create_node_invalid_network_interface_instance_info_override(
+            self):
+        instance_info = {'network_interface': 'banana'}
+        node = obj_utils.get_test_node(self.context,
+                                       instance_info=instance_info)
+        self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
+                          driver_factory.check_and_update_node_interfaces,
+                          node)
+
     def _get_valid_default_interface_name(self, iface):
         i_name = 'fake'
         # there is no 'fake' network interface
@@ -505,6 +525,17 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         self.assertRaises(exception.InterfaceNotFoundInEntrypoint,
                           task_manager.acquire, self.context, node.id)
+
+    def test_build_driver_for_task_instance_info_override(self):
+        self.config(enabled_network_interfaces=['noop', 'neutron'])
+        instance_info = {'network_interface': 'neutron'}
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          instance_info=instance_info,
+                                          **self.node_kwargs)
+        with task_manager.acquire(self.context, node.id) as task:
+            self.assertEqual(
+                getattr(task.driver, 'network').__class__.__name__,
+                'NeutronNetwork')
 
     def test_no_storage_interface(self):
         node = obj_utils.get_test_node(self.context)
