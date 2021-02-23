@@ -55,6 +55,7 @@ class TestACLBase(base.BaseApiTest):
         self.mock_random_topic = rtopic.start()
         self.mock_random_topic.side_effect = exception.TemporaryFailure
         self.addCleanup(rtopic.stop)
+        self._set_test_config()
 
     def _make_app(self):
         cfg.CONF.set_override('auth_strategy', 'keystone')
@@ -62,6 +63,10 @@ class TestACLBase(base.BaseApiTest):
 
     @abc.abstractmethod
     def _create_test_data(self):
+        pass
+
+    @abc.abstractmethod
+    def _set_test_config(self):
         pass
 
     def _check_skip(self, **kwargs):
@@ -74,7 +79,8 @@ class TestACLBase(base.BaseApiTest):
     def _test_request(self, path, params=None, headers=None, method='get',
                       body=None, assert_status=None,
                       assert_dict_contains=None,
-                      assert_list_length=None):
+                      assert_list_length=None,
+                      deprecated=None):
         path = path.format(**self.format_data)
         self.mock_auth.side_effect = self._fake_process_request
 
@@ -91,7 +97,6 @@ class TestACLBase(base.BaseApiTest):
         if headers:
             for k, v in headers.items():
                 rheaders[k] = v.format(**self.format_data)
-
         if method == 'get':
             response = self.get_json(
                 path,
@@ -138,9 +143,20 @@ class TestACLBase(base.BaseApiTest):
         else:
             assert False, 'Unimplemented test method: %s' % method
 
-        if assert_status:
+        if not (bool(deprecated)
+                and ('403' in response.status or '500' in response.status)
+                and cfg.CONF.oslo_policy.enforce_scope
+                and cfg.CONF.oslo_policy.enforce_new_defaults):
+            # NOTE(TheJulia): Everything, once migrated, should
+            # return a 403.
             self.assertEqual(assert_status, response.status_int)
         else:
+            self.assertTrue(
+                '403' in response.status or '500' in response.status)
+            # We can't check the contents of the response if there is no
+            # response.
+            return
+        if not bool(deprecated):
             self.assertIsNotNone(assert_status,
                                  'Tests must include an assert_status')
 
@@ -182,7 +198,7 @@ class TestRBACBasic(TestACLBase):
 
 
 @ddt.ddt
-class TestRBACModelBeforeScopes(TestACLBase):
+class TestRBACModelBeforeScopesBase(TestACLBase):
 
     def _create_test_data(self):
         allocated_node_id = 31
@@ -241,6 +257,17 @@ class TestRBACModelBeforeScopes(TestACLBase):
             'volume_connector_ident': fake_db_volume_connector['uuid'],
         })
 
+
+@ddt.ddt
+class TestRBACModelBeforeScopes(TestRBACModelBeforeScopesBase):
+
+    def _set_test_config(self):
+        # NOTE(TheJulia): Sets default test conditions, in the event
+        # oslo_policy defaults change.
+        cfg.CONF.set_override('enforce_scope', False, group='oslo_policy')
+        cfg.CONF.set_override('enforce_new_defaults', False,
+                              group='oslo_policy')
+
     @ddt.file_data('test_rbac_legacy.yaml')
     @ddt.unpack
     def test_rbac_legacy(self, **kwargs):
@@ -250,15 +277,35 @@ class TestRBACModelBeforeScopes(TestACLBase):
 
 @ddt.ddt
 class TestRBACScoped(TestRBACModelBeforeScopes):
-    """Test Scoped ACL access using our existing access policy."""
+    """Test Scoped RBAC access using our existing access policy."""
 
-    def setUp(self):
-        super(TestRBACScoped, self).setUp()
-
+    def _set_test_config(self):
+        # NOTE(TheJulia): This test class is as like a canary.
+        # The operational intent is for it to kind of provide
+        # a safety net as we're changing policy rules so we can
+        # incremently disable the ones we *know* will no longer work
+        # while we also enable the new ones in another test class with
+        # the appropriate scope friendly chagnges. In other words, two
+        # test changes will be needed for each which should also reduce
+        # risk of accidential policy changes. It may just be Julia being
+        # super risk-adverse, just let her roll with it and we will delete
+        # this class later.
+        # NOTE(TheJulia): This test class runs with test_rbac_legacy.yaml!
         cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
         cfg.CONF.set_override('enforce_new_defaults', True,
                               group='oslo_policy')
-        # NOTE(TheJulia): The purpose of this class is to execute the legacy
-        # RBAC tests with the new configuration, which forces us to
-        # explicity mark each test as a deprecated test later on. That
-        # functionality will be added in a later patch when needed,
+
+    @ddt.file_data('test_rbac_legacy.yaml')
+    def test_scoped_canary(self, **kwargs):
+        self._check_skip(**kwargs)
+        self._test_request(**kwargs)
+
+
+@ddt.ddt
+class TestRBACScopedRequests(TestRBACModelBeforeScopesBase):
+
+    @ddt.file_data('test_rbac_system_scoped.yaml')
+    @ddt.unpack
+    def test_system_scoped(self, **kwargs):
+        self._check_skip(**kwargs)
+        self._test_request(**kwargs)
