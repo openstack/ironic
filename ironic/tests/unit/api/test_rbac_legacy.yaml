@@ -1545,76 +1545,84 @@ drivers_get_admin:
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 drivers_get_member:
   path: '/v1/drivers'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 drivers_get_observer:
   path: '/v1/drivers'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
-# TODO(TheJulia): This is presently returning a 404,
-# except it should not be. :\
 drivers_driver_name_get_admin:
   path: '/v1/drivers/{driver_name}'
   method: get
   headers: *admin_headers
   assert_status: 404
+  deprecated: true
 
 drivers_driver_name_get_member:
   path: '/v1/drivers/{driver_name}'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
-# TODO(TheJulia): This is presently returning a 404,
-# except it should not be. :\
 drivers_driver_name_get_observer:
   path: '/v1/drivers/{driver_name}'
   method: get
   headers: *observer_headers
   assert_status: 404
+  deprecated: true
 
 drivers_properties_get_admin:
   path: '/v1/drivers/{driver_name}/properties'
   method: get
   headers: *admin_headers
   assert_status: 404
+  deprecated: true
 
 drivers_properties_get_member:
   path: '/v1/drivers/{driver_name}/properties'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 drivers_properties_get_observer:
   path: '/v1/drivers/{driver_name}/properties'
   method: get
   headers: *observer_headers
   assert_status: 404
+  deprecated: true
 
 drivers_raid_logical_disk_properties_get_admin:
   path: '/v1/drivers/{driver_name}/raid/logical_disk_properties'
   method: get
   headers: *admin_headers
   assert_status: 404
+  deprecated: true
 
 drivers_raid_logical_disk_properties_get_member:
   path: '/v1/drivers/{driver_name}/raid/logical_disk_properties'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 drivers_raid_logical_disk_properties_get_observer:
   path: '/v1/drivers/{driver_name}/raid/logical_disk_properties'
   method: get
   headers: *observer_headers
   assert_status: 404
+  deprecated: true
 
 # Driver vendor passthru - https://docs.openstack.org/api-ref/baremetal/#driver-vendor-passthru-drivers
 
