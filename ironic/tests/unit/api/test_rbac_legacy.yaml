@@ -2049,6 +2049,7 @@ chassis_post_admin:
   body: &chassis_body
     description: 'test-chassis'
   assert_status: 201
+  deprecated: true
 
 chassis_post_member:
   path: '/v1/chassis'
@@ -2056,6 +2057,7 @@ chassis_post_member:
   headers: *member_headers
   body: *chassis_body
   assert_status: 403
+  deprecated: true
 
 chassis_post_observer:
   path: '/v1/chassis'
@@ -2063,60 +2065,70 @@ chassis_post_observer:
   headers: *observer_headers
   body: *chassis_body
   assert_status: 403
+  deprecated: true
 
 chassis_get_admin:
   path: '/v1/chassis'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 chassis_get_member:
   path: '/v1/chassis'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 chassis_get_observer:
   path: '/v1/chassis'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 chassis_detail_get_admin:
   path: '/v1/chassis/detail'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 chassis_detail_get_member:
   path: '/v1/chassis/detail'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 chassis_detail_get_observer:
   path: '/v1/chassis/detail'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 chassis_chassis_id_get_admin:
   path: '/v1/chassis/{chassis_ident}'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 chassis_chassis_id_get_member:
   path: '/v1/chassis/{chassis_ident}'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 chassis_chassis_id_get_observer:
   path: '/v1/chassis/{chassis_ident}'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 chassis_chassis_id_patch_admin:
   path: '/v1/chassis/{chassis_ident}'
@@ -2127,6 +2139,7 @@ chassis_chassis_id_patch_admin:
       value: meow
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 chassis_chassis_id_patch_member:
   path: '/v1/chassis/{chassis_ident}'
@@ -2134,6 +2147,7 @@ chassis_chassis_id_patch_member:
   body: *chassis_patch
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 chassis_chassis_id_patch_observer:
   path: '/v1/chassis/{chassis_ident}'
@@ -2141,21 +2155,25 @@ chassis_chassis_id_patch_observer:
   body: *chassis_patch
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 chassis_chassis_id_delete_admin:
   path: '/v1/chassis/{chassis_ident}'
   method: delete
   headers: *admin_headers
   assert_status: 204
+  deprecated: true
 
 chassis_chassis_id_delete_member:
   path: '/v1/chassis/{chassis_ident}'
   method: delete
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 chassis_chassis_id_delete_observer:
   path: '/v1/chassis/{chassis_ident}'
   method: delete
   headers: *observer_headers
   assert_status: 403
+  deprecated: true

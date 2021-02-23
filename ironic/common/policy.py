@@ -830,29 +830,72 @@ portgroup_policies = [
     ),
 ]
 
+
+deprecated_chassis_get = policy.DeprecatedRule(
+    name='baremetal:chassis:get',
+    check_str='rule:is_admin or rule:is_observer'
+)
+deprecated_chassis_create = policy.DeprecatedRule(
+    name='baremetal:chassis:create',
+    check_str='rule:is_admin'
+)
+deprecated_chassis_delete = policy.DeprecatedRule(
+    name='baremetal:chassis:delete',
+    check_str='rule:is_admin'
+)
+deprecated_chassis_update = policy.DeprecatedRule(
+    name='baremetal:chassis:update',
+    check_str='rule:is_admin'
+)
+deprecated_chassis_reason = """
+The baremetal chassis API is now aware of system scope and default roles.
+"""
+
 chassis_policies = [
     policy.DocumentedRuleDefault(
-        'baremetal:chassis:get',
-        'rule:is_admin or rule:is_observer',
-        'Retrieve Chassis records',
-        [{'path': '/chassis', 'method': 'GET'},
-         {'path': '/chassis/detail', 'method': 'GET'},
-         {'path': '/chassis/{chassis_id}', 'method': 'GET'}]),
+        name='baremetal:chassis:get',
+        check_str=SYSTEM_READER,
+        scope_types=['system'],
+        description='Retrieve Chassis records',
+        operations=[
+            {'path': '/chassis', 'method': 'GET'},
+            {'path': '/chassis/detail', 'method': 'GET'},
+            {'path': '/chassis/{chassis_id}', 'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_chassis_get,
+        deprecated_reason=deprecated_chassis_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:chassis:create',
-        'rule:is_admin',
-        'Create Chassis records',
-        [{'path': '/chassis', 'method': 'POST'}]),
+        name='baremetal:chassis:create',
+        check_str=SYSTEM_ADMIN,
+        scope_types=['system'],
+        description='Create Chassis records',
+        operations=[{'path': '/chassis', 'method': 'POST'}],
+        deprecated_rule=deprecated_chassis_create,
+        deprecated_reason=deprecated_chassis_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:chassis:delete',
-        'rule:is_admin',
-        'Delete Chassis records',
-        [{'path': '/chassis/{chassis_id}', 'method': 'DELETE'}]),
+        name='baremetal:chassis:delete',
+        check_str=SYSTEM_ADMIN,
+        scope_types=['system'],
+        description='Delete Chassis records',
+        operations=[{'path': '/chassis/{chassis_id}', 'method': 'DELETE'}],
+        deprecated_rule=deprecated_chassis_delete,
+        deprecated_reason=deprecated_chassis_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:chassis:update',
-        'rule:is_admin',
-        'Update Chassis records',
-        [{'path': '/chassis/{chassis_id}', 'method': 'PATCH'}]),
+        name='baremetal:chassis:update',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system'],
+        description='Update Chassis records',
+        operations=[{'path': '/chassis/{chassis_id}', 'method': 'PATCH'}],
+        deprecated_rule=deprecated_chassis_update,
+        deprecated_reason=deprecated_chassis_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 ]
 
 driver_policies = [
