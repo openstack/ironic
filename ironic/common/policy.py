@@ -95,6 +95,8 @@ default_policies = [
                        'role:admin or role:administrator',
                        description='Legacy rule for cloud admin access'),
     # is_public_api is set in the environment from AuthPublicRoutes
+    # TODO(TheJulia): Once legacy policy rules are removed, is_public_api
+    # can be removed from the code base.
     policy.RuleDefault('public_api',
                        'is_public_api:True',
                        description='Internal flag for public API routes'),
@@ -1023,17 +1025,41 @@ vendor_passthru_policies = [
     ),
 ]
 
+
+deprecated_ipa_heartbeat = policy.DeprecatedRule(
+    name='baremetal:node:ipa_heartbeat',
+    check_str='rule:public_api'
+)
+deprecated_ipa_lookup = policy.DeprecatedRule(
+    name='baremetal:driver:ipa_lookup',
+    check_str='rule:public_api'
+)
+deprecated_utility_reason = """
+The baremetal utility API is now aware of system scope and default
+roles.
+"""
+
+# NOTE(TheJulia): Empty check strings basically mean nothing to apply,
+# and the request is permitted.
 utility_policies = [
     policy.DocumentedRuleDefault(
-        'baremetal:node:ipa_heartbeat',
-        'rule:public_api',
-        'Send heartbeats from IPA ramdisk',
-        [{'path': '/heartbeat/{node_ident}', 'method': 'POST'}]),
+        name='baremetal:node:ipa_heartbeat',
+        check_str='',
+        description='Receive heartbeats from IPA ramdisk',
+        operations=[{'path': '/heartbeat/{node_ident}', 'method': 'POST'}],
+        deprecated_rule=deprecated_ipa_heartbeat,
+        deprecated_reason=deprecated_utility_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:driver:ipa_lookup',
-        'rule:public_api',
-        'Access IPA ramdisk functions',
-        [{'path': '/lookup', 'method': 'GET'}]),
+        name='baremetal:driver:ipa_lookup',
+        check_str='',
+        description='Access IPA ramdisk functions',
+        operations=[{'path': '/lookup', 'method': 'GET'}],
+        deprecated_rule=deprecated_ipa_lookup,
+        deprecated_reason=deprecated_utility_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 ]
 
 volume_policies = [
