@@ -191,7 +191,8 @@ class TestListDrivers(base.BaseApiTest):
         self.assertThat(data['drivers'], matchers.HasLength(0))
         self.assertEqual([], data['drivers'])
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_driver_properties')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_driver_properties',
+                       autospec=True)
     def _test_drivers_get_one_ok(self, mock_driver_properties,
                                  latest_if=False):
         # get_driver_properties mock is required by validate_link()
@@ -299,7 +300,8 @@ class TestListDrivers(base.BaseApiTest):
     def test_links_public_url(self):
         self._test_links(public_url='http://foo')
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru')
+    @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru',
+                       autospec=True)
     def test_driver_vendor_passthru_sync(self, mocked_driver_vendor_passthru):
         self.register_fake_conductors()
         mocked_driver_vendor_passthru.return_value = {
@@ -313,7 +315,8 @@ class TestListDrivers(base.BaseApiTest):
         self.assertEqual(mocked_driver_vendor_passthru.return_value['return'],
                          response.json)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru')
+    @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru',
+                       autospec=True)
     def test_driver_vendor_passthru_async(self, mocked_driver_vendor_passthru):
         self.register_fake_conductors()
         mocked_driver_vendor_passthru.return_value = {'return': None,
@@ -325,7 +328,8 @@ class TestListDrivers(base.BaseApiTest):
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertIsNone(mocked_driver_vendor_passthru.return_value['return'])
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru')
+    @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru',
+                       autospec=True)
     def test_driver_vendor_passthru_put(self, mocked_driver_vendor_passthru):
         self.register_fake_conductors()
         return_value = {'return': None, 'async': True, 'attach': False}
@@ -336,7 +340,8 @@ class TestListDrivers(base.BaseApiTest):
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru')
+    @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru',
+                       autospec=True)
     def test_driver_vendor_passthru_get(self, mocked_driver_vendor_passthru):
         self.register_fake_conductors()
         return_value = {'return': 'foo', 'async': False, 'attach': False}
@@ -345,7 +350,8 @@ class TestListDrivers(base.BaseApiTest):
             '/drivers/%s/vendor_passthru/do_test' % self.hw1)
         self.assertEqual(return_value['return'], response)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru')
+    @mock.patch.object(rpcapi.ConductorAPI, 'driver_vendor_passthru',
+                       autospec=True)
     def test_driver_vendor_passthru_delete(self, mock_driver_vendor_passthru):
         self.register_fake_conductors()
         return_value = {'return': None, 'async': True, 'attach': False}
@@ -377,7 +383,8 @@ class TestListDrivers(base.BaseApiTest):
                          error['faultstring'])
 
     @mock.patch.object(rpcapi.ConductorAPI,
-                       'get_driver_vendor_passthru_methods')
+                       'get_driver_vendor_passthru_methods',
+                       autospec=True)
     def test_driver_vendor_passthru_methods(self, get_methods_mock):
         self.register_fake_conductors()
         return_value = {'foo': 'bar'}
@@ -386,7 +393,7 @@ class TestListDrivers(base.BaseApiTest):
 
         data = self.get_json(path)
         self.assertEqual(return_value, data)
-        get_methods_mock.assert_called_once_with(mock.ANY, self.hw1,
+        get_methods_mock.assert_called_once_with(mock.ANY, mock.ANY, self.hw1,
                                                  topic=mock.ANY)
 
         # Now let's test the cache: Reset the mock
@@ -398,7 +405,8 @@ class TestListDrivers(base.BaseApiTest):
         # Assert RPC method wasn't called this time
         self.assertFalse(get_methods_mock.called)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties',
+                       autospec=True)
     def test_raid_logical_disk_properties(self, disk_prop_mock):
         driver._RAID_PROPERTIES = {}
         self.register_fake_conductors()
@@ -408,10 +416,11 @@ class TestListDrivers(base.BaseApiTest):
         data = self.get_json(path,
                              headers={api_base.Version.string: "1.12"})
         self.assertEqual(properties, data)
-        disk_prop_mock.assert_called_once_with(mock.ANY, self.hw1,
+        disk_prop_mock.assert_called_once_with(mock.ANY, mock.ANY, self.hw1,
                                                topic=mock.ANY)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties',
+                       autospec=True)
     def test_raid_logical_disk_properties_older_version(self, disk_prop_mock):
         driver._RAID_PROPERTIES = {}
         self.register_fake_conductors()
@@ -423,7 +432,8 @@ class TestListDrivers(base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties',
+                       autospec=True)
     def test_raid_logical_disk_properties_cached(self, disk_prop_mock):
         # only one RPC-conductor call will be made and the info cached
         # for subsequent requests
@@ -436,11 +446,12 @@ class TestListDrivers(base.BaseApiTest):
             data = self.get_json(path,
                                  headers={api_base.Version.string: "1.12"})
             self.assertEqual(properties, data)
-        disk_prop_mock.assert_called_once_with(mock.ANY, self.hw1,
+        disk_prop_mock.assert_called_once_with(mock.ANY, mock.ANY, self.hw1,
                                                topic=mock.ANY)
         self.assertEqual(properties, driver._RAID_PROPERTIES[self.hw1])
 
-    @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties')
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_raid_logical_disk_properties',
+                       autospec=True)
     def test_raid_logical_disk_properties_iface_not_supported(
             self, disk_prop_mock):
         driver._RAID_PROPERTIES = {}
@@ -453,12 +464,14 @@ class TestListDrivers(base.BaseApiTest):
                             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
         self.assertTrue(ret.json['error_message'])
-        disk_prop_mock.assert_called_once_with(mock.ANY, self.hw1,
+        disk_prop_mock.assert_called_once_with(mock.ANY, mock.ANY, self.hw1,
                                                topic=mock.ANY)
 
 
-@mock.patch.object(rpcapi.ConductorAPI, 'get_driver_properties')
-@mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for_driver')
+@mock.patch.object(rpcapi.ConductorAPI, 'get_driver_properties',
+                   autospec=True)
+@mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for_driver',
+                   autospec=True)
 class TestDriverProperties(base.BaseApiTest):
 
     def test_driver_properties_fake(self, mock_topic, mock_properties):
@@ -469,8 +482,9 @@ class TestDriverProperties(base.BaseApiTest):
         mock_properties.return_value = {'prop1': 'Property 1. Required.'}
         data = self.get_json('/drivers/%s/properties' % driver_name)
         self.assertEqual(mock_properties.return_value, data)
-        mock_topic.assert_called_once_with(driver_name)
-        mock_properties.assert_called_once_with(mock.ANY, driver_name,
+        mock_topic.assert_called_once_with(mock.ANY, driver_name)
+        mock_properties.assert_called_once_with(mock.ANY, mock.ANY,
+                                                driver_name,
                                                 topic=mock_topic.return_value)
         self.assertEqual(mock_properties.return_value,
                          driver._DRIVER_PROPERTIES[driver_name])
@@ -488,8 +502,9 @@ class TestDriverProperties(base.BaseApiTest):
             data = self.get_json('/drivers/%s/properties' % driver_name)
 
         self.assertEqual(mock_properties.return_value, data)
-        mock_topic.assert_called_once_with(driver_name)
-        mock_properties.assert_called_once_with(mock.ANY, driver_name,
+        mock_topic.assert_called_once_with(mock.ANY, driver_name)
+        mock_properties.assert_called_once_with(mock.ANY, mock.ANY,
+                                                driver_name,
                                                 topic=mock_topic.return_value)
         self.assertEqual(mock_properties.return_value,
                          driver._DRIVER_PROPERTIES[driver_name])
@@ -510,8 +525,9 @@ class TestDriverProperties(base.BaseApiTest):
             data = self.get_json('/drivers/%s/properties' % driver_name)
 
         self.assertEqual(mock_properties.return_value, data)
-        mock_topic.assert_called_once_with(driver_name)
-        mock_properties.assert_called_once_with(mock.ANY, driver_name,
+        mock_topic.assert_called_once_with(mock.ANY, driver_name)
+        mock_properties.assert_called_once_with(mock.ANY, mock.ANY,
+                                                driver_name,
                                                 topic=mock_topic.return_value)
         self.assertEqual(mock_properties.return_value,
                          driver._DRIVER_PROPERTIES[driver_name])
@@ -528,7 +544,7 @@ class TestDriverProperties(base.BaseApiTest):
         ret = self.get_json('/drivers/%s/properties' % driver_name,
                             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, ret.status_int)
-        mock_topic.assert_called_once_with(driver_name)
+        mock_topic.assert_called_once_with(mock.ANY, driver_name)
         self.assertFalse(mock_properties.called)
 
     def test_driver_properties_cannot_load(self, mock_topic, mock_properties):
@@ -542,6 +558,7 @@ class TestDriverProperties(base.BaseApiTest):
         ret = self.get_json('/drivers/%s/properties' % driver_name,
                             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, ret.status_int)
-        mock_topic.assert_called_once_with(driver_name)
-        mock_properties.assert_called_once_with(mock.ANY, driver_name,
+        mock_topic.assert_called_once_with(mock.ANY, driver_name)
+        mock_properties.assert_called_once_with(mock.ANY, mock.ANY,
+                                                driver_name,
                                                 topic=mock_topic.return_value)
