@@ -956,39 +956,71 @@ driver_policies = [
     ),
 ]
 
+deprecated_node_passthru = policy.DeprecatedRule(
+    name='baremetal:node:vendor_passthru',
+    check_str='rule:is_admin'
+)
+deprecated_driver_passthru = policy.DeprecatedRule(
+    name='baremetal:driver:vendor_passthru',
+    check_str='rule:is_admin'
+)
+deprecated_vendor_reason = """
+The baremetal vendor passthru API is now aware of system scope and default
+roles.
+"""
+
 vendor_passthru_policies = [
     policy.DocumentedRuleDefault(
-        'baremetal:node:vendor_passthru',
-        'rule:is_admin',
-        'Access vendor-specific Node functions',
-        [{'path': 'nodes/{node_ident}/vendor_passthru/methods',
-          'method': 'GET'},
-         {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
-          'method': 'GET'},
-         {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
-          'method': 'PUT'},
-         {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
-          'method': 'POST'},
-         {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
-          'method': 'PATCH'},
-         {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
-          'method': 'DELETE'}]),
+        name='baremetal:node:vendor_passthru',
+        check_str=SYSTEM_ADMIN,
+        scope_types=['system'],
+        description='Access vendor-specific Node functions',
+        operations=[
+            {'path': 'nodes/{node_ident}/vendor_passthru/methods',
+             'method': 'GET'},
+            {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
+             'method': 'GET'},
+            {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
+             'method': 'PUT'},
+            {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
+             'method': 'POST'},
+            {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
+             'method': 'PATCH'},
+            {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
+             'method': 'DELETE'},
+        ],
+        deprecated_rule=deprecated_node_passthru,
+        deprecated_reason=deprecated_vendor_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
     policy.DocumentedRuleDefault(
-        'baremetal:driver:vendor_passthru',
-        'rule:is_admin',
-        'Access vendor-specific Driver functions',
-        [{'path': 'drivers/{driver_name}/vendor_passthru/methods',
-          'method': 'GET'},
-         {'path': 'drivers/{driver_name}/vendor_passthru?method={method_name}',
-          'method': 'GET'},
-         {'path': 'drivers/{driver_name}/vendor_passthru?method={method_name}',
-          'method': 'PUT'},
-         {'path': 'drivers/{driver_name}/vendor_passthru?method={method_name}',
-          'method': 'POST'},
-         {'path': 'drivers/{driver_name}/vendor_passthru?method={method_name}',
-          'method': 'PATCH'},
-         {'path': 'drivers/{driver_name}/vendor_passthru?method={method_name}',
-          'method': 'DELETE'}]),
+        name='baremetal:driver:vendor_passthru',
+        check_str=SYSTEM_ADMIN,
+        scope_types=['system'],
+        description='Access vendor-specific Driver functions',
+        operations=[
+            {'path': 'drivers/{driver_name}/vendor_passthru/methods',
+             'method': 'GET'},
+            {'path': 'drivers/{driver_name}/vendor_passthru?'
+                     'method={method_name}',
+             'method': 'GET'},
+            {'path': 'drivers/{driver_name}/vendor_passthru?'
+                     'method={method_name}',
+             'method': 'PUT'},
+            {'path': 'drivers/{driver_name}/vendor_passthru?'
+                     'method={method_name}',
+             'method': 'POST'},
+            {'path': 'drivers/{driver_name}/vendor_passthru?'
+                     'method={method_name}',
+             'method': 'PATCH'},
+            {'path': 'drivers/{driver_name}/vendor_passthru?'
+                     'method={method_name}',
+             'method': 'DELETE'}
+        ],
+        deprecated_rule=deprecated_driver_passthru,
+        deprecated_reason=deprecated_vendor_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
 ]
 
 utility_policies = [
