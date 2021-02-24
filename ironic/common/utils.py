@@ -470,13 +470,15 @@ def validate_network_port(port, port_name="Port"):
         {'port_name': port_name, 'port': port})
 
 
-def render_template(template, params, is_file=True):
+def render_template(template, params, is_file=True, strict=False):
     """Renders Jinja2 template file with given parameters.
 
     :param template: full path to the Jinja2 template file
     :param params: dictionary with parameters to use when rendering
     :param is_file: whether template is file or string with template itself
-    :returns: the rendered template as a string
+    :param strict: Enable strict template rendering. Default is False
+    :returns: Rendered template
+    :raises: jinja2.exceptions.UndefinedError
     """
     if is_file:
         tmpl_path, tmpl_name = os.path.split(template)
@@ -488,8 +490,11 @@ def render_template(template, params, is_file=True):
     # and still complains with B701 for that line
     # NOTE(pas-ha) not using default_for_string=False as we set the name
     # of the template above for strings too.
-    env = jinja2.Environment(loader=loader,  # nosec B701
-                             autoescape=jinja2.select_autoescape())
+    env = jinja2.Environment(
+        loader=loader,
+        autoescape=jinja2.select_autoescape(),  # nosec B701
+        undefined=jinja2.StrictUndefined if strict else jinja2.Undefined
+    )
     tmpl = env.get_template(tmpl_name)
     return tmpl.render(params, enumerate=enumerate)
 
