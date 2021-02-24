@@ -118,7 +118,7 @@
         IRONIC_JSON_RPC_AUTH_STRATEGY: 'http_basic'
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_RPC_TRANSPORT: json-rpc
-        IRONIC_VM_SPECS_RAM: 512
+        IRONIC_VM_SPECS_RAM: 1024
         IRONIC_VM_SPECS_CPU: 1
         IRONIC_VM_COUNT: 4
         IRONIC_VM_VOLUME_COUNT: 2
@@ -179,7 +179,7 @@
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_VM_COUNT: 4
         IRONIC_VM_VOLUME_COUNT: 2
-        IRONIC_VM_SPECS_RAM: 512
+        IRONIC_VM_SPECS_RAM: 1024
         IRONIC_VM_SPECS_CPU: 1
         # We're using a lot of disk space in this job. Some testing nodes have
         # a small root partition, so use /opt which is mounted from a bigger
@@ -473,7 +473,7 @@
         IRONIC_VM_COUNT: 3
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
-        IRONIC_VM_SPECS_RAM: 512
+        IRONIC_VM_SPECS_RAM: 1024
         IRONIC_VM_SPECS_DISK: 4
         IRONIC_VM_SPECS_CPU: 1
         OVS_BRIDGE_MAPPINGS: 'mynetwork:brbm,public:br-infra'
@@ -557,7 +557,7 @@
           IRONIC_VM_EPHEMERAL_DISK: 0
           IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
           IRONIC_VM_NETWORK_BRIDGE: sub1brbm
-          IRONIC_VM_SPECS_RAM: 512
+          IRONIC_VM_SPECS_RAM: 1024
           IRONIC_VM_SPECS_DISK: 4
           IRONIC_VM_SPECS_CPU: 1
           OVS_BRIDGE_MAPPINGS: 'mynetwork:sub1brbm,public:br-infra'
@@ -726,7 +726,7 @@
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
         IRONIC_RAMDISK_TYPE: tinyipa
-        IRONIC_VM_SPECS_RAM: 512
+        IRONIC_VM_SPECS_RAM: 1024
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         SWIFT_ENABLE_TEMPURLS: True
@@ -783,7 +783,7 @@
           IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
           IRONIC_VM_COUNT: 4
           IRONIC_VM_EPHEMERAL_DISK: 1
-          IRONIC_VM_SPECS_RAM: 512
+          IRONIC_VM_SPECS_RAM: 1024
           IRONIC_DEFAULT_BOOT_OPTION: netboot
           IRONIC_AUTOMATED_CLEAN_ENABLED: False
           Q_AGENT: openvswitch
@@ -863,7 +863,7 @@
           IRONIC_DEPLOY_DRIVER: ipmi
           IRONIC_VM_COUNT: 4
           IRONIC_VM_EPHEMERAL_DISK: 1
-          IRONIC_VM_SPECS_RAM: 512
+          IRONIC_VM_SPECS_RAM: 1024
           IRONIC_RAMDISK_TYPE: tinyipa
           IRONIC_TEMPEST_BUILD_TIMEOUT: 1200
           IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
@@ -954,7 +954,7 @@
             IRONIC_USE_LINK_LOCAL: True
             IRONIC_VM_COUNT: 4
             IRONIC_VM_EPHEMERAL_DISK: 0
-            IRONIC_VM_SPECS_RAM: 512
+            IRONIC_VM_SPECS_RAM: 1024
             IRONIC_VM_NETWORK_BRIDGE: sub1brbm
             OVS_BRIDGE_MAPPINGS: 'mynetwork:sub1brbm,public:br-infra'
             OVS_PHYSICAL_BRIDGE: sub1brbm
