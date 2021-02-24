@@ -71,7 +71,6 @@ def discovery(portal_address, portal_port):
                   '-p', '%s:%s' % (utils.wrap_ipv6(portal_address),
                                    portal_port),
                   run_as_root=True,
-                  check_exit_code=[0],
                   attempts=5,
                   delay_on_retry=True)
 
@@ -85,7 +84,6 @@ def login_iscsi(portal_address, portal_port, target_iqn):
                   '-T', target_iqn,
                   '--login',
                   run_as_root=True,
-                  check_exit_code=[0],
                   attempts=5,
                   delay_on_retry=True)
 
@@ -150,8 +148,7 @@ def verify_iscsi_connection(target_iqn):
         out, _err = utils.execute('iscsiadm',
                                   '-m', 'node',
                                   '-S',
-                                  run_as_root=True,
-                                  check_exit_code=[0])
+                                  run_as_root=True)
         if target_iqn in out:
             break
         time.sleep(1)
@@ -172,8 +169,7 @@ def force_iscsi_lun_update(target_iqn):
                   '-m', 'node',
                   '-T', target_iqn,
                   '-R',
-                  run_as_root=True,
-                  check_exit_code=[0])
+                  run_as_root=True)
 
 
 def logout_iscsi(portal_address, portal_port, target_iqn):
@@ -185,7 +181,6 @@ def logout_iscsi(portal_address, portal_port, target_iqn):
                   '-T', target_iqn,
                   '--logout',
                   run_as_root=True,
-                  check_exit_code=[0],
                   attempts=5,
                   delay_on_retry=True)
 
