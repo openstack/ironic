@@ -131,7 +131,12 @@ class SwiftAPI(object):
 
         parse_result = urlparse.urlparse(self.connection.url)
         swift_object_path = '/'.join((parse_result.path, container, obj))
-        temp_url_key = account_info['x-account-meta-temp-url-key']
+        temp_url_key = account_info.get('x-account-meta-temp-url-key')
+        if not temp_url_key:
+            raise exception.MissingParameterValue(_(
+                'Swift temporary URLs require a shared secret to be '
+                'created. You must provide pre-generate the key on '
+                'the project used to access Swift.'))
         url_path = swift_utils.generate_temp_url(swift_object_path, timeout,
                                                  temp_url_key, 'GET')
         return urlparse.urlunparse(

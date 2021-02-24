@@ -788,6 +788,8 @@
           IRONIC_AUTOMATED_CLEAN_ENABLED: False
           Q_AGENT: openvswitch
           Q_ML2_TENANT_NETWORK_TYPE: vxlan
+          SWIFT_ENABLE_TEMPURLS: True
+          SWIFT_TEMPURL_KEY: secretkey
           EBTABLES_RACE_FIX: True
           LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
         old:
