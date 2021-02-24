@@ -14,6 +14,60 @@ The boot from volume is supported on both legacy BIOS and
 UEFI (iPXE binary for EFI booting) boot mode. We need to perform with
 suitable images which will be created by diskimage-builder tool.
 
+How this works - From Ironic's point of view
+--------------------------------------------
+
+In essence, ironic sets the stage for the process, by providing the required
+information to the boot interface to facilitate the configuration of the
+the node OR the iPXE boot templates such that the node CAN be booted.
+
+.. seqdiag::
+   :scale: 80
+
+   diagram {
+      User; API; Conductor; Storage; Boot; Network; Deploy;
+      activation = none;
+      span_height = 1;
+      edge_length = 250;
+      default_note_color = white;
+      default_fontsize = 14;
+
+      User -> API [label = "User or intermediate service such as nova supplies volume target configuration."];
+      User -> API [label = "Sends deployment request."];
+      API -> Conductor [label = "API transmits the action to the conductor service"];
+      Conductor -> Storage [label = "Conductor calls the storage_interface to perform attachment of volume to node"];
+      Conductor -> Boot [label = "Conductor calls the boot interface signaling preparation of an instance"];
+      Conductor -> Network [label = "Conductor attaches the machine to network requested by the user VIF"];
+      Conductor -> Deploy [label = "Conductor starts deployment steps which just turn the power on."];
+   }
+
+In this example, the boot interface does the heavy lifting. For drivers the
+``irmc`` and ``ilo`` hardware types with hardware type specific boot
+interfaces, they are able to signal via an out of band mechanism to the
+baremetal node's BMC that the integrated iSCSI initiators are to connect
+to the supplied volume target information.
+
+In most hardware this would be the network cards of the machine.
+
+In the case of the ``ipxe`` boot interface, templates are created on disk
+which point to the iscsi target information that was either submitted
+as part of the volume target, or when integrated with Nova, what was
+requested as the baremetal's boot from volume disk upon requesting the
+instance.
+
+In terms of network access, both interface methods require connectivity
+to the iscsi target. In the vendor driver specific path, additional network
+configuration options may be available to allow separation of standard
+network traffic and instance network traffic. In the iPXE case, this is
+not possible as the OS userspace re-configures the iSCSI connection
+after detection inside the OS ramdisk boot.
+
+An iPXE user *may* be able to leverage multiple VIFs, one specifically
+set to be set with ``pxe_enabled`` to handle the initial instance boot
+and back-end storage traffic where as external facing network traffic
+occurs on a different interface. This is a common pattern in iSCSI
+based deployments in the physical realm.
+
 Prerequisites
 =============
 Currently booting from a volume requires:
