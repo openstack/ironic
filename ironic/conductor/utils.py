@@ -1238,8 +1238,8 @@ def is_agent_token_valid(node, token):
     """Validates if a supplied token is valid for the node.
 
     :param node: Node object
-    :token: A token value to validate against the driver_internal_info field
-            agent_sercret_token.
+    :param token: A token value to validate against the driver_internal_info
+                  field agent_secret_token.
     :returns: True if the supplied token matches the token recorded in the
               supplied node object.
     """
@@ -1287,7 +1287,7 @@ def make_salt():
 def hash_password(password=''):
     """Hashes a supplied password.
 
-    :param value: Value to be hashed
+    :param password: password to be hashed
     """
     return crypt.crypt(password, make_salt())
 

@@ -3069,7 +3069,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # or a token is present in general and needs to be
             # validated.
             if not utils.is_agent_token_valid(task.node, agent_token):
-                LOG.error('Invalid or missing agent_token receieved for '
+                LOG.error('Invalid or missing agent_token received for '
                           'node %(node)s', {'node': node_id})
                 raise exception.InvalidParameterValue(
                     'Invalid or missing agent token received.')
