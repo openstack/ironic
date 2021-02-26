@@ -2053,6 +2053,7 @@ deploy_templates_post_admin:
         priority: 0
   headers: *admin_headers
   assert_status: 201
+  deprecated: true
 
 deploy_templates_post_member:
   path: '/v1/deploy_templates'
@@ -2060,6 +2061,7 @@ deploy_templates_post_member:
   body: *deploy_template_body
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 deploy_templates_post_observer:
   path: '/v1/deploy_templates'
@@ -2067,42 +2069,49 @@ deploy_templates_post_observer:
   body: *deploy_template_body
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 deploy_templates_get_admin:
   path: '/v1/deploy_templates'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 deploy_templates_get_member:
   path: '/v1/deploy_templates'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 deploy_templates_get_observer:
   path: '/v1/deploy_templates'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 deploy_templates_deploy_template_id_get_admin:
   path: '/v1/deploy_templates/{deploy_template_ident}'
   method: get
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 deploy_templates_deploy_template_id_get_member:
   path: '/v1/deploy_templates/{deploy_template_ident}'
   method: get
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 deploy_templates_deploy_template_id_get_observer:
   path: '/v1/deploy_templates/{deploy_template_ident}'
   method: get
   headers: *observer_headers
   assert_status: 200
+  deprecated: true
 
 deploy_templates_deploy_template_id_patch_admin:
   path: '/v1/deploy_templates/{deploy_template_ident}'
@@ -2113,6 +2122,7 @@ deploy_templates_deploy_template_id_patch_admin:
       value: 'CUSTOM_MAGIC'
   headers: *admin_headers
   assert_status: 200
+  deprecated: true
 
 deploy_templates_deploy_template_id_patch_member:
   path: '/v1/deploy_templates/{deploy_template_ident}'
@@ -2120,6 +2130,7 @@ deploy_templates_deploy_template_id_patch_member:
   body: *template_patch
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 deploy_templates_deploy_template_id_patch_observer:
   path: '/v1/deploy_templates/{deploy_template_ident}'
@@ -2127,24 +2138,28 @@ deploy_templates_deploy_template_id_patch_observer:
   body: *template_patch
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 deploy_templates_deploy_template_id_delete_admin:
   path: '/v1/deploy_templates/{deploy_template_ident}'
   method: delete
   headers: *admin_headers
   assert_status: 204
+  deprecated: true
 
 deploy_templates_deploy_template_id_delete_member:
   path: '/v1/deploy_templates/{deploy_template_ident}'
   method: delete
   headers: *member_headers
   assert_status: 403
+  deprecated: true
 
 deploy_templates_deploy_template_id_delete_observer:
   path: '/v1/deploy_templates/{deploy_template_ident}'
   method: delete
   headers: *observer_headers
   assert_status: 403
+  deprecated: true
 
 # Chassis endpoints - https://docs.openstack.org/api-ref/baremetal/#chassis-chassis
 
