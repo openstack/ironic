@@ -1292,12 +1292,27 @@ allocation_policies = [
     ),
 ]
 
+
+deprecated_event_create = policy.DeprecatedRule(
+    name='baremetal:events:post',
+    check_str='rule:is_admin'
+)
+deprecated_event_reason = """
+The baremetal event API is now aware of system scope and default
+roles.
+"""
+
 event_policies = [
     policy.DocumentedRuleDefault(
-        'baremetal:events:post',
-        'rule:is_admin',
-        'Post events',
-        [{'path': '/events', 'method': 'POST'}])
+        name='baremetal:events:post',
+        check_str=SYSTEM_ADMIN,
+        scope_types=['system'],
+        description='Post events',
+        operations=[{'path': '/events', 'method': 'POST'}],
+        deprecated_rule=deprecated_event_create,
+        deprecated_reason=deprecated_event_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    )
 ]
 
 
