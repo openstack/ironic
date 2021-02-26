@@ -321,7 +321,7 @@ class TaskManagerTestCase(db_base.DbTestCase):
         reserve_mock.assert_called_once_with(self.context, self.host,
                                              'fake-node-id')
         get_volconn_mock.assert_called_once_with(self.context, self.node.id)
-        self.assertFalse(get_voltgt_mock.called)
+        self.assertFalse(build_driver_mock.called)
         release_mock.assert_called_once_with(self.context, self.host,
                                              self.node.id)
         node_get_mock.assert_called_once_with(self.context, 'fake-node-id')
