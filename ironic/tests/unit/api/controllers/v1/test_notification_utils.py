@@ -163,7 +163,8 @@ class APINotifyTestCase(tests_base.TestCase):
         self.assertEqual(portgroup.standalone_ports_supported,
                          payload.standalone_ports_supported)
 
-    @mock.patch('ironic.objects.node.NodeMaintenanceNotification')
+    @mock.patch('ironic.objects.node.NodeMaintenanceNotification',
+                autospec=True)
     def test_node_maintenance_notification(self, maintenance_mock):
         maintenance_mock.__name__ = 'NodeMaintenanceNotification'
         node = obj_utils.get_test_node(self.context,
@@ -182,7 +183,7 @@ class APINotifyTestCase(tests_base.TestCase):
         self.assertEqual(True, payload.maintenance)
         self.assertEqual('test reason', payload.maintenance_reason)
 
-    @mock.patch.object(notification.NotificationBase, 'emit')
+    @mock.patch.object(notification.NotificationBase, 'emit', autospec=True)
     def test_emit_maintenance_notification(self, emit_mock):
         node = obj_utils.get_test_node(self.context)
         test_level = fields.NotificationLevel.INFO
@@ -190,4 +191,4 @@ class APINotifyTestCase(tests_base.TestCase):
         notif_utils._emit_api_notification(self.context, node,
                                            'maintenance_set',
                                            test_level, test_status)
-        emit_mock.assert_called_once_with(self.context)
+        emit_mock.assert_called_once_with(mock.ANY, self.context)
