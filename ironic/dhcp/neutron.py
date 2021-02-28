@@ -64,28 +64,28 @@ class NeutronDHCPApi(base.BaseDHCP):
         try:
             neutron_client = neutron.get_client(token=token, context=context)
 
-            fip = None
+            fips = []
             port = neutron_client.get_port(port_id)
-            try:
-                if port:
-                    # TODO(TheJulia): We need to retool this down the
-                    # road so that we handle ports and allow preferences
-                    # for multi-address ports with different IP versions
-                    # and enable operators to possibly select preferences
-                    # for provisionioning operations.
-                    # This is compounded by v6 mainly only being available
-                    # with UEFI machines, so the support matrix also gets
-                    # a little "weird".
-                    # Ideally, we should work on this in Victoria.
-                    fip = port.get('fixed_ips')[0]
-            except (TypeError, IndexError):
-                fip = None
+            if port:
+                # TODO(TheJulia): We need to retool this down the
+                # road so that we handle ports and allow preferences
+                # for multi-address ports with different IP versions
+                # and enable operators to possibly select preferences
+                # for provisionioning operations.
+                # This is compounded by v6 mainly only being available
+                # with UEFI machines, so the support matrix also gets
+                # a little "weird".
+                # Ideally, we should work on this in Victoria.
+                fips = port.get('fixed_ips')
+
             update_opts = []
-            if fip:
-                ip_version = ipaddress.ip_address(fip['ip_address']).version
-                for option in dhcp_options:
-                    if option.get('ip_version', 4) == ip_version:
-                        update_opts.append(option)
+            if len(fips) != 0:
+                for fip in fips:
+                    ip_version = \
+                        ipaddress.ip_address(fip['ip_address']).version
+                    for option in dhcp_options:
+                        if option.get('ip_version', 4) == ip_version:
+                            update_opts.append(option)
             else:
                 LOG.error('Requested to update port for port %s, '
                           'however port lacks an IP address.', port_id)

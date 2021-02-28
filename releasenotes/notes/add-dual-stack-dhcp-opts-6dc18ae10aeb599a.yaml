@@ -1,0 +1,5 @@
+---
+fixes:
+  - When using the Neutron DHCP driver, Ironic would only use the first fixed
+    IP address to determine what IP versions are use on the port.  Now, it
+    checks for all the IP addresses and adds DHCP options for all IP versions.
