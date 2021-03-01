@@ -1,0 +1,2385 @@
+# A few ground rules how these tests are basically formatted:
+#
+# Because role permissions cascade. admin has member, and reader. etc.
+# it doesn't make sense to explicitly check if admin or member *CAN*
+# read an endpoint. The reader check should validate that they can
+# unless there is a specific somehow restricted endpoint. In those
+# cases, explicit tests should be added, but we're not really aware
+# of any at this time. The approach is otherwise a bit of a shotgun
+# approach. We're attempting to test owner, lessee, and a third party
+# project scoped admin token in an attempt to try and cover all of our
+# cases and permutations.
+#
+# A few differences from the system scoped tests. Project scoped API
+# requests should return different filtered views. This means we need
+# to actually count when we're doing GET requests on main controller
+# endpoints. Not a big deal, but it helps make sure things are behaving
+# as expected.
+#
+# One note regarding return codes. Third party admin, should mainly get
+# 404 return codes as opposed to 403. Because their view is filtered,
+# They can't find the resources to attempt to edit. This is a huge
+# distinction because we alsod on't want to leak that something exists
+# from a security point of view. If we don't return 404, and they get 403,
+# they can determine that something is special, something is different,
+# and from there try to determine *what* it is. The key in their case
+# is the ID values, but they don't know that from the outside.
+# This is also why thid party admins should get 200s and empty lists,
+# again the database query should be filtered. Third party admin,
+# in essence serves as the primary negative test.
+#
+# Conventions. This file uses *can* and *cannot* along with the
+# personal, an owner or lessee of either, admin, member, or reader
+# rights, along with a third party admin in the name to hopefully
+# provide clear insight into *what* and *what is not* allowed.
+
+values:
+  skip_reason: "These are fake reference values for YAML templating"
+  # Project scoped admin token
+  owner_admin_headers: &owner_admin_headers
+    X-Auth-Token: 'owner-admin-token'
+    X-Roles: admin,member,reader
+    X-Project-Id: 70e5e25a-2ca2-4cb1-8ae8-7d8739cee205
+  # Project scoped other member token.
+  owner_member_headers: &owner_member_headers
+    X-Auth-Token: 'owner-member-token'
+    X-Roles: member,reader
+    X-Project-Id: 70e5e25a-2ca2-4cb1-8ae8-7d8739cee205
+  # Project scoped reader Token
+  owner_reader_headers: &owner_reader_headers
+    X-Auth-Token: 'owner-reader-token'
+    X-Roles: reader
+    X-Project-Id: 70e5e25a-2ca2-4cb1-8ae8-7d8739cee205
+  lessee_admin_headers: &lessee_admin_headers
+    X-Auth-Token: 'lessee-admin-token'
+    X-Project-Id: f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
+    X-Roles: admin,member,reader
+  lessee_member_headers: &lessee_member_headers
+    X-Auth-Token: 'lessee-member-token'
+    X-Project-Id: f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
+    X-Roles: member,reader
+  lessee_reader_headers: &lessee_reader_headers
+    X-Auth-Token: 'lessee-reader-token'
+    X-Project-Id: f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
+    X-Roles: reader
+  third_party_admin_headers: &third_party_admin_headers
+    X-Auth-Token: 'other-admin-token'
+    X-Project-Id: ae64129e-b188-4662-b014-4127f4366ee6
+    X-Roles: admin,member,reader
+  owner_project_id: &owner_project_id 70e5e25a-2ca2-4cb1-8ae8-7d8739cee205
+  lessee_project_id: &lessee_project_id f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
+  owned_node_ident: &owned_node_ident f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
+  lessee_node_ident: &lessee_node_ident <TBD>
+
+# Nodes - https://docs.openstack.org/api-ref/baremetal/?expanded=#nodes-nodes
+
+# Based on nodes_post_admin test.
+owner_admin_cannot_post_nodes:
+  path: '/v1/nodes'
+  method: post
+  headers: *owner_admin_headers
+  body: &node_post_body
+    name: node
+    driver: fake-driverz
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_post_nodes:
+  path: '/v1/nodes'
+  method: post
+  headers: *lessee_admin_headers
+  body: *node_post_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_post_nodes:
+  path: '/v1/nodes'
+  method: post
+  headers: *third_party_admin_headers
+  body: *node_post_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Based on nodes_post_member
+owner_member_cannot_post_nodes:
+  path: '/v1/nodes'
+  method: post
+  headers: *owner_member_headers
+  body: *node_post_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Based on nodes_post_reader
+owner_reader_cannot_post_reader:
+  path: '/v1/nodes'
+  method: post
+  headers: *owner_reader_headers
+  body: *node_post_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Based on nodes_get_admin
+# TODO: Create 3 nodes, 2 owned, 1 leased where it is also owned.
+owner_admin_can_get_node:
+  path: '/v1/nodes'
+  method: get
+  headers: *owner_admin_headers
+  assert_list_length: 2
+  assert_status: 200
+  skip_reason: policy not implemented
+
+owner_member_can_get_node:
+  path: '/v1/nodes'
+  method: get
+  headers: *owner_member_headers
+  assert_list_length:
+    nodes: 2
+  assert_status: 200
+  skip_reason: policy not implemented
+
+owner_reader_can_get_node:
+  path: '/v1/nodes'
+  method: get
+  headers: *owner_admin_headers
+  assert_list_length:
+    nodes: 2
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_admin_can_get_node:
+  path: '/v1/nodes'
+  method: get
+  headers: *lessee_reader_headers
+  assert_list_length:
+      nodes: 1
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_member_can_get_node:
+  path: '/v1/nodes'
+  method: get
+  headers: *lessee_reader_headers
+  assert_list_length:
+      nodes: 1
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_can_get_node:
+  path: '/v1/nodes'
+  method: get
+  headers: *lessee_reader_headers
+  assert_list_length: 
+      nodes: 1
+  assert_status: 200
+  skip_reason: policy not implemented
+
+# Tests that no nodes are associated and thus the API
+# should return an empty list.
+third_party_admin_cannot_get_node:
+  path: '/v1/nodes'
+  method: get
+  headers: *third_party_admin_headers
+  assert_list_length:
+      nodes: 0
+  assert_status: 200
+  skip_reason: policy not implemented
+
+# Based on nodes_get_node_admin
+
+owner_reader_cant_get_other_node:
+  path: '/v1/nodes/{node_ident}'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_reader_cant_get_other_node:
+  path: '/v1/nodes/{node_ident}'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cant_get_node:
+  path: '/v1/nodes/{node_ident}'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_reader_can_get_detail:
+  path: '/v1/nodes/details'
+  method: get
+  headers: *owner_reader_headers
+  assert_list_length:
+      nodes: 2
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_can_get_detail:
+  path: '/v1/nodes/details'
+  method: get
+  headers: *lessee_reader_headers
+  assert_list_length:
+      nodes: 1
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_detail:
+  path: '/v1/nodesi/details'
+  method: get
+  headers: *third_party_admin_headers
+  assert_list_length:
+      nodes: 0
+  assert_status: 200
+  skip_reason: policy not implemented
+
+owner_admin_can_patch_node:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: patch
+  headers: *owner_admin_headers
+  body: &extra_patch
+    - op: replace
+      path: /extra
+      value: {'test': 'testing'}
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_can_patch_node:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: patch
+  headers: *owner_member_headers
+  body: *extra_patch
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_reader_cannot_patch_node:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: patch
+  headers: *owner_reader_headers
+  body: *extra_patch
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_admin_can_patch_node:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *lessee_admin_headers
+  body: *extra_patch
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_member_can_patch_node:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *lessee_member_headers
+  body: *extra_patch
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_reader_cannot_patch_node:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *lessee_reader_headers
+  body: *extra_patch
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_patch_node:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: patch
+  headers: *third_party_admin_headers
+  body: *extra_patch
+  assert_status: 404
+  skip_reason: policy not implemented
+
+owner_admin_cannot_delete_nodes:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: delete
+  headers: *owner_admin_headers
+  assert_status: 204
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_delete_nodes:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: delete
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_delete_nodes:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: delete
+  headers: *third_party_admin_headers
+  assert_status: 404
+  skip_reason: policy not implemented
+
+# TODO(TheJulia): Specific field restrictions based on permissions,
+# are in the spec, but still need to be implemented test wise.
+# We should likely do that *AS* we put that code in.
+
+# Node Management - https://docs.openstack.org/api-ref/baremetal/?expanded=#node-management-nodes
+# NOTE(TheJulia): Most management methods call into the conductor as they
+# require a task, which means they generally return 503 when the conductor
+# is mocked.
+
+owner_admin_can_validate_node:
+  path: '/v1/nodes/{owner_node_ident}/validate'
+  method: get
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_can_validate_node:
+  path: '/v1/nodes/{lessee_node_ident}/validate'
+  method: get
+  headers: *lessee_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_can_validate_node:
+  path: '/v1/nodes/{owner_node_ident}/validate'
+  method: get
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_member_cannot_validate_node:
+  path: '/v1/nodes/{lessee_node_ident}/validate'
+  method: get
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_validate_node:
+  path: '/v1/nodes/{owner_node_ident}/validate'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 404
+  skip_reason: policy not implemented
+
+owner_admin_can_set_maintenance:
+  path: '/v1/nodes/{owner_node_ident}/maintenance'
+  method: put
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+# should we really allow this? they could desync with nova if they can do this...
+lessee_admin_can_set_maintenance:
+  path: '/v1/nodes/{lessee_node_ident}/maintenance'
+  method: put
+  headers: *lessee_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_can_set_maintenance:
+  path: '/v1/nodes/{owner_node_ident}/maintenance'
+  method: put
+  headers: *owner_member_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_member_cannot_set_maintenance:
+  path: '/v1/nodes/{lessee_node_ident}/maintenance'
+  method: put
+  headers: *lessee_member_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_set_maintenance:
+  path: '/v1/nodes/{owner_node_ident}/maintenance'
+  method: put
+  headers: *third_party_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_admin_can_unset_maintenance:
+  path: '/v1/nodes/{owner_node_ident}/maintenance'
+  method: delete
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_can_unset_maintenance:
+  path: '/v1/nodes/{lessee_node_ident}/maintenance'
+  method: delete
+  headers: *lessee_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_can_unset_maintnenance:
+  path: '/v1/nodes/{owner_node_ident}/maintenance'
+  method: delete
+  headers: *owner_member_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_member_cannot_unset_maintenance:
+  path: '/v1/nodes/{lessee_node_ident}/maintenance'
+  method: delete
+  headers: *lessee_member_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_unset_maintenance:
+  path: '/v1/nodes/{node_ident}/maintenance'
+  method: delete
+  headers: *third_party_admin_headers
+  assert_status: 404 # 404 may not be the right code here...
+  skip_reason: policy not implemented
+
+# Get/set supported boot devices
+
+owner_admin_can_set_boot_device:
+  path: '/v1/nodes/{owner_node_ident}/management/boot_device'
+  method: put
+  headers: *owner_admin_headers
+  body: &boot_device_body
+    boot_device: pxe
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_set_boot_device:
+  path: '/v1/nodes/{owner_node_ident}/management/boot_device'
+  method: put
+  headers: *lessee_admin_headers
+  body: *boot_device_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_member_can_set_boot_device:
+  path: '/v1/nodes/{owner_node_ident}/management/boot_device'
+  method: put
+  headers: *owner_member_headers
+  body: *boot_device_body
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_member_cannot_set_boot_device:
+  path: '/v1/nodes/{owner_node_ident}/management/boot_device'
+  method: put
+  headers: *lessee_member_headers
+  body: *boot_device_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_set_boot_device:
+  path: '/v1/nodes/{owner_node_ident}/management/boot_device'
+  method: put
+  headers: *third_party_admin_headers
+  body: *boot_device_body
+  assert_status: 404
+  skip_reason: policy not implemented
+
+owner_admin_can_get_boot_device:
+  path: '/v1/nodes/{owner_node_ident}/management/boot_device'
+  method: get
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_get_boot_device:
+  path: '/v1/nodes/{lessee_node_ident}/management/boot_device'
+  method: get
+  headers: *lessee_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_member_can_get_boot_device:
+  path: '/v1/nodes/{owner_node_ident}/management/boot_device'
+  method: get
+  headers: *owner_member_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_member_cannot_get_boot_device:
+  path: '/v1/nodes/{lessee_node_ident}/management/boot_device'
+  method: get
+  headers: *lessee_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_reader_cannot_get_boot_device:
+  path: '/v1/nodes/{owner_node_ident}/management/boot_device'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_reader_cannot_get_boot_device:
+  path: '/v1/nodes/{lessee_node_ident}/management/boot_device'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_boot_device:
+  path: '/v1/nodes/{node_ident}/management/boot_device'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_admin_can_get_supported_boot_devices:
+  path: '/v1/nodes/{owner_node_ident}/management/boot_device/supported'
+  method: get
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_can_get_supported_boot_devices:
+  path: '/v1/nodes/{owner_node_ident}/management/boot_device/supported'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_get_supported_boot_devices:
+  path: '/v1/nodes/{lessee_node_ident}/management/boot_device/supported'
+  method: get
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_supported_boot_devices:
+  path: '/v1/nodes/{owner_node_ident}/management/boot_device/supported'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 404
+  skip_reason: policy not implemented
+
+# Non masking interrupt
+
+owner_admin_can_send_non_masking_interrupt:
+  path: '/v1/nodes/{node_ident}/management/inject_nmi'
+  method: put
+  headers: *third_party_admin_headers
+  body: {}
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_send_non_masking_interrupt:
+  path: '/v1/nodes/{node_ident}/management/inject_nmi'
+  method: put
+  headers: *third_party_admin_headers
+  body: {}
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_send_non_masking_interrupt:
+  path: '/v1/nodes/{node_ident}/management/inject_nmi'
+  method: put
+  headers: *third_party_admin_headers
+  body: {}
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# States
+
+owner_reader_get_states:
+  path: '/v1/nodes/{owner_node_ident}/states'
+  method: get
+  headers: *owner_admin_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_get_states:
+  path: '/v1/nodes/{lessee_node_ident}/states'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_part_admin_cannot_get_states:
+  path: '/v1/nodes/{node_ident}/states'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 404
+  skip_reason: policy not implemented
+
+# Power states
+
+owner_admin_can_put_power_state_change:
+  path: '/v1/nodes/{owner_node_ident}/states/power'
+  method: put
+  headers: *owner_admin_headers
+  body: &power_body
+    target: "power on"
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_can_put_power_state_change:
+  path: '/v1/nodes/{lessee_node_ident}/states/power'
+  method: put
+  headers: *lessee_admin_headers
+  body: *power_body
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_can_put_power_state_change:
+  path: '/v1/nodes/{owner_node_ident}/states/power'
+  method: put
+  headers: *owner_member_headers
+  body: *power_body
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_member_can_put_power_state_change:
+  path: '/v1/nodes/{lessee_node_ident}/states/power'
+  method: put
+  headers: *lessee_member_headers
+  body: *power_body
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_reader_cannot_put_power_state_change:
+  path: '/v1/nodes/{owner_node_ident}/states/power'
+  method: put
+  headers: *owner_reader_headers
+  body: *power_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_reader_cannot_put_power_state_change:
+  path: '/v1/nodes/{lessee_node_ident}/states/power'
+  method: put
+  headers: *lessee_reader_headers
+  body: *power_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_put_power_state_change:
+  path: '/v1/nodes/{node_ident}/states/power'
+  method: put
+  headers: *third_party_admin_headers
+  body: *power_body
+  assert_status: 404
+  skip_reason: policy not implemented
+
+# Provision states
+
+owner_admin_can_change_provision_state:
+  path: '/v1/nodes/{owner_node_ident}/states/provision'
+  method: put
+  headers: *owner_admin_headers
+  body: &provision_body
+    target: deploy
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_can_change_provision_state:
+  path: '/v1/nodes/{owner_node_ident}/states/provision'
+  method: put
+  headers: *owner_member_headers
+  body: *provision_body
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_can_change_provision_state:
+  path: '/v1/nodes/{lessee_node_ident}/states/provision'
+  method: put
+  headers: *lessee_admin_headers
+  body: *provision_body
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_member_cannot_change_provision_state:
+  path: '/v1/nodes/{lessee_node_ident}/states/provision'
+  method: put
+  headers: *lessee_member_headers
+  body: *provision_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_change_provision_state:
+  path: '/v1/nodes/{owner_node_ident}/states/provision'
+  method: put
+  headers: *lessee_member_headers
+  body: *provision_body
+  assert_status: 404
+  skip_reason: policy not implemented
+
+# Raid configuration
+
+owner_admin_can_set_raid_config:
+  path: '/v1/nodes/{owner_node_ident}/states/raid'
+  method: put
+  headers: *owner_admin_headers
+  body: &raid_body
+    target_raid_config:
+      logical_disks:
+        - size_gb: 500
+          is_root_volume: true
+          raid_level: 1
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_set_raid_config:
+  path: '/v1/nodes/{lessee_node_ident}/states/raid'
+  method: put
+  headers: *lessee_admin_headers
+  body: *raid_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_member_can_set_raid_config:
+  path: '/v1/nodes/{lessee_node_ident}/states/raid'
+  method: put
+  headers: *owner_member_headers
+  body: *raid_body
+  assert_status: 504
+  skip_reason: policy not implemented
+
+lessee_member_cannot_set_raid_config:
+  path: '/v1/nodes/{lessee_node_ident}/states/raid'
+  method: put
+  headers: *lessee_admin_headers
+  body: *raid_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_set_raid_config:
+  path: '/v1/nodes/{lessee_node_ident}/states/raid'
+  method: put
+  headers: *third_party_admin_headers
+  body: *raid_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Console
+
+owner_admin_can_get_console:
+  path: '/v1/nodes/{owner_node_ident}/states/console'
+  method: get
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_get_console:
+  path: '/v1/nodes/{lessee_node_ident}/states/console'
+  method: get
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_member_can_get_console:
+  path: '/v1/nodes/{owner_node_ident}/states/console'
+  method: get
+  headers: *owner_member_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_member_cannot_get_console:
+  path: '/v1/nodes/{lessee_node_ident}/states/console'
+  method: get
+  headers: *lessee_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_reader_cannot_get_console:
+  path: '/v1/nodes/{owner_node_ident}/states/console'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_reader_cannot_get_console:
+  path: '/v1/nodes/{lessee_node_ident}/states/console'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_console:
+  path: '/v1/nodes/{lessee_node_ident}/states/console'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_admin_can_set_console:
+  path: '/v1/nodes/{node_ident}/states/console'
+  method: put
+  headers: *owner_admin_headers
+  body: &console_body_put
+    enabled: true
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_set_console:
+  path: '/v1/nodes/{node_ident}/states/console'
+  method: put
+  headers: *lessee_admin_headers
+  body: *console_body_put
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_member_can_set_console:
+  path: '/v1/nodes/{node_ident}/states/console'
+  method: put
+  headers: *owner_member_headers
+  body: *console_body_put
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_member_cannot_set_console:
+  path: '/v1/nodes/{node_ident}/states/console'
+  method: put
+  headers: *lessee_member_headers
+  body: *console_body_put
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Vendor Passthru - https://docs.openstack.org/api-ref/baremetal/?expanded=#node-vendor-passthru-nodes
+
+# owner/lessee vendor passthru methods inaccessible
+
+# Based on nodes_vendor_passthru_methods_*
+
+owner_admin_cannot_get_vendor_passthru_methods:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru/methods'
+  method: get
+  headers: *owner_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_member_cannot_get_vendor_passthru_methods:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru/methods'
+  method: get
+  headers: *owner_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_reader_cannot_get_vendor_passthru_methods:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru/methods'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_get_vendor_passthru_methods:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru/methods'
+  method: get
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_member_cannot_get_vendor_passthru_methods:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru/methods'
+  method: get
+  headers: *lessee_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_reader_cannot_get_vendor_passthru_methods:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru/methods'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Get vendor passthru method tests
+owner_admin_cannot_get_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: get
+  headers: *owner_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_member_cannot_get_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: get
+  headers: *owner_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_reader_cannot_get_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_get_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: get
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_member_cannot_get_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: get
+  headers: *lessee_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_reader_cannot_get_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Post vendor passthru method tests
+
+owner_admin_cannot_post_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: post
+  headers: *owner_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_member_cannot_post_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: post
+  headers: *owner_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_reader_cannot_post_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: post
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_post_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: post
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_member_cannot_post_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: post
+  headers: *lessee_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_reader_cannot_post_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: post
+  headers: *lessee_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Put vendor passthru method tests
+
+owner_admin_cannot_put_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: put
+  headers: *owner_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_member_cannot_put_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: put
+  headers: *owner_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_reader_cannot_put_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: put
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_put_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: put
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_member_cannot_put_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: put
+  headers: *lessee_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_reader_cannot_put_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: put
+  headers: *lessee_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Delete vendor passthru methods tests
+
+owner_admin_cannot_delete_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: delete
+  headers: *owner_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_member_cannot_delete_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: delete
+  headers: *owner_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_reader_cannot_delete_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: delete
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_delete_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: delete
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_member_cannot_delete_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: delete
+  headers: *lessee_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_reader_cannot_delete_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: delete
+  headers: *lessee_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Node Traits - https://docs.openstack.org/api-ref/baremetal/#node-traits-nodes
+
+owner_reader_get_traits:
+  path: '/v1/nodes/{owner_node_ident}/traits'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_get_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 404
+  skip_reason: policy not implemented
+
+owner_admin_can_put_traits:
+  path: '/v1/nodes/{owner_node_ident}/traits'
+  method: put
+  headers: *owner_admin_headers
+  assert_status: 503
+  body: &traits_body
+    traits:
+      - CUSTOM_TRAIT1
+      - HW_CPU_X86_VMX
+  skip_reason: policy not implemented
+
+owner_member_can_put_traits:
+  path: '/v1/nodes/{owner_node_ident}/traits'
+  method: put
+  headers: *owner_member_headers
+  assert_status: 503
+  body: *traits_body
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_put_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits'
+  method: put
+  headers: *owner_member_headers
+  assert_status: 403
+  body: *traits_body
+  skip_reason: policy not implemented
+
+lessee_member_cannot_put_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits'
+  method: put
+  headers: *lessee_member_headers
+  assert_status: 403
+  body: *traits_body
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_put_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits'
+  method: put
+  headers: *third_party_admin_headers
+  assert_status: 403
+  body: *traits_body
+  skip_reason: policy not implemented
+
+owner_admin_can_delete_traits:
+  path: '/v1/nodes/{owner_node_ident}/traits/{trait}'
+  method: delete
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_can_delete_traits:
+  path: '/v1/nodes/{owner_node_ident}/traits/{trait}'
+  method: delete
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_delete_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits/{trait}'
+  method: delete
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_member_cannot_delete_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits/{trait}'
+  method: delete
+  headers: *lessee_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_delete_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits/{trait}'
+  method: delete
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_admin_can_put_custom_traits:
+  path: '/v1/nodes/{owner_node_ident}/traits/CUSTOM_TRAIT2'
+  method: put
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_can_put_custom_traits:
+  path: '/v1/nodes/{owner_node_ident}/traits/CUSTOM_TRAIT2'
+  method: put
+  headers: *owner_member_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_put_custom_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits/CUSTOM_TRAIT2'
+  method: put
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_member_cannot_put_custom_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits/CUSTOM_TRAIT2'
+  method: put
+  headers: *lessee_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_put_custom_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits/CUSTOM_TRAIT2'
+  method: put
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# VIFS - https://docs.openstack.org/api-ref/baremetal/#vifs-virtual-interfaces-of-nodes
+# TODO(TheJulia): VIFS will need fairly exhaustive testing given the use path.
+# i.e. ensure user has rights to a vif and all.
+
+# Based on nodes_vifs_* tests.
+
+owner_reader_get_vifs:
+  path: '/v1/nodes/{owner_node_ident}/vifs'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_reader_get_vifs:
+  path: '/v1/nodes/{lessee_node_ident}/vifs'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_vifs:
+  path: '/v1/nodes/{owner_node_ident}/vifs'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_admin_can_post_vifs:
+  path: '/v1/nodes/{owner_node_ident}/vifs'
+  method: post
+  headers: *owner_admin_headers
+  assert_status: 503
+  body: &vif_body
+    id: ee21d58f-5de2-4956-85ff-33935ea1ca00
+  skip_reason: policy not implemented
+
+lessee_admin_can_post_vifs:
+  path: '/v1/nodes/{lessee_node_ident}/vifs'
+  method: post
+  headers: *lessee_admin_headers
+  assert_status: 503
+  body: *vif_body
+  skip_reason: policy not implemented
+
+owner_member_can_post_vifs:
+  path: '/v1/nodes/{owner_node_ident}/vifs'
+  method: post
+  headers: *owner_admin_headers
+  assert_status: 503
+  body: *vif_body
+  skip_reason: policy not implemented
+
+lessee_member_cannot_post_vifs:
+  path: '/v1/nodes/{lessee_node_ident}/vifs'
+  method: post
+  headers: *lessee_member_headers
+  assert_status: 403
+  body: *vif_body
+  skip_reason: policy not implemented
+
+owner_reader_cannot_post_vifs:
+  path: '/v1/nodes/{owner_node_ident}/vifs'
+  method: post
+  headers: *lessee_member_headers
+  assert_status: 403
+  body: *vif_body
+  skip_reason: policy not implemented
+
+lessee_reader_cannot_post_vifs:
+  path: '/v1/nodes/{lessee_node_ident}/vifs'
+  method: post
+  headers: *lessee_reader_headers
+  assert_status: 403
+  body: *vif_body
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_post_vifs:
+  path: '/v1/nodes/{owner_node_ident}/vifs'
+  method: post
+  headers: *third_party_admin_headers
+  assert_status: 403
+  body: *vif_body
+  skip_reason: policy not implemented
+
+owner_admin_delete_vifs:
+  path: '/v1/nodes/{owner_node_ident}/vifs/{vif_ident}'
+  method: delete
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_can_delete_vifs:
+  path: '/v1/nodes/{lessee_node_ident}/vifs/{vif_ident}'
+  method: delete
+  headers: *lessee_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_can_delete_vifs:
+  path: '/v1/nodes/{owner_node_ident}/vifs/{vif_ident}'
+  method: delete
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_member_cannot_delete_vifs:
+  path: '/v1/nodes/{lessee_node_ident}/vifs/{vif_ident}'
+  method: delete
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_delete_vifs:
+  path: '/v1/nodes/{owner_node_ident}/vifs/{vif_ident}'
+  method: delete
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Indicators - https://docs.openstack.org/api-ref/baremetal/#indicators-management
+owner_readers_can_get_indicators:
+  path: '/v1/nodes/{owner_node_ident}/management/indicators'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lesse_readers_can_get_indicators:
+  path: '/v1/nodes/{lessee_node_ident}/management/indicators'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_indicators:
+  path: '/v1/nodes/{owner_node_ident}/management/indicators'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_reader_can_get_indicator_status:
+  path: '/v1/nodes/{node_ident}/management/indicators/{component}/{ind_ident}'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_can_get_indicator_status:
+  path: '/v1/nodes/{node_ident}/management/indicators/{component}/{ind_ident}'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+owner_member_can_set_indicator:
+  path: '/v1/nodes/{node_ident}/management/indicators/{component}/{ind_ident}'
+  method: put
+  headers: *owner_reader_headers
+  assert_status: 201
+  skip_reason: policy not implemented
+
+lessee_member_can_set_indicator:
+  path: '/v1/nodes/{node_ident}/management/indicators/{component}/{ind_ident}'
+  method: put
+  headers: *lessee_reader_headers
+  assert_status: 201
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_set_indicator:
+  path: '/v1/nodes/{node_ident}/management/indicators/{component}/{ind_ident}'
+  method: put
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Portgroups -  https://docs.openstack.org/api-ref/baremetal/#portgroups-portgroups
+
+# Based on portgroups_* tests
+
+owner_reader_can_list_portgroups:
+  path: '/v1/portgroups'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_can_list_portgroups:
+  path: '/v1/portgroups'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_list_portgroups:
+  path: '/v1/portgroups'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 99 # TODO This should be 200
+  assert_list_length:
+    portgroups: 0
+  skip_reason: policy not implemented
+
+owner_reader_can_read_portgroup:
+  path: '/v1/portgroups/{owner_portgroup_ident}'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_can_read_portgroup:
+  path: '/v1/portgroups/{lessee_portgroup_ident}'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_read_portgroup:
+  path: '/v1/portgroups/{portgroup_ident}'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+# NB: Ports have to be posted with a node UUID to associate to,
+# so that seems policy-check-able.
+owner_admin_can_add_portgroup:
+  path: '/v1/portgroups'
+  method: post
+  headers: *owner_admin_headers
+  body: &owner_portgroup_body
+    node_uuid: 18a552fb-dcd2-43bf-9302-e4c93287be11
+  assert_status: 201
+  skip_reason: policy not implemented
+
+owner_member_cannot_add_portgroup:
+  path: '/v1/portgroups'
+  method: post
+  headers: *owner_member_headers
+  body: *owner_portgroup_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_add_portgroup:
+  path: '/v1/portgroups'
+  method: post
+  headers: *lessee_admin_headers
+  body: &lessee_portgroup_body
+    node_uuid: 18a552fb-dcd2-43bf-9302-e4c93287be11
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# TODO, likely will need separate port/port groups established for the tests
+
+lessee_member_cannot_add_portgroup:
+  path: '/v1/portgroups'
+  method: post
+  headers: *lessee_member_headers
+  body: *lessee_portgroup_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_add_portgroup:
+  path: '/v1/portgroups'
+  method: post
+  headers: *third_party_admin_headers
+  body: *lessee_portgroup_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_admin_can_modify_portgroup:
+  path: '/v1/portgroups/{owner_portgroup_ident}'
+  method: patch
+  headers: *owner_admin_headers
+  body: &portgroup_patch_body
+    - op: replace
+      path: /extra
+      value: {'test': 'testing'}
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_can_modify_portgroup:
+  path: '/v1/portgroups/{owner_portgroup_ident}'
+  method: patch
+  headers: *owner_member_headers
+  body: *portgroup_patch_body
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_modify_portgroup:
+  path: '/v1/portgroups/{lessee_portgroup_ident}'
+  method: patch
+  headers: *lessee_admin_headers
+  body: *portgroup_patch_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_member_cannot_modify_portgroup:
+  path: '/v1/portgroups/{lessee_portgroup_ident}'
+  method: patch
+  headers: *lessee_member_headers
+  body: *portgroup_patch_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_modify_portgroup:
+  path: '/v1/portgroups/{lessee_portgroup_ident}'
+  method: patch
+  headers: *third_party_admin_headers
+  body: *portgroup_patch_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_admin_can_delete_portgroup:
+  path: '/v1/portgroups/{owner_portgroup_ident}'
+  method: delete
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_cannot_delete_portgroup:
+  path: '/v1/portgroups/{owner_portgroup_ident}'
+  method: delete
+  headers: *owner_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_delete_portgroup:
+  path: '/v1/portgroups/{lessee_portgroup_ident}'
+  method: delete
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_member_cannot_delete_portgroup:
+  path: '/v1/portgroups/{lessee_portgroup_ident}'
+  method: delete
+  headers: *lessee_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_delete_portgroup:
+  path: '/v1/portgroups/{lessee_portgroup_ident}'
+  method: delete
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Portgroups by node - https://docs.openstack.org/api-ref/baremetal/#listing-portgroups-by-node-nodes-portgroups
+
+owner_reader_can_get_node_portgroups:
+  path: '/v1/nodes/{owner_node_ident}/portgroups'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_reader_can_get_node_porgtroups:
+  path: '/v1/nodes/{lessee_node_ident}/portgroups'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_portgroups:
+  path: '/v1/nodes/{lessee_node_ident}/portgroups'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Ports - https://docs.openstack.org/api-ref/baremetal/#ports-ports
+
+# Based on ports_* tests
+
+owner_reader_can_list_ports:
+  path: '/v1/ports'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_can_list_ports:
+  path: '/v1/ports'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_list_ports:
+  path: '/v1/ports'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 99 # TODO This should be 200
+  # TODO(Assert list has zero members!)
+  skip_reason: policy not implemented
+
+owner_reader_can_read_port:
+  path: '/v1/ports/{owner_port_ident}'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_can_read_port:
+  path: '/v1/ports/{lessee_port_ident}'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_read_port:
+  path: '/v1/ports/{port_ident}'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+# NB: Ports have to be posted with a node UUID to associate to,
+# so that seems policy-check-able.
+owner_admin_can_add_ports:
+  path: '/v1/ports'
+  method: post
+  headers: *owner_admin_headers
+  body: &owner_port_body
+    node_uuid: 18a552fb-dcd2-43bf-9302-e4c93287be11
+    address: 00:01:02:03:04:05
+  assert_status: 201
+  skip_reason: policy not implemented
+
+owner_member_cannot_add_port:
+  path: '/v1/ports'
+  method: post
+  headers: *owner_member_headers
+  body: *owner_port_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_add_port:
+  path: '/v1/ports'
+  method: post
+  headers: *lessee_admin_headers
+  body: &lessee_port_body
+    node_uuid: 18a552fb-dcd2-43bf-9302-e4c93287be11
+    address: 00:01:02:03:04:05
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# TODO, likely will need separate port/port groups established for the tests
+
+lessee_member_cannot_add_port:
+  path: '/v1/ports'
+  method: post
+  headers: *lessee_member_headers
+  body: *lessee_port_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_add_port:
+  path: '/v1/ports'
+  method: post
+  headers: *third_party_admin_headers
+  body: *lessee_port_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_admin_can_modify_port:
+  path: '/v1/ports/{owner_port_ident}'
+  method: patch
+  headers: *owner_admin_headers
+  body: &port_patch_body
+    - op: replace
+      path: /extra
+      value: {'test': 'testing'}
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_can_modify_port:
+  path: '/v1/ports/{owner_port_ident}'
+  method: patch
+  headers: *owner_member_headers
+  body: *port_patch_body
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_modify_port:
+  path: '/v1/ports/{lessee_port_ident}'
+  method: patch
+  headers: *lessee_admin_headers
+  body: *port_patch_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_member_cannot_modify_port:
+  path: '/v1/ports/{lessee_port_ident}'
+  method: patch
+  headers: *lessee_member_headers
+  body: *port_patch_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_modify_port:
+  path: '/v1/ports/{lessee_port_ident}'
+  method: patch
+  headers: *third_party_admin_headers
+  body: *port_patch_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_admin_can_delete_port:
+  path: '/v1/ports/{owner_port_ident}'
+  method: delete
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_cannot_delete_port:
+  path: '/v1/ports/{owner_port_ident}'
+  method: delete
+  headers: *owner_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_delete_port:
+  path: '/v1/ports/{lessee_port_ident}'
+  method: delete
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_member_cannot_delete_port:
+  path: '/v1/ports/{lessee_port_ident}'
+  method: delete
+  headers: *lessee_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_delete_port:
+  path: '/v1/ports/{lessee_port_ident}'
+  method: delete
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Ports by node - https://docs.openstack.org/api-ref/baremetal/#listing-ports-by-node-nodes-ports
+
+owner_reader_can_get_node_ports:
+  path: '/v1/nodes/{owner_node_ident}/ports'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_reader_can_get_node_porgtroups:
+  path: '/v1/nodes/{lessee_node_ident}/ports'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_ports:
+  path: '/v1/nodes/{lessee_node_ident}/ports'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Ports by portgroup - https://docs.openstack.org/api-ref/baremetal/#listing-ports-by-portgroup-portgroup-ports
+
+# Based on potgroups_ports_get* tests
+
+owner_reader_can_get_ports_by_portgroup:
+  path: '/v1/portgroups/{owner_portgroup_ident}/ports'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_can_get_ports_by_portgroup:
+  path: '/v1/portgroups/{lessee_portgroup_ident}/ports'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_ports_by_portgroup:
+  path: '/v1/portgroups/{other_portgroup_ident}/ports'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# TODO(TheJulia): Huge question hitting me... will these 404 or 403 for 3rd party admin. Likely we should return 404 if they do not have rights to the node itself. A slight delineation between the two.
+
+
+# Volume(s) - https://docs.openstack.org/api-ref/baremetal/#volume-volume
+# TODO(TheJulia): volumes will likely need some level of exhaustive testing.
+# i.e. ensure that the volume is permissible. However this may not be possible
+# here.
+
+# Volume connectors
+
+owner_reader_can_list_volume_connectors:
+  path: '/v1/volume/connectors'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  assert_list_length:
+    connectors: 2
+  skip_reason: policy not implemented
+
+lessee_reader_can_list_volume_connectors:
+  path: '/v1/volume/connectors'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  assert_list_length:
+    connectors: 1
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_connector_list:
+  path: '/v1/volume/targets'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 200
+  assert_list_length:
+    connectors: 0
+  skip_reason: policy not implemented
+
+owner_admin_can_post_volume_connector:
+  path: '/v1/volume/connectors'
+  method: post
+  headers: *owner_reader_headers
+  assert_status: 400
+  body: &volume_connector_body
+    node_uuid: 68a552fb-dcd2-43bf-9302-e4c93287be16
+    type: ip
+    connector_id: 192.168.1.100
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_post_volume_connector:
+  path: '/v1/volume/connectors'
+  method: post
+  headers: *lessee_admin_headers
+  assert_status: 403
+  body: *volume_connector_body
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_post_volume_connector:
+  path: '/v1/volume/connectors'
+  method: post
+  headers: *third_party_admin_headers
+  assert_status: 403
+  body: *volume_connector_body
+  skip_reason: policy not implemented
+
+owner_reader_can_get_volume_connector:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_can_get_volume_connector:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_volume_connector:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 404
+  skip_reason: policy not implemented
+
+lessee_member_cannot_patch_volume_connectors:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: patch
+  headers: *lessee_member_headers
+  body: &connector_patch_body
+    - op: replace
+      path: /extra
+      value: {'test': 'testing'}
+  assert_status: 403
+  skip_reason: policy not implemented
+
+owner_admin_can_patch_volume_connectors:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: patch
+  headers: *owner_member_headers
+  body: *connector_patch_body
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_patch_volume_connectors:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: patch
+  headers: *owner_member_headers
+  body: *connector_patch_body
+  assert_status: 503
+  skip_reason: policy not implemented
+
+owner_member_can_patch_volume_connectors:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: patch
+  headers: *owner_member_headers
+  body: *connector_patch_body
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_member_cannot_patch_volume_connectors:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: patch
+  headers: *lessee_member_headers
+  body: *connector_patch_body
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_patch_volume_connectors:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: patch
+  headers: *third_party_admin_headers
+  body: *connector_patch_body
+  assert_status: 404
+  skip_reason: policy not implemented
+
+owner_admin_can_delete_volume_connectors:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: delete
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_delete_volume_connectors:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: delete
+  headers: *lessee_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_delete_volume_connector:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: delete
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Volume targets
+
+# TODO(TheJulia): Create at least 3 targets.
+owner_reader_can_get_targets:
+  path: '/v1/volume/targets'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  assert_list_length:
+    targets: 2
+  skip_reason: policy not implemented
+
+lesse_reader_can_get_targets:
+  path: '/v1/volume/targets'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  assert_list_length:
+    targets: 1
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_target_list:
+  path: '/v1/volume/targets'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 200
+  assert_list_length:
+    targets: 0
+  skip_reason: policy not implemented
+
+owner_reader_can_get_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_can_get_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 404
+  skip_reason: policy not implemented
+
+owner_admin_create_volume_target:
+  path: '/v1/volume/targets'
+  method: post
+  headers: *owner_admin_headers
+  assert_status: 400
+  body: &volume_target_body
+    node_uuid: 68a552fb-dcd2-43bf-9302-e4c93287be16
+    volume_type: iscsi
+    boot_index: 0
+    volume_id: 'test-id'
+  skip_reason: policy not implemented
+
+lessee_admin_create_volume_target:
+  path: '/v1/volume/targets'
+  method: post
+  headers: *owner_admin_headers
+  assert_status: 400
+  body: *volume_target_body
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_create_volume_target:
+  path: '/v1/volume/targets'
+  method: post
+  headers: *owner_admin_headers
+  assert_status: 400
+  body: *volume_target_body
+  skip_reason: policy not implemented
+
+owner_member_can_patch_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: patch
+  body: &volume_target_patch
+    - op: replace
+      path: /extra
+      value: {'test': 'testing'}
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_member_can_patch_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: patch
+  body: *volume_target_patch
+  headers: *lessee_member_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_patch_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: patch
+  body: *volume_target_patch
+  headers: *third_party_admin_headers
+  assert_status: 404
+  skip_reason: policy not implemented
+
+owner_admin_can_delete_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: delete
+  headers: *owner_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_admin_can_delete_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: delete
+  headers: *lessee_admin_headers
+  assert_status: 201
+  skip_reason: policy not implemented
+
+owner_member_cannot_delete_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: delete
+  headers: *owner_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_member_cannot_delete_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: delete
+  headers: *lessee_member_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_delete_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: delete
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Get Volumes by Node - https://docs.openstack.org/api-ref/baremetal/#listing-volume-resources-by-node-nodes-volume
+
+owner_reader_can_get_volume_connectors:
+  path: '/v1/nodes/{node_ident}/volume/connectors'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_can_get_node_volume_connectors:
+  path: '/v1/nodes/{node_ident}/volume/connectors'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_node_volume_connectors:
+  path: '/v1/nodes/{node_ident}/volume/connectors'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+owner_reader_can_get_node_volume_targets:
+  path: '/v1/nodes/{node_ident}/volume/targets'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_can_get_node_volume_targets:
+  path: '/v1/nodes/{node_ident}/volume/targets'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_part_admin_cannot_read_node_volume_targets:
+  path: '/v1/nodes/{node_ident}/volume/targets'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 404
+  skip_reason: policy not implemented
+
+# Drivers - https://docs.openstack.org/api-ref/baremetal/#drivers-drivers
+
+# This is a system scoped endpoint, everything should fail in this section.
+
+owner_reader_cannot_get_drivers:
+  path: '/v1/drivers'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 500
+
+lessee_reader_cannot_get_drivers:
+  path: '/v1/drivers'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 500
+
+third_party_admin_cannot_get_drivers:
+  path: '/v1/drivers'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 500
+
+# Driver vendor passthru - https://docs.openstack.org/api-ref/baremetal/#driver-vendor-passthru-drivers
+
+# This is a system scoped endpoint, everything should fail in this section.
+
+owner_reader_cannot_get_drivers_vendor_passthru:
+  path: '/v1/drivers/{driver_name}/vendor_passthru/methods'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_reader_cannot_get_drivers_vendor_passthru:
+  path: '/v1/drivers/{driver_name}/vendor_passthru/methods'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_drivers_vendor_passthru:
+  path: '/v1/drivers/{driver_name}/vendor_passthru/methods'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Node Bios - https://docs.openstack.org/api-ref/baremetal/#node-bios-nodes
+
+owner_reader_can_get_bios_setttings:
+  path: '/v1/nodes/{node_ident}/bios'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_can_get_bios_settings:
+  path: '/v1/nodes/{node_ident}/bios'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_bios_settings:
+  path: '/v1/nodes/{owner_node_ident}/bios'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 404
+  skip_reason: policy not implemented
+
+# Conductors - https://docs.openstack.org/api-ref/baremetal/#allocations-allocations
+
+# This is a system scoped endpoint, everything should fail in this section.
+
+owner_reader_cannot_get_conductors:
+  path: '/v1/conductors'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 500
+
+lessee_reader_cannot_get_conductors:
+  path: '/v1/conductors'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 500
+
+third_party_admin_cannot_get_conductors:
+  path: '/v1/conductors'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 500
+
+# Allocations - https://docs.openstack.org/api-ref/baremetal/#allocations-allocations
+
+# This is a system scoped endpoint, everything should fail in this section.
+
+owner_reader_cannot_get_allocations:
+  path: '/v1/allocations'
+  method: get
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+lessee_reader_cannot_get_allocations:
+  path: '/v1/allocations'
+  method: get
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_get_allocations:
+  path: '/v1/allocations'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_create_allocation:
+  path: '/v1/allocations'
+  method: post
+  headers: *third_party_admin_headers
+  body: &allocation_body
+    resource_class: CUSTOM_TEST
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_read_an_allocation:
+  path: '/v1/allocations/{allocation_ident}'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_patch_an_allocation:
+  path: '/v1/allocations/{allocation_ident}'
+  method: patch
+  headers: *third_party_admin_headers
+  body:
+    - op: replace
+      path: /extra
+      value: {'test': 'testing'}
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_delete_an_allocation:
+  path: '/v1/allocations/{allocation_ident}'
+  method: delete
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Allocations ( Node level) - https://docs.openstack.org/api-ref/baremetal/#node-allocation-allocations-nodes
+
+owner_reader_can_read_node_allocation:
+  path: '/v1/nodes/{owner_node_ident}/allocation'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+lessee_reader_can_read_node_allocation:
+  path: '/v1/nodes/{lessee_node_ident}/allocation'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_read_node_allocation:
+  path: '/v1/nodes/{owner_node_ident}/allocation'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 404
+  skip_reason: policy not implemented
+
+owner_admin_can_delete_allocation:
+  path: '/v1/nodes/{owner_node_ident}/allocation'
+  method: delete
+  headers: *owner_admin_headers
+  assert_status: 503
+  skip_reason: policy not implemented
+
+lessee_admin_cannot_delete_allocation:
+  path: '/v1/nodes/{allocated_node_ident}/allocation'
+  method: delete
+  headers: *lessee_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+third_party_admin_cannot_delete_allocation:
+  path: '/v1/nodes/{allocated_node_ident}/allocation'
+  method: delete
+  headers: *third_party_admin_headers
+  assert_status: 403
+  skip_reason: policy not implemented
+
+# Deploy Templates - https://docs.openstack.org/api-ref/baremetal/#deploy-templates-deploy-templates
+
+# This is a system scoped endpoint, everything should fail in this section
+# with a status of 500..
+
+owner_reader_cannot_get_deploy_templates:
+  path: '/v1/deploy_templates'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 500
+
+lessee_reader_cannot_get_deploy_templates:
+  path: '/v1/deploy_templates'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 500
+
+third_party_admin_cannot_get_deploy_templates:
+  path: '/v1/deploy_templates'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 500
+
+third_party_admin_cannot_post_deploy_template:
+  path: '/v1/deploy_templates'
+  method: post
+  body:
+    name: 'CUSTOM_TEST_TEMPLATE'
+    steps:
+      - interface: 'deploy'
+        step: 'noop'
+        args: {}
+        priority: 0
+  headers: *third_party_admin_headers
+  assert_status: 500
+
+# Chassis endpoints - https://docs.openstack.org/api-ref/baremetal/#chassis-chassis
+
+# This is a system scoped endpoint, everything should fail in this section.
+
+owner_reader_cannot_access_chassis:
+  path: '/v1/chassis'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 500
+
+lessee_reader_cannot_access_chassis:
+  path: '/v1/chassis'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 500
+
+third_party_admin_cannot_access_chassis:
+  path: '/v1/chassis'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 500
+
+third_party_admin_cannot_create_chassis:
+  path: '/v1/chassis'
+  method: post
+  headers: *third_party_admin_headers
+  body:
+    description: 'test-chassis'
+  assert_status: 500

@@ -315,3 +315,54 @@ class TestRBACScopedRequests(TestRBACModelBeforeScopesBase):
     def test_system_scoped(self, **kwargs):
         self._check_skip(**kwargs)
         self._test_request(**kwargs)
+
+
+@ddt.ddt
+class TestRBACProjectScoped(TestACLBase):
+
+    def setUp(self):
+        super(TestRBACProjectScoped, self).setUp()
+
+        cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
+        cfg.CONF.set_override('enforce_new_defaults', True,
+                              group='oslo_policy')
+
+    def _create_test_data(self):
+        owner_node_ident = '1ab63b9e-66d7-4cd7-8618-dddd0f9f7881'
+        lessee_node_ident = '38d5abed-c585-4fce-a57e-a2ffc2a2ec6f'
+        owner_project_id = '70e5e25a-2ca2-4cb1-8ae8-7d8739cee205'
+        lessee_project_id = 'f11853c7-fa9c-4db3-a477-c9d8e0dbbf13'
+        unowned_node = db_utils.create_test_node(chassis_id=None)
+        # owned node - since the tests use the same node for
+        # owner/lesse checks
+        db_utils.create_test_node(
+            uuid=owner_node_ident,
+            owner=owner_node_ident)
+        leased_node = db_utils.create_test_node(
+            uuid=lessee_node_ident,
+            owner=owner_project_id,
+            lessee=lessee_project_id)
+        fake_db_volume_target = db_utils.create_test_volume_target(
+            node_id=leased_node['id'])
+        fake_db_volume_connector = db_utils.create_test_volume_connector(
+            node_id=leased_node['id'])
+        fake_db_port = db_utils.create_test_port(
+            node_id=leased_node['id'])
+        fake_db_portgroup = db_utils.create_test_portgroup(
+            node_id=leased_node['id'])
+
+        self.format_data.update({
+            'node_ident': unowned_node['uuid'],
+            'owner_node_ident': owner_node_ident,
+            'lessee_node_ident': lessee_node_ident,
+            'allocated_node_ident': lessee_node_ident,
+            'volume_target_ident': fake_db_volume_target['uuid'],
+            'volume_connector_ident': fake_db_volume_connector['uuid'],
+            'port_ident': fake_db_port['uuid'],
+            'portgroup_ident': fake_db_portgroup['uuid']})
+
+    @ddt.file_data('test_rbac_project_scoped.yaml')
+    @ddt.unpack
+    def test_project_scoped(self, **kwargs):
+        self._check_skip(**kwargs)
+        self._test_request(**kwargs)
