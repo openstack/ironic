@@ -324,7 +324,7 @@ def mount(src, dest, *args):
         to run the process.
     """
     args = ('mount', ) + args + (src, dest)
-    execute(*args, run_as_root=True, check_exit_code=[0])
+    execute(*args, run_as_root=True)
 
 
 def umount(loc, *args):
@@ -337,7 +337,7 @@ def umount(loc, *args):
         to run the process.
     """
     args = ('umount', ) + args + (loc, )
-    execute(*args, run_as_root=True, check_exit_code=[0])
+    execute(*args, run_as_root=True)
 
 
 def check_dir(directory_to_check=None, required_space=1):

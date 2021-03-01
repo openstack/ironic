@@ -1600,8 +1600,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             'iscsiadm',
             '-m', 'node',
             '-S',
-            run_as_root=True,
-            check_exit_code=[0])
+            run_as_root=True)
 
     @mock.patch.object(utils, 'execute', autospec=True)
     def test_force_iscsi_lun_update(self, mock_exec):
@@ -1612,8 +1611,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             '-m', 'node',
             '-T', iqn,
             '-R',
-            run_as_root=True,
-            check_exit_code=[0])
+            run_as_root=True)
 
     @mock.patch.object(utils, 'execute', autospec=True)
     @mock.patch.object(iscsi_deploy, 'verify_iscsi_connection', autospec=True)
@@ -1637,7 +1635,6 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             '-T', iqn,
             '--login',
             run_as_root=True,
-            check_exit_code=[0],
             attempts=5,
             delay_on_retry=True)
 
@@ -1778,7 +1775,6 @@ class PhysicalWorkTestCase(tests_base.TestCase):
             '-T', iqn,
             '--login',
             run_as_root=True,
-            check_exit_code=[0],
             attempts=5,
             delay_on_retry=True)
 
