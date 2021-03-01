@@ -21,6 +21,7 @@ from ironic_lib import metrics_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
+from oslo_utils import strutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -72,7 +73,10 @@ OPTIONAL_PROPERTIES = {
                         "image containing EFI boot loader. This image will "
                         "be used by ironic when building UEFI-bootable ISO "
                         "out of kernel and ramdisk. Required for UEFI "
-                        "boot from partition images.")
+                        "boot from partition images."),
+    'ilo_add_certificates': _("Boolean value that indicates whether the "
+                              "certificates require to be added to the "
+                              "iLO.")
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
 
@@ -124,6 +128,7 @@ def parse_driver_info(node, mode='deploy'):
     d_info.update(
         {k: info.get(k, getattr(CONF.conductor, k.replace('ilo_', ''), None))
          for k in OPTIONAL_PROPERTIES})
+    d_info.pop('ilo_add_certificates', None)
 
     return d_info
 
@@ -876,6 +881,8 @@ class IloUefiHttpsBoot(base.BootInterface):
         :returns: A dict with the driver_info values.
         :raises: MissingParameterValue, if any of the required parameters are
             missing.
+        :raises: InvalidParameterValue, if any of the required parameters are
+            invalid.
         """
         info = node.driver_info
 
@@ -898,6 +905,20 @@ class IloUefiHttpsBoot(base.BootInterface):
             {k: info.get(k, getattr(CONF.conductor,
                                     k.replace('ilo_', ''), None))
              for k in OPTIONAL_PROPERTIES})
+
+        should_add_certs = deploy_info.pop('ilo_add_certificates', True)
+
+        if should_add_certs is not None:
+            try:
+                should_add_certs = strutils.bool_from_string(should_add_certs,
+                                                             strict=True)
+            except ValueError:
+                raise exception.InvalidParameterValue(
+                    _('Invalid value type set in driver_info/'
+                      'ilo_add_certificates on node %(node)s. '
+                      'The value should be a Boolean '
+                      ' not "%(value)s"'
+                      ) % {'value': should_add_certs, 'node': node.uuid})
 
         self._validate_hrefs(deploy_info)
 
@@ -1075,6 +1096,7 @@ class IloUefiHttpsBoot(base.BootInterface):
                   "%(node)s to boot from URL %(iso_ref)s.",
                   {'node': node.uuid, 'iso_ref': iso_ref})
 
+        ilo_common.add_certificates(task)
         ilo_common.setup_uefi_https(task, iso_ref)
 
     @METRICS.timer('IloUefiHttpsBoot.clean_up_ramdisk')

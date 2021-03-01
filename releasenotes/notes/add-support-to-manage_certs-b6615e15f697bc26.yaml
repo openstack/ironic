@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds support to manage certificates to the ``ilo5`` hardware type. A new
+    optional boolean driver_info parameter ``ilo_add_certificates`` is
+    introduced which can be used by the user to request addition of
+    certificates to the iLO with ``ilo-uefi-https`` boot interface.

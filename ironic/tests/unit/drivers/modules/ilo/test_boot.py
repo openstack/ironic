@@ -1525,6 +1525,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         driver_info['ilo_deploy_ramdisk'] = 'deploy-ramdisk'
         driver_info['ilo_rescue_ramdisk'] = 'rescue-ramdisk'
         driver_info['ilo_bootloader'] = 'bootloader'
+        driver_info['ilo_add_certificates'] = True
         driver_info['dummy_key'] = 'dummy-value'
         self.node.driver_info = driver_info
         self.node.save()
@@ -1536,15 +1537,15 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                 'ilo_deploy_ramdisk': 'deploy-ramdisk',
                 'ilo_bootloader': 'bootloader'
             }
-            actual_info = deploy_info
-            actual_info.update({'ilo_username': 'admin',
+
+            deploy_info.update({'ilo_username': 'admin',
                                 'ilo_password': 'admin'})
 
             expected_info = task.driver.boot._parse_driver_info(task.node)
             validate_href_mock.assert_called_once_with(mock.ANY, deploy_info)
             check_missing_mock.assert_called_once_with(deploy_info, mock.ANY)
             parse_driver_mock.assert_called_once_with(task.node)
-            self.assertEqual(actual_info, expected_info)
+            self.assertEqual(deploy_info, expected_info)
 
     @mock.patch.object(ilo_boot.IloUefiHttpsBoot, '_validate_hrefs',
                        autospec=True)
@@ -1564,6 +1565,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         driver_info['ilo_deploy_ramdisk'] = 'deploy-ramdisk'
         driver_info['ilo_rescue_ramdisk'] = 'rescue-ramdisk'
         driver_info['ilo_bootloader'] = 'bootloader'
+        driver_info['ilo_add_certificates'] = 'false'
         driver_info['dummy_key'] = 'dummy-value'
         self.node.driver_info = driver_info
         self.node.save()
@@ -1575,8 +1577,8 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                 'ilo_rescue_ramdisk': 'rescue-ramdisk',
                 'ilo_bootloader': 'bootloader'
             }
-            actual_info = deploy_info
-            actual_info.update({'ilo_username': 'admin',
+
+            deploy_info.update({'ilo_username': 'admin',
                                 'ilo_password': 'admin'})
 
             expected_info = task.driver.boot._parse_driver_info(
@@ -1584,7 +1586,47 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             check_missing_mock.assert_called_once_with(deploy_info, mock.ANY)
             validate_href_mock.assert_called_once_with(mock.ANY, deploy_info)
             parse_driver_mock.assert_called_once_with(task.node)
-            self.assertEqual(actual_info, expected_info)
+            self.assertEqual(deploy_info, expected_info)
+
+    @mock.patch.object(ilo_boot.IloUefiHttpsBoot, '_validate_hrefs',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'check_for_missing_params',
+                       autospec=True)
+    @mock.patch.object(ilo_common, 'parse_driver_info', autospec=True)
+    def test__parse_driver_info_invalid_params(
+            self, parse_driver_mock, check_missing_mock, validate_href_mock):
+        parse_driver_mock.return_value = {
+            'ilo_username': 'admin',
+            'ilo_password': 'admin'
+        }
+        driver_info = self.node.driver_info
+        driver_info['ilo_deploy_kernel'] = 'deploy-kernel'
+        driver_info['ilo_rescue_kernel'] = 'rescue-kernel'
+        driver_info['ilo_deploy_ramdisk'] = 'deploy-ramdisk'
+        driver_info['ilo_rescue_ramdisk'] = 'rescue-ramdisk'
+        driver_info['ilo_bootloader'] = 'bootloader'
+        driver_info['dummy_key'] = 'dummy-value'
+        driver_info['ilo_add_certificates'] = 'xyz'
+        self.node.driver_info = driver_info
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            deploy_info = {
+                'ilo_deploy_kernel': 'deploy-kernel',
+                'ilo_deploy_ramdisk': 'deploy-ramdisk',
+                'ilo_bootloader': 'bootloader'
+            }
+
+            deploy_info.update({'ilo_username': 'admin',
+                                'ilo_password': 'admin'})
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "Invalid value type set in driver_info.*",
+                                   task.driver.boot._parse_driver_info,
+                                   task.node)
+            validate_href_mock.assert_not_called()
+            check_missing_mock.assert_not_called()
+            parse_driver_mock.assert_not_called()
 
     @mock.patch.object(ilo_boot.IloUefiHttpsBoot, '_validate_hrefs',
                        autospec=True)
@@ -1850,6 +1892,8 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             self.assertRaises(exception.UnsupportedDriverExtension,
                               task.driver.boot.validate_inspection, task)
 
+    @mock.patch.object(ilo_common, 'add_certificates',
+                       spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'setup_uefi_https',
                        spec_set=True, autospec=True)
     @mock.patch.object(image_utils, 'prepare_deploy_iso',
@@ -1865,6 +1909,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                               prepare_node_for_deploy_mock,
                               prepare_deploy_iso_mock,
                               setup_uefi_https_mock,
+                              add_mock,
                               ilo_boot_iso, image_source,
                               ramdisk_params={'a': 'b'},
                               mode='deploy', state=states.DEPLOYING):
@@ -1904,6 +1949,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                 task, ramdisk_params, mode, d_info)
             setup_uefi_https_mock.assert_called_once_with(task,
                                                           'recreated-iso')
+            add_mock.assert_called_once_with(task)
 
     def test_prepare_ramdisk_rescue_glance_image(self):
         self._test_prepare_ramdisk(
