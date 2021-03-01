@@ -1884,6 +1884,11 @@ def allow_deploy_steps():
     return api.request.version.minor >= versions.MINOR_69_DEPLOY_STEPS
 
 
+def allow_status_in_heartbeat():
+    """Check if heartbeat accepts agent_status and agent_status_message."""
+    return api.request.version.minor >= versions.MINOR_72_HEARTBEAT_STATUS
+
+
 def check_allow_deploy_steps(target, deploy_steps):
     """Check if deploy steps are allowed"""
 

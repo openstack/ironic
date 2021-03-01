@@ -2,6 +2,13 @@
 REST API Version History
 ========================
 
+1.72 (Wallaby, 17.0)
+----------------------
+
+Add support for ``agent_status`` and ``agent_status_message`` to /v1/heartbeat.
+These fields are used for external installation tools, such as Anaconda, to
+report back status.
+
 1.71 (Wallaby, 17.0)
 ----------------------
 

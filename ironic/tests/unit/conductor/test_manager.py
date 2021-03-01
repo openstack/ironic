@@ -7189,6 +7189,32 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 autospec=True)
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
+    def test_heartbeat_without_agent_version_anaconda(self, mock_spawn,
+                                                      mock_heartbeat):
+        """Test heartbeating anaconda deploy ramdisk without agent_version"""
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYING,
+            target_provision_state=states.ACTIVE,
+            driver_internal_info={'agent_secret_token': 'magic'})
+
+        self._start_service()
+
+        mock_spawn.reset_mock()
+
+        mock_spawn.side_effect = self._fake_spawn
+
+        self.service.heartbeat(self.context, node.uuid, 'http://callback',
+                               agent_version=None, agent_token='magic',
+                               agent_status='start')
+        mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
+                                          'http://callback', None,
+                                          None, 'start', None)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
+                autospec=True)
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
     def test_heartbeat_with_agent_version(self, mock_spawn, mock_heartbeat):
         """Test heartbeating."""
         node = obj_utils.create_test_node(
@@ -7206,7 +7232,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.heartbeat(self.context, node.uuid, 'http://callback',
                                '1.4.1', agent_token='magic')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
-                                          'http://callback', '1.4.1', None)
+                                          'http://callback', '1.4.1', None,
+                                          None, None)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
                 autospec=True)
@@ -7254,7 +7281,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.heartbeat(self.context, node.uuid, 'http://callback',
                                '6.1.0', agent_token='a secret')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
-                                          'http://callback', '6.1.0', None)
+                                          'http://callback', '6.1.0', None,
+                                          None, None)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
                 autospec=True)
@@ -7278,7 +7306,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.heartbeat(self.context, node.uuid, 'http://callback',
                                '6.1.0', agent_token='a secret')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
-                                          'http://callback', '6.1.0', None)
+                                          'http://callback', '6.1.0', None,
+                                          None, None)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
                 autospec=True)
@@ -7410,8 +7439,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                agent_version='6.1.0', agent_token='a secret',
                                agent_verify_ca='abcd')
         mock_heartbeat.assert_called_with(
-            mock.ANY, mock.ANY, 'http://callback', '6.1.0',
-            '/path/to/crt')
+            mock.ANY, mock.ANY, 'http://callback', '6.1.0', '/path/to/crt',
+            None, None)
 
 
 @mgr_utils.mock_record_keepalive

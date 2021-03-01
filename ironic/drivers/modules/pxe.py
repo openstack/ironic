@@ -18,6 +18,7 @@ PXE Boot Interface
 from ironic_lib import metrics_utils
 from oslo_log import log as logging
 
+from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
@@ -40,7 +41,7 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
 class PXERamdiskDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
                        base.DeployInterface):
 
-    def get_properties(self, task):
+    def get_properties(self):
         return {}
 
     def validate(self, task):
@@ -121,19 +122,113 @@ class PXERamdiskDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
 class PXEAnacondaDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
                         base.DeployInterface):
 
-    def get_properties(self, task):
+    def get_properties(self):
         return {}
 
     def validate(self, task):
-        pass
+        task.driver.boot.validate(task)
 
     @METRICS.timer('AnacondaDeploy.deploy')
     @base.deploy_step(priority=100)
     @task_manager.require_exclusive_lock
     def deploy(self, task):
-        pass
+        manager_utils.node_power_action(task, states.POWER_OFF)
+        with manager_utils.power_state_for_network_configuration(task):
+            task.driver.network.configure_tenant_networks(task)
+
+        # calling boot.prepare_instance will also set the node
+        # to PXE boot, and update PXE templates accordingly
+        task.driver.boot.prepare_instance(task)
+
+        # Power-on the instance, with PXE prepared, we're done.
+        manager_utils.node_power_action(task, states.POWER_ON)
+        LOG.info('Deployment setup for node %s done', task.node.uuid)
+        return None
 
     @METRICS.timer('AnacondaDeploy.prepare')
     @task_manager.require_exclusive_lock
     def prepare(self, task):
-        pass
+        node = task.node
+
+        deploy_utils.populate_storage_driver_internal_info(task)
+        if node.provision_state == states.DEPLOYING:
+            # Ask the network interface to validate itself so
+            # we can ensure we are able to proceed.
+            task.driver.network.validate(task)
+
+            manager_utils.node_power_action(task, states.POWER_OFF)
+            # NOTE(TheJulia): If this was any other interface, we would
+            # unconfigure tenant networks, add provisioning networks, etc.
+            task.driver.storage.attach_volumes(task)
+        if node.provision_state in (states.ACTIVE, states.UNRESCUING):
+            # In the event of takeover or unrescue.
+            task.driver.boot.prepare_instance(task)
+
+    def deploy_has_started(self, task):
+        agent_status = task.node.driver_internal_info.get('agent_status')
+        if agent_status == 'start':
+            return True
+        return False
+
+    def deploy_is_done(self, task):
+        agent_status = task.node.driver_internal_info.get('agent_status')
+        if agent_status == 'end':
+            return True
+        return False
+
+    def should_manage_boot(self, task):
+        return False
+
+    def reboot_to_instance(self, task):
+        node = task.node
+        try:
+            # anaconda deploy will install the bootloader and the node is ready
+            # to boot from disk.
+
+            deploy_utils.try_set_boot_device(task, boot_devices.DISK)
+        except Exception as e:
+            msg = (_("Failed to change the boot device to %(boot_dev)s "
+                     "when deploying node %(node)s. Error: %(error)s") %
+                   {'boot_dev': boot_devices.DISK, 'node': node.uuid,
+                    'error': e})
+            agent_base.log_and_raise_deployment_error(task, msg)
+
+        try:
+            self.clean_up(task)
+            manager_utils.node_power_action(task, states.POWER_OFF)
+            task.driver.network.remove_provisioning_network(task)
+            task.driver.network.configure_tenant_networks(task)
+            manager_utils.node_power_action(task, states.POWER_ON)
+            node.provision_state = states.ACTIVE
+            node.save()
+        except Exception as e:
+            msg = (_('Error rebooting node %(node)s after deploy. '
+                     'Error: %(error)s') %
+                   {'node': node.uuid, 'error': e})
+            agent_base.log_and_raise_deployment_error(task, msg)
+
+    def _heartbeat_deploy_wait(self, task):
+        node = task.node
+        agent_status_message = node.driver_internal_info.get(
+            'agent_status_message'
+        )
+        msg = {'node_id': node.uuid,
+               'agent_status_message': agent_status_message}
+
+        if self.deploy_has_started(task):
+            LOG.info('The deploy on node %(node_id)s has started. Anaconda '
+                     'returned following message: '
+                     '%(agent_status_message)s ', msg)
+            node.touch_provisioning()
+
+        elif self.deploy_is_done(task):
+            LOG.info('The deploy on node %(node_id)s has ended. Anaconda '
+                     'agent returned following message: '
+                     '%(agent_status_message)s', msg)
+            self.reboot_to_instance(task)
+        else:
+            LOG.error('The deploy on node %(node_id)s failed. Anaconda '
+                      'returned following error message: '
+                      '%(agent_status_message)s', msg)
+            deploy_utils.set_failed_state(task, agent_status_message,
+                                          collect_logs=False)

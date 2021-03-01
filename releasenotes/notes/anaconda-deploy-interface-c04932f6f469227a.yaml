@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    Add ``anaconda`` deploy interface to Ironic. This driver will deploy
+    the OS using anaconda installer and kickstart file instead of IPA. To
+    support this feature a new configuration group ``anaconda`` is added to
+    Ironic configuration file along with ``default_ks_template`` configuration
+    option.
+
+    The deploy interface uses heartbeat API to communicate. The kickstart
+    template must include %pre %post %onerror and %traceback sections that
+    should send status of the deployment back to Ironic API using heartbeats.
+    An example of such calls to hearbeat API can be found in the default
+    kickstart template. To enable anaconda to send status back to Ironic API
+    via heartbeat ``agent_status`` and ``agent_status_message`` are added to
+    the heartbeat API. Use of these new parameters require API microversion
+    1.72 or greater.
