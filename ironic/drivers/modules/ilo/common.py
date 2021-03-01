@@ -37,7 +37,6 @@ from ironic.common import utils
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers.modules import boot_mode_utils
-from ironic.drivers.modules import deploy_utils
 
 ilo_client = importutils.try_import('proliantutils.ilo.client')
 ilo_error = importutils.try_import('proliantutils.exception')
@@ -828,28 +827,6 @@ def set_secure_boot_mode(task, flag):
     except ilo_error.IloError as ilo_exception:
         raise exception.IloOperationError(operation=operation,
                                           error=ilo_exception)
-
-
-def update_secure_boot_mode(task, mode):
-    """Changes secure boot mode for next boot on the node.
-
-    This method changes secure boot mode on the node for next boot. It changes
-    the secure boot mode setting on node only if the deploy has requested for
-    the secure boot.
-    During deploy, this method is used to enable secure boot on the node by
-    passing 'mode' as 'True'.
-    During teardown, this method is used to disable secure boot on the node by
-    passing 'mode' as 'False'.
-
-    :param task: a TaskManager instance containing the node to act on.
-    :param mode: Boolean value requesting the next state for secure boot
-    :raises: IloOperationNotSupported, if operation is not supported on iLO
-    :raises: IloOperationError, if some operation on iLO failed.
-    """
-    if deploy_utils.is_secure_boot_requested(task.node):
-        set_secure_boot_mode(task, mode)
-        LOG.info('Changed secure boot to %(mode)s for node %(node)s',
-                 {'mode': mode, 'node': task.node.uuid})
 
 
 def remove_single_or_list_of_files(file_location):

@@ -198,6 +198,27 @@ def get_irmc_report(node):
         client_timeout=driver_info['irmc_client_timeout'])
 
 
+def get_secure_boot_mode(node):
+    """Get the current secure boot mode.
+
+    :param node: An ironic node object.
+    :raises: UnsupportedDriverExtension if secure boot is not present.
+    :raises: IRMCOperationError if the operation fails.
+    """
+    driver_info = parse_driver_info(node)
+
+    try:
+        return elcm.get_secure_boot_mode(driver_info)
+    except elcm.SecureBootConfigNotFound:
+        raise exception.UnsupportedDriverExtension(
+            driver=node.driver, extension='get_secure_boot_state')
+    except scci.SCCIError as irmc_exception:
+        LOG.error("Failed to get secure boot for node %s", node.uuid)
+        raise exception.IRMCOperationError(
+            operation=_("getting secure boot mode"),
+            error=irmc_exception)
+
+
 def set_secure_boot_mode(node, enable):
     """Enable or disable UEFI Secure Boot
 

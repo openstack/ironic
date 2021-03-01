@@ -774,6 +774,38 @@ class IloManagement(base.ManagementInterface):
         """
         return ilo_common.get_current_boot_mode(task.node)
 
+    def get_secure_boot_state(self, task):
+        """Get the current secure boot state for the node.
+
+        :param task: A task from TaskManager.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: IloOperationError on an error from IloClient library.
+        :raises: UnsupportedDriverExtension if secure boot is
+                 not supported by the hardware
+        :returns: Boolean
+        """
+        try:
+            return ilo_common.get_secure_boot_mode(task)
+        except ilo_error.IloOperationNotSupported:
+            raise exception.UnsupportedDriverExtension(
+                driver=task.node.driver, extension='get_secure_boot_state')
+
+    def set_secure_boot_state(self, task, state):
+        """Set the current secure boot state for the node.
+
+        :param task: A task from TaskManager.
+        :param state: A new state as a boolean.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: IloOperationError on an error from IloClient library.
+        :raises: UnsupportedDriverExtension if secure boot is
+                 not supported by the hardware
+        """
+        try:
+            ilo_common.set_secure_boot_mode(task, state)
+        except ilo_error.IloOperationNotSupported:
+            raise exception.UnsupportedDriverExtension(
+                driver=task.node.driver, extension='set_secure_boot_state')
+
 
 class Ilo5Management(IloManagement):
 

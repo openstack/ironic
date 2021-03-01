@@ -754,8 +754,8 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
+                       spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
@@ -778,7 +778,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             driver_internal_info = task.node.driver_internal_info
             node_power_mock.assert_called_once_with(task,
                                                     states.POWER_OFF)
-            update_secure_boot_mode_mock.assert_called_once_with(task, False)
+            update_secure_boot_mode_mock.assert_called_once_with(task)
 
     def test_clean_up_instance_deleting(self):
         self.node.provisioning_state = states.DELETING
@@ -792,8 +792,8 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_management.IloManagement, 'clear_iscsi_boot_target',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
+                       spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
                        autospec=True)
     def test_clean_up_instance_boot_from_volume(
@@ -812,7 +812,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                                                     states.POWER_OFF)
             clear_iscsi_boot_target_mock.assert_called_once_with(mock.ANY,
                                                                  task)
-            update_secure_boot_mode_mock.assert_called_once_with(task, False)
+            update_secure_boot_mode_mock.assert_called_once_with(task)
             self.assertIsNone(task.node.driver_internal_info.get(
                               'ilo_uefi_iscsi_boot'))
 
@@ -822,8 +822,8 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                        autospec=True)
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
+                       spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
                        autospec=True)
     def test_clean_up_instance_boot_from_volume_bios(
@@ -837,7 +837,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             cleanup_vmedia_mock.assert_called_once_with(task)
             node_power_mock.assert_called_once_with(task,
                                                     states.POWER_OFF)
-            update_secure_boot_mode_mock.assert_called_once_with(task, False)
+            update_secure_boot_mode_mock.assert_called_once_with(task)
 
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
@@ -857,8 +857,8 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
+                       spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
@@ -881,7 +881,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                                                          boot_devices.DISK,
                                                          persistent=True)
             update_boot_mode_mock.assert_called_once_with(task)
-            update_secure_boot_mode_mock.assert_called_once_with(task, True)
+            update_secure_boot_mode_mock.assert_called_once_with(task)
             self.assertIsNone(task.node.driver_internal_info.get(
                               'ilo_uefi_iscsi_boot'))
 
@@ -895,8 +895,8 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
+                       spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_boot.IloVirtualMediaBoot,
@@ -921,7 +921,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             configure_vmedia_mock.assert_called_once_with(
                 mock.ANY, task, "12312642-09d3-467f-8e09-12385826a123")
             update_boot_mode_mock.assert_called_once_with(task)
-            update_secure_boot_mode_mock.assert_called_once_with(task, True)
+            update_secure_boot_mode_mock.assert_called_once_with(task)
             self.assertIsNone(task.node.driver_internal_info.get(
                               'ilo_uefi_iscsi_boot'))
 
@@ -937,8 +937,8 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                        autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
+                       spec_set=True, autospec=True)
     def test_prepare_instance_boot_from_volume(
             self, update_secure_boot_mode_mock,
             update_boot_mode_mock, set_boot_device_mock,
@@ -958,7 +958,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.ISCSIBOOT, persistent=True)
             update_boot_mode_mock.assert_called_once_with(task)
-            update_secure_boot_mode_mock.assert_called_once_with(task, True)
+            update_secure_boot_mode_mock.assert_called_once_with(task)
             self.assertTrue(task.node.driver_internal_info.get(
                             'ilo_uefi_iscsi_boot'))
 
@@ -995,8 +995,8 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                        autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
+                       spec_set=True, autospec=True)
     def test_prepare_instance_boot_ramdisk(self, update_secure_boot_mode_mock,
                                            update_boot_mode_mock,
                                            set_boot_device_mock,
@@ -1020,7 +1020,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.CDROM, persistent=True)
             update_boot_mode_mock.assert_called_once_with(task)
-            update_secure_boot_mode_mock.assert_called_once_with(task, True)
+            update_secure_boot_mode_mock.assert_called_once_with(task)
 
     def test_validate_rescue(self):
         driver_info = self.node.driver_info
@@ -1069,48 +1069,40 @@ class IloPXEBootTestCase(test_common.BaseIloTest):
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
                        autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', spec_set=True,
                        autospec=True)
     def test_clean_up_instance(self, pxe_cleanup_mock, node_power_mock,
-                               update_secure_boot_mode_mock,
                                is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             is_iscsi_boot_mock.return_value = False
             task.driver.boot.clean_up_instance(task)
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
-            update_secure_boot_mode_mock.assert_called_once_with(task, False)
             pxe_cleanup_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
                        autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', spec_set=True,
                        autospec=True)
     def test_clean_up_instance_boot_from_volume_bios(
-            self, pxe_cleanup_mock, node_power_mock,
-            update_secure_boot_mode_mock, is_iscsi_boot_mock):
+            self, pxe_cleanup_mock, node_power_mock, is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             is_iscsi_boot_mock.return_value = True
             task.driver.boot.clean_up_instance(task)
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
-            update_secure_boot_mode_mock.assert_called_once_with(task, False)
             pxe_cleanup_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_management.IloManagement, 'clear_iscsi_boot_target',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
+                       spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
                        autospec=True)
     def test_clean_up_instance_boot_from_volume(self, node_power_mock,
@@ -1128,7 +1120,7 @@ class IloPXEBootTestCase(test_common.BaseIloTest):
             clear_iscsi_boot_target_mock.assert_called_once_with(mock.ANY,
                                                                  task)
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
-            update_secure_boot_mode_mock.assert_called_once_with(task, False)
+            update_secure_boot_mode_mock.assert_called_once_with(task)
             self.assertIsNone(task.node.driver_internal_info.get(
                               'ilo_uefi_iscsi_boot'))
 
@@ -1136,15 +1128,12 @@ class IloPXEBootTestCase(test_common.BaseIloTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', spec_set=True,
                        autospec=True)
     def test_prepare_instance(self, pxe_prepare_instance_mock,
                               update_boot_mode_mock,
-                              update_secure_boot_mode_mock,
                               get_boot_mode_mock,
                               is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1153,7 +1142,6 @@ class IloPXEBootTestCase(test_common.BaseIloTest):
             get_boot_mode_mock.return_value = 'uefi'
             task.driver.boot.prepare_instance(task)
             update_boot_mode_mock.assert_called_once_with(task)
-            update_secure_boot_mode_mock.assert_called_once_with(task, True)
             pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
             self.assertIsNone(task.node.driver_internal_info.get(
                               'ilo_uefi_iscsi_boot'))
@@ -1162,15 +1150,12 @@ class IloPXEBootTestCase(test_common.BaseIloTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', spec_set=True,
                        autospec=True)
     def test_prepare_instance_bios(self, pxe_prepare_instance_mock,
                                    update_boot_mode_mock,
-                                   update_secure_boot_mode_mock,
                                    get_boot_mode_mock,
                                    is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1179,7 +1164,6 @@ class IloPXEBootTestCase(test_common.BaseIloTest):
             get_boot_mode_mock.return_value = 'bios'
             task.driver.boot.prepare_instance(task)
             update_boot_mode_mock.assert_called_once_with(task)
-            update_secure_boot_mode_mock.assert_called_once_with(task, True)
             pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
             self.assertIsNone(task.node.driver_internal_info.get(
                               'ilo_uefi_iscsi_boot'))
@@ -1194,8 +1178,8 @@ class IloPXEBootTestCase(test_common.BaseIloTest):
                        autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
+                       spec_set=True, autospec=True)
     def test_prepare_instance_boot_from_volume(
             self, update_secure_boot_mode_mock,
             update_boot_mode_mock, set_boot_device_mock,
@@ -1210,7 +1194,7 @@ class IloPXEBootTestCase(test_common.BaseIloTest):
             set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.ISCSIBOOT, persistent=True)
             update_boot_mode_mock.assert_called_once_with(task)
-            update_secure_boot_mode_mock.assert_called_once_with(task, True)
+            update_secure_boot_mode_mock.assert_called_once_with(task)
             self.assertTrue(task.node.driver_internal_info.get(
                             'ilo_uefi_iscsi_boot'))
 
@@ -1252,48 +1236,40 @@ class IloiPXEBootTestCase(test_common.BaseIloTest):
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
                        autospec=True)
     @mock.patch.object(ipxe.iPXEBoot, 'clean_up_instance', spec_set=True,
                        autospec=True)
     def test_clean_up_instance(self, pxe_cleanup_mock, node_power_mock,
-                               update_secure_boot_mode_mock,
                                is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             is_iscsi_boot_mock.return_value = False
             task.driver.boot.clean_up_instance(task)
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
-            update_secure_boot_mode_mock.assert_called_once_with(task, False)
             pxe_cleanup_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
                        autospec=True)
     @mock.patch.object(ipxe.iPXEBoot, 'clean_up_instance', spec_set=True,
                        autospec=True)
     def test_clean_up_instance_boot_from_volume_bios(
-            self, pxe_cleanup_mock, node_power_mock,
-            update_secure_boot_mode_mock, is_iscsi_boot_mock):
+            self, pxe_cleanup_mock, node_power_mock, is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             is_iscsi_boot_mock.return_value = True
             task.driver.boot.clean_up_instance(task)
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
-            update_secure_boot_mode_mock.assert_called_once_with(task, False)
             pxe_cleanup_mock.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_management.IloManagement, 'clear_iscsi_boot_target',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
+                       spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
                        autospec=True)
     def test_clean_up_instance_boot_from_volume(self, node_power_mock,
@@ -1311,7 +1287,7 @@ class IloiPXEBootTestCase(test_common.BaseIloTest):
             clear_iscsi_boot_target_mock.assert_called_once_with(mock.ANY,
                                                                  task)
             node_power_mock.assert_called_once_with(task, states.POWER_OFF)
-            update_secure_boot_mode_mock.assert_called_once_with(task, False)
+            update_secure_boot_mode_mock.assert_called_once_with(task)
             self.assertIsNone(task.node.driver_internal_info.get(
                               'ilo_uefi_iscsi_boot'))
 
@@ -1319,15 +1295,12 @@ class IloiPXEBootTestCase(test_common.BaseIloTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
     @mock.patch.object(ipxe.iPXEBoot, 'prepare_instance', spec_set=True,
                        autospec=True)
     def test_prepare_instance(self, pxe_prepare_instance_mock,
                               update_boot_mode_mock,
-                              update_secure_boot_mode_mock,
                               get_boot_mode_mock,
                               is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1336,7 +1309,6 @@ class IloiPXEBootTestCase(test_common.BaseIloTest):
             get_boot_mode_mock.return_value = 'uefi'
             task.driver.boot.prepare_instance(task)
             update_boot_mode_mock.assert_called_once_with(task)
-            update_secure_boot_mode_mock.assert_called_once_with(task, True)
             pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
             self.assertIsNone(task.node.driver_internal_info.get(
                               'ilo_uefi_iscsi_boot'))
@@ -1345,15 +1317,12 @@ class IloiPXEBootTestCase(test_common.BaseIloTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
     @mock.patch.object(ipxe.iPXEBoot, 'prepare_instance', spec_set=True,
                        autospec=True)
     def test_prepare_instance_bios(self, pxe_prepare_instance_mock,
                                    update_boot_mode_mock,
-                                   update_secure_boot_mode_mock,
                                    get_boot_mode_mock,
                                    is_iscsi_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1362,7 +1331,6 @@ class IloiPXEBootTestCase(test_common.BaseIloTest):
             get_boot_mode_mock.return_value = 'bios'
             task.driver.boot.prepare_instance(task)
             update_boot_mode_mock.assert_called_once_with(task)
-            update_secure_boot_mode_mock.assert_called_once_with(task, True)
             pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
             self.assertIsNone(task.node.driver_internal_info.get(
                               'ilo_uefi_iscsi_boot'))
@@ -1377,8 +1345,8 @@ class IloiPXEBootTestCase(test_common.BaseIloTest):
                        autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode', spec_set=True,
-                       autospec=True)
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
+                       spec_set=True, autospec=True)
     def test_prepare_instance_boot_from_volume(
             self, update_secure_boot_mode_mock,
             update_boot_mode_mock, set_boot_device_mock,
@@ -1393,7 +1361,7 @@ class IloiPXEBootTestCase(test_common.BaseIloTest):
             set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.ISCSIBOOT, persistent=True)
             update_boot_mode_mock.assert_called_once_with(task)
-            update_secure_boot_mode_mock.assert_called_once_with(task, True)
+            update_secure_boot_mode_mock.assert_called_once_with(task)
             self.assertTrue(task.node.driver_internal_info.get(
                             'ilo_uefi_iscsi_boot'))
 
@@ -1994,7 +1962,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             task.driver.boot.clean_up_ramdisk(task)
             cleanup_iso_mock.assert_called_once_with(task)
 
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode',
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
                        spec_set=True, autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', spec_set=True,
                        autospec=True)
@@ -2018,7 +1986,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.DISK,
                                                          persistent=True)
-            update_secureboot_mock.assert_called_once_with(task, True)
+            update_secureboot_mock.assert_called_once_with(task)
             cleanup_iso_mock.assert_called_once_with(task)
             prepare_iso_mock.assert_not_called()
             setup_uefi_https_mock.assert_not_called()
@@ -2033,7 +2001,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_prepare_instance_local_or_whole_disk_image()
 
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode',
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
                        spec_set=True, autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', spec_set=True,
                        autospec=True)
@@ -2071,13 +2039,13 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             parse_deploy_mock.assert_called_once_with(mock.ANY, task.node)
             prepare_iso_mock.assert_called_once_with(
                 task, d_info, root_uuid='12312642-09d3-467f-8e09-12385826a123')
-            update_secureboot_mock.assert_called_once_with(task, True)
+            update_secureboot_mock.assert_called_once_with(task)
             setup_uefi_https_mock.assert_called_once_with(
                 task, "recreated-iso", True)
             self.assertEqual(task.node.instance_info['ilo_boot_iso'],
                              "recreated-iso")
 
-    @mock.patch.object(ilo_common, 'update_secure_boot_mode',
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
                        spec_set=True, autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', spec_set=True,
                        autospec=True)
@@ -2113,12 +2081,12 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             parse_deploy_mock.assert_called_once_with(mock.ANY, task.node)
             prepare_iso_mock.assert_called_once_with(
                 task, d_info)
-            update_secureboot_mock.assert_called_once_with(task, True)
+            update_secureboot_mock.assert_called_once_with(task)
             setup_uefi_https_mock.assert_called_once_with(
                 task, "recreated-iso", True)
             self.assertTrue('ilo_boot_iso' not in task.node.instance_info)
 
-    @mock.patch.object(ilo_boot, 'disable_secure_boot_if_supported',
+    @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
                        spec_set=True, autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', spec_set=True,
                        autospec=True)

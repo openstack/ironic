@@ -372,3 +372,35 @@ class IRMCManagement(ipmitool.IPMIManagement):
         except exception.IRMCOperationError as e:
             raise exception.NodeCleaningFailure(node=task.node.uuid,
                                                 reason=e)
+
+    def get_secure_boot_state(self, task):
+        """Get the current secure boot state for the node.
+
+        NOTE: Not all drivers support this method. Older hardware
+              may not implement that.
+
+        :param task: A task from TaskManager.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: DriverOperationError or its derivative in case
+                 of driver runtime error.
+        :raises: UnsupportedDriverExtension if secure boot is
+                 not supported by the driver or the hardware
+        :returns: Boolean
+        """
+        return irmc_common.get_secure_boot_mode(task.node)
+
+    def set_secure_boot_state(self, task, state):
+        """Set the current secure boot state for the node.
+
+        NOTE: Not all drivers support this method. Older hardware
+              may not implement that.
+
+        :param task: A task from TaskManager.
+        :param state: A new state as a boolean.
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: DriverOperationError or its derivative in case
+                 of driver runtime error.
+        :raises: UnsupportedDriverExtension if secure boot is
+                 not supported by the driver or the hardware
+        """
+        return irmc_common.set_secure_boot_mode(task.node, state)

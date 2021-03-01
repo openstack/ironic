@@ -1049,8 +1049,7 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
             self._configure_vmedia_boot(task, root_uuid_or_disk_id)
 
         # Enable secure boot, if being requested
-        if deploy_utils.is_secure_boot_requested(node):
-            irmc_common.set_secure_boot_mode(node, enable=True)
+        boot_mode_utils.configure_secure_boot_if_needed(task)
 
     @METRICS.timer('IRMCVirtualMediaBoot.clean_up_instance')
     def clean_up_instance(self, task):
@@ -1068,8 +1067,7 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
             return
 
         # Disable secure boot, if enabled secure boot
-        if deploy_utils.is_secure_boot_requested(task.node):
-            irmc_common.set_secure_boot_mode(task.node, enable=False)
+        boot_mode_utils.deconfigure_secure_boot_if_needed(task)
 
         _remove_share_file(_get_iso_name(task.node, label='boot'))
         driver_internal_info = task.node.driver_internal_info
@@ -1130,39 +1128,3 @@ class IRMCPXEBoot(pxe.PXEBoot):
             irmc_management.backup_bios_config(task)
 
         super(IRMCPXEBoot, self).prepare_ramdisk(task, ramdisk_params)
-
-    @METRICS.timer('IRMCPXEBoot.prepare_instance')
-    def prepare_instance(self, task):
-        """Prepares the boot of instance.
-
-        This method prepares the boot of the instance after reading
-        relevant information from the node's instance_info. In case of netboot,
-        it updates the dhcp entries and switches the PXE config. In case of
-        localboot, it cleans up the PXE config.
-
-        :param task: a task from TaskManager.
-        :returns: None
-        :raises: IRMCOperationError, if some operation on iRMC failed.
-        """
-
-        super(IRMCPXEBoot, self).prepare_instance(task)
-        node = task.node
-        if deploy_utils.is_secure_boot_requested(node):
-            irmc_common.set_secure_boot_mode(node, enable=True)
-
-    @METRICS.timer('IRMCPXEBoot.clean_up_instance')
-    def clean_up_instance(self, task):
-        """Cleans up the boot of instance.
-
-        This method cleans up the environment that was setup for booting
-        the instance. It unlinks the instance kernel/ramdisk in node's
-        directory in tftproot and removes the PXE config.
-
-        :param task: a task from TaskManager.
-        :raises: IRMCOperationError, if some operation on iRMC failed.
-        :returns: None
-        """
-        node = task.node
-        if deploy_utils.is_secure_boot_requested(node):
-            irmc_common.set_secure_boot_mode(node, enable=False)
-        super(IRMCPXEBoot, self).clean_up_instance(task)
