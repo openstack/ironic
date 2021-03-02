@@ -398,9 +398,15 @@ class TestRBACProjectScoped(TestACLBase):
             uuid='65ea0296-219b-4635-b0c8-a6e055da878d',
             node_id=owned_node['id'],
             connector_id='iqn.2012-06.org.openstack.magic')
+        fake_owner_allocation = db_utils.create_test_allocation(
+            node_id=owned_node['id'],
+            owner=owner_project_id,
+            resource_class="CUSTOM_TEST")
 
         # Leased nodes
+        fake_allocation_id = 61
         leased_node = db_utils.create_test_node(
+            allocation_id=fake_allocation_id,
             uuid=lessee_node_ident,
             owner=owner_project_id,
             lessee=lessee_project_id,
@@ -416,6 +422,11 @@ class TestRBACProjectScoped(TestACLBase):
             node_id=leased_node['id'])
         fake_trait = 'CUSTOM_MEOW'
         fake_vif_port_id = "0e21d58f-5de2-4956-85ff-33935ea1ca01"
+        fake_leased_allocation = db_utils.create_test_allocation(
+            id=fake_allocation_id,
+            node_id=leased_node['id'],
+            owner=lessee_project_id,
+            resource_class="CUSTOM_LEASED")
 
         # Random objects that shouldn't be project visible
         other_port = db_utils.create_test_port(
@@ -447,7 +458,9 @@ class TestRBACProjectScoped(TestACLBase):
             'other_port_ident': other_port['uuid'],
             'owner_portgroup_ident': owner_pgroup['uuid'],
             'other_portgroup_ident': other_pgroup['uuid'],
-            'driver_name': 'fake-driverz'})
+            'driver_name': 'fake-driverz',
+            'owner_allocation': fake_owner_allocation['uuid'],
+            'lessee_allocation': fake_leased_allocation['uuid']})
 
     @ddt.file_data('test_rbac_project_scoped.yaml')
     @ddt.unpack

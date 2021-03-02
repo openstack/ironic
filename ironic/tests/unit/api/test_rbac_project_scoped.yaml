@@ -2272,60 +2272,153 @@ third_party_admin_cannot_get_conductors:
 
 # This is a system scoped endpoint, everything should fail in this section.
 
-owner_reader_cannot_get_allocations:
+owner_reader_can_get_allocations:
   path: '/v1/allocations'
   method: get
-  headers: *lessee_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  headers: *lessee_reader_headers
+  assert_status: 200
+  assert_list_length:
+    allocations: 1
 
-lessee_reader_cannot_get_allocations:
+lessee_reader_can_get_allocations:
   path: '/v1/allocations'
   method: get
-  headers: *lessee_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  headers: *lessee_reader_headers
+  assert_status: 200
+  assert_list_length:
+    allocations: 1
 
-third_party_admin_cannot_get_allocations:
+owner_reader_can_get_their_allocation:
+  path: '/v1/allocations/{owner_allocation}'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  assert_dict_contains:
+    resource_class: CUSTOM_TEST
+
+lessee_reader_can_get_their_allocation:
+  path: '/v1/allocations/{lessee_allocation}'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+  assert_dict_contains:
+    resource_class: CUSTOM_LEASED
+
+owner_admin_can_delete_their_allocation:
+  path: '/v1/allocations/{owner_allocation}'
+  method: delete
+  headers: *owner_admin_headers
+  assert_status: 503
+
+lessee_admin_can_delete_their_allocation:
+  path: '/v1/allocations/{lessee_allocation}'
+  method: delete
+  headers: *lessee_admin_headers
+  assert_status: 503
+
+owner_member_cannot_delete_their_allocation:
+  path: '/v1/allocations/{owner_allocation}'
+  method: delete
+  headers: *owner_member_headers
+  assert_status: 403
+
+lessee_member_cannot_delete_their_allocation:
+  path: '/v1/allocations/{lessee_allocation}'
+  method: delete
+  headers: *lessee_member_headers
+  assert_status: 403
+
+owner_member_can_patch_allocation:
+  path: '/v1/allocations/{owner_allocation}'
+  method: patch
+  headers: *owner_member_headers
+  body: &allocation_patch
+    - op: replace
+      path: /extra
+      value: {'test': 'testing'}
+  assert_status: 200
+
+lessee_member_can_patch_allocation:
+  path: '/v1/allocations/{lessee_allocation}'
+  method: patch
+  headers: *lessee_member_headers
+  body: *allocation_patch
+  assert_status: 200
+
+third_party_admin_can_get_allocations:
   path: '/v1/allocations'
   method: get
   headers: *third_party_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 200
+  assert_list_length:
+    allocations: 0
 
-third_party_admin_cannot_create_allocation:
+third_party_admin_can_create_allocation:
+  # This is distinctly different than most other behavior,
+  # should be applied to filter this, however this is also handled
+  # in the conductor, the only case where a user *should* be able
+  # to pass a UUID directly in though is a special case which
+  # should not be possible unless the user is the owner of the
+  # owner or lessee of the node.
   path: '/v1/allocations'
   method: post
   headers: *third_party_admin_headers
   body: &allocation_body
     resource_class: CUSTOM_TEST
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 503
+
+third_party_admin_cannot_create_allocation_with_owner_node:
+  path: '/v1/allocations'
+  method: post
+  headers: *third_party_admin_headers
+  body:
+    resource_class: CUSTOM_TEST
+    node: 1ab63b9e-66d7-4cd7-8618-dddd0f9f7881
+  assert_status: 400
+
+third_party_admin_cannot_create_allocation_with_candidates_not_owned:
+  path: '/v1/allocations'
+  method: post
+  headers: *third_party_admin_headers
+  body:
+    resource_class: CUSTOM_TEST
+    candidate_nodes:
+      - 1ab63b9e-66d7-4cd7-8618-dddd0f9f7881
+      - 38d5abed-c585-4fce-a57e-a2ffc2a2ec6f
+  assert_status: 400
+
+owner_admin_can_create_allocation_with_their_uuid:
+  # NOTE(TheJulia): Owner/Lessee are equivelent in
+  # this context, so testing only one is fine.
+  path: '/v1/allocations'
+  method: post
+  headers: *owner_admin_headers
+  body:
+    resource_class: CUSTOM_TEST
+    node: 1ab63b9e-66d7-4cd7-8618-dddd0f9f7881
+  assert_status: 503
 
 third_party_admin_cannot_read_an_allocation:
-  path: '/v1/allocations/{allocation_ident}'
+  path: '/v1/allocations/{lessee_allocation}'
   method: get
   headers: *third_party_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 404
 
 third_party_admin_cannot_patch_an_allocation:
-  path: '/v1/allocations/{allocation_ident}'
+  path: '/v1/allocations/{owner_allocation}'
   method: patch
   headers: *third_party_admin_headers
   body:
     - op: replace
       path: /extra
       value: {'test': 'testing'}
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 404
 
 third_party_admin_cannot_delete_an_allocation:
-  path: '/v1/allocations/{allocation_ident}'
+  path: '/v1/allocations/{owner_allocation}'
   method: delete
   headers: *third_party_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 404
 
 # Allocations ( Node level) - https://docs.openstack.org/api-ref/baremetal/#node-allocation-allocations-nodes
 
@@ -2334,42 +2427,36 @@ owner_reader_can_read_node_allocation:
   method: get
   headers: *owner_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 lessee_reader_can_read_node_allocation:
   path: '/v1/nodes/{lessee_node_ident}/allocation'
   method: get
   headers: *lessee_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_read_node_allocation:
   path: '/v1/nodes/{owner_node_ident}/allocation'
   method: get
   headers: *third_party_admin_headers
   assert_status: 404
-  skip_reason: policy not implemented
 
 owner_admin_can_delete_allocation:
   path: '/v1/nodes/{owner_node_ident}/allocation'
   method: delete
   headers: *owner_admin_headers
   assert_status: 503
-  skip_reason: policy not implemented
 
-lessee_admin_cannot_delete_allocation:
+lessee_admin_not_delete_allocation:
   path: '/v1/nodes/{allocated_node_ident}/allocation'
   method: delete
   headers: *lessee_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 503
 
 third_party_admin_cannot_delete_allocation:
   path: '/v1/nodes/{allocated_node_ident}/allocation'
   method: delete
   headers: *third_party_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 404
 
 # Deploy Templates - https://docs.openstack.org/api-ref/baremetal/#deploy-templates-deploy-templates
 

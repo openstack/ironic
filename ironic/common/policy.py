@@ -92,6 +92,10 @@ PROJECT_OWNER_MEMBER = ('role:member and project_id:%(node.owner)s')
 PROJECT_OWNER_READER = ('role:reader and project_id:%(node.owner)s')
 PROJECT_LESSEE_ADMIN = ('role:admin and project_id:%(node.lessee)s')
 
+ALLOCATION_OWNER_ADMIN = ('role:admin and project_id:%(allocation.owner)s')
+ALLOCATION_OWNER_MEMBER = ('role:member and project_id:%(allocation.owner)s')
+ALLOCATION_OWNER_READER = ('role:reader and project_id:%(allocation.owner)s')
+
 SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN = (
     '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_MEMBER + ') or (' + PROJECT_LESSEE_ADMIN + ')'  # noqa
 )
@@ -116,6 +120,25 @@ SYSTEM_MEMBER_OR_OWNER_LESSEE_ADMIN = (
     '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_ADMIN + ') or (' + PROJECT_LESSEE_ADMIN + ')'  # noqa
 )
 
+
+# The system has rights to manage the allocations for users, in a sense
+# a delegated management since they are not creating a real object or asset,
+# but allocations of assets.
+ALLOCATION_ADMIN = (
+    '(' + SYSTEM_MEMBER + ') or (' + ALLOCATION_OWNER_ADMIN + ')'
+)
+
+ALLOCATION_MEMBER = (
+    '(' + SYSTEM_MEMBER + ') or (' + ALLOCATION_OWNER_MEMBER + ')'
+)
+
+ALLOCATION_READER = (
+    '(' + SYSTEM_READER + ') or (' + ALLOCATION_OWNER_READER + ')'
+)
+
+ALLOCATION_CREATOR = (
+    '(' + SYSTEM_MEMBER + ') or (role:admin)'
+)
 
 # Special purpose aliases for things like "ability to access the API
 # as a reader, or permission checking that does not require node
@@ -1497,7 +1520,7 @@ deprecated_allocation_list = policy.DeprecatedRule(
 )
 deprecated_allocation_list_all = policy.DeprecatedRule(
     name='baremetal:allocation:list_all',
-    check_str='rule:baremetal:allocation:get'
+    check_str='rule:baremetal:allocation:get and is_admin_project:True'
 )
 deprecated_allocation_create = policy.DeprecatedRule(
     name='baremetal:allocation:create',
@@ -1523,8 +1546,8 @@ roles.
 allocation_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:get',
-        check_str=SYSTEM_READER,
-        scope_types=['system'],
+        check_str=ALLOCATION_READER,
+        scope_types=['system', 'project'],
         description='Retrieve Allocation records',
         operations=[
             {'path': '/allocations/{allocation_id}', 'method': 'GET'},
@@ -1536,8 +1559,8 @@ allocation_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:list',
-        check_str=SYSTEM_READER,
-        scope_types=['system'],
+        check_str=API_READER,
+        scope_types=['system', 'project'],
         description='Retrieve multiple Allocation records, filtered by owner',
         operations=[{'path': '/allocations', 'method': 'GET'}],
         deprecated_rule=deprecated_allocation_list,
@@ -1547,7 +1570,7 @@ allocation_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:list_all',
         check_str=SYSTEM_READER,
-        scope_types=['system'],
+        scope_types=['system', 'project'],
         description='Retrieve multiple Allocation records',
         operations=[{'path': '/allocations', 'method': 'GET'}],
         deprecated_rule=deprecated_allocation_list_all,
@@ -1556,8 +1579,8 @@ allocation_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:create',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=ALLOCATION_CREATOR,
+        scope_types=['system', 'project'],
         description='Create Allocation records',
         operations=[{'path': '/allocations', 'method': 'POST'}],
         deprecated_rule=deprecated_allocation_create,
@@ -1567,9 +1590,9 @@ allocation_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:create_restricted',
         check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        scope_types=['system', 'project'],
         description=(
-            'Create Allocation records that are restricted to an owner'
+            'Create Allocation records with a specific owner.'
         ),
         operations=[{'path': '/allocations', 'method': 'POST'}],
         deprecated_rule=deprecated_allocation_create_restricted,
@@ -1578,8 +1601,8 @@ allocation_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:delete',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=ALLOCATION_ADMIN,
+        scope_types=['system', 'project'],
         description='Delete Allocation records',
         operations=[
             {'path': '/allocations/{allocation_id}', 'method': 'DELETE'},
@@ -1590,8 +1613,8 @@ allocation_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:update',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=ALLOCATION_MEMBER,
+        scope_types=['system', 'project'],
         description='Change name and extra fields of an allocation',
         operations=[
             {'path': '/allocations/{allocation_id}', 'method': 'PATCH'},
@@ -1600,6 +1623,22 @@ allocation_policies = [
         deprecated_reason=deprecated_allocation_reason,
         deprecated_since=versionutils.deprecated.WALLABY
     ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:allocation:create_pre_rbac',
+        check_str=('rule:is_member and role:baremetal_admin or '
+                   'is_admin_project:True and role:admin'),
+        scope_types=['project'],
+        description=('Logical restrictor to prevent legacy allocation rule '
+                     'missuse - Requires blank allocations to originate from '
+                     'the legacy baremetal_admin.'),
+        operations=[
+            {'path': '/allocations/{allocation_id}', 'method': 'PATCH'},
+        ],
+        deprecated_reason=deprecated_allocation_reason,
+        deprecated_for_removal=True,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+
 ]
 
 

@@ -1507,7 +1507,21 @@ def check_policy(policy_name):
     # effectively a noop from an authorization perspective because the values
     # we're comparing are coming from the same place.
     cdict = api.request.context.to_policy_values()
+
     policy.authorize(policy_name, cdict, api.request.context)
+
+
+def check_policy_true(policy_name):
+    """Check if the specified policy is authorised for this request.
+
+    :policy_name: Name of the policy to check.
+    :returns: True if policy is matched, otherwise false.
+    """
+    # NOTE(lbragstad): Mapping context attributes into a target dictionary is
+    # effectively a noop from an authorization perspective because the values
+    # we're comparing are coming from the same place.
+    cdict = api.request.context.to_policy_values()
+    return policy.check_policy(policy_name, cdict, api.request.context)
 
 
 def check_owner_policy(object_type, policy_name, owner, lessee=None,
@@ -1592,13 +1606,13 @@ def check_allocation_policy_and_retrieve(policy_name, allocation_ident):
     try:
         rpc_allocation = get_rpc_allocation_with_suffix(
             allocation_ident)
-    except exception.AllocationNotFound:
-        # don't expose non-existence unless requester
-        # has generic access to policy
-        cdict = api.request.context.to_policy_values()
-        policy.authorize(policy_name, cdict, api.request.context)
-        raise
-
+        # If the user is not allowed to view the allocation, then
+        # we need to check that and respond with a 404.
+        check_owner_policy('allocation', 'baremetal:allocation:get',
+                           rpc_allocation['owner'])
+    except exception.NotAuthorized:
+        raise exception.AllocationNotFound(allocation=allocation_ident)
+    # The primary policy check for allocation.
     check_owner_policy('allocation', policy_name, rpc_allocation['owner'])
     return rpc_allocation
 

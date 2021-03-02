@@ -439,7 +439,7 @@ class Connection(api.Connection):
         return _paginate_query(models.Node, limit, marker,
                                sort_key, sort_dir, query)
 
-    def check_node_list(self, idents):
+    def check_node_list(self, idents, project=None):
         mapping = {}
         if idents:
             idents = set(idents)
@@ -459,6 +459,10 @@ class Connection(api.Connection):
             sql.or_(models.Node.uuid.in_(uuids),
                     models.Node.name.in_(names))
         )
+        if project:
+            query = query.filter((models.Node.owner == project)
+                                 | (models.Node.lessee == project))
+
         for row in query:
             if row[0] in idents:
                 mapping[row[0]] = row[0]

@@ -15,10 +15,12 @@ Tests for the API /allocations/ methods.
 
 import datetime
 from http import client as http_client
+import json
 from unittest import mock
 from urllib import parse as urlparse
 
 import fixtures
+from keystonemiddleware import auth_token
 from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
@@ -391,6 +393,15 @@ class TestListAllocations(test_api_base.BaseApiTest):
                 owner=owner,
                 uuid=uuidutils.generate_uuid(),
                 name='allocation%s' % i)
+        # NOTE(TheJulia): Force the cast of the action to a system scoped
+        # scoped request. System scoped is allowed to view everything,
+        # where as project scoped requests are actually filtered with the
+        # secure-rbac work. This was done in troubleshooting the code,
+        # so may not be necessary, but filtered views are checked in
+        # the RBAC testing.
+        headers = self.headers
+        headers['X-Roles'] = "member,reader"
+        headers['OpenStack-System-Scope'] = "all"
         data = self.get_json("/allocations?owner=12345",
                              headers=self.headers)
         self.assertEqual(3, len(data['allocations']))
@@ -994,6 +1005,57 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
+    @mock.patch.object(auth_token.AuthProtocol, 'process_request',
+                       autospec=True)
+    def test_create_allocation_owner_not_my_projet_id(self, mock_auth_req):
+        # This is only enforced, test wise with the new oslo policy rbac
+        # model and enforcement. Likely can be cleaned up past the Xena cycle.
+        cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
+        cfg.CONF.set_override('enforce_new_defaults', True,
+                              group='oslo_policy')
+        # Tests normally run in noauth, but we need policy
+        # enforcement to run completely here to ensure the logic is followed.
+        cfg.CONF.set_override('auth_strategy', 'keystone')
+        self.headers['X-Project-ID'] = '0987'
+        self.headers['X-Roles'] = 'admin,member,reader'
+        owner = '12345'
+        adict = apiutils.allocation_post_data(owner=owner)
+        response = self.post_json('/allocations', adict, expect_errors=True,
+                                  headers=self.headers)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+        expected_faultstring = ('Cannot create allocation with an owner '
+                                'Project ID value 12345 not matching the '
+                                'requestor Project ID 0987. Policy '
+                                'baremetal:allocation:create_restricted '
+                                'is required for this capability.')
+        error_body = json.loads(response.json['error_message'])
+        self.assertEqual(expected_faultstring,
+                         error_body.get('faultstring'))
+
+    def test_create_allocation_owner_auto_filled(self):
+        cfg.CONF.set_override('enforce_new_defaults', True,
+                              group='oslo_policy')
+        self.headers['X-Project-ID'] = '123456'
+        adict = apiutils.allocation_post_data()
+        self.post_json('/allocations', adict, headers=self.headers)
+        result = self.get_json('/allocations/%s' % adict['uuid'],
+                               headers=self.headers)
+        self.assertEqual('123456', result['owner'])
+
+    def test_create_allocation_is_restricted_until_scope_enforcement(self):
+        cfg.CONF.set_override('enforce_new_defaults', False,
+                              group='oslo_policy')
+        cfg.CONF.set_override('auth_strategy', 'keystone')
+        # We're setting ourselves to be a random ID and member
+        # which is allowed to create an allocation.
+        self.headers['X-Project-ID'] = '1135'
+        self.headers['X-Roles'] = 'admin, member, reader'
+        self.headers['X-Is-Admin-Project'] = 'False'
+        adict = apiutils.allocation_post_data()
+        response = self.post_json('/allocations', adict, expect_errors=True,
+                                  headers=self.headers)
+        self.assertEqual(http_client.FORBIDDEN, response.status_int)
+
     def test_backfill(self):
         node = obj_utils.create_test_node(self.context)
         adict = apiutils.allocation_post_data(node=node.uuid)
@@ -1092,7 +1154,6 @@ class TestPost(test_api_base.BaseApiTest):
                 raise exception.HTTPForbidden(resource='fake')
             return True
         mock_authorize.side_effect = mock_authorize_function
-
         owner = '12345'
         adict = apiutils.allocation_post_data()
         del adict['owner']
@@ -1126,7 +1187,6 @@ class TestPost(test_api_base.BaseApiTest):
                 raise exception.HTTPForbidden(resource='fake')
             return True
         mock_authorize.side_effect = mock_authorize_function
-
         owner = '12345'
         adict = apiutils.allocation_post_data(owner=owner)
         adict['owner'] = owner
