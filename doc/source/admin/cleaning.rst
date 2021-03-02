@@ -273,11 +273,23 @@ following configuration option::
   [ilo]
   clean_priority_erase_devices=0
 
-The generic hardware manager first tries to perform ATA disk erase by using
-``hdparm`` utility.  If ATA disk erase is not supported, it performs software
-based disk erase using ``shred`` utility.  By default, the number of iterations
-performed by ``shred`` for software based disk erase is 1.  To configure
-the number of iterations, use the following configuration option::
+The generic hardware manager first identifies whether a device is an NVMe
+drive or an ATA drive so that it can attempt a platform-specific secure erase
+method. In case of NVMe drives, it tries to perform a secure format operation
+by using the ``nvme-cli`` utility. This behavior can be controlled using
+the following configuration option (by default it is set to True)::
+
+   [deploy]
+   enable_nvme_secure_erase=True
+
+
+In case of ATA drives, it tries to perform ATA disk erase by using the
+``hdparm`` utility.
+
+If neither method is supported, it performs software based disk erase using
+the ``shred`` utility.  By default, the number of iterations performed
+by ``shred`` for software based disk erase is 1. To configure the number of
+iterations, use the following configuration option::
 
   [deploy]
   erase_devices_iterations=1
@@ -300,9 +312,11 @@ Should I disable automated cleaning?
 Automated cleaning is recommended for ironic deployments, however, there are
 some tradeoffs to having it enabled. For instance, ironic cannot deploy a new
 instance to a node that is currently cleaning, and cleaning can be a time
-consuming process. To mitigate this, we suggest using disks with support for
-cryptographic ATA Security Erase, as typically the erase_devices step in the
-deploy interface takes the longest time to complete of all cleaning steps.
+consuming process. To mitigate this, we suggest using NVMe drives with support
+for NVMe Secure Erase (based on ``nvme-cli`` format command) or ATA drives
+with support for cryptographic ATA Security Erase, as typically the
+erase_devices step in the deploy interface takes the longest time to complete
+of all cleaning steps.
 
 Why can't I power on/off a node while it's cleaning?
 ----------------------------------------------------
