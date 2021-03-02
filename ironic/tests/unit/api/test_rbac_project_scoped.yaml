@@ -19,7 +19,7 @@
 # One note regarding return codes. Third party admin, should mainly get
 # 404 return codes as opposed to 403. Because their view is filtered,
 # They can't find the resources to attempt to edit. This is a huge
-# distinction because we alsod on't want to leak that something exists
+# distinction because we also don't want to leak that something exists
 # from a security point of view. If we don't return 404, and they get 403,
 # they can determine that something is special, something is different,
 # and from there try to determine *what* it is. The key in their case
@@ -1781,9 +1781,6 @@ third_party_admin_cannot_get_ports_by_portgroup:
   headers: *third_party_admin_headers
   assert_status: 403
   skip_reason: policy not implemented
-
-# TODO(TheJulia): Huge question hitting me... will these 404 or 403 for 3rd party admin. Likely we should return 404 if they do not have rights to the node itself. A slight delineation between the two.
-
 
 # Volume(s) - https://docs.openstack.org/api-ref/baremetal/#volume-volume
 # TODO(TheJulia): volumes will likely need some level of exhaustive testing.
