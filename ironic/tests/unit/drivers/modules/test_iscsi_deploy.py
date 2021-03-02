@@ -980,7 +980,9 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
                 task, 'clean', interface='deploy',
                 override_priorities={
                     'erase_devices': 10,
-                    'erase_devices_metadata': 5})
+                    'erase_devices_metadata': 5,
+                    'delete_configuration': None,
+                    'create_configuration': None})
         self.assertEqual(mock_steps, steps)
 
     @mock.patch.object(agent_base, 'execute_step', autospec=True)

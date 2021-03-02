@@ -55,6 +55,22 @@ opts = [
                       'ramdisk (defaults to 99 for the '
                       'GenericHardwareManager). If set to 0, will not run '
                       'during cleaning.')),
+    cfg.IntOpt('delete_configuration_priority',
+               mutable=True,
+               help=_('Priority to run in-band clean step that erases '
+                      'RAID configuration from devices, via the Ironic '
+                      'Python Agent ramdisk. If unset, will use the '
+                      'priority set in the ramdisk (defaults to 0 for the '
+                      'GenericHardwareManager). If set to 0, will not run '
+                      'during cleaning.')),
+    cfg.IntOpt('create_configuration_priority',
+               mutable=True,
+               help=_('Priority to run in-band clean step that creates '
+                      'RAID configuration from devices, via the Ironic '
+                      'Python Agent ramdisk. If unset, will use the '
+                      'priority set in the ramdisk (defaults to 0 for the '
+                      'GenericHardwareManager). If set to 0, will not run '
+                      'during cleaning.')),
     cfg.IntOpt('shred_random_overwrite_iterations',
                default=1,
                min=0,

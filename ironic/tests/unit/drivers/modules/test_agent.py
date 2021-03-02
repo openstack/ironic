@@ -1163,15 +1163,21 @@ class TestAgentDeploy(db_base.DbTestCase):
             mock_get_steps.assert_called_once_with(
                 task, 'clean', interface='deploy',
                 override_priorities={'erase_devices': None,
-                                     'erase_devices_metadata': None})
+                                     'erase_devices_metadata': None,
+                                     'delete_configuration': None,
+                                     'create_configuration': None})
         self.assertEqual(mock_steps, steps)
 
     @mock.patch.object(agent_base, 'get_steps', autospec=True)
     def test_get_clean_steps_config_priority(self, mock_get_steps):
         # Test that we can override the priority of get clean steps
         # Use 0 because it is an edge case (false-y) and used in devstack
+        # for erase_devices, and 42 for RAID cleaning steps as they are
+        # disabled by default.
         self.config(erase_devices_priority=0, group='deploy')
         self.config(erase_devices_metadata_priority=0, group='deploy')
+        self.config(delete_configuration_priority=42, group='deploy')
+        self.config(create_configuration_priority=42, group='deploy')
         mock_steps = [{'priority': 10, 'interface': 'deploy',
                        'step': 'erase_devices'}]
         mock_get_steps.return_value = mock_steps
@@ -1180,7 +1186,9 @@ class TestAgentDeploy(db_base.DbTestCase):
             mock_get_steps.assert_called_once_with(
                 task, 'clean', interface='deploy',
                 override_priorities={'erase_devices': 0,
-                                     'erase_devices_metadata': 0})
+                                     'erase_devices_metadata': 0,
+                                     'delete_configuration': 42,
+                                     'create_configuration': 42})
 
     @mock.patch.object(deploy_utils, 'prepare_inband_cleaning', autospec=True)
     def test_prepare_cleaning(self, prepare_inband_cleaning_mock):
