@@ -148,13 +148,19 @@ TARGET_PROPERTIES_READER = (
     '(' + SYSTEM_READER + ') or (role:admin)'
 )
 
+pre_rbac_deprecated_reason = 'Pre-RBAC default rule. This rule does not support scoping system scoping and as such is deprecated.' # noqa
+
 default_policies = [
     # Legacy setting, don't remove. Likely to be overridden by operators who
     # forget to update their policy.json configuration file.
     # This gets rolled into the new "is_admin" rule below.
     policy.RuleDefault('admin_api',
                        'role:admin or role:administrator',
-                       description='Legacy rule for cloud admin access'),
+                       description='Legacy rule for cloud admin access',
+                       deprecated_for_removal=True,
+                       deprecated_since=versionutils.deprecated.WALLABY,
+                       deprecated_reason=pre_rbac_deprecated_reason
+                       ),
     # is_public_api is set in the environment from AuthPublicRoutes
     # TODO(TheJulia): Once legacy policy rules are removed, is_public_api
     # can be removed from the code base.
@@ -178,22 +184,40 @@ default_policies = [
     # TODO(TheJulia): Lets nuke demo from high orbit.
     policy.RuleDefault('is_member',
                        '(project_domain_id:default or project_domain_id:None) and (project_name:demo or project_name:baremetal)',  # noqa
-                       description='May be used to restrict access to specific projects'),  # noqa
+                       description='May be used to restrict access to specific projects',  # noqa
+                       deprecated_for_removal=True,
+                       deprecated_since=versionutils.deprecated.WALLABY,
+                       deprecated_reason=pre_rbac_deprecated_reason),
     policy.RuleDefault('is_observer',
                        'rule:is_member and (role:observer or role:baremetal_observer)',  # noqa
-                       description='Read-only API access'),
+                       description='Read-only API access',
+                       deprecated_for_removal=True,
+                       deprecated_since=versionutils.deprecated.WALLABY,
+                       deprecated_reason=pre_rbac_deprecated_reason),
     policy.RuleDefault('is_admin',
                        'rule:admin_api or (rule:is_member and role:baremetal_admin)',  # noqa
-                       description='Full read/write API access'),
+                       description='Full read/write API access',
+                       deprecated_for_removal=True,
+                       deprecated_since=versionutils.deprecated.WALLABY,
+                       deprecated_reason=pre_rbac_deprecated_reason),
     policy.RuleDefault('is_node_owner',
                        'project_id:%(node.owner)s',
-                       description='Owner of node'),
+                       description='Owner of node',
+                       deprecated_for_removal=True,
+                       deprecated_since=versionutils.deprecated.WALLABY,
+                       deprecated_reason=pre_rbac_deprecated_reason),
     policy.RuleDefault('is_node_lessee',
                        'project_id:%(node.lessee)s',
-                       description='Lessee of node'),
+                       description='Lessee of node',
+                       deprecated_for_removal=True,
+                       deprecated_since=versionutils.deprecated.WALLABY,
+                       deprecated_reason=pre_rbac_deprecated_reason),
     policy.RuleDefault('is_allocation_owner',
                        'project_id:%(allocation.owner)s',
-                       description='Owner of allocation'),
+                       description='Owner of allocation',
+                       deprecated_for_removal=True,
+                       deprecated_since=versionutils.deprecated.WALLABY,
+                       deprecated_reason=pre_rbac_deprecated_reason),
 ]
 
 # NOTE(tenbrae): to follow policy-in-code spec, we define defaults for
@@ -582,21 +606,6 @@ node_policies = [
         deprecated_reason=deprecated_node_reason,
         deprecated_since=versionutils.deprecated.WALLABY
     ),
-    # TODO(TheJulia): So multiple additional fields need policies. This needs
-    # to be reviewed/audited/addressed.
-    # * Get ability on last_error - policy added
-    # * Get ability on reservation (conductor names) - policy added
-    # * get ability on driver_internal_info (internal addressing) added
-    # * ability to get driver_info - policy added
-    # * ability to set driver_info - policy added
-    # * ability to set properties. - added
-    # * ability to set chassis_uuid - added
-    # * ability to set instance_uuid - added
-    # * ability to set a lessee - default only to admin or owner. added
-    # * ability to set driver/*_interface - added
-    # * ability to set network_data - added
-    # * ability to set conductor_group -added
-    # * ability to set name -added
     policy.DocumentedRuleDefault(
         name='baremetal:node:update_instance_info',
         check_str=SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN,

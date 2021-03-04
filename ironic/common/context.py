@@ -52,6 +52,9 @@ class RequestContext(context.RequestContext):
 def get_admin_context():
     """Create an administrator context."""
 
+    # TODO(TheJulia): Revise in Xena, is_admin should
+    # no longer be a default, much less passed as it is
+    # deprecated.
     context = RequestContext(auth_token=None,
                              project_id=None,
                              is_admin=True,

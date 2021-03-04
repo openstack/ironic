@@ -1,0 +1,45 @@
+---
+features:
+  - |
+    Adds capability to use ``project`` scoped requests in concert with
+    ``system`` scoped requests for a composite Role Based Access Control
+    (RBAC) model. As Ironic is mainly an administrative service,
+    this capability has only been extended to API endpoints which are
+    not purely administrative in nature. This consists of the following
+    API endpoints: nodes, ports, portgroups, volume connectors, volume
+    targets, and allocations.
+  - |
+    Project ``scoped`` requests for baremetal allocations, will automatically
+    record the ``project_id`` of the requestor as the ``owner`` of the node.
+deprecations:
+  - >
+    Pre-RBAC support rules have been deprecated. These consist of:
+      * admin_api
+      * is_member
+      * is_observer
+      * is_node_owner
+      * is_node_lessee
+      * is_allocation_owner
+
+    These rules will likely be removed in the Xena development cycle.
+    Operators are advised to review any custom policy rules for these
+    rules and move to the `Secure Role Based Access Controls <https://docs.openstack.org/ironic/latest/admin/secure-rbac.html>`_
+    model.
+issues:
+  - |
+    The addition of both ``project`` and ``system`` scoped Role Based Access
+    controls does add additional database queries when linked resources are
+    accessed. Example, when attempting to access a ``port`` or ``portgroup``,
+    the associated node needs to be checked as this helps govern overall
+    object access to the object for ``project`` scoped requests. This does not
+    impact ``system`` scoped requests. Operators who adopt project scoped
+    access may find it necessary to verify or add additional database indexes
+    in relation to the node ``uuid`` column as well as ``node_id`` field in
+    any table which may recieve heavy project query scope activity.
+    The ``ironic`` project anticipates that this will be a future work item
+    of the project to help improve database performance.
+upgrade:
+  - |
+    Legacy policy rules have been deprecated. Operators are advised to review
+    and update any custom policy files in use. Please see
+    `Secure Role Based Access Controls`_ for more information.
