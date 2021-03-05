@@ -1,0 +1,10 @@
+---
+other:
+  - |
+    The API version of the Bare Metal API provided by the ``ironic-api``
+    service has been incremented to ``1.71`` to signify that the API supports
+    System and Project scoped Role Based Access Controls, which is purely
+    informational in nature, as the version itself cannot be used to change
+    the API behavior for access controls. In excess of 1500 unit tests were
+    added as part of the effort to implement Role Based Access Controls to
+    help ensure the effort did not break the API behavior.
