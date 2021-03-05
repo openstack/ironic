@@ -861,7 +861,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         """
         LOG.debug("RPC continue_node_deploy called for node %s.", node_id)
-        with task_manager.acquire(context, node_id, shared=False,
+        with task_manager.acquire(context, node_id, shared=False, patient=True,
                                   purpose='continue node deploying') as task:
             node = task.node
 
@@ -1151,7 +1151,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         """
         LOG.debug("RPC continue_node_clean called for node %s.", node_id)
 
-        with task_manager.acquire(context, node_id, shared=False,
+        with task_manager.acquire(context, node_id, shared=False, patient=True,
                                   purpose='continue node cleaning') as task:
             node = task.node
             if node.target_provision_state == states.MANAGEABLE:

@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes a bug where a conductor could fail to complete a deployment if there
+    was contention on a shared lock. This would manifest as an instance being
+    stuck in the "deploying" state, though the node had in fact started or even
+    completed its final boot.

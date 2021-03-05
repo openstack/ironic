@@ -170,7 +170,7 @@ class TaskManager(object):
     """
 
     def __init__(self, context, node_id, shared=False,
-                 purpose='unspecified action', retry=True,
+                 purpose='unspecified action', retry=True, patient=False,
                  load_driver=True):
         """Create a new TaskManager.
 
@@ -185,6 +185,12 @@ class TaskManager(object):
                        lock. Default: False.
         :param purpose: human-readable purpose to put to debug logs.
         :param retry: whether to retry locking if it fails. Default: True.
+        :param patient: whether to indefinitely retry locking if it fails.
+                        Set this to True if there is an operation that does not
+                        have any fallback or built-in retry mechanism, such as
+                        finalizing a state transition during deploy/clean.
+                        The default retry behavior is to retry a configured
+                        number of times and then give up. Default: False.
         :param load_driver: whether to load the ``driver`` object. Set this to
                             False if loading the driver is undesired or
                             impossible.
@@ -203,6 +209,7 @@ class TaskManager(object):
         self.node_id = node_id
         self.shared = shared
         self._retry = retry
+        self._patient = patient
 
         self.fsm = states.machine.copy()
         self._purpose = purpose
@@ -260,7 +267,9 @@ class TaskManager(object):
     def _lock(self):
         self._debug_timer.restart()
 
-        if self._retry:
+        if self._patient:
+            attempts = None
+        elif self._retry:
             attempts = CONF.conductor.node_locked_retry_attempts
         else:
             attempts = 1
