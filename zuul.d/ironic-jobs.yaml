@@ -181,6 +181,7 @@
         IRONIC_VM_VOLUME_COUNT: 2
         IRONIC_VM_SPECS_RAM: 1024
         IRONIC_VM_SPECS_CPU: 1
+        IRONIC_ENFORCE_SCOPE: True
         # We're using a lot of disk space in this job. Some testing nodes have
         # a small root partition, so use /opt which is mounted from a bigger
         # ephemeral partition on such nodes
@@ -305,6 +306,7 @@
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_ENFORCE_SCOPE: True
 
 - job:
     name: ironic-tempest-ipa-partition-uefi-pxe_ipmitool
@@ -344,6 +346,7 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
+        IRONIC_ENFORCE_SCOPE: True
       devstack_services:
         c-api: True
         c-bak: True
@@ -393,6 +396,17 @@
         s-proxy: True
 
 - job:
+    name: ironic-inspector-tempest-rbac-scope-enforced
+    description: ironic-inspector-tempest-rbac-scope-enforced
+    parent: ironic-inspector-tempest
+    required-projects:
+      - openstack/ironic-inspector
+    vars:
+      devstack_localrc:
+        IRONIC_ENFORCE_SCOPE: True
+        IRONIC_INSPECTOR_ENFORCE_SCOPE: True
+
+- job:
     name: ironic-tempest-functional-python3
     description: ironic-tempest-functional-python3
     parent: ironic-base
@@ -426,6 +440,14 @@
         q-meta: False
         q-metering: False
         q-svc: False
+
+- job:
+    name: ironic-tempest-functional-rbac-scope-enforced
+    description: ironic-tempest-funcitonal-rbac-scope-enforced
+    parent: ironic-tempest-functional-python3
+    vars:
+      devstack_localrc:
+        IRONIC_ENFORCE_SCOPE: True
 
 - job:
     name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode

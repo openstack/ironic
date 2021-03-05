@@ -182,12 +182,26 @@ if [[ "$hostdomain" =~ "rax" ]]; then
     # we should make a helper method...
 fi
 
+
+# Oslo Policy, as of Wallaby defaults to not enforcing request scope
+# against requestors. This is anticipated to change in Xena or after
+# the Xena release of OpenStack.
+IRONIC_ENFORCE_SCOPE=$(trueorfalse False IRONIC_ENFORCE_SCOPE)
+
+if [[ "$IRONIC_ENFORCE_SCOPE" == "True" ]]; then
+    OS_CLOUD=devstack-system-admin
+else
+    OS_CLOUD=devstack-admin
+fi
+
+# Versions and command line for API client
 IRONIC_DEFAULT_API_VERSION=${IRONIC_DEFAULT_API_VERSION:-}
-IRONIC_CMD="openstack baremetal"
+IRONIC_CMD="openstack --os-cloud $OS_CLOUD baremetal"
 if [[ -n "$IRONIC_DEFAULT_API_VERSION" ]]; then
     IRONIC_CMD="$IRONIC_CMD --os-baremetal-api-version $IRONIC_DEFAULT_API_VERSION"
 fi
 
+# Settings!
 IRONIC_ENABLED_HARDWARE_TYPES=${IRONIC_ENABLED_HARDWARE_TYPES:-"ipmi,fake-hardware"}
 # list of all available driver interfaces types
 IRONIC_DRIVER_INTERFACE_TYPES="bios boot power management deploy console inspect raid rescue storage network vendor"
@@ -1324,7 +1338,7 @@ function configure_ironic_provision_network {
         die_if_not_set $LINENO PHYSICAL_NETWORK "You must specify the PHYSICAL_NETWORK"
         die_if_not_set $LINENO IRONIC_PROVISION_SUBNET_GATEWAY "You must specify the IRONIC_PROVISION_SUBNET_GATEWAY"
 
-        net_id=$(openstack network create --provider-network-type $IRONIC_PROVISION_PROVIDER_NETWORK_TYPE \
+        net_id=$(openstack --os-cloud $OS_CLOUD network create --provider-network-type $IRONIC_PROVISION_PROVIDER_NETWORK_TYPE \
             --provider-physical-network "$PHYSICAL_NETWORK" \
             ${IRONIC_PROVISION_SEGMENTATION_ID:+--provider-segment $IRONIC_PROVISION_SEGMENTATION_ID} \
             ${IRONIC_PROVISION_NETWORK_NAME} -f value -c id)
@@ -1333,20 +1347,20 @@ function configure_ironic_provision_network {
 
         if [[ "${IRONIC_USE_NEUTRON_SEGMENTS}" == "True" ]]; then
             local net_segment_id
-            net_segment_id=$(openstack network segment list --network $net_id -f value -c ID)
+            net_segment_id=$(openstack --os-cloud $OS_CLOUD network segment list --network $net_id -f value -c ID)
             die_if_not_set $LINENO net_segment_id "Failure getting net_segment_id for $IRONIC_PROVISION_NETWORK_NAME"
         fi
 
         local subnet_id
         if [[ "$IRONIC_IP_VERSION" == '4' ]]; then
-            subnet_id="$(openstack subnet create --ip-version 4 \
+            subnet_id="$(openstack --os-cloud $OS_CLOUD subnet create --ip-version 4 \
                 ${IRONIC_PROVISION_ALLOCATION_POOL:+--allocation-pool $IRONIC_PROVISION_ALLOCATION_POOL} \
                 ${net_segment_id:+--network-segment $net_segment_id} \
                 $IRONIC_PROVISION_PROVIDER_SUBNET_NAME \
                 --gateway $IRONIC_PROVISION_SUBNET_GATEWAY --network $net_id \
                 --subnet-range $IRONIC_PROVISION_SUBNET_PREFIX -f value -c id)"
         else
-            subnet_id="$(openstack subnet create --ip-version 6 \
+            subnet_id="$(openstack --os-cloud $OS_CLOUD subnet create --ip-version 6 \
                 --ipv6-address-mode dhcpv6-stateful \
                 --ipv6-ra-mode dhcpv6-stateful \
                 --dns-nameserver 2001:4860:4860::8888 \
@@ -1355,21 +1369,21 @@ function configure_ironic_provision_network {
                 --gateway $IRONIC_PROVISION_SUBNET_GATEWAY --network $net_id \
                 --subnet-range $IRONIC_PROVISION_SUBNET_PREFIX -f value -c id)"
             # NOTE(TheJulia): router must be attached to the subnet for RAs.
-            openstack router add subnet $IRONIC_ROUTER_NAME $subnet_id
+            openstack --os-cloud $OS_CLOUD router add subnet $IRONIC_ROUTER_NAME $subnet_id
 
             # We're going to be using this router of public access to tenant networks
-            PUBLIC_ROUTER_ID=$(openstack router show -c id -f value $IRONIC_ROUTER_NAME)
+            PUBLIC_ROUTER_ID=$(openstack --os-cloud $OS_CLOUD router show -c id -f value $IRONIC_ROUTER_NAME)
         fi
 
         die_if_not_set $LINENO subnet_id "Failure creating SUBNET_ID for $IRONIC_PROVISION_NETWORK_NAME"
 
         ironic_provision_network_ip=$IRONIC_PROVISION_SUBNET_GATEWAY
     else
-        net_id=$(openstack network show $IRONIC_PROVISION_NETWORK_NAME -f value -c id)
+        net_id=$(openstack --os-cloud $OS_CLOUD network show $IRONIC_PROVISION_NETWORK_NAME -f value -c id)
         ironic_provision_network_ip=$IRONIC_PROVISION_SUBNET_SUBNODE_IP
     fi
 
-    IRONIC_PROVISION_SEGMENTATION_ID=${IRONIC_PROVISION_SEGMENTATION_ID:-`openstack network show ${net_id} -f value -c provider:segmentation_id`}
+    IRONIC_PROVISION_SEGMENTATION_ID=${IRONIC_PROVISION_SEGMENTATION_ID:-`openstack --os-cloud $OS_CLOUD network show ${net_id} -f value -c provider:segmentation_id`}
     provision_net_prefix=${IRONIC_PROVISION_SUBNET_PREFIX##*/}
 
     # Set provision network GW on physical interface
@@ -1449,6 +1463,10 @@ function configure_ironic {
     fi
     if [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" == "" ]] || [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" == "keystone" ]]; then
         configure_client_for json_rpc
+    fi
+    if [[ "$IRONIC_ENFORCE_SCOPE" == "True" ]]; then
+        iniset $IRONIC_CONF_FILE oslo_policy enforce_scope true
+        iniset $IRONIC_CONF_FILE oslo_policy enforce_new_defaults true
     fi
 
     # Set fast track options
@@ -1569,11 +1587,22 @@ function configure_client_for {
     # keystoneauth auth plugin options
     iniset $IRONIC_CONF_FILE $service_config_section auth_type password
     iniset $IRONIC_CONF_FILE $service_config_section auth_url $KEYSTONE_SERVICE_URI
-    iniset $IRONIC_CONF_FILE $service_config_section username ironic
-    iniset $IRONIC_CONF_FILE $service_config_section password $SERVICE_PASSWORD
-    iniset $IRONIC_CONF_FILE $service_config_section project_name $SERVICE_PROJECT_NAME
+    # NOTE(TheJulia): This list is likely to become long as we turn on
+    # support for system scoped enforcement of other services, but for now,
+    # we really only care about inspector and we can figure out the others
+    # as time and their devstack code supports it.
+    if [[ "$service_config_section" == "inspector" ]] && [[ "$IRONIC_INSPECTOR_ENFORCE_SCOPE" == "True" ]]; then
+        iniset $IRONIC_CONF_FILE $service_config_section system_scope all
+        iniset $IRONIC_CONF_FILE $service_config_section username admin
+        iniset $IRONIC_CONF_FILE $service_config_section password $ADMIN_PASSWORD
+
+    else
+        iniset $IRONIC_CONF_FILE $service_config_section username ironic
+        iniset $IRONIC_CONF_FILE $service_config_section password $SERVICE_PASSWORD
+        iniset $IRONIC_CONF_FILE $service_config_section project_name $SERVICE_PROJECT_NAME
+        iniset $IRONIC_CONF_FILE $service_config_section project_domain_id default
+    fi
     iniset $IRONIC_CONF_FILE $service_config_section user_domain_id default
-    iniset $IRONIC_CONF_FILE $service_config_section project_domain_id default
     # keystoneauth session options
     iniset $IRONIC_CONF_FILE $service_config_section cafile $SSL_BUNDLE_FILE
     # keystoneauth adapter options
@@ -1903,16 +1932,25 @@ function start_ironic_api {
     fi
 }
 
+# Unsets environment variables so the client doesn't try to be too smart
+# and reads from clouds.yaml.
+function remove_client_environment_variables {
+    unset OS_PROJECT_DOMAIN_ID
+    unset OS_PROJECT_NAME
+    unset OS_USER_DOMAIN_ID
+}
+
 # start_ironic_conductor() - Used by start_ironic().
 # Starts Ironic conductor.
 function start_ironic_conductor {
     run_process ir-cond "$IRONIC_BIN_DIR/ironic-conductor --config-file=$IRONIC_CONF_FILE"
 
+    remove_client_environment_variables
     # Wait up to 30 seconds for ironic-conductor to start and register itself
     local attempt
     local max_attempts=7
     for attempt in $(seq 1 $max_attempts); do
-        if openstack baremetal driver list | grep -q $IRONIC_DEPLOY_DRIVER; then
+        if openstack --os-cloud $OS_CLOUD baremetal driver list | grep -q $IRONIC_DEPLOY_DRIVER; then
             break
         fi
 
@@ -1921,7 +1959,7 @@ function start_ironic_conductor {
         fi
 
         echo "Still waiting for ironic-conductor to start, current state:"
-        openstack baremetal driver list
+        openstack --os-cloud $OS_CLOUD baremetal driver list
         sleep 5
     done
 }
@@ -1947,7 +1985,7 @@ function create_ovs_taps {
     # need to create one in Neutron to know what netns to tap into prior to the
     # first node booting.
     local port_id
-    port_id=$(openstack port create --network ${ironic_net_id} temp_port -c id -f value)
+    port_id=$(openstack --os-cloud $OS_CLOUD port create --network ${ironic_net_id} temp_port -c id -f value)
     die_if_not_set $LINENO port_id "Failed to create neutron port"
 
     # intentional sleep to make sure the tag has been set to port
@@ -1974,11 +2012,11 @@ function create_ovs_taps {
     sudo ovs-vsctl -- --if-exists del-port $brbm_tap -- add-port $IRONIC_VM_NETWORK_BRIDGE $brbm_tap
 
     # Remove the port needed only for workaround.
-    openstack port delete $port_id
+    openstack --os-cloud $OS_CLOUD port delete $port_id
 
     # Finally, share the fixed tenant network across all tenants.  This allows the host
     # to serve TFTP to a single network namespace via the tap device created above.
-    openstack network set $ironic_net_id --share
+    openstack --os-cloud $OS_CLOUD network set $ironic_net_id --share
 }
 
 function setup_qemu_log_hook {
@@ -2098,7 +2136,7 @@ SUBSHELL
 
     if [[ -z "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
         local ironic_net_id
-        ironic_net_id=$(openstack network show "$PRIVATE_NETWORK_NAME" -c id -f value)
+        ironic_net_id=$(openstack --os-cloud $OS_CLOUD network show "$PRIVATE_NETWORK_NAME" -c id -f value)
         create_ovs_taps $ironic_net_id
 
         # NOTE(vsaienko) Neutron no longer setup routing to private network.
@@ -2123,7 +2161,7 @@ SUBSHELL
                 replace_range=${SUBNETPOOL_PREFIX_V6}
             fi
         fi
-        pub_router_id=$(openstack router show $Q_ROUTER_NAME -f value -c id)
+        pub_router_id=$(openstack --os-cloud $OS_CLOUD router show $Q_ROUTER_NAME -f value -c id)
         # Select the text starting at "src ", and grabbing the following field.
         r_net_gateway=$(sudo ip netns exec qrouter-$pub_router_id ip -$IRONIC_IP_VERSION route get $dns_server |grep dev | sed s/^.*src\ // |awk '{ print $1 }')
         sudo ip route replace $replace_range via $r_net_gateway
@@ -2152,9 +2190,9 @@ function wait_for_nova_resources {
 
     # TODO(dtantsur): switch to Placement OSC plugin, once it exists
     local token
-    token=$(openstack token issue -f value -c id)
+    token=$(openstack --os-cloud $OS_CLOUD token issue -f value -c id)
     local endpoint
-    endpoint=$(openstack endpoint list --service placement --interface public -f value -c URL)
+    endpoint=$(openstack --os-cloud $OS_CLOUD endpoint list --service placement --interface public -f value -c URL)
     die_if_not_set $LINENO endpoint "Cannot find Placement API endpoint"
 
     local i
@@ -2225,7 +2263,7 @@ function provide_nodes {
     local attempt
     for attempt in $(seq 1 $IRONIC_CLEANING_ATTEMPTS); do
         local available
-        available=$(openstack baremetal node list --provision-state available -f value -c UUID)
+        available=$(openstack --os-cloud $OS_CLOUD baremetal node list --provision-state available -f value -c UUID)
 
         local nodes_not_finished=
         for node_id in $nodes; do
@@ -2255,7 +2293,7 @@ function wait_for_ironic_neutron_agent_report_state_for_all_nodes {
     local attempt
     for attempt in $(seq 1 $IRONIC_NEUTRON_AGENT_REPORT_STATE_ATTEMPTS); do
         local reported
-        reported=$(openstack network agent list -f value -c Host -c Binary | grep ironic-neutron-agent | cut -d ' ' -f 1 | paste -s -d ' ')
+        reported=$(openstack --os-cloud $OS_CLOUD network agent list -f value -c Host -c Binary | grep ironic-neutron-agent | cut -d ' ' -f 1 | paste -s -d ' ')
         echo "Currently reported nodes: $reported"
 
         local can_break
@@ -2535,26 +2573,26 @@ function enroll_nodes {
         if [[ "$HOST_TOPOLOGY_ROLE" != "subnode" ]]; then
             local adjusted_disk
             adjusted_disk=$(($ironic_node_disk - $ironic_ephemeral_disk))
-            openstack flavor create --ephemeral $ironic_ephemeral_disk --ram $ironic_node_ram --disk $adjusted_disk --vcpus $ironic_node_cpu baremetal
+            openstack --os-cloud $OS_CLOUD flavor create --ephemeral $ironic_ephemeral_disk --ram $ironic_node_ram --disk $adjusted_disk --vcpus $ironic_node_cpu baremetal
 
             local resource_class=${IRONIC_DEFAULT_RESOURCE_CLASS^^}
-            openstack flavor set baremetal --property "resources:CUSTOM_$resource_class"="1"
-            openstack flavor set baremetal --property "resources:DISK_GB"="0"
-            openstack flavor set baremetal --property "resources:MEMORY_MB"="0"
-            openstack flavor set baremetal --property "resources:VCPU"="0"
+            openstack --os-cloud $OS_CLOUD flavor set baremetal --property "resources:CUSTOM_$resource_class"="1"
+            openstack --os-cloud $OS_CLOUD flavor set baremetal --property "resources:DISK_GB"="0"
+            openstack --os-cloud $OS_CLOUD flavor set baremetal --property "resources:MEMORY_MB"="0"
+            openstack --os-cloud $OS_CLOUD flavor set baremetal --property "resources:VCPU"="0"
 
-            openstack flavor set baremetal --property "cpu_arch"="$ironic_node_arch"
+            openstack --os-cloud $OS_CLOUD flavor set baremetal --property "cpu_arch"="$ironic_node_arch"
 
             if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
-                openstack flavor set baremetal --property "capabilities:boot_mode"="uefi"
+                openstack --os-cloud $OS_CLOUD flavor set baremetal --property "capabilities:boot_mode"="uefi"
             fi
 
             for trait in $IRONIC_DEFAULT_TRAITS; do
-                openstack flavor set baremetal --property "trait:$trait"="required"
+                openstack --os-cloud $OS_CLOUD flavor set baremetal --property "trait:$trait"="required"
             done
 
             if [[ "$IRONIC_SECURE_BOOT" == "True" ]]; then
-                openstack flavor set baremetal --property "capabilities:secure_boot"="true"
+                openstack --os-cloud $OS_CLOUD flavor set baremetal --property "capabilities:secure_boot"="true"
             fi
 
             # NOTE(dtantsur): sometimes nova compute fails to start with ironic due
@@ -2849,7 +2887,12 @@ function upload_baremetal_ironic_efiboot {
     fi
 
     # load efiboot into glance
-    IRONIC_EFIBOOT_ID=$(openstack \
+    # NOTE(TheJulia): Glance requires a project ID be submitted with the
+    # request *or* we just do it as the project scoped admin using the admin
+    # project which in devstack's case is the demo project.
+    # In other words, we can't use devstack-system-admin to upload the image
+    # unless we set the project_id in the create reqeust.
+    IRONIC_EFIBOOT_ID=$(openstack --os-cloud devstack-admin \
         image create \
         $efiboot_name \
         --public --disk-format=raw \
@@ -2923,7 +2966,7 @@ function upload_baremetal_ironic_deploy {
 
         # load them into glance
         if ! is_deploy_iso_required; then
-            IRONIC_DEPLOY_KERNEL_ID=$(openstack \
+            IRONIC_DEPLOY_KERNEL_ID=$(openstack --os-cloud devstack-admin \
                 image create \
                 $ironic_deploy_kernel_name \
                 --public --disk-format=aki \
@@ -2931,7 +2974,7 @@ function upload_baremetal_ironic_deploy {
                 < $IRONIC_DEPLOY_KERNEL  | grep ' id ' | get_field 2)
             die_if_not_set $LINENO IRONIC_DEPLOY_KERNEL_ID "Failed to load kernel image into glance"
 
-            IRONIC_DEPLOY_RAMDISK_ID=$(openstack \
+            IRONIC_DEPLOY_RAMDISK_ID=$(openstack --os-cloud devstack-admin \
                 image create \
                 $ironic_deploy_ramdisk_name \
                 --public --disk-format=ari \
@@ -2940,7 +2983,7 @@ function upload_baremetal_ironic_deploy {
             die_if_not_set $LINENO IRONIC_DEPLOY_RAMDISK_ID "Failed to load ramdisk image into glance"
 
         else
-            IRONIC_DEPLOY_ISO_ID=$(openstack \
+            IRONIC_DEPLOY_ISO_ID=$(openstack --os-cloud devstack-admin \
                 image create \
                 $(basename $IRONIC_DEPLOY_ISO) \
                 --public --disk-format=iso \
@@ -2952,8 +2995,8 @@ function upload_baremetal_ironic_deploy {
         if is_ansible_with_tinyipa; then
             ironic_deploy_ramdisk_name="ansible-$ironic_deploy_ramdisk_name"
         fi
-        IRONIC_DEPLOY_KERNEL_ID=$(openstack image show $ironic_deploy_kernel_name -f value -c id)
-        IRONIC_DEPLOY_RAMDISK_ID=$(openstack image show $ironic_deploy_ramdisk_name -f value -c id)
+        IRONIC_DEPLOY_KERNEL_ID=$(openstack --os-cloud $OS_CLOUD image show $ironic_deploy_kernel_name -f value -c id)
+        IRONIC_DEPLOY_RAMDISK_ID=$(openstack --os-cloud $OS_CLOUD image show $ironic_deploy_ramdisk_name -f value -c id)
     fi
 
     iniset $IRONIC_CONF_FILE conductor deploy_kernel $IRONIC_DEPLOY_KERNEL_ID
@@ -3066,7 +3109,7 @@ function ironic_configure_tempest {
 
     if is_service_enabled nova; then
         local bm_flavor_id
-        bm_flavor_id=$(openstack flavor show baremetal -f value -c id)
+        bm_flavor_id=$(openstack --os-cloud $OS_CLOUD flavor show baremetal -f value -c id)
         die_if_not_set $LINENO bm_flavor_id "Failed to get id of baremetal flavor"
         iniset $TEMPEST_CONFIG compute flavor_ref $bm_flavor_id
         iniset $TEMPEST_CONFIG compute flavor_ref_alt $bm_flavor_id
@@ -3095,13 +3138,13 @@ function ironic_configure_tempest {
 
     if is_service_enabled glance; then
         local image_uuid
-        image_uuid=$(openstack image show $IRONIC_IMAGE_NAME -f value -c id)
+        image_uuid=$(openstack --os-cloud $OS_CLOUD image show $IRONIC_IMAGE_NAME -f value -c id)
         iniset $TEMPEST_CONFIG compute image_ref $image_uuid
         iniset $TEMPEST_CONFIG compute image_ref_alt $image_uuid
 
-        image_uuid=$(openstack image show $IRONIC_WHOLEDISK_IMAGE_NAME -f value -c id)
+        image_uuid=$(openstack --os-cloud $OS_CLOUD image show $IRONIC_WHOLEDISK_IMAGE_NAME -f value -c id)
         iniset $TEMPEST_CONFIG baremetal whole_disk_image_ref $image_uuid
-        image_uuid=$(openstack image show $IRONIC_PARTITIONED_IMAGE_NAME -f value -c id)
+        image_uuid=$(openstack --os-cloud $OS_CLOUD image show $IRONIC_PARTITIONED_IMAGE_NAME -f value -c id)
         iniset $TEMPEST_CONFIG baremetal partition_image_ref $image_uuid
     fi
 
@@ -3156,6 +3199,11 @@ function ironic_configure_tempest {
         # Adoption requires reading or guessing the BMC credentials, so let's
         # not enable it for real hardware, at least for now.
         iniset $TEMPEST_CONFIG baremetal_feature_enabled adoption True
+    fi
+
+    if [[ "$IRONIC_ENFORCE_SCOPE" == "True" ]]; then
+        iniset $TEMPEST_CONFIG enforce_scope ironic True
+        iniset $TEMPEST_CONFIG enforce_scope ironic_inspector True
     fi
 }
 
