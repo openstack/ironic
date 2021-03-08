@@ -1160,9 +1160,9 @@ volume_connectors_post_admin:
   path: '/v1/volume/connectors'
   method: post
   headers: *admin_headers
-  assert_status: 400
+  assert_status: 201
   body: &volume_connector_body
-    node_uuid: 68a552fb-dcd2-43bf-9302-e4c93287be16
+    node_uuid: 1be26c0b-03f2-4d2e-ae87-c02d7f33c123
     type: ip
     connector_id: 192.168.1.100
 
@@ -1172,7 +1172,7 @@ volume_connectors_post_member:
   path: '/v1/volume/connectors'
   method: post
   headers: *scoped_member_headers
-  assert_status: 400
+  assert_status: 201
   body: *volume_connector_body
 
 volume_connectors_post_reader:
@@ -1269,19 +1269,23 @@ volume_targets_post_admin:
   path: '/v1/volume/targets'
   method: post
   headers: *admin_headers
-  assert_status: 400
+  assert_status: 201
   body: &volume_target_body
-    node_uuid: 68a552fb-dcd2-43bf-9302-e4c93287be16
+    node_uuid: 1be26c0b-03f2-4d2e-ae87-c02d7f33c123
     volume_type: iscsi
-    boot_index: 0
+    boot_index: 1
     volume_id: 'test-id'
 
 volume_targets_post_member:
   path: '/v1/volume/targets'
   method: post
   headers: *scoped_member_headers
-  assert_status: 400
-  body: *volume_target_body
+  assert_status: 201
+  body:
+    node_uuid: 1be26c0b-03f2-4d2e-ae87-c02d7f33c123
+    volume_type: iscsi
+    boot_index: 2
+    volume_id: 'test-id2'
 
 volume_targets_post_reader:
   path: '/v1/volume/targets'

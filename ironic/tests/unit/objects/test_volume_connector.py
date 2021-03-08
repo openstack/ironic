@@ -84,7 +84,8 @@ class TestVolumeConnectorObject(db_base.DbTestCase,
                 self.context, limit=4, sort_key='uuid', sort_dir='asc')
 
             mock_get_list.assert_called_once_with(
-                limit=4, marker=None, sort_key='uuid', sort_dir='asc')
+                limit=4, marker=None, sort_key='uuid', sort_dir='asc',
+                project=None)
             self.assertThat(volume_connectors, HasLength(1))
             self.assertIsInstance(volume_connectors[0],
                                   objects.VolumeConnector)
@@ -98,7 +99,8 @@ class TestVolumeConnectorObject(db_base.DbTestCase,
                 self.context, limit=4, sort_key='uuid', sort_dir='asc')
 
             mock_get_list.assert_called_once_with(
-                limit=4, marker=None, sort_key='uuid', sort_dir='asc')
+                limit=4, marker=None, sort_key='uuid', sort_dir='asc',
+                project=None)
             self.assertEqual([], volume_connectors)
 
     def test_list_by_node_id(self):
@@ -111,7 +113,8 @@ class TestVolumeConnectorObject(db_base.DbTestCase,
                 self.context, node_id, limit=10, sort_dir='desc')
 
             mock_get_list_by_node_id.assert_called_once_with(
-                node_id, limit=10, marker=None, sort_key=None, sort_dir='desc')
+                node_id, limit=10, marker=None, sort_key=None, sort_dir='desc',
+                project=None)
             self.assertThat(volume_connectors, HasLength(1))
             self.assertIsInstance(volume_connectors[0],
                                   objects.VolumeConnector)

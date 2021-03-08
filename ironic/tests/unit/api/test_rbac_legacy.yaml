@@ -1315,9 +1315,9 @@ volume_connectors_post_admin:
   path: '/v1/volume/connectors'
   method: post
   headers: *admin_headers
-  assert_status: 400
+  assert_status: 201
   body: &volume_connector_body
-    node_uuid: 68a552fb-dcd2-43bf-9302-e4c93287be16
+    node_uuid: 1be26c0b-03f2-4d2e-ae87-c02d7f33c123
     type: ip
     connector_id: 192.168.1.100
   deprecated: true
@@ -1349,7 +1349,7 @@ volume_volume_connector_id_get_member:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 volume_volume_connector_id_get_observer:
@@ -1375,7 +1375,7 @@ volume_volume_connector_id_patch_member:
   method: patch
   headers: *member_headers
   body: *connector_patch_body
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 volume_volume_connector_id_patch_observer:
@@ -1397,7 +1397,7 @@ volume_volume_connector_id_delete_member:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 volume_volume_connector_id_delete_observer:
@@ -1437,11 +1437,11 @@ volume_targets_post_admin:
   path: '/v1/volume/targets'
   method: post
   headers: *admin_headers
-  assert_status: 400
+  assert_status: 201
   body: &volume_target_body
-    node_uuid: 68a552fb-dcd2-43bf-9302-e4c93287be16
+    node_uuid: 1be26c0b-03f2-4d2e-ae87-c02d7f33c123
     volume_type: iscsi
-    boot_index: 0
+    boot_index: 4
     volume_id: 'test-id'
   deprecated: true
 
@@ -1472,7 +1472,7 @@ volume_volume_target_id_get_member:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 volume_volume_target_id_get_observer:
@@ -1493,12 +1493,12 @@ volume_volume_target_id_patch_admin:
   assert_status: 503
   deprecated: true
 
-volume_volume_target_id_patch_admin:
+volume_volume_target_id_patch_member:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: patch
   body: *volume_target_patch
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 volume_volume_target_id_patch_observer:
@@ -1520,7 +1520,7 @@ volume_volume_target_id_delete_member:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 volume_volume_target_id_delete_observer:
@@ -1564,7 +1564,7 @@ nodes_volume_connectors_get_member:
   path: '/v1/nodes/{node_ident}/volume/connectors'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_volume_connectors_get_observer:
@@ -1585,7 +1585,7 @@ nodes_volume_targets_get_member:
   path: '/v1/nodes/{node_ident}/volume/targets'
   method: get
   headers: *member_headers
-  assert_status: 403
+  assert_status: 404
   deprecated: true
 
 nodes_volume_targets_get_observer:

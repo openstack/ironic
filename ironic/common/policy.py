@@ -112,7 +112,18 @@ SYSTEM_OR_OWNER_READER = (
     '(' + SYSTEM_READER + ') or (' + PROJECT_OWNER_READER + ')'
 )
 
+SYSTEM_MEMBER_OR_OWNER_LESSEE_ADMIN = (
+    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_ADMIN + ') or (' + PROJECT_LESSEE_ADMIN + ')'  # noqa
+)
+
+
+# Special purpose aliases for things like "ability to access the API
+# as a reader, or permission checking that does not require node
+# owner relationship checking
 API_READER = ('role:reader')
+TARGET_PROPERTIES_READER = (
+    '(' + SYSTEM_READER + ') or (role:admin)'
+)
 
 default_policies = [
     # Legacy setting, don't remove. Likely to be overridden by operators who
@@ -1339,9 +1350,40 @@ roles.
 
 volume_policies = [
     policy.DocumentedRuleDefault(
-        name='baremetal:volume:get',
+        name='baremetal:volume:list_all',
         check_str=SYSTEM_READER,
-        scope_types=['system'],
+        scope_types=['system', 'project'],
+        description=('Retrieve a list of all Volume connector and target '
+                     'records'),
+        operations=[
+            {'path': '/volume/connectors', 'method': 'GET'},
+            {'path': '/volume/targets', 'method': 'GET'},
+            {'path': '/nodes/{node_ident}/volume/connectors', 'method': 'GET'},
+            {'path': '/nodes/{node_ident}/volume/targets', 'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_volume_get,
+        deprecated_reason=deprecated_volume_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:volume:list',
+        check_str=API_READER,
+        scope_types=['system', 'project'],
+        description='Retrieve a list of Volume connector and target records',
+        operations=[
+            {'path': '/volume/connectors', 'method': 'GET'},
+            {'path': '/volume/targets', 'method': 'GET'},
+            {'path': '/nodes/{node_ident}/volume/connectors', 'method': 'GET'},
+            {'path': '/nodes/{node_ident}/volume/targets', 'method': 'GET'}
+        ],
+        deprecated_rule=deprecated_volume_get,
+        deprecated_reason=deprecated_volume_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:volume:get',
+        check_str=SYSTEM_OR_PROJECT_READER,
+        scope_types=['system', 'project'],
         description='Retrieve Volume connector and target records',
         operations=[
             {'path': '/volume', 'method': 'GET'},
@@ -1360,8 +1402,8 @@ volume_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:volume:create',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_MEMBER_OR_OWNER_LESSEE_ADMIN,
+        scope_types=['system', 'project'],
         description='Create Volume connector and target records',
         operations=[
             {'path': '/volume/connectors', 'method': 'POST'},
@@ -1373,8 +1415,8 @@ volume_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:volume:delete',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_MEMBER_OR_OWNER_LESSEE_ADMIN,
+        scope_types=['system', 'project'],
         description='Delete Volume connector and target records',
         operations=[
             {'path': '/volume/connectors/{volume_connector_id}',
@@ -1388,14 +1430,29 @@ volume_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:volume:update',
-        check_str=SYSTEM_MEMBER,
-        scope_types=['system'],
+        check_str=SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN,
+        scope_types=['system', 'project'],
         description='Update Volume connector and target records',
         operations=[
             {'path': '/volume/connectors/{volume_connector_id}',
              'method': 'PATCH'},
             {'path': '/volume/targets/{volume_target_id}',
              'method': 'PATCH'}
+        ],
+        deprecated_rule=deprecated_volume_update,
+        deprecated_reason=deprecated_volume_reason,
+        deprecated_since=versionutils.deprecated.WALLABY
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:volume:view_target_properties',
+        check_str=TARGET_PROPERTIES_READER,
+        scope_types=['system', 'project'],
+        description='Ability to view volume target properties',
+        operations=[
+            {'path': '/volume/connectors/{volume_connector_id}',
+             'method': 'GET'},
+            {'path': '/volume/targets/{volume_target_id}',
+             'method': 'GET'}
         ],
         deprecated_rule=deprecated_volume_update,
         deprecated_reason=deprecated_volume_reason,

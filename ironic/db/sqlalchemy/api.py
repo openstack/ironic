@@ -169,6 +169,20 @@ def add_portgroup_filter_by_node_project(query, value):
                         | (models.Node.lessee == value))
 
 
+def add_volume_conn_filter_by_node_project(query, value):
+    query = query.join(models.Node,
+                       models.VolumeConnector.node_id == models.Node.id)
+    return query.filter((models.Node.owner == value)
+                        | (models.Node.lessee == value))
+
+
+def add_volume_target_filter_by_node_project(query, value):
+    query = query.join(models.Node,
+                       models.VolumeTarget.node_id == models.Node.id)
+    return query.filter((models.Node.owner == value)
+                        | (models.Node.lessee == value))
+
+
 def add_portgroup_filter(query, value):
     """Adds a portgroup-specific filter to a query.
 
@@ -1235,9 +1249,12 @@ class Connection(api.Connection):
                 % addresses)
 
     def get_volume_connector_list(self, limit=None, marker=None,
-                                  sort_key=None, sort_dir=None):
+                                  sort_key=None, sort_dir=None, project=None):
+        query = model_query(models.VolumeConnector)
+        if project:
+            query = add_volume_conn_filter_by_node_project(query, project)
         return _paginate_query(models.VolumeConnector, limit, marker,
-                               sort_key, sort_dir)
+                               sort_key, sort_dir, query)
 
     def get_volume_connector_by_id(self, db_id):
         query = model_query(models.VolumeConnector).filter_by(id=db_id)
@@ -1256,8 +1273,10 @@ class Connection(api.Connection):
 
     def get_volume_connectors_by_node_id(self, node_id, limit=None,
                                          marker=None, sort_key=None,
-                                         sort_dir=None):
+                                         sort_dir=None, project=None):
         query = model_query(models.VolumeConnector).filter_by(node_id=node_id)
+        if project:
+            add_volume_conn_filter_by_node_project(query, project)
         return _paginate_query(models.VolumeConnector, limit, marker,
                                sort_key, sort_dir, query)
 
@@ -1315,9 +1334,12 @@ class Connection(api.Connection):
                 raise exception.VolumeConnectorNotFound(connector=ident)
 
     def get_volume_target_list(self, limit=None, marker=None,
-                               sort_key=None, sort_dir=None):
+                               sort_key=None, sort_dir=None, project=None):
+        query = model_query(models.VolumeTarget)
+        if project:
+            query = add_volume_target_filter_by_node_project(query, project)
         return _paginate_query(models.VolumeTarget, limit, marker,
-                               sort_key, sort_dir)
+                               sort_key, sort_dir, query)
 
     def get_volume_target_by_id(self, db_id):
         query = model_query(models.VolumeTarget).filter_by(id=db_id)
@@ -1334,15 +1356,20 @@ class Connection(api.Connection):
             raise exception.VolumeTargetNotFound(target=uuid)
 
     def get_volume_targets_by_node_id(self, node_id, limit=None, marker=None,
-                                      sort_key=None, sort_dir=None):
+                                      sort_key=None, sort_dir=None,
+                                      project=None):
         query = model_query(models.VolumeTarget).filter_by(node_id=node_id)
+        if project:
+            add_volume_target_filter_by_node_project(query, project)
         return _paginate_query(models.VolumeTarget, limit, marker, sort_key,
                                sort_dir, query)
 
     def get_volume_targets_by_volume_id(self, volume_id, limit=None,
                                         marker=None, sort_key=None,
-                                        sort_dir=None):
+                                        sort_dir=None, project=None):
         query = model_query(models.VolumeTarget).filter_by(volume_id=volume_id)
+        if project:
+            query = add_volume_target_filter_by_node_project(query, project)
         return _paginate_query(models.VolumeTarget, limit, marker, sort_key,
                                sort_dir, query)
 

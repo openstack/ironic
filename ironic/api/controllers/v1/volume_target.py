@@ -27,6 +27,7 @@ from ironic.api import method
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import policy
 from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
@@ -119,9 +120,22 @@ class VolumeTargetsController(rest.RestController):
         super(VolumeTargetsController, self).__init__()
         self.parent_node_ident = node_ident
 
+    def _redact_target_properties(self, target):
+        # Filters what could contain sensitive information. For iSCSI
+        # volumes this can include iscsi connection details which may
+        # be sensitive.
+        redacted = ('** Value redacted: Requires permission '
+                    'baremetal:volume:view_target_properties '
+                    'access. Permission denied. **')
+        redacted_message = {
+            'redacted_contents': redacted
+        }
+        target.properties = redacted_message
+
     def _get_volume_targets_collection(self, node_ident, marker, limit,
                                        sort_key, sort_dir, resource_url=None,
-                                       fields=None, detail=None):
+                                       fields=None, detail=None,
+                                       project=None):
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
 
@@ -134,7 +148,6 @@ class VolumeTargetsController(rest.RestController):
             raise exception.InvalidParameterValue(
                 _("The sort_key value %(key)s is an invalid field for "
                   "sorting") % {'key': sort_key})
-
         node_ident = self.parent_node_ident or node_ident
 
         if node_ident:
@@ -145,12 +158,19 @@ class VolumeTargetsController(rest.RestController):
             node = api_utils.get_rpc_node(node_ident)
             targets = objects.VolumeTarget.list_by_node_id(
                 api.request.context, node.id, limit, marker_obj,
-                sort_key=sort_key, sort_dir=sort_dir)
+                sort_key=sort_key, sort_dir=sort_dir, project=project)
         else:
             targets = objects.VolumeTarget.list(api.request.context,
                                                 limit, marker_obj,
                                                 sort_key=sort_key,
-                                                sort_dir=sort_dir)
+                                                sort_dir=sort_dir,
+                                                project=project)
+        cdict = api.request.context.to_policy_values()
+        if not policy.check_policy('baremetal:volume:view_target_properties',
+                                   cdict, cdict):
+            for target in targets:
+                self._redact_target_properties(target)
+
         return list_convert_with_links(targets, limit,
                                        url=resource_url,
                                        fields=fields,
@@ -165,7 +185,7 @@ class VolumeTargetsController(rest.RestController):
                    sort_dir=args.string, fields=args.string_list,
                    detail=args.boolean)
     def get_all(self, node=None, marker=None, limit=None, sort_key='id',
-                sort_dir='asc', fields=None, detail=None):
+                sort_dir='asc', fields=None, detail=None, project=None):
         """Retrieve a list of volume targets.
 
         :param node: UUID or name of a node, to get only volume targets
@@ -180,6 +200,8 @@ class VolumeTargetsController(rest.RestController):
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         :param detail: Optional, whether to retrieve with detail.
+        :param project: Optional, an associated node project (owner,
+                        or lessee) to filter the query upon.
 
         :returns: a list of volume targets, or an empty list if no volume
                   target is found.
@@ -188,8 +210,8 @@ class VolumeTargetsController(rest.RestController):
         :raises: InvalidParameterValue if sort key is invalid for sorting.
         :raises: InvalidParameterValue if both fields and detail are specified.
         """
-        api_utils.check_policy('baremetal:volume:get')
-
+        project = api_utils.check_volume_list_policy(
+            parent_node=self.parent_node_ident)
         if fields is None and not detail:
             fields = _DEFAULT_RETURN_FIELDS
 
@@ -202,7 +224,8 @@ class VolumeTargetsController(rest.RestController):
                                                    sort_key, sort_dir,
                                                    resource_url=resource_url,
                                                    fields=fields,
-                                                   detail=detail)
+                                                   detail=detail,
+                                                   project=project)
 
     @METRICS.timer('VolumeTargetsController.get_one')
     @method.expose()
@@ -220,13 +243,20 @@ class VolumeTargetsController(rest.RestController):
                  node.
         :raises: VolumeTargetNotFound if no volume target with this UUID exists
         """
-        api_utils.check_policy('baremetal:volume:get')
+
+        rpc_target, _ = api_utils.check_volume_policy_and_retrieve(
+            'baremetal:volume:get',
+            target_uuid,
+            target=True)
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
 
-        rpc_target = objects.VolumeTarget.get_by_uuid(
-            api.request.context, target_uuid)
+        cdict = api.request.context.to_policy_values()
+        if not policy.check_policy('baremetal:volume:view_target_properties',
+                                   cdict, cdict):
+            self._redact_target_properties(rpc_target)
+
         return convert_with_links(rpc_target, fields=fields)
 
     @METRICS.timer('VolumeTargetsController.post')
@@ -248,7 +278,23 @@ class VolumeTargetsController(rest.RestController):
                  UUID exists
         """
         context = api.request.context
-        api_utils.check_policy('baremetal:volume:create')
+        raise_node_not_found = False
+        node = None
+        owner = None
+        lessee = None
+        node_uuid = target.get('node_uuid')
+        try:
+            node = api_utils.replace_node_uuid_with_id(target)
+            owner = node.owner
+            lessee = node.lessee
+        except exception.NotFound:
+            raise_node_not_found = True
+        api_utils.check_owner_policy('node', 'baremetal:volume:create',
+                                     owner, lessee=lessee,
+                                     conceal_node=False)
+        if raise_node_not_found:
+            raise exception.InvalidInput(fieldname='node_uuid',
+                                         value=node_uuid)
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
@@ -256,9 +302,6 @@ class VolumeTargetsController(rest.RestController):
         # NOTE(hshiina): UUID is mandatory for notification payload
         if not target.get('uuid'):
             target['uuid'] = uuidutils.generate_uuid()
-
-        node = api_utils.replace_node_uuid_with_id(target)
-
         new_target = objects.VolumeTarget(context, **target)
 
         notify.emit_start_notification(context, new_target, 'create',
@@ -301,7 +344,10 @@ class VolumeTargetsController(rest.RestController):
                  volume target is not powered off.
         """
         context = api.request.context
-        api_utils.check_policy('baremetal:volume:update')
+
+        api_utils.check_volume_policy_and_retrieve('baremetal:volume:update',
+                                                   target_uuid,
+                                                   target=True)
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()
@@ -327,6 +373,10 @@ class VolumeTargetsController(rest.RestController):
 
         try:
             if target_dict['node_uuid'] != rpc_node.uuid:
+
+                # TODO(TheJulia): I guess the intention is to
+                # permit the mapping to be changed
+                # should we even allow this at all?
                 rpc_node = objects.Node.get(
                     api.request.context, target_dict['node_uuid'])
         except exception.NodeNotFound as e:
@@ -374,7 +424,10 @@ class VolumeTargetsController(rest.RestController):
                  volume target is not powered off.
         """
         context = api.request.context
-        api_utils.check_policy('baremetal:volume:delete')
+
+        api_utils.check_volume_policy_and_retrieve('baremetal:volume:delete',
+                                                   target_uuid,
+                                                   target=True)
 
         if self.parent_node_ident:
             raise exception.OperationNotPermitted()

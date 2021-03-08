@@ -108,7 +108,7 @@ class VolumeConnector(base.IronicObject,
     # @object_base.remotable_classmethod
     @classmethod
     def list(cls, context, limit=None, marker=None,
-             sort_key=None, sort_dir=None):
+             sort_key=None, sort_dir=None, project=None):
         """Return a list of VolumeConnector objects.
 
         :param context: security context
@@ -116,13 +116,15 @@ class VolumeConnector(base.IronicObject,
         :param marker: pagination marker for large data sets
         :param sort_key: column to sort results by
         :param sort_dir: direction to sort. "asc" or "desc".
+        :param project: The associated node project to search with.
         :returns: a list of :class:`VolumeConnector` objects
         :raises: InvalidParameterValue if sort_key does not exist
         """
         db_connectors = cls.dbapi.get_volume_connector_list(limit=limit,
                                                             marker=marker,
                                                             sort_key=sort_key,
-                                                            sort_dir=sort_dir)
+                                                            sort_dir=sort_dir,
+                                                            project=project)
         return cls._from_db_object_list(context, db_connectors)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -131,7 +133,7 @@ class VolumeConnector(base.IronicObject,
     # @object_base.remotable_classmethod
     @classmethod
     def list_by_node_id(cls, context, node_id, limit=None, marker=None,
-                        sort_key=None, sort_dir=None):
+                        sort_key=None, sort_dir=None, project=None):
         """Return a list of VolumeConnector objects related to a given node ID.
 
         :param context: security context
@@ -140,6 +142,8 @@ class VolumeConnector(base.IronicObject,
         :param marker: pagination marker for large data sets
         :param sort_key: column to sort results by
         :param sort_dir: direction to sort. "asc" or "desc".
+        :param project: The associated node project to search with.
+        :returns: a list of :class:`VolumeConnector` objects
         :returns: a list of :class:`VolumeConnector` objects
         :raises: InvalidParameterValue if sort_key does not exist
         """
@@ -148,7 +152,8 @@ class VolumeConnector(base.IronicObject,
             limit=limit,
             marker=marker,
             sort_key=sort_key,
-            sort_dir=sort_dir)
+            sort_dir=sort_dir,
+            project=project)
         return cls._from_db_object_list(context, db_connectors)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable

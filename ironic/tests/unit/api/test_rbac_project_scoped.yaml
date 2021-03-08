@@ -1884,7 +1884,6 @@ owner_reader_can_list_volume_connectors:
   assert_status: 200
   assert_list_length:
     connectors: 2
-  skip_reason: policy not implemented
 
 lessee_reader_can_list_volume_connectors:
   path: '/v1/volume/connectors'
@@ -1893,27 +1892,24 @@ lessee_reader_can_list_volume_connectors:
   assert_status: 200
   assert_list_length:
     connectors: 1
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_get_connector_list:
-  path: '/v1/volume/targets'
+  path: '/v1/volume/connectors'
   method: get
   headers: *third_party_admin_headers
   assert_status: 200
   assert_list_length:
     connectors: 0
-  skip_reason: policy not implemented
 
 owner_admin_can_post_volume_connector:
   path: '/v1/volume/connectors'
   method: post
-  headers: *owner_reader_headers
-  assert_status: 400
+  headers: *owner_admin_headers
+  assert_status: 201
   body: &volume_connector_body
-    node_uuid: 68a552fb-dcd2-43bf-9302-e4c93287be16
+    node_uuid: 1ab63b9e-66d7-4cd7-8618-dddd0f9f7881
     type: ip
     connector_id: 192.168.1.100
-  skip_reason: policy not implemented
 
 lessee_admin_cannot_post_volume_connector:
   path: '/v1/volume/connectors'
@@ -1921,7 +1917,6 @@ lessee_admin_cannot_post_volume_connector:
   headers: *lessee_admin_headers
   assert_status: 403
   body: *volume_connector_body
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_post_volume_connector:
   path: '/v1/volume/connectors'
@@ -1929,28 +1924,24 @@ third_party_admin_cannot_post_volume_connector:
   headers: *third_party_admin_headers
   assert_status: 403
   body: *volume_connector_body
-  skip_reason: policy not implemented
 
 owner_reader_can_get_volume_connector:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: get
   headers: *owner_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 lessee_reader_can_get_volume_connector:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: get
   headers: *lessee_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_get_volume_connector:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: get
   headers: *third_party_admin_headers
   assert_status: 404
-  skip_reason: policy not implemented
 
 lessee_member_cannot_patch_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
@@ -1961,7 +1952,6 @@ lessee_member_cannot_patch_volume_connectors:
       path: /extra
       value: {'test': 'testing'}
   assert_status: 403
-  skip_reason: policy not implemented
 
 owner_admin_can_patch_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
@@ -1969,7 +1959,6 @@ owner_admin_can_patch_volume_connectors:
   headers: *owner_member_headers
   body: *connector_patch_body
   assert_status: 503
-  skip_reason: policy not implemented
 
 lessee_admin_cannot_patch_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
@@ -1977,7 +1966,6 @@ lessee_admin_cannot_patch_volume_connectors:
   headers: *owner_member_headers
   body: *connector_patch_body
   assert_status: 503
-  skip_reason: policy not implemented
 
 owner_member_can_patch_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
@@ -1985,7 +1973,6 @@ owner_member_can_patch_volume_connectors:
   headers: *owner_member_headers
   body: *connector_patch_body
   assert_status: 503
-  skip_reason: policy not implemented
 
 lessee_member_cannot_patch_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
@@ -1993,7 +1980,6 @@ lessee_member_cannot_patch_volume_connectors:
   headers: *lessee_member_headers
   body: *connector_patch_body
   assert_status: 403
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_patch_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
@@ -2001,28 +1987,24 @@ third_party_admin_cannot_patch_volume_connectors:
   headers: *third_party_admin_headers
   body: *connector_patch_body
   assert_status: 404
-  skip_reason: policy not implemented
 
 owner_admin_can_delete_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
   headers: *owner_reader_headers
   assert_status: 403
-  skip_reason: policy not implemented
 
 lessee_admin_cannot_delete_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
   headers: *lessee_reader_headers
   assert_status: 403
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_delete_volume_connector:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
   headers: *third_party_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 404
 
 # Volume targets
 
@@ -2034,7 +2016,6 @@ owner_reader_can_get_targets:
   assert_status: 200
   assert_list_length:
     targets: 2
-  skip_reason: policy not implemented
 
 lesse_reader_can_get_targets:
   path: '/v1/volume/targets'
@@ -2043,7 +2024,6 @@ lesse_reader_can_get_targets:
   assert_status: 200
   assert_list_length:
     targets: 1
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_get_target_list:
   path: '/v1/volume/targets'
@@ -2052,56 +2032,58 @@ third_party_admin_cannot_get_target_list:
   assert_status: 200
   assert_list_length:
     targets: 0
-  skip_reason: policy not implemented
 
 owner_reader_can_get_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: get
   headers: *owner_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
+  assert_dict_contains:
+    # This helps assert that the field has been redacted.
+    properties:
+      redacted_contents: '** Value redacted: Requires permission baremetal:volume:view_target_properties access. Permission denied. **'
+
 
 lessee_reader_can_get_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: get
   headers: *lessee_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_get_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: get
   headers: *third_party_admin_headers
   assert_status: 404
-  skip_reason: policy not implemented
 
 owner_admin_create_volume_target:
   path: '/v1/volume/targets'
   method: post
   headers: *owner_admin_headers
-  assert_status: 400
+  assert_status: 201
   body: &volume_target_body
-    node_uuid: 68a552fb-dcd2-43bf-9302-e4c93287be16
+    node_uuid: 1ab63b9e-66d7-4cd7-8618-dddd0f9f7881
     volume_type: iscsi
-    boot_index: 0
+    boot_index: 2
     volume_id: 'test-id'
-  skip_reason: policy not implemented
 
 lessee_admin_create_volume_target:
   path: '/v1/volume/targets'
   method: post
   headers: *owner_admin_headers
-  assert_status: 400
-  body: *volume_target_body
-  skip_reason: policy not implemented
+  assert_status: 201
+  body:
+    node_uuid: 38d5abed-c585-4fce-a57e-a2ffc2a2ec6f 
+    volume_type: iscsi
+    boot_index: 2
+    volume_id: 'test-id2'
 
 third_party_admin_cannot_create_volume_target:
   path: '/v1/volume/targets'
   method: post
-  headers: *owner_admin_headers
-  assert_status: 400
+  headers: *third_party_admin_headers
+  assert_status: 403
   body: *volume_target_body
-  skip_reason: policy not implemented
 
 owner_member_can_patch_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
@@ -2110,16 +2092,22 @@ owner_member_can_patch_volume_target:
     - op: replace
       path: /extra
       value: {'test': 'testing'}
-  assert_status: 403
-  skip_reason: policy not implemented
+  headers: *owner_member_headers
+  assert_status: 503
 
-lessee_member_can_patch_volume_target:
+lessee_admin_can_patch_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: patch
+  body: *volume_target_patch
+  headers: *lessee_admin_headers
+  assert_status: 503
+
+lessee_member_cannot_patch_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: patch
   body: *volume_target_patch
   headers: *lessee_member_headers
-  assert_status: 503
-  skip_reason: policy not implemented
+  assert_status: 403
 
 third_party_admin_cannot_patch_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
@@ -2127,86 +2115,74 @@ third_party_admin_cannot_patch_volume_target:
   body: *volume_target_patch
   headers: *third_party_admin_headers
   assert_status: 404
-  skip_reason: policy not implemented
 
 owner_admin_can_delete_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *owner_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 503
 
 lessee_admin_can_delete_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *lessee_admin_headers
-  assert_status: 201
-  skip_reason: policy not implemented
+  assert_status: 503
 
 owner_member_cannot_delete_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *owner_member_headers
   assert_status: 403
-  skip_reason: policy not implemented
 
 lessee_member_cannot_delete_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *lessee_member_headers
   assert_status: 403
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_delete_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *third_party_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 404
 
 # Get Volumes by Node - https://docs.openstack.org/api-ref/baremetal/#listing-volume-resources-by-node-nodes-volume
 
 owner_reader_can_get_volume_connectors:
-  path: '/v1/nodes/{node_ident}/volume/connectors'
+  path: '/v1/nodes/{owner_node_ident}/volume/connectors'
   method: get
   headers: *owner_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 lessee_reader_can_get_node_volume_connectors:
-  path: '/v1/nodes/{node_ident}/volume/connectors'
+  path: '/v1/nodes/{lessee_node_ident}/volume/connectors'
   method: get
   headers: *lessee_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 third_party_admin_cannot_get_node_volume_connectors:
-  path: '/v1/nodes/{node_ident}/volume/connectors'
+  path: '/v1/nodes/{lessee_node_ident}/volume/connectors'
   method: get
   headers: *third_party_admin_headers
-  assert_status: 200
-  skip_reason: policy not implemented
+  assert_status: 404
 
 owner_reader_can_get_node_volume_targets:
-  path: '/v1/nodes/{node_ident}/volume/targets'
+  path: '/v1/nodes/{owner_node_ident}/volume/targets'
   method: get
   headers: *owner_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 lessee_reader_can_get_node_volume_targets:
-  path: '/v1/nodes/{node_ident}/volume/targets'
+  path: '/v1/nodes/{lessee_node_ident}/volume/targets'
   method: get
   headers: *lessee_reader_headers
   assert_status: 200
-  skip_reason: policy not implemented
 
 third_part_admin_cannot_read_node_volume_targets:
-  path: '/v1/nodes/{node_ident}/volume/targets'
+  path: '/v1/nodes/{lessee_node_ident}/volume/targets'
   method: get
-  headers: *owner_reader_headers
+  headers: *third_party_admin_headers
   assert_status: 404
-  skip_reason: policy not implemented
 
 # Drivers - https://docs.openstack.org/api-ref/baremetal/#drivers-drivers
 

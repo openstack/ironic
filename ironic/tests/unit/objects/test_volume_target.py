@@ -83,7 +83,8 @@ class TestVolumeTargetObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
                 self.context, limit=4, sort_key='uuid', sort_dir='asc')
 
             mock_get_list.assert_called_once_with(
-                limit=4, marker=None, sort_key='uuid', sort_dir='asc')
+                limit=4, marker=None, sort_key='uuid', sort_dir='asc',
+                project=None)
             self.assertThat(volume_targets, HasLength(1))
             self.assertIsInstance(volume_targets[0],
                                   objects.VolumeTarget)
@@ -97,7 +98,8 @@ class TestVolumeTargetObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
                 self.context, limit=4, sort_key='uuid', sort_dir='asc')
 
             mock_get_list.assert_called_once_with(
-                limit=4, marker=None, sort_key='uuid', sort_dir='asc')
+                limit=4, marker=None, sort_key='uuid', sort_dir='asc',
+                project=None)
             self.assertEqual([], volume_targets)
 
     def test_list_by_node_id(self):
@@ -109,7 +111,8 @@ class TestVolumeTargetObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
                 self.context, node_id, limit=10, sort_dir='desc')
 
             mock_get_list_by_node_id.assert_called_once_with(
-                node_id, limit=10, marker=None, sort_key=None, sort_dir='desc')
+                node_id, limit=10, marker=None, sort_key=None, sort_dir='desc',
+                project=None)
             self.assertThat(volume_targets, HasLength(1))
             self.assertIsInstance(volume_targets[0], objects.VolumeTarget)
             self.assertEqual(self.context, volume_targets[0]._context)
@@ -124,7 +127,7 @@ class TestVolumeTargetObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
             mock_get_list_by_volume_id.assert_called_once_with(
                 volume_id, limit=10, marker=None,
-                sort_key=None, sort_dir='desc')
+                sort_key=None, sort_dir='desc', project=None)
             self.assertThat(volume_targets, HasLength(1))
             self.assertIsInstance(volume_targets[0], objects.VolumeTarget)
             self.assertEqual(self.context, volume_targets[0]._context)
