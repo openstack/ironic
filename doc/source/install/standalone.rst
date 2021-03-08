@@ -307,6 +307,26 @@ Populating instance_info
     baremetal node set $NODE_UUID \
         --instance-info image_rootfs_uuid=<uuid>
 
+Overriding a hardware interface
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Non-admins with temporary access to a node, may wish to specify different node
+interfaces. However, allowing them to set these interface values directly on
+the node is problematic, as there is no automated way to ensure that the
+original interface values are restored.
+
+In order to temporarily override a hardware interface, simply set the
+appropriate value in ``instance_info``. For example, if you'd like to
+override a node's storage interface, run the following::
+
+  baremetal node set $NODE_UUID \
+    --instance-info storage_interface=cinder
+
+``instance_info`` values persist until after a node is cleaned.
+
+.. note::
+   This feature is available starting with the Wallaby release.
+
 Deployment
 ----------
 
