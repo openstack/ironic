@@ -111,6 +111,15 @@ opts = [
                       'or as the octal number ``0o644`` in Python. '
                       'This setting must be set to the octal number '
                       'representation, meaning starting with ``0o``.')),
+    cfg.StrOpt('kernel_append_params',
+               default='nofb nomodeset vga=normal',
+               mutable=True,
+               help=_('Additional kernel parameters to pass down to the '
+                      'instance kernel. These parameters can be consumed by '
+                      'the kernel or by the applications by reading '
+                      '/proc/cmdline. Mind severe cmdline size limit! Can be '
+                      'overridden by `instance_info/kernel_append_params` '
+                      'property.')),
 ]
 
 

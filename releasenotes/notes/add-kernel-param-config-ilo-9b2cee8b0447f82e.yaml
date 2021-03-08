@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Adding a new config parameter ``[ilo]/kernel_append_param `` to
+    ``ilo-virtual-media`` and ``ilo-uefi-https`` boot interfaces of
+    ``ilo`` and ``ilo5`` hardware types.
+upgrade:
+  - |
+    The ``ilo-virtual-media`` and ``ilo-uefi-https`` boot interfaces does
+    not use ``[pxe]pxe_append_params`` anymore. To pass kernel parameters
+    use new configuration parameter ``[ilo]/kernel_append_param``.
