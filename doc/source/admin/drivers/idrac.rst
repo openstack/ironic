@@ -32,7 +32,8 @@ The ``idrac`` hardware type supports the following Ironic interfaces:
 * `Management Interface`_: Boot device and firmware management
 * Power Interface: Power management
 * `RAID Interface`_: RAID controller and disk management
-* `Vendor Interface`_: BIOS management
+* `Vendor Interface`_: BIOS management (WSMAN) and eject virtual media
+  (Redfish)
 
 Prerequisites
 -------------
@@ -88,7 +89,7 @@ following configuration:
     enabled_management_interfaces=idrac-redfish
     enabled_power_interfaces=idrac-redfish
     enabled_raid_interfaces=idrac-wsman
-    enabled_vendor_interfaces=idrac-wsman
+    enabled_vendor_interfaces=idrac-redfish
 
 Below is the list of supported interface implementations in priority
 order:
@@ -108,7 +109,8 @@ Interface            Supported Implementations
 ``raid``             ``idrac-wsman``, ``idrac``, ``no-raid``
 ``rescue``           ``no-rescue``, ``agent``
 ``storage``          ``noop``, ``cinder``, ``external``
-``vendor``           ``idrac-wsman``, ``idrac``, ``no-vendor``
+``vendor``           ``idrac-wsman``, ``idrac``, ``idrac-redfish``,
+                     ``no-vendor``
 ================     ===================================================
 
 .. NOTE::
@@ -179,7 +181,7 @@ hardware type using Redfish for all interfaces:
         --management-interface idrac-redfish \
         --power-interface idrac-redfish \
         --raid-interface no-raid \
-        --vendor-interface no-vendor
+        --vendor-interface idrac-redfish
 
 The following command enrolls a bare metal node with the ``idrac``
 hardware type assuming a mix of Redfish and WSMAN interfaces are used:
@@ -410,7 +412,10 @@ be used to fetch the information directly from the Dell bare metal:
 Vendor Interface
 ================
 
-Dell iDRAC BIOS management is available through the Ironic vendor
+idrac-wsman
+-----------
+
+Dell iDRAC BIOS management is available through the Ironic WSMAN vendor
 passthru interface.
 
 ========================  ============   ======================================
@@ -452,7 +457,7 @@ Method Name               HTTP Method    Description
 
 
 Examples
---------
+^^^^^^^^
 
 Get BIOS Config
 ~~~~~~~~~~~~~~~
@@ -574,7 +579,7 @@ The abandon command does not provide a response body.
 
 
 Change Boot Mode
-----------------
+^^^^^^^^^^^^^^^^
 
 The boot mode of the iDRAC can be changed to:
 
@@ -605,7 +610,8 @@ The UEFI boot mode offers:
 * Consolidated firmware user interface
 * Enhanced resource allocation for boot device firmware
 
-The boot mode can be changed via the vendor passthru interface as follows:
+The boot mode can be changed via the WSMAN vendor passthru interface as
+follows:
 
 .. code-block:: bash
 
@@ -622,6 +628,22 @@ The boot mode can be changed via the vendor passthru interface as follows:
 
   baremetal node passthru call <node> commit_bios_config \
     --arg "reboot=true"
+
+idrac-redfish
+-------------
+
+Through the ``idrac-redfish`` vendor passthru interface these methods are
+available:
+
+================  ============   ==============================================
+Method Name       HTTP Method    Description
+================  ============   ==============================================
+``eject_media``   ``POST``       Eject a virtual media device. If no device is
+                                 provided then all attached devices will be
+                                 ejected. Optional argument: ``boot_device`` -
+                                 the boot device to eject, either, ``cd``,
+                                 ``dvd``, ``usb`` or ``floppy``.
+================  ============   ==============================================
 
 Known Issues
 ============
@@ -653,11 +675,12 @@ settings.
 .. _Ironic_RAID: https://docs.openstack.org/ironic/latest/admin/raid.html
 .. _iDRAC: https://www.dell.com/idracmanuals
 
-Vendor passthru timeout
------------------------
+WSMAN vendor passthru timeout
+-----------------------------
 
-When iDRAC is not ready and executing vendor passthru commands, they take more
-time as waiting for iDRAC to become ready again and then time out, for example:
+When iDRAC is not ready and executing WSMAN vendor passthru commands, they take
+more time as waiting for iDRAC to become ready again and then time out,
+for example:
 
 .. code-block:: bash
 

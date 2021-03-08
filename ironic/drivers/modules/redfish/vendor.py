@@ -72,7 +72,7 @@ class RedfishVendorPassthru(base.VendorInterface):
     @METRICS.timer('RedfishVendorPassthru.eject_vmedia')
     @base.passthru(['POST'],
                    description=_("Eject a virtual media device. If no device "
-                                 "is provided than all attached devices will "
+                                 "is provided then all attached devices will "
                                  "be ejected. "
                                  "Optional arguments: "
                                  "'boot_device' - the boot device to eject, "
