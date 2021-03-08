@@ -14,6 +14,7 @@
 #    under the License.
 
 from ironic.drivers import generic
+from ironic.drivers.modules import agent
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import noop
@@ -24,6 +25,7 @@ from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import inspect as redfish_inspect
 from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic.drivers.modules.redfish import power as redfish_power
+from ironic.drivers.modules.redfish import raid as redfish_raid
 from ironic.drivers.modules.redfish import vendor as redfish_vendor
 
 
@@ -63,3 +65,8 @@ class RedfishHardware(generic.GenericHardware):
     def supported_vendor_interfaces(self):
         """List of supported vendor interfaces."""
         return [redfish_vendor.RedfishVendorPassthru, noop.NoVendor]
+
+    @property
+    def supported_raid_interfaces(self):
+        """List of supported raid interfaces."""
+        return [redfish_raid.RedfishRAID, noop.NoRAID, agent.AgentRAID]

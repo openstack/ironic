@@ -285,6 +285,24 @@ def get_system(node):
         raise exception.RedfishError(error=e)
 
 
+def get_task_monitor(node, uri):
+    """Get a TaskMonitor for a node.
+
+    :param node: an Ironic node object
+    :param uri: the URI of a TaskMonitor
+    :raises: RedfishConnectionError when it fails to connect to Redfish
+    :raises: RedfishError when the TaskMonitor is not available in Redfish
+    """
+
+    try:
+        return _get_connection(node, lambda conn: conn.get_task_monitor(uri))
+    except sushy.exceptions.ResourceNotFoundError as e:
+        LOG.error('The Redfish TaskMonitor "%(uri)s" was not found for '
+                  'node %(node)s. Error %(error)s',
+                  {'uri': uri, 'node': node.uuid, 'error': e})
+        raise exception.RedfishError(error=e)
+
+
 def _get_connection(node, lambda_fun, *args):
     """Get a Redfish connection to a node.
 

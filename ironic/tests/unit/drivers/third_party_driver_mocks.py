@@ -218,12 +218,14 @@ if not sushy:
         VIRTUAL_MEDIA_CD='cd',
         VIRTUAL_MEDIA_FLOPPY='floppy',
         VIRTUAL_MEDIA_USBSTICK='usb',
+        APPLY_TIME_IMMEDIATE='immediate',
         APPLY_TIME_ON_RESET='on reset',
         TASK_STATE_COMPLETED='completed',
         HEALTH_OK='ok',
         HEALTH_WARNING='warning',
         SECURE_BOOT_RESET_KEYS_TO_DEFAULT="ResetAllKeysToDefault",
         SECURE_BOOT_RESET_KEYS_DELETE_ALL="DeleteAllKeys",
+        VOLUME_TYPE_RAW_DEVICE='rawdevice'
     )
 
     sys.modules['sushy'] = sushy

@@ -226,6 +226,25 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         self.assertEqual(fake_conn.get_system.call_count,
                          redfish_utils.CONF.redfish.connection_attempts)
 
+    def test_get_task_monitor(self):
+        redfish_utils._get_connection = mock.Mock()
+        fake_monitor = mock.Mock()
+        redfish_utils._get_connection.return_value = fake_monitor
+        uri = '/redfish/v1/TaskMonitor/FAKEMONITOR'
+
+        response = redfish_utils.get_task_monitor(self.node, uri)
+
+        self.assertEqual(fake_monitor, response)
+
+    def test_get_task_monitor_error(self):
+        redfish_utils._get_connection = mock.Mock()
+        uri = '/redfish/v1/TaskMonitor/FAKEMONITOR'
+        redfish_utils._get_connection.side_effect =\
+            sushy.exceptions.ResourceNotFoundError('GET', uri, mock.Mock())
+
+        self.assertRaises(exception.RedfishError,
+                          redfish_utils.get_task_monitor, self.node, uri)
+
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
                 'SessionCache._sessions', {})

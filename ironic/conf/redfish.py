@@ -90,6 +90,16 @@ opts = [
                default=60,
                help=_('Number of seconds to wait between checking for '
                       'failed firmware update tasks')),
+    cfg.IntOpt('raid_config_status_interval',
+               min=0,
+               default=60,
+               help=_('Number of seconds to wait between checking for '
+                      'completed raid config tasks')),
+    cfg.IntOpt('raid_config_fail_interval',
+               min=0,
+               default=60,
+               help=_('Number of seconds to wait between checking for '
+                      'failed raid config tasks')),
 ]
 
 
