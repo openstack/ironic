@@ -56,6 +56,15 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
             self.context,
             driver_info=INFO_DICT)
         self.info = ipmi._parse_driver_info(self.node)
+        self.mock_stdout = tempfile.NamedTemporaryFile(delete=False)
+        self.mock_stderr = tempfile.NamedTemporaryFile(delete=False)
+
+    def tearDown(self):
+        super(ConsoleUtilsTestCase, self).tearDown()
+        self.mock_stdout.close()
+        self.mock_stderr.close()
+        os.remove(self.mock_stdout.name)
+        os.remove(self.mock_stderr.name)
 
     def test__get_console_pid_dir(self):
         pid_dir = '/tmp/pid_dir'
@@ -269,7 +278,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, 'open',
                        mock.mock_open(read_data='12345\n'))
     @mock.patch.object(os.path, 'exists', autospec=True)
-    @mock.patch.object(subprocess, 'Popen')
+    @mock.patch.object(subprocess, 'Popen', autospec=True)
     @mock.patch.object(psutil, 'pid_exists', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
@@ -280,8 +289,15 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                                        mock_popen,
                                        mock_path_exists, mock_fcntl):
         mock_popen.return_value.poll.return_value = 0
-        mock_popen.return_value.stdout.return_value.fileno.return_value = 0
-        mock_popen.return_value.stderr.return_value.fileno.return_value = 1
+
+        self.mock_stdout.write(b'0')
+        self.mock_stdout.seek(0)
+        mock_popen.return_value.stdout = self.mock_stdout
+
+        self.mock_stderr.write(b'1')
+        self.mock_stderr.seek(0)
+        mock_popen.return_value.stderr = self.mock_stderr
+
         mock_pid_exists.return_value = True
         mock_path_exists.return_value = True
 
@@ -301,7 +317,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, 'open',
                        mock.mock_open(read_data='12345\n'))
     @mock.patch.object(os.path, 'exists', autospec=True)
-    @mock.patch.object(subprocess, 'Popen')
+    @mock.patch.object(subprocess, 'Popen', autospec=True)
     @mock.patch.object(psutil, 'pid_exists', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
@@ -314,8 +330,15 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         # no existing PID file before starting
         mock_stop.side_effect = exception.NoConsolePid('/tmp/blah')
         mock_popen.return_value.poll.return_value = 0
-        mock_popen.return_value.stdout.return_value.fileno.return_value = 0
-        mock_popen.return_value.stderr.return_value.fileno.return_value = 1
+
+        self.mock_stdout.write(b'0')
+        self.mock_stdout.seek(0)
+        mock_popen.return_value.stdout = self.mock_stdout
+
+        self.mock_stderr.write(b'1')
+        self.mock_stderr.seek(0)
+        mock_popen.return_value.stderr = self.mock_stderr
+
         mock_pid_exists.return_value = True
         mock_path_exists.return_value = True
 
@@ -334,7 +357,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(time, 'sleep', autospec=True)
     @mock.patch.object(os, 'read', autospec=True)
     @mock.patch.object(fcntl, 'fcntl', autospec=True)
-    @mock.patch.object(subprocess, 'Popen')
+    @mock.patch.object(subprocess, 'Popen', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
     @mock.patch.object(console_utils, '_stop_console', autospec=True)
@@ -342,10 +365,15 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
             self, mock_stop, mock_dir_exists, mock_popen, mock_fcntl,
             mock_os_read, mock_sleep):
         mock_popen.return_value.poll.return_value = 1
-        stdout = mock_popen.return_value.stdout
-        stderr = mock_popen.return_value.stderr
-        stdout.return_value.fileno.return_value = 0
-        stderr.return_value.fileno.return_value = 1
+
+        self.mock_stdout.write(b'0')
+        self.mock_stdout.seek(0)
+        mock_popen.return_value.stdout = self.mock_stdout
+
+        self.mock_stderr.write(b'1')
+        self.mock_stderr.seek(0)
+        mock_popen.return_value.stderr = self.mock_stderr
+
         err_output = b'error output'
         mock_os_read.side_effect = [err_output] * 2 + [OSError] * 2
         mock_fcntl.side_effect = [1, mock.Mock()] * 2
@@ -358,7 +386,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_sleep.assert_has_calls([mock.call(1), mock.call(1)])
         mock_dir_exists.assert_called_once_with()
-        for obj in (stdout, stderr):
+        for obj in (self.mock_stdout, self.mock_stderr):
             mock_fcntl.assert_has_calls([
                 mock.call(obj, fcntl.F_GETFL),
                 mock.call(obj, fcntl.F_SETFL, 1 | os.O_NONBLOCK)])
@@ -368,7 +396,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_popen.return_value.poll.assert_called_with()
 
     @mock.patch.object(fcntl, 'fcntl', autospec=True)
-    @mock.patch.object(subprocess, 'Popen')
+    @mock.patch.object(subprocess, 'Popen', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
     @mock.patch.object(console_utils, '_stop_console', autospec=True)
@@ -377,8 +405,14 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         self.config(subprocess_timeout=0, group='console')
         self.config(subprocess_checking_interval=0, group='console')
         mock_popen.return_value.poll.return_value = None
-        mock_popen.return_value.stdout.return_value.fileno.return_value = 0
-        mock_popen.return_value.stderr.return_value.fileno.return_value = 1
+
+        self.mock_stdout.write(b'0')
+        self.mock_stdout.seek(0)
+        mock_popen.return_value.stdout = self.mock_stdout
+
+        self.mock_stderr.write(b'1')
+        self.mock_stderr.seek(0)
+        mock_popen.return_value.stderr = self.mock_stderr
 
         self.assertRaisesRegex(
             exception.ConsoleSubprocessFailed, 'Timeout or error',
@@ -399,7 +433,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(console_utils, 'open',
                        mock.mock_open(read_data='12345\n'))
     @mock.patch.object(os.path, 'exists', autospec=True)
-    @mock.patch.object(subprocess, 'Popen')
+    @mock.patch.object(subprocess, 'Popen', autospec=True)
     @mock.patch.object(psutil, 'pid_exists', autospec=True)
     @mock.patch.object(console_utils, '_ensure_console_pid_dir_exists',
                        autospec=True)
@@ -408,10 +442,15 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
             self, mock_stop, mock_dir_exists, mock_pid_exists, mock_popen,
             mock_path_exists, mock_fcntl, mock_os_read, mock_sleep):
         mock_popen.return_value.poll.return_value = 0
-        stdout = mock_popen.return_value.stdout
-        stderr = mock_popen.return_value.stderr
-        stdout.return_value.fileno.return_value = 0
-        stderr.return_value.fileno.return_value = 1
+
+        self.mock_stdout.write(b'0')
+        self.mock_stdout.seek(0)
+        mock_popen.return_value.stdout = self.mock_stdout
+
+        self.mock_stderr.write(b'1')
+        self.mock_stderr.seek(0)
+        mock_popen.return_value.stderr = self.mock_stderr
+
         mock_pid_exists.return_value = False
         mock_os_read.side_effect = [b'error output'] * 2 + [OSError] * 2
         mock_fcntl.side_effect = [1, mock.Mock()] * 2
@@ -426,7 +465,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_stop.assert_called_once_with(self.info['uuid'])
         mock_sleep.assert_has_calls([mock.call(1), mock.call(1)])
         mock_dir_exists.assert_called_once_with()
-        for obj in (stdout, stderr):
+        for obj in (self.mock_stdout, self.mock_stderr):
             mock_fcntl.assert_has_calls([
                 mock.call(obj, fcntl.F_GETFL),
                 mock.call(obj, fcntl.F_SETFL, 1 | os.O_NONBLOCK)])
