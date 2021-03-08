@@ -1788,7 +1788,7 @@ def check_port_list_policy(portgroup=False, parent_node=None,
 
 
 def check_volume_list_policy(parent_node=None):
-    """Check if the specified policy authorizes this request on a port.
+    """Check if the specified policy authorizes this request on a volume.
 
     :param parent_node: The UUID of a node, if any, to apply a policy
                         check to as well before applying other policy
@@ -1831,20 +1831,20 @@ def check_volume_list_policy(parent_node=None):
         policy.authorize('baremetal:volume:list_all',
                          cdict, api.request.context)
     except exception.HTTPForbidden:
-        owner = cdict.get('project_id')
-        if not owner:
+        project_id = cdict.get('project_id')
+        if not project_id:
             raise
         policy.authorize('baremetal:volume:list',
                          cdict, api.request.context)
-        return owner
+        return project_id
 
 
 def check_volume_policy_and_retrieve(policy_name, vol_ident, target=False):
-    """Check if the specified policy authorizes this request on a port.
+    """Check if the specified policy authorizes this request on a volume.
 
     :param: policy_name: Name of the policy to check.
     :param: vol_ident: The name, uuid, or other valid ID value to find
-                        a port or portgroup by.
+                        a volume target or connector by.
     :param: target: Boolean value to indicate if the check is for a volume
                     target or connector. Default value is False, implying
                     connector.
@@ -1864,7 +1864,7 @@ def check_volume_policy_and_retrieve(policy_name, vol_ident, target=False):
         else:
             rpc_vol = objects.VolumeTarget.get(context, vol_ident)
     except (exception.VolumeConnectorNotFound, exception.VolumeTargetNotFound):
-        # don't expose non-existence of port unless requester
+        # don't expose non-existence of volume unless requester
         # has generic access to policy
         raise
 
