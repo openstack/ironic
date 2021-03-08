@@ -30,6 +30,7 @@ the services.
    Node Multi-Tenancy <node-multitenancy>
    Fast-Track Deployment <fast-track>
    Booting a Ramdisk or an ISO <ramdisk-boot>
+   Node Interface Override <node-interface-override>
 
 Drivers, Hardware Types and Hardware Interfaces
 -----------------------------------------------
