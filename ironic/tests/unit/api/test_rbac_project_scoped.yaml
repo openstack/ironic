@@ -2214,22 +2214,19 @@ owner_reader_cannot_get_drivers_vendor_passthru:
   path: '/v1/drivers/{driver_name}/vendor_passthru/methods'
   method: get
   headers: *owner_reader_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 500
 
 lessee_reader_cannot_get_drivers_vendor_passthru:
   path: '/v1/drivers/{driver_name}/vendor_passthru/methods'
   method: get
   headers: *lessee_reader_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 500
 
 third_party_admin_cannot_get_drivers_vendor_passthru:
   path: '/v1/drivers/{driver_name}/vendor_passthru/methods'
   method: get
   headers: *third_party_admin_headers
-  assert_status: 403
-  skip_reason: policy not implemented
+  assert_status: 500
 
 # Node Bios - https://docs.openstack.org/api-ref/baremetal/#node-bios-nodes
 
