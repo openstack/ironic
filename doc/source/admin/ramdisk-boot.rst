@@ -92,6 +92,19 @@ For example,
         --instance-info boot_iso=http://path/to/boot.iso
     baremetal node deploy <NODE>
 
+.. warning::
+   This feature, when utilized with the ``ipxe`` ``boot_interface``,
+   will only allow a kernel and ramdisk to be booted from the
+   supplied ISO file. Any additional contents, such as additional
+   ramdisk contents or installer package files will be unavailable
+   after the boot of the Operating System. Operators wishing to leverage
+   this functionality for actions such as OS installation should explore
+   use of the standard ``ramdisk`` ``deploy_interface`` along with the
+   ``instance_info/kernel_append_params`` setting to pass arbitrary
+   settings such as a mirror URL for the initial ramdisk to load data from.
+   This is a limitation of iPXE and the overall boot process of the
+   operating system where memory allocated by iPXE is released.
+
 Limitations
 -----------
 
