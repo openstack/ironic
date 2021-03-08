@@ -1302,14 +1302,12 @@ owner_admin_can_put_custom_traits:
   method: put
   headers: *owner_admin_headers
   assert_status: 503
-  skip_reason: policy not implemented
 
-owner_member_can_put_custom_traits:
+owner_member_cannot_put_custom_traits:
   path: '/v1/nodes/{owner_node_ident}/traits/CUSTOM_TRAIT2'
   method: put
   headers: *owner_member_headers
-  assert_status: 503
-  skip_reason: policy not implemented
+  assert_status: 403
 
 lessee_admin_cannot_put_custom_traits:
   path: '/v1/nodes/{lessee_node_ident}/traits/CUSTOM_TRAIT2'
