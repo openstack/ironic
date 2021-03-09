@@ -237,6 +237,8 @@ if not sushy:
         type('OEMExtensionNotFoundError', (sushy.exceptions.SushyError,), {}))
     sushy.exceptions.ServerSideError = (
         type('ServerSideError', (sushy.exceptions.SushyError,), {}))
+    sushy.exceptions.BadRequestError = (
+        type('BadRequestError', (sushy.exceptions.SushyError,), {}))
     sushy.auth = mock.MagicMock(spec_set=mock_specs.SUSHY_AUTH_SPEC)
     sys.modules['sushy.auth'] = sushy.auth
 
