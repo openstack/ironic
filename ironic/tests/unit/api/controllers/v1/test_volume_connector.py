@@ -344,7 +344,7 @@ class TestListVolumeConnectors(test_api_base.BaseApiTest):
             self.assertEqual('application/json', response.content_type)
             self.assertIn(invalid_key, response.json['error_message'])
 
-    @mock.patch.object(api_utils, 'get_rpc_node')
+    @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
     def test_get_all_by_node_name_ok(self, mock_get_rpc_node):
         # GET /v1/volume/connectors specifying node_name - success
         mock_get_rpc_node.return_value = self.node
@@ -361,7 +361,7 @@ class TestListVolumeConnectors(test_api_base.BaseApiTest):
                              headers=self.headers)
         self.assertEqual(3, len(data['connectors']))
 
-    @mock.patch.object(api_utils, 'get_rpc_node')
+    @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
     def test_detail_by_node_name_ok(self, mock_get_rpc_node):
         # GET /v1/volume/connectors?detail=True specifying node_name - success
         mock_get_rpc_node.return_value = self.node
@@ -374,7 +374,8 @@ class TestListVolumeConnectors(test_api_base.BaseApiTest):
         self.assertEqual(self.node.uuid, data['connectors'][0]['node_uuid'])
 
 
-@mock.patch.object(rpcapi.ConductorAPI, 'update_volume_connector')
+@mock.patch.object(rpcapi.ConductorAPI, 'update_volume_connector',
+                   autospec=True)
 class TestPatch(test_api_base.BaseApiTest):
     headers = {api_base.Version.string: str(api_v1.max_version())}
 
@@ -384,12 +385,14 @@ class TestPatch(test_api_base.BaseApiTest):
         self.connector = obj_utils.create_test_volume_connector(
             self.context, node_id=self.node.id)
 
-        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_update_byid(self, mock_notify, mock_upd):
         extra = {'foo': 'bar'}
         mock_upd.return_value = self.connector
@@ -404,7 +407,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
 
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.INFO,
@@ -453,10 +456,11 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(connector_id, response.json['connector_id'])
         self.assertTrue(mock_upd.called)
 
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(connector_id, kargs.connector_id)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_replace_connector_id_already_exist(self, mock_notify, mock_upd):
         connector_id = 'test-connector-id-123'
         mock_upd.side_effect = \
@@ -473,7 +477,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertTrue(response.json['error_message'])
         self.assertTrue(mock_upd.called)
 
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(connector_id, kargs.connector_id)
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.INFO,
@@ -501,7 +505,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertTrue(response.json['error_message'])
         self.assertTrue(mock_upd.called)
 
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(connector_id, kargs.connector_id)
 
     def test_replace_node_uuid(self, mock_upd):
@@ -618,7 +622,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
 
     def test_remove_multi(self, mock_upd):
@@ -638,7 +642,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
 
         # Remove the collection.
@@ -651,7 +655,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual({}, response.json['extra'])
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
 
         # Assert nothing else was changed.
@@ -696,7 +700,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(connector_id, response.json['connector_id'])
         self.assertTrue(mock_upd.called)
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(connector_id, kargs.connector_id)
 
     def test_add_root_non_existent(self, mock_upd):
@@ -726,7 +730,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
 
     def test_remove_uuid(self, mock_upd):
@@ -748,8 +752,9 @@ class TestPost(test_api_base.BaseApiTest):
         super(TestPost, self).setUp()
         self.node = obj_utils.create_test_node(self.context)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_create_volume_connector(self, mock_utcnow, mock_notify):
         pdict = post_get_test_volume_connector()
         test_time = datetime.datetime(2000, 1, 1, 0, 0)
@@ -814,8 +819,9 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertFalse(mock_warning.called)
         self.assertFalse(mock_exception.called)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(objects.VolumeConnector, 'create')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(objects.VolumeConnector, 'create', autospec=True)
     def test_create_volume_connector_error(self, mock_create, mock_notify):
         mock_create.side_effect = Exception()
         cdict = post_get_test_volume_connector()
@@ -905,7 +911,8 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertIn(connector_id, response.json['error_message'])
 
 
-@mock.patch.object(rpcapi.ConductorAPI, 'destroy_volume_connector')
+@mock.patch.object(rpcapi.ConductorAPI, 'destroy_volume_connector',
+                   autospec=True)
 class TestDelete(test_api_base.BaseApiTest):
     headers = {api_base.Version.string: str(api_v1.max_version())}
 
@@ -915,12 +922,14 @@ class TestDelete(test_api_base.BaseApiTest):
         self.connector = obj_utils.create_test_volume_connector(
             self.context, node_id=self.node.id)
 
-        gtf = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        gtf = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                                autospec=True)
         self.mock_gtf = gtf.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(gtf.stop)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_volume_connector_byid(self, mock_notify, mock_dvc):
         self.delete('/volume/connectors/%s' % self.connector.uuid,
                     expect_errors=True, headers=self.headers)
@@ -940,7 +949,8 @@ class TestDelete(test_api_base.BaseApiTest):
                                expect_errors=True, headers=headers)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_volume_connector_node_locked(self, mock_notify, mock_dvc):
         self.node.reserve(self.context, 'fake', self.node.uuid)
         mock_dvc.side_effect = exception.NodeLocked(node='fake-node',
