@@ -49,7 +49,8 @@ class DracRedfishInspect(redfish_inspect.RedfishInspect):
 
 class DracWSManInspect(base.InspectInterface):
 
-    _GPU_SUPPORTED_LIST = {"TU104GL [Tesla T4]"}
+    _GPU_SUPPORTED_LIST = {"TU104GL [Tesla T4]",
+                           "GV100GL [Tesla V100 PCIe 16GB]"}
 
     def get_properties(self):
         """Return the properties of the interface.

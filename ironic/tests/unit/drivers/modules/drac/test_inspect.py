@@ -287,7 +287,57 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
              'pci_subdevice_id': '0737',
              'pci_subvendor_id': '1028'},
             {'id': 'Video.Slot.7-1',
-             'description': 'GV100GL [Tesla V100 PCIe 16GB]]',
+             'description': 'GV100 [TITAN V]',
+             'function_number': 0,
+             'manufacturer': 'NVIDIA Corporation',
+             'pci_device_id': '1D81',
+             'pci_vendor_id': '10DE',
+             'pci_subdevice_id': '1214',
+             'pci_subvendor_id': '10DE'}]
+
+        expected_node_properties = {
+            'memory_mb': 32768,
+            'local_gb': 279,
+            'cpus': 18,
+            'cpu_arch': 'x86_64',
+            'capabilities': 'boot_mode:uefi,pci_gpu_devices:0'}
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_client.list_memory.return_value = self.memory
+        mock_client.list_cpus.return_value = self.cpus
+        mock_client.list_virtual_disks.return_value = []
+        mock_client.list_physical_disks.return_value = self.physical_disks
+        mock_client.list_nics.return_value = self.nics
+        mock_client.list_bios_settings.return_value = self.uefi_boot_settings
+        video_controllers = [test_utils.dict_to_namedtuple(values=vc)
+                             for vc in controllers]
+        mock_client.list_video_controllers.return_value = video_controllers
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            return_value = task.driver.inspect.inspect_hardware(task)
+
+        self.node.refresh()
+        self.assertEqual(expected_node_properties, self.node.properties)
+        self.assertEqual(states.MANAGEABLE, return_value)
+        self.assertEqual(2, mock_port_create.call_count)
+
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(objects.Port, 'create', spec_set=True, autospec=True)
+    def test_inspect_hardware_multiple_supported_gpu(self, mock_port_create,
+                                                     mock_get_drac_client):
+        controllers = [
+            {'id': 'Video.Slot.7-1',
+             'description': 'TU104GL [Tesla T4]',
+             'function_number': 0,
+             'manufacturer': 'NVIDIA Corporation',
+             'pci_device_id': '1EB8',
+             'pci_vendor_id': '10DE',
+             'pci_subdevice_id': '12A2',
+             'pci_subvendor_id': '10DE'},
+            {'id': 'Video.Slot.8-1',
+             'description': 'GV100GL [Tesla V100 PCIe 16GB]',
              'function_number': 0,
              'manufacturer': 'NVIDIA Corporation',
              'pci_device_id': '1DB4',
@@ -300,7 +350,7 @@ class DracInspectionTestCase(test_utils.BaseDracTest):
             'local_gb': 279,
             'cpus': 18,
             'cpu_arch': 'x86_64',
-            'capabilities': 'boot_mode:uefi,pci_gpu_devices:0'}
+            'capabilities': 'boot_mode:uefi,pci_gpu_devices:2'}
         mock_client = mock.Mock()
         mock_get_drac_client.return_value = mock_client
         mock_client.list_memory.return_value = self.memory

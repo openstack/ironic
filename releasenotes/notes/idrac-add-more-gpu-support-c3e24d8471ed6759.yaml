@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Enhance ``idrac-wsman`` inspect hardware interface to report an additional
+    GPU device namely GV100GL [Tesla V100 PCIe 16GB]. With this enhancement,
+    following GPU devices are reported
+
+    * TU104GL [Tesla T4]
+    * GV100GL [Tesla V100 PCIe 16GB]
