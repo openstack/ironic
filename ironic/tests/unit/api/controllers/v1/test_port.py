@@ -408,7 +408,8 @@ class TestListPorts(test_api_base.BaseApiTest):
                              headers={api_base.Version.string: "1.34"})
         self.assertEqual("physnet1", data['physical_network'])
 
-    @mock.patch.object(objects.Port, 'supports_physical_network')
+    @mock.patch.object(objects.Port, 'supports_physical_network',
+                       autospec=True)
     def test_hide_fields_in_newer_versions_physical_network_upgrade(self,
                                                                     mock_spn):
         mock_spn.return_value = False
@@ -504,7 +505,8 @@ class TestListPorts(test_api_base.BaseApiTest):
         # We always append "links".
         self.assertCountEqual(['uuid', 'physical_network', 'links'], response)
 
-    @mock.patch.object(objects.Port, 'supports_physical_network')
+    @mock.patch.object(objects.Port, 'supports_physical_network',
+                       autospec=True)
     def test_get_custom_fields_physical_network_upgrade(self, mock_spn):
         mock_spn.return_value = False
         port = obj_utils.create_test_port(self.context, node_id=self.node.id,
@@ -886,7 +888,7 @@ class TestListPorts(test_api_base.BaseApiTest):
     def test_detail_sort_key_not_allowed(self):
         self._test_sort_key_not_allowed(detail=True)
 
-    @mock.patch.object(api_utils, 'get_rpc_node')
+    @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
     def test_get_all_by_node_name_ok(self, mock_get_rpc_node):
         # GET /v1/ports specifying node_name - success
         mock_get_rpc_node.return_value = self.node
@@ -904,7 +906,7 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual(3, len(data['ports']))
 
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(api_utils, 'get_rpc_node')
+    @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
     def test_get_all_by_node_name_non_admin(
             self, mock_get_rpc_node, mock_authorize):
         def mock_authorize_function(rule, target, creds):
@@ -931,7 +933,7 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual(3, len(data['ports']))
 
     @mock.patch.object(policy, 'authorize', spec=True)
-    @mock.patch.object(api_utils, 'get_rpc_node')
+    @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
     def test_get_all_by_node_name_non_admin_no_match(
             self, mock_get_rpc_node, mock_authorize):
         def mock_authorize_function(rule, target, creds):
@@ -957,7 +959,7 @@ class TestListPorts(test_api_base.BaseApiTest):
                              })
         self.assertEqual(0, len(data['ports']))
 
-    @mock.patch.object(api_utils, 'get_rpc_node')
+    @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
     def test_get_all_by_node_uuid_and_name(self, mock_get_rpc_node):
         # GET /v1/ports specifying node and uuid - should only use node_uuid
         mock_get_rpc_node.return_value = self.node
@@ -966,7 +968,7 @@ class TestListPorts(test_api_base.BaseApiTest):
                       (self.node.uuid, 'node-name'))
         mock_get_rpc_node.assert_called_once_with(self.node.uuid)
 
-    @mock.patch.object(api_utils, 'get_rpc_node')
+    @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
     def test_get_all_by_node_name_not_supported(self, mock_get_rpc_node):
         # GET /v1/ports specifying node_name - name not supported
         mock_get_rpc_node.side_effect = (
@@ -981,7 +983,7 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual(0, mock_get_rpc_node.call_count)
         self.assertEqual(http_client.NOT_ACCEPTABLE, data.status_int)
 
-    @mock.patch.object(api_utils, 'get_rpc_node')
+    @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
     def test_detail_by_node_name_ok(self, mock_get_rpc_node):
         # GET /v1/ports/detail specifying node_name - success
         mock_get_rpc_node.return_value = self.node
@@ -991,7 +993,7 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual(port.uuid, data['ports'][0]['uuid'])
         self.assertEqual(self.node.uuid, data['ports'][0]['node_uuid'])
 
-    @mock.patch.object(api_utils, 'get_rpc_node')
+    @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
     def test_detail_by_node_name_not_supported(self, mock_get_rpc_node):
         # GET /v1/ports/detail specifying node_name - name not supported
         mock_get_rpc_node.side_effect = (
@@ -1126,7 +1128,8 @@ class TestPatch(test_api_base.BaseApiTest):
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
 
-        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
@@ -1157,7 +1160,8 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
         self.assertFalse(mock_upd.called)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_update_byid(self, mock_notify, mock_upd):
         extra = {'foo': 'bar'}
         response = self.patch_json('/ports/%s' % self.port.uuid,
@@ -1218,7 +1222,8 @@ class TestPatch(test_api_base.BaseApiTest):
         kargs = mock_upd.call_args[0][2]
         self.assertEqual(address, kargs.address)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_replace_address_already_exist(self, mock_notify, mock_upd):
         address = 'aa:aa:aa:aa:aa:aa'
         mock_upd.side_effect = exception.MACAlreadyExists(mac=address)
@@ -1710,7 +1715,8 @@ class TestPatch(test_api_base.BaseApiTest):
         self._test_physical_network_old_api_version(mock_upd, patch,
                                                     'physnet1')
 
-    @mock.patch.object(objects.Port, 'supports_physical_network')
+    @mock.patch.object(objects.Port, 'supports_physical_network',
+                       autospec=True)
     def _test_physical_network_upgrade(self, mock_upd, patch,
                                        expected_physical_network, mock_spn):
         # Helper to test an update to a port's physical network that is
@@ -1985,15 +1991,17 @@ class TestPost(test_api_base.BaseApiTest):
         self.headers = {api_base.Version.string: str(
             versions.max_version_string())}
 
-        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
 
     @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
                        autospec=True)
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(timeutils, 'utcnow')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_create_port(self, mock_utcnow, mock_notify, mock_warn,
                          mock_create):
         pdict = post_get_test_port()
@@ -2074,7 +2082,8 @@ class TestPost(test_api_base.BaseApiTest):
         mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
                                             'test-topic')
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_create_port_error(self, mock_notify, mock_create):
         mock_create.side_effect = Exception()
         pdict = post_get_test_port()
@@ -2233,7 +2242,8 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
         self.assertFalse(mock_create.called)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_create_port_address_already_exist(self, mock_notify, mock_create):
         address = 'AA:AA:AA:11:22:33'
         mock_create.side_effect = exception.MACAlreadyExists(mac=address)
@@ -2393,7 +2403,8 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
         self.assertFalse(mock_create.called)
 
-    @mock.patch.object(objects.Port, 'supports_physical_network')
+    @mock.patch.object(objects.Port, 'supports_physical_network',
+                       autospec=True)
     def test_create_port_with_physical_network_upgrade(self, mock_spn,
                                                        mock_create):
         mock_spn.return_value = False
@@ -2645,7 +2656,7 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertFalse(mock_create.called)
 
 
-@mock.patch.object(rpcapi.ConductorAPI, 'destroy_port')
+@mock.patch.object(rpcapi.ConductorAPI, 'destroy_port', autospec=True)
 class TestDelete(test_api_base.BaseApiTest):
 
     def setUp(self):
@@ -2654,7 +2665,8 @@ class TestDelete(test_api_base.BaseApiTest):
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
 
-        gtf = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        gtf = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                                autospec=True)
         self.mock_gtf = gtf.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(gtf.stop)
@@ -2666,7 +2678,8 @@ class TestDelete(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertIn(self.port.address, response.json['error_message'])
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_port_byid(self, mock_notify, mock_dpt):
         self.delete('/ports/%s' % self.port.uuid, expect_errors=True)
         self.assertTrue(mock_dpt.called)
@@ -2681,7 +2694,8 @@ class TestDelete(test_api_base.BaseApiTest):
                                       node_uuid=self.node.uuid,
                                       portgroup_uuid=None)])
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_port_node_locked(self, mock_notify, mock_dpt):
         self.node.reserve(self.context, 'fake', self.node.uuid)
         mock_dpt.side_effect = exception.NodeLocked(node='fake-node',
