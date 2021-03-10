@@ -31,6 +31,7 @@ Installation Guide
   :maxdepth: 2
 
   install/index
+  install/standalone
 
 Upgrade Guide
 =============

@@ -89,6 +89,8 @@ More deploy steps can be provided by the ramdisk, see
 :ironic-python-agent-doc:`IPA hardware managers documentation
 <admin/hardware_managers.html>` for a listing.
 
+.. _standalone-deploy-steps:
+
 Requesting steps
 ----------------
 
@@ -109,7 +111,7 @@ An example by passing a JSON string:
 .. code-block:: console
 
     baremetal node deploy <node> \
-        --deloy-steps '[{"interface": "bios", "step": "apply_configuration", "args": {"settings": [{"name": "LogicalProc", "value": "Enabled"}]}, "priority": 150}]'
+        --deploy-steps '[{"interface": "bios", "step": "apply_configuration", "args": {"settings": [{"name": "LogicalProc", "value": "Enabled"}]}, "priority": 150}]'
 
 Format of JSON for deploy steps argument is described in `Deploy step format`_
 section.
