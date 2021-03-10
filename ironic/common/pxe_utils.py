@@ -861,12 +861,7 @@ def get_volume_pxe_options(task):
             return prop
         return __return_item_or_first_if_list(properties.get(key + 's', ''))
 
-    def __generate_iscsi_url(properties):
-        """Returns iscsi url."""
-        portal = __get_property(properties, 'target_portal')
-        iqn = __get_property(properties, 'target_iqn')
-        lun = __get_property(properties, 'target_lun')
-
+    def __format_portal(portal, iqn, lun):
         if ':' in portal:
             host, port = portal.split(':')
         else:
@@ -874,6 +869,20 @@ def get_volume_pxe_options(task):
             port = ''
         return ("iscsi:%(host)s::%(port)s:%(lun)s:%(iqn)s" %
                 {'host': host, 'port': port, 'lun': lun, 'iqn': iqn})
+
+    def __generate_iscsi_url(properties):
+        """Returns iscsi url."""
+        iqn = __get_property(properties, 'target_iqn')
+        lun = __get_property(properties, 'target_lun')
+        if 'target_portals' in properties:
+            portals = properties.get('target_portals')
+            formatted_portals = []
+            for portal in portals:
+                formatted_portals.append(__format_portal(portal, iqn, lun))
+            return ' '.join(formatted_portals)
+        else:
+            portal = __get_property(properties, 'target_portal')
+            return __format_portal(portal, iqn, lun)
 
     pxe_options = {}
     node = task.node
