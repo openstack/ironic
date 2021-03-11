@@ -326,17 +326,18 @@ class TaskManager(object):
         self._debug_timer.restart()
 
         if self._patient:
-            attempts = None
+            stop_after = tenacity.stop_never
         elif self._retry:
-            attempts = CONF.conductor.node_locked_retry_attempts
+            stop_after = tenacity.stop_after_attempt(
+                CONF.conductor.node_locked_retry_attempts)
         else:
-            attempts = 1
+            stop_after = tenacity.stop_after_attempt(1)
 
         # NodeLocked exceptions can be annoying. Let's try to alleviate
         # some of that pain by retrying our lock attempts.
         @tenacity.retry(
             retry=tenacity.retry_if_exception_type(exception.NodeLocked),
-            stop=tenacity.stop_after_attempt(attempts),
+            stop=stop_after,
             wait=tenacity.wait_fixed(
                 CONF.conductor.node_locked_retry_interval),
             reraise=True)
