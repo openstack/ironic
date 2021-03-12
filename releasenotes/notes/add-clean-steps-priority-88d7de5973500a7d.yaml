@@ -1,0 +1,4 @@
+---
+features:
+  - It is now possible to configure a priority for both the delete and create
+    configuration RAID cleaning steps which are disabled by default.
