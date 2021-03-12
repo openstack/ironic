@@ -143,8 +143,12 @@ def default_interface(hw_type, interface_type,
             # Check that the default is correct for this type
             get_interface(hw_type, interface_type, impl_name)
         except exception.IncompatibleInterface:
+            node_info = ""
+            if node is not None:
+                node_info = _(' node %s with') % node
             raise exception.NoValidDefaultForInterface(
-                interface_type=interface_type, driver=driver_name)
+                interface_type=interface_type, driver=driver_name,
+                node_info=node_info)
 
     else:
         supported = getattr(hw_type,
