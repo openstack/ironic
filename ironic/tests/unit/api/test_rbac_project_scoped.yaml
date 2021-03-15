@@ -2316,17 +2316,19 @@ lessee_admin_can_delete_their_allocation:
   headers: *lessee_admin_headers
   assert_status: 503
 
-owner_member_cannot_delete_their_allocation:
+owner_member_can_delete_their_allocation:
   path: '/v1/allocations/{owner_allocation}'
   method: delete
   headers: *owner_member_headers
-  assert_status: 403
+  assert_status: 503
 
-lessee_member_cannot_delete_their_allocation:
+# Lessee in this case owns the allocation,
+# Confusing right?!
+lessee_member_can_delete_their_allocation:
   path: '/v1/allocations/{lessee_allocation}'
   method: delete
   headers: *lessee_member_headers
-  assert_status: 403
+  assert_status: 503
 
 owner_member_can_patch_allocation:
   path: '/v1/allocations/{owner_allocation}'

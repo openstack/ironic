@@ -161,7 +161,6 @@ class AllocationsController(pecan.rest.RestController):
                 _("The sort_key value %(key)s is an invalid field for "
                   "sorting") % {'key': sort_key})
 
-        node_uuid = None
         # If the user is not allowed to see everything, we need to filter
         # based upon access rights.
         cdict = api.request.context.to_policy_values()
@@ -175,9 +174,6 @@ class AllocationsController(pecan.rest.RestController):
                 # be able to see in the database.
                 owner = cdict.get('project_id')
         else:
-            # The controller is being accessed as a sub-resource.
-            # Cool, but that means there can only be one result.
-            node_uuid = parent_node
             # Override if any node_ident was submitted in since this
             # is a subresource query.
             node_ident = parent_node
@@ -313,7 +309,7 @@ class AllocationsController(pecan.rest.RestController):
             api_utils.check_policy('baremetal:allocation:create')
             self._check_allowed_allocation_fields(allocation)
             if (not CONF.oslo_policy.enforce_new_defaults
-                and not allocation.get('owner')):
+                    and not allocation.get('owner')):
                 # Even if permitted, we need to go ahead and check if this is
                 # restricted for now until scoped interaction is the default
                 # interaction.
@@ -327,8 +323,7 @@ class AllocationsController(pecan.rest.RestController):
         except exception.HTTPForbidden:
             cdict = api.request.context.to_policy_values()
             project = cdict.get('project_id')
-            if (project and allocation.get('owner')
-                and project != allocation.get('owner')):
+            if project and project != allocation.get('owner'):
                 raise
             if project and not CONF.oslo_policy.enforce_new_defaults:
                 api_utils.check_policy('baremetal:allocation:create_pre_rbac')
@@ -363,7 +358,7 @@ class AllocationsController(pecan.rest.RestController):
         # not great to try for a full method rewrite at the same time as
         # RBAC work, so the complexity limit is being raised. :(
         if (CONF.oslo_policy.enforce_new_defaults
-            and cdict.get('system_scope') != 'all'):
+                and cdict.get('system_scope') != 'all'):
             # if not a system scope originated request, we need to check/apply
             # an owner - But we can only do this with when new defaults are
             # enabled.
@@ -387,7 +382,6 @@ class AllocationsController(pecan.rest.RestController):
             else:
                 # An allocation owner was not supplied, we need to save one.
                 allocation['owner'] = project_id
-
         node = None
         if allocation.get('node'):
             if api_utils.allow_allocation_backfill():

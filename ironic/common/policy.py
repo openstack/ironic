@@ -124,10 +124,6 @@ SYSTEM_MEMBER_OR_OWNER_LESSEE_ADMIN = (
 # The system has rights to manage the allocations for users, in a sense
 # a delegated management since they are not creating a real object or asset,
 # but allocations of assets.
-ALLOCATION_ADMIN = (
-    '(' + SYSTEM_MEMBER + ') or (' + ALLOCATION_OWNER_ADMIN + ')'
-)
-
 ALLOCATION_MEMBER = (
     '(' + SYSTEM_MEMBER + ') or (' + ALLOCATION_OWNER_MEMBER + ')'
 )
@@ -137,7 +133,7 @@ ALLOCATION_READER = (
 )
 
 ALLOCATION_CREATOR = (
-    '(' + SYSTEM_MEMBER + ') or (role:admin)'
+    '(' + SYSTEM_MEMBER + ') or (role:member)'
 )
 
 # Special purpose aliases for things like "ability to access the API
@@ -1524,7 +1520,7 @@ deprecated_allocation_list_all = policy.DeprecatedRule(
 )
 deprecated_allocation_create = policy.DeprecatedRule(
     name='baremetal:allocation:create',
-    check_str='rule:is_admin'
+    check_str='rule:is_admin and is_admin_project:True'
 )
 deprecated_allocation_create_restricted = policy.DeprecatedRule(
     name='baremetal:allocation:create_restricted',
@@ -1601,7 +1597,7 @@ allocation_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:delete',
-        check_str=ALLOCATION_ADMIN,
+        check_str=ALLOCATION_MEMBER,
         scope_types=['system', 'project'],
         description='Delete Allocation records',
         operations=[
@@ -1625,8 +1621,12 @@ allocation_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:create_pre_rbac',
-        check_str=('rule:is_member and role:baremetal_admin or '
-                   'is_admin_project:True and role:admin'),
+        # NOTE(TheJulia): First part of the check string is for classical
+        # administrative rights with someone using a baremetal project.
+        # The latter is more for projects and services using admin project
+        # rights. Specific checking because of the expanded rights of
+        # this functionality.
+        check_str=('(rule:is_member and role:baremetal_admin) or (is_admin_project:True and role:admin)'),  # noqa 
         scope_types=['project'],
         description=('Logical restrictor to prevent legacy allocation rule '
                      'missuse - Requires blank allocations to originate from '

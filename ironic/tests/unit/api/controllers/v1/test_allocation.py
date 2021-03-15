@@ -393,7 +393,7 @@ class TestListAllocations(test_api_base.BaseApiTest):
                 owner=owner,
                 uuid=uuidutils.generate_uuid(),
                 name='allocation%s' % i)
-        # NOTE(TheJulia): Force the cast of the action to a system scoped
+        # NOTE(TheJulia): Force the cast of the action to a system
         # scoped request. System scoped is allowed to view everything,
         # where as project scoped requests are actually filtered with the
         # secure-rbac work. This was done in troubleshooting the code,
@@ -1127,17 +1127,14 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
 
-    @mock.patch.object(policy, 'authorize', autospec=True)
-    def test_create_restricted_allocation(self, mock_authorize):
-        def mock_authorize_function(rule, target, creds):
-            if rule == 'baremetal:allocation:create':
-                raise exception.HTTPForbidden(resource='fake')
-            return True
-        mock_authorize.side_effect = mock_authorize_function
-
+    def test_create_restricted_allocation_normal(self):
+        cfg.CONF.set_override('enforce_new_defaults', True,
+                              group='oslo_policy')
         owner = '12345'
         adict = apiutils.allocation_post_data()
-        headers = {api_base.Version.string: '1.60', 'X-Project-Id': owner}
+        headers = {api_base.Version.string: '1.60',
+                   'X-Roles': 'member,reader',
+                   'X-Project-Id': owner}
         response = self.post_json('/allocations', adict, headers=headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.CREATED, response.status_int)
@@ -1147,13 +1144,7 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(adict['uuid'], result['uuid'])
         self.assertEqual(owner, result['owner'])
 
-    @mock.patch.object(policy, 'authorize', autospec=True)
-    def test_create_restricted_allocation_older_version(self, mock_authorize):
-        def mock_authorize_function(rule, target, creds):
-            if rule == 'baremetal:allocation:create':
-                raise exception.HTTPForbidden(resource='fake')
-            return True
-        mock_authorize.side_effect = mock_authorize_function
+    def test_create_restricted_allocation_older_version(self):
         owner = '12345'
         adict = apiutils.allocation_post_data()
         del adict['owner']
