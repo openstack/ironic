@@ -1253,14 +1253,18 @@ class TestCheckAllocationPolicyAndRetrieve(base.TestCase):
             'fake_policy', self.valid_allocation_uuid
         )
         mock_graws.assert_called_once_with(self.valid_allocation_uuid)
-        mock_authorize.assert_called_once_with(
-            'fake_policy', expected_target, fake_context)
+
+        expected = [mock.call('baremetal:allocation:get',
+                              expected_target, fake_context),
+                    mock.call('fake_policy', expected_target,
+                              fake_context)]
+        mock_authorize.assert_has_calls(expected)
         self.assertEqual(self.allocation, rpc_allocation)
 
     @mock.patch.object(api, 'request', spec_set=["context"])
     @mock.patch.object(policy, 'authorize', spec=True)
     @mock.patch.object(utils, 'get_rpc_allocation_with_suffix', autospec=True)
-    def test_check_alloc_policy_and_retrieve_no_alloc_policy_forbidden(
+    def test_check_alloc_policy_and_retrieve_no_alloc_policy_not_found(
             self, mock_graws, mock_authorize, mock_pr
     ):
         mock_pr.context.to_policy_values.return_value = {}
@@ -1269,7 +1273,7 @@ class TestCheckAllocationPolicyAndRetrieve(base.TestCase):
             allocation=self.valid_allocation_uuid)
 
         self.assertRaises(
-            exception.HTTPForbidden,
+            exception.AllocationNotFound,
             utils.check_allocation_policy_and_retrieve,
             'fake-policy',
             self.valid_allocation_uuid
@@ -1295,7 +1299,7 @@ class TestCheckAllocationPolicyAndRetrieve(base.TestCase):
     @mock.patch.object(api, 'request', spec_set=["context", "version"])
     @mock.patch.object(policy, 'authorize', spec=True)
     @mock.patch.object(utils, 'get_rpc_allocation_with_suffix', autospec=True)
-    def test_check_allocation_policy_and_retrieve_policy_forbidden(
+    def test_check_allocation_policy_and_retrieve_policy_not_found(
             self, mock_graws, mock_authorize, mock_pr
     ):
         mock_pr.version.minor = 50
@@ -1304,7 +1308,7 @@ class TestCheckAllocationPolicyAndRetrieve(base.TestCase):
         mock_graws.return_value = self.allocation
 
         self.assertRaises(
-            exception.HTTPForbidden,
+            exception.AllocationNotFound,
             utils.check_allocation_policy_and_retrieve,
             'fake-policy',
             self.valid_allocation_uuid

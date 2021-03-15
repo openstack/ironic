@@ -1,0 +1,13 @@
+---
+security:
+  - |
+    Ability to create an allocation has been restricted by a new policy rule
+    ``baremetal::allocation::create_pre_rbac`` which prevents creation of
+    allocations by any project administrator when operating with the new
+    Role Based Access Control model. The use and enforcement of this
+    rule is disabled when ``[oslo_policy]enforce_new_defaults`` is set which
+    also makes the population of a ``owner`` field for allocations to
+    become automatically populated. Most deployments should not encounter any
+    issues with this security change, and the policy rule will be removed
+    when support for the legacy ``baremetal_admin`` custom role has been
+    removed.

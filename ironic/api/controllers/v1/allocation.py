@@ -13,6 +13,7 @@
 from http import client as http_client
 
 from ironic_lib import metrics_utils
+from oslo_config import cfg
 from oslo_utils import uuidutils
 import pecan
 from webob import exc as webob_exc
@@ -28,8 +29,10 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic import objects
 
-METRICS = metrics_utils.get_metrics_logger(__name__)
 
+CONF = cfg.CONF
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 ALLOCATION_SCHEMA = {
     'type': 'object',
@@ -133,7 +136,8 @@ class AllocationsController(pecan.rest.RestController):
     def _get_allocations_collection(self, node_ident=None, resource_class=None,
                                     state=None, owner=None, marker=None,
                                     limit=None, sort_key='id', sort_dir='asc',
-                                    resource_url=None, fields=None):
+                                    resource_url=None, fields=None,
+                                    parent_node=None):
         """Return allocations collection.
 
         :param node_ident: UUID or name of a node.
@@ -145,6 +149,9 @@ class AllocationsController(pecan.rest.RestController):
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         :param owner: project_id of owner to filter by
+        :param parent_node: The explicit parent node uuid to return if
+                            the controller is being accessed as a
+                            sub-resource. i.e. /v1/nodes/<uuid>/allocation
         """
         limit = api_utils.validate_limit(limit)
         sort_dir = api_utils.validate_sort_dir(sort_dir)
@@ -154,17 +161,48 @@ class AllocationsController(pecan.rest.RestController):
                 _("The sort_key value %(key)s is an invalid field for "
                   "sorting") % {'key': sort_key})
 
+        node_uuid = None
+        # If the user is not allowed to see everything, we need to filter
+        # based upon access rights.
+        cdict = api.request.context.to_policy_values()
+        if cdict.get('system_scope') != 'all' and not parent_node:
+            # The user is a project scoped, and there is not an explicit
+            # parent node which will be returned.
+            if not api_utils.check_policy_true(
+                    'baremetal:allocation:list_all'):
+                # If the user cannot see everything via the policy,
+                # we need to filter the view down to only what they should
+                # be able to see in the database.
+                owner = cdict.get('project_id')
+        else:
+            # The controller is being accessed as a sub-resource.
+            # Cool, but that means there can only be one result.
+            node_uuid = parent_node
+            # Override if any node_ident was submitted in since this
+            # is a subresource query.
+            node_ident = parent_node
+
         marker_obj = None
         if marker:
             marker_obj = objects.Allocation.get_by_uuid(api.request.context,
                                                         marker)
-
         if node_ident:
             try:
-                node_uuid = api_utils.get_rpc_node(node_ident).uuid
+                # Check ability to access the associated node or requested
+                # node to filter by.
+                rpc_node = api_utils.get_rpc_node(node_ident)
+                api_utils.check_owner_policy('node', 'baremetal:node:get',
+                                             rpc_node.owner,
+                                             lessee=rpc_node.lessee,
+                                             conceal_node=False)
+                node_uuid = rpc_node.uuid
             except exception.NodeNotFound as exc:
                 exc.code = http_client.BAD_REQUEST
                 raise
+            except exception.NotAuthorized as exc:
+                if not parent_node:
+                    exc.code = http_client.BAD_REQUEST
+                raise exception.NotFound()
         else:
             node_uuid = None
 
@@ -179,13 +217,16 @@ class AllocationsController(pecan.rest.RestController):
         for key, value in possible_filters.items():
             if value is not None:
                 filters[key] = value
-
         allocations = objects.Allocation.list(api.request.context,
                                               limit=limit,
                                               marker=marker_obj,
                                               sort_key=sort_key,
                                               sort_dir=sort_dir,
                                               filters=filters)
+        for allocation in allocations:
+            api_utils.check_owner_policy('allocation',
+                                         'baremetal:allocation:get',
+                                         allocation.owner)
         return list_convert_with_links(allocations, limit,
                                        url=resource_url,
                                        fields=fields,
@@ -267,18 +308,33 @@ class AllocationsController(pecan.rest.RestController):
     def _authorize_create_allocation(self, allocation):
 
         try:
+            # PRE-RBAC this rule was logically restricted, it is more-unlocked
+            # post RBAC, but we need to ensure it is not abused.
             api_utils.check_policy('baremetal:allocation:create')
             self._check_allowed_allocation_fields(allocation)
+            if (not CONF.oslo_policy.enforce_new_defaults
+                and not allocation.get('owner')):
+                # Even if permitted, we need to go ahead and check if this is
+                # restricted for now until scoped interaction is the default
+                # interaction.
+                api_utils.check_policy('baremetal:allocation:create_pre_rbac')
+                # TODO(TheJulia): This can be removed later once we
+                # move entirely to scope based checking. This requires
+                # that if the scope enforcement is not enabled, that
+                # any user can't create an allocation until the deployment
+                # is in a new operating mode *where* owner will be added
+                # automatically if not a privilged user.
         except exception.HTTPForbidden:
             cdict = api.request.context.to_policy_values()
-            owner = cdict.get('project_id')
-            if not owner or (allocation.get('owner')
-                             and owner != allocation.get('owner')):
+            project = cdict.get('project_id')
+            if (project and allocation.get('owner')
+                and project != allocation.get('owner')):
                 raise
+            if project and not CONF.oslo_policy.enforce_new_defaults:
+                api_utils.check_policy('baremetal:allocation:create_pre_rbac')
             api_utils.check_policy('baremetal:allocation:create_restricted')
             self._check_allowed_allocation_fields(allocation)
-            allocation['owner'] = owner
-
+            allocation['owner'] = project
         return allocation
 
     @METRICS.timer('AllocationsController.post')
@@ -291,6 +347,7 @@ class AllocationsController(pecan.rest.RestController):
         :param allocation: an allocation within the request body.
         """
         context = api.request.context
+        cdict = context.to_policy_values()
         allocation = self._authorize_create_allocation(allocation)
 
         if (allocation.get('name')
@@ -299,11 +356,47 @@ class AllocationsController(pecan.rest.RestController):
                     "'%(name)s'") % {'name': allocation['name']}
             raise exception.Invalid(msg)
 
+        # TODO(TheJulia): We need to likely look at refactoring post
+        # processing for allocations as pep8 says it is a complexity of 19,
+        # although it is not actually that horrible since it is phased out
+        # just modifying/assembling the allocation. Given that, it seems
+        # not great to try for a full method rewrite at the same time as
+        # RBAC work, so the complexity limit is being raised. :(
+        if (CONF.oslo_policy.enforce_new_defaults
+            and cdict.get('system_scope') != 'all'):
+            # if not a system scope originated request, we need to check/apply
+            # an owner - But we can only do this with when new defaults are
+            # enabled.
+            project_id = cdict.get('project_id')
+            req_alloc_owner = allocation.get('owner')
+            if req_alloc_owner:
+                if not api_utils.check_policy_true(
+                        'baremetal:allocation:create_restricted'):
+                    if req_alloc_owner != project_id:
+                        msg = _("Cannot create allocation with an owner "
+                                "Project ID value %(req_owner)s not matching "
+                                "the requestor Project ID %(project)s. "
+                                "Policy baremetal:allocation:create_restricted"
+                                " is required for this capability."
+                                ) % {'req_owner': req_alloc_owner,
+                                     'project': project_id}
+                        raise exception.NotAuthorized(msg)
+                # NOTE(TheJulia): IF not restricted, i.e. else above,
+                # their supplied allocation owner is okay, they are allowed
+                # to provide an override by policy.
+            else:
+                # An allocation owner was not supplied, we need to save one.
+                allocation['owner'] = project_id
+
         node = None
         if allocation.get('node'):
             if api_utils.allow_allocation_backfill():
                 try:
                     node = api_utils.get_rpc_node(allocation['node'])
+                    api_utils.check_owner_policy(
+                        'node', 'baremetal:node:get',
+                        node.owner, node.lessee,
+                        conceal_node=allocation['node'])
                 except exception.NodeNotFound as exc:
                     exc.code = http_client.BAD_REQUEST
                     raise
@@ -323,8 +416,17 @@ class AllocationsController(pecan.rest.RestController):
         if allocation.get('candidate_nodes'):
             # Convert nodes from names to UUIDs and check their validity
             try:
+                owner = None
+                if not api_utils.check_policy_true(
+                        'baremetal:allocation:create_restricted'):
+                    owner = cdict.get('project_id')
+                # Filter the candidate search by the requestor project ID
+                # if any. The result is processes authenticating with system
+                # scope will not be impacted, where as project scoped requests
+                # will need additional authorization.
                 converted = api.request.dbapi.check_node_list(
-                    allocation['candidate_nodes'])
+                    allocation['candidate_nodes'],
+                    project=owner)
             except exception.NodeNotFound as exc:
                 exc.code = http_client.BAD_REQUEST
                 raise
@@ -458,10 +560,12 @@ class NodeAllocationController(pecan.rest.RestController):
     @method.expose()
     @args.validate(fields=args.string_list)
     def get_all(self, fields=None):
-        api_utils.check_policy('baremetal:allocation:get')
+        parent_node = self.parent_node_ident
+        result = self.inner._get_allocations_collection(
+            parent_node,
+            fields=fields,
+            parent_node=parent_node)
 
-        result = self.inner._get_allocations_collection(self.parent_node_ident,
-                                                        fields=fields)
         try:
             return result['allocations'][0]
         except IndexError:
@@ -473,15 +577,26 @@ class NodeAllocationController(pecan.rest.RestController):
     @method.expose(status_code=http_client.NO_CONTENT)
     def delete(self):
         context = api.request.context
-        api_utils.check_policy('baremetal:allocation:delete')
 
         rpc_node = api_utils.get_rpc_node_with_suffix(self.parent_node_ident)
+        # Check the policy, and 404 if not authorized.
+        api_utils.check_owner_policy('node', 'baremetal:node:get',
+                                     rpc_node.owner, lessee=rpc_node.lessee,
+                                     conceal_node=self.parent_node_ident)
+
+        # A project ID is associated, thus we should filter
+        # our search using it.
+        filters = {'node_uuid': rpc_node.uuid}
         allocations = objects.Allocation.list(
             api.request.context,
-            filters={'node_uuid': rpc_node.uuid})
+            filters=filters)
 
         try:
             rpc_allocation = allocations[0]
+            allocation_owner = allocations[0]['owner']
+            api_utils.check_owner_policy('allocation',
+                                         'baremetal:allocation:delete',
+                                         allocation_owner)
         except IndexError:
             raise exception.AllocationNotFound(
                 _("Allocation for node %s was not found") %

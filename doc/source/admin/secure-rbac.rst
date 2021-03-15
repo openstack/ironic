@@ -68,10 +68,12 @@ Supported Endpoints
 * /nodes/<uuid>/portgroups
 * /nodes/<uuid>/volume/connectors
 * /nodes/<uuid>/volume/targets
+* /nodes/<uuid>/allocation
 * /ports
 * /portgroups
 * /volume/connectors
 * /volume/targets
+* /allocations
 
 How Project Scoped Works
 ------------------------
@@ -146,6 +148,31 @@ change the owner.
              it is restricted to system scoped administrators.
 
 More information is available on these fields in :doc:`/configuration/policy`.
+
+Allocations
+~~~~~~~~~~~
+
+The ``allocations`` endpoint of the API is somewhat different than other
+other endpoints as it allows for the allocation of physical machines to
+an admin. In this context, there is not already an ``owner`` or ``project_id``
+to leverage to control access for the creation process, any project admin
+does have the inherent prilege of requesting an allocation. That being said,
+their allocation request will require physical nodes to be owned or leased
+to the ``project_id`` through the ``node`` fields ``owner`` or ``lessee``.
+
+Ability to override the owner is restricted to system scoped users by default
+and any new allocation being requested with a specific owner, if made in
+``project`` scope, will have the ``project_id`` recorded as the owner of
+the allocation.
+
+.. WARNING:: The allocation endpoint's use is restricted to project scoped
+   interactions until ``[oslo_policy]enforce_new_defaults`` has been set
+   to ``True`` using the ``baremetal:allocation:create_pre_rbac`` policy
+   rule. This is in order to prevent endpoint misuse. Afterwards all
+   project scoped allocations will automatically populate an owner.
+   System scoped request are not subjected to this restriction,
+   and operators may change the default restriction via the
+   ``baremetal:allocation:create_restricted`` policy.
 
 Pratical differences
 --------------------
