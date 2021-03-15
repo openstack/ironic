@@ -1,8 +1,10 @@
 ---
 features:
   - |
-    Adds a ``redfish`` native ``raid_interface`` to the ``redfish`` hardware type.
-  - |
-    Note that common RAID cases have been tested, but cases that are more complex or
-    rely on vendor-specific implementation details may not work as desired due to
-    capability limitations.
+    Adds a ``redfish`` native ``raid_interface`` to the ``redfish`` hardware
+    type. See `story 2003514
+    <https://storyboard.openstack.org/#!/story/2003514>`_ for details.
+
+    Note that common RAID cases have been tested, but cases that are more
+    complex or rely on vendor-specific implementation details may not work as
+    desired due to capability limitations.
