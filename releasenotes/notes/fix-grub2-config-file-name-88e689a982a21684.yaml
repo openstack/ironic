@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes the problem about grub2 config file. Some higher versions of
+    grub2 (e.g. 2.05 or 2.06-rc1) use grub.cfg-01-MAC, while another
+    lower versions of grub2 (e.g. 2.04) use MAC.conf, so we generate
+    both paths in order to be compatible with both.
