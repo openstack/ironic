@@ -117,8 +117,9 @@ def _link_mac_pxe_configs(task, ipxe_enabled=False):
         create_link(_get_pxe_mac_path(port.address, client_id=client_id,
                                       ipxe_enabled=ipxe_enabled))
         # Grub2 MAC address only
-        create_link(_get_pxe_grub_mac_path(port.address,
-                                           ipxe_enabled=ipxe_enabled))
+        for path in _get_pxe_grub_mac_path(port.address,
+                                           ipxe_enabled=ipxe_enabled):
+            create_link(path)
 
 
 def _link_ip_address_pxe_configs(task, ipxe_enabled=False):
@@ -161,7 +162,9 @@ def _link_ip_address_pxe_configs(task, ipxe_enabled=False):
 
 def _get_pxe_grub_mac_path(mac, ipxe_enabled=False):
     root_dir = get_ipxe_root_dir() if ipxe_enabled else get_root_dir()
-    return os.path.join(root_dir, mac + '.conf')
+    yield os.path.join(root_dir, "%s-%s-%s" %
+                       ("grub.cfg", "01", mac.replace(':', "-").lower()))
+    yield os.path.join(root_dir, mac + '.conf')
 
 
 def _get_pxe_mac_path(mac, delimiter='-', client_id=None,
@@ -366,8 +369,9 @@ def clean_up_pxe_config(task, ipxe_enabled=False):
             _get_pxe_mac_path(port.address, client_id=client_id,
                               ipxe_enabled=ipxe_enabled))
         # Grub2 MAC address based confiuration
-        ironic_utils.unlink_without_raise(
-            _get_pxe_grub_mac_path(port.address, ipxe_enabled=ipxe_enabled))
+        for path in _get_pxe_grub_mac_path(port.address,
+                                           ipxe_enabled=ipxe_enabled):
+            ironic_utils.unlink_without_raise(path)
     if ipxe_enabled:
         utils.rmtree_without_raise(os.path.join(get_ipxe_root_dir(),
                                                 task.node.uuid))
