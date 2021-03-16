@@ -8,7 +8,7 @@ This is a quick walkthrough to get you started developing code for Ironic.
 This assumes you are already familiar with submitting code reviews to
 an OpenStack project.
 
-The gate currently runs the unit tests under Python 3.6 and Python 3.7. It
+The gate currently runs the unit tests under Python 3.6, 3.7, and 3.8. It
 is strongly encouraged to run the unit tests locally prior to submitting a
 patch.
 
@@ -17,7 +17,9 @@ patch.
     conflicting configuration with system dependencies.
 
 .. note::
-    This document is compatible with Python (3.7), Ubuntu (18.04) and Fedora (31).
+    This document is compatible with Python (3.6, 3.7, 3.8), Debian
+    "buster" (10.8), Ubuntu Focal Fossa (20.04 LTS), RHEL8/CentOS Stream,
+    openSUSE/SLE 15, and Fedora (33).
     When referring to different versions of Python and OS distributions, this
     is explicitly stated.
 
@@ -40,28 +42,13 @@ well.
 
     sudo apt-get install build-essential python3-dev libssl-dev python3-pip libmysqlclient-dev libxml2-dev libxslt-dev libpq-dev git git-review libffi-dev gettext ipmitool psmisc graphviz libjpeg-dev
 
-- RHEL7/CentOS7::
-
-    sudo yum install python3-devel openssl-devel python3-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool psmisc graphviz gcc libjpeg-turbo-devel
-
-  If using RHEL and yum reports "No package python-pip available" and "No
-  package git-review available", use the EPEL software repository.
-  Instructions can be found at `<https://fedoraproject.org/wiki/EPEL/FAQ#howtouse>`_.
-
-- Fedora::
+- RHEL/CentOS/Fedora::
 
     sudo dnf install python3-devel openssl-devel python3-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool psmisc graphviz gcc libjpeg-turbo-devel
 
-  Additionally, if using Fedora 23, ``redhat-rpm-config`` package should be
-  installed so that development virtualenv can be built successfully.
-
-- openSUSE/SLE 12::
+- openSUSE/SLE::
 
     sudo zypper install git git-review libffi-devel libmysqlclient-devel libopenssl-devel libxml2-devel libxslt-devel postgresql-devel python3-devel python-nose python3-pip gettext-runtime psmisc
-
-  Graphviz is only needed for generating the state machine diagram. To install it
-  on openSUSE or SLE 12, see
-  `<https://software.opensuse.org/download.html?project=graphics&package=graphviz-plugins>`_.
 
 To run the tests locally, it is a requirement that your terminal emulator
 supports unicode with the ``en_US.UTF8`` locale. If you use locale-gen to
@@ -71,17 +58,20 @@ manage your locales, make sure you have enabled ``en_US.UTF8`` in
 Python Prerequisites
 --------------------
 
-If your distro has at least tox 1.8, use similar command to install
-``python-tox`` package. Otherwise install this on all distros::
+We suggest to use at least tox 3.9, if your distribution has an older version,
+you can install it using pip system-wise or better per user using the --user
+option that by default will install the binary under $HOME/.local/bin, so you
+need to be sure to have that path in $PATH; for example::
 
-    sudo pip install -U tox
+    pip install tox --user
+
+will install tox as ~/.local/bin/tox
 
 You may need to explicitly upgrade virtualenv if you've installed the one
 from your OS distribution and it is too old (tox will complain). You can
 upgrade it individually, if you need to::
 
-    sudo pip install -U virtualenv
-
+    pip install -U virtualenv --user
 
 Running Unit Tests Locally
 ==========================
@@ -223,18 +213,12 @@ not set the ``connection`` option.
 
        sudo apt-get install mysql-server
 
-   RHEL7/CentOS7::
-
-       sudo yum install mariadb mariadb-server
-       sudo systemctl start mariadb.service
-
-   Fedora::
+   RHEL/CentOS/Fedora::
 
        sudo dnf install mariadb mariadb-server
        sudo systemctl start mariadb.service
 
-   openSUSE/SLE 12::
-
+   openSUSE/SLE::
        sudo zypper install mariadb
        sudo systemctl start mysql.service
 
