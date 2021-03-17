@@ -466,3 +466,15 @@ class TestInspectPrivateMethods(test_common.BaseIloTest):
             expected.update({key: 'true'})
         cap = ilo_inspect._create_supported_capabilities_dict(capabilities)
         self.assertEqual(expected, cap)
+
+    def test___create_supported_capabilities_dict_gpu_capabilities(self):
+        capabilities = {'gpu_Nvidia_count': 1, 'gpu_Nvidia_Tesla_M10_count': 1,
+                        'gpu_Nvidia_Tesla_M10': True}
+        expected = {}
+        expected.update(capabilities)
+        for key in ilo_inspect.CAPABILITIES_KEYS:
+            capabilities.update({key: 'true'})
+            expected.update({key: 'true'})
+        capabilities.update({'unknown_property': 'true'})
+        cap = ilo_inspect._create_supported_capabilities_dict(capabilities)
+        self.assertEqual(expected, cap)

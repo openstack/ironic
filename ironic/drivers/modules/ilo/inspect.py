@@ -123,6 +123,13 @@ def _create_supported_capabilities_dict(capabilities):
 
     """
     valid_cap = {}
+
+    # Add the capabilities starting with "gpu_" to the supported capabilities
+    # keys set as they are runtime generated keys and cannot be hardcoded.
+    for k in capabilities:
+        if k.startswith("gpu_"):
+            valid_cap[k] = capabilities.get(k)
+
     for key in CAPABILITIES_KEYS.intersection(capabilities):
         valid_cap[key] = capabilities.get(key)
     return valid_cap
