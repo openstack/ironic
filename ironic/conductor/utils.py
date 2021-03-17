@@ -543,6 +543,7 @@ def wipe_cleaning_internal_info(task):
     info.pop('clean_step_index', None)
     info.pop('cleaning_reboot', None)
     info.pop('cleaning_polling', None)
+    info.pop('cleaning_disable_ramdisk', None)
     info.pop('skip_current_clean_step', None)
     info.pop('steps_validated', None)
     task.node.driver_internal_info = info

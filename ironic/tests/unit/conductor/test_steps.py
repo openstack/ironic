@@ -708,7 +708,8 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
                              node.driver_internal_info['clean_steps'])
             self.assertEqual({}, node.clean_step)
             self.assertFalse(mock_steps.called)
-            mock_validate_user_steps.assert_called_once_with(task, clean_steps)
+            mock_validate_user_steps.assert_called_once_with(
+                task, clean_steps, disable_ramdisk=False)
 
     @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
     def test__validate_user_clean_steps(self, mock_steps):
@@ -791,6 +792,42 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
                                    conductor_steps._validate_user_clean_steps,
                                    task, user_steps)
             mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+    @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
+    def test__validate_user_clean_steps_requires_ramdisk(self, mock_steps):
+        node = obj_utils.create_test_node(self.context)
+        mock_steps.return_value = self.clean_steps
+        self.clean_steps[1]['requires_ramdisk'] = False
+
+        user_steps = [{'step': 'update_firmware', 'interface': 'power'},
+                      {'step': 'erase_disks', 'interface': 'deploy'}]
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              conductor_steps._validate_user_clean_steps,
+                              task, user_steps, disable_ramdisk=True)
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+    @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
+    def test__validate_user_clean_steps_disable_ramdisk(self, mock_steps):
+        node = obj_utils.create_test_node(self.context)
+        for step in self.clean_steps:
+            step['requires_ramdisk'] = False
+        mock_steps.return_value = self.clean_steps
+
+        user_steps = [{'step': 'update_firmware', 'interface': 'power'},
+                      {'step': 'erase_disks', 'interface': 'deploy'}]
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            result = conductor_steps._validate_user_clean_steps(
+                task, user_steps, disable_ramdisk=True)
+            mock_steps.assert_called_once_with(task, enabled=False, sort=False)
+
+        expected = [{'step': 'update_firmware', 'interface': 'power',
+                     'priority': 10, 'abortable': False},
+                    {'step': 'erase_disks', 'interface': 'deploy',
+                     'priority': 20, 'abortable': True}]
+        self.assertEqual(expected, result)
 
 
 @mock.patch.object(conductor_steps, '_get_deployment_templates',

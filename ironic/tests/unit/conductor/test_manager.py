@@ -2416,7 +2416,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_power_valid.assert_called_once_with(mock.ANY, mock.ANY)
         mock_network_valid.assert_called_once_with(mock.ANY, mock.ANY)
         mock_spawn.assert_called_with(
-            self.service, cleaning.do_node_clean, mock.ANY, clean_steps)
+            self.service, cleaning.do_node_clean, mock.ANY, clean_steps, False)
         node.refresh()
         # Node will be moved to CLEANING
         self.assertEqual(states.CLEANING, node.provision_state)
@@ -2446,7 +2446,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_power_valid.assert_called_once_with(mock.ANY, mock.ANY)
         mock_network_valid.assert_called_once_with(mock.ANY, mock.ANY)
         mock_spawn.assert_called_with(
-            self.service, cleaning.do_node_clean, mock.ANY, clean_steps)
+            self.service, cleaning.do_node_clean, mock.ANY, clean_steps, False)
         node.refresh()
         # Node will be moved to CLEANING
         self.assertEqual(states.CLEANING, node.provision_state)
@@ -2480,7 +2480,7 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_power_valid.assert_called_once_with(mock.ANY, mock.ANY)
         mock_network_valid.assert_called_once_with(mock.ANY, mock.ANY)
         mock_spawn.assert_called_with(
-            self.service, cleaning.do_node_clean, mock.ANY, clean_steps)
+            self.service, cleaning.do_node_clean, mock.ANY, clean_steps, False)
         node.refresh()
         # Make sure states were rolled back
         self.assertEqual(prv_state, node.provision_state)
@@ -2549,8 +2549,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node.refresh()
         self.assertEqual(states.CLEANING, node.provision_state)
         self.assertEqual(tgt_prv_state, node.target_provision_state)
-        mock_spawn.assert_called_with(self.service,
-                                      cleaning.continue_node_clean, mock.ANY)
+        mock_spawn.assert_called_with(
+            self.service, cleaning.continue_node_clean, mock.ANY)
 
     def test_continue_node_clean_automated(self):
         self._continue_node_clean(states.CLEANWAIT)

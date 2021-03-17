@@ -946,6 +946,8 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                                                     'step': step,
                                                     'type': step_type}))
 
+                if step_type == 'clean':
+                    step['requires_ramdisk'] = True
                 steps[step['interface']].append(step)
 
         # Save hardware manager version, steps, and date

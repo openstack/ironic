@@ -2,10 +2,16 @@
 REST API Version History
 ========================
 
+1.70 (Wallaby, TBD)
+-------------------
+
+Add support for ``disable_ramdisk`` parameter to provisioning endpoint
+``/v1/nodes/{node_ident}/states/provision``.
+
 1.69 (Wallaby, 16.2)
 ----------------------
 
-Add support for ``deploy-steps`` parameter to provisioning endpoint
+Add support for ``deploy_steps`` parameter to provisioning endpoint
 ``/v1/nodes/{node_ident}/states/provision``. Available and optional when target
 is 'active' or 'rebuild'.
 
