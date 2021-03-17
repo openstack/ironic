@@ -538,7 +538,7 @@ class TestListPortgroups(test_api_base.BaseApiTest):
     def test_detail_sort_key_not_allowed(self):
         self._test_sort_key_not_allowed(detail=True)
 
-    @mock.patch.object(api_utils, 'get_rpc_node')
+    @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
     def test_get_all_by_node_name_ok(self, mock_get_rpc_node):
         # GET /v1/portgroups specifying node_name - success
         mock_get_rpc_node.return_value = self.node
@@ -557,7 +557,7 @@ class TestListPortgroups(test_api_base.BaseApiTest):
                              headers=self.headers)
         self.assertEqual(3, len(data['portgroups']))
 
-    @mock.patch.object(api_utils, 'get_rpc_node')
+    @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
     def test_get_all_by_node_uuid_ok(self, mock_get_rpc_node):
         mock_get_rpc_node.return_value = self.node
         obj_utils.create_test_portgroup(self.context, node_id=self.node.id)
@@ -566,7 +566,7 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         mock_get_rpc_node.assert_called_once_with(self.node.uuid)
         self.assertEqual(1, len(data['portgroups']))
 
-    @mock.patch.object(api_utils, 'get_rpc_node')
+    @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
     def test_detail_by_node_name_ok(self, mock_get_rpc_node):
         # GET /v1/portgroups/detail specifying node_name - success
         mock_get_rpc_node.return_value = self.node
@@ -578,7 +578,7 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         self.assertEqual(self.node.uuid, data['portgroups'][0]['node_uuid'])
 
 
-@mock.patch.object(rpcapi.ConductorAPI, 'update_portgroup')
+@mock.patch.object(rpcapi.ConductorAPI, 'update_portgroup', autospec=True)
 class TestPatch(test_api_base.BaseApiTest):
     headers = {api_base.Version.string: str(api_v1.max_version())}
 
@@ -589,12 +589,14 @@ class TestPatch(test_api_base.BaseApiTest):
                                                          name='pg.1',
                                                          node_id=self.node.id)
 
-        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_update_byid(self, mock_notify, mock_upd):
         extra = {'foo': 'bar'}
         mock_upd.return_value = self.portgroup
@@ -608,7 +610,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
 
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.INFO,
@@ -710,10 +712,11 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(address, response.json['address'])
         self.assertTrue(mock_upd.called)
 
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(address, kargs.address)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_replace_address_already_exist(self, mock_notify, mock_upd):
         address = 'aa:aa:aa:aa:aa:aa'
         mock_upd.side_effect = exception.MACAlreadyExists(mac=address)
@@ -728,7 +731,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertTrue(response.json['error_message'])
         self.assertTrue(mock_upd.called)
 
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(address, kargs.address)
         mock_notify.assert_has_calls([mock.call(mock.ANY, mock.ANY, 'update',
                                       obj_fields.NotificationLevel.INFO,
@@ -824,7 +827,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
 
     def test_remove_multi(self, mock_upd):
@@ -843,7 +846,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
 
         # Removing the collection
@@ -855,7 +858,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual({}, response.json['extra'])
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
 
         # Assert nothing else was changed
@@ -898,7 +901,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(address, response.json['address'])
         self.assertTrue(mock_upd.called)
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(address, kargs.address)
 
     def test_add_root_non_existent(self, mock_upd):
@@ -927,7 +930,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(extra, kargs.extra)
 
     def test_remove_uuid(self, mock_upd):
@@ -965,7 +968,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(address.lower(), response.json['address'])
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(address.lower(), kargs.address)
 
     def test_update_portgroup_standalone_ports_supported(self, mock_upd):
@@ -1080,7 +1083,7 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual(http_client.OK, response.status_int)
         self.assertEqual(address.lower(), response.json['address'])
         self.assertTrue(mock_upd.called)
-        kargs = mock_upd.call_args[0][1]
+        kargs = mock_upd.call_args[0][2]
         self.assertEqual(address.lower(), kargs.address)
 
 
@@ -1094,7 +1097,8 @@ class TestPatchExtraVifPortId(test_api_base.BaseApiTest):
         self.node = obj_utils.create_test_node(self.context)
         self.portgroup = obj_utils.create_test_portgroup(self.context,
                                                          node_id=self.node.id)
-        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
         self.mock_gtf = p.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(p.stop)
@@ -1221,7 +1225,8 @@ class TestPost(test_api_base.BaseApiTest):
         super(TestPost, self).setUp()
         self.node = obj_utils.create_test_node(self.context)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     @mock.patch.object(common_utils, 'warn_about_deprecated_extra_vif_port_id',
                        autospec=True)
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
@@ -1309,8 +1314,9 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertFalse(mock_warn.called)
         self.assertFalse(mock_except.called)
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
-    @mock.patch.object(objects.Portgroup, 'create')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
+    @mock.patch.object(objects.Portgroup, 'create', autospec=True)
     def test_create_portgroup_error(self, mock_create, mock_notify):
         mock_create.side_effect = Exception()
         pdict = apiutils.post_get_test_portgroup()
@@ -1504,7 +1510,7 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual('active-backup', portgroup.mode)
 
 
-@mock.patch.object(rpcapi.ConductorAPI, 'destroy_portgroup')
+@mock.patch.object(rpcapi.ConductorAPI, 'destroy_portgroup', autospec=True)
 class TestDelete(test_api_base.BaseApiTest):
     headers = {api_base.Version.string: str(api_v1.max_version())}
 
@@ -1515,7 +1521,8 @@ class TestDelete(test_api_base.BaseApiTest):
                                                          name='pg.1',
                                                          node_id=self.node.id)
 
-        gtf = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for')
+        gtf = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                                autospec=True)
         self.mock_gtf = gtf.start()
         self.mock_gtf.return_value = 'test-topic'
         self.addCleanup(gtf.stop)
@@ -1527,7 +1534,8 @@ class TestDelete(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertIn(self.portgroup.address, response.json['error_message'])
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_portgroup_byid(self, mock_notify, mock_dpt):
         self.delete('/portgroups/%s' % self.portgroup.uuid,
                     headers=self.headers)
@@ -1541,7 +1549,8 @@ class TestDelete(test_api_base.BaseApiTest):
                                       obj_fields.NotificationStatus.END,
                                       node_uuid=self.node.uuid)])
 
-    @mock.patch.object(notification_utils, '_emit_api_notification')
+    @mock.patch.object(notification_utils, '_emit_api_notification',
+                       autospec=True)
     def test_delete_portgroup_node_locked(self, mock_notify, mock_dpt):
         self.node.reserve(self.context, 'fake', self.node.uuid)
         mock_dpt.side_effect = exception.NodeLocked(node='fake-node',
