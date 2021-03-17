@@ -814,6 +814,11 @@ function is_ibmc_enabled {
     return 1
 }
 
+function is_irmc_enabled {
+    [[ -z "${IRONIC_ENABLED_HARDWARE_TYPES%%*irmc*}" ]] && return 0
+    return 1
+}
+
 function is_ansible_deploy_enabled {
     [[ -z "${IRONIC_ENABLED_DEPLOY_INTERFACES%%*ansible*}" ]] && return 0
     return 1
@@ -1135,6 +1140,10 @@ function install_ironic {
 
     if is_ibmc_enabled; then
         pip_install python-ibmcclient
+    fi
+
+    if is_irmc_enabled; then
+        pip_install python-scciclient pysnmp
     fi
 
     if is_ansible_deploy_enabled; then
