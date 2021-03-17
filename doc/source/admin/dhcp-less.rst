@@ -23,7 +23,8 @@ be configured accordingly.
 .. warning::
    The simple-init_ element is found to conflict to NetworkManager, which makes
    this feature not operational with ramdisks based on CentOS, RHEL and Fedora.
-   The ``debian-minimal`` element seems to work correctly.
+   The ``debian-minimal`` and ``centos`` elements seem to work correctly. For
+   CentOS, only CentOS 7 based ramdisks are known to work.
 
 .. note::
    If desired, some interfaces can still be configured to use DHCP.
