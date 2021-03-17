@@ -31,6 +31,7 @@ import yaml
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
+from ironic.common import faults
 from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import states
@@ -488,9 +489,12 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
         # TODO(pas-ha) investigate takeover scenario
         if node.provision_state == states.DEPLOYING:
             # adding network-driver dependent provisioning ports
-            manager_utils.node_power_action(task, states.POWER_OFF)
-            power_state_to_restore = (
-                manager_utils.power_on_node_if_needed(task))
+            fast_track = manager_utils.is_fast_track(task)
+            power_state_to_restore = None
+            if not fast_track:
+                manager_utils.node_power_action(task, states.POWER_OFF)
+                power_state_to_restore = (
+                    manager_utils.power_on_node_if_needed(task))
             task.driver.network.add_provisioning_network(task)
             manager_utils.restore_power_state_if_needed(
                 task, power_state_to_restore)
@@ -576,13 +580,18 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
         if not node.driver_internal_info['clean_steps']:
             # no clean steps configured, nothing to do.
             return
-        power_state_to_restore = manager_utils.power_on_node_if_needed(task)
+        fast_track = manager_utils.is_fast_track(task)
+        power_state_to_restore = None
+        if not fast_track:
+            power_state_to_restore = manager_utils.power_on_node_if_needed(
+                task)
         task.driver.network.add_cleaning_network(task)
         manager_utils.restore_power_state_if_needed(
             task, power_state_to_restore)
         boot_opt = deploy_utils.build_agent_options(node)
         task.driver.boot.prepare_ramdisk(task, boot_opt)
-        manager_utils.node_power_action(task, states.REBOOT)
+        if not fast_track:
+            manager_utils.node_power_action(task, states.REBOOT)
         return states.CLEANWAIT
 
     @METRICS.timer('AnsibleDeploy.tear_down_cleaning')
@@ -593,12 +602,17 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
         :raises NodeCleaningFailure: if the cleaning ports cannot be
                 removed
         """
-        manager_utils.node_power_action(task, states.POWER_OFF)
+        fast_track = manager_utils.is_fast_track(task)
+        node = task.node
+        cleaning_failure = (node.fault == faults.CLEAN_FAILURE)
+        if not (fast_track or cleaning_failure):
+            manager_utils.node_power_action(task, states.POWER_OFF)
         task.driver.boot.clean_up_ramdisk(task)
         power_state_to_restore = manager_utils.power_on_node_if_needed(task)
         task.driver.network.remove_cleaning_network(task)
-        manager_utils.restore_power_state_if_needed(
-            task, power_state_to_restore)
+        if not (fast_track or cleaning_failure):
+            manager_utils.restore_power_state_if_needed(
+                task, power_state_to_restore)
 
     @METRICS.timer('AnsibleDeploy.write_image')
     @base.deploy_step(priority=80)
