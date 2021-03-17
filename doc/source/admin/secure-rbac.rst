@@ -32,7 +32,29 @@ stored in these fields.
 System Scoped
 =============
 
-.. todo: Need to be filled out in an earlier patch most likely.
+System scoped authentication is intended for "administrative" activites such
+as those crossing tenants/projects, as all tenants/projects should be visible
+to ``system`` scoped users in Ironic.
+
+System scoped requests do not have an associated ``project_id`` value for
+the Keystone request authorization token utilized to speak with Ironic.
+These requests are translated through `keystonemiddleware <https://docs.openstack.org/keystonemiddleware/latest/>`_
+into values which tell Ironic what to do. Or to be more precise, tell the
+policy enforcement framework the information necessary to make decisions.
+
+System scoped requests very much align with the access controls of Ironic
+before the Secure RBAC effort. The original custom role ``baremetal_admin``
+privilges are identical to a system scoped ``admin``'s privilges.
+Similarlly ``baremetal_reader`` is identical to a system scoped ``reader``.
+In these concepts, the ``admin`` is allowed to create/delete objects/items.
+The ``reader`` is allowed to read details about items and is intended for
+users who may need an account with read-only access for or front-line support
+purposes.
+
+In addition to these concepts, a ``member`` role exists in the Secure RBAC
+use model. Ironic does support this role, and in general ``member`` role
+users in a system scope are able to perform basic updates/changes, with the
+exception of special fields like those to disable cleaning.
 
 Project Scoped
 ==============
