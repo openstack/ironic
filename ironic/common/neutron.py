@@ -123,7 +123,7 @@ def update_neutron_port(context, port_id, update_body, client=None):
     return client.update_port(port_id, update_body)
 
 
-def unbind_neutron_port(port_id, client=None, context=None):
+def unbind_neutron_port(port_id, client=None, context=None, reset_mac=True):
     """Unbind a neutron port
 
     Remove a neutron port's binding profile and host ID so that it returns to
@@ -132,6 +132,7 @@ def unbind_neutron_port(port_id, client=None, context=None):
     :param port_id: Neutron port ID.
     :param client: Optional a Neutron client object.
     :param context: request context
+    :param reset_mac: reset mac address
     :type context: ironic.common.context.RequestContext
     :raises: NetworkError
     """
@@ -146,7 +147,8 @@ def unbind_neutron_port(port_id, client=None, context=None):
         #   Exception PortBound will be raised by neutron as it refuses to
         #   update the mac address of a bound port if we attempt to unbind and
         #   reset the mac in the same call.
-        update_neutron_port(context, port_id, body_reset_mac, client)
+        if reset_mac:
+            update_neutron_port(context, port_id, body_reset_mac, client)
     # NOTE(vsaienko): Ignore if port was deleted before calling vif detach.
     except neutron_exceptions.PortNotFoundClient:
         LOG.info('Port %s was not found while unbinding.', port_id)
