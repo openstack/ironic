@@ -18,6 +18,7 @@ This client is compatible with any JSON RPC 2.0 implementation, including ours.
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import importutils
+from oslo_utils import netutils
 from oslo_utils import strutils
 from oslo_utils import uuidutils
 
@@ -156,7 +157,9 @@ class _CallContext(object):
         scheme = 'http'
         if CONF.json_rpc.use_ssl:
             scheme = 'https'
-        url = '%s://%s:%d' % (scheme, self.host, CONF.json_rpc.port)
+        url = '%s://%s:%d' % (scheme,
+                              netutils.escape_ipv6(self.host),
+                              CONF.json_rpc.port)
         result = _get_session().post(url, json=body)
         LOG.debug('RPC %s returned %s', method,
                   strutils.mask_password(result.text or '<None>'))
