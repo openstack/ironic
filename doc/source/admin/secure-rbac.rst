@@ -213,13 +213,44 @@ from "Does the user user broadly has access to the API?" to
 "Does user have access to the node, and then do they have access
 to the specific resource?".
 
+What is an owner or lessee?
+---------------------------
+
+An ``owner`` or ``lessee`` is the project which has been assigned baremetal
+resources. Generally these should be service projects as opposed to a project
+dedicated to a specific user. This will help prevent the need to involve a
+``system`` scoped administrator from having to correct ownership records
+should a project need to be removed due to an individual's departure.
+
+The underlying ``project_id`` is used to represent and associate the owner or
+lessee.
+
 How do I assign an owner?
 -------------------------
 
-.. todo: need to add information on the owner assignment
-   and also cover what this generally means... maybe?
+.. code-block:: console
+
+   # baremetal node set --owner <project_id> <node>
+
+.. note::
+   With the default access policy, an ``owner`` is able to change
+   the assigned ``lessee`` of a node. However the ``lessee`` is unable to do
+   the same.
 
 How do I assign a lessee?
 -------------------------
 
-.. todo: Need to cover how to assign a lessee.
+.. code-block:: console
+
+   # baremetal node set --lessee <project_id> <node>
+
+What is the difference between an owner and lessee?
+---------------------------------------------------
+
+This is largely covered in `How Project Scoped Works`_ although
+as noted it is largely in means of access. A ``lessee`` is far more
+restrictive and an ``owner`` may revoke access to ``lessee``.
+
+Access to the underlying baremetal node is not exclusive between the
+``owner`` and ``lessee``, and this use model expects that some level of
+communication takes place between the appropriate parties.

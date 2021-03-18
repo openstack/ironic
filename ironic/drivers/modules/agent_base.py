@@ -1345,6 +1345,10 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                 image_source = node.instance_info.get('image_source')
                 try:
                     context = task.context
+                    # TODO(TheJulia): Uhh, is_admin likely needs to be
+                    # addressed in Xena as undesirable behavior may
+                    # result, or just outright break in an entirely
+                    # system scoped configuration.
                     context.is_admin = True
                     glance = image_service.GlanceImageService(
                         context=context)
