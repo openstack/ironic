@@ -20,12 +20,12 @@ Client side of the conductor RPC API.
 
 import random
 
+from ironic_lib.json_rpc import client as json_rpc
 import oslo_messaging as messaging
 
 from ironic.common import exception
 from ironic.common import hash_ring
 from ironic.common.i18n import _
-from ironic.common.json_rpc import client as json_rpc
 from ironic.common import release_mappings as versions
 from ironic.common import rpc
 from ironic.conductor import manager
