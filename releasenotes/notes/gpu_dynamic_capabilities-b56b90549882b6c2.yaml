@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds new GPU dynamic capabilities to ``ilo`` drivers inspection.
+    gpu_<vendor>_count: Integer
+    gpu_<gpu_device_name>_count: Integer
+    gpu_<gpu_device_name>: Boolean

@@ -941,6 +941,21 @@ Inspection can also discover the following extra capabilities for iLO driver:
   This is disable/enable login to the iLO using credentials. This can be toggled only
   by physical visit to the bare metal.
 
+* ``gpu_<vendor>_count``: Integer value. The capability name is dynamically formed as
+  gpu_<vendor>_count. The vendor name is replaced in the "<vendor>". If the vendor name
+  is not returned by the hardware, then vendor ID in hexadecimal form is replaced
+  in the capability name. Examples: {'gpu_Nvidia_count': 1}, {'gpu_0x102b_count': 1}.
+
+* ``gpu_<vendor_device_name>_count``: Integer value. The capability name is formed
+  dynamically by replacing the gpu device name as returned by ilo in
+  "<vendor_device_name>". Examples: {'gpu_Nvidia_Tesla_M10_count': 1},
+  {'gpu_Embedded_Video_Controller_count': 1}
+
+* ``gpu_<vendor_device_name>``: Boolean. The capability name is formed
+  dynamically by replacing the gpu device name as returned by ilo in
+  "<vendor_device_name>". Examples: {'gpu_Nvidia_Tesla_M10': True},
+  {'gpu_Embedded_Video_Controller': True}
+
   .. note::
 
      * The capability ``nic_capacity`` can only be discovered if ipmitool
