@@ -1897,6 +1897,7 @@ allocations_post_member:
   body: *allocation_body
   assert_status: 403
   deprecated: true
+  skip_reason: This endpoint's behavior supports allocation creation as a member with the new Role Based Access Control changes. Thus this test cannot both ensure prior and post-change behavior as it is actually valid moving forward.
 
 allocations_post_observer:
   path: '/v1/allocations'

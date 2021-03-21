@@ -177,7 +177,7 @@ Allocations
 The ``allocations`` endpoint of the API is somewhat different than other
 other endpoints as it allows for the allocation of physical machines to
 an admin. In this context, there is not already an ``owner`` or ``project_id``
-to leverage to control access for the creation process, any project admin
+to leverage to control access for the creation process, any project member
 does have the inherent prilege of requesting an allocation. That being said,
 their allocation request will require physical nodes to be owned or leased
 to the ``project_id`` through the ``node`` fields ``owner`` or ``lessee``.
@@ -186,6 +186,13 @@ Ability to override the owner is restricted to system scoped users by default
 and any new allocation being requested with a specific owner, if made in
 ``project`` scope, will have the ``project_id`` recorded as the owner of
 the allocation.
+
+Ultimately, an operational behavior difference exists between the ``owner``
+and ``lessee`` rights in terms of allocations exists. With the standard
+access rights, ``lessee`` users are able to create allocations if they
+own nodes which are not allocated or deployed, but they cannot reprovision
+nodes when using only a ``member`` role. This limitation is not the case
+for project-scoped users with the ``admin`` role.
 
 .. WARNING:: The allocation endpoint's use is restricted to project scoped
    interactions until ``[oslo_policy]enforce_new_defaults`` has been set
