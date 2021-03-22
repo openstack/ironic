@@ -777,6 +777,8 @@
           IRONIC_REQUIRE_AGENT_TOKEN: False
           Q_AGENT: openvswitch
           Q_ML2_TENANT_NETWORK_TYPE: vxlan
+          SWIFT_ENABLE_TEMPURLS: True
+          SWIFT_TEMPURL_KEY: secretkey
           EBTABLES_RACE_FIX: True
         old:
           IRONIC_VM_LOG_DIR: '{{ devstack_bases.old }}/ironic-bm-logs'
