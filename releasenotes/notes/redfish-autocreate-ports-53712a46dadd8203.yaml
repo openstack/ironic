@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds support for automatic creation of ports for ``redfish`` enabled
+    bare metal nodes using prior to ironic-inspector introspection. This
+    feature is a part of ``redfish`` management interface.

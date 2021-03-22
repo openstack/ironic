@@ -1161,3 +1161,22 @@ class RedfishManagement(base.ManagementInterface):
         self._reset_keys(task, sushy.SECURE_BOOT_RESET_KEYS_DELETE_ALL)
         LOG.info('Secure boot keys have been removed from node %s',
                  task.node.uuid)
+
+    def get_mac_addresses(self, task):
+        """Get MAC address information for the node.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: RedfishConnectionError when it fails to connect to Redfish
+        :raises: RedfishError on an error from the Sushy library
+        :returns: a dictionary containing MAC addresses of enabled interfaces
+                  in a {'mac': 'state'} format
+        """
+        try:
+            system = redfish_utils.get_system(task.node)
+            return redfish_utils.get_enabled_macs(task, system)
+        except sushy.exceptions.SushyError as exc:
+            msg = (_('Failed to get network interface information on node '
+                     '%(node)s: %(exc)s')
+                   % {'node': task.node.uuid, 'exc': exc})
+            LOG.error(msg)
+            raise exception.RedfishError(error=msg)

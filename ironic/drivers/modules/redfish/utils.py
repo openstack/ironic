@@ -349,3 +349,26 @@ def _get_connection(node, lambda_fun, *args):
                       'node %(node)s. Error: %(error)s',
                       {'address': driver_info['address'],
                        'node': node.uuid, 'error': e})
+
+
+def get_enabled_macs(task, system):
+    """Get information on MAC addresses of enabled ports using Redfish.
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param system: a Redfish System object
+    :returns: a dictionary containing MAC addresses of enabled interfaces
+        in a {'mac': 'state'} format
+    """
+
+    if (system.ethernet_interfaces
+            and system.ethernet_interfaces.summary):
+        macs = system.ethernet_interfaces.summary
+
+        # Identify ports for the NICs being in 'enabled' state
+        enabled_macs = {nic_mac: nic_state
+                        for nic_mac, nic_state in macs.items()
+                        if nic_state == sushy.STATE_ENABLED}
+        return enabled_macs
+    else:
+        LOG.warning("No NIC information discovered "
+                    "for node %(node)s", {'node': task.node.uuid})

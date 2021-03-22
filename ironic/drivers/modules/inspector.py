@@ -34,7 +34,7 @@ from ironic.conductor import utils as cond_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
-
+from ironic.drivers.modules import inspect_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -243,6 +243,22 @@ class Inspector(base.InspectInterface):
         :returns: states.INSPECTWAIT
         :raises: HardwareInspectionFailure on failure
         """
+        try:
+            enabled_macs = task.driver.management.get_mac_addresses(task)
+            if enabled_macs:
+                inspect_utils.create_ports_if_not_exist(
+                    task, enabled_macs, get_mac_address=lambda x: x[0])
+            else:
+                LOG.warning("Not attempting to create any port as no NICs "
+                            "were discovered in 'enabled' state for node "
+                            "%(node)s: %(mac_data)s",
+                            {'mac_data': enabled_macs,
+                             'node': task.node.uuid})
+
+        except exception.UnsupportedDriverExtension:
+            LOG.info('Pre-creating ports prior to inspection not supported'
+                     ' on node %s.', task.node.uuid)
+
         ironic_manages_boot = _ironic_manages_boot(
             task, raise_exc=CONF.inspector.require_managed_boot)
 

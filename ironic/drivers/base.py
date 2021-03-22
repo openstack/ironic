@@ -1161,6 +1161,17 @@ class ManagementInterface(BaseInterface):
         raise exception.UnsupportedDriverExtension(
             driver=task.node.driver, extension='detect_vendor')
 
+    def get_mac_addresses(self, task):
+        """Get MAC address information for the node.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: UnsupportedDriverExtension
+        :returns: A list of MAC addresses for the node
+
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='get_mac_addresses')
+
 
 class InspectInterface(BaseInterface):
     """Interface for inspection-related actions."""

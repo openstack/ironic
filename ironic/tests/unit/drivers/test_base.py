@@ -831,6 +831,13 @@ class TestManagementInterface(base.TestCase):
             expected, management.get_indicator_state(
                 task_mock, components.CHASSIS, 'led-0'))
 
+    def test_get_mac_addresses(self):
+        management = fake.FakeManagement()
+        task_mock = mock.MagicMock(spec_set=['node'])
+
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          management.get_mac_addresses, task_mock)
+
 
 class TestBareDriver(base.TestCase):
 

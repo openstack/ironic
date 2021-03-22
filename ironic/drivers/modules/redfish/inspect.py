@@ -160,25 +160,15 @@ class RedfishInspect(base.InspectInterface):
         return states.MANAGEABLE
 
     def _create_ports(self, task, system):
-        if (system.ethernet_interfaces
-                and system.ethernet_interfaces.summary):
-            macs = system.ethernet_interfaces.summary
-
-            # Create ports for the discovered NICs being in 'enabled' state
-            enabled_macs = {nic_mac: nic_state
-                            for nic_mac, nic_state in macs.items()
-                            if nic_state == sushy.STATE_ENABLED}
-            if enabled_macs:
-                inspect_utils.create_ports_if_not_exist(
-                    task, enabled_macs, get_mac_address=lambda x: x[0])
-            else:
-                LOG.warning("Not attempting to create any port as no NICs "
-                            "were discovered in 'enabled' state for node "
-                            "%(node)s: %(mac_data)s",
-                            {'mac_data': macs, 'node': task.node.uuid})
+        enabled_macs = redfish_utils.get_enabled_macs(task, system)
+        if enabled_macs:
+            inspect_utils.create_ports_if_not_exist(
+                task, enabled_macs, get_mac_address=lambda x: x[0])
         else:
-            LOG.warning("No NIC information discovered "
-                        "for node %(node)s", {'node': task.node.uuid})
+            LOG.warning("Not attempting to create any port as no NICs "
+                        "were discovered in 'enabled' state for node "
+                        "%(node)s: %(mac_data)s",
+                        {'mac_data': enabled_macs, 'node': task.node.uuid})
 
     def _detect_local_gb(self, task, system):
         simple_storage_size = 0

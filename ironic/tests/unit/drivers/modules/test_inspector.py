@@ -20,7 +20,9 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules import inspector
+from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -71,7 +73,7 @@ class BaseTestCase(db_base.DbTestCase):
         self.task.shared = False
         self.task.node = self.node
         self.task.driver = mock.Mock(
-            spec=['boot', 'network', 'inspect', 'power'],
+            spec=['boot', 'network', 'inspect', 'power', 'management'],
             inspect=self.iface)
         self.driver = self.task.driver
 
@@ -126,14 +128,23 @@ class InspectHardwareTestCase(BaseTestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           self.iface.validate, self.task)
 
-    def test_validate_require_managed_boot(self, mock_client):
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
+                       autospec=True)
+    def test_validate_require_managed_boot(self, mock_get_system,
+                                           mock_create_ports_if_not_exist,
+                                           mock_client):
         CONF.set_override('require_managed_boot', True, group='inspector')
         self.driver.boot.validate_inspection.side_effect = (
             exception.UnsupportedDriverExtension(''))
         self.assertRaises(exception.UnsupportedDriverExtension,
                           self.iface.validate, self.task)
 
-    def test_unmanaged_ok(self, mock_client):
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
+                       autospec=True)
+    def test_unmanaged_ok(self, mock_create_ports_if_not_exist,
+                          mock_get_system, mock_client):
         self.driver.boot.validate_inspection.side_effect = (
             exception.UnsupportedDriverExtension(''))
         mock_introspect = mock_client.return_value.start_introspection
@@ -148,7 +159,11 @@ class InspectHardwareTestCase(BaseTestCase):
         self.assertFalse(self.driver.power.set_power_state.called)
 
     @mock.patch.object(task_manager, 'acquire', autospec=True)
-    def test_unmanaged_error(self, mock_acquire, mock_client):
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
+                       autospec=True)
+    def test_unmanaged_error(self, mock_create_ports_if_not_exist,
+                             mock_get_system, mock_acquire, mock_client):
         mock_acquire.return_value.__enter__.return_value = self.task
         self.driver.boot.validate_inspection.side_effect = (
             exception.UnsupportedDriverExtension(''))
@@ -164,7 +179,11 @@ class InspectHardwareTestCase(BaseTestCase):
         self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
         self.assertFalse(self.driver.power.set_power_state.called)
 
-    def test_require_managed_boot(self, mock_client):
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
+                       autospec=True)
+    def test_require_managed_boot(self, mock_create_ports_if_not_exist,
+                                  mock_get_system, mock_client):
         CONF.set_override('require_managed_boot', True, group='inspector')
         self.driver.boot.validate_inspection.side_effect = (
             exception.UnsupportedDriverExtension(''))
@@ -179,7 +198,11 @@ class InspectHardwareTestCase(BaseTestCase):
         self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
         self.assertFalse(self.driver.power.set_power_state.called)
 
-    def test_managed_ok(self, mock_client):
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
+                       autospec=True)
+    def test_managed_ok(self, mock_create_ports_if_not_exist,
+                        mock_get_system, mock_client):
         endpoint = 'http://192.169.0.42:5050/v1'
         mock_client.return_value.get_endpoint.return_value = endpoint
         mock_introspect = mock_client.return_value.start_introspection
@@ -200,7 +223,12 @@ class InspectHardwareTestCase(BaseTestCase):
         self.assertFalse(self.driver.network.remove_inspection_network.called)
         self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
 
-    def test_managed_custom_params(self, mock_client):
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
+                       autospec=True)
+    def test_managed_custom_params(self, mock_get_system,
+                                   mock_create_ports_if_not_exist,
+                                   mock_client):
         CONF.set_override('extra_kernel_params',
                           'ipa-inspection-collectors=default,logs '
                           'ipa-collect-dhcp=1',
@@ -230,7 +258,12 @@ class InspectHardwareTestCase(BaseTestCase):
 
     @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url',
                 autospec=True)
-    def test_managed_fast_track(self, mock_ironic_url, mock_client):
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
+                       autospec=True)
+    def test_managed_fast_track(self, mock_create_ports_if_not_exist,
+                                mock_get_system, mock_ironic_url,
+                                mock_client):
         CONF.set_override('fast_track', True, group='deploy')
         CONF.set_override('extra_kernel_params',
                           'ipa-inspection-collectors=default,logs '
@@ -262,7 +295,12 @@ class InspectHardwareTestCase(BaseTestCase):
         self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
 
     @mock.patch.object(task_manager, 'acquire', autospec=True)
-    def test_managed_error(self, mock_acquire, mock_client):
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
+                       autospec=True)
+    def test_managed_error(self, mock_get_system,
+                           mock_create_ports_if_not_exist, mock_acquire,
+                           mock_client):
         endpoint = 'http://192.169.0.42:5050/v1'
         mock_client.return_value.get_endpoint.return_value = endpoint
         mock_acquire.return_value.__enter__.return_value = self.task
