@@ -529,10 +529,8 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
         actual = image_utils._find_param(param_str, param_dict)
         self.assertEqual(actual, expected)
 
-    @mock.patch.object(image_utils, '_find_param', autospec=True)
     @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
-    def test_prepare_deploy_iso(self, mock__prepare_iso_image,
-                                find_mock):
+    def test_prepare_deploy_iso(self, mock__prepare_iso_image):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
 
@@ -543,29 +541,34 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             }
             task.node.driver_info.update(d_info)
 
-            find_call_list = [
-                mock.call('deploy_kernel', d_info),
-                mock.call('deploy_ramdisk', d_info),
-                mock.call('bootloader', d_info)
-            ]
-            find_mock.side_effect = [
-                'kernel', 'ramdisk', 'bootloader'
-            ]
-
             task.node.instance_info.update(deploy_boot_mode='uefi')
 
             image_utils.prepare_deploy_iso(task, {}, 'deploy', d_info)
 
             mock__prepare_iso_image.assert_called_once_with(
                 task, 'kernel', 'ramdisk', 'bootloader', params={},
-                inject_files={})
+                inject_files={}, base_iso=None)
 
-            find_mock.assert_has_calls(find_call_list)
-
-    @mock.patch.object(image_utils, '_find_param', autospec=True)
     @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
-    def test_prepare_deploy_iso_network_data(
-            self, mock__prepare_iso_image, find_mock):
+    def test_prepare_deploy_iso_existing_iso(self, mock__prepare_iso_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            d_info = {
+                'redfish_deploy_iso': 'iso',
+            }
+            task.node.driver_info.update(d_info)
+
+            task.node.instance_info.update(deploy_boot_mode='uefi')
+
+            image_utils.prepare_deploy_iso(task, {}, 'deploy', d_info)
+
+            mock__prepare_iso_image.assert_called_once_with(
+                task, None, None, None, params={},
+                inject_files={}, base_iso='iso')
+
+    @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
+    def test_prepare_deploy_iso_network_data(self, mock__prepare_iso_image):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
 
@@ -577,14 +580,6 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
 
             task.node.instance_info.update()
 
-            find_call_list = [
-                mock.call('deploy_kernel', d_info),
-                mock.call('deploy_ramdisk', d_info),
-                mock.call('bootloader', d_info)
-            ]
-            find_mock.side_effect = [
-                'kernel', 'ramdisk', None
-            ]
             network_data = {'a': ['b']}
 
             mock_get_node_nw_data = mock.MagicMock(return_value=network_data)
@@ -602,14 +597,10 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
 
             mock__prepare_iso_image.assert_called_once_with(
                 task, 'kernel', 'ramdisk', bootloader_href=None,
-                params={}, inject_files=expected_files)
+                params={}, inject_files=expected_files, base_iso=None)
 
-            find_mock.assert_has_calls(find_call_list)
-
-    @mock.patch.object(image_utils, '_find_param', autospec=True)
     @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
-    def test_prepare_deploy_iso_tls(self, mock__prepare_iso_image,
-                                    find_mock):
+    def test_prepare_deploy_iso_tls(self, mock__prepare_iso_image):
         with tempfile.NamedTemporaryFile(delete=False) as tf:
             temp_name = tf.name
             self.addCleanup(lambda: os.unlink(temp_name))
@@ -626,15 +617,6 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             }
             task.node.driver_info.update(d_info)
 
-            find_call_list = [
-                mock.call('deploy_kernel', d_info),
-                mock.call('deploy_ramdisk', d_info),
-                mock.call('bootloader', d_info)
-            ]
-            find_mock.side_effect = [
-                'kernel', 'ramdisk', 'bootloader'
-            ]
-
             task.node.instance_info.update(deploy_boot_mode='uefi')
 
             image_utils.prepare_deploy_iso(task, {}, 'deploy', d_info)
@@ -648,9 +630,7 @@ cafile = /etc/ironic-python-agent/ironic.crt
 
             mock__prepare_iso_image.assert_called_once_with(
                 task, 'kernel', 'ramdisk', 'bootloader', params={},
-                inject_files=expected_files)
-
-            find_mock.assert_has_calls(find_call_list)
+                inject_files=expected_files, base_iso=None)
 
     @mock.patch.object(image_utils, '_find_param', autospec=True)
     @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)

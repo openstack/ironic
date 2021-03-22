@@ -198,6 +198,27 @@ property can be used to pass user-specified kernel command line parameters.
 For ramdisk kernel, ``[instance_info]/kernel_append_params`` property serves
 the same purpose.
 
+Pre-built ISO images
+~~~~~~~~~~~~~~~~~~~~
+
+By default an ISO images is built per node using the deploy kernel and
+initramfs provided in the configuration or the node's ``driver_info``. Starting
+with the Wallaby release it's possible to provide a pre-built ISO image:
+
+.. code-block:: bash
+
+  baremetal node set node-0 \
+    --driver_info redfish_deploy_iso=http://url/of/deploy.iso \
+    --driver_info redfish_rescue_iso=http://url/of/rescue.iso
+
+.. note::
+   OpenStack Image service (glance) image IDs and ``file://`` links are also
+   accepted.
+
+No customization is currently done to the image, so e.g.
+:doc:`/admin/dhcp-less` won't work. `Configuring an ESP image`_ is also
+unnecessary.
+
 Configuring an ESP image
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 

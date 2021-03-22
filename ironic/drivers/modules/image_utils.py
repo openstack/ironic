@@ -436,15 +436,23 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
 
     boot_mode = boot_mode_utils.get_boot_mode(task.node)
 
-    LOG.debug("Trying to create %(boot_mode)s ISO image for node %(node)s "
-              "with kernel %(kernel_href)s, ramdisk %(ramdisk_href)s, "
-              "bootloader %(bootloader_href)s and kernel params %(params)s"
-              "", {'node': task.node.uuid,
-                   'boot_mode': boot_mode,
-                   'kernel_href': kernel_href,
-                   'ramdisk_href': ramdisk_href,
-                   'bootloader_href': bootloader_href,
-                   'params': kernel_params})
+    if base_iso:
+        # TODO(dtantsur): fix this limitation eventually (see
+        # images.create_boot_iso).
+        LOG.debug('Using pre-built %(boot_mode)s ISO %(iso)s for node '
+                  '%(node)s, custom configuration will not be available',
+                  {'boot_mode': boot_mode, 'node': task.node.uuid,
+                   'iso': base_iso})
+    else:
+        LOG.debug("Trying to create %(boot_mode)s ISO image for node %(node)s "
+                  "with kernel %(kernel_href)s, ramdisk %(ramdisk_href)s, "
+                  "bootloader %(bootloader_href)s and kernel params %(params)s"
+                  "", {'node': task.node.uuid,
+                       'boot_mode': boot_mode,
+                       'kernel_href': kernel_href,
+                       'ramdisk_href': ramdisk_href,
+                       'bootloader_href': bootloader_href,
+                       'params': kernel_params})
 
     with tempfile.NamedTemporaryFile(
             dir=CONF.tempdir, suffix='.iso') as boot_fileobj:
@@ -479,7 +487,8 @@ def _find_param(param_str, param_dict):
     for param_key in param_dict:
         if param_str in param_key:
             val = param_dict.get(param_key)
-    return val
+            if val is not None:
+                return val
 
 
 _TLS_REMOTE_FILE = 'etc/ironic-python-agent/ironic.crt'
@@ -516,10 +525,12 @@ def prepare_deploy_iso(task, params, mode, d_info):
 
     kernel_str = '%s_kernel' % mode
     ramdisk_str = '%s_ramdisk' % mode
+    iso_str = '%s_iso' % mode
     bootloader_str = 'bootloader'
 
     kernel_href = _find_param(kernel_str, d_info)
     ramdisk_href = _find_param(ramdisk_str, d_info)
+    iso_href = _find_param(iso_str, d_info)
     bootloader_href = _find_param(bootloader_str, d_info)
 
     # TODO(TheJulia): At some point we should support something like
@@ -527,7 +538,7 @@ def prepare_deploy_iso(task, params, mode, d_info):
     # injection.
     prepare_iso_image = functools.partial(
         _prepare_iso_image, task, kernel_href, ramdisk_href,
-        bootloader_href=bootloader_href, params=params)
+        bootloader_href=bootloader_href, params=params, base_iso=iso_href)
 
     inject_files = {}
     if CONF.agent.api_ca_file:

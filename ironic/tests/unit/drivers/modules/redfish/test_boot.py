@@ -72,6 +72,17 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertIn('ramdisk', actual_driver_info['deploy_ramdisk'])
             self.assertIn('bootloader', actual_driver_info['bootloader'])
 
+    def test_parse_driver_info_iso(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.driver_info.update(
+                {'redfish_deploy_iso': 'http://boot.iso'})
+
+            actual_driver_info = redfish_boot._parse_driver_info(task.node)
+
+            self.assertEqual('http://boot.iso',
+                             actual_driver_info['redfish_deploy_iso'])
+
     def test_parse_driver_info_rescue(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:

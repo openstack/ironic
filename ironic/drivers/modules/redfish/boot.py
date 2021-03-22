@@ -100,22 +100,27 @@ def _parse_driver_info(node):
     d_info = node.driver_info
 
     mode = deploy_utils.rescue_or_deploy_mode(node)
-    params_to_check = KERNEL_RAMDISK_LABELS[mode]
+    iso_param = 'redfish_%s_iso' % mode
+    iso_ref = d_info.get(iso_param)
+    if iso_ref is not None:
+        deploy_info = {iso_param: iso_ref}
+    else:
+        params_to_check = KERNEL_RAMDISK_LABELS[mode]
 
-    deploy_info = {option: d_info.get(option)
-                   for option in params_to_check}
+        deploy_info = {option: d_info.get(option)
+                       for option in params_to_check}
 
-    if not any(deploy_info.values()):
-        # NOTE(dtantsur): avoid situation when e.g. deploy_kernel comes
-        # from driver_info but deploy_ramdisk comes from configuration,
-        # since it's a sign of a potential operator's mistake.
-        deploy_info = {k: getattr(CONF.conductor, k)
-                       for k in params_to_check}
+        if not any(deploy_info.values()):
+            # NOTE(dtantsur): avoid situation when e.g. deploy_kernel comes
+            # from driver_info but deploy_ramdisk comes from configuration,
+            # since it's a sign of a potential operator's mistake.
+            deploy_info = {k: getattr(CONF.conductor, k)
+                           for k in params_to_check}
 
-    error_msg = _("Error validating Redfish virtual media. Some "
-                  "parameters were missing in node's driver_info")
+        error_msg = _("Error validating Redfish virtual media. Some "
+                      "parameters were missing in node's driver_info")
 
-    deploy_utils.check_for_missing_params(deploy_info, error_msg)
+        deploy_utils.check_for_missing_params(deploy_info, error_msg)
 
     deploy_info.update(
         {option: d_info.get(option, getattr(CONF.conductor, option, None))
