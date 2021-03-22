@@ -116,3 +116,24 @@ class PXERamdiskDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
         if node.provision_state in (states.ACTIVE, states.UNRESCUING):
             # In the event of takeover or unrescue.
             task.driver.boot.prepare_instance(task)
+
+
+class PXEAnacondaDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
+                        base.DeployInterface):
+
+    def get_properties(self, task):
+        return {}
+
+    def validate(self, task):
+        pass
+
+    @METRICS.timer('AnacondaDeploy.deploy')
+    @base.deploy_step(priority=100)
+    @task_manager.require_exclusive_lock
+    def deploy(self, task):
+        pass
+
+    @METRICS.timer('AnacondaDeploy.prepare')
+    @task_manager.require_exclusive_lock
+    def prepare(self, task):
+        pass

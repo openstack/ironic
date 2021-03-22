@@ -70,11 +70,15 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.config_temp_dir('tftp_root', group='pxe')
         self.config_temp_dir('images_path', group='pxe')
         self.config_temp_dir('http_root', group='deploy')
+        self.config(default_ks_template='/etc/ironic/ks.cfg.template',
+                    group='anaconda')
         instance_info = INST_INFO_DICT
         instance_info['deploy_key'] = 'fake-56789'
 
         self.config(enabled_boot_interfaces=[self.boot_interface,
                                              'ipxe', 'fake'])
+        self.config(enabled_deploy_interfaces=['fake', 'direct', 'iscsi',
+                                               'anaconda'])
         self.node = obj_utils.create_test_node(
             self.context,
             driver=self.driver,
@@ -222,6 +226,27 @@ class PXEBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.UnsupportedDriverExtension,
                               task.driver.boot.validate_inspection, task)
+
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
+                       autospec=True)
+    def test_validate_kickstart_has_squashfs_id(self, mock_validate_img):
+        node = self.node
+        node.deploy_interface = 'anaconda'
+        node.save()
+        self.config(http_url='http://fake_url', group='deploy')
+        with task_manager.acquire(self.context, node.uuid) as task:
+            task.driver.boot.validate(task)
+            mock_validate_img.assert_called_once_with(
+                mock.ANY, mock.ANY, ['kernel_id', 'ramdisk_id', 'squashfs_id']
+            )
+
+    def test_validate_kickstart_fail_http_url_not_set(self):
+        node = self.node
+        node.deploy_interface = 'anaconda'
+        node.save()
+        with task_manager.acquire(self.context, node.uuid) as task:
+            self.assertRaises(exception.MissingParameterValue,
+                              task.driver.boot.validate, task)
 
     @mock.patch.object(manager_utils, 'node_get_boot_mode', autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)

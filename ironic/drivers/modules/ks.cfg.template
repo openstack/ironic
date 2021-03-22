@@ -1,0 +1,37 @@
+lang en_US
+keyboard us
+timezone UTC --utc
+#platform x86, AMD64, or Intel EM64T
+text
+cmdline
+reboot
+selinux --enforcing
+firewall --enabled
+firstboot --disabled
+
+bootloader --location=mbr --append="rhgb quiet crashkernel=auto"
+zerombr
+clearpart --all --initlabel
+autopart
+
+# Downloading and installing OS image using liveimg section is mandatory
+liveimg --url {{ ks_options.liveimg_url }}
+
+# Following %pre, %onerror and %trackback sections are mandatory
+%pre
+/usr/bin/curl -X PUT -H 'Content-Type: application/json' -H 'Accept:application/json' -d '{"agent_token": "{{ ks_options.agent_token }}", "agent_state": "start", "agent_status": "Deployment starting. Running pre-installation scripts."}' {{ ks_options.heartbeat_url }}
+%end
+
+%onerror
+/usr/bin/curl -X PUT -H 'Content-Type: application/json' -H 'Accept:application/json' -d '{"agent_token": "{{ ks_options.agent_token }}", "agent_state": "error", "agent_status": "Error: Deploying using anaconda. Check console for more information."}' {{ ks_options.heartbeat_url }}
+%end
+
+%traceback
+/usr/bin/curl -X PUT -H 'Content-Type: application/json' -H 'Accept:application/json' -d '{"agent_token": "{{ ks_options.agent_token }}", "agent_state": "error", "agent_status": "Error: Installer crashed unexpectedly."}' {{ ks_options.heartbeat_url }}
+%end
+
+# Sending callback after the installation is mandatory
+%post
+/usr/bin/curl -X PUT -H 'Content-Type: application/json' -H 'Accept:application/json' -d '{"agent_token": "{{ ks_options.agent_token }}", "agent_state": "end", "agent_status": "Deployment completed successfully."}' {{ ks_options.heartbeat_url }}
+%end
+
