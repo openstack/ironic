@@ -1,5 +1,7 @@
 ---
 features:
   - |
-    Allows node _interface values to be overridden by values in instance_info.
-    This gives non-admins a temporary method of setting interface values.
+    Allows node ``*_interface`` values to be overridden by values in
+    a node ``instance_info`` field.
+    This gives non-administrative users a temporary method of setting
+    interface values.
