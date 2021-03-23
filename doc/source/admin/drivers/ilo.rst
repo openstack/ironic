@@ -52,6 +52,9 @@ The hardware type ``ilo`` supports following HPE server features:
 * `Disk Erase Support`_
 * `Initiating firmware update as manual clean step`_
 * `Smart Update Manager (SUM) based firmware update`_
+* `Updating security parameters as manual clean step`_
+* `Update Minimum Password Length security parameter as manual clean step`_
+* `Update Authentication Failure Logging security parameter as manual clean step`_
 * `Activating iLO Advanced license as manual clean step`_
 * `Firmware based UEFI iSCSI boot from volume support`_
 * `Certificate based validation in iLO`_
@@ -725,6 +728,17 @@ Supported **Manual** Cleaning Operations
     using Smart Update Manager (SUM). It is an inband step associated with
     the ``management`` interface. See `Smart Update Manager (SUM) based firmware update`_
     for more information on usage.
+  ``security_parameters_update``:
+    Updates the Security Parameters. See `Updating security parameters as manual clean step`_
+    for user guidance on usage. The supported security parameters for this clean step are:
+    ``Password_Complexity``, ``RequiredLoginForiLORBSU``, ``IPMI/DCMI_Over_LAN``,
+    ``RequireHostAuthentication`` and ``Secure_Boot``.
+  ``update_minimum_password_length``:
+    Updates the Minimum Password Length security parameter. See
+    `Update Minimum Password Length security parameter as manual clean step`_ for user guidance on usage.
+  ``update_auth_failure_logging_threshold``:
+    Updates the Authentication Failure Logging security parameter. See
+    `Update Authentication Failure Logging security parameter as manual clean step`_ for user guidance on usage.
 
 * iLO with firmware version 1.5 is minimally required to support all the
   operations.
@@ -1645,6 +1659,123 @@ where things failed. You can then fix or work around and then try again.
 .. note::
    Refer `Guidelines for SPP ISO`_ for steps to get SPP (Service Pack for
    ProLiant) ISO.
+
+Updating security parameters as manual clean step
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+iLO driver can invoke security parameters update as a manual clean step. Any
+manual cleaning step can only be initiated when a node is in the ``manageable``
+state. Once the manual cleaning is finished, the node will be put in the
+``manageable`` state again. A user can follow steps from :ref:`manual_cleaning`
+to initiate manual cleaning operation on a node. This feature is only supported
+for ``ilo5`` based hardware.
+
+An example of a manual clean step with ``security_parameters_update`` as the
+only clean step could be::
+
+    "clean_steps": [{
+        "interface": "management",
+        "step": "security_parameters_update",
+        "args": {
+            "security_parameters":[
+                {
+                    "param": "password_complexity",
+                    "enable": "True",
+                    "ignore": "False"
+                },
+                {
+                    "param": "require_login_for_ilo_rbsu",
+                    "enable": "True",
+                    "ignore": "False"
+                },
+                {
+                    "param": "ipmi_over_lan",
+                    "enable": "True",
+                    "ignore": "False"
+                },
+                {
+                    "param": "secure_boot",
+                    "enable": "True",
+                    "ignore": "False"
+                },
+                {
+                    "param": "require_host_authentication",
+                    "enable": "True",
+                    "ignore": "False"
+                }
+            ]
+        }
+    }]
+
+The different attributes of ``security_parameters_update`` clean step are as follows:
+
+.. csv-table::
+    :header: "Attribute", "Description"
+    :widths: 30, 120
+
+    "``interface``", "Interface of clean step, here ``management``"
+    "``step``", "Name of clean step, here ``security_parameters_update``"
+    "``args``", "Keyword-argument entry (<name>: <value>) being passed to clean step"
+    "``args.security_parameters``", "Ordered list of dictionaries of security parameters to be updated. This is mandatory."
+
+Each security parameter block is represented by a dictionary (JSON), in the form::
+
+    {
+      "param": "<security parameter name>",
+      "enable": "security parameter to be enabled/disabled",
+      "ignore": "security parameter status to be ignored or not"
+    }
+
+In all of these fields, ``param`` field is mandatory. Remaining fields are boolean and are optional. If user doesn't
+pass any value then for ``enable`` field the default will be True and for ``ignore`` field default will be False.
+
+* The Security Parameters which are supported for this clean step are:
+  ``Password_Complexity``, ``RequiredLoginForiLORBSU``, ``RequireHostAuthentication``, ``IPMI/DCMI_Over_LAN`` and ``Secure_Boot``.
+
+Update Minimum Password Length security parameter as manual clean step
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+iLO driver can invoke ``Minimum Password Length`` security parameter update as a manual clean
+step. This feature is only supported for ``ilo5`` based hardware.
+
+An example of a manual clean step with ``update_minimum_password_length`` as the
+only clean step could be::
+
+    "clean_steps": [{
+        "interface": "management",
+        "step": "update_minimum_password_length",
+        "args": {
+            "password_length": "8",
+            "ignore": "False"
+        }
+    }]
+
+Both the arguments ``password_length`` and ``ignore`` are optional. The accepted values for password_length are
+0 to 39. If user doesn't pass any value, the default value for password_length will be 8 and for ignore the default
+value be False.
+
+Update Authentication Failure Logging security parameter as manual clean step
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+iLO driver can invoke ``Authentication Failure Logging`` security parameter update as a manual clean
+step. This feature is only supported for ``ilo5`` based hardware.
+
+An example of a manual clean step with ``Authentication Failure Logging`` as the
+only clean step could be::
+
+    "clean_steps": [{
+        "interface": "management",
+        "step": "update_auth_failure_logging_threshold",
+        "args": {
+            "logging_threshold": "1",
+            "ignore": "False"
+        }
+    }]
+
+Both the arguments ``logging_threshold`` and ``ignore`` are optional. The accepted values for logging_threshold are
+0 to 5. If user doesn't pass any value, the default value for logging_threshold will be 1 and for ignore the default
+value be False. If user passes the value of logging_threshold as 0, the Authentication Failure Logging security
+parameter will be disabled.
 
 RAID Support
 ^^^^^^^^^^^^

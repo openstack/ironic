@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adding new clean steps to ``ilo`` hardware type -
+    ``security_parameters_update``, ``update_minimum_password_length``,
+    and ``update_auth_failure_logging_threshold`` which allows users to
+    modify ilo system security settings.

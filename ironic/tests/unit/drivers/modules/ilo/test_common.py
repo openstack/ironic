@@ -904,6 +904,26 @@ class IloCommonMethodsTestCase(BaseIloTest):
                               task, False)
         ilo_mock_object.set_secure_boot_mode.assert_called_once_with(False)
 
+    def test_validate_security_parameter_values(self):
+        param_info = {'param': 'password_complexity'}
+        param, enabled, ignored = (
+            ilo_common.validate_security_parameter_values(param_info))
+        self.assertEqual('password_complexity', param)
+        self.assertEqual(False, ignored)
+        self.assertEqual(True, enabled)
+
+    def test_validate_security_parameter_values_no_param(self):
+        param_info = {'param': None}
+        self.assertRaises(exception.MissingParameterValue,
+                          ilo_common.validate_security_parameter_values,
+                          param_info)
+
+    def test_validate_security_parameter_values_invalid_param(self):
+        param_info = {'param': 'minimum_password_length'}
+        self.assertRaises(exception.InvalidParameterValue,
+                          ilo_common.validate_security_parameter_values,
+                          param_info)
+
     @mock.patch.object(os, 'chmod', spec_set=True,
                        autospec=True)
     @mock.patch.object(shutil, 'copyfile', spec_set=True,
