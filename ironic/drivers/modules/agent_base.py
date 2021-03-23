@@ -852,8 +852,6 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
             'erase_devices': CONF.deploy.erase_devices_priority,
             'erase_devices_metadata':
                 CONF.deploy.erase_devices_metadata_priority,
-            'delete_configuration': CONF.deploy.delete_configuration_priority,
-            'create_configuration': CONF.deploy.create_configuration_priority
         }
         return get_steps(
             task, 'clean', interface='deploy',
