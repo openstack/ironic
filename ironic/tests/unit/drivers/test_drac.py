@@ -43,7 +43,8 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
                         'no-inspect'],
                     enabled_network_interfaces=['flat', 'neutron', 'noop'],
                     enabled_raid_interfaces=[
-                        'idrac', 'idrac-wsman', 'no-raid', 'agent'],
+                        'idrac', 'idrac-wsman', 'idrac-redfish', 'no-raid',
+                        'agent'],
                     enabled_vendor_interfaces=[
                         'idrac', 'idrac-wsman', 'no-vendor'],
                     enabled_bios_interfaces=[
@@ -112,6 +113,15 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
                                               raid_interface=iface)
             with task_manager.acquire(self.context, node.id) as task:
                 self._validate_interfaces(task.driver, raid=impl)
+
+    def test_override_with_redfish_raid(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='idrac',
+                                          raid_interface='idrac-redfish')
+        with task_manager.acquire(self.context, node.id) as task:
+            self._validate_interfaces(task.driver,
+                                      raid=drac.raid.DracRedfishRAID)
 
     def test_override_no_vendor(self):
         node = obj_utils.create_test_node(self.context, driver='idrac',

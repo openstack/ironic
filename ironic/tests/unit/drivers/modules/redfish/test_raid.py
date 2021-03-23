@@ -844,3 +844,19 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             mock_error_handler.assert_called_once_with(
                 task, sushy_error, volume_collection, expected_payload
             )
+
+    def test_validate(self, mock_get_system):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.properties['vendor'] = "Supported vendor"
+
+            task.driver.raid.validate(task)
+
+    def test_validate_unsupported_vendor(self, mock_get_system):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.properties['vendor'] = "Dell Inc."
+
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   "with vendor Dell.Inc.",
+                                   task.driver.raid.validate, task)

@@ -92,6 +92,10 @@ def get_test_drac_info():
         "drac_protocol": "https",
         "drac_username": "admin",
         "drac_password": "fake",
+        "redfish_address": "1.2.3.4",
+        "redfish_system_id": "/redfish/v1/Systems/System.Embedded.1",
+        "redfish_username": "admin",
+        "redfish_password": "fake"
     }
 
 

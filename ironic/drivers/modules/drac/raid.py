@@ -23,6 +23,7 @@ from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 from oslo_utils import units
+import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -34,9 +35,12 @@ from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
+from ironic.drivers.modules.redfish import raid as redfish_raid
+from ironic.drivers.modules.redfish import utils as redfish_utils
 
 drac_exceptions = importutils.try_import('dracclient.exceptions')
 drac_constants = importutils.try_import('dracclient.constants')
+sushy = importutils.try_import('sushy')
 
 LOG = logging.getLogger(__name__)
 
@@ -1158,6 +1162,166 @@ def _get_disk_free_size_mb(disk, pending_delete):
         disks.
     """
     return disk.size_mb if pending_delete else disk.free_size_mb
+
+
+def _wait_till_realtime_ready(task):
+    """Waits till real time operations are ready to be executed.
+
+    Useful for RAID operations where almost all controllers support
+    real time configuration, but controllers might not be ready for
+    it by the time IPA starts executing steps. It can take minute or
+    bit more to be ready for real time configuration.
+
+    :param task: TaskManager object containing the node.
+    :raises RedfishError: If can't find OEM extension or it fails to
+        execute
+    """
+    try:
+        _retry_till_realtime_ready(task)
+    except tenacity.RetryError:
+        LOG.debug('Retries exceeded while waiting for real-time ready '
+                  'for node %(node)s. Will proceed with out real-time '
+                  'ready state', {'node': task.node.uuid})
+
+
+@tenacity.retry(
+    stop=(tenacity.stop_after_attempt(30)),
+    wait=tenacity.wait_fixed(10),
+    retry=tenacity.retry_if_result(lambda result: not result))
+def _retry_till_realtime_ready(task):
+    """Retries till real time operations are ready to be executed.
+
+    :param task: TaskManager object containing the node.
+    :raises RedfishError: If can't find OEM extension or it fails to
+        execute
+    :raises RetryError: If retries exceeded and still not ready for real-time
+    """
+    return _is_realtime_ready(task)
+
+
+def _is_realtime_ready(task):
+    """Gets is real time ready status
+
+    Uses sushy-oem-idrac extension.
+
+    :param task: TaskManager object containing the node.
+    :returns: True, if real time operations are ready, otherwise False.
+    :raises RedfishError: If can't find OEM extension or it fails to
+        execute
+    """
+    system = redfish_utils.get_system(task.node)
+    for manager in system.managers:
+        try:
+            manager_oem = manager.get_oem_extension('Dell')
+        except sushy.exceptions.OEMExtensionNotFoundError as e:
+            error_msg = (_("Search for Sushy OEM extension Python package "
+                           "'sushy-oem-idrac' failed for node %(node)s. "
+                           "Ensure it is installed. Error: %(error)s") %
+                         {'node': task.node.uuid, 'error': e})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
+
+        try:
+            return manager_oem.lifecycle_service.is_realtime_ready()
+        except sushy.exceptions.SushyError as e:
+            LOG.debug("Failed to get real time ready status with system "
+                      "%(system)s manager %(manager)s for node %(node)s. Will "
+                      "try next manager, if available. Error: %(error)s",
+                      {'system': system.uuid if system.uuid else
+                       system.identity,
+                       'manager': manager.uuid if manager.uuid else
+                       manager.identity,
+                       'node': task.node.uuid,
+                       'error': e})
+            continue
+        break
+
+    else:
+        error_msg = (_("iDRAC Redfish get real time ready status failed for "
+                       "node %(node)s, because system %(system)s has no "
+                       "manager%(no_manager)s.") %
+                     {'node': task.node.uuid,
+                      'system': system.uuid if system.uuid else
+                      system.identity,
+                      'no_manager': '' if not system.managers else
+                      ' which could'})
+        LOG.error(error_msg)
+        raise exception.RedfishError(error=error_msg)
+
+
+class DracRedfishRAID(redfish_raid.RedfishRAID):
+    """iDRAC Redfish interface for RAID related actions.
+
+    Includes iDRAC specific adjustments for RAID related actions.
+    """
+
+    @base.clean_step(priority=0, abortable=False, argsinfo={
+        'create_root_volume': {
+            'description': (
+                'This specifies whether to create the root volume. '
+                'Defaults to `True`.'
+            ),
+            'required': False
+        },
+        'create_nonroot_volumes': {
+            'description': (
+                'This specifies whether to create the non-root volumes. '
+                'Defaults to `True`.'
+            ),
+            'required': False
+        },
+        'delete_existing': {
+            'description': (
+                'Setting this to `True` indicates to delete existing RAID '
+                'configuration prior to creating the new configuration. '
+                'Default value is `False`.'
+            ),
+            'required': False,
+        }
+    })
+    def create_configuration(self, task, create_root_volume=True,
+                             create_nonroot_volumes=True,
+                             delete_existing=False):
+        """Create RAID configuration on the node.
+
+        This method creates the RAID configuration as read from
+        node.target_raid_config.  This method
+        by default will create all logical disks.
+
+        :param task: TaskManager object containing the node.
+        :param create_root_volume: Setting this to False indicates
+            not to create root volume that is specified in the node's
+            target_raid_config. Default value is True.
+        :param create_nonroot_volumes: Setting this to False indicates
+            not to create non-root volumes (all except the root volume) in
+            the node's target_raid_config.  Default value is True.
+        :param delete_existing: Setting this to True indicates to delete RAID
+            configuration prior to creating the new configuration. Default is
+            False.
+        :returns: states.CLEANWAIT if RAID configuration is in progress
+            asynchronously or None if it is complete.
+        :raises: RedfishError if there is an error creating the configuration
+        """
+        _wait_till_realtime_ready(task)
+        return super(DracRedfishRAID, self).create_configuration(
+            task, create_root_volume, create_nonroot_volumes,
+            delete_existing)
+
+    @base.clean_step(priority=0)
+    @base.deploy_step(priority=0)
+    def delete_configuration(self, task):
+        """Delete RAID configuration on the node.
+
+        :param task: TaskManager object containing the node.
+        :returns: states.CLEANWAIT (cleaning) or states.DEPLOYWAIT (deployment)
+            if deletion is in progress asynchronously or None if it is
+            complete.
+        """
+        _wait_till_realtime_ready(task)
+        return super(DracRedfishRAID, self).delete_configuration(task)
+
+    def _validate_vendor(self, task):
+        pass  # for now assume idrac-redfish is used with iDRAC BMC, thus pass
 
 
 class DracWSManRAID(base.RAIDInterface):
