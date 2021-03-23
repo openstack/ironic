@@ -2,19 +2,18 @@
 REST API Version History
 ========================
 
-1.71 (Wallaby)
---------------
+1.71 (Wallaby, 17.0)
+----------------------
 
 Signifier of the API supporting keystone ``system`` scoped roles and
 access controls. This is an informational flag for clients to be aware of
 the server's capability.
 
-1.70 (Wallaby)
---------------
+1.70 (Wallaby, 17.0)
+----------------------
 
 Add support for ``disable_ramdisk`` parameter to provisioning endpoint
 ``/v1/nodes/{node_ident}/states/provision``.
-
 
 1.69 (Wallaby, 16.2)
 ----------------------
