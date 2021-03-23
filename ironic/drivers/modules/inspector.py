@@ -256,8 +256,8 @@ class Inspector(base.InspectInterface):
                              'node': task.node.uuid})
 
         except exception.UnsupportedDriverExtension:
-            LOG.info('Pre-creating ports prior to inspection not supported'
-                     ' on node %s.', task.node.uuid)
+            LOG.debug('Pre-creating ports prior to inspection not supported'
+                      ' on node %s.', task.node.uuid)
 
         ironic_manages_boot = _ironic_manages_boot(
             task, raise_exc=CONF.inspector.require_managed_boot)

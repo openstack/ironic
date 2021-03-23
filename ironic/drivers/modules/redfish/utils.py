@@ -370,5 +370,5 @@ def get_enabled_macs(task, system):
                         if nic_state == sushy.STATE_ENABLED}
         return enabled_macs
     else:
-        LOG.warning("No NIC information discovered "
-                    "for node %(node)s", {'node': task.node.uuid})
+        LOG.debug("No ethernet interface information is available "
+                  "for node %(node)s", {'node': task.node.uuid})
