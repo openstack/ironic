@@ -1,0 +1,34 @@
+---
+prelude: |
+    The Ironic community is proud to release Ironic 17.0!
+
+    Where if it were developer years instead of major versions,
+    we would all be very afraid since it already has access to
+    the car keys.
+
+    This release of Ironic includes numerous advancements which extend
+    an operator's ability to customize and further extend their deployment
+    to meet their needs.
+
+    * Redfish enhancements including Out of Band RAID configuration management
+      and automatic setting of Secure Boot on nodes deployed using
+      ``redfish``.
+    * Deployment enhancements including UEFI Partition Image handling,
+      per-instance per-deployments of default interface selections, user
+      requestable ``deploy_steps`` at deploy time, IPA file
+      injection, and support for setting a node's boot mode via
+      ``instance_info``.
+    * Support for ``system`` scoped Role Based Access controls *and*
+      ``project`` scoped access is available by default for associated
+      nodes when the ``node`` ``owner`` or ``lessee`` fields are set.
+      This effort alone added over 1,500 new unit tests.
+    * Operator friendly fixes such as memory over-consumption guard for
+      memory intensive tasks, vendor hardware aware handling to help
+      address issues such as different settings being needed to invoke UEFI,
+      and "lazy" loading of database attributes to reduce the overall database
+      load.
+
+    Along with all of this massive amount of work, a number of bugs were fixed
+    while we were along the road trip of this development cycle.
+
+    We sincerely hope you enjoy it!
