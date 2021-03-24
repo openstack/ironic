@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds support for pre-built ISO images to the ``redfish-virtual-media``
+    boot interface and its derivatives.
