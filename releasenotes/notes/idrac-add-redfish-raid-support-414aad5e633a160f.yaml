@@ -3,16 +3,7 @@ features:
   - |
     Adds basic support for managing RAID configuration via the Redfish
     out-of-band (OOB) management protocol to the ``idrac`` hardware type by
-    adding new interface named ``idrac-redfish``.
-
-    iDRAC firmware greater than 4.40.00.00 is required. Compared to
-    ``idrac-wsman`` implementation does not yet support foreign disks and
-    converting from non-RAID mode.
-
-    Backing physical disk hints are not widely tested with ``idrac-redfish``
-    yet and they might not work as desired. Backing physical disks
-    (``controller``, ``physical_disks``) with ``size_gb="MAX"`` are tested.
-
-    The ``idrac`` hardware type now supports ``idrac-wsman``, ``idrac``,
-    ``idrac-redfish``, and ``no-raid`` interfaces in given priority
-    order.
+    adding new interface named ``idrac-redfish``. For this iDRAC firmware
+    greater than 4.40.00.00 is required. The ``idrac`` hardware type now
+    supports ``idrac-wsman``, ``idrac``, ``idrac-redfish``, and ``no-raid``
+    interfaces in given priority order.
