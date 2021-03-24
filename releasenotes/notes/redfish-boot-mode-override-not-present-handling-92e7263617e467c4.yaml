@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Adds handling of Redfish BMC's which lack a ``BootSourceOverrideMode``
+    flag, such that it is no longer a fatal error for a deployment if the BMC
+    does not support this field. This most common on BMCs which feature only
+    a partial implementation of the ``ComputerSystem`` resource ``boot``,
+    but may also be observable on some older generations of BMCs which
+    recieved updates to have partial Redfish support.
