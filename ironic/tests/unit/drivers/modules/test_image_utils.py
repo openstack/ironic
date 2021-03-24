@@ -125,6 +125,28 @@ class RedfishImageHandlerTestCase(db_base.DbTestCase):
     @mock.patch.object(image_utils, 'shutil', autospec=True)
     @mock.patch.object(os, 'link', autospec=True)
     @mock.patch.object(os, 'mkdir', autospec=True)
+    def test_publish_image_external_ip(
+            self, mock_mkdir, mock_link, mock_shutil, mock_chmod):
+        self.config(use_swift=False, group='redfish')
+        self.config(http_url='http://localhost',
+                    external_http_url='http://non-local.host',
+                    group='deploy')
+        img_handler_obj = image_utils.ImageHandler(self.node.driver)
+
+        url = img_handler_obj.publish_image('file.iso', 'boot.iso')
+
+        self.assertEqual(
+            'http://non-local.host/redfish/boot.iso?filename=file.iso', url)
+
+        mock_mkdir.assert_called_once_with('/httpboot/redfish', 0o755)
+        mock_link.assert_called_once_with(
+            'file.iso', '/httpboot/redfish/boot.iso')
+        mock_chmod.assert_called_once_with('file.iso', 0o644)
+
+    @mock.patch.object(os, 'chmod', autospec=True)
+    @mock.patch.object(image_utils, 'shutil', autospec=True)
+    @mock.patch.object(os, 'link', autospec=True)
+    @mock.patch.object(os, 'mkdir', autospec=True)
     def test_publish_image_local_copy(self, mock_mkdir, mock_link,
                                       mock_shutil, mock_chmod):
         self.config(use_swift=False, group='redfish')
@@ -248,7 +270,31 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                                                        mock.ANY, object_name)
 
             mock_create_vfat_image.assert_called_once_with(
-                mock.ANY, parameters=mock.ANY)
+                mock.ANY, parameters=None)
+
+            self.assertEqual(expected_url, url)
+
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    @mock.patch.object(images, 'create_vfat_image', autospec=True)
+    def test_prepare_floppy_image_with_external_ip(
+            self, mock_create_vfat_image, mock_publish_image):
+        self.config(external_callback_url='http://callback/', group='deploy')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            expected_url = 'https://a.b/c.f?e=f'
+
+            mock_publish_image.return_value = expected_url
+
+            url = image_utils.prepare_floppy_image(task)
+
+            object_name = 'image-%s' % task.node.uuid
+
+            mock_publish_image.assert_called_once_with(mock.ANY,
+                                                       mock.ANY, object_name)
+
+            mock_create_vfat_image.assert_called_once_with(
+                mock.ANY, parameters={"ipa-api-url": "http://callback"})
 
             self.assertEqual(expected_url, url)
 
@@ -631,6 +677,28 @@ cafile = /etc/ironic-python-agent/ironic.crt
             mock__prepare_iso_image.assert_called_once_with(
                 task, 'kernel', 'ramdisk', 'bootloader', params={},
                 inject_files=expected_files, base_iso=None)
+
+    @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
+    def test_prepare_deploy_iso_external_ip(self, mock__prepare_iso_image):
+        self.config(external_callback_url='http://callback/', group='deploy')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            d_info = {
+                'ilo_deploy_kernel': 'kernel',
+                'ilo_deploy_ramdisk': 'ramdisk',
+                'ilo_bootloader': 'bootloader'
+            }
+            task.node.driver_info.update(d_info)
+
+            task.node.instance_info.update(deploy_boot_mode='uefi')
+
+            image_utils.prepare_deploy_iso(task, {}, 'deploy', d_info)
+
+            mock__prepare_iso_image.assert_called_once_with(
+                task, 'kernel', 'ramdisk', 'bootloader',
+                params={'ipa-api-url': 'http://callback'},
+                inject_files={}, base_iso=None)
 
     @mock.patch.object(image_utils, '_find_param', autospec=True)
     @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)

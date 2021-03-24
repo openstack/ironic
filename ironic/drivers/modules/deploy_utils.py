@@ -617,6 +617,9 @@ def is_software_raid(node):
     return software_raid
 
 
+IPA_URL_PARAM_NAME = 'ipa-api-url'
+
+
 def build_agent_options(node):
     """Build the options to be passed to the agent ramdisk.
 
@@ -625,7 +628,7 @@ def build_agent_options(node):
         agent ramdisk.
     """
     agent_config_opts = {
-        'ipa-api-url': get_ironic_api_url(),
+        IPA_URL_PARAM_NAME: get_ironic_api_url(),
     }
     return agent_config_opts
 

@@ -214,8 +214,8 @@ class ImageHandler(object):
                 shutil.copyfile(image_file, published_file)
                 os.chmod(published_file, self._file_permission)
 
-            image_url = os.path.join(
-                CONF.deploy.http_url, self._image_subdir, object_name)
+            http_url = CONF.deploy.external_http_url or CONF.deploy.http_url
+            image_url = os.path.join(http_url, self._image_subdir, object_name)
 
         image_url = self._append_filename_param(
             image_url, os.path.basename(image_file))
@@ -244,6 +244,16 @@ def cleanup_iso_image(task):
                                           suffix='.iso')
 
 
+def override_api_url(params):
+    if not CONF.deploy.external_callback_url:
+        return params
+
+    params = params or {}
+    params[deploy_utils.IPA_URL_PARAM_NAME] = \
+        CONF.deploy.external_callback_url.rstrip('/')
+    return params
+
+
 def prepare_floppy_image(task, params=None):
     """Prepares the floppy image for passing the parameters.
 
@@ -264,6 +274,7 @@ def prepare_floppy_image(task, params=None):
     :returns: image URL for the floppy image.
     """
     object_name = _get_name(task.node, prefix='image')
+    params = override_api_url(params)
 
     LOG.debug("Trying to create floppy image for node "
               "%(node)s", {'node': task.node.uuid})
@@ -532,6 +543,8 @@ def prepare_deploy_iso(task, params, mode, d_info):
     ramdisk_href = _find_param(ramdisk_str, d_info)
     iso_href = _find_param(iso_str, d_info)
     bootloader_href = _find_param(bootloader_str, d_info)
+
+    params = override_api_url(params)
 
     # TODO(TheJulia): At some point we should support something like
     # boot_iso for the deploy interface, perhaps when we support config
