@@ -70,7 +70,7 @@ class TestCommonFunctions(db_base.DbTestCase):
             self.context, node_id=self.node.id,
             address='52:54:00:cf:2d:04',
             physical_network=physical_network,
-            extra={'vif_port_id': 'some-vif'},
+            internal_info={'tenant_vif_port_id': 'some-vif'},
             uuid=uuidutils.generate_uuid(), portgroup_id=pg2.id))
         # This portgroup has 'some-vif-2' attached to it and contains one port,
         # so neither portgroup nor port can be considered free. The ports are
@@ -368,7 +368,7 @@ class TestCommonFunctions(db_base.DbTestCase):
         obj_utils.create_test_port(
             self.context, node_id=self.node.id, address='52:54:00:cf:2d:01',
             uuid=uuidutils.generate_uuid(), portgroup_id=pg.id,
-            extra={'vif_port_id': 'some-vif'})
+            internal_info={'tenant_vif_port_id': 'some-vif'})
         free_port = obj_utils.create_test_port(
             self.context, node_id=self.node.id, address='52:54:00:cf:2d:02',
             uuid=uuidutils.generate_uuid(), portgroup_id=pg.id)
@@ -396,23 +396,6 @@ class TestCommonFunctions(db_base.DbTestCase):
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
                        return_value=True)
-    def test_get_free_port_like_object_vif_attached_to_portgroup_extra(
-            self, vpi_mock):
-        pg = obj_utils.create_test_portgroup(
-            self.context, node_id=self.node.id,
-            extra={'vif_port_id': self.vif_id})
-        obj_utils.create_test_port(
-            self.context, node_id=self.node.id, address='52:54:00:cf:2d:01',
-            uuid=uuidutils.generate_uuid(), portgroup_id=pg.id)
-        with task_manager.acquire(self.context, self.node.id) as task:
-            self.assertRaisesRegex(
-                exception.VifAlreadyAttached,
-                r"already attached to Ironic Portgroup",
-                common.get_free_port_like_object,
-                task, self.vif_id, {'anyphysnet'})
-
-    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
-                       return_value=True)
     def test_get_free_port_like_object_vif_attached_to_port(self, vpi_mock):
         self.port.internal_info = {common.TENANT_VIF_KEY: self.vif_id}
         self.port.save()
@@ -425,21 +408,8 @@ class TestCommonFunctions(db_base.DbTestCase):
 
     @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
                        return_value=True)
-    def test_get_free_port_like_object_vif_attached_to_port_extra(
-            self, vpi_mock):
-        self.port.extra = {'vif_port_id': self.vif_id}
-        self.port.save()
-        with task_manager.acquire(self.context, self.node.id) as task:
-            self.assertRaisesRegex(
-                exception.VifAlreadyAttached,
-                r"already attached to Ironic Port\b",
-                common.get_free_port_like_object,
-                task, self.vif_id, {'anyphysnet'})
-
-    @mock.patch.object(neutron_common, 'validate_port_info', autospec=True,
-                       return_value=True)
     def test_get_free_port_like_object_nothing_free(self, vpi_mock):
-        self.port.extra = {'vif_port_id': 'another-vif'}
+        self.port.internal_info = {'tenant_vif_port_id': 'another-vif'}
         self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
             self.assertRaises(exception.NoFreePhysicalPorts,
@@ -523,8 +493,8 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         self.port = obj_utils.create_test_port(
             self.context, node_id=self.node.id,
             address='52:54:00:cf:2d:32',
-            extra={'vif_port_id': uuidutils.generate_uuid(),
-                   'client-id': 'fake1'})
+            internal_info={'tenant_vif_port_id': uuidutils.generate_uuid()},
+            extra={'client-id': 'fake1'})
         network_data_file = os.path.join(
             os.path.dirname(__file__), 'json_samples', 'network_data.json')
         with open(network_data_file, 'rb') as fl:
@@ -564,7 +534,10 @@ class TestVifPortIDMixin(db_base.DbTestCase):
 
     def test__clear_vif_from_port_like_obj_in_internal_info_port(self):
         self.port.internal_info = {
-            common.TENANT_VIF_KEY: self.port.extra['vif_port_id']}
+            common.TENANT_VIF_KEY: self.port.internal_info[
+                'tenant_vif_port_id'
+            ]
+        }
         self.port.extra = {}
         self.port.save()
 
@@ -601,14 +574,8 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         self.assertNotIn('vif_port_id', pg.extra)
         self.assertNotIn(common.TENANT_VIF_KEY, pg.internal_info)
 
-    def test__get_port_like_obj_by_vif_id_in_extra(self):
-        vif_id = self.port.extra["vif_port_id"]
-        with task_manager.acquire(self.context, self.node.id) as task:
-            result = self.interface._get_port_like_obj_by_vif_id(task, vif_id)
-        self.assertEqual(self.port.id, result.id)
-
     def test__get_port_like_obj_by_vif_id_in_internal_info(self):
-        vif_id = self.port.extra["vif_port_id"]
+        vif_id = self.port.internal_info["tenant_vif_port_id"]
         self.port.internal_info = {common.TENANT_VIF_KEY: vif_id}
         self.port.extra = {}
         self.port.save()
@@ -617,8 +584,8 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         self.assertEqual(self.port.id, result.id)
 
     def test__get_port_like_obj_by_vif_id_not_attached(self):
-        vif_id = self.port.extra["vif_port_id"]
-        self.port.extra = {}
+        vif_id = self.port.internal_info["tenant_vif_port_id"]
+        self.port.internal_info = {}
         self.port.save()
         with task_manager.acquire(self.context, self.node.id) as task:
             self.assertRaisesRegex(exception.VifNotAttached,
@@ -626,13 +593,8 @@ class TestVifPortIDMixin(db_base.DbTestCase):
                                    self.interface._get_port_like_obj_by_vif_id,
                                    task, vif_id)
 
-    def test__get_vif_id_by_port_like_obj_in_extra(self):
-        vif_id = self.port.extra["vif_port_id"]
-        result = self.interface._get_vif_id_by_port_like_obj(self.port)
-        self.assertEqual(vif_id, result)
-
     def test__get_vif_id_by_port_like_obj_in_internal_info(self):
-        vif_id = self.port.extra["vif_port_id"]
+        vif_id = self.port.internal_info["tenant_vif_port_id"]
         self.port.internal_info = {common.TENANT_VIF_KEY: vif_id}
         self.port.extra = {}
         self.port.save()
@@ -640,14 +602,14 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         self.assertEqual(vif_id, result)
 
     def test__get_vif_id_by_port_like_obj_not_attached(self):
-        self.port.extra = {}
+        self.port.internal_info = {}
         self.port.save()
         result = self.interface._get_vif_id_by_port_like_obj(self.port)
         self.assertIsNone(result)
 
-    def test_vif_list_extra(self):
+    def test_vif_list_port_and_portgroup(self):
         vif_id = uuidutils.generate_uuid()
-        self.port.extra = {'vif_port_id': vif_id}
+        self.port.internal_info = {'tenant_vif_port_id': vif_id}
         self.port.save()
         pg_vif_id = uuidutils.generate_uuid()
         portgroup = obj_utils.create_test_portgroup(
@@ -678,6 +640,7 @@ class TestVifPortIDMixin(db_base.DbTestCase):
             self.assertCountEqual([{'id': pg_vif_id}, {'id': vif_id}], vifs)
 
     def test_vif_list_extra_and_internal_priority(self):
+        # TODO(TheJulia): Remove in Xena?
         vif_id = uuidutils.generate_uuid()
         vif_id2 = uuidutils.generate_uuid()
         self.port.extra = {'vif_port_id': vif_id2}
@@ -686,14 +649,6 @@ class TestVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             vifs = self.interface.vif_list(task)
             self.assertEqual([{'id': vif_id}], vifs)
-
-    def test_get_current_vif_extra_vif_port_id(self):
-        extra = {'vif_port_id': 'foo'}
-        self.port.extra = extra
-        self.port.save()
-        with task_manager.acquire(self.context, self.node.id) as task:
-            vif = self.interface.get_current_vif(task, self.port)
-            self.assertEqual('foo', vif)
 
     def test_get_current_vif_internal_info_cleaning(self):
         internal_info = {'cleaning_vif_port_id': 'foo',
@@ -750,8 +705,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         self.port = obj_utils.create_test_port(
             self.context, node_id=self.node.id,
             address='52:54:00:cf:2d:32',
-            extra={'vif_port_id': uuidutils.generate_uuid(),
-                   'client-id': 'fake1'})
+            internal_info={'tenant_vif_port_id': uuidutils.generate_uuid()},
+            extra={'client-id': 'fake1'})
         self.neutron_port = {'id': '132f871f-eaec-4fed-9475-0d54465e0f00',
                              'mac_address': '52:54:00:cf:2d:32'}
 
@@ -903,7 +858,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                        autospec=True)
     def test_vif_attach_update_port_exception(self, mock_gpbpi, mock_upa,
                                               mock_client, mock_save):
-        self.port.extra = {}
+        self.port.internal_info = {}
         self.port.physical_network = 'physnet1'
         self.port.save()
         vif = {'id': "fake_vif_id"}
@@ -1075,7 +1030,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.port_changed(task, self.port)
             mac_update_mock.assert_called_once_with(
-                self.port.extra['vif_port_id'],
+                self.port.internal_info['tenant_vif_port_id'],
                 new_address,
                 context=task.context)
 
@@ -1090,12 +1045,12 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                               self.interface.port_changed,
                               task, self.port)
             mac_update_mock.assert_called_once_with(
-                self.port.extra['vif_port_id'], new_address,
+                self.port.internal_info['tenant_vif_port_id'], new_address,
                 context=task.context)
 
     @mock.patch.object(neutron_common, 'update_port_address', autospec=True)
     def test_port_changed_address_no_vif_id(self, mac_update_mock):
-        self.port.extra = {}
+        self.port.internal_info = {}
         self.port.save()
         self.port.address = '11:22:33:44:55:bb'
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -1105,9 +1060,11 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
                 autospec=True)
     def test_port_changed_client_id(self, dhcp_update_mock):
-        expected_extra = {'vif_port_id': 'fake-id', 'client-id': 'fake2'}
+        expected_ii = {'tenant_vif_port_id': 'fake-id'}
+        expected_extra = {'client-id': 'fake2'}
         expected_dhcp_opts = [{'opt_name': '61', 'opt_value': 'fake2'}]
         self.port.extra = expected_extra
+        self.port.internal_info = expected_ii
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.port_changed(task, self.port)
             dhcp_update_mock.assert_called_once_with(
@@ -1116,7 +1073,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
                 autospec=True)
     def test_port_changed_extra_add_new_key(self, dhcp_update_mock):
-        self.port.extra = {'vif_port_id': 'fake-id'}
+        self.port.internal_info = {'tenant_vif_port_id': 'fake-id'}
         self.port.save()
         expected_extra = self.port.extra
         expected_extra['foo'] = 'bar'
@@ -1128,7 +1085,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
                 autospec=True)
     def test_port_changed_client_id_fail(self, dhcp_update_mock):
-        self.port.extra = {'vif_port_id': 'fake-id', 'client-id': 'fake2'}
+        self.port.internal_info = {'tenant_vif_port_id': 'fake-id'}
+        self.port.extra = {'client-id': 'fake2'}
         dhcp_update_mock.side_effect = (
             exception.FailedToUpdateDHCPOptOnPort(port_id=self.port.uuid))
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -1139,6 +1097,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
                 autospec=True)
     def test_port_changed_client_id_no_vif_id(self, dhcp_update_mock):
+        self.port.internal_info = {}
         self.port.extra = {'client-id': 'fake1'}
         self.port.save()
         self.port.extra = {'client-id': 'fake2'}
@@ -1153,11 +1112,12 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.context, node_id=self.node.id,
             standalone_ports_supported=False)
 
-        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
-                                          uuid=uuidutils.generate_uuid(),
-                                          address="aa:bb:cc:dd:ee:01",
-                                          extra={'vif_port_id': 'blah'},
-                                          pxe_enabled=False)
+        port = obj_utils.create_test_port(
+            self.context, node_id=self.node.id,
+            uuid=uuidutils.generate_uuid(),
+            address="aa:bb:cc:dd:ee:01",
+            internal_info={'tenant_vif_port_id': 'blah'},
+            pxe_enabled=False)
         port.portgroup_id = pg.id
 
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -1173,12 +1133,12 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.context, node_id=self.node.id,
             standalone_ports_supported=standalone_ports)
 
-        extra_vif = {'vif_port_id': uuidutils.generate_uuid()}
+        extra_vif = {'tenant_vif_port_id': uuidutils.generate_uuid()}
         if has_vif:
-            extra = extra_vif
+            internal_info = extra_vif
             opposite_extra = {}
         else:
-            extra = {}
+            internal_info = {}
             opposite_extra = extra_vif
         opposite_pxe_enabled = not pxe_enabled
 
@@ -1193,7 +1153,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         p1 = obj_utils.create_test_port(self.context, node_id=self.node.id,
                                         uuid=uuidutils.generate_uuid(),
                                         address="aa:bb:cc:dd:ee:01",
-                                        extra=extra,
+                                        internal_info=internal_info,
                                         pxe_enabled=pxe_enabled)
         p1.portgroup_id = pg_id
         ports.append(p1)
@@ -1202,9 +1162,9 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         p2 = obj_utils.create_test_port(self.context, node_id=self.node.id,
                                         uuid=uuidutils.generate_uuid(),
                                         address="aa:bb:cc:dd:ee:02",
-                                        extra=opposite_extra,
+                                        internal_info=opposite_extra,
                                         pxe_enabled=opposite_pxe_enabled)
-        p2.extra = extra
+        p2.internal_info = internal_info
         p2.pxe_enabled = pxe_enabled
         p2.portgroup_id = pg_id
         ports.append(p2)
@@ -1213,7 +1173,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         p3 = obj_utils.create_test_port(self.context, node_id=self.node.id,
                                         uuid=uuidutils.generate_uuid(),
                                         address="aa:bb:cc:dd:ee:03",
-                                        extra=extra,
+                                        internal_info=internal_info,
                                         pxe_enabled=opposite_pxe_enabled)
         p3.pxe_enabled = pxe_enabled
         p3.portgroup_id = pg_id
@@ -1224,8 +1184,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                                         uuid=uuidutils.generate_uuid(),
                                         address="aa:bb:cc:dd:ee:04",
                                         pxe_enabled=pxe_enabled,
-                                        extra=opposite_extra)
-        p4.extra = extra
+                                        internal_info=opposite_extra)
+        p4.internal_info = internal_info
         p4.portgroup_id = pg_id
         ports.append(p4)
 
@@ -1302,7 +1262,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     def test_update_portgroup_address(self, mac_update_mock):
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id,
-            extra={'vif_port_id': 'fake-id'})
+            internal_info={'tenant_vif_port_id': 'fake-id'})
         new_address = '11:22:33:44:55:bb'
         pg.address = new_address
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -1314,7 +1274,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     def test_update_portgroup_remove_address(self, mac_update_mock):
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id,
-            extra={'vif_port_id': 'fake-id'})
+            internal_info={'tenant_vif_port_id': 'fake-id'})
         pg.address = None
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.portgroup_changed(task, pg)
@@ -1324,7 +1284,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     def test_update_portgroup_address_fail(self, mac_update_mock):
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id,
-            extra={'vif_port_id': 'fake-id'})
+            internal_info={'tenant_vif_port_id': 'fake-id'})
         new_address = '11:22:33:44:55:bb'
         pg.address = new_address
         mac_update_mock.side_effect = (
@@ -1352,9 +1312,10 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self, mac_update_mock):
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id)
-        extra = {'vif_port_id': 'foo'}
+        internal_info = {'tenant_vif_port_id': 'foo'}
         obj_utils.create_test_port(
-            self.context, node_id=self.node.id, extra=extra,
+            self.context, node_id=self.node.id,
+            internal_info=internal_info,
             pxe_enabled=True, portgroup_id=pg.id,
             address="aa:bb:cc:dd:ee:01",
             uuid=uuidutils.generate_uuid())
@@ -1378,12 +1339,15 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             standalone_ports_supported=old_standalone_ports_supported)
 
         if with_ports:
-            extra = {}
+            internal_info = {}
             if has_vif:
-                extra = {'vif_port_id': uuidutils.generate_uuid()}
+                internal_info = {
+                    'tenant_vif_port_id': uuidutils.generate_uuid()
+                }
 
             obj_utils.create_test_port(
-                self.context, node_id=self.node.id, extra=extra,
+                self.context, node_id=self.node.id,
+                internal_info=internal_info,
                 pxe_enabled=pxe_enabled, portgroup_id=pg.id,
                 address="aa:bb:cc:dd:ee:01",
                 uuid=uuidutils.generate_uuid())

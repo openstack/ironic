@@ -306,16 +306,6 @@ class GenericUtilsTestCase(base.TestCase):
                 utils.is_valid_no_proxy(no_proxy),
                 msg="'no_proxy' value should be invalid: {}".format(no_proxy))
 
-    @mock.patch.object(utils, 'LOG', autospec=True)
-    def test_warn_about_deprecated_extra_vif_port_id(self, mock_log):
-        # Set variable to default value
-        utils.warn_deprecated_extra_vif_port_id = False
-        utils.warn_about_deprecated_extra_vif_port_id()
-        utils.warn_about_deprecated_extra_vif_port_id()
-        self.assertEqual(1, mock_log.warning.call_count)
-        self.assertIn("extra['vif_port_id'] is deprecated and will not",
-                      mock_log.warning.call_args[0][0])
-
 
 class TempFilesTestCase(base.TestCase):
 

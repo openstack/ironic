@@ -890,16 +890,6 @@ class GetSingleNicTestCase(db_base.DbTestCase):
             address = utils.get_single_nic_with_vif_port_id(task)
             self.assertEqual('aa:bb:cc:dd:ee:ff', address)
 
-    def test_get_single_nic_with_vif_port_id_extra(self):
-        obj_utils.create_test_port(
-            self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
-            uuid=uuidutils.generate_uuid(),
-            extra={'vif_port_id': 'test-vif-A'})
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            address = utils.get_single_nic_with_vif_port_id(task)
-            self.assertEqual('aa:bb:cc:dd:ee:ff', address)
-
     def test_get_single_nic_with_cleaning_vif_port_id(self):
         obj_utils.create_test_port(
             self.context, node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',

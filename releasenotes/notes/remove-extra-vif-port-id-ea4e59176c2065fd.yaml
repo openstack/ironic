@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The functionality of using a port.extra ``vif_port_id``
+    value to signal and control a VIF attachment has been removed
+    to support changing the permission model and access control policy.
+    Use of ``vif_port_id`` outside of the VIF attachment/detachment workflow
+    has been deprecated since the Ocata development cycle.

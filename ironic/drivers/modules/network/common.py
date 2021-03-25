@@ -46,8 +46,7 @@ def _vif_attached(port_like_obj, vif_id):
         False otherwise.
     :raises: VifAlreadyAttached, if vif_id is attached to port_like_obj.
     """
-    attached_vif_id = port_like_obj.internal_info.get(
-        TENANT_VIF_KEY, port_like_obj.extra.get('vif_port_id'))
+    attached_vif_id = port_like_obj.internal_info.get(TENANT_VIF_KEY)
     if attached_vif_id == vif_id:
         raise exception.VifAlreadyAttached(
             object_type=port_like_obj.__class__.__name__,
@@ -233,9 +232,7 @@ def plug_port_to_tenant_network(task, port_like_obj, client=None):
     local_group_info = None
     client_id_opt = None
 
-    vif_id = (
-        port_like_obj.internal_info.get(TENANT_VIF_KEY)
-        or port_like_obj.extra.get('vif_port_id'))
+    vif_id = port_like_obj.internal_info.get(TENANT_VIF_KEY)
 
     if not vif_id:
         obj_name = port_like_obj.__class__.__name__.lower()
@@ -365,10 +362,7 @@ class VIFPortIDMixin(object):
         :param port_like_obj: A port or portgroup to check.
         :returns: The ID of the attached VIF, or None.
         """
-        # FIXME(sambetts) Remove this when we no longer support a nova
-        # driver that uses port.extra
-        return (port_like_obj.internal_info.get(TENANT_VIF_KEY)
-                or port_like_obj.extra.get('vif_port_id'))
+        return port_like_obj.internal_info.get(TENANT_VIF_KEY)
 
     def vif_list(self, task):
         """List attached VIF IDs for a node
