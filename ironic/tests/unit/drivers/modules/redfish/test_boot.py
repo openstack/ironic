@@ -83,6 +83,34 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertEqual('http://boot.iso',
                              actual_driver_info['redfish_deploy_iso'])
 
+    def test_parse_driver_info_removable(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.driver_info.update(
+                {'deploy_kernel': 'kernel',
+                 'deploy_ramdisk': 'ramdisk',
+                 'bootloader': 'bootloader',
+                 'config_via_removable': True}
+            )
+
+            actual_driver_info = redfish_boot._parse_driver_info(task.node)
+            self.assertTrue(actual_driver_info['config_via_removable'])
+
+    @mock.patch.object(redfish_boot.LOG, 'warning', autospec=True)
+    def test_parse_driver_info_removable_deprecated(self, mock_log):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.driver_info.update(
+                {'deploy_kernel': 'kernel',
+                 'deploy_ramdisk': 'ramdisk',
+                 'bootloader': 'bootloader',
+                 'config_via_floppy': True}
+            )
+
+            actual_driver_info = redfish_boot._parse_driver_info(task.node)
+            self.assertTrue(actual_driver_info['config_via_removable'])
+            self.assertTrue(mock_log.called)
+
     def test_parse_driver_info_rescue(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -500,12 +528,12 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             task.node.provision_state = states.DEPLOYING
 
             d_info = {
-                'config_via_floppy': True
+                'config_via_removable': True
             }
 
             mock__parse_driver_info.return_value = d_info
 
-            mock__has_vmedia_device.return_value = True
+            mock__has_vmedia_device.return_value = sushy.VIRTUAL_MEDIA_FLOPPY
             mock_prepare_floppy_image.return_value = 'floppy-image-url'
             mock_prepare_deploy_iso.return_value = 'cd-image-url'
 
@@ -515,7 +543,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, states.POWER_OFF)
 
             mock__has_vmedia_device.assert_called_once_with(
-                managers, sushy.VIRTUAL_MEDIA_FLOPPY)
+                managers,
+                [sushy.VIRTUAL_MEDIA_USBSTICK, sushy.VIRTUAL_MEDIA_FLOPPY])
 
             eject_calls = [
                 mock.call(task, managers, dev)
@@ -548,7 +577,79 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
 
+    @mock.patch.object(redfish_boot.manager_utils, 'node_set_boot_device',
+                       autospec=True)
+    @mock.patch.object(image_utils, 'prepare_floppy_image', autospec=True)
+    @mock.patch.object(image_utils, 'prepare_deploy_iso', autospec=True)
     @mock.patch.object(redfish_boot, '_has_vmedia_device', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_parse_driver_info', autospec=True)
+    @mock.patch.object(redfish_boot.manager_utils, 'node_power_action',
+                       autospec=True)
+    @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_prepare_ramdisk_with_usb(
+            self, mock_system, mock_boot_mode_utils, mock_node_power_action,
+            mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
+            mock__has_vmedia_device, mock_prepare_deploy_iso,
+            mock_prepare_floppy_image, mock_node_set_boot_device):
+
+        managers = mock_system.return_value.managers
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.DEPLOYING
+
+            d_info = {
+                'config_via_removable': True
+            }
+
+            mock__parse_driver_info.return_value = d_info
+
+            mock__has_vmedia_device.return_value = sushy.VIRTUAL_MEDIA_USBSTICK
+            mock_prepare_floppy_image.return_value = 'floppy-image-url'
+            mock_prepare_deploy_iso.return_value = 'cd-image-url'
+
+            task.driver.boot.prepare_ramdisk(task, {})
+
+            mock_node_power_action.assert_called_once_with(
+                task, states.POWER_OFF)
+
+            mock__has_vmedia_device.assert_called_once_with(
+                managers,
+                [sushy.VIRTUAL_MEDIA_USBSTICK, sushy.VIRTUAL_MEDIA_FLOPPY])
+
+            eject_calls = [
+                mock.call(task, managers, dev)
+                for dev in (sushy.VIRTUAL_MEDIA_USBSTICK,
+                            sushy.VIRTUAL_MEDIA_CD)
+            ]
+
+            mock__eject_vmedia.assert_has_calls(eject_calls)
+
+            insert_calls = [
+                mock.call(task, managers, 'floppy-image-url',
+                          sushy.VIRTUAL_MEDIA_USBSTICK),
+                mock.call(task, managers, 'cd-image-url',
+                          sushy.VIRTUAL_MEDIA_CD),
+            ]
+
+            mock__insert_vmedia.assert_has_calls(insert_calls)
+
+            expected_params = {
+                'boot_method': 'vmedia',
+                'ipa-debug': '1',
+                'ipa-agent-token': mock.ANY,
+            }
+
+            mock_prepare_deploy_iso.assert_called_once_with(
+                task, expected_params, 'deploy', d_info)
+
+            mock_node_set_boot_device.assert_called_once_with(
+                task, boot_devices.CDROM, False)
+
+            mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
+
     @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_floppy_image', autospec=True)
@@ -557,15 +658,13 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
     def test_clean_up_ramdisk(
             self, mock_system, mock__parse_driver_info,
             mock_cleanup_floppy_image, mock_cleanup_iso_image,
-            mock__eject_vmedia, mock__has_vmedia_device):
+            mock__eject_vmedia):
 
         managers = mock_system.return_value.managers
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.provision_state = states.DEPLOYING
-
-            mock__parse_driver_info.return_value = {'config_via_floppy': True}
-            mock__has_vmedia_device.return_value = True
+            task.node.driver_info['config_via_removable'] = True
 
             task.driver.boot.clean_up_ramdisk(task)
 
@@ -573,11 +672,9 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock_cleanup_floppy_image.assert_called_once_with(task)
 
-            mock__has_vmedia_device.assert_called_once_with(
-                managers, sushy.VIRTUAL_MEDIA_FLOPPY)
-
             eject_calls = [
                 mock.call(task, managers, sushy.VIRTUAL_MEDIA_CD),
+                mock.call(task, managers, sushy.VIRTUAL_MEDIA_USBSTICK),
                 mock.call(task, managers, sushy.VIRTUAL_MEDIA_FLOPPY)
             ]
 
@@ -837,9 +934,11 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
     @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
                        autospec=True)
     @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_floppy_image', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def _test_clean_up_instance(self, mock_system, mock_cleanup_iso_image,
+                                mock_cleanup_floppy_image,
                                 mock__eject_vmedia, mock_secure_boot):
         managers = mock_system.return_value.managers
         with task_manager.acquire(self.context, self.node.uuid,
@@ -849,9 +948,12 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock_cleanup_iso_image.assert_called_once_with(task)
             eject_calls = [mock.call(task, managers, sushy.VIRTUAL_MEDIA_CD)]
-            if task.node.driver_info.get('config_via_floppy'):
-                eject_calls.append(mock.call(task, managers,
-                                             sushy.VIRTUAL_MEDIA_FLOPPY))
+            if task.node.driver_info.get('config_via_removable'):
+                eject_calls.extend([
+                    mock.call(task, managers, sushy.VIRTUAL_MEDIA_USBSTICK),
+                    mock.call(task, managers, sushy.VIRTUAL_MEDIA_FLOPPY),
+                ])
+                mock_cleanup_floppy_image.assert_called_once_with(task)
 
             mock__eject_vmedia.assert_has_calls(eject_calls)
             mock_secure_boot.assert_called_once_with(task)
@@ -861,7 +963,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
     def test_clean_up_instance_cdrom_and_floppy(self):
         driver_info = self.node.driver_info
-        driver_info['config_via_floppy'] = True
+        driver_info['config_via_removable'] = True
         self.node.driver_info = driver_info
         self.node.save()
         self._test_clean_up_instance()

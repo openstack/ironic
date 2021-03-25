@@ -1,0 +1,11 @@
+---
+deprecations:
+  - |
+    The node's ``driver_info`` parameter ``config_via_floppy`` of the
+    ``redfish-virtual-media`` boot interface has been renamed to
+    ``config_via_removable``. The old alias is deprecated.
+features:
+  - |
+    Supplying configuration to the agent using the ``redfish-virtual-media``
+    boot interface now works through USB instead of floppy by default. Modern
+    hardware (and even virtual machines) has limited support for floppies.
