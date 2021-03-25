@@ -31,6 +31,12 @@ kernel {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeou
 initrd {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.ari_path }} || goto boot_partition
 boot
 
+:boot_anaconda
+imgfree
+kernel {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.aki_path }} text {{ pxe_options.pxe_append_params|default("", true) }} inst.ks={{ pxe_options.ks_cfg_url }} inst.stage2={{ pxe_options.stage2_url }} initrd=ramdisk || goto boot_anaconda
+initrd {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.ari_path }} || goto boot_anaconda
+boot
+
 :boot_ramdisk
 imgfree
 {%- if pxe_options.boot_iso_url %}

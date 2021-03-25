@@ -62,6 +62,8 @@ class TestPXEUtils(db_base.DbTestCase):
             'ipa-api-url': 'http://192.168.122.184:6385',
             'ipxe_timeout': 0,
             'ramdisk_opts': 'ramdisk_param',
+            'ks_cfg_url': 'http://fake/ks.cfg',
+            'stage2_url': 'http://fake/stage2'
         }
 
         self.ipxe_options = self.pxe_options.copy()
@@ -1144,6 +1146,81 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
 
             boot_opt_mock.assert_called_once_with(task.node)
 
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
+                return_value='kickstart', autospec=True)
+    @mock.patch.object(image_service.GlanceImageService, 'show', autospec=True)
+    def test_get_instance_image_info_with_kickstart_boot_option(
+            self, image_show_mock, boot_opt_mock):
+        properties = {'properties': {u'kernel_id': u'instance_kernel_uuid',
+                                     u'ramdisk_id': u'instance_ramdisk_uuid',
+                                     u'stage2_id': u'instance_stage2_id'}}
+
+        expected_info = {'ramdisk':
+                         ('instance_ramdisk_uuid',
+                          os.path.join(CONF.pxe.tftp_root,
+                                       self.node.uuid,
+                                       'ramdisk')),
+                         'kernel':
+                         ('instance_kernel_uuid',
+                          os.path.join(CONF.pxe.tftp_root,
+                                       self.node.uuid,
+                                       'kernel')),
+                         'stage2':
+                         ('instance_stage2_id',
+                          os.path.join(CONF.deploy.http_root,
+                                       self.node.uuid,
+                                       'LiveOS',
+                                       'squashfs.img')),
+                         'ks_template':
+                         (CONF.anaconda.default_ks_template,
+                          os.path.join(CONF.deploy.http_root,
+                                       self.node.uuid,
+                                       'ks.cfg.template')),
+                         'ks_cfg':
+                         ('',
+                          os.path.join(CONF.deploy.http_root,
+                                       self.node.uuid,
+                                       'ks.cfg'))}
+        image_show_mock.return_value = properties
+        self.context.auth_token = 'fake'
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            image_info = pxe_utils.get_instance_image_info(
+                task, ipxe_enabled=False)
+            self.assertEqual(expected_info, image_info)
+            # In the absense of kickstart template in both instance_info and
+            # image default kickstart template is used
+            self.assertEqual(CONF.anaconda.default_ks_template,
+                             image_info['ks_template'][0])
+            calls = [mock.call(task.node), mock.call(task.node)]
+            boot_opt_mock.assert_has_calls(calls)
+            # Instance info gets presedence over kickstart template on the
+            # image
+            properties['properties'] = {'ks_template': 'glance://template_id'}
+            task.node.instance_info['ks_template'] = 'https://server/fake.tmpl'
+            image_show_mock.return_value = properties
+            image_info = pxe_utils.get_instance_image_info(
+                task, ipxe_enabled=False)
+            self.assertEqual('https://server/fake.tmpl',
+                             image_info['ks_template'][0])
+
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
+                return_value='kickstart', autospec=True)
+    @mock.patch.object(image_service.GlanceImageService, 'show', autospec=True)
+    def test_get_instance_image_info_kickstart_stage2_missing(
+            self, image_show_mock, boot_opt_mock):
+        properties = {'properties': {u'kernel_id': u'instance_kernel_uuid',
+                                     u'ramdisk_id': u'instance_ramdisk_uuid'}}
+
+        image_show_mock.return_value = properties
+        self.context.auth_token = 'fake'
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(
+                exception.ImageUnacceptable, pxe_utils.get_instance_image_info,
+                task, ipxe_enabled=False
+            )
+
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test__cache_tftp_images_master_path(self, mock_fetch_image):
         temp_dir = tempfile.mkdtemp()
@@ -1240,6 +1317,68 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         self.node.driver_internal_info['is_whole_disk_image'] = False
         pxe_utils.validate_boot_parameters_for_trusted_boot(self.node)
         self.assertFalse(mock_log.called)
+
+
+@mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)
+class PXEBuildKickstartConfigOptionsTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(PXEBuildKickstartConfigOptionsTestCase, self).setUp()
+        n = {
+            'driver': 'fake-hardware',
+            'boot_interface': 'pxe',
+            'instance_info': INST_INFO_DICT,
+            'driver_info': DRV_INFO_DICT,
+            'driver_internal_info': DRV_INTERNAL_INFO_DICT,
+        }
+        n['instance_info']['image_url'] = 'http://ironic/node/os_image.tar'
+        self.config_temp_dir('http_root', group='deploy')
+        self.node = object_utils.create_test_node(self.context, **n)
+
+    @mock.patch.object(deploy_utils, 'get_ironic_api_url', autospec=True)
+    def test_build_kickstart_config_options_pxe(self, api_url_mock):
+        api_url_mock.return_value = 'http://ironic-api'
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            expected = {}
+            expected['liveimg_url'] = task.node.instance_info['image_url']
+            expected['heartbeat_url'] = (
+                'http://ironic-api/v1/heartbeat/%s' % task.node.uuid
+            )
+            ks_options = pxe_utils.build_kickstart_config_options(task)
+            self.assertTrue(ks_options.pop('agent_token'))
+            self.assertEqual(expected, ks_options)
+
+    @mock.patch('ironic.common.utils.render_template', autospec=True)
+    def test_prepare_instance_kickstart_config_not_anaconda_boot(self,
+                                                                 render_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertFalse(
+                pxe_utils.prepare_instance_kickstart_config(task, {})
+            )
+            render_mock.assert_not_called()
+
+    @mock.patch('ironic.common.utils.render_template', autospec=True)
+    @mock.patch('ironic.common.pxe_utils.build_kickstart_config_options',
+                autospec=True)
+    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
+    def test_prepare_instance_kickstart_config(self, write_mock,
+                                               ks_options_mock, render_mock):
+        image_info = {
+            'ks_cfg': ['', '/http_root/node_uuid/ks.cfg'],
+            'ks_template': ['tmpl_id', '/http_root/node_uuid/ks.cfg.template']
+        }
+        ks_options = {'liveimg_url': 'http://fake', 'agent_token': 'faketoken',
+                      'heartbeat_url': 'http://fake_hb'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            ks_options_mock.return_value = ks_options
+            pxe_utils.prepare_instance_kickstart_config(task, image_info,
+                                                        anaconda_boot=True)
+            render_mock.assert_called_with(image_info['ks_template'][1],
+                                           ks_options)
+            write_mock.assert_called_with(image_info['ks_cfg'][1],
+                                          render_mock.return_value)
 
 
 @mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)

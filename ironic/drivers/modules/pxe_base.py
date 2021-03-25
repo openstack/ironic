@@ -234,18 +234,23 @@ class PXEBaseMixin(object):
         boot_option = deploy_utils.get_boot_option(node)
         boot_device = None
         instance_image_info = {}
-        if boot_option == "ramdisk":
+        if boot_option == "ramdisk" or boot_option == "kickstart":
             instance_image_info = pxe_utils.get_instance_image_info(
                 task, ipxe_enabled=self.ipxe_enabled)
             pxe_utils.cache_ramdisk_kernel(task, instance_image_info,
                                            ipxe_enabled=self.ipxe_enabled)
 
-        if deploy_utils.is_iscsi_boot(task) or boot_option == "ramdisk":
+        if (deploy_utils.is_iscsi_boot(task) or boot_option == "ramdisk"
+                or boot_option == "kickstart"):
             pxe_utils.prepare_instance_pxe_config(
                 task, instance_image_info,
                 iscsi_boot=deploy_utils.is_iscsi_boot(task),
                 ramdisk_boot=(boot_option == "ramdisk"),
+                anaconda_boot=(boot_option == "kickstart"),
                 ipxe_enabled=self.ipxe_enabled)
+            pxe_utils.prepare_instance_kickstart_config(
+                task, instance_image_info,
+                anaconda_boot=(boot_option == "kickstart"))
             boot_device = boot_devices.PXE
 
         elif boot_option != "local":

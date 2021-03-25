@@ -22,3 +22,8 @@ append tboot.gz --- /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/kernel root={
 label boot_ramdisk
 kernel /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/kernel
 append initrd=/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/ramdisk root=/dev/ram0 text test_param ramdisk_param
+
+label boot_anaconda
+kernel /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/kernel
+append initrd=/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/ramdisk text test_param inst.ks=http://fake/ks.cfg inst.stage2=http://fake/stage2
+ipappend 2

@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import copy
 import os
 
 from ironic_lib import utils as ironic_utils
@@ -29,6 +30,7 @@ from ironic.common import image_service as service
 from ironic.common import images
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
@@ -242,6 +244,54 @@ def get_pxe_config_file_path(node_uuid, ipxe_enabled=False):
         return os.path.join(get_ipxe_root_dir(), node_uuid, 'config')
     else:
         return os.path.join(get_root_dir(), node_uuid, 'config')
+
+
+def get_file_path_from_label(node_uuid, root_dir, label):
+    """Generate absolute paths to various images from their name(label)
+
+    This method generates absolute file system path on the conductor where
+    various images need to be placed. For example the kickstart template, file
+    and stage2 squashfs.img needs to be placed in the ipxe_root_dir since they
+    will be transferred by anaconda ramdisk over http(s). The generated paths
+    will be added to the image_info dictionary as values.
+
+    :param node_uuid: the UUID of the node
+    :param root_dir: Directory in which the image must be placed
+    :param label: Name of the image
+    """
+    if label == 'ks_template':
+        return os.path.join(get_ipxe_root_dir(), node_uuid, 'ks.cfg.template')
+    elif label == 'ks_cfg':
+        return os.path.join(get_ipxe_root_dir(), node_uuid, 'ks.cfg')
+    elif label == 'stage2':
+        return os.path.join(get_ipxe_root_dir(), node_uuid, 'LiveOS',
+                            'squashfs.img')
+    else:
+        return os.path.join(root_dir, node_uuid, label)
+
+
+def get_http_url_path_from_label(http_url, node_uuid, label):
+    """Generate http url path to various image artifacts
+
+    This method generates http(s) urls for various image artifacts int the
+    webserver root. The generated urls will be added to the pxe_options dict
+    and used to render pxe/ipxe configuration templates.
+
+    :param http_url: URL to access the root of the webserver
+    :param node_uuid: the UUID of the node
+    :param label: Name of the image
+    """
+    if label == 'ks_template':
+        return '/'.join([http_url, node_uuid, 'ks.cfg.template'])
+    elif label == 'ks_cfg':
+        return '/'.join([http_url, node_uuid, 'ks.cfg'])
+    elif label == 'stage2':
+        # we store stage2 in http_root/node_uuid/LiveOS/squashfs.img
+        # Specifying http://host/node_uuid as stage2 url will make anaconda
+        # automatically load the squashfs.img from LiveOS directory.
+        return '/'.join([http_url, node_uuid])
+    else:
+        return '/'.join([http_url, node_uuid, label])
 
 
 def create_pxe_config(task, pxe_options, template=None, ipxe_enabled=False):
@@ -642,10 +692,39 @@ def get_instance_image_info(task, ipxe_enabled=False):
             i_info[label] = str(iproperties[label + '_id'])
         node.instance_info = i_info
         node.save()
-    for label in labels:
+
+    anaconda_labels = ()
+    if deploy_utils.get_boot_option(node) == 'kickstart':
+        # stage2  - Installer stage2 squashfs image
+        # ks_template - Anaconda kickstart template
+        # ks_cfg - rendered ks_template
+        anaconda_labels = ('stage2', 'ks_template', 'ks_cfg')
+        if not (i_info.get('stage2') and i_info.get('ks_template')):
+            iproperties = glance_service.show(
+                d_info['image_source']
+            )['properties']
+            for label in anaconda_labels:
+                # ks_template is an optional property on the image
+                if (label == 'ks_template'
+                        and not iproperties.get('ks_template')):
+                    i_info[label] = CONF.anaconda.default_ks_template
+                elif label == 'ks_cfg':
+                    i_info[label] = ''
+                elif label == 'stage2' and 'stage2_id' not in iproperties:
+                    msg = ("stage2_id property missing on the image. "
+                           "The anaconda deploy interface requires stage2_id "
+                           "property to be associated with the os image. ")
+                    raise exception.ImageUnacceptable(msg)
+                else:
+                    i_info[label] = str(iproperties['stage2_id'])
+
+            node.instance_info = i_info
+            node.save()
+
+    for label in labels + anaconda_labels:
         image_info[label] = (
             i_info[label],
-            os.path.join(root_dir, node.uuid, label)
+            get_file_path_from_label(node.uuid, root_dir, label)
         )
 
     return image_info
@@ -705,15 +784,18 @@ def build_instance_pxe_options(task, pxe_info, ipxe_enabled=False):
     node = task.node
 
     for label, option in (('kernel', 'aki_path'),
-                          ('ramdisk', 'ari_path')):
+                          ('ramdisk', 'ari_path'),
+                          ('stage2', 'stage2_url'),
+                          ('ks_template', 'ks_template_path'),
+                          ('ks_cfg', 'ks_cfg_url')):
         if label in pxe_info:
-            if ipxe_enabled:
+            if ipxe_enabled or label in ('stage2', 'ks_template', 'ks_cfg'):
                 # NOTE(pas-ha) do not use Swift TempURLs for kernel and
                 # ramdisk of user image when boot_option is not local,
                 # as this breaks instance reboot later when temp urls
                 # have timed out.
-                pxe_opts[option] = '/'.join(
-                    [CONF.deploy.http_url, node.uuid, label])
+                pxe_opts[option] = get_http_url_path_from_label(
+                    CONF.deploy.http_url, node.uuid, label)
             else:
                 # It is possible that we don't have kernel/ramdisk or even
                 # image_source to determine if it's a whole disk image or not.
@@ -810,7 +892,8 @@ def build_service_pxe_config(task, instance_image_info,
                              root_uuid_or_disk_id,
                              ramdisk_boot=False,
                              ipxe_enabled=False,
-                             is_whole_disk_image=None):
+                             is_whole_disk_image=None,
+                             anaconda_boot=False):
     node = task.node
     pxe_config_path = get_pxe_config_file_path(node.uuid,
                                                ipxe_enabled=ipxe_enabled)
@@ -844,7 +927,38 @@ def build_service_pxe_config(task, instance_image_info,
         is_whole_disk_image,
         deploy_utils.is_trusted_boot_requested(node),
         deploy_utils.is_iscsi_boot(task), ramdisk_boot,
-        ipxe_enabled=ipxe_enabled)
+        ipxe_enabled=ipxe_enabled, anaconda_boot=anaconda_boot)
+
+
+def _build_heartbeat_url(node_uuid):
+
+    api_version = 'v1'
+    heartbeat_api = '%s/heartbeat/{node_uuid}' % api_version
+    path = heartbeat_api.format(node_uuid=node_uuid)
+    return "/".join([deploy_utils.get_ironic_api_url(), path])
+
+
+def build_kickstart_config_options(task):
+    """Build the kickstart template options for a node
+
+    This method builds the kickstart template options for a node,
+    given all the required parameters.
+
+    The options should then be passed to pxe_utils.create_kickstart_config to
+    create the actual config files.
+
+    :param task: A TaskManager object
+    :returns: A dictionary of kickstart options to be used in the kickstart
+              template.
+    """
+    ks_options = {}
+    node = task.node
+    manager_utils.add_secret_token(node, pregenerated=True)
+    node.save()
+    ks_options['liveimg_url'] = node.instance_info['image_url']
+    ks_options['agent_token'] = node.driver_internal_info['agent_secret_token']
+    ks_options['heartbeat_url'] = _build_heartbeat_url(node.uuid)
+    return ks_options
 
 
 def get_volume_pxe_options(task):
@@ -949,7 +1063,8 @@ def validate_boot_parameters_for_trusted_boot(node):
 def prepare_instance_pxe_config(task, image_info,
                                 iscsi_boot=False,
                                 ramdisk_boot=False,
-                                ipxe_enabled=False):
+                                ipxe_enabled=False,
+                                anaconda_boot=False):
     """Prepares the config file for PXE boot
 
     :param task: a task from TaskManager.
@@ -959,6 +1074,7 @@ def prepare_instance_pxe_config(task, image_info,
     :param ramdisk_boot: if the boot is to a ramdisk configuration.
     :param ipxe_enabled: Default false boolean to indicate if ipxe
                          is in use by the caller.
+    :param anaconda_boot: if the boot is to a anaconda ramdisk configuration.
     :returns: None
     """
     node = task.node
@@ -978,7 +1094,7 @@ def prepare_instance_pxe_config(task, image_info,
         node.uuid, ipxe_enabled=ipxe_enabled)
     if not os.path.isfile(pxe_config_path):
         pxe_options = build_pxe_config_options(
-            task, image_info, service=ramdisk_boot,
+            task, image_info, service=ramdisk_boot or anaconda_boot,
             ipxe_enabled=ipxe_enabled)
         if ipxe_enabled:
             pxe_config_template = (
@@ -993,7 +1109,23 @@ def prepare_instance_pxe_config(task, image_info,
         pxe_config_path, None,
         boot_mode_utils.get_boot_mode(node), False,
         iscsi_boot=iscsi_boot, ramdisk_boot=ramdisk_boot,
-        ipxe_enabled=ipxe_enabled)
+        ipxe_enabled=ipxe_enabled, anaconda_boot=anaconda_boot)
+
+
+def prepare_instance_kickstart_config(task, image_info, anaconda_boot=False):
+    """Prepare to boot anaconda ramdisk by generating kickstart file
+
+    :param task: a task from TaskManager.
+    :param image_info: a dict of values of instance image
+                       metadata to set on the configuration file.
+    :param anaconda_boot: if the boot is to a anaconda ramdisk configuration.
+    """
+    if not anaconda_boot:
+        return
+    ks_options = build_kickstart_config_options(task)
+    kickstart_template = image_info['ks_template'][1]
+    ks_cfg = utils.render_template(kickstart_template, ks_options)
+    utils.write_to_file(image_info['ks_cfg'][1], ks_cfg)
 
 
 @image_cache.cleanup(priority=25)
@@ -1012,14 +1144,30 @@ def cache_ramdisk_kernel(task, pxe_info, ipxe_enabled=False):
     """Fetch the necessary kernels and ramdisks for the instance."""
     ctx = task.context
     node = task.node
+    t_pxe_info = copy.copy(pxe_info)
     if ipxe_enabled:
         path = os.path.join(get_ipxe_root_dir(), node.uuid)
     else:
         path = os.path.join(get_root_dir(), node.uuid)
     fileutils.ensure_tree(path)
+    # anconda deploy will have 'stage2' as one of the labels in pxe_info dict
+    if 'stage2' in pxe_info.keys():
+        # stage2  will be stored in ipxe http directory. So make sure they
+        # exist.
+        fileutils.ensure_tree(
+            get_file_path_from_label(
+                node.uuid,
+                get_ipxe_root_dir(),
+                'stage2'
+            )
+        )
+        # ks_cfg is rendered later by the driver using ks_template. It cannot
+        # be fetched and cached.
+        t_pxe_info.pop('ks_cfg')
+
     LOG.debug("Fetching necessary kernel and ramdisk for node %s",
               node.uuid)
-    deploy_utils.fetch_images(ctx, TFTPImageCache(), list(pxe_info.values()),
+    deploy_utils.fetch_images(ctx, TFTPImageCache(), list(t_pxe_info.values()),
                               CONF.force_raw_images)
 
 
