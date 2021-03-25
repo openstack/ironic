@@ -87,3 +87,26 @@ An example network data:
 .. _Glean: https://docs.openstack.org/infra/glean/
 .. _simple-init: https://docs.openstack.org/diskimage-builder/latest/elements/simple-init/README.html
 .. _network_data: https://specs.openstack.org/openstack/nova-specs/specs/liberty/implemented/metadata-service-network-info.html
+
+.. _l3-external-ip:
+
+Deploying outside of the provisioning network
+---------------------------------------------
+
+If you need to combine traditional deployments using a provisioning network
+with virtual media deployments over L3, you may need to provide an alternative
+IP address for the remote nodes to connect to:
+
+.. code-block:: ini
+
+   [deploy]
+   http_url = <HTTP server URL internal to the provisioning network>
+   external_http_url = <HTTP server URL with a routable IP address>
+
+You may also need to override the callback URL, which is normally fetched from
+the service catalog or configured in the ``[service_catalog]`` section:
+
+.. code-block:: ini
+
+   [deploy]
+   external_callback_url = <Bare Metal API URL with a routable IP address>

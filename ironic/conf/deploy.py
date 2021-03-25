@@ -27,6 +27,17 @@ opts = [
     cfg.StrOpt('http_root',
                default='/httpboot',
                help=_("ironic-conductor node's HTTP root path.")),
+    cfg.StrOpt('external_http_url',
+               help=_("URL of the ironic-conductor node's HTTP server for "
+                      "boot methods such as virtual media, "
+                      "where images could be served outside of the "
+                      "provisioning network. Does not apply when Swift is "
+                      "used. Defaults to http_url.")),
+    cfg.StrOpt('external_callback_url',
+               help=_("Agent callback URL of the bare metal API for boot "
+                      "methods such as virtual media, where images could be "
+                      "served outside of the provisioning network. Defaults "
+                      "to the configuration from [service_catalog].")),
     cfg.BoolOpt('enable_ata_secure_erase',
                 default=True,
                 mutable=True,

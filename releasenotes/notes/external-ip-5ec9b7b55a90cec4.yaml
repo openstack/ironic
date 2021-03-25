@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Provides operator ability to override URL settings required for
+    provisioning/cleaning in the event of virtual media based deployment.
+    These scenarios tend to require more delineation than more traditional
+    deployments as they often have a different environmental security
+    requirements. Set these two new configuration options using an IP
+    address that is available to these nodes (both the ramdisk and the BMCs)::
+
+      [deploy]
+      external_http_url = <routable URL of the HTTP server>
+      external_callback_url = <routable URL of bare metal API>

@@ -71,6 +71,9 @@ ironic configuration file to match the HTTP server configurations.
    http_url = http://example.com
    http_root = /httpboot
 
+.. note::
+   See also: :ref:`l3-external-ip`.
+
 Each HTTP server should be configured to follow symlinks for images
 accessible from HTTP service. Please refer to configuration option
 ``FollowSymLinks`` if you are using Apache HTTP server, or

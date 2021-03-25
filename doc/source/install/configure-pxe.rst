@@ -332,6 +332,8 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
       # http://192.1.2.3:8080 (string value)
       http_url=http://192.168.0.2:8080
 
+   See also: :ref:`l3-external-ip`.
+
 #. Install the iPXE package with the boot images:
 
    Ubuntu::
