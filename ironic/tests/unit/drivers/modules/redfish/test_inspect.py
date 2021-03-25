@@ -104,6 +104,20 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self.assertEqual(expected_properties, task.node.properties)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
+                       autospec=True)
+    def test_inspect_port_creation(self, mock_create_ports_if_not_exist,
+                                   mock_get_system):
+        self.init_system_mock(mock_get_system.return_value)
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.inspect.inspect_hardware(task)
+            result = task.driver.management.get_mac_addresses(task)
+            inspect_utils.create_ports_if_not_exist.assert_called_once_with(
+                task, result, mock.ANY)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_fail_missing_cpu(self, mock_get_system):
         system_mock = self.init_system_mock(mock_get_system.return_value)
         system_mock.processors.summary = None, None
