@@ -41,10 +41,10 @@ REQUIRED_PROPERTIES = {
 }
 
 OPTIONAL_PROPERTIES = {
-    'config_via_floppy': _("Boolean value to indicate whether or not the "
-                           "driver should use virtual media Floppy device "
-                           "for passing configuration information to the "
-                           "ramdisk. Defaults to False. Optional."),
+    'config_via_removable': _("Boolean value to indicate whether or not the "
+                              "driver should use virtual media USB or floppy "
+                              "device for passing configuration information "
+                              "to the ramdisk. Defaults to False. Optional."),
     'kernel_append_params': _("Additional kernel parameters to pass down to "
                               "instance kernel. These parameters can be "
                               "consumed by the kernel or by the applications "
@@ -125,6 +125,12 @@ def _parse_driver_info(node):
     deploy_info.update(
         {option: d_info.get(option, getattr(CONF.conductor, option, None))
          for option in OPTIONAL_PROPERTIES})
+
+    if (d_info.get('config_via_removable') is None
+            and d_info.get('config_via_floppy') is not None):
+        LOG.warning('The config_via_floppy driver_info option is deprecated, '
+                    'use config_via_removable for node %s', node.uuid)
+        deploy_info['config_via_removable'] = d_info['config_via_floppy']
 
     deploy_info.update(redfish_utils.parse_driver_info(node))
 
@@ -255,13 +261,19 @@ def _has_vmedia_device(managers, boot_device):
     """Indicate if device exists at any of the managers
 
     :param managers: A list of System managers.
-    :param boot_device: sushy boot device e.g. `VIRTUAL_MEDIA_CD`,
-        `VIRTUAL_MEDIA_DVD` or `VIRTUAL_MEDIA_FLOPPY`.
+    :param boot_device: One or more sushy boot device e.g. `VIRTUAL_MEDIA_CD`,
+        `VIRTUAL_MEDIA_DVD` or `VIRTUAL_MEDIA_FLOPPY`. Several devices are
+        checked in the given order.
+    :return: The device that could be found or False.
     """
-    for manager in managers:
-        for v_media in manager.virtual_media.get_members():
-            if boot_device in v_media.media_types:
-                return True
+    if isinstance(boot_device, str):
+        boot_device = [boot_device]
+
+    for dev in boot_device:
+        for manager in managers:
+            for v_media in manager.virtual_media.get_members():
+                if dev in v_media.media_types:
+                    return dev
     return False
 
 
@@ -465,7 +477,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         d_info = _parse_driver_info(node)
 
-        config_via_floppy = d_info.get('config_via_floppy')
+        config_via_removable = d_info.get('config_via_removable')
 
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         if deploy_nic_mac is not None:
@@ -475,27 +487,32 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         managers = redfish_utils.get_system(task.node).managers
 
-        if config_via_floppy:
+        if config_via_removable:
 
-            if _has_vmedia_device(managers, sushy.VIRTUAL_MEDIA_FLOPPY):
-                # NOTE (etingof): IPA will read the diskette only if
+            removable = _has_vmedia_device(
+                managers,
+                # Prefer USB devices since floppies are outdated
+                [sushy.VIRTUAL_MEDIA_USBSTICK, sushy.VIRTUAL_MEDIA_FLOPPY])
+            if removable:
+                # NOTE (etingof): IPA will read the device only if
                 # we tell it to
                 ramdisk_params['boot_method'] = 'vmedia'
 
                 floppy_ref = image_utils.prepare_floppy_image(
                     task, params=ramdisk_params)
 
-                _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_FLOPPY)
-                _insert_vmedia(
-                    task, managers, floppy_ref, sushy.VIRTUAL_MEDIA_FLOPPY)
+                _eject_vmedia(task, managers, removable)
+                _insert_vmedia(task, managers, floppy_ref, removable)
 
-                LOG.debug('Inserted virtual floppy with configuration for '
-                          'node %(node)s', {'node': task.node.uuid})
+                LOG.info('Inserted virtual %(type)s device with configuration'
+                         ' for node %(node)s',
+                         {'node': task.node.uuid, 'type': removable})
 
             else:
-                LOG.warning('Config via floppy is requested, but '
-                            'Floppy drive is not available on node '
-                            '%(node)s', {'node': task.node.uuid})
+                LOG.warning('Config via a removable device is requested, but '
+                            'virtual USB and floppy devices are not '
+                            'available on node %(node)s',
+                            {'node': task.node.uuid})
 
         mode = deploy_utils.rescue_or_deploy_mode(node)
 
@@ -524,23 +541,9 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         :param task: A task from TaskManager.
         :returns: None
         """
-        d_info = _parse_driver_info(task.node)
-
-        config_via_floppy = d_info.get('config_via_floppy')
-
         LOG.debug("Cleaning up deploy boot for "
                   "%(node)s", {'node': task.node.uuid})
-
-        managers = redfish_utils.get_system(task.node).managers
-
-        _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_CD)
-        image_utils.cleanup_iso_image(task)
-
-        if (config_via_floppy
-                and _has_vmedia_device(managers, sushy.VIRTUAL_MEDIA_FLOPPY)):
-            _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_FLOPPY)
-
-            image_utils.cleanup_floppy_image(task)
+        self._eject_all(task)
 
     def prepare_instance(self, task):
         """Prepares the boot of instance over virtual media.
@@ -625,10 +628,15 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         managers = redfish_utils.get_system(task.node).managers
 
         _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_CD)
-        d_info = task.node.driver_info
-        config_via_floppy = d_info.get('config_via_floppy')
-        if config_via_floppy:
+        config_via_removable = (
+            task.node.driver_info.get('config_via_removable')
+            or task.node.driver_info.get('config_via_floppy')
+        )
+        if config_via_removable:
+            _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_USBSTICK)
             _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_FLOPPY)
+
+            image_utils.cleanup_floppy_image(task)
 
         boot_option = deploy_utils.get_boot_option(task.node)
         if (boot_option == 'ramdisk'
