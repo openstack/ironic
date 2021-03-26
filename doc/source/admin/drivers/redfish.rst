@@ -29,7 +29,7 @@ Enabling the Redfish driver
     [DEFAULT]
     ...
     enabled_hardware_types = ipmi,redfish
-    enabled_boot_interfaces = ipmitool,redfish-virtual-media
+    enabled_boot_interfaces = ipxe,redfish-virtual-media
     enabled_power_interfaces = ipmitool,redfish
     enabled_management_interfaces = ipmitool,redfish
     enabled_inspect_interfaces = inspector,redfish
