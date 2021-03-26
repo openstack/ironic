@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The network data schema is now configurable via the new configuration
+    options ``[api]network_data_schema``.

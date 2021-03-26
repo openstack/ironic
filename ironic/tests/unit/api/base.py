@@ -27,6 +27,7 @@ from oslo_config import cfg
 import pecan
 import pecan.testing
 
+from ironic.api.controllers.v1 import node as api_node
 from ironic.tests.unit.db import base as db_base
 
 PATH_PREFIX = '/v1'
@@ -64,6 +65,10 @@ class BaseApiTest(db_base.DbTestCase):
                        autospec=True)
         self._check_version = p.start()
         self.addCleanup(p.stop)
+
+        api_node._NETWORK_DATA_SCHEMA = None
+        api_node._NODE_VALIDATOR = None
+        api_node._NODE_PATCH_VALIDATOR = None
 
     def _make_app(self):
         # Determine where we are so we can set up paths in the config
