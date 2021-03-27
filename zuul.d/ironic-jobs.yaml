@@ -7,11 +7,11 @@
     post-run: playbooks/ci-workarounds/get_tftpd.yaml
     timeout: 10800
     required-projects:
-      - openstack/ironic
-      - openstack/ironic-python-agent
-      - openstack/ironic-python-agent-builder
-      - openstack/ironic-tempest-plugin
-      - openstack/virtualbmc
+      - opendev.org/openstack/ironic
+      - opendev.org/openstack/ironic-python-agent
+      - opendev.org/openstack/ironic-python-agent-builder
+      - opendev.org/openstack/ironic-tempest-plugin
+      - opendev.org/openstack/virtualbmc
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -149,7 +149,7 @@
       Test ironic standalone configured with redfish hardware type, iscsi and
       direct and ansible deploy interfaces, rescue it's not enabled.
     required-projects:
-      - openstack/sushy-tools
+      - opendev.org/openstack/sushy-tools
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -206,7 +206,7 @@
     description: "Deploy ironic node over PXE using BIOS boot mode"
     parent: ironic-base
     required-projects:
-      - openstack/sushy-tools
+      - opendev.org/openstack/sushy-tools
     vars:
       devstack_localrc:
         IRONIC_DEPLOY_DRIVER: redfish
@@ -242,7 +242,7 @@
     description: "Inspect and deploy ironic node over Redfish virtual media using legacy BIOS boot mode"
     parent: ironic-tempest-partition-uefi-redfish-vmedia
     required-projects:
-      - openstack/ironic-inspector
+      - opendev.org/openstack/ironic-inspector
     vars:
       # NOTE(dtantsur): the inspector job includes booting an instance too.
       # Excluding the abort tests since it hits "node locked" too often.
@@ -356,7 +356,7 @@
     description: ironic-inspector-tempest
     parent: ironic-base
     required-projects:
-      - openstack/ironic-inspector
+      - opendev.org/openstack/ironic-inspector
     vars:
       tempest_test_regex: InspectorBasicTest
       devstack_localrc:
@@ -418,12 +418,12 @@
     nodeset: openstack-two-node-focal
     pre-run: playbooks/ci-workarounds/pre.yaml
     required-projects:
-      - openstack/ironic
-      - openstack/ironic-python-agent
-      - openstack/ironic-python-agent-builder
-      - openstack/ironic-tempest-plugin
-      - openstack/virtualbmc
-      - openstack/networking-generic-switch
+      - opendev.org/openstack/ironic
+      - opendev.org/openstack/ironic-python-agent
+      - opendev.org/openstack/ironic-python-agent-builder
+      - opendev.org/openstack/ironic-tempest-plugin
+      - opendev.org/openstack/virtualbmc
+      - opendev.org/openstack/networking-generic-switch
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -623,7 +623,7 @@
     vars:
       tox_envlist: bandit
     required-projects:
-      - openstack/ironic
+      - opendev.org/openstack/ironic
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -660,7 +660,7 @@
     description: ironic-tempest-ipxe-ipv6
     parent: ironic-base
     required-projects:
-      - openstack/networking-generic-switch
+      - opendev.org/openstack/networking-generic-switch
     vars:
       tempest_test_timeout: 2400
       devstack_services:
@@ -759,12 +759,12 @@
       - ^tools/.*$
       - ^tox.ini$
     required-projects:
-      - openstack/grenade
-      - openstack/ironic
-      - openstack/ironic-python-agent
-      - openstack/ironic-python-agent-builder
-      - openstack/ironic-tempest-plugin
-      - openstack/virtualbmc
+      - opendev.org/openstack/grenade
+      - opendev.org/openstack/ironic
+      - opendev.org/openstack/ironic-python-agent
+      - opendev.org/openstack/ironic-python-agent-builder
+      - opendev.org/openstack/ironic-tempest-plugin
+      - opendev.org/openstack/virtualbmc
     vars:
       grenade_devstack_localrc:
         shared:
@@ -833,15 +833,15 @@
       - ^tools/.*$
       - ^tox.ini$
     required-projects:
-      - openstack/grenade
-      - openstack/ironic
-      - openstack/ironic-lib
-      - openstack/ironic-python-agent
-      - openstack/ironic-python-agent-builder
-      - openstack/ironic-tempest-plugin
-      - openstack/networking-generic-switch
-      - openstack/python-ironicclient
-      - openstack/virtualbmc
+      - opendev.org/openstack/grenade
+      - opendev.org/openstack/ironic
+      - opendev.org/openstack/ironic-lib
+      - opendev.org/openstack/ironic-python-agent
+      - opendev.org/openstack/ironic-python-agent-builder
+      - opendev.org/openstack/ironic-tempest-plugin
+      - opendev.org/openstack/networking-generic-switch
+      - opendev.org/openstack/python-ironicclient
+      - opendev.org/openstack/virtualbmc
     vars:
       grenade_devstack_localrc:
         shared:
