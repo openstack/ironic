@@ -367,8 +367,8 @@ There are certain limitations to be aware of:
 
 * The number of created Software RAID devices must be 1 or 2. If there is only
   one Software RAID device, it has to be a RAID-1. If there are two, the first
-  one has to be a RAID-1, while the RAID level for the second one can
-  0, 1, or 1+0. As the first RAID device will be the deployment device,
+  one has to be a RAID-1, while the RAID level for the second one can be
+  0, 1, 1+0, 5, or 6. As the first RAID device will be the deployment device,
   enforcing a RAID-1 reduces the risk of ending up with a non-booting node
   in case of a disk failure.
 
