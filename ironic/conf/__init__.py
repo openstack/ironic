@@ -38,6 +38,7 @@ from ironic.conf import irmc
 from ironic.conf import iscsi
 from ironic.conf import metrics
 from ironic.conf import metrics_statsd
+from ironic.conf import molds
 from ironic.conf import neutron
 from ironic.conf import nova
 from ironic.conf import pxe
@@ -72,6 +73,7 @@ iscsi.register_opts(CONF)
 anaconda.register_opts(CONF)
 metrics.register_opts(CONF)
 metrics_statsd.register_opts(CONF)
+molds.register_opts(CONF)
 neutron.register_opts(CONF)
 nova.register_opts(CONF)
 pxe.register_opts(CONF)
