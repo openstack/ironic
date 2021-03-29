@@ -54,6 +54,7 @@ _opts = [
     ('anaconda', ironic.conf.anaconda.opts),
     ('metrics', ironic.conf.metrics.opts),
     ('metrics_statsd', ironic.conf.metrics_statsd.opts),
+    ('molds', ironic.conf.molds.opts),
     ('neutron', ironic.conf.neutron.list_opts()),
     ('nova', ironic.conf.nova.list_opts()),
     ('pxe', ironic.conf.pxe.opts),

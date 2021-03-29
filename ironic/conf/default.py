@@ -423,26 +423,6 @@ webserver_opts = [
                       'with images.')),
 ]
 
-configuration_mold_opts = [
-    cfg.StrOpt('mold_storage',
-               default='swift',
-               help=_('Configuration mold storage location. Supports "swift" '
-                      'and "http". By default "swift".')),
-    cfg.StrOpt('mold_user',
-               help=_('User for "http" Basic auth. By default set empty.')),
-    cfg.StrOpt('mold_password',
-               help=_('Password for "http" Basic auth. By default set '
-                      'empty.')),
-    cfg.StrOpt('mold_retry_attempts',
-               default=3,
-               help=_('Retry attempts for saving or getting configuration '
-                      'molds.')),
-    cfg.StrOpt('mold_retry_interval',
-               default=3,
-               help=_('Retry interval for saving or getting configuration '
-                      'molds.'))
-]
-
 
 def register_opts(conf):
     conf.register_opts(api_opts)
@@ -458,4 +438,3 @@ def register_opts(conf):
     conf.register_opts(service_opts)
     conf.register_opts(utils_opts)
     conf.register_opts(webserver_opts)
-    conf.register_opts(configuration_mold_opts)
