@@ -515,6 +515,75 @@ def _ipmitool_timing_args():
     ]
 
 
+def choose_cipher_suite(actual_ciper_suite):
+    """Gives the possible next avaible cipher suite version.
+
+    Based on CONF.ipmi.cipher_suite_versions and the last cipher suite version
+    used that failed. This function is only called if the node doesn't have
+    cipher_suite set. Starts using the last element of the list and decreasing
+    the index.
+
+    :param actual_ciper_suite: latest cipher suite used in the
+        ipmi call.
+
+    :returns: the next possible cipher suite or None in case of empty
+        configuration.
+    """
+    available_cs_versions = CONF.ipmi.cipher_suite_versions
+    if not available_cs_versions:
+        return None
+
+    if actual_ciper_suite is None:
+        return available_cs_versions[-1]
+    else:
+        try:
+            cs_index = available_cs_versions.index(actual_ciper_suite)
+        except ValueError:
+            return available_cs_versions[-1]
+
+        return available_cs_versions[max(cs_index - 1, 0)]
+
+
+def check_cipher_suite_errors(cmd_stderr):
+    """Checks if the command stderr contains cipher suite errors.
+
+    :param cmd_stderr: The command stderr.
+
+    :returns: True if the cmd_stderr contains a cipher suite error,
+        False otherwise.
+    """
+    cs_errors = ["Unsupported cipher suite ID",
+                 "Error in open session response message :"
+                 " no matching cipher suite"]
+    for cs_err in cs_errors:
+        if cmd_stderr is not None and cs_err in cmd_stderr:
+            return True
+    return False
+
+
+def update_cipher_suite_cmd(actual_cs, args):
+    """Updates variables and the cipher suite cmd.
+
+    This function updates the values for all parameters so they
+    can be used in the next retry of _exec_ipmitool.
+
+    :param actual_cs: a string that represents the cipher suite that was
+        used in the command.
+    :param args: a list that contains the ipmitool command that was executed.
+
+    :returns: a tuple with the new values (actual_cs, args)
+    """
+    actual_cs = choose_cipher_suite(actual_cs)
+    if '-C' in args:
+        cs_index = args.index('-C') + 1
+        args[cs_index] = actual_cs
+    else:
+        args.append('-C')
+        args.append(actual_cs)
+
+    return (actual_cs, args)
+
+
 def _exec_ipmitool(driver_info, command, check_exit_code=None,
                    kill_on_timeout=False):
     """Execute the ipmitool command.
@@ -532,6 +601,10 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
 
     """
     args = _get_ipmitool_args(driver_info)
+
+    change_cs = (CONF.ipmi.cipher_suite_versions != []
+                 and driver_info.get('cipher_suite') is None)
+    actual_cs = None
 
     timeout = CONF.ipmi.command_retry_timeout
 
@@ -570,6 +643,11 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
                 out, err = utils.execute(*cmd_args, **extra_args)
                 return out, err
             except processutils.ProcessExecutionError as e:
+                if change_cs and check_cipher_suite_errors(e.stderr):
+                    actual_cs, args = update_cipher_suite_cmd(
+                        actual_cs, args)
+                else:
+                    change_cs = False
                 with excutils.save_and_reraise_exception() as ctxt:
                     err_list = [
                         x for x in (

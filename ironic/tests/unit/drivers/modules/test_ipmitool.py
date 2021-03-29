@@ -1460,6 +1460,295 @@ class IPMIToolPrivateMethodTestCase(
 
     @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
     @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
+    @mock.patch.object(ipmi, 'check_cipher_suite_errors', autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__exec_ipmitool_cipher_suite_error_noconfig(
+            self, mock_exec, mock_check_cs, mock_support):
+        no_matching_error = 'Error in open session response message : '\
+            'no matching cipher suite\n\nError: '\
+            'Unable to establish IPMI v2 / RMCP+ session\n'
+        self.config(min_command_interval=1, group='ipmi')
+        self.config(command_retry_timeout=2, group='ipmi')
+        self.config(use_ipmitool_retries=False, group='ipmi')
+        self.config(cipher_suite_versions=[], group='ipmi')
+        ipmi.LAST_CMD_TIME = {}
+        args = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', self.info['address'],
+            '-L', self.info['priv_level'],
+            '-U', self.info['username'],
+            '-v',
+            '-f', awesome_password_filename,
+            'A', 'B', 'C',
+        ]
+
+        mock_support.return_value = False
+        mock_exec.side_effect = [
+            processutils.ProcessExecutionError(
+                stdout='',
+                stderr=no_matching_error),
+            processutils.ProcessExecutionError(
+                stdout='',
+                stderr=no_matching_error),
+        ]
+        mock_check_cs.return_value = False
+
+        self.assertRaises(processutils.ProcessExecutionError,
+                          ipmi._exec_ipmitool,
+                          self.info, 'A B C')
+
+        mock_support.assert_called_once_with('timing')
+
+        calls = [mock.call(*args), mock.call(*args)]
+        mock_exec.assert_has_calls(calls)
+        self.assertEqual(2, mock_exec.call_count)
+        self.assertEqual(0, mock_check_cs.call_count)
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
+    @mock.patch.object(ipmi, 'check_cipher_suite_errors', autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__exec_ipmitool_cipher_suite_set_with_error_noconfig(
+            self, mock_exec, mock_check_cs, mock_support):
+        no_matching_error = 'Error in open session response message : '\
+            'no matching cipher suite\n\nError: '\
+            'Unable to establish IPMI v2 / RMCP+ session\n'
+        self.config(min_command_interval=1, group='ipmi')
+        self.config(command_retry_timeout=2, group='ipmi')
+        self.config(use_ipmitool_retries=False, group='ipmi')
+        self.config(cipher_suite_versions=[], group='ipmi')
+        ipmi.LAST_CMD_TIME = {}
+        self.info['cipher_suite'] = '17'
+        args = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', self.info['address'],
+            '-L', self.info['priv_level'],
+            '-U', self.info['username'],
+            '-C', '17',
+            '-v',
+            '-f', awesome_password_filename,
+            'A', 'B', 'C',
+        ]
+
+        mock_support.return_value = False
+        mock_exec.side_effect = [
+            processutils.ProcessExecutionError(
+                stdout='',
+                stderr=no_matching_error),
+            processutils.ProcessExecutionError(
+                stdout='',
+                stderr=no_matching_error),
+        ]
+        mock_check_cs.return_value = False
+
+        self.assertRaises(processutils.ProcessExecutionError,
+                          ipmi._exec_ipmitool,
+                          self.info, 'A B C')
+
+        mock_support.assert_called_once_with('timing')
+
+        calls = [mock.call(*args), mock.call(*args)]
+        mock_exec.assert_has_calls(calls)
+        self.assertEqual(2, mock_exec.call_count)
+        self.assertEqual(0, mock_check_cs.call_count)
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
+    @mock.patch.object(ipmi, 'check_cipher_suite_errors', autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__exec_ipmitool_cipher_suite_set_with_error_config(
+            self, mock_exec, mock_check_cs, mock_support):
+        no_matching_error = 'Error in open session response message : '\
+            'no matching cipher suite\n\nError: '\
+            'Unable to establish IPMI v2 / RMCP+ session\n'
+        self.config(min_command_interval=1, group='ipmi')
+        self.config(command_retry_timeout=2, group='ipmi')
+        self.config(use_ipmitool_retries=False, group='ipmi')
+        self.config(cipher_suite_versions=[0, 1, 2, 3], group='ipmi')
+        ipmi.LAST_CMD_TIME = {}
+        self.info['cipher_suite'] = '17'
+        args = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', self.info['address'],
+            '-L', self.info['priv_level'],
+            '-U', self.info['username'],
+            '-C', '17',
+            '-v',
+            '-f', awesome_password_filename,
+            'A', 'B', 'C',
+        ]
+
+        mock_support.return_value = False
+        mock_exec.side_effect = [
+            processutils.ProcessExecutionError(
+                stdout='',
+                stderr=no_matching_error),
+            processutils.ProcessExecutionError(
+                stdout='',
+                stderr=no_matching_error),
+        ]
+        mock_check_cs.return_value = False
+
+        self.assertRaises(processutils.ProcessExecutionError,
+                          ipmi._exec_ipmitool,
+                          self.info, 'A B C')
+
+        mock_support.assert_called_once_with('timing')
+
+        calls = [mock.call(*args), mock.call(*args)]
+        mock_exec.assert_has_calls(calls)
+        self.assertEqual(2, mock_exec.call_count)
+        self.assertEqual(0, mock_check_cs.call_count)
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
+    @mock.patch.object(ipmi, 'check_cipher_suite_errors', autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test__exec_ipmitool_try_different_cipher_suite(
+            self, mock_exec, mock_check_cs, mock_support):
+
+        self.config(min_command_interval=1, group='ipmi')
+        self.config(command_retry_timeout=4, group='ipmi')
+        self.config(use_ipmitool_retries=False, group='ipmi')
+        cs_list = ['0', '1', '2', '3', '17']
+        self.config(cipher_suite_versions=cs_list, group='ipmi')
+        no_matching_error = 'Error in open session response message : '\
+            'no matching cipher suite\n\nError: '\
+            'Unable to establish IPMI v2 / RMCP+ session\n'
+        unsupported_error = 'Unsupported cipher suite ID : 17\n\n'\
+            'Error: Unable to establish IPMI v2 / RMCP+ session\n'
+        ipmi.LAST_CMD_TIME = {}
+        args = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', self.info['address'],
+            '-L', self.info['priv_level'],
+            '-U', self.info['username'],
+            '-v',
+            '-f', awesome_password_filename,
+            'A', 'B', 'C',
+        ]
+
+        args_cs17 = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', self.info['address'],
+            '-L', self.info['priv_level'],
+            '-U', self.info['username'],
+            '-v',
+            '-C', '17',
+            '-f', awesome_password_filename,
+            'A', 'B', 'C',
+        ]
+
+        args_cs3 = [
+            'ipmitool',
+            '-I', 'lanplus',
+            '-H', self.info['address'],
+            '-L', self.info['priv_level'],
+            '-U', self.info['username'],
+            '-v',
+            '-C', '3',
+            '-f', awesome_password_filename,
+            'A', 'B', 'C',
+        ]
+
+        mock_support.return_value = False
+        mock_exec.side_effect = [
+            processutils.ProcessExecutionError(
+                stdout='',
+                stderr=no_matching_error),
+            processutils.ProcessExecutionError(
+                stdout='',
+                stderr=unsupported_error),
+            processutils.ProcessExecutionError(stderr="Unknown"),
+            ('', ''),
+        ]
+        mock_check_cs.side_effect = [True, True, False]
+
+        ipmi._exec_ipmitool(self.info, 'A B C')
+
+        mock_support.assert_called_once_with('timing')
+
+        execute_calls = [mock.call(*args), mock.call(*args_cs17),
+                         mock.call(*args_cs3), mock.call(*args_cs3)]
+        mock_exec.assert_has_calls(execute_calls)
+        self.assertEqual(4, mock_exec.call_count)
+        check_calls = [mock.call(no_matching_error),
+                       mock.call(unsupported_error), mock.call('Unknown')]
+        mock_check_cs.assert_has_calls(check_calls)
+        self.assertEqual(3, mock_check_cs.call_count)
+
+    def test__choose_cipher_suite_empty_list(self):
+        self.config(cipher_suite_versions=[], group='ipmi')
+
+        value = ipmi.choose_cipher_suite(None)
+        self.assertIsNone(value)
+
+        nextvalue = ipmi.choose_cipher_suite('3')
+        self.assertIsNone(nextvalue)
+
+    def test__choose_cipher_suite_one_element(self):
+        cs_list = ['3']
+        self.config(cipher_suite_versions=cs_list, group='ipmi')
+
+        actual_cs = ipmi.choose_cipher_suite(None)
+        self.assertEqual(actual_cs, cs_list[-1])
+        self.assertEqual(actual_cs, cs_list[0])
+        self.assertEqual(actual_cs, '3')
+
+        # Call again and ensure it will be the same.
+        new_cs = ipmi.choose_cipher_suite(actual_cs)
+        self.assertEqual(new_cs, cs_list[-1])
+        self.assertEqual(new_cs, cs_list[0])
+        self.assertEqual(new_cs, '3')
+
+        self.assertEqual(new_cs, actual_cs)
+
+    def test__choose_cipher_suite_returns_last_to_first(self):
+        cs_list = ['0', '1', '2', '3', '17']
+        self.config(cipher_suite_versions=cs_list, group='ipmi')
+
+        element_position = len(cs_list) - 1
+        actual_cs = ipmi.choose_cipher_suite(None)
+        self.assertEqual(actual_cs, cs_list[-1])
+        self.assertEqual(actual_cs, cs_list[element_position])
+        self.assertEqual(actual_cs, '17')
+
+        # iterate call choose_cipher_suite 5 more times
+        # this ensures the last two call needs to return the first
+        # element.
+        for i in range(len(cs_list)):
+            actual_cs = ipmi.choose_cipher_suite(actual_cs)
+            if element_position != 0:
+                element_position -= 1
+            self.assertEqual(actual_cs, cs_list[element_position])
+
+        self.assertEqual(actual_cs, '0')
+        self.assertEqual(actual_cs, cs_list[0])
+
+    def test__check_cipher_suite_errors(self):
+        invalid_errors_stderr = [
+            'Unknow', 'x', '', 'test',
+            'Problem\n\nError: Unable to establish IPMI v2 / RMCP+ session\n',
+            'UnsupportedciphersuiteID:17\n\n'
+        ]
+        no_matching_error = 'Error in open session response message : '\
+            'no matching cipher suite\n\nError: '\
+            'Unable to establish IPMI v2 / RMCP+ session\n'
+        unsupported_error = 'Unsupported cipher suite ID : 17\n\n'\
+            'Error: Unable to establish IPMI v2 / RMCP+ session\n'
+        valid_errors_stderr = [no_matching_error, unsupported_error]
+        for invalid_err in invalid_errors_stderr:
+            self.assertFalse(ipmi.check_cipher_suite_errors(invalid_err))
+        for valid_err in valid_errors_stderr:
+            self.assertTrue(ipmi.check_cipher_suite_errors(valid_err))
+
+    @mock.patch.object(ipmi, '_is_option_supported', autospec=True)
+    @mock.patch.object(ipmi, '_make_password_file', _make_password_file_stub)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_with_check_exit_code(self, mock_exec,
                                                  mock_support):

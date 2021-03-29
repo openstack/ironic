@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Allows providing a list of IPMI cipher suite versions via the new
+    configuration option ``[ipmi]/cipher_suite_versions``. The configuration
+    is only used when ``ipmi_cipher_suite`` is not set in ``driver_info``.

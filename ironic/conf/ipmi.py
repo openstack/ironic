@@ -73,6 +73,11 @@ opts = [
                        'additional debugging output. This is a separate '
                        'option as ipmitool can log a substantial amount '
                        'of misleading text when in this mode.')),
+    cfg.ListOpt('cipher_suite_versions',
+                default=[],
+                help=_('List of possible cipher suites versions that can '
+                       'be supported by the hardware in case the field '
+                       '`cipher_suite` is not set for the node.')),
 ]
 
 
