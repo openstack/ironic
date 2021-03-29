@@ -26,6 +26,7 @@ from ironic.drivers import base
 from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.drivers import utils as drivers_utils
+from ironic import objects
 
 LOG = log.getLogger(__name__)
 
@@ -157,6 +158,32 @@ class RedfishInspect(base.InspectInterface):
 
         self._create_ports(task, system)
 
+        pxe_port_macs = self._get_pxe_port_macs(task)
+        if pxe_port_macs is None:
+            LOG.warning("No PXE enabled NIC was found for node "
+                        "%(node_uuid)s.", {'node_uuid': task.node.uuid})
+        else:
+            pxe_port_macs = [macs.lower() for macs in pxe_port_macs]
+
+            ports = objects.Port.list_by_node_id(task.context, task.node.id)
+            if ports:
+                for port in ports:
+                    is_baremetal_pxe_port = (port.address.lower()
+                                             in pxe_port_macs)
+                    if port.pxe_enabled != is_baremetal_pxe_port:
+                        port.pxe_enabled = is_baremetal_pxe_port
+                        port.save()
+                        LOG.info('Port %(port)s having %(mac_address)s '
+                                 'updated with pxe_enabled %(pxe)s for '
+                                 'node %(node_uuid)s during inspection',
+                                 {'port': port.uuid,
+                                  'mac_address': port.address,
+                                  'pxe': port.pxe_enabled,
+                                  'node_uuid': task.node.uuid})
+            else:
+                LOG.warning("No port information discovered "
+                            "for node %(node)s", {'node': task.node.uuid})
+
         return states.MANAGEABLE
 
     def _create_ports(self, task, system):
@@ -236,3 +263,12 @@ class RedfishInspect(base.InspectInterface):
         # value by 1 GB as consumers like Ironic requires the ``local_gb``
         # to be returned 1 less than actual size.
         return max(0, int(local_gb / units.Gi - 1))
+
+    def _get_pxe_port_macs(self, task):
+        """Get a list of PXE port MAC addresses.
+
+        :param task: a TaskManager instance.
+        :returns: Returns list of PXE port MAC addresses.
+                  If cannot be determined, returns None.
+        """
+        return None
