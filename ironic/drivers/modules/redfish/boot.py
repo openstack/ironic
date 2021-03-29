@@ -487,6 +487,10 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         managers = redfish_utils.get_system(task.node).managers
 
+        # NOTE(TheJulia): This is a mandatory setting for virtual media
+        # based deployment operations.
+        ramdisk_params['boot_method'] = 'vmedia'
+
         if config_via_removable:
 
             removable = _has_vmedia_device(
@@ -494,10 +498,6 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                 # Prefer USB devices since floppies are outdated
                 [sushy.VIRTUAL_MEDIA_USBSTICK, sushy.VIRTUAL_MEDIA_FLOPPY])
             if removable:
-                # NOTE (etingof): IPA will read the device only if
-                # we tell it to
-                ramdisk_params['boot_method'] = 'vmedia'
-
                 floppy_ref = image_utils.prepare_floppy_image(
                     task, params=ramdisk_params)
 
