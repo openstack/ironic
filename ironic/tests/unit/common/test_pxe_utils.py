@@ -306,16 +306,22 @@ class TestPXEUtils(db_base.DbTestCase):
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/tftpboot/pxelinux.cfg/01-11-22-33-44-55-66'),
             mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/tftpboot/grub.cfg-01-11-22-33-44-55-66'),
+            mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/tftpboot/11:22:33:44:55:66.conf'),
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/tftpboot/pxelinux.cfg/01-11-22-33-44-55-67'),
+            mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/tftpboot/grub.cfg-01-11-22-33-44-55-67'),
             mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/tftpboot/11:22:33:44:55:67.conf')
         ]
         unlink_calls = [
             mock.call('/tftpboot/pxelinux.cfg/01-11-22-33-44-55-66'),
+            mock.call('/tftpboot/grub.cfg-01-11-22-33-44-55-66'),
             mock.call('/tftpboot/11:22:33:44:55:66.conf'),
             mock.call('/tftpboot/pxelinux.cfg/01-11-22-33-44-55-67'),
+            mock.call('/tftpboot/grub.cfg-01-11-22-33-44-55-67'),
             mock.call('/tftpboot/11:22:33:44:55:67.conf')
         ]
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -345,16 +351,22 @@ class TestPXEUtils(db_base.DbTestCase):
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/tftpboot/pxelinux.cfg/20-11-22-33-44-55-66'),
             mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/tftpboot/grub.cfg-01-11-22-33-44-55-66'),
+            mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/tftpboot/11:22:33:44:55:66.conf'),
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/tftpboot/pxelinux.cfg/20-11-22-33-44-55-67'),
+            mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/tftpboot/grub.cfg-01-11-22-33-44-55-67'),
             mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/tftpboot/11:22:33:44:55:67.conf')
         ]
         unlink_calls = [
             mock.call('/tftpboot/pxelinux.cfg/20-11-22-33-44-55-66'),
+            mock.call('/tftpboot/grub.cfg-01-11-22-33-44-55-66'),
             mock.call('/tftpboot/11:22:33:44:55:66.conf'),
             mock.call('/tftpboot/pxelinux.cfg/20-11-22-33-44-55-67'),
+            mock.call('/tftpboot/grub.cfg-01-11-22-33-44-55-67'),
             mock.call('/tftpboot/11:22:33:44:55:67.conf')
         ]
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -377,16 +389,22 @@ class TestPXEUtils(db_base.DbTestCase):
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/httpboot/pxelinux.cfg/11-22-33-44-55-66'),
             mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/httpboot/grub.cfg-01-11-22-33-44-55-66'),
+            mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/httpboot/11:22:33:44:55:66.conf'),
             mock.call(u'../1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/httpboot/pxelinux.cfg/11-22-33-44-55-67'),
+            mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
+                      '/httpboot/grub.cfg-01-11-22-33-44-55-67'),
             mock.call(u'1be26c0b-03f2-4d2e-ae87-c02d7f33c123/config',
                       '/httpboot/11:22:33:44:55:67.conf')
         ]
         unlink_calls = [
             mock.call('/httpboot/pxelinux.cfg/11-22-33-44-55-66'),
+            mock.call('/httpboot/grub.cfg-01-11-22-33-44-55-66'),
             mock.call('/httpboot/11:22:33:44:55:66.conf'),
             mock.call('/httpboot/pxelinux.cfg/11-22-33-44-55-67'),
+            mock.call('/httpboot/grub.cfg-01-11-22-33-44-55-67'),
             mock.call('/httpboot/11:22:33:44:55:67.conf'),
         ]
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -627,6 +645,7 @@ class TestPXEUtils(db_base.DbTestCase):
         ensure_calls = [
             mock.call("/tftpboot/pxelinux.cfg/01-%s"
                       % address.replace(':', '-')),
+            mock.call("/tftpboot/grub.cfg-01-aa-aa-aa-aa-aa-aa"),
             mock.call("/tftpboot/%s.conf" % address)
         ]
 
@@ -828,6 +847,7 @@ class TestPXEUtils(db_base.DbTestCase):
             unlink_calls = [
                 mock.call('/tftpboot/10.10.0.1.conf'),
                 mock.call('/tftpboot/pxelinux.cfg/01-aa-aa-aa-aa-aa-aa'),
+                mock.call('/tftpboot/grub.cfg-01-aa-aa-aa-aa-aa-aa'),
                 mock.call('/tftpboot/' + address + '.conf')
             ]
             unlink_mock.assert_has_calls(unlink_calls)
@@ -856,6 +876,7 @@ class TestPXEUtils(db_base.DbTestCase):
                 mock.call('/tftpboot/10.10.0.1.conf'),
                 mock.call('/tftpboot/pxelinux.cfg/01-%s' %
                           address.replace(':', '-')),
+                mock.call('/tftpboot/grub.cfg-01-aa-aa-aa-aa-aa-aa'),
                 mock.call('/tftpboot/' + address + '.conf')
             ]
 
@@ -884,6 +905,7 @@ class TestPXEUtils(db_base.DbTestCase):
             unlink_calls = [
                 mock.call('/tftpboot/10.10.0.1.conf'),
                 mock.call('/tftpboot/pxelinux.cfg/01-aa-aa-aa-aa-aa-aa'),
+                mock.call('/tftpboot/grub.cfg-01-aa-aa-aa-aa-aa-aa'),
                 mock.call('/tftpboot/' + address + ".conf")
             ]
             unlink_mock.assert_has_calls(unlink_calls)
@@ -933,11 +955,20 @@ class TestPXEUtils(db_base.DbTestCase):
             unlink_calls = [
                 mock.call('/tftpboot/pxelinux.cfg/01-%s' %
                           address.replace(':', '-')),
+                mock.call('/tftpboot/grub.cfg-01-aa-aa-aa-aa-aa-aa'),
                 mock.call('/tftpboot/aa:aa:aa:aa:aa:aa.conf')
             ]
             unlink_mock.assert_has_calls(unlink_calls)
             rmtree_mock.assert_called_once_with(
                 os.path.join(CONF.pxe.tftp_root, self.node.uuid))
+
+    def test__get_pxe_grub_mac_path(self):
+        self.config(tftp_root='/tftpboot-path/', group='pxe')
+        address = "aa:aa:aa:aa:aa:aa"
+        actual = pxe_utils._get_pxe_grub_mac_path(address)
+        self.assertEqual('/tftpboot-path/grub.cfg-01-aa-aa-aa-aa-aa-aa',
+                         next(actual))
+        self.assertEqual('/tftpboot-path/' + address + '.conf', next(actual))
 
 
 @mock.patch.object(ipxe.iPXEBoot, '__init__', lambda self: None)
@@ -1999,6 +2030,7 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
             ensure_calls = [
                 mock.call("/httpboot/pxelinux.cfg/%s"
                           % address.replace(':', '-')),
+                mock.call("/httpboot/grub.cfg-01-aa-aa-aa-aa-aa-aa"),
                 mock.call("/httpboot/%s.conf" % address)
             ]
 
