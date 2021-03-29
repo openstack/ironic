@@ -666,6 +666,24 @@ class AgentRAID(base.RAIDInterface):
         """Return the properties of the interface."""
         return {}
 
+    @METRICS.timer('AgentRAID.get_clean_steps')
+    def get_clean_steps(self, task):
+        """Get the list of clean steps from the agent.
+
+        :param task: a TaskManager object containing the node
+        :raises NodeCleaningFailure: if the clean steps are not yet
+            available (cached), for example, when a node has just been
+            enrolled and has not been cleaned yet.
+        :returns: A list of clean step dictionaries
+        """
+        new_priorities = {
+            'delete_configuration': CONF.deploy.delete_configuration_priority,
+            'create_configuration': CONF.deploy.create_configuration_priority
+        }
+        return agent_base.get_steps(
+            task, 'clean', interface='raid',
+            override_priorities=new_priorities)
+
     @METRICS.timer('AgentRAID.get_deploy_steps')
     def get_deploy_steps(self, task):
         """Get the list of deploy steps from the agent.
