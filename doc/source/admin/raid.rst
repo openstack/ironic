@@ -400,6 +400,14 @@ There are certain limitations to be aware of:
 * There is no support for partition images, only whole-disk images are
   supported with Software RAID. See :doc:`/install/configure-glance-images`.
 
+* In UEFI mode, the Ironic Python Agent creates EFI system partitions (ESPs)
+  for the bootloader and the boot configuration (grub.cfg or grubenv) on all
+  holder devices. The content of these partitions is populated upon deployment
+  from the deployed user image. Depending on how the partitions are mounted,
+  the content of the partitions may get out of sync, e.g. when new kernels
+  are installed or the bootloader is updated, so measures to keep these
+  partitions in sync need to be taken.
+
 Image requirements
 ------------------
 
