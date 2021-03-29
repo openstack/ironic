@@ -29,6 +29,7 @@ _default_opt_lists = [
     ironic.conf.default.portgroup_opts,
     ironic.conf.default.service_opts,
     ironic.conf.default.utils_opts,
+    ironic.conf.default.webserver_opts,
 ]
 
 _opts = [
