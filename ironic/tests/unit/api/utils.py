@@ -111,7 +111,7 @@ def node_post_data(**kw):
             node.pop(field, None)
 
     return remove_other_fields(
-        node, node_controller.NODE_SCHEMA['properties'])
+        node, node_controller.node_schema()['properties'])
 
 
 def port_post_data(**kw):

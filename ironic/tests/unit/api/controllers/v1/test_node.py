@@ -17,6 +17,7 @@ import datetime
 from http import client as http_client
 import json
 import os
+import tempfile
 from unittest import mock
 from urllib import parse as urlparse
 
@@ -3806,6 +3807,47 @@ class TestPatch(test_api_base.BaseApiTest):
                                    expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
+    def test_update_network_data_wrong_format(self):
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid())
+        self.mock_update_node.return_value = node
+        headers = {api_base.Version.string: '1.66'}
+
+        response = self.patch_json('/nodes/%s' % node.uuid,
+                                   [{'path': '/network_data',
+                                     'value': {'cat': 'meow'},
+                                     'op': 'replace'}],
+                                   headers=headers,
+                                   expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+
+    def test_update_network_data_custom(self):
+        custom_schema = {
+            'type': 'object',
+            'properties': {
+                'cat': {'type': 'string'},
+            },
+        }
+        with tempfile.NamedTemporaryFile('wt') as fp:
+            json.dump(custom_schema, fp)
+            fp.flush()
+            self.config(network_data_schema=fp.name, group='api')
+
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              provision_state='active')
+            self.mock_update_node.return_value = node
+            headers = {api_base.Version.string: '1.66'}
+
+            response = self.patch_json('/nodes/%s' % node.uuid,
+                                       [{'path': '/network_data',
+                                         'value': {'cat': 'meow'},
+                                         'op': 'replace'}],
+                                       headers=headers)
+            self.assertEqual('application/json', response.content_type)
+            self.assertEqual(http_client.OK, response.status_code)
 
     @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
                        autospec=True)

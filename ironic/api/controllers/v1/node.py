@@ -17,7 +17,6 @@ import copy
 import datetime
 from http import client as http_client
 import json
-import os
 
 from ironic_lib import metrics_utils
 import jsonschema
@@ -123,62 +122,75 @@ ALLOWED_TARGET_POWER_STATES = (ir_states.POWER_ON,
 
 _NODE_DESCRIPTION_MAX_LENGTH = 4096
 
-with open(os.path.join(os.path.dirname(__file__),
-          'network-data-schema.json'), 'rb') as fl:
-    NETWORK_DATA_SCHEMA = json.load(fl)
+_NETWORK_DATA_SCHEMA = None
 
-NODE_SCHEMA = {
-    'type': 'object',
-    'properties': {
-        'automated_clean': {'type': ['string', 'boolean', 'null']},
-        'bios_interface': {'type': ['string', 'null']},
-        'boot_interface': {'type': ['string', 'null']},
-        'chassis_uuid': {'type': ['string', 'null']},
-        'conductor_group': {'type': ['string', 'null']},
-        'console_enabled': {'type': ['string', 'boolean', 'null']},
-        'console_interface': {'type': ['string', 'null']},
-        'deploy_interface': {'type': ['string', 'null']},
-        'description': {'type': ['string', 'null'],
-                        'maxLength': _NODE_DESCRIPTION_MAX_LENGTH},
-        'driver': {'type': 'string'},
-        'driver_info': {'type': ['object', 'null']},
-        'extra': {'type': ['object', 'null']},
-        'inspect_interface': {'type': ['string', 'null']},
-        'instance_info': {'type': ['object', 'null']},
-        'instance_uuid': {'type': ['string', 'null']},
-        'lessee': {'type': ['string', 'null']},
-        'management_interface': {'type': ['string', 'null']},
-        'maintenance': {'type': ['string', 'boolean', 'null']},
-        'name': {'type': ['string', 'null']},
-        'network_data': {'anyOf': [
-            {'type': 'null'},
-            {'type': 'object', 'additionalProperties': False},
-            NETWORK_DATA_SCHEMA
-        ]},
-        'network_interface': {'type': ['string', 'null']},
-        'owner': {'type': ['string', 'null']},
-        'power_interface': {'type': ['string', 'null']},
-        'properties': {'type': ['object', 'null']},
-        'raid_interface': {'type': ['string', 'null']},
-        'rescue_interface': {'type': ['string', 'null']},
-        'resource_class': {'type': ['string', 'null'], 'maxLength': 80},
-        'retired': {'type': ['string', 'boolean', 'null']},
-        'retired_reason': {'type': ['string', 'null']},
-        'storage_interface': {'type': ['string', 'null']},
-        'uuid': {'type': ['string', 'null']},
-        'vendor_interface': {'type': ['string', 'null']},
-    },
-    'required': ['driver'],
-    'additionalProperties': False,
-    'definitions': NETWORK_DATA_SCHEMA.get('definitions')
-}
 
-NODE_PATCH_SCHEMA = copy.deepcopy(NODE_SCHEMA)
-# add schema for patchable fields
-NODE_PATCH_SCHEMA['properties']['protected'] = {
-    'type': ['string', 'boolean', 'null']}
-NODE_PATCH_SCHEMA['properties']['protected_reason'] = {
-    'type': ['string', 'null']}
+def network_data_schema():
+    global _NETWORK_DATA_SCHEMA
+    if _NETWORK_DATA_SCHEMA is None:
+        with open(CONF.api.network_data_schema) as fl:
+            _NETWORK_DATA_SCHEMA = json.load(fl)
+    return _NETWORK_DATA_SCHEMA
+
+
+def node_schema():
+    network_data = network_data_schema()
+    return {
+        'type': 'object',
+        'properties': {
+            'automated_clean': {'type': ['string', 'boolean', 'null']},
+            'bios_interface': {'type': ['string', 'null']},
+            'boot_interface': {'type': ['string', 'null']},
+            'chassis_uuid': {'type': ['string', 'null']},
+            'conductor_group': {'type': ['string', 'null']},
+            'console_enabled': {'type': ['string', 'boolean', 'null']},
+            'console_interface': {'type': ['string', 'null']},
+            'deploy_interface': {'type': ['string', 'null']},
+            'description': {'type': ['string', 'null'],
+                            'maxLength': _NODE_DESCRIPTION_MAX_LENGTH},
+            'driver': {'type': 'string'},
+            'driver_info': {'type': ['object', 'null']},
+            'extra': {'type': ['object', 'null']},
+            'inspect_interface': {'type': ['string', 'null']},
+            'instance_info': {'type': ['object', 'null']},
+            'instance_uuid': {'type': ['string', 'null']},
+            'lessee': {'type': ['string', 'null']},
+            'management_interface': {'type': ['string', 'null']},
+            'maintenance': {'type': ['string', 'boolean', 'null']},
+            'name': {'type': ['string', 'null']},
+            'network_data': {'anyOf': [
+                {'type': 'null'},
+                {'type': 'object', 'additionalProperties': False},
+                network_data
+            ]},
+            'network_interface': {'type': ['string', 'null']},
+            'owner': {'type': ['string', 'null']},
+            'power_interface': {'type': ['string', 'null']},
+            'properties': {'type': ['object', 'null']},
+            'raid_interface': {'type': ['string', 'null']},
+            'rescue_interface': {'type': ['string', 'null']},
+            'resource_class': {'type': ['string', 'null'], 'maxLength': 80},
+            'retired': {'type': ['string', 'boolean', 'null']},
+            'retired_reason': {'type': ['string', 'null']},
+            'storage_interface': {'type': ['string', 'null']},
+            'uuid': {'type': ['string', 'null']},
+            'vendor_interface': {'type': ['string', 'null']},
+        },
+        'required': ['driver'],
+        'additionalProperties': False,
+        'definitions': network_data.get('definitions', {})
+    }
+
+
+def node_patch_schema():
+    node_patch = copy.deepcopy(node_schema())
+    # add schema for patchable fields
+    node_patch['properties']['protected'] = {
+        'type': ['string', 'boolean', 'null']}
+    node_patch['properties']['protected_reason'] = {
+        'type': ['string', 'null']}
+    return node_patch
+
 
 NODE_VALIDATE_EXTRA = args.dict_valid(
     automated_clean=args.boolean,
@@ -191,15 +203,30 @@ NODE_VALIDATE_EXTRA = args.dict_valid(
     uuid=args.uuid,
 )
 
-NODE_VALIDATOR = args.and_valid(
-    args.schema(NODE_SCHEMA),
-    NODE_VALIDATE_EXTRA
-)
 
-NODE_PATCH_VALIDATOR = args.and_valid(
-    args.schema(NODE_PATCH_SCHEMA),
-    NODE_VALIDATE_EXTRA
-)
+_NODE_VALIDATOR = None
+_NODE_PATCH_VALIDATOR = None
+
+
+def node_validator(name, value):
+    global _NODE_VALIDATOR
+    if _NODE_VALIDATOR is None:
+        _NODE_VALIDATOR = args.and_valid(
+            args.schema(node_schema()),
+            NODE_VALIDATE_EXTRA
+        )
+    return _NODE_VALIDATOR(name, value)
+
+
+def node_patch_validator(name, value):
+    global _NODE_PATCH_VALIDATOR
+    if _NODE_PATCH_VALIDATOR is None:
+        _NODE_PATCH_VALIDATOR = args.and_valid(
+            args.schema(node_patch_schema()),
+            NODE_VALIDATE_EXTRA
+        )
+    return _NODE_PATCH_VALIDATOR(name, value)
+
 
 PATCH_ALLOWED_FIELDS = [
     'automated_clean',
@@ -334,7 +361,7 @@ def validate_network_data(network_data):
     :raises: Invalid if network data is not schema-compliant
     """
     try:
-        jsonschema.validate(network_data, NETWORK_DATA_SCHEMA)
+        jsonschema.validate(network_data, network_data_schema())
 
     except json_schema_exc.ValidationError as e:
         # NOTE: Even though e.message is deprecated in general, it is
@@ -1838,7 +1865,7 @@ class NodesController(rest.RestController):
         api_utils.patch_update_changed_fields(
             node, rpc_node,
             fields=set(objects.Node.fields) - {'traits'},
-            schema=NODE_PATCH_SCHEMA,
+            schema=node_patch_schema(),
             id_map={'chassis_id': chassis and chassis.id or None}
         )
 
@@ -2098,7 +2125,7 @@ class NodesController(rest.RestController):
     @METRICS.timer('NodesController.post')
     @method.expose(status_code=http_client.CREATED)
     @method.body('node')
-    @args.validate(node=NODE_VALIDATOR)
+    @args.validate(node=node_validator)
     def post(self, node):
         """Create a new node.
 
@@ -2335,7 +2362,7 @@ class NodesController(rest.RestController):
         node_dict = api_utils.apply_jsonpatch(node_dict, patch)
 
         api_utils.patched_validate_with_schema(
-            node_dict, NODE_PATCH_SCHEMA, NODE_PATCH_VALIDATOR)
+            node_dict, node_patch_schema(), node_patch_validator)
 
         self._update_changed_fields(node_dict, rpc_node)
         # NOTE(tenbrae): we calculate the rpc topic here in case node.driver

@@ -66,6 +66,10 @@ opts = [
                default=300,
                mutable=True,
                help=_('Maximum interval (in seconds) for agent heartbeats.')),
+    cfg.StrOpt(
+        'network_data_schema',
+        default='$pybasedir/api/controllers/v1/network-data-schema.json',
+        help=_("Schema for network data used by this deployment.")),
 ]
 
 opt_group = cfg.OptGroup(name='api',
