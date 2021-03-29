@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import json
 import os
 import tempfile
 
@@ -20,6 +21,8 @@ from oslo_log import log as logging
 from oslo_serialization import base64
 from oslo_utils import strutils
 from oslo_utils import timeutils
+import requests
+import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -384,3 +387,85 @@ OPTIONAL_PROPERTIES = {
                                       "deprecated in favor of the new ones."
                                       "Defaults to 'Default'. Optional."),
 }
+
+
+def save_configuration_mold(task, url, data):
+    """Store configuration mold to indicated location.
+
+    :param task: A TaskManager instance.
+    :param name: URL of the configuration item to save to.
+    :param data: Content of JSON data to save.
+
+    :raises IronicException: If using Swift storage and no authentication
+        token found in task's context.
+    :raises HTTPError: If failed to complete HTTP request.
+    """
+    @tenacity.retry(
+        retry=tenacity.retry_if_exception_type(
+            requests.exceptions.ConnectionError),
+        stop=tenacity.stop_after_attempt(CONF.mold_retry_attempts),
+        wait=tenacity.wait_fixed(CONF.mold_retry_interval),
+        reraise=True
+    )
+    def _request(url, data, auth_header):
+        return requests.put(
+            url, data=json.dumps(data, indent=2), headers=auth_header)
+
+    auth_header = _get_auth_header(task)
+    response = _request(url, data, auth_header)
+    response.raise_for_status()
+
+
+def get_configuration_mold(task, url):
+    """Gets configuration mold from indicated location.
+
+    :param task: A TaskManager instance.
+    :param url: URL of the configuration item to get.
+
+    :returns: JSON configuration mold
+
+    :raises IronicException: If using Swift storage and no authentication
+        token found in task's context.
+    :raises HTTPError: If failed to complete HTTP request.
+    """
+    @tenacity.retry(
+        retry=tenacity.retry_if_exception_type(
+            requests.exceptions.ConnectionError),
+        stop=tenacity.stop_after_attempt(CONF.mold_retry_attempts),
+        wait=tenacity.wait_fixed(CONF.mold_retry_interval),
+        reraise=True
+    )
+    def _request(url, auth_header):
+        return requests.get(url, headers=auth_header)
+
+    auth_header = _get_auth_header(task)
+    response = _request(url, auth_header)
+    if response.status_code == requests.codes.ok:
+        return response.json()
+
+    response.raise_for_status()
+
+
+def _get_auth_header(task):
+    """Based on setup of configuration mold storage gets authentication header
+
+    :param task: A TaskManager instance.
+    :raises IronicException: If using Swift storage and no authentication
+        token found in task's context.
+    """
+    auth_header = None
+    if CONF.mold_storage == 'swift':
+        # TODO(ajya) Need to update to use Swift client and context session
+        auth_token = swift.get_swift_session().get_token()
+        if auth_token:
+            auth_header = {'X-Auth-Token': auth_token}
+        else:
+            raise exception.IronicException(
+                _('Missing auth_token for configuration mold access for node '
+                  '%s') % task.node.uuid)
+    elif CONF.mold_storage == 'http':
+        if CONF.mold_user and CONF.mold_password:
+            auth_header = {'Authorization': 'Basic %s'
+                           % base64.encode_as_text(
+                               '%s:%s' % (CONF.mold_user, CONF.mold_password))}
+    return auth_header
