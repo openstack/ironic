@@ -424,6 +424,28 @@ webserver_opts = [
 ]
 
 
+def list_opts():
+    _default_opt_lists = [
+        api_opts,
+        driver_opts,
+        exc_log_opts,
+        hash_opts,
+        image_opts,
+        img_cache_opts,
+        netconf_opts,
+        notification_opts,
+        path_opts,
+        portgroup_opts,
+        service_opts,
+        utils_opts,
+        webserver_opts,
+    ]
+    full_opt_list = []
+    for options in _default_opt_lists:
+        full_opt_list.extend(options)
+    return full_opt_list
+
+
 def register_opts(conf):
     conf.register_opts(api_opts)
     conf.register_opts(driver_opts)

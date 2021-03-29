@@ -10,30 +10,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import itertools
-
 from oslo_log import log
 
 import ironic.conf
 
-_default_opt_lists = [
-    ironic.conf.default.api_opts,
-    ironic.conf.default.driver_opts,
-    ironic.conf.default.exc_log_opts,
-    ironic.conf.default.hash_opts,
-    ironic.conf.default.image_opts,
-    ironic.conf.default.img_cache_opts,
-    ironic.conf.default.netconf_opts,
-    ironic.conf.default.notification_opts,
-    ironic.conf.default.path_opts,
-    ironic.conf.default.portgroup_opts,
-    ironic.conf.default.service_opts,
-    ironic.conf.default.utils_opts,
-    ironic.conf.default.webserver_opts,
-]
 
 _opts = [
-    ('DEFAULT', itertools.chain(*_default_opt_lists)),
+    ('DEFAULT', ironic.conf.default.list_opts()),
     ('agent', ironic.conf.agent.opts),
     ('ansible', ironic.conf.ansible.opts),
     ('api', ironic.conf.api.opts),
