@@ -711,6 +711,14 @@ class InvalidDeployTemplate(Invalid):
     _msg_fmt = _("Deploy template invalid: %(err)s.")
 
 
+class InvalidKickstartTemplate(Invalid):
+    _msg_fmt = _("The kickstart template is missing required variables")
+
+
+class InvalidKickstartFile(Invalid):
+    _msg_fmt = _("The kickstart file is not valid.")
+
+
 class IBMCError(DriverOperationError):
     _msg_fmt = _("IBMC exception occurred on node %(node)s. Error: %(error)s")
 

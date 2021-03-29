@@ -239,6 +239,11 @@ class PXEBaseMixin(object):
                 task, ipxe_enabled=self.ipxe_enabled)
             pxe_utils.cache_ramdisk_kernel(task, instance_image_info,
                                            ipxe_enabled=self.ipxe_enabled)
+            if 'ks_template' in instance_image_info:
+                ks_cfg = pxe_utils.validate_kickstart_template(
+                    instance_image_info['ks_template'][1]
+                )
+                pxe_utils.validate_kickstart_file(ks_cfg)
 
         if (deploy_utils.is_iscsi_boot(task) or boot_option == "ramdisk"
                 or boot_option == "kickstart"):

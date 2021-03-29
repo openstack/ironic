@@ -755,9 +755,10 @@ class PXEBootTestCase(db_base.DbTestCase):
                 return_value='http://fakeserver/api', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
+    @mock.patch('ironic.common.utils.execute', autospec=True)
     def test_prepare_instance_kickstart(
-            self, write_file_mock, render_mock, api_url_mock, boot_opt_mock,
-            get_image_info_mock, cache_mock, dhcp_factory_mock,
+            self, exec_mock, write_file_mock, render_mock, api_url_mock,
+            boot_opt_mock, get_image_info_mock, cache_mock, dhcp_factory_mock,
             create_pxe_config_mock, switch_pxe_config_mock,
             set_boot_device_mock):
         image_info = {'kernel': ['ins_kernel_id', '/path/to/kernel'],
@@ -784,6 +785,10 @@ class PXEBootTestCase(db_base.DbTestCase):
                                                         ipxe_enabled=False)
             cache_mock.assert_called_once_with(
                 task, image_info, False)
+            if os.path.isfile('/usr/bin/ksvalidator'):
+                exec_mock.assert_called_once_with(
+                    'ksvalidator', mock.ANY, check_on_exit=[0], attempts=1
+                )
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             render_mock.assert_called()
             write_file_mock.assert_called_with(

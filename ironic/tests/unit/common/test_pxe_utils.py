@@ -1411,6 +1411,28 @@ class PXEBuildKickstartConfigOptionsTestCase(db_base.DbTestCase):
             write_mock.assert_called_with(image_info['ks_cfg'][1],
                                           render_mock.return_value)
 
+    def test_validate_kickstart_template(self):
+        self.config_temp_dir('http_root', group='deploy')
+        ks_template_path = 'ironic/drivers/modules/ks.cfg.template'
+        pxe_utils.validate_kickstart_template(ks_template_path)
+
+    def test_validate_kickstart_template_missing_variable(self):
+        self.config_temp_dir('http_root', group='deploy')
+        # required variable is missing from the template
+        ks_template_path = 'ironic/tests/unit/drivers/ks_missing_var.tmpl'
+        self.assertRaises(
+            exception.InvalidKickstartTemplate,
+            pxe_utils.validate_kickstart_template,
+            ks_template_path)
+
+    def test_validate_kickstart_template_has_additional_variables(self):
+        self.config_temp_dir('http_root', group='deploy')
+        ks_template_path = 'ironic/tests/unit/drivers/ks_extra_vars.tmpl'
+        self.assertRaises(
+            exception.InvalidKickstartTemplate,
+            pxe_utils.validate_kickstart_template,
+            ks_template_path)
+
 
 @mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)
 class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):

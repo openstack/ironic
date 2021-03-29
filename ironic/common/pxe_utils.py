@@ -16,8 +16,11 @@
 
 import copy
 import os
+import tempfile
 
 from ironic_lib import utils as ironic_utils
+import jinja2
+from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import fileutils
@@ -1062,6 +1065,66 @@ def validate_boot_parameters_for_trusted_boot(node):
                 'is_whole_disk_image': is_whole_disk_image})
         LOG.error(msg)
         raise exception.InvalidParameterValue(msg)
+
+
+def validate_kickstart_template(ks_template):
+    """Validate the kickstart template
+
+    :param ks_template: Path to the kickstart template
+    :raises: InvalidKickstartTemplate
+    """
+    ks_options = {'liveimg_url': 'fake_image_url',
+                  'agent_token': 'fake_token',
+                  'heartbeat_url': 'fake_heartbeat_url'}
+    params = {'ks_options': ks_options}
+    try:
+        rendered_tmpl = utils.render_template(ks_template, params, strict=True)
+    except jinja2.exceptions.UndefinedError as exc:
+        msg = (_("The kickstart template includes a variable that is not "
+                 "a valid kickstart option. Rendering the template returned "
+                 " %(msg)s. The valid options are %(valid_options)s.") %
+               {'msg': exc.message,
+                'valid_options': ','.join(ks_options.keys())})
+        raise exception.InvalidKickstartTemplate(msg)
+
+    missing_required_options = []
+    for var, value in ks_options.items():
+        if rendered_tmpl.find(value) == -1:
+            missing_required_options.append(var)
+    if missing_required_options:
+        msg = (_("Following required kickstart option variables are missing "
+                 "from the kickstart template: %(missing_opts)s.") %
+               {'missing_opts': ','.join(missing_required_options)})
+        raise exception.InvalidKickstartTemplate(msg)
+    return rendered_tmpl
+
+
+def validate_kickstart_file(ks_cfg):
+    """Check if the kickstart file is valid
+
+    :param ks_cfg: Contents of kickstart file to validate
+    :raises: InvalidKickstartFile
+    """
+    if not os.path.isfile('/usr/bin/ksvalidator'):
+        LOG.warning(
+            "Unable to validate the kickstart file as ksvalidator binary is "
+            "missing. Please install pykickstart package to enable "
+            "validation of kickstart file."
+        )
+        return
+
+    with tempfile.NamedTemporaryFile(
+            dir=CONF.tempdir, suffix='.cfg') as ks_file:
+        ks_file.writelines(ks_cfg)
+        try:
+            result = utils.execute(
+                'ksvalidator', ks_file.name, check_on_exit=[0], attempts=1
+            )
+        except processutils.ProcessExecutionError:
+            msg = _(("The kickstart file generated does not pass validation. "
+                     "The ksvalidator tool returned following error(s): %s") %
+                    (result))
+            raise exception.InvalidKickstartFile(msg)
 
 
 def prepare_instance_pxe_config(task, image_info,
