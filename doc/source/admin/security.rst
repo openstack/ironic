@@ -44,7 +44,7 @@ operators significant control over API access:
   in ``driver_info`` unmasked for users with administrative privileges, apply
   following changes to policy configuration file::
 
-    "show_password": "role:is_admin"
+    "show_password": "rule:is_admin"
 
   And restart the Bare Metal API service to take effect. Please check
   :doc:`/configuration/policy` for more details.
