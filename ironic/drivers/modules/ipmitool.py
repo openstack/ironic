@@ -515,7 +515,7 @@ def _ipmitool_timing_args():
     ]
 
 
-def choose_cipher_suite(actual_ciper_suite):
+def choose_cipher_suite(actual_cipher_suite):
     """Gives the possible next avaible cipher suite version.
 
     Based on CONF.ipmi.cipher_suite_versions and the last cipher suite version
@@ -523,7 +523,7 @@ def choose_cipher_suite(actual_ciper_suite):
     cipher_suite set. Starts using the last element of the list and decreasing
     the index.
 
-    :param actual_ciper_suite: latest cipher suite used in the
+    :param actual_cipher_suite: latest cipher suite used in the
         ipmi call.
 
     :returns: the next possible cipher suite or None in case of empty
@@ -533,11 +533,11 @@ def choose_cipher_suite(actual_ciper_suite):
     if not available_cs_versions:
         return None
 
-    if actual_ciper_suite is None:
+    if actual_cipher_suite is None:
         return available_cs_versions[-1]
     else:
         try:
-            cs_index = available_cs_versions.index(actual_ciper_suite)
+            cs_index = available_cs_versions.index(actual_cipher_suite)
         except ValueError:
             return available_cs_versions[-1]
 
@@ -569,9 +569,10 @@ def update_cipher_suite_cmd(actual_cs, args):
 
     :param actual_cs: a string that represents the cipher suite that was
         used in the command.
-    :param args: a list that contains the ipmitool command that was executed.
+    :param args: a list that contains the ipmitool command that was executed,
+        it will be modified in-place.
 
-    :returns: a tuple with the new values (actual_cs, args)
+    :returns: the next actual_cs
     """
     actual_cs = choose_cipher_suite(actual_cs)
     if '-C' in args:
@@ -581,7 +582,7 @@ def update_cipher_suite_cmd(actual_cs, args):
         args.append('-C')
         args.append(actual_cs)
 
-    return (actual_cs, args)
+    return actual_cs
 
 
 def _exec_ipmitool(driver_info, command, check_exit_code=None,
@@ -644,8 +645,7 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
                 return out, err
             except processutils.ProcessExecutionError as e:
                 if change_cs and check_cipher_suite_errors(e.stderr):
-                    actual_cs, args = update_cipher_suite_cmd(
-                        actual_cs, args)
+                    actual_cs = update_cipher_suite_cmd(actual_cs, args)
                 else:
                     change_cs = False
                 with excutils.save_and_reraise_exception() as ctxt:
