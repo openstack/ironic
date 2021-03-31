@@ -488,9 +488,9 @@ def render_template(template, params, is_file=True, strict=False):
     # and still complains with B701 for that line
     # NOTE(pas-ha) not using default_for_string=False as we set the name
     # of the template above for strings too.
-    env = jinja2.Environment(
+    env = jinja2.Environment(  # nosec B701
         loader=loader,
-        autoescape=jinja2.select_autoescape(),  # nosec B701
+        autoescape=jinja2.select_autoescape(),
         undefined=jinja2.StrictUndefined if strict else jinja2.Undefined
     )
     tmpl = env.get_template(tmpl_name)
