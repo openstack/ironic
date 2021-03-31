@@ -2,7 +2,7 @@
 #
 # Copyright 2014 Red Hat, Inc.
 # All Rights Reserved.
-# Copyright (c) 2017-2018 Dell Inc. or its subsidiaries.
+# Copyright (c) 2017-2021 Dell Inc. or its subsidiaries.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -839,6 +839,10 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
                                                driver_info=INFO_DICT)
         self.management = drac_mgmt.DracRedfishManagement()
 
+        self.config(enabled_hardware_types=['idrac'],
+                    enabled_power_interfaces=['idrac-redfish'],
+                    enabled_management_interfaces=['idrac-redfish'])
+
     def test_export_configuration_name_missing(self):
         task = mock.Mock(node=self.node, context=self.context)
         self.assertRaises(exception.MissingParameterValue,
@@ -1423,3 +1427,42 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
 
             mock_deploy_handler.assert_called_once_with(
                 task, 'error', 'log message')
+
+    @mock.patch.object(drac_mgmt, 'redfish_utils', autospec=True)
+    def test_clear_job_queue(self, mock_redfish_utils):
+        mock_system = mock_redfish_utils.get_system.return_value
+        mock_manager = mock.MagicMock()
+        mock_system.managers = [mock_manager]
+        mock_manager_oem = mock_manager.get_oem_extension.return_value
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.clear_job_queue(task)
+            mock_manager_oem.job_service.delete_jobs.assert_called_once_with(
+                job_ids=['JID_CLEARALL'])
+
+    @mock.patch.object(drac_mgmt, 'redfish_utils', autospec=True)
+    def test_reset_idrac(self, mock_redfish_utils):
+        mock_system = mock_redfish_utils.get_system.return_value
+        mock_manager = mock.MagicMock()
+        mock_system.managers = [mock_manager]
+        mock_manager_oem = mock_manager.get_oem_extension.return_value
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.reset_idrac(task)
+            mock_manager_oem.reset_idrac.assert_called_once_with()
+
+    @mock.patch.object(drac_mgmt, 'redfish_utils', autospec=True)
+    def test_known_good_state(self, mock_redfish_utils):
+        mock_system = mock_redfish_utils.get_system.return_value
+        mock_manager = mock.MagicMock()
+        mock_system.managers = [mock_manager]
+        mock_manager_oem = mock_manager.get_oem_extension.return_value
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.known_good_state(task)
+            mock_manager_oem.job_service.delete_jobs.assert_called_once_with(
+                job_ids=['JID_CLEARALL'])
+            mock_manager_oem.reset_idrac.assert_called_once_with()

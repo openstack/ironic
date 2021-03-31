@@ -2,7 +2,7 @@
 #
 # Copyright 2014 Red Hat, Inc.
 # All Rights Reserved.
-# Copyright (c) 2017-2020 Dell Inc. or its subsidiaries.
+# Copyright (c) 2017-2021 Dell Inc. or its subsidiaries.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -636,6 +636,122 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         driver_internal_info = node.driver_internal_info
         driver_internal_info.pop('export_configuration_location', None)
         node.driver_internal_info = driver_internal_info
+
+    @METRICS.timer('DracRedfishManagement.clear_job_queue')
+    @base.clean_step(priority=0)
+    def clear_job_queue(self, task):
+        """Clear iDRAC job queue.
+
+        :param task: a TaskManager instance containing the node to act
+                     on.
+        :raises: RedfishError on an error.
+        """
+        system = redfish_utils.get_system(task.node)
+        for manager in system.managers:
+            try:
+                oem_manager = manager.get_oem_extension('Dell')
+            except sushy.exceptions.OEMExtensionNotFoundError as e:
+                error_msg = (_("Search for Sushy OEM extension Python package "
+                               "'sushy-oem-idrac' failed for node %(node)s. "
+                               "Ensure it is installed. Error: %(error)s") %
+                             {'node': task.node.uuid, 'error': e})
+                LOG.error(error_msg)
+                raise exception.RedfishError(error=error_msg)
+            try:
+                oem_manager.job_service.delete_jobs(job_ids=['JID_CLEARALL'])
+            except sushy.exceptions.SushyError as e:
+                error_msg = ('Failed to clear iDRAC job queue with system '
+                             '%(system)s manager %(manager)s for node '
+                             '%(node)s. Will try next manager, if available. '
+                             'Error: %(error)s' %
+                             {'system': system.uuid if system.uuid else
+                              system.identity,
+                              'manager': manager.uuid if manager.uuid else
+                              manager.identity,
+                              'node': task.node.uuid,
+                              'error': e})
+                LOG.debug(error_msg)
+                continue
+            LOG.info('Cleared iDRAC job queue for node %(node)s',
+                     {'node': task.node.uuid})
+            break
+        else:
+            error_msg = (_('iDRAC Redfish clear job queue failed for node '
+                           '%(node)s, because system %(system)s has no '
+                           'manager%(no_manager)s.') %
+                         {'node': task.node.uuid,
+                          'system': system.uuid if system.uuid else
+                          system.identity,
+                          'no_manager': '' if not system.managers else
+                          ' which could'})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
+
+    @METRICS.timer('DracRedfishManagement.reset_idrac')
+    @base.clean_step(priority=0)
+    def reset_idrac(self, task):
+        """Reset the iDRAC.
+
+        :param task: a TaskManager instance containing the node to act
+                     on.
+        :raises: RedfishError on an error.
+        """
+        system = redfish_utils.get_system(task.node)
+        for manager in system.managers:
+            try:
+                oem_manager = manager.get_oem_extension('Dell')
+            except sushy.exceptions.OEMExtensionNotFoundError as e:
+                error_msg = (_("Search for Sushy OEM extension Python package "
+                               "'sushy-oem-idrac' failed for node %(node)s. "
+                               "Ensure it is installed. Error: %(error)s") %
+                             {'node': task.node.uuid, 'error': e})
+                LOG.error(error_msg)
+                raise exception.RedfishError(error=error_msg)
+            try:
+                oem_manager.reset_idrac()
+            except sushy.exceptions.SushyError as e:
+                error_msg = ('Failed to reset iDRAC with system %(system)s '
+                             'manager %(manager)s for node %(node)s. Will try '
+                             'next manager, if available. Error: %(error)s' %
+                             {'system': system.uuid if system.uuid else
+                              system.identity,
+                              'manager': manager.uuid if manager.uuid else
+                              manager.identity,
+                              'node': task.node.uuid,
+                              'error': e})
+                LOG.debug(error_msg)
+                continue
+            redfish_utils.wait_until_get_system_ready(task.node)
+            LOG.info('Reset iDRAC for node %(node)s', {'node': task.node.uuid})
+            break
+        else:
+            error_msg = (_('iDRAC Redfish reset iDRAC failed for node '
+                           '%(node)s, because system %(system)s has no '
+                           'manager%(no_manager)s.') %
+                         {'node': task.node.uuid,
+                          'system': system.uuid if system.uuid else
+                          system.identity,
+                          'no_manager': '' if not system.managers else
+                          ' which could'})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
+
+    @METRICS.timer('DracRedfishManagement.known_good_state')
+    @base.clean_step(priority=0)
+    def known_good_state(self, task):
+        """Reset iDRAC to known good state.
+
+        An iDRAC is reset to a known good state by resetting it and
+        clearing its job queue.
+
+        :param task: a TaskManager instance containing the node to act
+                     on.
+        :raises: RedfishError on an error.
+        """
+        self.reset_idrac(task)
+        self.clear_job_queue(task)
+        LOG.info('Reset iDRAC to known good state for node %(node)s',
+                 {'node': task.node.uuid})
 
 
 class DracWSManManagement(base.ManagementInterface):
