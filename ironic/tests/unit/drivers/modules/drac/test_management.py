@@ -851,8 +851,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_export_configuration_no_managers(self, mock_get_system):
         task = mock.Mock(node=self.node, context=self.context)
-        fake_system = mock.Mock(managers=[])
-        mock_get_system.return_value = fake_system
+        mock_get_system.return_value.managers = []
 
         self.assertRaises(exception.DracOperationError,
                           self.management.export_configuration, task, 'edge')
@@ -865,8 +864,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
         fake_manager1 = mock.Mock()
         fake_manager1.get_oem_extension.side_effect = (
             sushy.exceptions.OEMExtensionNotFoundError)
-        fake_system = mock.Mock(managers=[fake_manager1])
-        mock_get_system.return_value = fake_system
+        mock_get_system.return_value.managers = [fake_manager1]
 
         self.assertRaises(exception.RedfishError,
                           self.management.export_configuration, task, 'edge')
@@ -887,8 +885,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             sushy.exceptions.SushyError)
         fake_manager2 = mock.Mock()
         fake_manager2.get_oem_extension.return_value = fake_manager_oem2
-        fake_system = mock.Mock(managers=[fake_manager1, fake_manager2])
-        mock_get_system.return_value = fake_system
+        mock_get_system.return_value.managers = [fake_manager1, fake_manager2]
 
         self.assertRaises(exception.DracOperationError,
                           self.management.export_configuration,
@@ -903,8 +900,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
         fake_manager_oem1.export_system_configuration.status_code = 500
         fake_manager1 = mock.Mock()
         fake_manager1.get_oem_extension.return_value = fake_manager_oem1
-        fake_system = mock.Mock(managers=[fake_manager1])
-        mock_get_system.return_value = fake_system
+        mock_get_system.return_value.managers = [fake_manager1]
 
         self.assertRaises(exception.DracOperationError,
                           self.management.export_configuration, task, 'edge')
@@ -930,8 +926,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             configuration)
         fake_manager2 = mock.Mock()
         fake_manager2.get_oem_extension.return_value = fake_manager_oem2
-        fake_system = mock.Mock(managers=[fake_manager1, fake_manager2])
-        mock_get_system.return_value = fake_system
+        mock_get_system.return_value.managers = [fake_manager1, fake_manager2]
         self.management.export_configuration(task, 'edge')
 
         mock_save_configuration.assert_called_once_with(
@@ -1006,8 +1001,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             sushy.exceptions.SushyError)
         fake_manager2 = mock.Mock()
         fake_manager2.get_oem_extension.return_value = fake_manager_oem2
-        fake_system = mock.Mock(managers=[fake_manager1, fake_manager2])
-        mock_get_system.return_value = fake_system
+        mock_get_system.return_value.managers = [fake_manager1, fake_manager2]
         mock_get_configuration.return_value = json.loads(
             '{"oem": {"interface": "idrac-redfish", '
             '"data": {"prop1": "value1", "prop2": 2}}}')
@@ -1024,8 +1018,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
         fake_manager_oem1 = mock.Mock()
         fake_manager1 = mock.Mock()
         fake_manager1.get_oem_extension.return_value = fake_manager_oem1
-        fake_system = mock.Mock(managers=[fake_manager1])
-        mock_get_system.return_value = fake_system
+        mock_get_system.return_value.managers = [fake_manager1]
         mock_get_configuration.return_value = json.loads(
             '{"oem": {"interface": "idrac-wsman", '
             '"data": {"prop1": "value1", "prop2": 2}}}')
@@ -1058,8 +1051,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
         fake_manager_oem2 = mock.Mock()
         fake_manager2 = mock.Mock()
         fake_manager2.get_oem_extension.return_value = fake_manager_oem2
-        fake_system = mock.Mock(managers=[fake_manager1, fake_manager2])
-        mock_get_system.return_value = fake_system
+        mock_get_system.return_value.managers = [fake_manager1, fake_manager2]
         mock_get_configuration.return_value = json.loads(
             '{"oem": {"interface": "idrac-redfish", '
             '"data": {"prop1": "value1", "prop2": 2}}}')
