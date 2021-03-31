@@ -294,6 +294,22 @@ iterations, use the following configuration option::
   [deploy]
   erase_devices_iterations=1
 
+Overriding step priority
+------------------------
+
+``[conductor]clean_step_priority_override`` is a new configuration option
+which allows specifying priority of each step using multiple configuration
+values:
+
+.. code-block:: ini
+
+  [conductor]
+  clean_step_priority_override=deploy.erase_devices_metadata:123
+  clean_step_priority_override=management.reset_bios_to_default:234
+  clean_step_priority_override=management.clean_priority_reset_ilo:345
+
+This parameter can be specified as many times as required to define priorities
+for several cleaning steps - the values will be combined.
 
 What cleaning step is running?
 ------------------------------

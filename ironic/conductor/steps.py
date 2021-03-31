@@ -93,7 +93,7 @@ def find_step(steps, step):
 
 
 def _get_steps(task, interfaces, get_method, enabled=False,
-               sort_step_key=None):
+               sort_step_key=None, prio_overrides=None):
     """Get steps for task.node.
 
     :param task: A TaskManager object
@@ -108,6 +108,10 @@ def _get_steps(task, interfaces, get_method, enabled=False,
     :param sort_step_key: If set, this is a method (key) used to sort the steps
         from highest priority to lowest priority. For steps having the same
         priority, they are sorted from highest interface priority to lowest.
+    :param prio_overrides: An optional dictionary of priority overrides for
+        steps, e.g:
+        {'deploy.erase_devices_metadata': '123',
+         'management.reset_bios_to_default': '234'}
     :raises: NodeCleaningFailure or InstanceDeployFailure if there was a
         problem getting the steps.
     :returns: A list of step dictionaries
@@ -120,6 +124,12 @@ def _get_steps(task, interfaces, get_method, enabled=False,
             interface_steps = [x for x in getattr(interface, get_method)(task)
                                if not enabled or x['priority'] > 0]
             steps.extend(interface_steps)
+    if prio_overrides is not None:
+        for step in steps:
+            override_key = '%(interface)s.%(step)s' % step
+            override_value = prio_overrides.get(override_key)
+            if override_value:
+                step["priority"] = int(override_value)
     if sort_step_key:
         steps = _sorted_steps(steps, sort_step_key)
     return steps
@@ -139,8 +149,24 @@ def _get_cleaning_steps(task, enabled=False, sort=True):
     :returns: A list of clean step dictionaries
     """
     sort_key = _clean_step_key if sort else None
-    return _get_steps(task, CLEANING_INTERFACE_PRIORITY, 'get_clean_steps',
-                      enabled=enabled, sort_step_key=sort_key)
+    if CONF.conductor.clean_step_priority_override:
+        csp_override = {}
+        for element in CONF.conductor.clean_step_priority_override:
+            csp_override.update(element)
+
+        cleaning_steps = _get_steps(task, CLEANING_INTERFACE_PRIORITY,
+                                    'get_clean_steps', enabled=enabled,
+                                    sort_step_key=sort_key,
+                                    prio_overrides=csp_override)
+
+        LOG.debug("cleaning_steps after applying "
+                  "clean_step_priority_override for node %(node)s: %(step)s",
+                  task.node.uuid, cleaning_steps)
+    else:
+        cleaning_steps = _get_steps(task, CLEANING_INTERFACE_PRIORITY,
+                                    'get_clean_steps', enabled=enabled,
+                                    sort_step_key=sort_key)
+    return cleaning_steps
 
 
 def _get_deployment_steps(task, enabled=False, sort=True):

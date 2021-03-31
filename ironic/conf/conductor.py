@@ -16,6 +16,7 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_config import types
 
 from ironic.common.i18n import _
 
@@ -270,6 +271,18 @@ opts = [
                       'will be used by ironic when building UEFI-bootable ISO '
                       'out of kernel and ramdisk. Required for UEFI boot from '
                       'partition images.')),
+    cfg.MultiOpt('clean_step_priority_override',
+                 item_type=types.Dict(),
+                 default={},
+                 help=_('Priority to run automated clean steps for both '
+                        'in-band and out of band clean steps, provided in '
+                        'interface.step_name:priority format, e.g. '
+                        'deploy.erase_devices_metadata:123. The option can '
+                        'be specified multiple times to define priorities '
+                        'for multiple steps. If set to 0, this specific step '
+                        'will not run during cleaning. If unset for an '
+                        'inband clean step, will use the priority set in the '
+                        'ramdisk.')),
 ]
 
 
