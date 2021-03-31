@@ -448,6 +448,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             expected_params = {
                 'ipa-agent-token': mock.ANY,
                 'ipa-debug': '1',
+                'boot_method': 'vmedia',
             }
 
             mock_prepare_deploy_iso.assert_called_once_with(
@@ -494,6 +495,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             expected_params = {
                 'ipa-agent-token': mock.ANY,
+                'boot_method': 'vmedia',
             }
 
             mock_prepare_deploy_iso.assert_called_once_with(

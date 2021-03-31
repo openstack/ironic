@@ -453,6 +453,8 @@ class IloVirtualMediaBoot(base.BootInterface):
             task.node.driver_internal_info['agent_secret_token']
         task.node.save()
 
+        ramdisk_params['boot_method'] = 'vmedia'
+
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         if deploy_nic_mac is not None:
             ramdisk_params['BOOTIF'] = deploy_nic_mac
@@ -1096,6 +1098,9 @@ class IloUefiHttpsBoot(base.BootInterface):
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         if deploy_nic_mac is not None:
             ramdisk_params['BOOTIF'] = deploy_nic_mac
+
+        # Signal to IPA that this is a vmedia boot operation.
+        ramdisk_params['boot_method'] = 'vmedia'
 
         mode = 'deploy'
         if node.provision_state == states.RESCUING:

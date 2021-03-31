@@ -1,0 +1,15 @@
+---
+security:
+  - |
+    Fixes an issue where ironic was not properly labeling dynamicly built
+    virtual media ramdisks with the signifier flag so the ramdisk understands
+    it was booted from virtual media.
+fixes:
+  - |
+    Fixes the missing ``boot_method`` ramdisk parameter for dynamicly build
+    virtual media payloads. This value must be set to ``vmedia`` for the
+    ramdisk running on virtual media to understand it is executing from
+    virtual media. This was fixed for cases where it is used with the
+    ``redfish-virtual-media`` based boot interfaces as well as the
+    ``ilo-virtual-media`` boot interface, which is where dynamic virtual media
+    deployment/cleaning ramdisk generation is supported.
