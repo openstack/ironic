@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    The fix for story
+    `2008252 <https://storyboard.openstack.org/#!/story/2008252>`_ synced
+    the boot mode after changing the boot device because Supermicro nodes
+    reset the boot mode if not included in the boot device set. However this
+    can cause a problem on Dell nodes when changing the mode uefi->bios or
+    bios->uefi, see `story 2008712
+    <https://storyboard.openstack.org/#!/story/2008712>`_ for details.
+    Restrict the syncing of the boot mode to Supermicro.
