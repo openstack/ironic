@@ -104,8 +104,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 # Asserts
                 fake_system.set_system_boot_options.assert_has_calls(
                     [mock.call(expected,
-                               enabled=sushy.BOOT_SOURCE_ENABLED_ONCE),
-                     mock.call(mode=sushy.BOOT_SOURCE_MODE_BIOS)])
+                               enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)])
                 mock_get_system.assert_called_with(task.node)
                 self.assertNotIn('redfish_boot_device',
                                  task.node.driver_internal_info)
@@ -131,8 +130,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
                 fake_system.set_system_boot_options.assert_has_calls(
                     [mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
-                               enabled=expected),
-                     mock.call(mode=sushy.BOOT_SOURCE_MODE_BIOS)])
+                               enabled=expected)])
                 mock_get_system.assert_called_with(task.node)
                 self.assertNotIn('redfish_boot_device',
                                  task.node.driver_internal_info)
@@ -159,8 +157,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                     task, boot_devices.PXE, persistent=target)
 
                 fake_system.set_system_boot_options.assert_has_calls(
-                    [mock.call(sushy.BOOT_SOURCE_TARGET_PXE, enabled=None),
-                     mock.call(mode=sushy.BOOT_SOURCE_MODE_BIOS)])
+                    [mock.call(sushy.BOOT_SOURCE_TARGET_PXE, enabled=None)])
                 mock_get_system.assert_called_with(task.node)
 
                 # Reset mocks
@@ -266,11 +263,15 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                                       shared=False) as task:
                 task.driver.management.set_boot_device(
                     task, boot_devices.PXE, persistent=True)
-
-                fake_system.set_system_boot_options.assert_has_calls(
-                    [mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
-                               enabled=expected),
-                     mock.call(mode=sushy.BOOT_SOURCE_MODE_BIOS)])
+                if vendor == 'SuperMicro':
+                    fake_system.set_system_boot_options.assert_has_calls(
+                        [mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
+                                   enabled=expected),
+                         mock.call(mode=sushy.BOOT_SOURCE_MODE_BIOS)])
+                else:
+                    fake_system.set_system_boot_options.assert_has_calls(
+                        [mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
+                                   enabled=expected)])
 
                 # Reset mocks
                 fake_system.set_system_boot_options.reset_mock()
