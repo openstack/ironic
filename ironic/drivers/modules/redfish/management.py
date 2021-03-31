@@ -239,7 +239,12 @@ class RedfishManagement(base.ManagementInterface):
 
         # Ensure that boot mode is synced with what is set.
         # Some BMCs reset it to default (BIOS) when changing the boot device.
-        boot_mode_utils.sync_boot_mode(task)
+        # It should only be synced on these vendors as other vendor
+        # implementations will result in an error
+        # (see https://storyboard.openstack.org/#!/story/2008712)
+        vendor = task.node.properties.get('vendor', None)
+        if vendor and vendor.lower() == 'supermicro':
+            boot_mode_utils.sync_boot_mode(task)
 
     def get_boot_device(self, task):
         """Get the current boot device for a node.
