@@ -359,7 +359,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
 
         if not system.managers:
             raise exception.DracOperationError(
-                error=(_("No managers found for %(node)s"),
+                error=(_("No managers found for %(node)s") %
                        {'node': task.node.uuid}))
 
         for manager in system.managers:
@@ -400,7 +400,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                                      configuration)
         else:
             raise exception.DracOperationError(
-                error=(_("No configuration exported for node %(node)s"),
+                error=(_("No configuration exported for node %(node)s") %
                        {'node': task.node.uuid}))
 
     @base.deploy_step(priority=0, argsinfo=IMPORT_CONFIGURATION_ARGSINFO)
@@ -428,7 +428,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         if not configuration:
             raise exception.DracOperationError(
                 error=(_("No configuration found for node %(node)s by name "
-                         "%(configuration_name)s"),
+                         "%(configuration_name)s") %
                        {'node': task.node.uuid,
                         'configuration_name': import_configuration_location}))
 
@@ -437,7 +437,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
             raise exception.DracOperationError(
                 error=(_("Invalid configuration for node %(node)s "
                          "in %(configuration_name)s. Supports only "
-                         "idrac-redfish, but found %(interface)s"),
+                         "idrac-redfish, but found %(interface)s") %
                        {'node': task.node.uuid,
                         'configuration_name': import_configuration_location,
                         'interface': interface}))
@@ -446,7 +446,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
 
         if not system.managers:
             raise exception.DracOperationError(
-                error=(_("No managers found for %(node)s"),
+                error=(_("No managers found for %(node)s") %
                        {'node': task.node.uuid}))
 
         for manager in system.managers:
@@ -492,7 +492,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                 continue
 
         raise exception.DracOperationError(
-            error=(_("Failed to import configuration for node %(node)s"),
+            error=(_("Failed to import configuration for node %(node)s") %
                    {'node': task.node.uuid}))
 
     @base.clean_step(priority=0,
