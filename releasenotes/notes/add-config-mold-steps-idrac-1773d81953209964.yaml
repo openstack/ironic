@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds ``import_configuration``, ``export_configuration`` and
+    ``import_export_configuration`` steps to ``idrac-redfish`` management
+    interface. These steps allow to use configuration from another system as
+    template and replicate that configuration to other, similarly capable,
+    systems. Currently, this feature is experimental.

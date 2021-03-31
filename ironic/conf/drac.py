@@ -34,7 +34,12 @@ opts = [
                min=1,
                help=_('Maximum number of retries for '
                       'the configuration job to complete '
-                      'successfully.'))
+                      'successfully.')),
+    cfg.IntOpt('query_import_config_job_status_interval',
+               min=0,
+               default=60,
+               help=_('Number of seconds to wait between checking for '
+                      'completed import configuration task'))
 ]
 
 

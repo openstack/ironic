@@ -20,8 +20,10 @@
 DRAC management interface
 """
 
+import json
 import time
 
+from futurist import periodics
 from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
@@ -29,15 +31,21 @@ from oslo_utils import importutils
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import molds
+from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.redfish import management as redfish_management
+from ironic.drivers.modules.redfish import utils as redfish_utils
 
 
 drac_exceptions = importutils.try_import('dracclient.exceptions')
+sushy = importutils.try_import('sushy')
 
 LOG = logging.getLogger(__name__)
 
@@ -301,14 +309,333 @@ def set_boot_device(node, device, persistent=False):
 
 
 class DracRedfishManagement(redfish_management.RedfishManagement):
-    """iDRAC Redfish interface for management-related actions.
+    """iDRAC Redfish interface for management-related actions."""
 
-    Presently, this class entirely defers to its base class, a generic,
-    vendor-independent Redfish interface. Future resolution of Dell EMC-
-    specific incompatibilities and introduction of vendor value added
-    should be implemented by this class.
-    """
-    pass
+    EXPORT_CONFIGURATION_ARGSINFO = {
+        "export_configuration_location": {
+            "description": "URL of location to save the configuration to.",
+            "required": True,
+        }
+    }
+
+    IMPORT_CONFIGURATION_ARGSINFO = {
+        "import_configuration_location": {
+            "description": "URL of location to fetch desired configuration "
+                           "from.",
+            "required": True,
+        }
+    }
+
+    IMPORT_EXPORT_CONFIGURATION_ARGSINFO = {**EXPORT_CONFIGURATION_ARGSINFO,
+                                            **IMPORT_CONFIGURATION_ARGSINFO}
+
+    @base.deploy_step(priority=0, argsinfo=EXPORT_CONFIGURATION_ARGSINFO)
+    @base.clean_step(priority=0, argsinfo=EXPORT_CONFIGURATION_ARGSINFO)
+    def export_configuration(self, task, export_configuration_location):
+        """Export the configuration of the server.
+
+        Exports the configuration of the server against which the step is run
+        and stores it in specific format in indicated location.
+
+        Uses Dell's Server Configuration Profile (SCP) from `sushy-oem-idrac`
+        library to get ALL configuration for cloning.
+
+        :param task: A task from TaskManager.
+        :param export_configuration_location: URL of location to save the
+            configuration to.
+
+        :raises: MissingParameterValue if missing configuration name of a file
+            to save the configuration to
+        :raises: DracOperatationError when no managagers for Redfish system
+            found or configuration export from SCP failed
+        :raises: RedfishError when loading OEM extension failed
+        """
+        if not export_configuration_location:
+            raise exception.MissingParameterValue(
+                _('export_configuration_location missing'))
+
+        system = redfish_utils.get_system(task.node)
+        configuration = None
+
+        if not system.managers:
+            raise exception.DracOperationError(
+                error=(_("No managers found for %(node)s"),
+                       {'node': task.node.uuid}))
+
+        for manager in system.managers:
+
+            try:
+                manager_oem = manager.get_oem_extension('Dell')
+            except sushy.exceptions.OEMExtensionNotFoundError as e:
+                error_msg = (_("Search for Sushy OEM extension Python package "
+                               "'sushy-oem-idrac' failed for node %(node)s. "
+                               "Ensure it is installed. Error: %(error)s") %
+                             {'node': task.node.uuid, 'error': e})
+                LOG.error(error_msg)
+                raise exception.RedfishError(error=error_msg)
+
+            try:
+                configuration = manager_oem.export_system_configuration()
+                LOG.info("Exported %(node)s configuration via OEM",
+                         {'node': task.node.uuid})
+            except sushy.exceptions.SushyError as e:
+                LOG.debug("Sushy OEM extension Python package "
+                          "'sushy-oem-idrac' failed to export system "
+                          " configuration for node %(node)s. Will try next "
+                          "manager, if available. Error: %(error)s",
+                          {'system': system.uuid if system.uuid else
+                           system.identity,
+                           'manager': manager.uuid if manager.uuid else
+                           manager.identity,
+                           'node': task.node.uuid,
+                           'error': e})
+                continue
+            break
+
+        if configuration and configuration.status_code == 200:
+            configuration = {"oem": {"interface": "idrac-redfish",
+                                     "data": configuration.json()}}
+            molds.save_configuration(task,
+                                     export_configuration_location,
+                                     configuration)
+        else:
+            raise exception.DracOperationError(
+                error=(_("No configuration exported for node %(node)s"),
+                       {'node': task.node.uuid}))
+
+    @base.deploy_step(priority=0, argsinfo=IMPORT_CONFIGURATION_ARGSINFO)
+    @base.clean_step(priority=0, argsinfo=IMPORT_CONFIGURATION_ARGSINFO)
+    def import_configuration(self, task, import_configuration_location):
+        """Import and apply the configuration to the server.
+
+        Gets pre-created configuration from storage by given location and
+        imports that into given server. Uses Dell's Server Configuration
+        Profile (SCP).
+
+        :param task: A task from TaskManager.
+        :param import_configuration_location: URL of location to fetch desired
+            configuration from.
+
+        :raises: MissingParameterValue if missing configuration name of a file
+            to fetch the configuration from
+        """
+        if not import_configuration_location:
+            raise exception.MissingParameterValue(
+                _('import_configuration_location missing'))
+
+        configuration = molds.get_configuration(task,
+                                                import_configuration_location)
+        if not configuration:
+            raise exception.DracOperationError(
+                error=(_("No configuration found for node %(node)s by name "
+                         "%(configuration_name)s"),
+                       {'node': task.node.uuid,
+                        'configuration_name': import_configuration_location}))
+
+        interface = configuration["oem"]["interface"]
+        if interface != "idrac-redfish":
+            raise exception.DracOperationError(
+                error=(_("Invalid configuration for node %(node)s "
+                         "in %(configuration_name)s. Supports only "
+                         "idrac-redfish, but found %(interface)s"),
+                       {'node': task.node.uuid,
+                        'configuration_name': import_configuration_location,
+                        'interface': interface}))
+
+        system = redfish_utils.get_system(task.node)
+
+        if not system.managers:
+            raise exception.DracOperationError(
+                error=(_("No managers found for %(node)s"),
+                       {'node': task.node.uuid}))
+
+        for manager in system.managers:
+            try:
+                manager_oem = manager.get_oem_extension('Dell')
+            except sushy.exceptions.OEMExtensionNotFoundError as e:
+                error_msg = (_("Search for Sushy OEM extension Python package "
+                               "'sushy-oem-idrac' failed for node %(node)s. "
+                               "Ensure it is installed. Error: %(error)s") %
+                             {'node': task.node.uuid, 'error': e})
+                LOG.error(error_msg)
+                raise exception.RedfishError(error=error_msg)
+
+            try:
+                task_monitor = manager_oem.import_system_configuration(
+                    json.dumps(configuration["oem"]["data"]))
+
+                info = task.node.driver_internal_info
+                info['import_task_monitor_url'] = task_monitor.task_monitor_uri
+                task.node.driver_internal_info = info
+
+                deploy_utils.set_async_step_flags(
+                    task.node,
+                    reboot=True,
+                    skip_current_step=True,
+                    polling=True)
+                deploy_opts = deploy_utils.build_agent_options(task.node)
+                task.driver.boot.prepare_ramdisk(task, deploy_opts)
+                manager_utils.node_power_action(task, states.REBOOT)
+
+                return deploy_utils.get_async_step_return_state(task.node)
+            except sushy.exceptions.SushyError as e:
+                LOG.debug("Sushy OEM extension Python package "
+                          "'sushy-oem-idrac' failed to import system "
+                          " configuration for node %(node)s. Will try next "
+                          "manager, if available. Error: %(error)s",
+                          {'system': system.uuid if system.uuid else
+                           system.identity,
+                           'manager': manager.uuid if manager.uuid else
+                           manager.identity,
+                           'node': task.node.uuid,
+                           'error': e})
+                continue
+
+        raise exception.DracOperationError(
+            error=(_("Failed to import configuration for node %(node)s"),
+                   {'node': task.node.uuid}))
+
+    @base.clean_step(priority=0,
+                     argsinfo=IMPORT_EXPORT_CONFIGURATION_ARGSINFO)
+    @base.deploy_step(priority=0,
+                      argsinfo=IMPORT_EXPORT_CONFIGURATION_ARGSINFO)
+    def import_export_configuration(self, task, import_configuration_location,
+                                    export_configuration_location):
+        """Import and export configuration in one go.
+
+        Gets pre-created configuration from storage by given name and
+        imports that into given server. After that exports the configuration of
+        the server against which the step is run and stores it in specific
+        format in indicated storage as configured by Ironic.
+
+        :param import_configuration_location: URL of location to fetch desired
+            configuration from.
+        :param export_configuration_location: URL of location to save the
+            configuration to.
+        """
+        # Import is async operation, setting sub-step to store export config
+        # and indicate that it's being executed as part of composite step
+        info = task.node.driver_internal_info
+        info['export_configuration_location'] = export_configuration_location
+        task.node.driver_internal_info = info
+        task.node.save()
+
+        return self.import_configuration(task, import_configuration_location)
+        # Export executed as part of Import async periodic task status check
+
+    @METRICS.timer('DracRedfishManagement._query_import_configuration_status')
+    @periodics.periodic(
+        spacing=CONF.drac.query_import_config_job_status_interval,
+        enabled=CONF.drac.query_import_config_job_status_interval > 0)
+    def _query_import_configuration_status(self, manager, context):
+        """Period job to check import configuration task."""
+
+        filters = {'reserved': False, 'maintenance': False}
+        fields = ['driver_internal_info']
+        node_list = manager.iter_nodes(fields=fields, filters=filters)
+        for (node_uuid, driver, conductor_group,
+             driver_internal_info) in node_list:
+            try:
+                lock_purpose = 'checking async import configuration task'
+                with task_manager.acquire(context, node_uuid,
+                                          purpose=lock_purpose,
+                                          shared=True) as task:
+                    if not isinstance(task.driver.management,
+                                      DracRedfishManagement):
+                        continue
+                    task_monitor_url = driver_internal_info.get(
+                        'import_task_monitor_url')
+                    if not task_monitor_url:
+                        continue
+                    self._check_import_configuration_task(
+                        task, task_monitor_url)
+            except exception.NodeNotFound:
+                LOG.info('During _query_import_configuration_status, node '
+                         '%(node)s was not found and presumed deleted by '
+                         'another process.', {'node': node_uuid})
+            except exception.NodeLocked:
+                LOG.info('During _query_import_configuration_status, node '
+                         '%(node)s was already locked by another process. '
+                         'Skip.', {'node': node_uuid})
+
+    def _check_import_configuration_task(self, task, task_monitor_url):
+        """Checks progress of running import configuration task"""
+
+        node = task.node
+        task_monitor = redfish_utils.get_task_monitor(node, task_monitor_url)
+
+        if not task_monitor.is_processing:
+            import_task = task_monitor.get_task()
+
+            task.upgrade_lock()
+            info = node.driver_internal_info
+            info.pop('import_task_monitor_url', None)
+            node.driver_internal_info = info
+
+            if (import_task.task_state == sushy.TASK_STATE_COMPLETED
+                and import_task.task_status in
+                    [sushy.HEALTH_OK, sushy.HEALTH_WARNING]):
+                LOG.info('Configuration import %(task_monitor_url)s '
+                         'successful for node %(node)s',
+                         {'node': node.uuid,
+                          'task_monitor_url': task_monitor_url})
+
+                # If import executed as part of import_export_configuration
+                export_configuration_location =\
+                    info.get('export_configuration_location')
+                if export_configuration_location:
+                    # then do sync export configuration before finishing
+                    self._cleanup_export_substep(node)
+                    try:
+                        self.export_configuration(
+                            task, export_configuration_location)
+                    except (sushy.exceptions.SushyError,
+                            exception.IronicException) as e:
+                        error_msg = (_("Failed export configuration. %(exc)s" %
+                                       {'exc': e}))
+                        log_msg = ("Export configuration failed for node "
+                                   "%(node)s. %(error)s" %
+                                   {'node': task.node.uuid,
+                                    'error': error_msg})
+                        self._set_failed(task, log_msg, error_msg)
+                        return
+                self._set_success(task)
+            else:
+                # Select all messages, skipping OEM messages that don't have
+                # `message` field populated.
+                messages = [m.message for m in import_task.messages
+                            if m.message is not None]
+                error_msg = (_("Failed import configuration task: "
+                               "%(task_monitor_url)s. Message: '%(message)s'.")
+                             % {'task_monitor_url': task_monitor_url,
+                                'message': ', '.join(messages)})
+                log_msg = ("Import configuration task failed for node "
+                           "%(node)s. %(error)s" % {'node': task.node.uuid,
+                                                    'error': error_msg})
+                self._set_failed(task, log_msg, error_msg)
+            node.save()
+        else:
+            LOG.debug('Import configuration %(task_monitor_url)s in progress '
+                      'for node %(node)s',
+                      {'node': node.uuid,
+                       'task_monitor_url': task_monitor_url})
+
+    def _set_success(self, task):
+        if task.node.clean_step:
+            manager_utils.notify_conductor_resume_clean(task)
+        else:
+            manager_utils.notify_conductor_resume_deploy(task)
+
+    def _set_failed(self, task, log_msg, error_msg):
+        if task.node.clean_step:
+            manager_utils.cleaning_error_handler(task, log_msg, error_msg)
+        else:
+            manager_utils.deploying_error_handler(task, log_msg, error_msg)
+
+    def _cleanup_export_substep(self, node):
+        driver_internal_info = node.driver_internal_info
+        driver_internal_info.pop('export_configuration_location', None)
+        node.driver_internal_info = driver_internal_info
 
 
 class DracWSManManagement(base.ManagementInterface):
