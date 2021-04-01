@@ -159,7 +159,7 @@ class TestCase(oslo_test_base.BaseTestCase):
                 values = ['fake']
 
             if iface == 'deploy':
-                values.extend(['iscsi', 'direct'])
+                values.extend(['iscsi', 'direct', 'anaconda'])
             elif iface == 'boot':
                 values.append('pxe')
             elif iface == 'storage':

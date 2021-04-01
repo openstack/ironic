@@ -109,6 +109,7 @@ BASE_VERSION = 1
 # v1.69: Add deploy_steps to provisioning
 # v1.70: Add disable_ramdisk to manual cleaning.
 # v1.71: Add signifier for Scope based roles.
+# v1.72: Add agent_status and agent_status_message to /v1/heartbeat
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -182,6 +183,7 @@ MINOR_68_HEARTBEAT_VERIFY_CA = 68
 MINOR_69_DEPLOY_STEPS = 69
 MINOR_70_CLEAN_DISABLE_RAMDISK = 70
 MINOR_71_RBAC_SCOPES = 71
+MINOR_72_HEARTBEAT_STATUS = 72
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -189,7 +191,7 @@ MINOR_71_RBAC_SCOPES = 71
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_71_RBAC_SCOPES
+MINOR_MAX_VERSION = MINOR_72_HEARTBEAT_STATUS
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

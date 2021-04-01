@@ -106,13 +106,14 @@ class ConductorAPI(object):
     |    1.51 - Added agent_verify_ca to heartbeat.
     |    1.52 - Added deploy steps argument to provisioning
     |    1.53 - Added disable_ramdisk to do_node_clean.
-
+    |    1.54 - Added optional agent_status and agent_status_message to
+                heartbeat
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.53'
+    RPC_API_VERSION = '1.54'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -920,7 +921,8 @@ class ConductorAPI(object):
                           node_id=node_id, clean_steps=clean_steps, **params)
 
     def heartbeat(self, context, node_id, callback_url, agent_version,
-                  agent_token=None, agent_verify_ca=None, topic=None):
+                  agent_token=None, agent_verify_ca=None, agent_status=None,
+                  agent_status_message=None, topic=None):
         """Process a node heartbeat.
 
         :param context: request context.
@@ -930,6 +932,9 @@ class ConductorAPI(object):
         :param agent_token: randomly generated validation token.
         :param agent_version: the version of the agent that is heartbeating
         :param agent_verify_ca: TLS certificate for the agent.
+        :param agent_status: The status of the agent that is heartbeating
+        :param agent_status_message: Optional message describing the agent
+            status
         :raises: InvalidParameterValue if an invalid agent token is received.
         """
         new_kws = {}
@@ -943,6 +948,10 @@ class ConductorAPI(object):
         if self.client.can_send_version('1.51'):
             version = '1.51'
             new_kws['agent_verify_ca'] = agent_verify_ca
+        if self.client.can_send_version('1.54'):
+            version = '1.54'
+            new_kws['agent_status'] = agent_status
+            new_kws['agent_status_message'] = agent_status_message
         cctxt = self.client.prepare(topic=topic or self.topic, version=version)
         return cctxt.call(context, 'heartbeat', node_id=node_id,
                           callback_url=callback_url, **new_kws)

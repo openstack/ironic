@@ -226,7 +226,8 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
                                                node.uuid, 'url', None, 'x',
-                                               None, topic='test-topic')
+                                               None, None, None,
+                                               topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
     def test_ok_with_json(self, mock_heartbeat):
@@ -241,7 +242,8 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
                                                node.uuid, 'url', None,
                                                'maybe some magic',
-                                               None, topic='test-topic')
+                                               None, None, None,
+                                               topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
     def test_ok_by_name(self, mock_heartbeat):
@@ -255,8 +257,8 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
                                                node.uuid, 'url', None,
-                                               'token',
-                                               None, topic='test-topic')
+                                               'token', None, None, None,
+                                               topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
     def test_ok_agent_version(self, mock_heartbeat):
@@ -272,7 +274,8 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
                                                node.uuid, 'url', '1.4.1',
                                                'meow',
-                                               None, topic='test-topic')
+                                               None, None, None,
+                                               topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
     def test_old_API_agent_version_error(self, mock_heartbeat):
@@ -309,7 +312,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
                                                node.uuid, 'url', None,
-                                               'abcdef1', None,
+                                               'abcdef1', None, None, None,
                                                topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
@@ -325,8 +328,40 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
                                                node.uuid, 'url', None,
-                                               'meow', 'abcdef1',
+                                               'meow', 'abcdef1', None, None,
                                                topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
+    def test_ok_agent_status_and_status(self, mock_heartbeat):
+        node = obj_utils.create_test_node(self.context)
+        response = self.post_json(
+            '/heartbeat/%s' % node.uuid,
+            {'callback_url': 'url',
+             'agent_token': 'meow',
+             'agent_status': 'start',
+             'agent_status_message': 'woof',
+             'agent_verify_ca': 'abcdef1'},
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
+        self.assertEqual(b'', response.body)
+        mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
+                                               node.uuid, 'url', None,
+                                               'meow', 'abcdef1', 'start',
+                                               'woof', topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
+    def test_bad_invalid_agent_status(self, mock_heartbeat):
+        node = obj_utils.create_test_node(self.context)
+        response = self.post_json(
+            '/heartbeat/%s' % node.uuid,
+            {'callback_url': 'url',
+             'agent_token': 'meow',
+             'agent_status': 'invalid_state',
+             'agent_status_message': 'woof',
+             'agent_verify_ca': 'abcdef1'},
+            headers={api_base.Version.string: str(api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
     def test_old_API_agent_verify_ca_error(self, mock_heartbeat):
@@ -337,6 +372,20 @@ class TestHeartbeat(test_api_base.BaseApiTest):
              'agent_token': 'meow',
              'agent_verify_ca': 'abcd'},
             headers={api_base.Version.string: '1.67'},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
+    def test_old_api_agent_status_error(self, mock_heartbeat):
+        node = obj_utils.create_test_node(self.context)
+        response = self.post_json(
+            '/heartbeat/%s' % node.uuid,
+            {'callback_url': 'url',
+             'agent_token': 'meow',
+             'agent_verify_ca': 'abcd',
+             'agent_status': 'wow',
+             'agent_status_message': 'much status'},
+            headers={api_base.Version.string: '1.71'},
             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 

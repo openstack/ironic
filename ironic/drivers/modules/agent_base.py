@@ -612,13 +612,17 @@ class HeartbeatMixin(object):
 
     @METRICS.timer('HeartbeatMixin.heartbeat')
     def heartbeat(self, task, callback_url, agent_version,
-                  agent_verify_ca=None):
+                  agent_verify_ca=None, agent_status=None,
+                  agent_status_message=None):
         """Process a heartbeat.
 
         :param task: task to work with.
         :param callback_url: agent HTTP API URL.
         :param agent_version: The version of the agent that is heartbeating
         :param agent_verify_ca: TLS certificate for the agent.
+        :param agent_status: Status of the heartbeating agent
+        :param agent_status_message: Status message that describes the
+            agent_status
         """
         # NOTE(pas-ha) immediately skip the rest if nothing to do
         if (task.node.provision_state not in self.heartbeat_allowed_states
@@ -649,6 +653,11 @@ class HeartbeatMixin(object):
             timeutils.utcnow().isoformat())
         if agent_verify_ca:
             driver_internal_info['agent_verify_ca'] = agent_verify_ca
+        if agent_status:
+            driver_internal_info['agent_status'] = agent_status
+        if agent_status_message:
+            driver_internal_info['agent_status_message'] = \
+                agent_status_message
         node.driver_internal_info = driver_internal_info
         node.save()
 

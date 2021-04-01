@@ -35,6 +35,7 @@ LOG = log.getLogger(__name__)
 
 _LOOKUP_RETURN_FIELDS = ['uuid', 'properties', 'instance_info',
                          'driver_internal_info']
+AGENT_VALID_STATES = ['start', 'end', 'error']
 
 
 def config(token):
@@ -158,9 +159,11 @@ class HeartbeatController(rest.RestController):
     @method.expose(status_code=http_client.ACCEPTED)
     @args.validate(node_ident=args.uuid_or_name, callback_url=args.string,
                    agent_version=args.string, agent_token=args.string,
-                   agent_verify_ca=args.string)
+                   agent_verify_ca=args.string, agent_status=args.string,
+                   agent_status_message=args.string)
     def post(self, node_ident, callback_url, agent_version=None,
-             agent_token=None, agent_verify_ca=None):
+             agent_token=None, agent_verify_ca=None, agent_status=None,
+             agent_status_message=None):
         """Process a heartbeat from the deploy ramdisk.
 
         :param node_ident: the UUID or logical name of a node.
@@ -172,6 +175,11 @@ class HeartbeatController(rest.RestController):
             assumed.
         :param agent_token: randomly generated validation token.
         :param agent_verify_ca: TLS certificate to use to connect to the agent.
+        :param agent_status: Current status of the heartbeating agent. Used by
+            anaconda ramdisk to send status back to Ironic. The valid states
+            are 'start', 'end', 'error'
+        :param agent_status_message: Optional status message describing current
+            agent_status
         :raises: NodeNotFound if node with provided UUID or name was not found.
         :raises: InvalidUuidOrName if node_ident is not valid name or UUID.
         :raises: NoValidHost if RPC topic for node could not be retrieved.
@@ -184,6 +192,13 @@ class HeartbeatController(rest.RestController):
         if agent_version and not api_utils.allow_agent_version_in_heartbeat():
             raise exception.InvalidParameterValue(
                 _('Field "agent_version" not recognised'))
+
+        if ((agent_status or agent_status_message)
+                and not api_utils.allow_status_in_heartbeat()):
+            raise exception.InvalidParameterValue(
+                _('Fields "agent_status" and "agent_status_message" '
+                  'not recognised.')
+            )
 
         api_utils.check_policy('baremetal:node:ipa_heartbeat')
 
@@ -213,6 +228,17 @@ class HeartbeatController(rest.RestController):
             raise exception.InvalidParameterValue(
                 _('Agent token is required for heartbeat processing.'))
 
+        if agent_status is not None and agent_status not in AGENT_VALID_STATES:
+            valid_states = ','.join(AGENT_VALID_STATES)
+            LOG.error('Agent heartbeat received for node %(node)s '
+                      'has an invalid agent status: %(agent_status)s. '
+                      'Valid states are %(valid_states)s ',
+                      {'node': node_ident, 'agent_status': agent_status,
+                       'valid_states': valid_states})
+            msg = (_('Agent status is invalid. Valid states are %s.') %
+                   valid_states)
+            raise exception.InvalidParameterValue(msg)
+
         try:
             topic = api.request.rpcapi.get_topic_for(rpc_node)
         except exception.NoValidHost as e:
@@ -221,4 +247,5 @@ class HeartbeatController(rest.RestController):
 
         api.request.rpcapi.heartbeat(
             api.request.context, rpc_node.uuid, callback_url,
-            agent_version, agent_token, agent_verify_ca, topic=topic)
+            agent_version, agent_token, agent_verify_ca, agent_status,
+            agent_status_message, topic=topic)

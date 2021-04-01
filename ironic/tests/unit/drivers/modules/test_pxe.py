@@ -42,6 +42,7 @@ from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import pxe_base
 from ironic.drivers.modules.storage import noop as noop_storage
+from ironic import objects
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -1043,6 +1044,161 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertIsNone(task.driver.deploy.deploy(task))
             self.assertTrue(mock_warning.called)
+
+
+class PXEAnacondaDeployTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(PXEAnacondaDeployTestCase, self).setUp()
+        self.temp_dir = tempfile.mkdtemp()
+        self.config(tftp_root=self.temp_dir, group='pxe')
+        self.config_temp_dir('http_root', group='deploy')
+        self.config(http_url='http://fakeurl', group='deploy')
+        self.temp_dir = tempfile.mkdtemp()
+        self.config(images_path=self.temp_dir, group='pxe')
+        self.config(enabled_deploy_interfaces=['anaconda'])
+        self.config(enabled_boot_interfaces=['pxe'])
+        for iface in drivers_base.ALL_INTERFACES:
+            impl = 'fake'
+            if iface == 'network':
+                impl = 'noop'
+            if iface == 'deploy':
+                impl = 'anaconda'
+            if iface == 'boot':
+                impl = 'pxe'
+            config_kwarg = {'enabled_%s_interfaces' % iface: [impl],
+                            'default_%s_interface' % iface: impl}
+            self.config(**config_kwarg)
+        self.config(enabled_hardware_types=['fake-hardware'])
+        instance_info = INST_INFO_DICT
+        self.node = obj_utils.create_test_node(
+            self.context,
+            driver='fake-hardware',
+            instance_info=instance_info,
+            driver_info=DRV_INFO_DICT,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT)
+        self.port = obj_utils.create_test_port(self.context,
+                                               node_id=self.node.id)
+        self.deploy = pxe.PXEAnacondaDeploy()
+
+    @mock.patch.object(pxe_utils, 'prepare_instance_kickstart_config',
+                       autospec=True)
+    @mock.patch.object(pxe_utils, 'validate_kickstart_file', autospec=True)
+    @mock.patch.object(pxe_utils, 'validate_kickstart_template', autospec=True)
+    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
+    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
+    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
+    def test_deploy(self, mock_image_info, mock_cache,
+                    mock_dhcp_factory, mock_switch_config, mock_ks_tmpl,
+                    mock_ks_file, mock_prepare_ks_config):
+        image_info = {'kernel': ('', '/path/to/kernel'),
+                      'ramdisk': ('', '/path/to/ramdisk'),
+                      'stage2': ('', '/path/to/stage2'),
+                      'ks_template': ('', '/path/to/ks_template'),
+                      'ks_cfg': ('', '/path/to/ks_cfg')}
+        mock_image_info.return_value = image_info
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertIsNone(task.driver.deploy.deploy(task))
+            mock_image_info.assert_called_once_with(task, ipxe_enabled=False)
+            mock_cache.assert_called_once_with(
+                task, image_info, ipxe_enabled=False)
+            mock_ks_tmpl.assert_called_once_with(image_info['ks_template'][1])
+            mock_ks_file.assert_called_once_with(mock_ks_tmpl.return_value)
+            mock_prepare_ks_config.assert_called_once_with(task, image_info,
+                                                           anaconda_boot=True)
+
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    def test_prepare(self, mock_prepare_instance):
+        node = self.node
+        node.provision_state = states.DEPLOYING
+        node.instance_info = {}
+        node.save()
+        with task_manager.acquire(self.context, node.uuid) as task:
+            task.driver.deploy.prepare(task)
+            self.assertFalse(mock_prepare_instance.called)
+
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    def test_prepare_active(self, mock_prepare_instance):
+        node = self.node
+        node.provision_state = states.ACTIVE
+        node.save()
+        with task_manager.acquire(self.context, node.uuid) as task:
+            task.driver.deploy.prepare(task)
+            mock_prepare_instance.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(pxe_utils, 'clean_up_pxe_env', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    def test_reboot_to_instance(self, mock_set_boot_dev, mock_image_info,
+                                mock_cleanup_pxe_env):
+        image_info = {'kernel': ('', '/path/to/kernel'),
+                      'ramdisk': ('', '/path/to/ramdisk'),
+                      'stage2': ('', '/path/to/stage2'),
+                      'ks_template': ('', '/path/to/ks_template'),
+                      'ks_cfg': ('', '/path/to/ks_cfg')}
+        mock_image_info.return_value = image_info
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.reboot_to_instance(task)
+            mock_set_boot_dev.assert_called_once_with(task, boot_devices.DISK)
+            mock_cleanup_pxe_env.assert_called_once_with(task, image_info,
+                                                         ipxe_enabled=False)
+
+    @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
+    def test_heartbeat_deploy_start(self, mock_touch):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.deploy.heartbeat(task, 'url', '3.2.0', None, 'start', 'msg')
+            self.assertFalse(task.shared)
+            self.assertEqual(
+                'url', task.node.driver_internal_info['agent_url'])
+            self.assertEqual(
+                '3.2.0',
+                task.node.driver_internal_info['agent_version'])
+            self.assertEqual(
+                'start',
+                task.node.driver_internal_info['agent_status'])
+            mock_touch.assert_called()
+
+    @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
+    def test_heartbeat_deploy_error(self, mock_set_failed_state):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.deploy.heartbeat(task, 'url', '3.2.0', None, 'error',
+                                  'errmsg')
+            self.assertFalse(task.shared)
+            self.assertEqual(
+                'url', task.node.driver_internal_info['agent_url'])
+            self.assertEqual(
+                '3.2.0',
+                task.node.driver_internal_info['agent_version'])
+            self.assertEqual(
+                'error',
+                task.node.driver_internal_info['agent_status'])
+            mock_set_failed_state.assert_called_once_with(task, 'errmsg',
+                                                          collect_logs=False)
+
+    @mock.patch.object(pxe.PXEAnacondaDeploy, 'reboot_to_instance',
+                       autospec=True)
+    def test_heartbeat_deploy_end(self, mock_reboot_to_instance):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.deploy.heartbeat(task, None, None, None, 'end', 'sucess')
+            self.assertFalse(task.shared)
+            self.assertIsNone(
+                task.node.driver_internal_info['agent_url'])
+            self.assertIsNone(
+                task.node.driver_internal_info['agent_version'])
+            self.assertEqual(
+                'end',
+                task.node.driver_internal_info['agent_status'])
+            self.assertTrue(mock_reboot_to_instance.called)
 
 
 class PXEValidateRescueTestCase(db_base.DbTestCase):

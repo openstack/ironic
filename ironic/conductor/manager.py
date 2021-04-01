@@ -91,7 +91,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.53'
+    RPC_API_VERSION = '1.54'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -3034,7 +3034,8 @@ class ConductorManager(base_manager.BaseConductorManager):
     @messaging.expected_exceptions(exception.InvalidParameterValue)
     @messaging.expected_exceptions(exception.NoFreeConductorWorker)
     def heartbeat(self, context, node_id, callback_url, agent_version=None,
-                  agent_token=None, agent_verify_ca=None):
+                  agent_token=None, agent_verify_ca=None, agent_status=None,
+                  agent_status_message=None):
         """Process a heartbeat from the ramdisk.
 
         :param context: request context.
@@ -3048,13 +3049,18 @@ class ConductorManager(base_manager.BaseConductorManager):
             agent_version, in these cases assume agent v3.0.0 (the last release
             before sending agent_version was introduced).
         :param agent_token: randomly generated validation token.
+        :param agent_status: Status of the heartbeating agent. Agent status is
+            one of 'start', 'end', error'
+        :param agent_status_message: Message describing agent's status
         :param agent_verify_ca: TLS certificate for the agent.
         :raises: NoFreeConductorWorker if there are no conductors to process
             this heartbeat request.
         """
         LOG.debug('RPC heartbeat called for node %s', node_id)
 
-        if agent_version is None:
+        # Do not raise exception if version is missing when agent is
+        # anaconda ramdisk.
+        if agent_version is None and agent_status is None:
             LOG.error('Node %s transmitted no version information which '
                       'indicates the agent is incompatible with the ironic '
                       'services and must be upgraded.', node_id)
@@ -3091,7 +3097,8 @@ class ConductorManager(base_manager.BaseConductorManager):
 
             task.spawn_after(
                 self._spawn_worker, task.driver.deploy.heartbeat,
-                task, callback_url, agent_version, agent_verify_ca)
+                task, callback_url, agent_version, agent_verify_ca,
+                agent_status, agent_status_message)
 
     @METRICS.timer('ConductorManager.vif_list')
     @messaging.expected_exceptions(exception.NetworkError,
