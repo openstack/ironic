@@ -190,16 +190,20 @@ negotiation. In both cases you can specify the required suite yourself, e.g.::
 
     baremetal node set <UUID or name> --driver-info ipmi_cipher_suite=3
 
-In scenarios where the operator can't specify the `ipmi_cipher_suite` for
-each node, the configuration `[ipmi]/cipher_suite_versions` can be set to
-a list of cipher suites that will be used, Ironic will attempt to find a value
-that can be used from the list provided (from last to first).::
+In scenarios where the operator can't specify the ``ipmi_cipher_suite`` for
+each node, the configuration parameter ``[ipmi]/cipher_suite_versions`` can be
+set to a list of cipher suites that will be used, Ironic will attempt to find
+a value that can be used from the list provided (from last to first):
+
+.. code-block:: ini
 
   [ipmi]
   cipher_suite_versions = ['1','2','3','6','7','8','11','12']
 
 To find the suitable values for this configuration, you can check the field
-`RMCP+ Cipher Suites` after running an `ipmitool` command, e.g::
+`RMCP+ Cipher Suites` after running an ``ipmitool`` command, e.g:
+
+.. code-block:: console
 
   $ ipmitool -I lanplus -H $HOST -U $USER -v -R 12 -N 5  lan print
   # output
