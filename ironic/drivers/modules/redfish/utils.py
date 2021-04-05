@@ -375,26 +375,28 @@ def get_enabled_macs(task, system):
                   "for node %(node)s", {'node': task.node.uuid})
 
 
-@tenacity.retry(
-    retry=tenacity.retry_if_exception_type(
-        exception.RedfishConnectionError),
-    stop=tenacity.stop_after_attempt(CONF.redfish.connection_attempts),
-    wait=tenacity.wait_fixed(CONF.redfish.connection_retry_interval),
-    reraise=True)
 def wait_until_get_system_ready(node):
     """Wait until Redfish system is ready.
 
     :param node: an Ironic node object
     :raises: RedfishConnectionError on time out.
     """
+    @tenacity.retry(
+        retry=tenacity.retry_if_exception_type(
+            exception.RedfishConnectionError),
+        stop=tenacity.stop_after_attempt(CONF.redfish.connection_attempts),
+        wait=tenacity.wait_fixed(CONF.redfish.connection_retry_interval),
+        reraise=True)
+    def _get_system(driver_info, system_id):
+        try:
+            with SessionCache(driver_info) as conn:
+                return conn.get_system(system_id)
+        except sushy.exceptions.BadRequestError as e:
+            err_msg = ("System is not ready for node %(node)s, with error"
+                       "%(error)s, so retrying it",
+                       {'node': node.uuid, 'error': e})
+            LOG.warning(err_msg)
+            raise exception.RedfishConnectionError(node=node.uuid, error=e)
     driver_info = parse_driver_info(node)
     system_id = driver_info['system_id']
-    try:
-        with SessionCache(driver_info) as conn:
-            return conn.get_system(system_id)
-    except sushy.exceptions.BadRequestError as e:
-        err_msg = ("System is not ready for node %(node)s, with error"
-                   "%(error)s, so retrying it",
-                   {'node': node.uuid, 'error': e})
-        LOG.warning(err_msg)
-        raise exception.RedfishConnectionError(node=node.uuid, error=e)
+    return _get_system(driver_info, system_id)
