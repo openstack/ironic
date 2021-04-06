@@ -825,7 +825,7 @@ class NodeStatesController(rest.RestController):
         # Note that there is a race condition. The node state(s) could change
         # by the time the RPC call is made and the TaskManager manager gets a
         # lock.
-        if target in (ir_states.ACTIVE, ir_states.REBUILD):
+        if target in (ir_states.ACTIVE, ir_states.REBUILD, ir_states.DEPLOY):
             rebuild = (target == ir_states.REBUILD)
             if deploy_steps:
                 _check_deploy_steps(deploy_steps)
@@ -847,7 +847,7 @@ class NodeStatesController(rest.RestController):
                     msg, status_code=http_client.BAD_REQUEST)
             api.request.rpcapi.do_node_rescue(
                 api.request.context, rpc_node.uuid, rescue_password, topic)
-        elif target == ir_states.DELETED:
+        elif target in (ir_states.DELETED, ir_states.UNDEPLOY):
             api.request.rpcapi.do_node_tear_down(
                 api.request.context, rpc_node.uuid, topic)
         elif target == ir_states.VERBS['inspect']:

@@ -556,6 +556,24 @@ class TestCheckAllowFields(base.TestCase):
         self.assertRaises(exception.NotAcceptable,
                           utils.check_allow_management_verbs, 'clean')
 
+    def test_check_allow_deploy_verbs(self, mock_request):
+        mock_request.version.minor = 73
+        utils.check_allow_management_verbs('deploy')
+
+    def test_check_allow_deploy_verbs_fail(self, mock_request):
+        mock_request.version.minor = 72
+        self.assertRaises(exception.NotAcceptable,
+                          utils.check_allow_management_verbs, 'deploy')
+
+    def test_check_allow_undeploy_verbs(self, mock_request):
+        mock_request.version.minor = 73
+        utils.check_allow_management_verbs('undeploy')
+
+    def test_check_allow_undeploy_verbs_fail(self, mock_request):
+        mock_request.version.minor = 72
+        self.assertFalse(
+            utils.check_allow_management_verbs('undeploy'))
+
     def test_check_allow_unknown_verbs(self, mock_request):
         utils.check_allow_management_verbs('rebuild')
 
