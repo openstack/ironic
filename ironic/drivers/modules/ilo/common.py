@@ -135,6 +135,46 @@ SUPPORTED_BOOT_MODE_UEFI_ONLY = 'uefi only'
 SUPPORTED_BOOT_MODE_LEGACY_BIOS_AND_UEFI = 'legacy bios and uefi'
 """ Node supports both legacy BIOS and UEFI boot mode."""
 
+SUPPORTED_SECURITY_PARAMETERS = (
+    ['password_complexity', 'require_login_for_ilo_rbsu', 'ipmi_over_lan',
+     'secure_boot', 'require_host_authentication'])
+
+
+def validate_security_parameter_values(sec_param_info):
+    """Validate security parameter with valid values.
+
+    :param sec_param_info: dict object containing the security parameter info
+    :raises: MissingParameterValue, for missing fields (or values) in
+             security parameter info.
+    :raises: InvalidParameterValue, for unsupported security parameter
+    :returns: tuple of security param, ignore and enable parameters.
+    """
+    info = sec_param_info or {}
+
+    LOG.debug("Validating security param info: %s in progress", info)
+    param = info.get('param')
+
+    if not param:
+        msg = (_("Security parameter info: %(info)s is missing the "
+                 "required 'param' field.") % {'info': info})
+        LOG.error(msg)
+        raise exception.MissingParameterValue(msg)
+
+    if param not in SUPPORTED_SECURITY_PARAMETERS:
+        msg = (_("Security parameter '%(param)s' is not a valid parameter. "
+                 "Supported values are: %(supported_params)s") %
+               {'param': param, 'supported_params': (
+                ", ".join(SUPPORTED_SECURITY_PARAMETERS))})
+        LOG.error(msg)
+        raise exception.InvalidParameterValue(msg)
+
+    ignored = info.get('ignore', False)
+    ignored = strutils.bool_from_string(ignored, default=False)
+    enable = info.get('enable', True)
+    enable = strutils.bool_from_string(enable, default=True)
+
+    return param, enable, ignored
+
 
 def copy_image_to_web_server(source_file_path, destination):
     """Copies the given image to the http web server.

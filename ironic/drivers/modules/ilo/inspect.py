@@ -155,6 +155,23 @@ def _get_capabilities(node, ilo_object):
     return capabilities
 
 
+def _get_security_parameters(node, ilo_object):
+    """inspect hardware and gets security parameter information.
+
+    :param node: Node object.
+    :param ilo_object: an instance of ilo drivers.
+    :returns: a dictionary of security parameters.
+    """
+    security_params = None
+    try:
+        security_params = ilo_object.get_security_dashboard_values()
+    except ilo_error.IloError:
+        LOG.debug("Node %s did not return any security parameters.",
+                  node.uuid)
+
+    return security_params
+
+
 class IloInspect(base.InspectInterface):
 
     def get_properties(self):
@@ -250,6 +267,16 @@ class IloInspect(base.InspectInterface):
                 task.node.properties.get('capabilities'), valid_cap)
             if capabilities:
                 node_properties['capabilities'] = capabilities
+                task.node.properties = node_properties
+
+        # Inspect the hardware for security parameters related information.
+        # Since it applies only for Gen10 based hardware, the method
+        # inspect_hardware() doesn't raise an error.
+        if model and 'Gen10' in model:
+            security_params = _get_security_parameters(task.node, ilo_object)
+            if security_params:
+                node_properties['security_parameters'] = (
+                    security_params.get('security_parameters'))
                 task.node.properties = node_properties
 
         # RIBCL(Gen8) protocol cannot determine if a NIC

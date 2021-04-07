@@ -382,6 +382,48 @@ class IloManagementTestCase(test_common.BaseIloTest):
                                   **activate_license_args)
                 self.assertFalse(step_mock.called)
 
+    @mock.patch.object(ilo_management, '_execute_ilo_step',
+                       spec_set=True, autospec=True)
+    def test_security_parameters_update(self, step_mock):
+        security_parameters = [
+            {
+                "param": "password_complexity",
+                "enable": True,
+                "ignore": False
+            }
+        ]
+        security_parameters_args = {
+            'security_parameters': security_parameters}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.security_parameters_update(
+                task, **security_parameters_args)
+            step_mock.assert_called_once_with(
+                task.node, 'update_password_complexity', True, False)
+
+    @mock.patch.object(ilo_management, '_execute_ilo_step',
+                       spec_set=True, autospec=True)
+    def test_update_minimum_password_length(self, step_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            minimum_password_args = {'password_length': '8'}
+            task.driver.management.update_minimum_password_length(
+                task, **minimum_password_args)
+            step_mock.assert_called_once_with(
+                task.node, 'update_minimum_password_length', '8', False)
+
+    @mock.patch.object(ilo_management, '_execute_ilo_step',
+                       spec_set=True, autospec=True)
+    def test_update_auth_failure_logging_threshold(self, step_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            auth_failure_args = {'logging_threshold': '1'}
+            task.driver.management.update_auth_failure_logging_threshold(
+                task, **auth_failure_args)
+            step_mock.assert_called_once_with(
+                task.node, 'update_authentication_failure_logging', '1', False)
+
     @mock.patch.object(deploy_utils, 'build_agent_options',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_boot.IloVirtualMediaBoot, 'clean_up_ramdisk',

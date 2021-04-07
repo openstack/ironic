@@ -22,6 +22,7 @@ from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import excutils
 from oslo_utils import importutils
+from oslo_utils import strutils
 
 from ironic.common import boot_devices
 from ironic.common import boot_modes
@@ -75,6 +76,62 @@ _RESET_ILO_CREDENTIALS_ARGSINFO = {
             'being set in the driver_info property "ilo_username".'
         ),
         'required': True
+    }
+}
+
+_SECURITY_PARAMETER_UPDATE_ARGSINFO = {
+    'security_parameters': {
+        'description': (
+            "This argument represents the ordered list of JSON "
+            "dictionaries of security parameters. Each security "
+            "parameter consists of three fields, namely 'param', "
+            "'ignore' and 'enable' from which 'param' field will be "
+            "mandatory. These fields represent security parameter "
+            "name, ignore flag and state of the security parameter. "
+            "The supported security parameter names are "
+            "'password_complexity', 'require_login_for_ilo_rbsu', "
+            "'ipmi_over_lan', 'secure_boot', 'require_host_authentication'. "
+            "The security parameters will be updated (in the order given) "
+            "one by one on the baremetal server."
+        ),
+        'required': True
+    }
+}
+
+_MINIMUM_PASSWORD_LENGTH_UPDATE_ARGSINFO = {
+    'password_length': {
+        'description': (
+            "This argument represents the minimum password length that can "
+            "be set for ilo. If not specified, default will be 8."
+        ),
+        'required': False
+    },
+    'ignore': {
+        'description': (
+            "This argument represents boolean parameter. If set 'True' the "
+            "security parameters will be ignored. If not specified, default "
+            "will be 'False'."
+        ),
+        'required': False
+    }
+}
+
+_Auth_Failure_Logging_Threshold_ARGSINFO = {
+    'logging_threshold': {
+        'description': (
+            "This argument represents the authentication failure "
+            "logging threshold that can be set for ilo. If not "
+            "specified, default will be 1."
+        ),
+        'required': False
+    },
+    'ignore': {
+        'description': (
+            "This argument represents boolean parameter. If set 'True' the "
+            "security parameters will be ignored. If not specified, default "
+            "will be 'False'."
+        ),
+        'required': False
     }
 }
 
@@ -431,6 +488,76 @@ class IloManagement(base.ManagementInterface):
                   {'node': node.uuid})
         _execute_ilo_step(node, 'activate_license', ilo_license_key)
         LOG.info("iLO license activated for node %s.", node.uuid)
+
+    @METRICS.timer('IloManagement.security_parameters_update')
+    @base.clean_step(priority=0, abortable=False,
+                     argsinfo=_SECURITY_PARAMETER_UPDATE_ARGSINFO)
+    def security_parameters_update(self, task, **kwargs):
+        """Updates the security parameters.
+
+        :param task: a TaskManager object.
+        """
+        node = task.node
+        security_parameter = kwargs.get('security_parameters')
+        try:
+            for sec_param_info in security_parameter:
+                param, enable, ignore = (
+                    ilo_common.validate_security_parameter_values(
+                        sec_param_info))
+                LOG.debug("Updating %(param)s security parameter for node "
+                          "%(node)s ..", {'param': param, 'node': node.uuid})
+                _execute_ilo_step(node, ('update_' + param), enable, ignore)
+                LOG.info("%(param)s security parameter for node %(node)s is "
+                         "updated", {'param': param, 'node': node.uuid})
+        except (exception.MissingParameterValue,
+                exception.InvalidParameterValue,
+                exception.NodeCleaningFailure):
+            LOG.error("%(param)s security parameter updation for "
+                      "node: %(node)s failed.",
+                      {'param': param, 'node': node.uuid})
+            raise
+
+    @METRICS.timer('IloManagement.update_minimum_password_length')
+    @base.clean_step(priority=0, abortable=False,
+                     argsinfo=_MINIMUM_PASSWORD_LENGTH_UPDATE_ARGSINFO)
+    def update_minimum_password_length(self, task, **kwargs):
+        """Updates the Minimum Password Length security parameter.
+
+        :param task: a TaskManager object.
+        """
+        node = task.node
+        passwd_length = kwargs.get('password_length')
+        ignore = kwargs.get('ignore', False)
+        ignore = strutils.bool_from_string(ignore, default=False)
+
+        LOG.debug("Updating minimum password length security parameter "
+                  "for node %(node)s ..", {'node': node.uuid})
+        _execute_ilo_step(node, 'update_minimum_password_length',
+                          passwd_length, ignore)
+        LOG.info("Minimum password length security parameter for node "
+                 "%(node)s is updated", {'node': node.uuid})
+
+    @METRICS.timer('IloManagement.update_auth_failure_logging_threshold')
+    @base.clean_step(priority=0, abortable=False,
+                     argsinfo=_Auth_Failure_Logging_Threshold_ARGSINFO)
+    def update_auth_failure_logging_threshold(self, task, **kwargs):
+        """Updates the Auth Failure Logging Threshold security parameter.
+
+        :param task: a TaskManager object.
+        """
+        node = task.node
+        logging_threshold = kwargs.get('logging_threshold')
+        ignore = kwargs.get('ignore', False)
+        ignore = strutils.bool_from_string(ignore, default=False)
+
+        LOG.debug("Updating authentication failure logging threshold "
+                  "security parameter for node %(node)s ..",
+                  {'node': node.uuid})
+        _execute_ilo_step(node, 'update_authentication_failure_logging',
+                          logging_threshold, ignore)
+        LOG.info("Authentication failure logging threshold security "
+                 "parameter for node %(node)s is updated",
+                 {'node': node.uuid})
 
     @METRICS.timer('IloManagement.update_firmware')
     @base.deploy_step(priority=0, argsinfo=_FIRMWARE_UPDATE_ARGSINFO)
