@@ -6057,7 +6057,8 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.INSPECTING,
-            driver_internal_info={'agent_url': 'url'})
+            driver_internal_info={'agent_url': 'url',
+                                  'agent_secret_token': 'token'})
         task = task_manager.TaskManager(self.context, node.uuid)
         mock_inspect.return_value = states.MANAGEABLE
         manager._do_inspect_hardware(task)
@@ -6068,6 +6069,7 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_inspect.assert_called_once_with(task.driver.inspect, task)
         task.node.refresh()
         self.assertNotIn('agent_url', task.node.driver_internal_info)
+        self.assertNotIn('agent_secret_token', task.node.driver_internal_info)
 
     @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
                 autospec=True)
@@ -7879,9 +7881,12 @@ class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
     @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
     def test_do_inspect_abort_succeeded(self, mock_acquire, mock_abort):
         self._start_service()
-        node = obj_utils.create_test_node(self.context,
-                                          driver='fake-hardware',
-                                          provision_state=states.INSPECTWAIT)
+        node = obj_utils.create_test_node(
+            self.context,
+            driver='fake-hardware',
+            provision_state=states.INSPECTWAIT,
+            driver_internal_info={'agent_url': 'url',
+                                  'agent_secret_token': 'token'})
         task = task_manager.TaskManager(self.context, node.uuid)
         mock_acquire.side_effect = self._get_acquire_side_effect(task)
         self.service.do_provisioning_action(self.context, task.node.uuid,
@@ -7889,3 +7894,5 @@ class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
         node.refresh()
         self.assertEqual('inspect failed', node.provision_state)
         self.assertIn('Inspection was aborted', node.last_error)
+        self.assertNotIn('agent_url', node.driver_internal_info)
+        self.assertNotIn('agent_secret_token', node.driver_internal_info)

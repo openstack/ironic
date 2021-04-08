@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Correctly wipes agent token on inspection start and abort.

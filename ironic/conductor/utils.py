@@ -1215,6 +1215,8 @@ def add_secret_token(node, pregenerated=False):
     i_info['agent_secret_token'] = token
     if pregenerated:
         i_info['agent_secret_token_pregenerated'] = True
+    else:
+        i_info.pop('agent_secret_token_pregenerated', None)
     node.driver_internal_info = i_info
 
 
