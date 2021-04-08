@@ -264,13 +264,15 @@ def eject_vmedia(task, boot_device=None):
     _eject_vmedia(task, system.managers, boot_device=boot_device)
 
 
-def _has_vmedia_device(managers, boot_device):
+def _has_vmedia_device(managers, boot_device, inserted=None):
     """Indicate if device exists at any of the managers
 
     :param managers: A list of System managers.
     :param boot_device: One or more sushy boot device e.g. `VIRTUAL_MEDIA_CD`,
         `VIRTUAL_MEDIA_DVD` or `VIRTUAL_MEDIA_FLOPPY`. Several devices are
         checked in the given order.
+    :param inserted: If not None, only return a device with a matching
+        inserted status.
     :return: The device that could be found or False.
     """
     if isinstance(boot_device, str):
@@ -279,8 +281,12 @@ def _has_vmedia_device(managers, boot_device):
     for dev in boot_device:
         for manager in managers:
             for v_media in manager.virtual_media.get_members():
-                if dev in v_media.media_types:
-                    return dev
+                if dev not in v_media.media_types:
+                    continue
+                if (inserted is not None
+                        and bool(v_media.inserted) is not inserted):
+                    continue
+                return dev
     return False
 
 
@@ -474,6 +480,18 @@ class RedfishVirtualMediaBoot(base.BootInterface):
             return
 
         d_info = _parse_driver_info(node)
+        managers = redfish_utils.get_system(task.node).managers
+
+        if manager_utils.is_fast_track(task):
+            if _has_vmedia_device(managers, sushy.VIRTUAL_MEDIA_CD,
+                                  inserted=True):
+                LOG.debug('Fast track operation for node %s, not inserting '
+                          'any devices', node.uuid)
+                return
+            else:
+                LOG.warning('Fast track is possible for node %s, but no ISO '
+                            'is currently inserted! Proceeding with '
+                            'normal operation.', node.uuid)
 
         # NOTE(TheJulia): Since we're deploying, cleaning, or rescuing,
         # with virtual media boot, we should generate a token!
@@ -493,8 +511,6 @@ class RedfishVirtualMediaBoot(base.BootInterface):
             ramdisk_params['BOOTIF'] = deploy_nic_mac
         if CONF.debug and 'ipa-debug' not in ramdisk_params:
             ramdisk_params['ipa-debug'] = '1'
-
-        managers = redfish_utils.get_system(task.node).managers
 
         # NOTE(TheJulia): This is a mandatory setting for virtual media
         # based deployment operations.
@@ -551,6 +567,11 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         :param task: A task from TaskManager.
         :returns: None
         """
+        if manager_utils.is_fast_track(task):
+            LOG.debug('Fast track operation for node %s, not ejecting '
+                      'any devices', task.node.uuid)
+            return
+
         LOG.debug("Cleaning up deploy boot for "
                   "%(node)s", {'node': task.node.uuid})
         self._eject_all(task)

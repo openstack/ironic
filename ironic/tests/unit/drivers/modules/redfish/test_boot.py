@@ -21,6 +21,7 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_utils
@@ -712,6 +713,103 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertNotIn('agent_secret_token_pregenerated',
                              task.node.driver_internal_info)
 
+    @mock.patch.object(manager_utils, 'is_fast_track', lambda task: True)
+    @mock.patch.object(redfish_boot.manager_utils, 'node_set_boot_device',
+                       autospec=True)
+    @mock.patch.object(image_utils, 'prepare_deploy_iso', autospec=True)
+    @mock.patch.object(redfish_boot, '_has_vmedia_device', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_parse_driver_info', autospec=True)
+    @mock.patch.object(redfish_boot.manager_utils, 'node_power_action',
+                       autospec=True)
+    @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_prepare_ramdisk_fast_track(
+            self, mock_system, mock_boot_mode_utils, mock_node_power_action,
+            mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
+            mock__has_vmedia_device,
+            mock_prepare_deploy_iso, mock_node_set_boot_device):
+
+        managers = mock_system.return_value.managers
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.DEPLOYING
+            mock__has_vmedia_device.return_value = sushy.VIRTUAL_MEDIA_CD
+
+            task.driver.boot.prepare_ramdisk(task, {})
+
+            mock__has_vmedia_device.assert_called_once_with(
+                managers, sushy.VIRTUAL_MEDIA_CD, inserted=True)
+
+            mock_node_power_action.assert_not_called()
+            mock__eject_vmedia.assert_not_called()
+            mock__insert_vmedia.assert_not_called()
+            mock_prepare_deploy_iso.assert_not_called()
+            mock_node_set_boot_device.assert_not_called()
+            mock_boot_mode_utils.sync_boot_mode.assert_not_called()
+
+    @mock.patch.object(manager_utils, 'is_fast_track', lambda task: True)
+    @mock.patch.object(redfish_boot.manager_utils, 'node_set_boot_device',
+                       autospec=True)
+    @mock.patch.object(image_utils, 'prepare_deploy_iso', autospec=True)
+    @mock.patch.object(redfish_boot, '_has_vmedia_device', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_parse_driver_info', autospec=True)
+    @mock.patch.object(redfish_boot.manager_utils, 'node_power_action',
+                       autospec=True)
+    @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_prepare_ramdisk_fast_track_impossible(
+            self, mock_system, mock_boot_mode_utils, mock_node_power_action,
+            mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
+            mock__has_vmedia_device,
+            mock_prepare_deploy_iso, mock_node_set_boot_device):
+
+        managers = mock_system.return_value.managers
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.DEPLOYING
+            mock__has_vmedia_device.return_value = False
+
+            mock__parse_driver_info.return_value = {}
+            mock_prepare_deploy_iso.return_value = 'image-url'
+
+            task.driver.boot.prepare_ramdisk(task, {})
+
+            mock__has_vmedia_device.assert_called_once_with(
+                managers, sushy.VIRTUAL_MEDIA_CD, inserted=True)
+
+            mock_node_power_action.assert_called_once_with(
+                task, states.POWER_OFF)
+
+            mock__eject_vmedia.assert_called_once_with(
+                task, managers, sushy.VIRTUAL_MEDIA_CD)
+
+            mock__insert_vmedia.assert_called_once_with(
+                task, managers, 'image-url', sushy.VIRTUAL_MEDIA_CD)
+
+            token = task.node.driver_internal_info['agent_secret_token']
+            self.assertTrue(token)
+
+            expected_params = {
+                'ipa-agent-token': token,
+                'ipa-debug': '1',
+                'boot_method': 'vmedia',
+            }
+
+            mock_prepare_deploy_iso.assert_called_once_with(
+                task, expected_params, 'deploy', {})
+
+            mock_node_set_boot_device.assert_called_once_with(
+                task, boot_devices.CDROM, False)
+
+            mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
+
+            self.assertTrue(task.node.driver_internal_info[
+                'agent_secret_token_pregenerated'])
+
     @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_floppy_image', autospec=True)
@@ -1242,3 +1340,47 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             redfish_boot.eject_vmedia(task)
 
             self.assertFalse(mock_vmedia_cd.eject_media.call_count)
+
+    def test__has_vmedia_device(self):
+        mock_vmedia_cd = mock.MagicMock(
+            inserted=False,
+            media_types=[sushy.VIRTUAL_MEDIA_CD])
+        mock_vmedia_floppy = mock.MagicMock(
+            inserted=False,
+            media_types=[sushy.VIRTUAL_MEDIA_FLOPPY])
+
+        mock_manager = mock.MagicMock()
+
+        mock_manager.virtual_media.get_members.return_value = [
+            mock_vmedia_cd, mock_vmedia_floppy]
+
+        self.assertEqual(
+            sushy.VIRTUAL_MEDIA_CD,
+            redfish_boot._has_vmedia_device(
+                [mock_manager], sushy.VIRTUAL_MEDIA_CD))
+
+        self.assertFalse(
+            redfish_boot._has_vmedia_device(
+                [mock_manager], sushy.VIRTUAL_MEDIA_CD, inserted=True))
+
+        self.assertFalse(
+            redfish_boot._has_vmedia_device(
+                [mock_manager], sushy.VIRTUAL_MEDIA_USBSTICK))
+
+    def test__has_vmedia_device_inserted(self):
+        mock_vmedia_cd = mock.MagicMock(
+            inserted=False,
+            media_types=[sushy.VIRTUAL_MEDIA_CD])
+        mock_vmedia_floppy = mock.MagicMock(
+            inserted=True,
+            media_types=[sushy.VIRTUAL_MEDIA_FLOPPY])
+
+        mock_manager = mock.MagicMock()
+
+        mock_manager.virtual_media.get_members.return_value = [
+            mock_vmedia_cd, mock_vmedia_floppy]
+
+        self.assertEqual(
+            sushy.VIRTUAL_MEDIA_FLOPPY,
+            redfish_boot._has_vmedia_device(
+                [mock_manager], sushy.VIRTUAL_MEDIA_FLOPPY, inserted=True))
