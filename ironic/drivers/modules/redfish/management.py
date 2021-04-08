@@ -996,9 +996,9 @@ class RedfishManagement(base.ManagementInterface):
             return
 
         try:
-            task_monitor = update_service.get_task_monitor(
-                current_update['task_monitor'])
-        except sushy.exceptions.ResourceNotFoundError:
+            task_monitor = redfish_utils.get_task_monitor(
+                node, current_update['task_monitor'])
+        except exception.RedfishError:
             # The BMC deleted the Task before we could query it
             LOG.warning('Firmware update completed for node %(node)s, '
                         'firmware %(firmware_image)s, but success of the '
