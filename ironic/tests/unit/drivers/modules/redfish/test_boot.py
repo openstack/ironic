@@ -71,6 +71,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertIn('kernel', actual_driver_info['deploy_kernel'])
             self.assertIn('ramdisk', actual_driver_info['deploy_ramdisk'])
             self.assertIn('bootloader', actual_driver_info['bootloader'])
+            self.assertTrue(actual_driver_info['can_provide_config'])
 
     def test_parse_driver_info_iso(self):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -82,19 +83,19 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             self.assertEqual('http://boot.iso',
                              actual_driver_info['redfish_deploy_iso'])
+            self.assertFalse(actual_driver_info['can_provide_config'])
 
     def test_parse_driver_info_removable(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.driver_info.update(
-                {'deploy_kernel': 'kernel',
-                 'deploy_ramdisk': 'ramdisk',
-                 'bootloader': 'bootloader',
+                {'redfish_deploy_iso': 'http://boot.iso',
                  'config_via_removable': True}
             )
 
             actual_driver_info = redfish_boot._parse_driver_info(task.node)
             self.assertTrue(actual_driver_info['config_via_removable'])
+            self.assertTrue(actual_driver_info['can_provide_config'])
 
     @mock.patch.object(redfish_boot.LOG, 'warning', autospec=True)
     def test_parse_driver_info_removable_deprecated(self, mock_log):
@@ -445,8 +446,11 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock__insert_vmedia.assert_called_once_with(
                 task, managers, 'image-url', sushy.VIRTUAL_MEDIA_CD)
 
+            token = task.node.driver_internal_info['agent_secret_token']
+            self.assertTrue(token)
+
             expected_params = {
-                'ipa-agent-token': mock.ANY,
+                'ipa-agent-token': token,
                 'ipa-debug': '1',
                 'boot_method': 'vmedia',
             }
@@ -458,6 +462,9 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, boot_devices.CDROM, False)
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
+
+            self.assertTrue(task.node.driver_internal_info[
+                'agent_secret_token_pregenerated'])
 
     @mock.patch.object(redfish_boot.manager_utils, 'node_set_boot_device',
                        autospec=True)
@@ -651,6 +658,59 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 task, boot_devices.CDROM, False)
 
             mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
+
+    @mock.patch.object(redfish_boot.manager_utils, 'node_set_boot_device',
+                       autospec=True)
+    @mock.patch.object(image_utils, 'prepare_deploy_iso', autospec=True)
+    @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_insert_vmedia', autospec=True)
+    @mock.patch.object(redfish_boot, '_parse_driver_info', autospec=True)
+    @mock.patch.object(redfish_boot.manager_utils, 'node_power_action',
+                       autospec=True)
+    @mock.patch.object(redfish_boot, 'boot_mode_utils', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_prepare_ramdisk_no_config(
+            self, mock_system, mock_boot_mode_utils, mock_node_power_action,
+            mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
+            mock_prepare_deploy_iso, mock_node_set_boot_device):
+
+        managers = mock_system.return_value.managers
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.DEPLOYING
+
+            mock__parse_driver_info.return_value = {
+                'can_provide_config': False}
+            mock_prepare_deploy_iso.return_value = 'image-url'
+
+            task.driver.boot.prepare_ramdisk(task, {})
+
+            mock_node_power_action.assert_called_once_with(
+                task, states.POWER_OFF)
+
+            mock__eject_vmedia.assert_called_once_with(
+                task, managers, sushy.VIRTUAL_MEDIA_CD)
+
+            mock__insert_vmedia.assert_called_once_with(
+                task, managers, 'image-url', sushy.VIRTUAL_MEDIA_CD)
+
+            expected_params = {
+                'ipa-debug': '1',
+                'boot_method': 'vmedia',
+            }
+
+            mock_prepare_deploy_iso.assert_called_once_with(
+                task, expected_params, 'deploy', {})
+
+            mock_node_set_boot_device.assert_called_once_with(
+                task, boot_devices.CDROM, False)
+
+            mock_boot_mode_utils.sync_boot_mode.assert_called_once_with(task)
+
+            self.assertNotIn('agent_secret_token',
+                             task.node.driver_internal_info)
+            self.assertNotIn('agent_secret_token_pregenerated',
+                             task.node.driver_internal_info)
 
     @mock.patch.object(redfish_boot, '_eject_vmedia', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)

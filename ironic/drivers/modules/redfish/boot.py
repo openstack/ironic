@@ -104,6 +104,7 @@ def _parse_driver_info(node):
     iso_ref = d_info.get(iso_param)
     if iso_ref is not None:
         deploy_info = {iso_param: iso_ref}
+        can_config = False
     else:
         params_to_check = KERNEL_RAMDISK_LABELS[mode]
 
@@ -121,6 +122,7 @@ def _parse_driver_info(node):
                       "parameters were missing in node's driver_info")
 
         deploy_utils.check_for_missing_params(deploy_info, error_msg)
+        can_config = True
 
     deploy_info.update(
         {option: d_info.get(option, getattr(CONF.conductor, option, None))
@@ -133,6 +135,11 @@ def _parse_driver_info(node):
         deploy_info['config_via_removable'] = d_info['config_via_floppy']
 
     deploy_info.update(redfish_utils.parse_driver_info(node))
+    # Configuration can be provided in one of two cases:
+    # 1) A removable disk is requested.
+    # 2) An ISO is built from a kernel/initramfs pair.
+    deploy_info['can_provide_config'] = \
+        deploy_info.get('config_via_removable') or can_config
 
     return deploy_info
 
@@ -466,18 +473,20 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                                         states.INSPECTING):
             return
 
-        # NOTE(TheJulia): Since we're deploying, cleaning, or rescuing,
-        # with virtual media boot, we should generate a token!
-        manager_utils.add_secret_token(node, pregenerated=True)
-        node.save()
-        ramdisk_params['ipa-agent-token'] = \
-            node.driver_internal_info['agent_secret_token']
-
-        manager_utils.node_power_action(task, states.POWER_OFF)
-
         d_info = _parse_driver_info(node)
 
-        config_via_removable = d_info.get('config_via_removable')
+        # NOTE(TheJulia): Since we're deploying, cleaning, or rescuing,
+        # with virtual media boot, we should generate a token!
+        # However, we don't have a way to inject it with a pre-built ISO
+        # if a removable disk is not used.
+        can_config = d_info.pop('can_provide_config', True)
+        if can_config:
+            manager_utils.add_secret_token(node, pregenerated=True)
+            node.save()
+            ramdisk_params['ipa-agent-token'] = \
+                node.driver_internal_info['agent_secret_token']
+
+        manager_utils.node_power_action(task, states.POWER_OFF)
 
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         if deploy_nic_mac is not None:
@@ -491,6 +500,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         # based deployment operations.
         ramdisk_params['boot_method'] = 'vmedia'
 
+        config_via_removable = d_info.get('config_via_removable')
         if config_via_removable:
 
             removable = _has_vmedia_device(
