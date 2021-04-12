@@ -1203,6 +1203,18 @@ class TestAgentDeploy(db_base.DbTestCase):
             prepare_inband_cleaning_mock.assert_called_once_with(
                 task, manage_boot=False)
 
+    @mock.patch.object(agent.AgentDeploy, 'refresh_steps', autospec=True)
+    @mock.patch.object(deploy_utils, 'prepare_inband_cleaning', autospec=True)
+    def test_prepare_cleaning_fast_track(self, prepare_inband_cleaning_mock,
+                                         refresh_steps_mock):
+        prepare_inband_cleaning_mock.return_value = None
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertIsNone(self.driver.prepare_cleaning(task))
+            prepare_inband_cleaning_mock.assert_called_once_with(
+                task, manage_boot=True)
+            refresh_steps_mock.assert_called_once_with(
+                self.driver, task, 'clean')
+
     @mock.patch.object(deploy_utils, 'tear_down_inband_cleaning',
                        autospec=True)
     def test_tear_down_cleaning(self, tear_down_cleaning_mock):

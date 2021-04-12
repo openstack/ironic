@@ -1148,15 +1148,16 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         is_fast_track_mock.return_value = fast_track
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
-            self.assertEqual(
-                states.CLEANWAIT,
-                utils.prepare_inband_cleaning(task, manage_boot=manage_boot))
+            result = utils.prepare_inband_cleaning(task,
+                                                   manage_boot=manage_boot)
             add_cleaning_network_mock.assert_called_once_with(
                 task.driver.network, task)
             if not fast_track:
+                self.assertEqual(states.CLEANWAIT, result)
                 power_mock.assert_called_once_with(task, states.REBOOT)
             else:
                 self.assertFalse(power_mock.called)
+                self.assertIsNone(result)
             self.assertEqual(1, task.node.driver_internal_info[
                              'agent_erase_devices_iterations'])
             self.assertIs(True, task.node.driver_internal_info[

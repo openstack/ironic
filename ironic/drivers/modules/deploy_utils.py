@@ -691,9 +691,8 @@ def prepare_inband_cleaning(task, manage_boot=True):
     fast_track = manager_utils.is_fast_track(task)
     if not fast_track:
         manager_utils.node_power_action(task, states.REBOOT)
-
-    # Tell the conductor we are waiting for the agent to boot.
-    return states.CLEANWAIT
+        # Tell the conductor we are waiting for the agent to boot.
+        return states.CLEANWAIT
 
 
 def tear_down_inband_cleaning(task, manage_boot=True):
