@@ -716,6 +716,13 @@ class AgentBaseMixin(object):
         """Whether agent boot is managed by ironic."""
         return True
 
+    def refresh_steps(self, task, step_type):
+        """Refresh the node's cached steps.
+
+        :param task: a TaskManager instance
+        :param step_type: "clean" or "deploy"
+        """
+
     @METRICS.timer('AgentBaseMixin.tear_down')
     @task_manager.require_exclusive_lock
     def tear_down(self, task):
@@ -776,8 +783,12 @@ class AgentBaseMixin(object):
             has an invalid value.
         :returns: states.CLEANWAIT to signify an asynchronous prepare
         """
-        return deploy_utils.prepare_inband_cleaning(
+        result = deploy_utils.prepare_inband_cleaning(
             task, manage_boot=self.should_manage_boot(task))
+        if result is None:
+            # Fast-track, ensure the steps are available.
+            self.refresh_steps(task, 'clean')
+        return result
 
     @METRICS.timer('AgentDeployMixin.tear_down_cleaning')
     def tear_down_cleaning(self, task):

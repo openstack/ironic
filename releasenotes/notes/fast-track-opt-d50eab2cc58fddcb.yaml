@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Removes unnecessary delay before the start of the cleaning process when
+    fast-track is used.
