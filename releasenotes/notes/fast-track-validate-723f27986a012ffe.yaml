@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Correctly processes in-band deploy steps on fast-track deployment.

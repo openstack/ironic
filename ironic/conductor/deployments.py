@@ -236,22 +236,29 @@ def do_next_deploy_step(task, step_index):
         to execute.
     """
     node = task.node
-    if step_index is None:
-        steps = []
-    else:
-        steps = node.driver_internal_info['deploy_steps'][step_index:]
 
-    LOG.info('Executing %(state)s on node %(node)s, remaining steps: '
-             '%(steps)s', {'node': node.uuid, 'steps': steps,
-                           'state': node.provision_state})
+    def _iter_steps():
+        if step_index is None:
+            return  # short-circuit to the end
+        idx = step_index
+        # The list can change in-flight, do not cache it!
+        while idx < len(node.driver_internal_info['deploy_steps']):
+            yield idx, node.driver_internal_info['deploy_steps'][idx]
+            idx += 1
 
-    # Execute each step until we hit an async step or run out of steps
-    for ind, step in enumerate(steps):
+    # Execute each step until we hit an async step or run out of steps, keeping
+    # in mind that the steps list can be modified in-flight.
+    for idx, step in _iter_steps():
+        LOG.info('Deploying on node %(node)s, remaining steps: '
+                 '%(steps)s', {
+                     'node': node.uuid,
+                     'steps': node.driver_internal_info['deploy_steps'][idx:],
+                 })
         # Save which step we're about to start so we can restart
         # if necessary
         node.deploy_step = step
         driver_internal_info = node.driver_internal_info
-        driver_internal_info['deploy_step_index'] = step_index + ind
+        driver_internal_info['deploy_step_index'] = idx
         node.driver_internal_info = driver_internal_info
         node.save()
         interface = getattr(task.driver, step.get('interface'))
@@ -346,6 +353,19 @@ def do_next_deploy_step(task, step_index):
              {'node': node.uuid, 'instance': node.instance_uuid})
 
 
+@task_manager.require_exclusive_lock
+def validate_deploy_steps(task):
+    """Validate the deploy steps after the ramdisk learns about them."""
+    conductor_steps.validate_user_deploy_steps_and_templates(task)
+    conductor_steps.set_node_deployment_steps(
+        task, reset_current=False)
+
+    info = task.node.driver_internal_info
+    info['steps_validated'] = True
+    task.node.driver_internal_info = info
+    task.node.save()
+
+
 @utils.fail_on_error(utils.deploying_error_handler,
                      _("Unexpected error when processing next deploy step"))
 @task_manager.require_exclusive_lock
@@ -361,21 +381,14 @@ def continue_node_deploy(task):
     node = task.node
 
     # Agent is now running, we're ready to validate the remaining steps
-    if not node.driver_internal_info.get('steps_validated'):
+    if not task.node.driver_internal_info.get('steps_validated'):
         try:
-            conductor_steps.validate_user_deploy_steps_and_templates(task)
-            conductor_steps.set_node_deployment_steps(
-                task, reset_current=False)
+            validate_deploy_steps(task)
         except exception.IronicException as exc:
             msg = _('Failed to validate the final deploy steps list '
                     'for node %(node)s: %(exc)s') % {'node': node.uuid,
                                                      'exc': exc}
             return utils.deploying_error_handler(task, msg)
-
-        info = node.driver_internal_info
-        info['steps_validated'] = True
-        node.driver_internal_info = info
-        node.save()
 
     next_step_index = utils.update_next_step_index(task, 'deploy')
 
