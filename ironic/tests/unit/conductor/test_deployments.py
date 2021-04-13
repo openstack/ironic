@@ -435,8 +435,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         self.in_band_step = {
             'step': 'deploy_middle', 'priority': 30, 'interface': 'deploy'}
 
-    @mock.patch.object(deployments, 'LOG', autospec=True)
-    def test__do_next_deploy_step_none(self, mock_log):
+    def test__do_next_deploy_step_none(self):
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
         task = task_manager.TaskManager(self.context, node.uuid)
@@ -446,7 +445,6 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
 
         node.refresh()
         self.assertEqual(states.ACTIVE, node.provision_state)
-        self.assertEqual(2, mock_log.info.call_count)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
                 autospec=True)
@@ -605,6 +603,47 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
 
         # Deploying should be complete
         node.refresh()
+        self.assertEqual(states.ACTIVE, node.provision_state)
+        self.assertEqual(states.NOSTATE, node.target_provision_state)
+        self.assertEqual({}, node.deploy_step)
+        self.assertNotIn('deploy_step_index', node.driver_internal_info)
+        self.assertIsNone(node.driver_internal_info['deploy_steps'])
+        mock_execute.assert_has_calls(
+            [mock.call(task.driver.deploy, task, self.deploy_steps[0]),
+             mock.call(task.driver.deploy, task, self.deploy_steps[1])])
+        self.assertNotIn('agent_url', node.driver_internal_info)
+        self.assertNotIn('agent_secret_token', node.driver_internal_info)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
+                autospec=True)
+    def test__do_next_deploy_step_dynamic(self, mock_execute):
+        # Simulate adding more steps in runtime.
+        driver_internal_info = {'deploy_step_index': None,
+                                'deploy_steps': self.deploy_steps[:1],
+                                'agent_url': 'url',
+                                'agent_secret_token': 'token'}
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            driver_internal_info=driver_internal_info,
+            deploy_step={})
+
+        def _fake_execute(iface, task, step):
+            dii = task.node.driver_internal_info
+            dii['deploy_steps'] = self.deploy_steps
+            task.node.driver_internal_info = dii
+            task.node.save()
+
+        mock_execute.side_effect = _fake_execute
+
+        task = task_manager.TaskManager(self.context, node.uuid)
+        task.process_event('deploy')
+
+        deployments.do_next_deploy_step(task, 0)
+
+        # Deploying should be complete
+        node.refresh()
+        self.assertIsNone(node.last_error)
         self.assertEqual(states.ACTIVE, node.provision_state)
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertEqual({}, node.deploy_step)

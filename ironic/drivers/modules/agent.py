@@ -26,6 +26,7 @@ from ironic.common import images
 from ironic.common import raid
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import deployments
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
@@ -519,6 +520,7 @@ class AgentDeploy(AgentDeployMixin, agent_base.AgentBaseMixin,
             # NOTE(dtantsur): while the node is up and heartbeating, we don't
             # necessary have the deploy steps cached. Force a refresh here.
             self.refresh_steps(task, 'deploy')
+            deployments.validate_deploy_steps(task)
         elif task.driver.storage.should_write_image(task):
             # Check if the driver has already performed a reboot in a previous
             # deploy step.
