@@ -51,7 +51,7 @@ class GenericHardware(hardware_type.AbstractHardwareType):
         """List of supported deploy interfaces."""
         return [agent.AgentDeploy, iscsi_deploy.ISCSIDeploy,
                 ansible_deploy.AnsibleDeploy, pxe.PXERamdiskDeploy,
-                pxe.PXEAnacondaDeploy]
+                pxe.PXEAnacondaDeploy, agent.CustomAgentDeploy]
 
     @property
     def supported_inspect_interfaces(self):

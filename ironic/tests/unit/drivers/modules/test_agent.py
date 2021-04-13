@@ -241,7 +241,231 @@ class TestAgentMethods(db_base.DbTestCase):
                                self.node)
 
 
-class TestAgentDeploy(db_base.DbTestCase):
+class CommonTestsMixin:
+    "Tests for methods shared between CustomAgentDeploy and AgentDeploy."""
+
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    def test_deploy(self, power_mock, mock_pxe_instance):
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            driver_return = self.driver.deploy(task)
+            self.assertEqual(driver_return, states.DEPLOYWAIT)
+            power_mock.assert_called_once_with(task, states.REBOOT)
+            self.assertFalse(mock_pxe_instance.called)
+
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    def test_deploy_with_deployment_reboot(self, power_mock,
+                                           mock_pxe_instance):
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['deployment_reboot'] = True
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            driver_return = self.driver.deploy(task)
+            self.assertEqual(driver_return, states.DEPLOYWAIT)
+            self.assertFalse(power_mock.called)
+            self.assertFalse(mock_pxe_instance.called)
+            self.assertNotIn(
+                'deployment_reboot', task.node.driver_internal_info)
+
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
+                       autospec=True)
+    def test_deploy_storage_should_write_image_false(
+            self, mock_write, mock_power):
+        mock_write.return_value = False
+        self.node.provision_state = states.DEPLOYING
+        self.node.deploy_step = {
+            'step': 'deploy', 'priority': 50, 'interface': 'deploy'}
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            driver_return = self.driver.deploy(task)
+            self.assertIsNone(driver_return)
+            self.assertFalse(mock_power.called)
+
+    @mock.patch.object(agent.CustomAgentDeploy, 'refresh_steps',
+                       autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'prepare_image',
+                       autospec=True)
+    @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    def test_deploy_fast_track(self, power_mock, mock_pxe_instance,
+                               mock_is_fast_track, prepare_image_mock,
+                               refresh_mock):
+        mock_is_fast_track.return_value = True
+        self.node.target_provision_state = states.ACTIVE
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            result = self.driver.deploy(task)
+            self.assertIsNone(result)
+            self.assertFalse(power_mock.called)
+            self.assertFalse(mock_pxe_instance.called)
+            self.assertFalse(prepare_image_mock.called)
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE,
+                             task.node.target_provision_state)
+            refresh_mock.assert_called_once_with(self.driver, task, 'deploy')
+
+    @mock.patch.object(deploy_utils, 'destroy_http_instance_images',
+                       autospec=True)
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
+    def test_clean_up(self, pxe_clean_up_ramdisk_mock,
+                      pxe_clean_up_instance_mock, dhcp_factor_mock,
+                      destroy_images_mock):
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            self.driver.clean_up(task)
+            pxe_clean_up_ramdisk_mock.assert_called_once_with(
+                task.driver.boot, task)
+            pxe_clean_up_instance_mock.assert_called_once_with(
+                task.driver.boot, task)
+            dhcp_factor_mock.assert_called_once_with()
+            destroy_images_mock.assert_called_once_with(task.node)
+
+
+class TestCustomAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
+    def setUp(self):
+        super(TestCustomAgentDeploy, self).setUp()
+        self.config(enabled_deploy_interfaces=['direct', 'custom-agent'])
+        self.driver = agent.CustomAgentDeploy()
+        # NOTE(TheJulia): We explicitly set the noop storage interface as the
+        # default below for deployment tests in order to raise any change
+        # in the default which could be a breaking behavior change
+        # as the storage interface is explicitly an "opt-in" interface.
+        n = {
+            'boot_interface': 'pxe',
+            'deploy_interface': 'custom-agent',
+            'instance_info': {},
+            'driver_info': DRIVER_INFO,
+            'driver_internal_info': DRIVER_INTERNAL_INFO,
+            'storage_interface': 'noop',
+            'network_interface': 'noop'
+        }
+        self.node = object_utils.create_test_node(self.context, **n)
+        self.ports = [
+            object_utils.create_test_port(self.context, node_id=self.node.id)]
+        dhcp_factory.DHCPFactory._dhcp_provider = None
+
+    def test_get_properties(self):
+        expected = agent.COMMON_PROPERTIES
+        self.assertEqual(expected, self.driver.get_properties())
+
+    @mock.patch.object(agent, 'validate_http_provisioning_configuration',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'validate_capabilities',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(images, 'image_show', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
+    def test_validate(self, pxe_boot_validate_mock, show_mock,
+                      validate_capability_mock, validate_http_mock):
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            self.driver.validate(task)
+            pxe_boot_validate_mock.assert_called_once_with(
+                task.driver.boot, task)
+            validate_capability_mock.assert_called_once_with(task.node)
+            # No images required for custom-agent
+            show_mock.assert_not_called()
+            validate_http_mock.assert_not_called()
+
+    @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'validate',
+                       spec_set=True, autospec=True)
+    def test_prepare(
+            self, validate_net_mock,
+            unconfigure_tenant_net_mock, add_provisioning_net_mock,
+            build_instance_info_mock, build_options_mock,
+            pxe_prepare_ramdisk_mock, storage_driver_info_mock,
+            storage_attach_volumes_mock):
+        node = self.node
+        node.network_interface = 'flat'
+        node.save()
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.provision_state = states.DEPLOYING
+            build_options_mock.return_value = {'a': 'b'}
+            self.driver.prepare(task)
+            storage_driver_info_mock.assert_called_once_with(task)
+            validate_net_mock.assert_called_once_with(mock.ANY, task)
+            add_provisioning_net_mock.assert_called_once_with(mock.ANY, task)
+            unconfigure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
+            storage_attach_volumes_mock.assert_called_once_with(
+                task.driver.storage, task)
+            build_instance_info_mock.assert_not_called()
+            build_options_mock.assert_called_once_with(task.node)
+            pxe_prepare_ramdisk_mock.assert_called_once_with(
+                task.driver.boot, task, {'a': 'b'})
+
+    @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'validate',
+                       spec_set=True, autospec=True)
+    def test_prepare_fast_track(
+            self, validate_net_mock,
+            unconfigure_tenant_net_mock, add_provisioning_net_mock,
+            build_instance_info_mock, build_options_mock,
+            pxe_prepare_ramdisk_mock, storage_driver_info_mock,
+            storage_attach_volumes_mock, is_fast_track_mock):
+        # TODO(TheJulia): We should revisit this test. Smartnic
+        # support didn't wire in tightly on testing for power in
+        # these tests, and largely fast_track impacts power operations.
+        node = self.node
+        node.network_interface = 'flat'
+        node.save()
+        is_fast_track_mock.return_value = True
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.provision_state = states.DEPLOYING
+            build_options_mock.return_value = {'a': 'b'}
+            self.driver.prepare(task)
+            storage_driver_info_mock.assert_called_once_with(task)
+            validate_net_mock.assert_called_once_with(mock.ANY, task)
+            add_provisioning_net_mock.assert_called_once_with(mock.ANY, task)
+            unconfigure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
+            self.assertTrue(storage_attach_volumes_mock.called)
+            self.assertFalse(build_instance_info_mock.called)
+            # TODO(TheJulia): We should likely consider executing the
+            # next two methods at some point in order to facilitate
+            # continuity. While not explicitly required for this feature
+            # to work, reboots as part of deployment would need the ramdisk
+            # present and ready.
+            self.assertFalse(build_options_mock.called)
+
+
+class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
     def setUp(self):
         super(TestAgentDeploy, self).setUp()
         self.driver = agent.AgentDeploy()
@@ -436,8 +660,8 @@ class TestAgentDeploy(db_base.DbTestCase):
                               task.driver.deploy.validate, task)
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
-            show_mock.assert_called_once_with(self.context, 'fake-image')
-            validate_http_mock.assert_called_once_with(task.node)
+            show_mock.assert_not_called()
+            validate_http_mock.assert_not_called()
 
     @mock.patch.object(agent, 'validate_http_provisioning_configuration',
                        autospec=True)
@@ -453,8 +677,8 @@ class TestAgentDeploy(db_base.DbTestCase):
                               task.driver.deploy.validate, task)
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
-            show_mock.assert_called_once_with(self.context, 'fake-image')
-            validate_http_mock.assert_called_once_with(task.node)
+            show_mock.assert_not_called()
+            validate_http_mock.assert_not_called()
 
     @mock.patch.object(agent, 'validate_http_provisioning_configuration',
                        autospec=True)
@@ -493,74 +717,6 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.driver.validate(task)
             mock_capabilities.assert_called_once_with(task.node)
             self.assertFalse(mock_params.called)
-
-    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
-    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
-    def test_deploy(self, power_mock, mock_pxe_instance):
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=False) as task:
-            driver_return = self.driver.deploy(task)
-            self.assertEqual(driver_return, states.DEPLOYWAIT)
-            power_mock.assert_called_once_with(task, states.REBOOT)
-            self.assertFalse(mock_pxe_instance.called)
-
-    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
-    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
-    def test_deploy_with_deployment_reboot(self, power_mock,
-                                           mock_pxe_instance):
-        driver_internal_info = self.node.driver_internal_info
-        driver_internal_info['deployment_reboot'] = True
-        self.node.driver_internal_info = driver_internal_info
-        self.node.save()
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=False) as task:
-            driver_return = self.driver.deploy(task)
-            self.assertEqual(driver_return, states.DEPLOYWAIT)
-            self.assertFalse(power_mock.called)
-            self.assertFalse(mock_pxe_instance.called)
-            self.assertNotIn(
-                'deployment_reboot', task.node.driver_internal_info)
-
-    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
-                       autospec=True)
-    def test_deploy_storage_should_write_image_false(
-            self, mock_write, mock_power):
-        mock_write.return_value = False
-        self.node.provision_state = states.DEPLOYING
-        self.node.deploy_step = {
-            'step': 'deploy', 'priority': 50, 'interface': 'deploy'}
-        self.node.save()
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=False) as task:
-            driver_return = self.driver.deploy(task)
-            self.assertIsNone(driver_return)
-            self.assertFalse(mock_power.called)
-
-    @mock.patch.object(agent.AgentDeploy, 'refresh_steps', autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'prepare_image',
-                       autospec=True)
-    @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
-    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
-    def test_deploy_fast_track(self, power_mock, mock_pxe_instance,
-                               mock_is_fast_track, prepare_image_mock,
-                               refresh_mock):
-        mock_is_fast_track.return_value = True
-        self.node.target_provision_state = states.ACTIVE
-        self.node.provision_state = states.DEPLOYING
-        self.node.save()
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=False) as task:
-            result = self.driver.deploy(task)
-            self.assertIsNone(result)
-            self.assertFalse(power_mock.called)
-            self.assertFalse(mock_pxe_instance.called)
-            self.assertFalse(prepare_image_mock.called)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
-            self.assertEqual(states.ACTIVE,
-                             task.node.target_provision_state)
-            refresh_mock.assert_called_once_with(self.driver, task, 'deploy')
 
     @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
                        autospec=True)
@@ -1115,43 +1271,6 @@ class TestAgentDeploy(db_base.DbTestCase):
             self.assertFalse(build_options_mock.called)
             self.assertFalse(pxe_prepare_ramdisk_mock.called)
 
-    @mock.patch.object(deploy_utils, 'destroy_http_instance_images',
-                       autospec=True)
-    @mock.patch('ironic.common.dhcp_factory.DHCPFactory', autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
-    def test_clean_up(self, pxe_clean_up_ramdisk_mock,
-                      pxe_clean_up_instance_mock, dhcp_factor_mock,
-                      destroy_images_mock):
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=False) as task:
-            self.driver.clean_up(task)
-            pxe_clean_up_ramdisk_mock.assert_called_once_with(
-                task.driver.boot, task)
-            pxe_clean_up_instance_mock.assert_called_once_with(
-                task.driver.boot, task)
-            dhcp_factor_mock.assert_called_once_with()
-            destroy_images_mock.assert_called_once_with(task.node)
-
-    @mock.patch.object(deploy_utils, 'destroy_http_instance_images',
-                       autospec=True)
-    @mock.patch('ironic.common.dhcp_factory.DHCPFactory', autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
-    def test_clean_up_manage_agent_boot_false(self, pxe_clean_up_ramdisk_mock,
-                                              pxe_clean_up_instance_mock,
-                                              dhcp_factor_mock,
-                                              destroy_images_mock):
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=False) as task:
-            self.config(group='agent', manage_agent_boot=False)
-            self.driver.clean_up(task)
-            self.assertFalse(pxe_clean_up_ramdisk_mock.called)
-            pxe_clean_up_instance_mock.assert_called_once_with(
-                task.driver.boot, task)
-            dhcp_factor_mock.assert_called_once_with()
-            destroy_images_mock.assert_called_once_with(task.node)
-
     @mock.patch.object(agent_base, 'get_steps', autospec=True)
     def test_get_clean_steps(self, mock_get_steps):
         # Test getting clean steps
@@ -1378,7 +1497,7 @@ class TestAgentDeploy(db_base.DbTestCase):
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_partition_uuids',
                        autospec=True)
-    @mock.patch.object(agent.AgentDeployMixin, 'prepare_instance_to_boot',
+    @mock.patch.object(agent.AgentDeploy, 'prepare_instance_to_boot',
                        autospec=True)
     def test_prepare_instance_boot(self, prepare_instance_mock,
                                    uuid_mock, log_mock, remove_symlink_mock):
@@ -1406,7 +1525,7 @@ class TestAgentDeploy(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_partition_uuids',
                        autospec=True)
-    @mock.patch.object(agent.AgentDeployMixin, 'prepare_instance_to_boot',
+    @mock.patch.object(agent.AgentDeploy, 'prepare_instance_to_boot',
                        autospec=True)
     def test_prepare_instance_boot_no_manage_agent_boot(
             self, prepare_instance_mock, uuid_mock,
@@ -1434,7 +1553,7 @@ class TestAgentDeploy(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_partition_uuids',
                        autospec=True)
-    @mock.patch.object(agent.AgentDeployMixin, 'prepare_instance_to_boot',
+    @mock.patch.object(agent.AgentDeploy, 'prepare_instance_to_boot',
                        autospec=True)
     def test_prepare_instance_boot_partition_image(self, prepare_instance_mock,
                                                    uuid_mock, boot_mode_mock,
@@ -1470,11 +1589,11 @@ class TestAgentDeploy(db_base.DbTestCase):
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        autospec=True)
-    @mock.patch.object(agent.AgentDeployMixin, '_get_uuid_from_result',
+    @mock.patch.object(agent.AgentDeploy, '_get_uuid_from_result',
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_partition_uuids',
                        autospec=True)
-    @mock.patch.object(agent.AgentDeployMixin, 'prepare_instance_to_boot',
+    @mock.patch.object(agent.AgentDeploy, 'prepare_instance_to_boot',
                        autospec=True)
     def test_prepare_instance_boot_partition_image_compat(
             self, prepare_instance_mock, uuid_mock,
@@ -1512,7 +1631,7 @@ class TestAgentDeploy(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_partition_uuids',
                        autospec=True)
-    @mock.patch.object(agent.AgentDeployMixin, 'prepare_instance_to_boot',
+    @mock.patch.object(agent.AgentDeploy, 'prepare_instance_to_boot',
                        autospec=True)
     def test_prepare_instance_boot_partition_localboot_ppc64(
             self, prepare_instance_mock,
@@ -1556,7 +1675,7 @@ class TestAgentDeploy(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_partition_uuids',
                        autospec=True)
-    @mock.patch.object(agent.AgentDeployMixin, 'prepare_instance_to_boot',
+    @mock.patch.object(agent.AgentDeploy, 'prepare_instance_to_boot',
                        autospec=True)
     def test_prepare_instance_boot_localboot(self, prepare_instance_mock,
                                              uuid_mock, boot_mode_mock,
