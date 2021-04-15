@@ -20,7 +20,6 @@ import tempfile
 from unittest import mock
 
 from oslo_config import cfg
-from oslo_serialization import jsonutils as json
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
@@ -141,13 +140,18 @@ class PXEBootTestCase(db_base.DbTestCase):
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.boot.validate, task)
 
-    def test_validate_fail_missing_image_source(self):
-        info = dict(INST_INFO_DICT)
-        del info['image_source']
-        self.node.instance_info = json.dumps(info)
+    def test_validate_no_image_source_for_local_boot(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            task.node['instance_info'] = json.dumps(info)
+            del task.node['instance_info']['image_source']
+            task.driver.boot.validate(task)
+
+    def test_validate_fail_missing_image_source(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node['instance_info']['capabilities'] = {
+                'boot_option': 'netboot'}
+            del task.node['instance_info']['image_source']
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.boot.validate, task)
 
@@ -201,6 +205,8 @@ class PXEBootTestCase(db_base.DbTestCase):
         mock_glance.side_effect = exception.ImageNotFound('not found')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            task.node.instance_info['capabilities'] = {
+                'boot_option': 'netboot'}
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.boot.validate, task)
 
@@ -213,6 +219,8 @@ class PXEBootTestCase(db_base.DbTestCase):
         for exc in exceptions:
             with task_manager.acquire(self.context, self.node.uuid,
                                       shared=True) as task:
+                task.node.instance_info['capabilities'] = {
+                    'boot_option': 'netboot'}
                 self.assertRaises(exception.InvalidParameterValue,
                                   task.driver.boot.validate, task)
 
@@ -974,10 +982,9 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'validate_image_properties',
                        autospec=True)
     def test_validate(self, mock_validate_img):
-        node = self.node
-        node.properties['capabilities'] = 'boot_option:netboot'
-        node.save()
-        with task_manager.acquire(self.context, node.uuid) as task:
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.instance_info['capabilities'] = {
+                'boot_option': 'netboot'}
             task.driver.deploy.validate(task)
         self.assertTrue(mock_validate_img.called)
 
