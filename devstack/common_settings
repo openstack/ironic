@@ -8,6 +8,12 @@ fi
 # values are: "bios" or "uefi", defaults to "bios".
 IRONIC_BOOT_MODE=${IRONIC_BOOT_MODE:-bios}
 
+CIRROS_VERSION_DEVSTACK=$(set +o xtrace &&
+                          source $TOP_DIR/stackrc &&
+                          echo $CIRROS_VERSION)
+
+CIRROS_VERSION=${CIRROS_VERSION:-$CIRROS_VERSION_DEVSTACK}
+
 IRONIC_DEFAULT_IMAGE_NAME=cirros-${CIRROS_VERSION}-x86_64-uec
 
 IRONIC_IMAGE_NAME=${DEFAULT_IMAGE_NAME:-$IRONIC_DEFAULT_IMAGE_NAME}
