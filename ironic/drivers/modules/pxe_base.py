@@ -400,22 +400,26 @@ class PXEBaseMixin(object):
             missing.
         """
         self._validate_common(task)
+        node = task.node
 
         # NOTE(TheJulia): If we're not writing an image, we can skip
         # the remainder of this method.
-        if (not task.driver.storage.should_write_image(task)):
+        # NOTE(dtantsur): if we're are writing an image with local boot
+        # the boot interface does not care about image parameters and
+        # must not validate them.
+        boot_option = deploy_utils.get_boot_option(node)
+        if (not task.driver.storage.should_write_image(task)
+                or boot_option == 'local'):
             return
 
-        node = task.node
         d_info = deploy_utils.get_image_instance_info(node)
-        if (node.driver_internal_info.get('is_whole_disk_image')
-                or deploy_utils.get_boot_option(node) == 'local'):
+        if node.driver_internal_info.get('is_whole_disk_image'):
             props = []
         elif d_info.get('boot_iso'):
             props = ['boot_iso']
         elif service_utils.is_glance_image(d_info['image_source']):
             props = ['kernel_id', 'ramdisk_id']
-            if deploy_utils.get_boot_option(node) == 'kickstart':
+            if boot_option == 'kickstart':
                 props.append('squashfs_id')
         else:
             props = ['kernel', 'ramdisk']
