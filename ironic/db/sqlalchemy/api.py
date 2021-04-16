@@ -1675,6 +1675,15 @@ class Connection(api.Connection):
                         node_id=node_id,
                         name=setting['name'],
                         value=setting['value'],
+                        attribute_type=setting.get('attribute_type'),
+                        allowable_values=setting.get('allowable_values'),
+                        lower_bound=setting.get('lower_bound'),
+                        max_length=setting.get('max_length'),
+                        min_length=setting.get('min_length'),
+                        read_only=setting.get('read_only'),
+                        reset_required=setting.get('reset_required'),
+                        unique=setting.get('unique'),
+                        upper_bound=setting.get('upper_bound'),
                         version=version)
                     bios_settings.append(bios_setting)
                     session.add(bios_setting)
@@ -1695,6 +1704,18 @@ class Connection(api.Connection):
                         node_id=node_id, name=setting['name'])
                     ref = query.one()
                     ref.update({'value': setting['value'],
+                                'attribute_type':
+                                setting.get('attribute_type'),
+                                'allowable_values':
+                                setting.get('allowable_values'),
+                                'lower_bound': setting.get('lower_bound'),
+                                'max_length': setting.get('max_length'),
+                                'min_length': setting.get('min_length'),
+                                'read_only': setting.get('read_only'),
+                                'reset_required':
+                                setting.get('reset_required'),
+                                'unique': setting.get('unique'),
+                                'upper_bound': setting.get('upper_bound'),
                                 'version': version})
                     bios_settings.append(ref)
                 session.flush()

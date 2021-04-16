@@ -566,7 +566,12 @@ def create_test_bios_setting(**kw):
     node_id = bios_setting['node_id']
     version = bios_setting['version']
     settings = [{'name': bios_setting['name'],
-                 'value': bios_setting['value']}]
+                 'value': bios_setting['value'],
+                 'attribute_type': bios_setting['attribute_type'],
+                 'allowable_values': bios_setting['allowable_values'],
+                 'read_only': bios_setting['read_only'],
+                 'reset_required': bios_setting['reset_required'],
+                 'unique': bios_setting['unique']}]
     return dbapi.create_bios_setting_list(node_id, settings, version)[0]
 
 
@@ -575,6 +580,15 @@ def get_test_bios_setting(**kw):
         'node_id': kw.get('node_id', '123'),
         'name': kw.get('name', 'virtualization'),
         'value': kw.get('value', 'on'),
+        'attribute_type': kw.get('attribute_type', 'Enumeration'),
+        'allowable_values': kw.get('allowable_values', ['on', 'off']),
+        'lower_bound': kw.get('lower_bound', None),
+        'max_length': kw.get('max_length', None),
+        'min_length': kw.get('max_length', None),
+        'read_only': kw.get('read_only', False),
+        'reset_required': kw.get('reset_required', True),
+        'unique': kw.get('unique', False),
+        'upper_bound': kw.get('upper_bound', None),
         'version': kw.get('version', bios.BIOSSetting.VERSION),
         'created_at': kw.get('created_at'),
         'updated_at': kw.get('updated_at'),

@@ -1385,8 +1385,7 @@ def store_agent_certificate(node, agent_verify_ca):
 def node_cache_bios_settings(task, node):
     """Do caching of bios settings if supported by driver"""
     try:
-        LOG.debug('BF getting BIOS info for node %s',
-                  node.uuid)
+        LOG.debug('Getting BIOS info for node %s', node.uuid)
         task.driver.bios.cache_bios_settings(task)
     except exception.UnsupportedDriverExtension:
         LOG.warning('BIOS settings are not supported for node %s, '

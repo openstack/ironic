@@ -1321,18 +1321,27 @@ def allow_detail_query():
     return api.request.version.minor >= versions.MINOR_43_ENABLE_DETAIL_QUERY
 
 
+def allow_query_bios():
+    """Check if BIOS queries should be allowed based on version"""
+
+    return api.request.version.minor >= versions.MINOR_74_BIOS_REGISTRY
+
+
 def allow_reset_interfaces():
     """Check if passing a reset_interfaces query string is allowed."""
     return api.request.version.minor >= versions.MINOR_45_RESET_INTERFACES
 
 
-def get_request_return_fields(fields, detail, default_fields):
+def get_request_return_fields(fields, detail, default_fields,
+                              check_detail_version=allow_detail_query,
+                              check_fields_version=None):
     """Calculate fields to return from an API request
 
     The fields query and detail=True query can not be passed into a request at
     the same time. To use the detail query we need to be on a version of the
-    API greater than 1.43. This function raises an InvalidParameterValue
-    exception if either of these conditions are not met.
+    API greater than expected, likewise some APIs require a certain version for
+    the fields query. This function raises an InvalidParameterValue exception
+    if any of these conditions are not met.
 
     If these checks pass then this function will return either the fields
     passed in or the default fields provided.
@@ -1341,14 +1350,23 @@ def get_request_return_fields(fields, detail, default_fields):
     :param detail: The detail query passed into the API request.
     :param default_fields: The default fields to return if fields=None and
         detail=None.
+    :param check_detail_version: Function to check if detail query is allowed
+        based on the version.
+    :param check_fields_version: Function to check if fields query is allowed
+        based on the version.
     :raises: InvalidParameterValue if there is an invalid combination of query
         strings or API version.
     :returns: 'fields' passed in value or 'default_fields'
     """
 
-    if detail is not None and not allow_detail_query():
+    if detail is not None and not check_detail_version():
         raise exception.InvalidParameterValue(
             "Invalid query parameter ?detail=%s received." % detail)
+
+    if (fields is not None and callable(check_fields_version)
+            and not check_fields_version()):
+        raise exception.InvalidParameterValue(
+            "Invalid query parameter ?fields=%s received." % fields)
 
     if fields is not None and detail:
         raise exception.InvalidParameterValue(

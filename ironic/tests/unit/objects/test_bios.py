@@ -42,6 +42,15 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertEqual(self.bios_setting['node_id'], bios_obj.node_id)
         self.assertEqual(self.bios_setting['name'], bios_obj.name)
         self.assertEqual(self.bios_setting['value'], bios_obj.value)
+        self.assertEqual(self.bios_setting['attribute_type'],
+                         bios_obj.attribute_type)
+        self.assertEqual(self.bios_setting['allowable_values'],
+                         bios_obj.allowable_values)
+        self.assertEqual(self.bios_setting['reset_required'],
+                         bios_obj.reset_required)
+        self.assertEqual(self.bios_setting['read_only'],
+                         bios_obj.read_only)
+        self.assertEqual(self.bios_setting['unique'], bios_obj.unique)
 
     @mock.patch.object(dbapi.IMPL, 'get_bios_setting_list', autospec=True)
     def test_get_by_node_id(self, mock_get_setting_list):
@@ -67,9 +76,22 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         fake_call_args = {'node_id': self.bios_setting['node_id'],
                           'name': self.bios_setting['name'],
                           'value': self.bios_setting['value'],
+                          'attribute_type':
+                          self.bios_setting['attribute_type'],
+                          'allowable_values':
+                          self.bios_setting['allowable_values'],
+                          'read_only': self.bios_setting['read_only'],
+                          'reset_required':
+                          self.bios_setting['reset_required'],
+                          'unique': self.bios_setting['unique'],
                           'version': self.bios_setting['version']}
-        setting = [{'name': self.bios_setting['name'],
-                    'value': self.bios_setting['value']}]
+        setting = [{'name': 'virtualization', 'value': 'on', 'attribute_type':
+                    'Enumeration', 'allowable_values': ['on', 'off'],
+                    'lower_bound': None, 'max_length': None,
+                    'min_length': None, 'read_only': False,
+                    'reset_required': True, 'unique': False,
+                    'upper_bound': None}]
+
         bios_obj = objects.BIOSSetting(context=self.context,
                                        **fake_call_args)
         mock_create_list.return_value = [self.bios_setting]
@@ -81,6 +103,15 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertEqual(self.bios_setting['node_id'], bios_obj.node_id)
         self.assertEqual(self.bios_setting['name'], bios_obj.name)
         self.assertEqual(self.bios_setting['value'], bios_obj.value)
+        self.assertEqual(self.bios_setting['attribute_type'],
+                         bios_obj.attribute_type)
+        self.assertEqual(self.bios_setting['allowable_values'],
+                         bios_obj.allowable_values)
+        self.assertEqual(self.bios_setting['read_only'],
+                         bios_obj.read_only)
+        self.assertEqual(self.bios_setting['reset_required'],
+                         bios_obj.reset_required)
+        self.assertEqual(self.bios_setting['unique'], bios_obj.unique)
 
     @mock.patch.object(dbapi.IMPL, 'update_bios_setting_list', autospec=True)
     def test_save(self, mock_update_list):
@@ -89,7 +120,12 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
                           'value': self.bios_setting['value'],
                           'version': self.bios_setting['version']}
         setting = [{'name': self.bios_setting['name'],
-                    'value': self.bios_setting['value']}]
+                    'value': self.bios_setting['value'],
+                    'attribute_type': None, 'allowable_values': None,
+                    'lower_bound': None, 'max_length': None,
+                    'min_length': None, 'read_only': None,
+                    'reset_required': None, 'unique': None,
+                    'upper_bound': None}]
         bios_obj = objects.BIOSSetting(context=self.context,
                                        **fake_call_args)
         mock_update_list.return_value = [self.bios_setting]
@@ -111,7 +147,7 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         bios_obj_list = objects.BIOSSettingList.create(
             self.context, self.node_id, settings)
 
-        mock_create_list.assert_called_once_with(self.node_id, settings, '1.0')
+        mock_create_list.assert_called_once_with(self.node_id, settings, '1.1')
         self.assertEqual(self.context, bios_obj_list._context)
         self.assertEqual(2, len(bios_obj_list))
         self.assertEqual(self.bios_setting['node_id'],
@@ -120,7 +156,6 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertEqual(self.bios_setting['value'], bios_obj_list[0].value)
         self.assertEqual(bios_setting2['node_id'], bios_obj_list[1].node_id)
         self.assertEqual(bios_setting2['name'], bios_obj_list[1].name)
-        self.assertEqual(bios_setting2['value'], bios_obj_list[1].value)
 
     @mock.patch.object(dbapi.IMPL, 'update_bios_setting_list', autospec=True)
     def test_list_save(self, mock_update_list):
@@ -131,7 +166,7 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         bios_obj_list = objects.BIOSSettingList.save(
             self.context, self.node_id, settings)
 
-        mock_update_list.assert_called_once_with(self.node_id, settings, '1.0')
+        mock_update_list.assert_called_once_with(self.node_id, settings, '1.1')
         self.assertEqual(self.context, bios_obj_list._context)
         self.assertEqual(2, len(bios_obj_list))
         self.assertEqual(self.bios_setting['node_id'],
@@ -189,8 +224,7 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             objects.BIOSSettingList.sync_node_setting(self.ctxt, node.id,
                                                       settings))
 
-        expected_delete = [{'name': bios_obj_1.name,
-                            'value': bios_obj_1.value}]
+        expected_delete = [{'name': 'virtualization', 'value': 'on'}]
         self.assertEqual(create, settings[:2])
         self.assertEqual(update, [])
         self.assertEqual(delete, expected_delete)

@@ -25,23 +25,34 @@ from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
+_DEFAULT_RETURN_FIELDS = ('name', 'value')
+_DEFAULT_FIELDS_WITH_REGISTRY = ('name', 'value', 'attribute_type',
+                                 'allowable_values', 'lower_bound',
+                                 'max_length', 'min_length', 'read_only',
+                                 'reset_required', 'unique', 'upper_bound')
 
-def convert_with_links(rpc_bios, node_uuid):
+
+def convert_with_links(rpc_bios, node_uuid, detail=None, fields=None):
     """Build a dict containing a bios setting value."""
+
+    if detail:
+        fields = _DEFAULT_FIELDS_WITH_REGISTRY
+
     bios = api_utils.object_to_dict(
         rpc_bios,
         include_uuid=False,
-        fields=('name', 'value'),
+        fields=fields,
         link_resource='nodes',
         link_resource_args="%s/bios/%s" % (node_uuid, rpc_bios.name),
     )
     return bios
 
 
-def collection_from_list(node_ident, bios_settings):
+def collection_from_list(node_ident, bios_settings, detail=None, fields=None):
     bios_list = []
     for bios_setting in bios_settings:
-        bios_list.append(convert_with_links(bios_setting, node_ident))
+        bios_list.append(convert_with_links(bios_setting, node_ident,
+                         detail, fields))
     return {'bios': bios_list}
 
 
@@ -54,14 +65,23 @@ class NodeBiosController(rest.RestController):
 
     @METRICS.timer('NodeBiosController.get_all')
     @method.expose()
-    def get_all(self):
+    @args.validate(fields=args.string_list, detail=args.boolean)
+    def get_all(self, detail=None, fields=None):
         """List node bios settings."""
         node = api_utils.check_node_policy_and_retrieve(
             'baremetal:node:bios:get', self.node_ident)
 
+        # The BIOS detail and fields query were added in a later
+        # version, check if they are valid based on version
+        allow_query = api_utils.allow_query_bios
+        fields = api_utils.get_request_return_fields(fields, detail,
+                                                     _DEFAULT_RETURN_FIELDS,
+                                                     allow_query, allow_query)
+
         settings = objects.BIOSSettingList.get_by_node_id(
             api.request.context, node.id)
-        return collection_from_list(self.node_ident, settings)
+        return collection_from_list(self.node_ident, settings,
+                                    detail, fields)
 
     @METRICS.timer('NodeBiosController.get_one')
     @method.expose()
@@ -81,4 +101,11 @@ class NodeBiosController(rest.RestController):
             raise exception.BIOSSettingNotFound(node=node.uuid,
                                                 name=setting_name)
 
-        return {setting_name: convert_with_links(setting, node.uuid)}
+        # Return fields based on version
+        if api_utils.allow_query_bios():
+            fields = _DEFAULT_FIELDS_WITH_REGISTRY
+        else:
+            fields = _DEFAULT_RETURN_FIELDS
+
+        return {setting_name: convert_with_links(setting, node.uuid,
+                fields=fields)}

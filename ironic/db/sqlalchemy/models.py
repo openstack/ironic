@@ -339,6 +339,15 @@ class BIOSSetting(Base):
                      primary_key=True, nullable=False)
     name = Column(String(255), primary_key=True, nullable=False)
     value = Column(Text, nullable=True)
+    attribute_type = Column(String(255), nullable=True)
+    allowable_values = Column(db_types.JsonEncodedList, nullable=True)
+    lower_bound = Column(Integer, nullable=True)
+    max_length = Column(Integer, nullable=True)
+    min_length = Column(Integer, nullable=True)
+    read_only = Column(Boolean, nullable=True)
+    reset_required = Column(Boolean, nullable=True)
+    unique = Column(Boolean, nullable=True)
+    upper_bound = Column(Integer, nullable=True)
 
 
 class Allocation(Base):

@@ -29,7 +29,7 @@ class DbBIOSSettingTestCase(base.DbTestCase):
         self.assertEqual(result['node_id'], self.node.id)
         self.assertEqual(result['name'], 'virtualization')
         self.assertEqual(result['value'], 'on')
-        self.assertEqual(result['version'], '1.0')
+        self.assertEqual(result['version'], '1.1')
 
     def test_get_bios_setting_node_not_exist(self):
         self.assertRaises(exception.NodeNotFound,
@@ -50,7 +50,7 @@ class DbBIOSSettingTestCase(base.DbTestCase):
         self.assertEqual(result[0]['node_id'], self.node.id)
         self.assertEqual(result[0]['name'], 'virtualization')
         self.assertEqual(result[0]['value'], 'on')
-        self.assertEqual(result[0]['version'], '1.0')
+        self.assertEqual(result[0]['version'], '1.1')
         self.assertEqual(len(result), 1)
 
     def test_get_bios_setting_list_node_not_exist(self):
@@ -61,7 +61,7 @@ class DbBIOSSettingTestCase(base.DbTestCase):
     def test_create_bios_setting_list(self):
         settings = db_utils.get_test_bios_setting_setting_list()
         result = self.dbapi.create_bios_setting_list(
-            self.node.id, settings, '1.0')
+            self.node.id, settings, '1.1')
         self.assertCountEqual(['virtualization', 'hyperthread', 'numlock'],
                               [setting.name for setting in result])
         self.assertCountEqual(['on', 'enabled', 'off'],
@@ -69,7 +69,7 @@ class DbBIOSSettingTestCase(base.DbTestCase):
 
     def test_create_bios_setting_list_duplicate(self):
         settings = db_utils.get_test_bios_setting_setting_list()
-        self.dbapi.create_bios_setting_list(self.node.id, settings, '1.0')
+        self.dbapi.create_bios_setting_list(self.node.id, settings, '1.1')
         self.assertRaises(exception.BIOSSettingAlreadyExists,
                           self.dbapi.create_bios_setting_list,
                           self.node.id, settings, '1.0')
@@ -81,18 +81,18 @@ class DbBIOSSettingTestCase(base.DbTestCase):
 
     def test_update_bios_setting_list(self):
         settings = db_utils.get_test_bios_setting_setting_list()
-        self.dbapi.create_bios_setting_list(self.node.id, settings, '1.0')
+        self.dbapi.create_bios_setting_list(self.node.id, settings, '1.1')
         settings = [{'name': 'virtualization', 'value': 'off'},
                     {'name': 'hyperthread', 'value': 'disabled'},
                     {'name': 'numlock', 'value': 'on'}]
         result = self.dbapi.update_bios_setting_list(
-            self.node.id, settings, '1.0')
+            self.node.id, settings, '1.1')
         self.assertCountEqual(['off', 'disabled', 'on'],
                               [setting.value for setting in result])
 
     def test_update_bios_setting_list_setting_not_exist(self):
         settings = db_utils.get_test_bios_setting_setting_list()
-        self.dbapi.create_bios_setting_list(self.node.id, settings, '1.0')
+        self.dbapi.create_bios_setting_list(self.node.id, settings, '1.1')
         for setting in settings:
             setting['name'] = 'bios_name'
         self.assertRaises(exception.BIOSSettingNotFound,
@@ -106,7 +106,7 @@ class DbBIOSSettingTestCase(base.DbTestCase):
 
     def test_delete_bios_setting_list(self):
         settings = db_utils.get_test_bios_setting_setting_list()
-        self.dbapi.create_bios_setting_list(self.node.id, settings, '1.0')
+        self.dbapi.create_bios_setting_list(self.node.id, settings, '1.1')
         name_list = [setting['name'] for setting in settings]
         self.dbapi.delete_bios_setting_list(self.node.id, name_list)
         self.assertRaises(exception.BIOSSettingNotFound,
@@ -126,7 +126,7 @@ class DbBIOSSettingTestCase(base.DbTestCase):
 
     def test_delete_bios_setting_list_setting_not_exist(self):
         settings = db_utils.get_test_bios_setting_setting_list()
-        self.dbapi.create_bios_setting_list(self.node.id, settings, '1.0')
+        self.dbapi.create_bios_setting_list(self.node.id, settings, '1.1')
         self.assertRaises(exception.BIOSSettingListNotFound,
                           self.dbapi.delete_bios_setting_list,
                           self.node.id, ['fake-bios-option'])

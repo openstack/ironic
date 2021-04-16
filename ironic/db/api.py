@@ -1054,10 +1054,12 @@ class Connection(object, metaclass=abc.ABCMeta):
                           {
                            'name': String,
                            'value': String,
+                           additional settings from BIOS registry
                           },
                           {
                            'name': String,
                            'value': String,
+                           additional settings from BIOS registry
                           },
                           ...
                         ]
@@ -1081,10 +1083,12 @@ class Connection(object, metaclass=abc.ABCMeta):
                           {
                            'name': String,
                            'value': String,
+                           additional settings from BIOS registry
                           },
                           {
                            'name': String,
                            'value': String,
+                           additional settings from BIOS registry
                           },
                           ...
                         ]

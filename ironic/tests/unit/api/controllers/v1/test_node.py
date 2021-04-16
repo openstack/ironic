@@ -6685,7 +6685,7 @@ class TestBIOS(test_api_base.BaseApiTest):
 
     def setUp(self):
         super(TestBIOS, self).setUp()
-        self.version = "1.40"
+        self.version = "1.74"
         self.node = obj_utils.create_test_node(
             self.context, id=1)
         self.bios = obj_utils.create_test_bios_setting(self.context,
@@ -6718,13 +6718,40 @@ class TestBIOS(test_api_base.BaseApiTest):
 
         expected_json = {
             'virtualization': {
+                'allowable_values': ['on', 'off'],
+                'attribute_type': 'Enumeration',
                 'created_at': ret['virtualization']['created_at'],
-                'updated_at': ret['virtualization']['updated_at'],
                 'links': [
                     {'href': 'http://localhost/v1/nodes/%s/bios/virtualization'
                      % self.node.uuid, u'rel': u'self'},
                     {'href': 'http://localhost/nodes/%s/bios/virtualization'
                      % self.node.uuid, u'rel': u'bookmark'}],
+                'lower_bound': None,
+                'min_length': None,
+                'max_length': None,
+                'name': 'virtualization',
+                'read_only': False,
+                'reset_required': True,
+                'unique': False,
+                'updated_at': None,
+                'upper_bound': None,
+                'value': 'on'}}
+
+        self.assertEqual(expected_json, ret)
+
+    def test_get_one_bios_no_registry(self):
+        ret = self.get_json('/nodes/%s/bios/virtualization' % self.node.uuid,
+                            headers={api_base.Version.string: "1.73"})
+
+        expected_json = {
+            'virtualization': {
+                'created_at': ret['virtualization']['created_at'],
+                'updated_at': ret['virtualization']['updated_at'],
+                'links': [
+                    {'href': 'http://localhost/v1/nodes/%s/bios/virtualization'
+                     % self.node.uuid, 'rel': 'self'},
+                    {'href': 'http://localhost/nodes/%s/bios/virtualization'
+                     % self.node.uuid, 'rel': 'bookmark'}],
                 'name': 'virtualization', 'value': 'on'}}
         self.assertEqual(expected_json, ret)
 
@@ -6741,6 +6768,88 @@ class TestBIOS(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
         self.assertIn("fake_setting", ret.json['error_message'])
         self.assertNotIn(self.node.id, ret.json['error_message'])
+
+    def test_get_all_bios_with_detail(self):
+        ret = self.get_json('/nodes/%s/bios?detail=True' % self.node.uuid,
+                            headers={api_base.Version.string: self.version})
+
+        expected_json = [
+            {'allowable_values': ['on', 'off'],
+             'attribute_type': 'Enumeration',
+             'created_at': ret['bios'][0]['created_at'],
+             'links': [
+                 {'href': 'http://localhost/v1/nodes/%s/bios/virtualization'
+                  % self.node.uuid, 'rel': 'self'},
+                 {'href': 'http://localhost/nodes/%s/bios/virtualization'
+                  % self.node.uuid, 'rel': 'bookmark'}],
+             'lower_bound': None,
+             'max_length': None,
+             'min_length': None,
+             'name': 'virtualization',
+             'read_only': False,
+             'reset_required': True,
+             'unique': False,
+             'updated_at': None,
+             'upper_bound': None,
+             'value': 'on'}]
+
+        self.assertEqual({'bios': expected_json}, ret)
+
+    def test_get_all_bios_detail_false(self):
+        ret = self.get_json('/nodes/%s/bios?detail=False' % self.node.uuid,
+                            headers={api_base.Version.string: self.version})
+
+        expected_json = [
+            {'created_at': ret['bios'][0]['created_at'],
+             'updated_at': ret['bios'][0]['updated_at'],
+             'links': [
+                {'href': 'http://localhost/v1/nodes/%s/bios/virtualization'
+                 % self.node.uuid, 'rel': 'self'},
+                {'href': 'http://localhost/nodes/%s/bios/virtualization'
+                 % self.node.uuid, 'rel': 'bookmark'}],
+                'name': 'virtualization', 'value': 'on'}]
+        self.assertEqual({'bios': expected_json}, ret)
+
+    def test_get_all_bios_detail_old_version(self):
+        ret = self.get_json('/nodes/%s/bios?detail=True' % self.node.uuid,
+                            headers={api_base.Version.string: "1.73"},
+                            expect_errors=True)
+
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
+
+    def test_get_bios_fields_old_version(self):
+        ret = self.get_json('/nodes/%s/bios?fields=name,read_only'
+                            % self.node.uuid,
+                            headers={api_base.Version.string: "1.73"},
+                            expect_errors=True)
+
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
+
+    def test_get_bios_detail_and_fields(self):
+        ret = self.get_json('/nodes/%s/bios?detail=True?fields=name,read_only'
+                            % self.node.uuid,
+                            headers={api_base.Version.string: "1.74"},
+                            expect_errors=True)
+
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
+
+    def test_get_bios_fields(self):
+        ret = self.get_json('/nodes/%s/bios?fields=name,read_only'
+                            % self.node.uuid,
+                            headers={api_base.Version.string: self.version})
+
+        expected_json = [
+            {'created_at': ret['bios'][0]['created_at'],
+             'links': [
+                 {'href': 'http://localhost/v1/nodes/%s/bios/virtualization'
+                  % self.node.uuid, 'rel': 'self'},
+                 {'href': 'http://localhost/nodes/%s/bios/virtualization'
+                  % self.node.uuid, 'rel': 'bookmark'}],
+             'name': 'virtualization',
+             'read_only': False,
+             'updated_at': None}]
+
+        self.assertEqual({'bios': expected_json}, ret)
 
 
 class TestTraits(test_api_base.BaseApiTest):

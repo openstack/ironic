@@ -505,12 +505,75 @@ bios_interface:
   in: body
   required: true
   type: string
+bios_setting_allowable_values:
+  description: |
+    A list of allowable values when the attribute_type is "Enumeration",
+    otherwise None.
+  in: body
+  required: true
+  type: array
+bios_setting_attribute_type:
+  description: |
+    A string describing the type of the Bios setting - "Enumeration",
+    "Integer", "String", "Boolean", or "Password".  May be None.
+  in: body
+  required: true
+  type: string
+bios_setting_lower_bound:
+  description: |
+    The lowest allowed value when attribute_type is "Integer".
+    May be None.
+  in: body
+  required: true
+  type: integer
+bios_setting_max_length:
+  description: |
+    The maximum length when attribute_type is "String".
+    May be None.
+  in: body
+  required: true
+  type: integer
+bios_setting_min_length:
+  description: |
+    The minimum length when attribute_type is "String".
+    May be None.
+  in: body
+  required: true
+  type: integer
 bios_setting_name:
   description: |
     The name of a Bios setting for a Node, eg. "virtualization".
   in: body
   required: true
   type: string
+bios_setting_read_only:
+  description: |
+    This Bios seting is read only and can't be changed.
+    May be None.
+  in: body
+  required: true
+  type: boolean
+bios_setting_reset_required:
+  description: |
+    After setting this Bios setting a node reboot is required.
+    May be None.
+  in: body
+  required: true
+  type: boolean
+bios_setting_unique:
+  description: |
+    This Bios setting is unique to this node.
+    May be None.
+  in: body
+  required: true
+  type: boolean
+bios_setting_upper_bound:
+  description: |
+    The lowest allowed value when attribute_type is "Integer".
+    May be None.
+  in: body
+  required: true
+  type: integer
 bios_setting_value:
   description: |
     The value of a Bios setting for a Node, eg. "on".
@@ -520,7 +583,9 @@ bios_setting_value:
 bios_settings:
   description: |
     Optional list of one or more Bios settings. It includes following fields
-    "created_at", "updated_at", "links", "name", "value".
+    "created_at", "updated_at", "links", "name", "value", "attribute_type",
+    "allowable_values", "lower_bound", "max_length", "min_length", "read_only",
+    "reset_required", "unique", "upper_bound"
   in: body
   required: true
   type: array

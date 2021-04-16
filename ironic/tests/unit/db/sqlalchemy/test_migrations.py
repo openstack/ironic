@@ -705,6 +705,40 @@ class MigrationCheckersMixin(object):
                 bios_settings.c.name == setting['name'])).execute().first()
         self.assertEqual('on', setting['value'])
 
+    def _check_2bbd96b6ccb9(self, engine, data):
+        bios_settings = db_utils.get_table(engine, 'bios_settings')
+        col_names = [column.name for column in bios_settings.c]
+        self.assertIn('attribute_type', col_names)
+        self.assertIn('allowable_values', col_names)
+        self.assertIn('lower_bound', col_names)
+        self.assertIn('max_length', col_names)
+        self.assertIn('min_length', col_names)
+        self.assertIn('read_only', col_names)
+        self.assertIn('reset_required', col_names)
+        self.assertIn('unique', col_names)
+        self.assertIn('upper_bound', col_names)
+        self.assertIsInstance(bios_settings.c.attribute_type.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(bios_settings.c.allowable_values.type,
+                              sqlalchemy.types.TEXT)
+        self.assertIsInstance(bios_settings.c.lower_bound.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(bios_settings.c.max_length.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(bios_settings.c.min_length.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(bios_settings.c.read_only.type,
+                              (sqlalchemy.types.Boolean,
+                               sqlalchemy.types.Integer))
+        self.assertIsInstance(bios_settings.c.reset_required.type,
+                              (sqlalchemy.types.Boolean,
+                               sqlalchemy.types.Integer))
+        self.assertIsInstance(bios_settings.c.unique.type,
+                              (sqlalchemy.types.Boolean,
+                               sqlalchemy.types.Integer))
+        self.assertIsInstance(bios_settings.c.upper_bound.type,
+                              sqlalchemy.types.Integer)
+
     def _check_2d13bc3d6bba(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
         col_names = [column.name for column in nodes.c]
