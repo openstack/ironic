@@ -228,6 +228,8 @@ if not sushy:
         type('ResourceNotFoundError', (sushy.exceptions.SushyError,), {}))
     sushy.exceptions.MissingAttributeError = (
         type('MissingAttributeError', (sushy.exceptions.SushyError,), {}))
+    sushy.exceptions.BadRequestError = (
+        type('BadRequestError', (sushy.exceptions.SushyError,), {}))
     sushy.auth = mock.MagicMock(spec_set=mock_specs.SUSHY_AUTH_SPEC)
     sys.modules['sushy.auth'] = sushy.auth
 
