@@ -1143,13 +1143,10 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_mgmt.LOG, 'warning', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
     def test__check_node_firmware_update_task_monitor_not_found(
-            self, mock_get_update_service, mock_log):
-        mock_update_service = mock.Mock()
-        mock_update_service.get_task_monitor.side_effect =\
-            sushy.exceptions.ResourceNotFoundError(
-                method='GET', url='/task/123', response=mock.MagicMock())
-        mock_get_update_service.return_value = mock_update_service
+            self, mock_task_monitor, mock_get_update_service, mock_log):
+        mock_task_monitor.side_effect = exception.RedfishError()
         driver_internal_info = {
             'firmware_updates': [
                 {'task_monitor': '/task/123',
@@ -1166,19 +1163,17 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             self.assertTrue(mock_log.called)
             management._continue_firmware_updates.assert_called_once_with(
                 task,
-                mock_update_service,
+                mock_get_update_service.return_value,
                 [{'task_monitor': '/task/123', 'url': 'test1'}])
 
     @mock.patch.object(redfish_mgmt.LOG, 'debug', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
     def test__check_node_firmware_update_in_progress(self,
+                                                     mock_get_task_monitor,
                                                      mock_get_update_service,
                                                      mock_log):
-        mock_task_monitor = mock.Mock()
-        mock_task_monitor.is_processing = True
-        mock_update_service = mock.Mock()
-        mock_update_service.get_task_monitor.return_value = mock_task_monitor
-        mock_get_update_service.return_value = mock_update_service
+        mock_get_task_monitor.return_value.is_processing = True
         driver_internal_info = {
             'firmware_updates': [
                 {'task_monitor': '/task/123',
@@ -1195,7 +1190,9 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
     def test__check_node_firmware_update_fail(self,
+                                              mock_get_task_monitor,
                                               mock_get_update_service,
                                               mock_cleaning_error_handler):
         mock_sushy_task = mock.Mock()
@@ -1211,9 +1208,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         mock_task_monitor = mock.Mock()
         mock_task_monitor.is_processing = False
         mock_task_monitor.get_task.return_value = mock_sushy_task
-        mock_update_service = mock.Mock()
-        mock_update_service.get_task_monitor.return_value = mock_task_monitor
-        mock_get_update_service.return_value = mock_update_service
+        mock_get_task_monitor.return_value = mock_task_monitor
         driver_internal_info = {'something': 'else',
                                 'firmware_updates': [
                                     {'task_monitor': '/task/123',
@@ -1238,7 +1233,9 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_mgmt.LOG, 'info', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
     def test__check_node_firmware_update_done(self,
+                                              mock_get_task_monitor,
                                               mock_get_update_service,
                                               mock_log):
         mock_task = mock.Mock()
@@ -1250,9 +1247,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         mock_task_monitor = mock.Mock()
         mock_task_monitor.is_processing = False
         mock_task_monitor.get_task.return_value = mock_task
-        mock_update_service = mock.Mock()
-        mock_update_service.get_task_monitor.return_value = mock_task_monitor
-        mock_get_update_service.return_value = mock_update_service
+        mock_get_task_monitor.return_value = mock_task_monitor
         driver_internal_info = {
             'firmware_updates': [
                 {'task_monitor': '/task/123',
@@ -1269,7 +1264,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             self.assertTrue(mock_log.called)
             management._continue_firmware_updates.assert_called_once_with(
                 task,
-                mock_update_service,
+                mock_get_update_service.return_value,
                 [{'task_monitor': '/task/123',
                   'url': 'test1'}])
 
