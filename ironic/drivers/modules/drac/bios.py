@@ -277,10 +277,10 @@ class DracWSManBIOS(base.BIOSInterface):
             time = timeutils.utcnow(with_timezone=True
                                     ) - timeutils.parse_isotime(str(
                                         factory_reset_time))
-            time_difference = time.seconds
+            time_difference = time.total_seconds()
             LOG.debug("Factory resetting node %(node_uuid)s "
-                      "time difference %(time_diffrence)s ",
-                      {"node_uuid": task.node.uuid, "time_diffrence":
+                      "time difference %(time_difference)s ",
+                      {"node_uuid": task.node.uuid, "time_difference":
                        time_difference})
 
             if time_difference > CONF.drac.bios_factory_reset_timeout:

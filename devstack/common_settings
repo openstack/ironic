@@ -7,7 +7,12 @@ fi
 # Whether configure the nodes to boot in Legacy BIOS or UEFI mode. Accepted
 # values are: "bios" or "uefi", defaults to "bios".
 IRONIC_BOOT_MODE=${IRONIC_BOOT_MODE:-bios}
-CIRROS_VERSION=${CIRROS_VERSION:-"0.5.1"}
+
+CIRROS_VERSION_DEVSTACK=$(set +o xtrace &&
+                          source $TOP_DIR/stackrc &&
+                          echo $CIRROS_VERSION)
+
+CIRROS_VERSION=${CIRROS_VERSION:-$CIRROS_VERSION_DEVSTACK}
 
 IRONIC_DEFAULT_IMAGE_NAME=cirros-${CIRROS_VERSION}-x86_64-uec
 
