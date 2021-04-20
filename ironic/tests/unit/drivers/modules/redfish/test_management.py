@@ -345,6 +345,12 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_set_boot_mode(self, mock_get_system):
+        boot_attribute = {
+            'target': sushy.BOOT_SOURCE_TARGET_PXE,
+            'enabled': sushy.BOOT_SOURCE_ENABLED_CONTINUOUS,
+            'mode': sushy.BOOT_SOURCE_MODE_BIOS,
+        }
+        fake_system = mock.Mock(boot=boot_attribute)
         fake_system = mock.Mock()
         mock_get_system.return_value = fake_system
         with task_manager.acquire(self.context, self.node.uuid,
@@ -369,7 +375,12 @@ class RedfishManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_set_boot_mode_fail(self, mock_get_system, mock_sushy):
-        fake_system = mock.Mock()
+        boot_attribute = {
+            'target': sushy.BOOT_SOURCE_TARGET_PXE,
+            'enabled': sushy.BOOT_SOURCE_ENABLED_CONTINUOUS,
+            'mode': sushy.BOOT_SOURCE_MODE_BIOS,
+        }
+        fake_system = mock.Mock(boot=boot_attribute)
         fake_system.set_system_boot_options.side_effect = (
             sushy.exceptions.SushyError)
         mock_get_system.return_value = fake_system
@@ -377,6 +388,27 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             self.assertRaisesRegex(
                 exception.RedfishError, 'Setting boot mode',
+                task.driver.management.set_boot_mode, task, boot_modes.UEFI)
+            fake_system.set_system_boot_options.assert_called_once_with(
+                mode=boot_modes.UEFI)
+            mock_get_system.assert_called_once_with(task.node)
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_boot_mode_unsupported(self, mock_get_system, mock_sushy):
+        boot_attribute = {
+            'target': sushy.BOOT_SOURCE_TARGET_PXE,
+            'enabled': sushy.BOOT_SOURCE_ENABLED_CONTINUOUS,
+        }
+        fake_system = mock.Mock(boot=boot_attribute)
+        error = sushy.exceptions.BadRequestError('PATCH', '/', mock.Mock())
+        fake_system.set_system_boot_options.side_effect = error
+        mock_get_system.return_value = fake_system
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaisesRegex(
+                exception.UnsupportedDriverExtension,
+                'does not support set_boot_mode',
                 task.driver.management.set_boot_mode, task, boot_modes.UEFI)
             fake_system.set_system_boot_options.assert_called_once_with(
                 mode=boot_modes.UEFI)

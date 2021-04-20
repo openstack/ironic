@@ -300,6 +300,19 @@ class RedfishManagement(base.ManagementInterface):
                          {'node': task.node.uuid, 'mode': mode,
                           'error': e})
             LOG.error(error_msg)
+
+            # NOTE(sbaker): Some systems such as HPE Gen9 do not support
+            # getting or setting the boot mode. When setting failed and the
+            # mode attribute is missing from the boot field, raising
+            # UnsupportedDriverExtension will allow the deploy to continue.
+            if system.boot.get('mode') is None:
+                LOG.info(_('Attempt to set boot mode on node %(node)s '
+                           'failed to set boot mode as the node does not '
+                           'appear to support overriding the boot mode. '
+                           'Possibly partial Redfish implementation?'),
+                         {'node': task.node.uuid})
+                raise exception.UnsupportedDriverExtension(
+                    driver=task.node.driver, extension='set_boot_mode')
             raise exception.RedfishError(error=error_msg)
 
     def get_boot_mode(self, task):
