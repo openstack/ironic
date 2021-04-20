@@ -1333,6 +1333,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                                         'Error: %s') % e
                     node.save()
             node.last_error = _('Inspection was aborted by request.')
+            utils.wipe_token_and_url(task)
             task.process_event('abort')
             LOG.info('Successfully aborted inspection of node %(node)s',
                      {'node': node.uuid})
@@ -3680,9 +3681,9 @@ def _do_inspect_hardware(task):
         log_func("Failed to inspect node %(node)s: %(err)s",
                  {'node': node.uuid, 'err': e})
 
-    # Remove agent_url, while not strictly needed for the inspection path,
-    # lets just remove it out of good practice.
-    utils.remove_agent_url(node)
+    # Inspection cannot start in fast-track mode, wipe token and URL.
+    utils.wipe_token_and_url(task)
+
     try:
         new_state = task.driver.inspect.inspect_hardware(task)
     except exception.IronicException as e:
