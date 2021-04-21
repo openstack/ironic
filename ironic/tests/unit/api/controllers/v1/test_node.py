@@ -5093,6 +5093,25 @@ class TestPut(test_api_base.BaseApiTest):
         self.assertEqual(urlparse.urlparse(ret.location).path,
                          expected_location)
 
+    def test_provision_deploy(self):
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.DEPLOY},
+                            headers={api_base.Version.string: "1.73"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dnd.assert_called_once_with(mock.ANY,
+                                              context=mock.ANY,
+                                              node_id=self.node.uuid,
+                                              rebuild=False,
+                                              configdrive=None,
+                                              topic='test-topic',
+                                              deploy_steps=None)
+        # Check location header
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/states' % self.node.uuid
+        self.assertEqual(urlparse.urlparse(ret.location).path,
+                         expected_location)
+
     def test_provision_by_name_unsupported(self):
         ret = self.put_json('/nodes/%s/states/provision' % self.node.name,
                             {'target': states.ACTIVE},
@@ -5344,6 +5363,23 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         node.save()
         ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
                             {'target': states.DELETED})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dntd.assert_called_once_with(
+            mock.ANY, mock.ANY, node.uuid, 'test-topic')
+        # Check location header
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/states' % node.uuid
+        self.assertEqual(urlparse.urlparse(ret.location).path,
+                         expected_location)
+
+    def test_provision_with_tear_down_undeploy(self):
+        node = self.node
+        node.provision_state = states.ACTIVE
+        node.target_provision_state = states.NOSTATE
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.UNDEPLOY})
         self.assertEqual(http_client.ACCEPTED, ret.status_code)
         self.assertEqual(b'', ret.body)
         self.mock_dntd.assert_called_once_with(

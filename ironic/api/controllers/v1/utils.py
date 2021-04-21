@@ -67,6 +67,8 @@ MIN_VERB_VERSIONS = {
     states.VERBS['adopt']: versions.MINOR_17_ADOPT_VERB,
     states.VERBS['rescue']: versions.MINOR_38_RESCUE_INTERFACE,
     states.VERBS['unrescue']: versions.MINOR_38_RESCUE_INTERFACE,
+    states.VERBS['deploy']: versions.MINOR_73_DEPLOY_UNDEPLOY_VERBS,
+    states.VERBS['undeploy']: versions.MINOR_73_DEPLOY_UNDEPLOY_VERBS,
 }
 
 V31_FIELDS = [

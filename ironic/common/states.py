@@ -41,7 +41,9 @@ LOG = logging.getLogger(__name__)
 # TODO(tenbrae): add add'l state mappings here
 VERBS = {
     'active': 'deploy',
+    'deploy': 'deploy',
     'deleted': 'delete',
+    'undeploy': 'delete',
     'manage': 'manage',
     'provide': 'provide',
     'inspect': 'inspect',
@@ -96,6 +98,11 @@ This state is replacing the NOSTATE state used prior to Kilo.
 ACTIVE = 'active'
 """ Node is successfully deployed and associated with an instance. """
 
+DEPLOY = 'deploy'
+""" Node is successfully deployed and associated with an instance.
+This is an alias for ACTIVE.
+"""
+
 DEPLOYWAIT = 'wait call-back'
 """ Node is waiting to be deployed.
 
@@ -136,6 +143,11 @@ represented in target_provision_state.
 
 CLEANING = 'cleaning'
 """ Node is being automatically cleaned to prepare it for provisioning. """
+
+UNDEPLOY = 'undeploy'
+""" Node tear down process has started.
+This is an alias for DELETED.
+"""
 
 CLEANWAIT = 'clean wait'
 """ Node is waiting for a clean step to be finished.

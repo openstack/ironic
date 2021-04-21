@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+1.73 (Xena)
+----------------------
+Add a new ``deploy`` verb as an alias to ``active`` and
+``undeploy`` verb as an alias to ``deleted``.
+
 1.72 (Wallaby, 17.0)
 ----------------------
 
