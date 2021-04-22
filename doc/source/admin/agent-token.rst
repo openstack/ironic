@@ -102,7 +102,7 @@ With PXE/iPXE/etc.
 
       Conductor -> Baremetal [label = "Conductor turns power on"];
       Baremetal -> iPXE [label = "Baremetal reads kernel/ramdisk and starts boot"];
-      Baremetal -> Baremetal [label = "Boots IPA virtual media image"];
+      Baremetal -> Baremetal [label = "Boots IPA iPXE image"];
       Baremetal -> Baremetal [label = "IPA is started"];
       IPA -> Baremetal [label = "IPA loads configuration"];
       IPA -> API [label = "Lookup node"];
