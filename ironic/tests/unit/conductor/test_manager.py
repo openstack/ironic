@@ -2424,37 +2424,6 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertNotIn('clean_steps', node.driver_internal_info)
         self.assertIsNone(node.last_error)
 
-    @mock.patch('ironic.conductor.utils.remove_agent_url', autospec=True)
-    @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
-    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
-                autospec=True)
-    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
-                autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
-                autospec=True)
-    def test_do_node_clean_ok_fast_track(
-            self, mock_power_valid, mock_network_valid, mock_spawn,
-            mock_is_fast_track, mock_remove_agent_url):
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            provision_state=states.MANAGEABLE,
-            driver_internal_info={'agent_url': 'meow'})
-        mock_is_fast_track.return_value = True
-        self._start_service()
-        clean_steps = [self.deploy_raid]
-        self.service.do_node_clean(self.context, node.uuid, clean_steps)
-        mock_power_valid.assert_called_once_with(mock.ANY, mock.ANY)
-        mock_network_valid.assert_called_once_with(mock.ANY, mock.ANY)
-        mock_spawn.assert_called_with(
-            self.service, cleaning.do_node_clean, mock.ANY, clean_steps, False)
-        node.refresh()
-        # Node will be moved to CLEANING
-        self.assertEqual(states.CLEANING, node.provision_state)
-        self.assertEqual(states.MANAGEABLE, node.target_provision_state)
-        self.assertNotIn('clean_steps', node.driver_internal_info)
-        mock_is_fast_track.assert_called_once_with(mock.ANY)
-        mock_remove_agent_url.assert_not_called()
-
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',

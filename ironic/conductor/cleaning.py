@@ -73,12 +73,13 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False):
                {'node': node.uuid, 'msg': e})
         return utils.cleaning_error_handler(task, msg)
 
+    utils.wipe_cleaning_internal_info(task)
     if manual_clean:
         info = node.driver_internal_info
         info['clean_steps'] = clean_steps
         info['cleaning_disable_ramdisk'] = disable_ramdisk
         node.driver_internal_info = info
-        node.save()
+    task.node.save()
 
     # Retrieve BIOS config settings for this node
     utils.node_cache_bios_settings(task, node)
