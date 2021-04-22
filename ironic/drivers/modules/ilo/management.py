@@ -108,9 +108,10 @@ _MINIMUM_PASSWORD_LENGTH_UPDATE_ARGSINFO = {
     },
     'ignore': {
         'description': (
-            "This argument represents boolean parameter. If set 'True' the "
-            "security parameters will be ignored. If not specified, default "
-            "will be 'False'."
+            "This argument represents boolean parameter. If set 'True' "
+            "the security parameters will be ignored by iLO while "
+            "computing the overall iLO security status. If not specified, "
+            "default will be 'False'."
         ),
         'required': False
     }
@@ -127,9 +128,10 @@ _Auth_Failure_Logging_Threshold_ARGSINFO = {
     },
     'ignore': {
         'description': (
-            "This argument represents boolean parameter. If set 'True' the "
-            "security parameters will be ignored. If not specified, default "
-            "will be 'False'."
+            "This argument represents boolean parameter. If set 'True' "
+            "the security parameters will be ignored by iLO while "
+            "computing the overall iLO security status. If not specified, "
+            "default will be 'False'."
         ),
         'required': False
     }

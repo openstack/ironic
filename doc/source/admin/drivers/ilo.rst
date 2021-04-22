@@ -1668,7 +1668,7 @@ manual cleaning step can only be initiated when a node is in the ``manageable``
 state. Once the manual cleaning is finished, the node will be put in the
 ``manageable`` state again. A user can follow steps from :ref:`manual_cleaning`
 to initiate manual cleaning operation on a node. This feature is only supported
-for ``ilo5`` based hardware.
+for iLO5 based hardware.
 
 An example of a manual clean step with ``security_parameters_update`` as the
 only clean step could be::
@@ -1736,7 +1736,7 @@ Update Minimum Password Length security parameter as manual clean step
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 iLO driver can invoke ``Minimum Password Length`` security parameter update as a manual clean
-step. This feature is only supported for ``ilo5`` based hardware.
+step. This feature is only supported for iLO5 based hardware.
 
 An example of a manual clean step with ``update_minimum_password_length`` as the
 only clean step could be::
@@ -1758,7 +1758,7 @@ Update Authentication Failure Logging security parameter as manual clean step
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 iLO driver can invoke ``Authentication Failure Logging`` security parameter update as a manual clean
-step. This feature is only supported for ``ilo5`` based hardware.
+step. This feature is only supported for iLO5 based hardware.
 
 An example of a manual clean step with ``Authentication Failure Logging`` as the
 only clean step could be::
