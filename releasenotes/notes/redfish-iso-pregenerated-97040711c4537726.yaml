@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes providing agent tokens with pre-built ISO images and the
+    ``redfish-virtual-media`` boot interface.
