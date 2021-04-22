@@ -21,7 +21,10 @@ Test class for DRAC BIOS configuration specific methods
 
 from unittest import mock
 
+import dracclient.client
 from dracclient import exceptions as drac_exceptions
+import dracclient.utils
+from oslo_utils import timeutils
 
 from ironic.common import exception
 from ironic.common import states
@@ -44,7 +47,7 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
         self.node = obj_utils.create_test_node(self.context,
                                                driver='idrac',
                                                driver_info=INFO_DICT)
-
+        self.bios = drac_bios.DracWSManBIOS()
         patch_get_drac_client = mock.patch.object(
             drac_common, 'get_drac_client', spec_set=True, autospec=True)
         mock_get_drac_client = patch_get_drac_client.start()
@@ -121,6 +124,8 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
             self.assertRaises(exception.DracOperationError,
                               task.driver.bios.cache_bios_settings, task)
 
+    @mock.patch.object(dracclient.client, 'WSManClient', autospec=True)
+    @mock.patch.object(dracclient.utils, 'find_xml', autospec=True)
     @mock.patch.object(deploy_utils, 'get_async_step_return_state',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
@@ -129,8 +134,8 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
     def _test_step(self, mock_validate_job_queue, mock_cache_bios_settings,
-                   mock_set_async_step_flags,
-                   mock_get_async_step_return_state):
+                   mock_set_async_step_flags, mock_get_async_step_return_state,
+                   mock_findxml, mock_wsmanclient, attribute_error=False):
         if self.node.clean_step:
             step_data = self.node.clean_step
             expected_state = states.CLEANWAIT
@@ -148,6 +153,22 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
                                   shared=False) as task:
             info = task.node.driver_internal_info
             if step == 'factory_reset':
+                mock_system = None
+                factory_reset_time_before_reboot = None
+
+                if attribute_error:
+                    mock_system = mock.Mock(spec=[])
+                    mock_xml = mock.Mock()
+                    mock_xml.text = '20200910233024.000000+000'
+                    mock_findxml.return_value = mock_xml
+                else:
+                    mock_system = mock.Mock()
+                    factory_reset_time_before_reboot = "20200910233024"
+                    mock_system.last_system_inventory_time =\
+                        "20200910233024"
+
+                self.mock_client.get_system.return_value = mock_system
+
                 ret_state = task.driver.bios.factory_reset(task)
 
                 attrib = {"BIOS Reset To Defaults Requested": "True"}
@@ -155,9 +176,13 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
                     assert_called_once_with(attrib)
                 self.mock_client.commit_pending_lifecycle_changes.\
                     assert_called_once_with(reboot=True)
-                job_id = self.mock_client.commit_pending_lifecycle_changes()
-                self.assertIn(job_id, info['bios_config_job_ids'])
-
+                self.mock_client.get_system.assert_called_once()
+                if attribute_error:
+                    mock_findxml.assert_called_once()
+                else:
+                    self.assertEqual(factory_reset_time_before_reboot,
+                                     info['factory_reset_time_before_reboot'])
+                    mock_findxml.assert_not_called()
             if step == 'apply_configuration':
                 ret_state = task.driver.bios.apply_configuration(task, data)
 
@@ -181,11 +206,23 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
         self.node.save()
         self._test_step()
 
+    def test_factory_reset_clean_attribute_error(self):
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'factory_reset', 'argsinfo': {}}
+        self.node.save()
+        self._test_step(attribute_error=True)
+
     def test_factory_reset_deploy(self):
         self.node.deploy_step = {'priority': 100, 'interface': 'bios',
                                  'step': 'factory_reset', 'argsinfo': {}}
         self.node.save()
         self._test_step()
+
+    def test_factory_reset_deploy_attribute_error(self):
+        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
+                                 'step': 'factory_reset', 'argsinfo': {}}
+        self.node.save()
+        self._test_step(attribute_error=True)
 
     def test_apply_configuration_clean(self):
         settings = [{'name': 'ProcVirtualization', 'value': 'Enabled'}]
@@ -317,6 +354,161 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
                                  'bios_config_job_ids'))
             mock_cleaning_error_handler.assert_called_once_with(
                 task, mock.ANY, "Failed config job: 123. Message: 'Invalid'.")
+
+    def test__check_last_system_inventory_changed_different_inventory_time(
+            self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info["factory_reset_time_before_reboot"] = \
+                "20200910233024"
+            current_time = str(timeutils.utcnow(True))
+            driver_internal_info["factory_reset_time"] = current_time
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            mock_system = mock.Mock()
+            mock_system.last_system_inventory_time =\
+                "20200910233523"
+            self.mock_client.get_system.return_value = mock_system
+            mock_resume = mock.Mock()
+            task.driver.bios._resume_current_operation = mock_resume
+            mock_cache = mock.Mock()
+            task.driver.bios.cache_bios_settings = mock_cache
+
+            task.driver.bios._check_last_system_inventory_changed(task)
+
+            self.assertIsNone(task.node.driver_internal_info.get(
+                'factory_reset_time_before_reboot'))
+            self.assertIsNone(
+                task.node.driver_internal_info.get('factory_reset_time'))
+            mock_cache.assert_called_once_with(task)
+            mock_resume.assert_called_once_with(task)
+
+    def test__check_last_system_inventory_changed_same_inventory_time(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['factory_reset_time_before_reboot'] = \
+                "20200910233024"
+            current_time = str(timeutils.utcnow(True))
+            driver_internal_info['factory_reset_time'] = current_time
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            mock_system = mock.Mock()
+            mock_system.last_system_inventory_time =\
+                "20200910233024"
+            self.mock_client.get_system.return_value = mock_system
+
+            task.driver.bios._check_last_system_inventory_changed(task)
+
+            self.assertIsNotNone(
+                task.node.driver_internal_info.get('factory_reset_time'))
+            self.assertEqual(current_time,
+                             task.node.driver_internal_info.get(
+                                 'factory_reset_time'))
+            self.assertEqual("20200910233024",
+                             task.node.driver_internal_info.get(
+                                 'factory_reset_time_before_reboot'))
+
+    def test__check_last_system_inventory_changed_same_inventory_time_timeout(
+            self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['factory_reset_time_before_reboot'] = \
+                "20200910233024"
+            driver_internal_info['factory_reset_time'] = \
+                '2020-09-25 15:02:57.903318+00:00'
+            task.node.driver_internal_info = driver_internal_info
+            task.node.save()
+            mock_system = mock.Mock()
+            mock_system.last_system_inventory_time =\
+                "20200910233024"
+            self.mock_client.get_system.return_value = mock_system
+            mock_failed = mock.Mock()
+            task.driver.bios._set_failed = mock_failed
+
+            task.driver.bios._check_last_system_inventory_changed(task)
+
+            self.assertIsNone(task.node.driver_internal_info.get(
+                'factory_reset_time_before_reboot'))
+            self.assertIsNone(
+                task.node.driver_internal_info.get('factory_reset_time'))
+            fail = ("BIOS factory reset was not completed within 600 "
+                    "seconds, unable to cache updated bios setting")
+            mock_failed.assert_called_once_with(task, fail)
+
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test__query_bios_config_job_status(self, mock_acquire):
+        driver_internal_info = {'bios_config_job_ids': ['42'],
+                                'factory_reset_time_before_reboot':
+                                "20200910233024"}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        mock_manager = mock.Mock()
+        node_list = [(self.node.uuid, 'idrac', '',
+                      driver_internal_info)]
+        mock_manager.iter_nodes.return_value = node_list
+        # mock task_manager.acquire
+        task = mock.Mock(node=self.node, driver=mock.Mock(bios=self.bios))
+        mock_acquire.return_value = mock.MagicMock(
+            __enter__=mock.MagicMock(return_value=task))
+        self.bios._check_node_bios_jobs = mock.Mock()
+        self.bios._check_last_system_inventory_changed = mock.Mock()
+
+        self.bios._query_bios_config_job_status(mock_manager,
+                                                self.context)
+
+        self.bios._check_node_bios_jobs.assert_called_once_with(task)
+        self.bios._check_last_system_inventory_changed.assert_called_once_with(
+            task)
+
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test__query_bios_config_job_status_no_config_jobs(self,
+                                                          mock_acquire):
+        # mock manager
+        mock_manager = mock.Mock()
+        node_list = [(self.node.uuid, 'idrac', '', {})]
+        mock_manager.iter_nodes.return_value = node_list
+        # mock task_manager.acquire
+        task = mock.Mock(node=self.node, driver=mock.Mock(bios=self.bios))
+        mock_acquire.return_value = mock.MagicMock(
+            __enter__=mock.MagicMock(return_value=task))
+        self.bios._check_node_bios_jobs = mock.Mock()
+        self.bios._check_last_system_inventory_changed = mock.Mock()
+
+        self.bios._query_bios_config_job_status(mock_manager,
+                                                None)
+
+        self.bios._check_node_bios_jobs.assert_not_called()
+        self.bios._check_last_system_inventory_changed.assert_not_called()
+
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test__query_bios_config_job_status_no_driver(self,
+                                                     mock_acquire):
+        driver_internal_info = {'bios_config_job_ids': ['42'],
+                                'factory_reset_time_before_reboot':
+                                "20200910233024"}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        mock_manager = mock.Mock()
+        node_list = [(self.node.uuid, '', '', driver_internal_info)]
+        mock_manager.iter_nodes.return_value = node_list
+        # mock task_manager.acquire
+        task = mock.Mock(node=self.node, driver=mock.Mock(bios=""))
+        mock_acquire.return_value = mock.MagicMock(
+            __enter__=mock.MagicMock(return_value=task))
+        self.bios._check_node_bios_jobs = mock.Mock()
+        self.bios._check_last_system_inventory_changed = mock.Mock()
+
+        self.bios._query_bios_config_job_status(mock_manager,
+                                                None)
+
+        self.bios._check_node_bios_jobs.assert_not_called()
+        self.bios._check_last_system_inventory_changed.assert_not_called()
 
 
 class DracBIOSConfigurationTestCase(test_utils.BaseDracTest):
