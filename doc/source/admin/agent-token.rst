@@ -46,7 +46,7 @@ With the token is available in memory in the agent, the token is embedded with
 authenticate the heartbeat request, and refuse "heartbeat" requests from the
 ``ironic-python-agent``. As of the Victoria release, use of Agent Token is
 required for all agents and the previously available setting to force this
-functionality to be manditory, ``[DEFAULT]require_agent_token`` no longer has
+functionality to be mandatory, ``[DEFAULT]require_agent_token`` no longer has
 any effect.
 
 .. warning::
