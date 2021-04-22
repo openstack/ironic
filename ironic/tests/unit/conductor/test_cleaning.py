@@ -443,10 +443,16 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
                         disable_ramdisk=False):
         if clean_steps:
             tgt_prov_state = states.MANAGEABLE
-            driver_info = {}
         else:
             tgt_prov_state = states.AVAILABLE
-            driver_info = {'clean_steps': self.clean_steps}
+
+            def set_steps(task, disable_ramdisk=None):
+                dii = task.node.driver_internal_info
+                dii['clean_steps'] = self.clean_steps
+                task.node.driver_internal_info = dii
+                task.node.save()
+
+            mock_steps.side_effect = set_steps
 
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
@@ -454,7 +460,7 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
             target_provision_state=tgt_prov_state,
             last_error=None,
             power_state=states.POWER_OFF,
-            driver_internal_info=driver_info)
+            driver_internal_info={'agent_secret_token': 'old'})
 
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
@@ -477,6 +483,7 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
                 self.assertEqual(clean_steps,
                                  node.driver_internal_info['clean_steps'])
             self.assertFalse(node.maintenance)
+            self.assertNotIn('agent_secret_token', node.driver_internal_info)
 
         # Check that state didn't change
         self.assertEqual(states.CLEANING, node.provision_state)

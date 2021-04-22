@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Removes temporary cleaning information on starting or restarting cleaning.
