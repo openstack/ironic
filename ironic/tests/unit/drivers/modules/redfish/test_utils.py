@@ -375,3 +375,40 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
 
         self.assertRaises(exception.RedfishError,
                           redfish_utils.get_update_service, self.node)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_wait_until_get_system_ready(self, mock_sushy):
+        self.config(connection_attempts=2, group='redfish')
+        uri = '/redfish/v1/Systems/FAKESYSTEM'
+        fake_conn = mock_sushy.return_value
+        fake_system = mock.Mock()
+        fake_conn.get_system.side_effect = [
+            sushy.exceptions.BadRequestError('GET', uri, fake_system),
+            fake_system
+        ]
+        response = redfish_utils.wait_until_get_system_ready(self.node)
+        self.assertEqual(fake_system, response)
+        self.assertEqual(fake_conn.get_system.call_count, 2)
+        fake_conn.get_system.assert_called_with(uri)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_wait_until_get_system_ready_with_connection_error(self,
+                                                               mock_sushy):
+        self.config(connection_attempts=2, group='redfish')
+        uri = '/redfish/v1/Systems/FAKESYSTEM'
+        fake_conn = mock_sushy.return_value
+        fake_system = mock.Mock()
+        fake_conn.get_system.side_effect = [
+            sushy.exceptions.BadRequestError('GET', uri, fake_system),
+            sushy.exceptions.BadRequestError('GET', uri, fake_system)
+        ]
+        self.assertRaises(exception.RedfishConnectionError,
+                          redfish_utils.wait_until_get_system_ready, self.node)
+
+        self.assertEqual(fake_conn.get_system.call_count, 2)
