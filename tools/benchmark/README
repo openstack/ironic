@@ -1,0 +1,13 @@
+This folder contains two files:
+
+* do_not_run_create_benchmark_data.py - This script will destroy your
+  ironic database. DO NOT RUN IT. You have been warned!
+  It is is intended to generate a semi-random database of node data
+  which can be used for benchmarks, instead of crafting a raw SQL file
+  representing a test model
+
+* generate-statistics.py - This is a utility some statistics to both
+  aid in basic benchmarking of ironic operations *and* provide developers
+  with conceptual information regarding a deployment's size. It operates
+  only by reading the data present and timing how long the result take to
+  return as well as isolating some key details about the deployment.
