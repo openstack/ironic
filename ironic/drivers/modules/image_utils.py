@@ -404,7 +404,7 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
     :param kernel_href: URL or Glance UUID of the kernel to use
     :param ramdisk_href: URL or Glance UUID of the ramdisk to use
     :param bootloader_href: URL or Glance UUID of the EFI bootloader
-         image to use when creating UEFI bootbable ISO
+         image to use when creating UEFI bootable ISO
     :param root_uuid: optional uuid of the root partition.
     :param params: a dictionary containing 'parameter name'->'value'
         mapping to be passed to kernel command line.
@@ -422,6 +422,15 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
             "Unable to find kernel, ramdisk for "
             "building ISO, or explicit ISO for %(node)s") %
             {'node': task.node.uuid})
+
+    # NOTE(rpittau): if base_iso is defined as http address, we just access
+    # it directly.
+    if base_iso and CONF.deploy.ramdisk_image_download_source == 'http':
+        if base_iso.startswith(('http://', 'https://')):
+            return base_iso
+        LOG.debug("ramdisk_image_download_source set to http but "
+                  "boot_iso is not an HTTP URL: %(boot_iso)s",
+                  {"boot_iso": base_iso})
 
     img_handler = ImageHandler(task.node.driver)
     k_param = img_handler.kernel_params
