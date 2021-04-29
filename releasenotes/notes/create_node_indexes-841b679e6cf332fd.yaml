@@ -1,0 +1,35 @@
+---
+upgrade:
+  - |
+    The ``ironic-dbsync upgrade`` command for this verison of ironic will add
+    additional database indexes on the ``nodes`` table columns below.
+    Depending on database size and complexity, this will take time to complete
+    for every single index to be created. On MySQL or MariaDB, these indexes
+    will only be created if an index does not already exist matching the
+    field name with "_idx"
+    appended.:
+
+    * ``owner``
+    * ``lessee``
+    * ``driver``
+    * ``provision_state``
+    * ``reservation``
+    * ``conductor_group``
+    * ``resource_class``
+
+    An example of the SQL commands to generate these indexes can be found
+    in the `tuning <htts://docs.openstack.org/ironic/latest/admin/tuning.html>`_
+    documentation.
+
+    In testing with mock data, each column took approximately about 4 seconds
+    per column to be indexed on a database with 115,000 rows. The existing
+    database size, and underlying server load will casue this time to vary.
+    Sample queries also reduced result generation from an average of ``0.40``
+    seconds to an average of ``0.02`` seconds with a test data set.
+fixes:
+  - |
+    Improves lower level performance issues with database activity where some
+    often queried columns were not indexed when the database model was created,
+    or as the model evolved. Operators seeking to pre-create these indexes may
+    do so prior to upgrading. Please consult the
+    `tuning`_ documentation in the Administrator's guide for the queries to leverage.
