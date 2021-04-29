@@ -593,7 +593,7 @@ class AgentClient(object):
         """
         params = {
             'step': step,
-            'node': node.as_dict(secure=True),
+            'node': node.as_dict(secure=True, mask_configdrive=False),
             'ports': [port.as_dict() for port in ports],
             'deploy_version': node.driver_internal_info.get(
                 'hardware_manager_version')
