@@ -553,6 +553,36 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
                 base_iso='/path/to/baseiso', inject_files=None)
 
+    def test__prepare_iso_image_bootable_iso(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            base_image_url = 'http://bearmetal.net/boot.iso'
+            self.config(ramdisk_image_download_source='http', group='deploy')
+            url = image_utils._prepare_iso_image(
+                task, None, None, bootloader_href=None, root_uuid=None,
+                base_iso=base_image_url)
+            self.assertEqual(url, base_image_url)
+
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    @mock.patch.object(images, 'create_boot_iso', autospec=True)
+    def test__prepare_iso_image_bootable_iso_file(self, mock_create_boot_iso,
+                                                  mock_publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            base_image_url = '/path/to/baseiso'
+            self.config(ramdisk_image_download_source='http', group='deploy')
+            image_utils._prepare_iso_image(
+                task, 'http://kernel/img', 'http://ramdisk/img',
+                bootloader_href=None, root_uuid=task.node.uuid,
+                base_iso=base_image_url)
+            mock_create_boot_iso.assert_called_once_with(
+                mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
+                esp_image_href=None,
+                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                kernel_params='nofb nomodeset vga=normal', boot_mode='bios',
+                base_iso='/path/to/baseiso', inject_files=None)
+
     def test__find_param(self):
         param_dict = {
             'ilo_deploy_kernel': 'kernel',
