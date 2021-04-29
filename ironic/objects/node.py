@@ -168,13 +168,17 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'network_data': object_fields.FlexibleDictField(nullable=True),
     }
 
-    def as_dict(self, secure=False):
+    def as_dict(self, secure=False, mask_configdrive=True):
         d = super(Node, self).as_dict()
         if secure:
             d['driver_info'] = strutils.mask_dict_password(
                 d.get('driver_info', {}), "******")
-            d['instance_info'] = strutils.mask_dict_password(
-                d.get('instance_info', {}), "******")
+            iinfo = d.pop('instance_info', {})
+            if not mask_configdrive:
+                configdrive = iinfo.pop('configdrive', None)
+            d['instance_info'] = strutils.mask_dict_password(iinfo, "******")
+            if not mask_configdrive and configdrive:
+                d['instance_info']['configdrive'] = configdrive
             d['driver_internal_info'] = strutils.mask_dict_password(
                 d.get('driver_internal_info', {}), "******")
         return d
