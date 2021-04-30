@@ -89,7 +89,7 @@
 - job:
     name: ironic-standalone
     description:
-      Test ironic standalone configured with ipmi hardware type, iscsi and
+      Test ironic standalone configured with ipmi hardware type, ramdisk and
       direct deploy interfaces, rescue enabled.
     parent: ironic-base
     irrelevant-files:
@@ -113,7 +113,7 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
         IRONIC_ENABLED_HARDWARE_TYPES: ipmi
-        IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct,ramdisk"
+        IRONIC_ENABLED_DEPLOY_INTERFACES: "direct,ramdisk"
         IRONIC_ENABLED_RESCUE_INTERFACES: "agent,no-rescue"
         IRONIC_JSON_RPC_AUTH_STRATEGY: 'http_basic'
         IRONIC_RAMDISK_TYPE: tinyipa
@@ -146,7 +146,7 @@
     name: ironic-standalone-redfish
     parent: ironic-base
     description:
-      Test ironic standalone configured with redfish hardware type, iscsi and
+      Test ironic standalone configured with redfish hardware type, ansible and
       direct and ansible deploy interfaces, rescue it's not enabled.
     required-projects:
       - opendev.org/openstack/sushy-tools
@@ -174,7 +174,7 @@
         IRONIC_ENABLED_HARDWARE_TYPES: redfish
         IRONIC_ENABLED_POWER_INTERFACES: redfish
         IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
-        IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct,ansible,ramdisk"
+        IRONIC_ENABLED_DEPLOY_INTERFACES: "direct,ansible,ramdisk"
         IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_VM_COUNT: 4
