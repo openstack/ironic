@@ -108,9 +108,9 @@ class TestAgentClient(base.TestCase):
                           self.node)
 
     def test__get_command_body(self):
-        expected = json.dumps({'name': 'prepare_image', 'params': {}})
+        expected = json.dumps({'name': 'get_clean_steps', 'params': {}})
         self.assertEqual(expected,
-                         self.client._get_command_body('prepare_image', {}))
+                         self.client._get_command_body('get_clean_steps', {}))
 
     def test__command(self):
         response_data = {'status': 'ok'}
@@ -463,47 +463,6 @@ class TestAgentClient(base.TestCase):
                     'api_version': CONF.agent.agent_api_version},
                 timeout=CONF.agent.command_timeout,
                 verify='/path/to/agent.crt')
-
-    def test_prepare_image(self):
-        self.client._command = mock.MagicMock(spec_set=[])
-        image_info = {'image_id': 'image'}
-        params = {'image_info': image_info}
-
-        self.client.prepare_image(self.node,
-                                  image_info,
-                                  wait=False)
-        self.client._command.assert_called_once_with(
-            node=self.node, method='standby.prepare_image',
-            params=params, poll=False)
-
-    def test_prepare_image_with_configdrive(self):
-        self.client._command = mock.MagicMock(spec_set=[])
-        configdrive_url = 'http://swift/configdrive'
-        self.node.instance_info['configdrive'] = configdrive_url
-        image_info = {'image_id': 'image'}
-        params = {
-            'image_info': image_info,
-            'configdrive': configdrive_url,
-        }
-
-        self.client.prepare_image(self.node,
-                                  image_info,
-                                  wait=False)
-        self.client._command.assert_called_once_with(
-            node=self.node, method='standby.prepare_image',
-            params=params, poll=False)
-
-    def test_prepare_image_with_wait(self):
-        self.client._command = mock.MagicMock(spec_set=[])
-        image_info = {'image_id': 'image'}
-        params = {'image_info': image_info}
-
-        self.client.prepare_image(self.node,
-                                  image_info,
-                                  wait=True)
-        self.client._command.assert_called_once_with(
-            node=self.node, method='standby.prepare_image',
-            params=params, poll=True)
 
     def test_start_iscsi_target(self):
         self.client._command = mock.MagicMock(spec_set=[])

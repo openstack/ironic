@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    Removes support for deploy interfaces that do not use deploy steps and
+    rely on the monolithic ``deploy`` call instead.
+  - |
+    Removes support for ironic-python-agent Victoria or older.

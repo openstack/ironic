@@ -208,8 +208,6 @@ class CustomAgentDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
     the ramdisk and prepare the instance boot.
     """
 
-    has_decomposed_deploy_steps = True
-
     def get_properties(self):
         """Return the properties of the interface.
 
@@ -563,63 +561,15 @@ class AgentDeploy(CustomAgentDeploy):
             if disk_label is not None:
                 image_info['disk_label'] = disk_label
 
-        has_write_image = agent_base.find_step(
-            task, 'deploy', 'deploy', 'write_image') is not None
-        if not has_write_image:
-            LOG.warning('The agent on node %s does not have the deploy '
-                        'step deploy.write_image, using the deprecated '
-                        'synchronous fall-back', task.node.uuid)
-
-        if self.has_decomposed_deploy_steps and has_write_image:
-            configdrive = node.instance_info.get('configdrive')
-            # Now switch into the corresponding in-band deploy step and let the
-            # result be polled normally.
-            new_step = {'interface': 'deploy',
-                        'step': 'write_image',
-                        'args': {'image_info': image_info,
-                                 'configdrive': configdrive}}
-            return agent_base.execute_step(task, new_step, 'deploy',
-                                           client=self._client)
-        else:
-            # TODO(dtantsur): remove in W
-            command = self._client.prepare_image(node, image_info, wait=True)
-            if command['command_status'] == 'FAILED':
-                # TODO(jimrollenhagen) power off if using neutron dhcp to
-                #                      align with pxe driver?
-                msg = (_('node %(node)s command status errored: %(error)s') %
-                       {'node': node.uuid, 'error': command['command_error']})
-                LOG.error(msg)
-                deploy_utils.set_failed_state(task, msg)
-
-    # TODO(dtantsur): remove in W
-    def _get_uuid_from_result(self, task, type_uuid):
-        command = self._client.get_last_command_status(task.node,
-                                                       'prepare_image')
-        if (not command
-                or not command.get('command_result', {}).get('result')):
-            msg = _('Unexpected response from the agent for node %s: the '
-                    'running command list does not include prepare_image '
-                    'or its result is malformed') % task.node.uuid
-            LOG.error(msg)
-            deploy_utils.set_failed_state(task, msg)
-            return
-
-        words = command['command_result']['result'].split()
-        for word in words:
-            if type_uuid in word:
-                result = word.split('=')[1]
-                if not result:
-                    msg = (_('Command result did not return %(type_uuid)s '
-                             'for node %(node)s. The version of the IPA '
-                             'ramdisk used in the deployment might not '
-                             'have support for provisioning of '
-                             'partition images.') %
-                           {'type_uuid': type_uuid,
-                            'node': task.node.uuid})
-                    LOG.error(msg)
-                    deploy_utils.set_failed_state(task, msg)
-                    return
-                return result
+        configdrive = node.instance_info.get('configdrive')
+        # Now switch into the corresponding in-band deploy step and let the
+        # result be polled normally.
+        new_step = {'interface': 'deploy',
+                    'step': 'write_image',
+                    'args': {'image_info': image_info,
+                             'configdrive': configdrive}}
+        return agent_base.execute_step(task, new_step, 'deploy',
+                                       client=self._client)
 
     @METRICS.timer('AgentDeployMixin.prepare_instance_boot')
     @base.deploy_step(priority=60)
@@ -648,16 +598,9 @@ class AgentDeploy(CustomAgentDeploy):
         # ppc64* hardware we need to provide the 'PReP_Boot_partition_uuid' to
         # direct where the bootloader should be installed.
         driver_internal_info = task.node.driver_internal_info
-        try:
-            partition_uuids = self._client.get_partition_uuids(node).get(
-                'command_result') or {}
-            root_uuid = partition_uuids.get('root uuid')
-        except exception.AgentAPIError:
-            # TODO(dtantsur): remove in W
-            LOG.warning('Old ironic-python-agent detected, please update '
-                        'to Victoria or newer')
-            partition_uuids = None
-            root_uuid = self._get_uuid_from_result(task, 'root_uuid')
+        partition_uuids = self._client.get_partition_uuids(node).get(
+            'command_result') or {}
+        root_uuid = partition_uuids.get('root uuid')
 
         if root_uuid:
             driver_internal_info['root_uuid_or_disk_id'] = root_uuid
@@ -672,23 +615,13 @@ class AgentDeploy(CustomAgentDeploy):
         efi_sys_uuid = None
         if not iwdi:
             if boot_mode_utils.get_boot_mode(node) == 'uefi':
-                # TODO(dtantsur): remove in W
-                if partition_uuids is None:
-                    efi_sys_uuid = (self._get_uuid_from_result(task,
-                                    'efi_system_partition_uuid'))
-                else:
-                    efi_sys_uuid = partition_uuids.get(
-                        'efi system partition uuid')
+                efi_sys_uuid = partition_uuids.get(
+                    'efi system partition uuid')
 
         prep_boot_part_uuid = None
         if cpu_arch is not None and cpu_arch.startswith('ppc64'):
-            # TODO(dtantsur): remove in W
-            if partition_uuids is None:
-                prep_boot_part_uuid = (self._get_uuid_from_result(task,
-                                       'PReP_Boot_partition_uuid'))
-            else:
-                prep_boot_part_uuid = partition_uuids.get(
-                    'PReP Boot partition uuid')
+            prep_boot_part_uuid = partition_uuids.get(
+                'PReP Boot partition uuid')
 
         LOG.info('Image successfully written to node %s', node.uuid)
 
