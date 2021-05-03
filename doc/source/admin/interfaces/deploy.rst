@@ -27,6 +27,8 @@ You can specify this deploy interface when creating or updating a node::
     ``agent``. This is because before the Kilo release **ironic-python-agent**
     used to only support this deploy interface.
 
+.. _image_download_source:
+
 Deploy with custom HTTP servers
 -------------------------------
 
