@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds a new deploy interface ``custom-agent`` that can be used when all
+    necessary deploy steps to provision an image are provided in the agent
+    ramdisk. The default ``write_image`` deploy step is not present.
+other:
+  - |
+    A new class ``ironic.drivers.modules.agent.CustomAgentDeploy`` can be used
+    as a base class for deploy interfaces based on ironic-python-agent.

@@ -8,8 +8,9 @@ deploy step in the ``AgentDeploy`` class.
 
 .. code-block:: python
 
-  class AgentDeploy(AgentDeployMixin, base.DeployInterface):
-      ...
+  from ironic.drivers.modules import agent
+
+  class AgentDeploy(agent.AgentDeploy):
 
       @base.deploy_step(priority=200, argsinfo={
           'test_arg': {
@@ -21,6 +22,27 @@ deploy step in the ``AgentDeploy`` class.
       })
       def do_nothing(self, task, **kwargs):
           return None
+
+If you want to completely replace the deployment procedure, but still have the
+agent up and running, inherit ``CustomAgentDeploy``:
+
+.. code-block:: python
+
+  from ironic.drivers.modules import agent
+
+  class AgentDeploy(agent.CustomAgentDeploy):
+
+      def validate(self, task):
+          super().validate(task)
+          # ... custom validation
+
+      @base.deploy_step(priority=80)
+      def my_write_image(self, task, **kwargs):
+          pass  # ... custom image writing
+
+      @base.deploy_step(priority=70)
+      def my_configure_bootloader(self, task, **kwargs):
+          pass  # ... custom bootloader configuration
 
 After deployment of the baremetal node, check the updated deploy steps::
 

@@ -200,9 +200,309 @@ def validate_http_provisioning_configuration(node):
     deploy_utils.check_for_missing_params(params, error_msg)
 
 
-class AgentDeployMixin(agent_base.AgentDeployMixin):
+class CustomAgentDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
+                        base.DeployInterface):
+    """A deploy interface that relies on a custom agent to deploy.
+
+    Only provides the basic deploy steps to start the ramdisk, tear down
+    the ramdisk and prepare the instance boot.
+    """
 
     has_decomposed_deploy_steps = True
+
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+        return COMMON_PROPERTIES
+
+    def should_manage_boot(self, task):
+        """Whether agent boot is managed by ironic."""
+        return CONF.agent.manage_agent_boot
+
+    @METRICS.timer('CustomAgentDeploy.validate')
+    def validate(self, task):
+        """Validate the driver-specific Node deployment info.
+
+        This method validates whether the properties of the supplied node
+        contain the required information for this driver to deploy images to
+        the node.
+
+        :param task: a TaskManager instance
+        :raises: MissingParameterValue, if any of the required parameters are
+            missing.
+        :raises: InvalidParameterValue, if any of the parameters have invalid
+            value.
+        """
+        if CONF.agent.manage_agent_boot:
+            task.driver.boot.validate(task)
+
+        deploy_utils.validate_capabilities(task.node)
+        # Validate the root device hints
+        deploy_utils.get_root_device_for_deploy(task.node)
+
+    @METRICS.timer('CustomAgentDeploy.deploy')
+    @base.deploy_step(priority=100)
+    @task_manager.require_exclusive_lock
+    def deploy(self, task):
+        """Perform a deployment to a node.
+
+        Perform the necessary work to deploy an image onto the specified node.
+        This method will be called after prepare(), which may have already
+        performed any preparatory steps, such as pre-caching some data for the
+        node.
+
+        :param task: a TaskManager instance.
+        :returns: status of the deploy. One of ironic.common.states.
+        """
+        if manager_utils.is_fast_track(task):
+            # NOTE(mgoddard): For fast track we can skip this step and proceed
+            # immediately to the next deploy step.
+            LOG.debug('Performing a fast track deployment for %(node)s.',
+                      {'node': task.node.uuid})
+            # NOTE(dtantsur): while the node is up and heartbeating, we don't
+            # necessary have the deploy steps cached. Force a refresh here.
+            self.refresh_steps(task, 'deploy')
+            deployments.validate_deploy_steps(task)
+        elif task.driver.storage.should_write_image(task):
+            # Check if the driver has already performed a reboot in a previous
+            # deploy step.
+            if not task.node.driver_internal_info.get('deployment_reboot'):
+                manager_utils.node_power_action(task, states.REBOOT)
+            info = task.node.driver_internal_info
+            info.pop('deployment_reboot', None)
+            task.node.driver_internal_info = info
+            task.node.save()
+            return states.DEPLOYWAIT
+
+    @METRICS.timer('CustomAgentDeployMixin.prepare_instance_boot')
+    @base.deploy_step(priority=60)
+    @task_manager.require_exclusive_lock
+    def prepare_instance_boot(self, task):
+        """Prepare instance for booting.
+
+        The base version only calls prepare_instance on the boot interface.
+        """
+        try:
+            task.driver.boot.prepare_instance(task)
+        except Exception as e:
+            LOG.error('Preparing instance for booting failed for node '
+                      '%(node)s. %(cls)s: %(error)s',
+                      {'node': task.node.uuid,
+                       'cls': e.__class__.__name__, 'error': e})
+            msg = _('Failed to prepare instance for booting')
+            agent_base.log_and_raise_deployment_error(task, msg, exc=e)
+
+    def _update_instance_info(self, task):
+        """Update instance information with extra data for deploy.
+
+        Called from `prepare` to populate fields that can be deduced from
+        the already provided information.
+
+        Does nothing in the base class.
+        """
+
+    @METRICS.timer('CustomAgentDeploy.prepare')
+    @task_manager.require_exclusive_lock
+    def prepare(self, task):
+        """Prepare the deployment environment for this node.
+
+        :param task: a TaskManager instance.
+        :raises: NetworkError: if the previous cleaning ports cannot be removed
+            or if new cleaning ports cannot be created.
+        :raises: InvalidParameterValue when the wrong power state is specified
+            or the wrong driver info is specified for power management.
+        :raises: StorageError If the storage driver is unable to attach the
+            configured volumes.
+        :raises: other exceptions by the node's power driver if something
+            wrong occurred during the power action.
+        :raises: exception.ImageRefValidationFailed if image_source is not
+            Glance href and is not HTTP(S) URL.
+        :raises: exception.InvalidParameterValue if network validation fails.
+        :raises: any boot interface's prepare_ramdisk exceptions.
+        """
+
+        node = task.node
+        deploy_utils.populate_storage_driver_internal_info(task)
+        if node.provision_state == states.DEPLOYING:
+            # Validate network interface to ensure that it supports boot
+            # options configured on the node.
+            try:
+                task.driver.network.validate(task)
+            except exception.InvalidParameterValue:
+                # For 'neutron' network interface validation will fail
+                # if node is using 'netboot' boot option while provisioning
+                # a whole disk image. Updating 'boot_option' in node's
+                # 'instance_info' to 'local for backward compatibility.
+                # TODO(stendulker): Fail here once the default boot
+                # option is local.
+                # NOTE(TheJulia): Fixing the default boot mode only
+                # masks the failure as the lack of a user definition
+                # can be perceived as both an invalid configuration and
+                # reliance upon the default configuration. The reality
+                # being that in most scenarios, users do not want network
+                # booting, so the changed default should be valid.
+                with excutils.save_and_reraise_exception(reraise=False) as ctx:
+                    instance_info = node.instance_info
+                    capabilities = utils.parse_instance_info_capabilities(node)
+                    if 'boot_option' not in capabilities:
+                        capabilities['boot_option'] = 'local'
+                        instance_info['capabilities'] = capabilities
+                        node.instance_info = instance_info
+                        node.save()
+                        # Re-validate the network interface
+                        task.driver.network.validate(task)
+                    else:
+                        ctx.reraise = True
+            # Determine if this is a fast track sequence
+            fast_track_deploy = manager_utils.is_fast_track(task)
+            if fast_track_deploy:
+                # The agent has already recently checked in and we are
+                # configured to take that as an indicator that we can
+                # skip ahead.
+                LOG.debug('The agent for node %(node)s has recently checked '
+                          'in, and the node power will remain unmodified.',
+                          {'node': task.node.uuid})
+            else:
+                # Powering off node to setup networking for port and
+                # ensure that the state is reset if it is inadvertently
+                # on for any unknown reason.
+                manager_utils.node_power_action(task, states.POWER_OFF)
+            if task.driver.storage.should_write_image(task):
+                # NOTE(vdrok): in case of rebuild, we have tenant network
+                # already configured, unbind tenant ports if present
+                if not fast_track_deploy:
+                    power_state_to_restore = (
+                        manager_utils.power_on_node_if_needed(task))
+
+                task.driver.network.unconfigure_tenant_networks(task)
+                task.driver.network.add_provisioning_network(task)
+                if not fast_track_deploy:
+                    manager_utils.restore_power_state_if_needed(
+                        task, power_state_to_restore)
+                else:
+                    # Fast track sequence in progress
+                    self._update_instance_info(task)
+            # Signal to storage driver to attach volumes
+            task.driver.storage.attach_volumes(task)
+            if (not task.driver.storage.should_write_image(task)
+                or fast_track_deploy):
+                # We have nothing else to do as this is handled in the
+                # backend storage system, and we can return to the caller
+                # as we do not need to boot the agent to deploy.
+                # Alternatively, we could be in a fast track deployment
+                # and again, we should have nothing to do here.
+                return
+        if node.provision_state in (states.ACTIVE, states.UNRESCUING):
+            # Call is due to conductor takeover
+            task.driver.boot.prepare_instance(task)
+        elif node.provision_state != states.ADOPTING:
+            if node.provision_state not in (states.RESCUING, states.RESCUEWAIT,
+                                            states.RESCUE, states.RESCUEFAIL):
+                self._update_instance_info(task)
+            if CONF.agent.manage_agent_boot:
+                deploy_opts = deploy_utils.build_agent_options(node)
+                task.driver.boot.prepare_ramdisk(task, deploy_opts)
+
+    @METRICS.timer('CustomAgentDeploy.clean_up')
+    @task_manager.require_exclusive_lock
+    def clean_up(self, task):
+        """Clean up the deployment environment for this node.
+
+        If preparation of the deployment environment ahead of time is possible,
+        this method should be implemented by the driver. It should erase
+        anything cached by the `prepare` method.
+
+        If implemented, this method must be idempotent. It may be called
+        multiple times for the same node on the same conductor, and it may be
+        called by multiple conductors in parallel. Therefore, it must not
+        require an exclusive lock.
+
+        This method is called before `tear_down`.
+
+        :param task: a TaskManager instance.
+        """
+        super().clean_up(task)
+        deploy_utils.destroy_http_instance_images(task.node)
+
+
+class AgentDeploy(CustomAgentDeploy):
+    """Interface for deploy-related actions."""
+
+    def _update_instance_info(self, task):
+        """Update instance information with extra data for deploy."""
+        task.node.instance_info = (
+            deploy_utils.build_instance_info_for_deploy(task))
+        task.node.save()
+
+    @METRICS.timer('AgentDeploy.validate')
+    def validate(self, task):
+        """Validate the driver-specific Node deployment info.
+
+        This method validates whether the properties of the supplied node
+        contain the required information for this driver to deploy images to
+        the node.
+
+        :param task: a TaskManager instance
+        :raises: MissingParameterValue, if any of the required parameters are
+            missing.
+        :raises: InvalidParameterValue, if any of the parameters have invalid
+            value.
+        """
+        super().validate(task)
+
+        node = task.node
+
+        if not task.driver.storage.should_write_image(task):
+            # NOTE(TheJulia): There is no reason to validate
+            # image properties if we will not be writing an image
+            # in a boot from volume case. As such, return to the caller.
+            LOG.debug('Skipping complete deployment interface validation '
+                      'for node %s as it is set to boot from a remote '
+                      'volume.', node.uuid)
+            return
+        params = {}
+        image_source = node.instance_info.get('image_source')
+        image_checksum = node.instance_info.get('image_checksum')
+        image_disk_format = node.instance_info.get('image_disk_format')
+        os_hash_algo = node.instance_info.get('image_os_hash_algo')
+        os_hash_value = node.instance_info.get('image_os_hash_value')
+
+        params['instance_info.image_source'] = image_source
+        error_msg = _('Node %s failed to validate deploy image info. Some '
+                      'parameters were missing') % node.uuid
+
+        deploy_utils.check_for_missing_params(params, error_msg)
+
+        # NOTE(dtantsur): glance images contain a checksum; for file images we
+        # will recalculate the checksum anyway.
+        if (not service_utils.is_glance_image(image_source)
+                and not image_source.startswith('file://')):
+
+            def _raise_missing_checksum_exception(node):
+                raise exception.MissingParameterValue(_(
+                    'image_source\'s "image_checksum", or '
+                    '"image_os_hash_algo" and "image_os_hash_value" '
+                    'must be provided in instance_info for '
+                    'node %s') % node.uuid)
+
+            if os_hash_value and not os_hash_algo:
+                # We are missing a piece of information,
+                # so we still need to raise an error.
+                _raise_missing_checksum_exception(node)
+            elif not os_hash_value and os_hash_algo:
+                # We have the hash setting, but not the hash.
+                _raise_missing_checksum_exception(node)
+            elif not os_hash_value and not image_checksum:
+                # We are lacking the original image_checksum,
+                # so we raise the error.
+                _raise_missing_checksum_exception(node)
+
+        validate_http_provisioning_configuration(node)
+
+        check_image_size(task, image_source, image_disk_format)
+        validate_image_proxies(node)
 
     @METRICS.timer('AgentDeployMixin.write_image')
     @base.deploy_step(priority=80)
@@ -406,259 +706,6 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
 
         # Remove symbolic link when deploy is done.
         deploy_utils.remove_http_instance_symlink(task.node.uuid)
-
-
-class AgentDeploy(AgentDeployMixin, agent_base.AgentBaseMixin,
-                  base.DeployInterface):
-    """Interface for deploy-related actions."""
-
-    def get_properties(self):
-        """Return the properties of the interface.
-
-        :returns: dictionary of <property name>:<property description> entries.
-        """
-        return COMMON_PROPERTIES
-
-    def should_manage_boot(self, task):
-        """Whether agent boot is managed by ironic."""
-        return CONF.agent.manage_agent_boot
-
-    @METRICS.timer('AgentDeploy.validate')
-    def validate(self, task):
-        """Validate the driver-specific Node deployment info.
-
-        This method validates whether the properties of the supplied node
-        contain the required information for this driver to deploy images to
-        the node.
-
-        :param task: a TaskManager instance
-        :raises: MissingParameterValue, if any of the required parameters are
-            missing.
-        :raises: InvalidParameterValue, if any of the parameters have invalid
-            value.
-        """
-        if CONF.agent.manage_agent_boot:
-            task.driver.boot.validate(task)
-
-        node = task.node
-
-        # Validate node capabilities
-        deploy_utils.validate_capabilities(node)
-
-        if not task.driver.storage.should_write_image(task):
-            # NOTE(TheJulia): There is no reason to validate
-            # image properties if we will not be writing an image
-            # in a boot from volume case. As such, return to the caller.
-            LOG.debug('Skipping complete deployment interface validation '
-                      'for node %s as it is set to boot from a remote '
-                      'volume.', node.uuid)
-            return
-
-        params = {}
-        image_source = node.instance_info.get('image_source')
-        image_checksum = node.instance_info.get('image_checksum')
-        image_disk_format = node.instance_info.get('image_disk_format')
-        os_hash_algo = node.instance_info.get('image_os_hash_algo')
-        os_hash_value = node.instance_info.get('image_os_hash_value')
-
-        params['instance_info.image_source'] = image_source
-        error_msg = _('Node %s failed to validate deploy image info. Some '
-                      'parameters were missing') % node.uuid
-
-        deploy_utils.check_for_missing_params(params, error_msg)
-
-        # NOTE(dtantsur): glance images contain a checksum; for file images we
-        # will recalculate the checksum anyway.
-        if (not service_utils.is_glance_image(image_source)
-                and not image_source.startswith('file://')):
-
-            def _raise_missing_checksum_exception(node):
-                raise exception.MissingParameterValue(_(
-                    'image_source\'s "image_checksum", or '
-                    '"image_os_hash_algo" and "image_os_hash_value" '
-                    'must be provided in instance_info for '
-                    'node %s') % node.uuid)
-
-            if os_hash_value and not os_hash_algo:
-                # We are missing a piece of information,
-                # so we still need to raise an error.
-                _raise_missing_checksum_exception(node)
-            elif not os_hash_value and os_hash_algo:
-                # We have the hash setting, but not the hash.
-                _raise_missing_checksum_exception(node)
-            elif not os_hash_value and not image_checksum:
-                # We are lacking the original image_checksum,
-                # so we raise the error.
-                _raise_missing_checksum_exception(node)
-
-        validate_http_provisioning_configuration(node)
-
-        check_image_size(task, image_source, image_disk_format)
-        # Validate the root device hints
-        deploy_utils.get_root_device_for_deploy(node)
-        validate_image_proxies(node)
-
-    @METRICS.timer('AgentDeploy.deploy')
-    @base.deploy_step(priority=100)
-    @task_manager.require_exclusive_lock
-    def deploy(self, task):
-        """Perform a deployment to a node.
-
-        Perform the necessary work to deploy an image onto the specified node.
-        This method will be called after prepare(), which may have already
-        performed any preparatory steps, such as pre-caching some data for the
-        node.
-
-        :param task: a TaskManager instance.
-        :returns: status of the deploy. One of ironic.common.states.
-        """
-        if manager_utils.is_fast_track(task):
-            # NOTE(mgoddard): For fast track we can skip this step and proceed
-            # immediately to the next deploy step.
-            LOG.debug('Performing a fast track deployment for %(node)s.',
-                      {'node': task.node.uuid})
-            # NOTE(dtantsur): while the node is up and heartbeating, we don't
-            # necessary have the deploy steps cached. Force a refresh here.
-            self.refresh_steps(task, 'deploy')
-            deployments.validate_deploy_steps(task)
-        elif task.driver.storage.should_write_image(task):
-            # Check if the driver has already performed a reboot in a previous
-            # deploy step.
-            if not task.node.driver_internal_info.get('deployment_reboot'):
-                manager_utils.node_power_action(task, states.REBOOT)
-            info = task.node.driver_internal_info
-            info.pop('deployment_reboot', None)
-            task.node.driver_internal_info = info
-            task.node.save()
-            return states.DEPLOYWAIT
-
-    @METRICS.timer('AgentDeploy.prepare')
-    @task_manager.require_exclusive_lock
-    def prepare(self, task):
-        """Prepare the deployment environment for this node.
-
-        :param task: a TaskManager instance.
-        :raises: NetworkError: if the previous cleaning ports cannot be removed
-            or if new cleaning ports cannot be created.
-        :raises: InvalidParameterValue when the wrong power state is specified
-            or the wrong driver info is specified for power management.
-        :raises: StorageError If the storage driver is unable to attach the
-            configured volumes.
-        :raises: other exceptions by the node's power driver if something
-            wrong occurred during the power action.
-        :raises: exception.ImageRefValidationFailed if image_source is not
-            Glance href and is not HTTP(S) URL.
-        :raises: exception.InvalidParameterValue if network validation fails.
-        :raises: any boot interface's prepare_ramdisk exceptions.
-        """
-
-        def _update_instance_info():
-            node.instance_info = (
-                deploy_utils.build_instance_info_for_deploy(task))
-            node.save()
-
-        node = task.node
-        deploy_utils.populate_storage_driver_internal_info(task)
-        if node.provision_state == states.DEPLOYING:
-            # Validate network interface to ensure that it supports boot
-            # options configured on the node.
-            try:
-                task.driver.network.validate(task)
-            except exception.InvalidParameterValue:
-                # For 'neutron' network interface validation will fail
-                # if node is using 'netboot' boot option while provisioning
-                # a whole disk image. Updating 'boot_option' in node's
-                # 'instance_info' to 'local for backward compatibility.
-                # TODO(stendulker): Fail here once the default boot
-                # option is local.
-                # NOTE(TheJulia): Fixing the default boot mode only
-                # masks the failure as the lack of a user definition
-                # can be perceived as both an invalid configuration and
-                # reliance upon the default configuration. The reality
-                # being that in most scenarios, users do not want network
-                # booting, so the changed default should be valid.
-                with excutils.save_and_reraise_exception(reraise=False) as ctx:
-                    instance_info = node.instance_info
-                    capabilities = utils.parse_instance_info_capabilities(node)
-                    if 'boot_option' not in capabilities:
-                        capabilities['boot_option'] = 'local'
-                        instance_info['capabilities'] = capabilities
-                        node.instance_info = instance_info
-                        node.save()
-                        # Re-validate the network interface
-                        task.driver.network.validate(task)
-                    else:
-                        ctx.reraise = True
-            # Determine if this is a fast track sequence
-            fast_track_deploy = manager_utils.is_fast_track(task)
-            if fast_track_deploy:
-                # The agent has already recently checked in and we are
-                # configured to take that as an indicator that we can
-                # skip ahead.
-                LOG.debug('The agent for node %(node)s has recently checked '
-                          'in, and the node power will remain unmodified.',
-                          {'node': task.node.uuid})
-            else:
-                # Powering off node to setup networking for port and
-                # ensure that the state is reset if it is inadvertently
-                # on for any unknown reason.
-                manager_utils.node_power_action(task, states.POWER_OFF)
-            if task.driver.storage.should_write_image(task):
-                # NOTE(vdrok): in case of rebuild, we have tenant network
-                # already configured, unbind tenant ports if present
-                if not fast_track_deploy:
-                    power_state_to_restore = (
-                        manager_utils.power_on_node_if_needed(task))
-
-                task.driver.network.unconfigure_tenant_networks(task)
-                task.driver.network.add_provisioning_network(task)
-                if not fast_track_deploy:
-                    manager_utils.restore_power_state_if_needed(
-                        task, power_state_to_restore)
-                else:
-                    # Fast track sequence in progress
-                    _update_instance_info()
-            # Signal to storage driver to attach volumes
-            task.driver.storage.attach_volumes(task)
-            if (not task.driver.storage.should_write_image(task)
-                or fast_track_deploy):
-                # We have nothing else to do as this is handled in the
-                # backend storage system, and we can return to the caller
-                # as we do not need to boot the agent to deploy.
-                # Alternatively, we could be in a fast track deployment
-                # and again, we should have nothing to do here.
-                return
-        if node.provision_state in (states.ACTIVE, states.UNRESCUING):
-            # Call is due to conductor takeover
-            task.driver.boot.prepare_instance(task)
-        elif node.provision_state != states.ADOPTING:
-            if node.provision_state not in (states.RESCUING, states.RESCUEWAIT,
-                                            states.RESCUE, states.RESCUEFAIL):
-                _update_instance_info()
-            if CONF.agent.manage_agent_boot:
-                deploy_opts = deploy_utils.build_agent_options(node)
-                task.driver.boot.prepare_ramdisk(task, deploy_opts)
-
-    @METRICS.timer('AgentDeploy.clean_up')
-    @task_manager.require_exclusive_lock
-    def clean_up(self, task):
-        """Clean up the deployment environment for this node.
-
-        If preparation of the deployment environment ahead of time is possible,
-        this method should be implemented by the driver. It should erase
-        anything cached by the `prepare` method.
-
-        If implemented, this method must be idempotent. It may be called
-        multiple times for the same node on the same conductor, and it may be
-        called by multiple conductors in parallel. Therefore, it must not
-        require an exclusive lock.
-
-        This method is called before `tear_down`.
-
-        :param task: a TaskManager instance.
-        """
-        super(AgentDeploy, self).clean_up(task)
-        deploy_utils.destroy_http_instance_images(task.node)
 
 
 class AgentRAID(base.RAIDInterface):
