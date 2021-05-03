@@ -411,14 +411,14 @@ class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
         esi_mock.side_effect = [
             collections.OrderedDict((
                 ('management', ['fake', 'noop']),
-                ('deploy', ['agent', 'iscsi']),
+                ('deploy', ['direct', 'ansible']),
             )),
             collections.OrderedDict((
                 ('management', ['fake']),
-                ('deploy', ['agent', 'fake']),
+                ('deploy', ['direct', 'fake']),
             )),
         ]
-        default_mock.side_effect = ('fake', 'agent', 'fake', 'agent')
+        default_mock.side_effect = ('fake', 'direct', 'fake', 'direct')
         expected_calls = [
             mock.call(
                 mock.ANY,
@@ -432,11 +432,11 @@ class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
                   'default': False},
                  {'hardware_type': 'fake-hardware',
                   'interface_type': 'deploy',
-                  'interface_name': 'agent',
+                  'interface_name': 'direct',
                   'default': True},
                  {'hardware_type': 'fake-hardware',
                   'interface_type': 'deploy',
-                  'interface_name': 'iscsi',
+                  'interface_name': 'ansible',
                   'default': False},
                  {'hardware_type': 'manual-management',
                   'interface_type': 'management',
@@ -444,7 +444,7 @@ class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
                   'default': True},
                  {'hardware_type': 'manual-management',
                   'interface_type': 'deploy',
-                  'interface_name': 'agent',
+                  'interface_name': 'direct',
                   'default': True},
                  {'hardware_type': 'manual-management',
                   'interface_type': 'deploy',
@@ -471,7 +471,7 @@ class RegisterInterfacesTestCase(mgr_utils.ServiceSetUpMixin,
         esi_mock.side_effect = [
             collections.OrderedDict((
                 ('management', ['fake', 'noop']),
-                ('deploy', ['agent', 'iscsi']),
+                ('deploy', ['direct', 'ansible']),
             )),
         ]
         default_mock.side_effect = exception.NoValidDefaultForInterface("boo")

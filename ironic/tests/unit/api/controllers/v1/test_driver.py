@@ -46,14 +46,14 @@ class TestListDrivers(base.BaseApiTest):
             self.dbapi.register_conductor_hardware_interfaces(
                 c.id,
                 [{'hardware_type': self.hw1, 'interface_type': 'deploy',
-                  'interface_name': 'iscsi', 'default': False},
+                  'interface_name': 'ansible', 'default': False},
                  {'hardware_type': self.hw1, 'interface_type': 'deploy',
                   'interface_name': 'direct', 'default': True}]
             )
         self.dbapi.register_conductor_hardware_interfaces(
             c1.id,
             [{'hardware_type': self.hw2, 'interface_type': 'deploy',
-              'interface_name': 'iscsi', 'default': False},
+              'interface_name': 'ansible', 'default': False},
              {'hardware_type': self.hw2, 'interface_type': 'deploy',
               'interface_name': 'direct', 'default': True}]
         )
@@ -124,7 +124,7 @@ class TestListDrivers(base.BaseApiTest):
                 {
                     'hardware_type': self.hw1,
                     'interface_type': 'deploy',
-                    'interface_name': 'iscsi',
+                    'interface_name': 'ansible',
                     'default': False,
                 },
                 {
@@ -238,7 +238,7 @@ class TestListDrivers(base.BaseApiTest):
                 {
                     'hardware_type': self.hw1,
                     'interface_type': 'deploy',
-                    'interface_name': 'iscsi',
+                    'interface_name': 'ansible',
                     'default': False,
                 },
                 {

@@ -84,7 +84,7 @@ class RPCAPITestCase(db_base.DbTestCase):
         self.dbapi.register_conductor_hardware_interfaces(
             c.id,
             [{'hardware_type': 'fake-driver', 'interface_type': 'deploy',
-              'interface_name': 'iscsi', 'default': True},
+              'interface_name': 'ansible', 'default': True},
              {'hardware_type': 'fake-driver', 'interface_type': 'deploy',
               'interface_name': 'direct', 'default': False}]
         )
@@ -101,7 +101,7 @@ class RPCAPITestCase(db_base.DbTestCase):
         self.dbapi.register_conductor_hardware_interfaces(
             c.id,
             [{'hardware_type': 'other-driver', 'interface_type': 'deploy',
-              'interface_name': 'iscsi', 'default': True},
+              'interface_name': 'ansible', 'default': True},
              {'hardware_type': 'other-driver', 'interface_type': 'deploy',
               'interface_name': 'direct', 'default': False}]
         )
@@ -124,7 +124,7 @@ class RPCAPITestCase(db_base.DbTestCase):
         self.dbapi.register_conductor_hardware_interfaces(
             c.id,
             [{'hardware_type': 'fake-driver', 'interface_type': 'deploy',
-              'interface_name': 'iscsi', 'default': True},
+              'interface_name': 'ansible', 'default': True},
              {'hardware_type': 'fake-driver', 'interface_type': 'deploy',
               'interface_name': 'direct', 'default': False}]
         )
@@ -143,7 +143,7 @@ class RPCAPITestCase(db_base.DbTestCase):
         self.dbapi.register_conductor_hardware_interfaces(
             c.id,
             [{'hardware_type': 'fake-driver', 'interface_type': 'deploy',
-              'interface_name': 'iscsi', 'default': True},
+              'interface_name': 'ansible', 'default': True},
              {'hardware_type': 'fake-driver', 'interface_type': 'deploy',
               'interface_name': 'direct', 'default': False}]
         )
@@ -160,7 +160,7 @@ class RPCAPITestCase(db_base.DbTestCase):
         self.dbapi.register_conductor_hardware_interfaces(
             c.id,
             [{'hardware_type': 'fake-driver', 'interface_type': 'deploy',
-              'interface_name': 'iscsi', 'default': True},
+              'interface_name': 'ansible', 'default': True},
              {'hardware_type': 'fake-driver', 'interface_type': 'deploy',
               'interface_name': 'direct', 'default': False}]
         )
@@ -183,7 +183,7 @@ class RPCAPITestCase(db_base.DbTestCase):
         self.dbapi.register_conductor_hardware_interfaces(
             c.id,
             [{'hardware_type': 'fake-driver', 'interface_type': 'deploy',
-              'interface_name': 'iscsi', 'default': True},
+              'interface_name': 'ansible', 'default': True},
              {'hardware_type': 'fake-driver', 'interface_type': 'deploy',
               'interface_name': 'direct', 'default': False}]
         )
@@ -198,7 +198,7 @@ class RPCAPITestCase(db_base.DbTestCase):
         self.dbapi.register_conductor_hardware_interfaces(
             c.id,
             [{'hardware_type': 'fake-driver', 'interface_type': 'deploy',
-              'interface_name': 'iscsi', 'default': True},
+              'interface_name': 'ansible', 'default': True},
              {'hardware_type': 'fake-driver', 'interface_type': 'deploy',
               'interface_name': 'direct', 'default': False}]
         )

@@ -23,7 +23,6 @@ from ironic.drivers.modules.ansible import deploy as ansible_deploy
 from ironic.drivers.modules import fake
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipxe
-from ironic.drivers.modules import iscsi_deploy
 from ironic.drivers.modules.network import flat as flat_net
 from ironic.drivers.modules.network import neutron
 from ironic.drivers.modules.network import noop as noop_net
@@ -49,9 +48,9 @@ class GenericHardware(hardware_type.AbstractHardwareType):
     @property
     def supported_deploy_interfaces(self):
         """List of supported deploy interfaces."""
-        return [agent.AgentDeploy, iscsi_deploy.ISCSIDeploy,
-                ansible_deploy.AnsibleDeploy, pxe.PXERamdiskDeploy,
-                pxe.PXEAnacondaDeploy, agent.CustomAgentDeploy]
+        return [agent.AgentDeploy, ansible_deploy.AnsibleDeploy,
+                pxe.PXERamdiskDeploy, pxe.PXEAnacondaDeploy,
+                agent.CustomAgentDeploy]
 
     @property
     def supported_inspect_interfaces(self):

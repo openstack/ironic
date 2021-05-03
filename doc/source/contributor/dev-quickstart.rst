@@ -420,8 +420,8 @@ Ironic
 ------
 
 Create devstack/local.conf with minimal settings required to enable Ironic.
-An example local.conf that enables both ``direct`` and ``iscsi``
-:doc:`deploy interfaces </admin/interfaces/deploy>` and uses the ``ipmi``
+An example local.conf that enables the ``direct``
+:doc:`deploy interface </admin/interfaces/deploy>` and uses the ``ipmi``
 hardware type by default::
 
     cd devstack
@@ -468,8 +468,6 @@ hardware type by default::
     # interfaces, most often power and management:
     #IRONIC_ENABLED_MANAGEMENT_INTERFACES=ipmitool,fake
     #IRONIC_ENABLED_POWER_INTERFACES=ipmitool,fake
-    # The 'ipmi' hardware type's default deploy interface is 'iscsi'.
-    # This would change the default to 'direct':
     #IRONIC_DEFAULT_DEPLOY_INTERFACE=direct
 
     # Change this to alter the default driver for nodes created by devstack.
@@ -516,9 +514,8 @@ directory you cloned DevStack::
 An example local.conf that enables the ironic tempest plugin and Ironic can be
 found below. The ``TEMPEST_PLUGINS`` variable needs to have the absolute path
 to the ironic-tempest-plugin folder, otherwise the plugin won't be installed.
-Ironic will have enabled both ``direct`` and
-``iscsi`` :doc:`deploy interfaces </admin/interfaces/deploy>` and uses the
-``ipmi`` hardware type by default::
+Ironic will have enabled the ``direct`` :doc:`deploy interface
+</admin/interfaces/deploy>` and uses the ``ipmi`` hardware type by default::
 
     cd devstack
     cat >local.conf <<END
@@ -564,8 +561,6 @@ Ironic will have enabled both ``direct`` and
     # interfaces, most often power and management:
     #IRONIC_ENABLED_MANAGEMENT_INTERFACES=ipmitool,fake
     #IRONIC_ENABLED_POWER_INTERFACES=ipmitool,fake
-    # The 'ipmi' hardware type's default deploy interface is 'iscsi'.
-    # This would change the default to 'direct':
     #IRONIC_DEFAULT_DEPLOY_INTERFACE=direct
 
     # Change this to alter the default driver for nodes created by devstack.

@@ -41,13 +41,13 @@ BIOS, and RAID interfaces.
 Agent steps
 -----------
 
-All deploy interfaces based on ironic-python-agent (i.e. ``direct``, ``iscsi``
-and ``ansible`` and any derivatives) expose the following deploy steps:
+All deploy interfaces based on ironic-python-agent (i.e. ``direct``,
+``ansible`` and any derivatives) expose the following deploy steps:
 
 ``deploy.deploy`` (priority 100)
   In this step the node is booted using a provisioning image.
 ``deploy.write_image`` (priority 80)
-  An out-of-band (``iscsi``, ``ansible``) or in-band (``direct``) step that
+  An out-of-band (``ansible``) or in-band (``direct``) step that
   downloads and writes the image to the node.
 ``deploy.tear_down_agent`` (priority 40)
   In this step the provisioning image is shut down.
@@ -57,7 +57,7 @@ and ``ansible`` and any derivatives) expose the following deploy steps:
 ``deploy.boot_instance`` (priority 20)
   In this step the node is booted into the user image.
 
-Additionally, the ``iscsi`` and ``direct`` deploy interfaces have:
+Additionally, the ``direct`` deploy interfaces has:
 
 ``deploy.prepare_instance_boot`` (priority 60)
   In this step the boot device is configured and the bootloader is installed.

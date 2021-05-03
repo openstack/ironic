@@ -79,8 +79,7 @@ class PXEBootTestCase(db_base.DbTestCase):
 
         self.config(enabled_boot_interfaces=[self.boot_interface,
                                              'ipxe', 'fake'])
-        self.config(enabled_deploy_interfaces=['fake', 'direct', 'iscsi',
-                                               'anaconda'])
+        self.config(enabled_deploy_interfaces=['fake', 'direct', 'anaconda'])
         self.node = obj_utils.create_test_node(
             self.context,
             driver=self.driver,

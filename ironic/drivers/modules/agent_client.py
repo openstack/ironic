@@ -342,34 +342,6 @@ class AgentClient(object):
                       {'cmd': method, 'node': node.uuid})
             return None
 
-    @METRICS.timer('AgentClient.start_iscsi_target')
-    def start_iscsi_target(self, node, iqn,
-                           portal_port=DEFAULT_IPA_PORTAL_PORT,
-                           wipe_disk_metadata=False):
-        """Expose the node's disk as an ISCSI target.
-
-        :param node: an Ironic node object
-        :param iqn: iSCSI target IQN
-        :param portal_port: iSCSI portal port
-        :param wipe_disk_metadata: True if the agent should wipe first the
-                                   disk magic strings like the partition
-                                   table, RAID or filesystem signature.
-        :raises: IronicException when failed to issue the request or there was
-                 a malformed response from the agent.
-        :raises: AgentAPIError when agent failed to execute specified command.
-        :raises: AgentInProgress when the command fails to execute as the agent
-                 is presently executing the prior command.
-        :returns: A dict containing command response from agent.
-                  See :func:`get_commands_status` for a command result sample.
-        """
-        params = {'iqn': iqn,
-                  'portal_port': portal_port,
-                  'wipe_disk_metadata': wipe_disk_metadata}
-        return self._command(node=node,
-                             method='iscsi.start_iscsi_target',
-                             params=params,
-                             wait=True)
-
     @METRICS.timer('AgentClient.install_bootloader')
     def install_bootloader(self, node, root_uuid, target_boot_mode,
                            efi_system_part_uuid=None,

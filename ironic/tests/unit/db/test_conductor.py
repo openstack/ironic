@@ -59,7 +59,7 @@ class DbConductorTestCase(base.DbTestCase):
 
     def test_register_conductor_hardware_interfaces(self):
         c = self._create_test_cdr()
-        interfaces = ['direct', 'iscsi']
+        interfaces = ['direct', 'ansible']
         self.dbapi.register_conductor_hardware_interfaces(
             c.id,
             [{'hardware_type': 'generic', 'interface_type': 'deploy',
@@ -74,10 +74,10 @@ class DbConductorTestCase(base.DbTestCase):
         self.assertEqual('generic', ci2.hardware_type)
         self.assertEqual('deploy', ci1.interface_type)
         self.assertEqual('deploy', ci2.interface_type)
-        self.assertEqual('direct', ci1.interface_name)
-        self.assertEqual('iscsi', ci2.interface_name)
-        self.assertFalse(ci1.default)
-        self.assertTrue(ci2.default)
+        self.assertEqual('ansible', ci1.interface_name)
+        self.assertEqual('direct', ci2.interface_name)
+        self.assertTrue(ci1.default)
+        self.assertFalse(ci2.default)
 
     def test_register_conductor_hardware_interfaces_duplicate(self):
         c = self._create_test_cdr()
@@ -85,7 +85,7 @@ class DbConductorTestCase(base.DbTestCase):
             {'hardware_type': 'generic', 'interface_type': 'deploy',
              'interface_name': 'direct', 'default': False},
             {'hardware_type': 'generic', 'interface_type': 'deploy',
-             'interface_name': 'iscsi', 'default': True}
+             'interface_name': 'ansible', 'default': True}
         ]
         self.dbapi.register_conductor_hardware_interfaces(c.id, interfaces)
         ifaces = self.dbapi.list_conductor_hardware_interfaces(c.id)
@@ -100,7 +100,7 @@ class DbConductorTestCase(base.DbTestCase):
 
     def test_unregister_conductor_hardware_interfaces(self):
         c = self._create_test_cdr()
-        interfaces = ['direct', 'iscsi']
+        interfaces = ['direct', 'ansible']
         self.dbapi.register_conductor_hardware_interfaces(
             c.id,
             [{'hardware_type': 'generic', 'interface_type': 'deploy',

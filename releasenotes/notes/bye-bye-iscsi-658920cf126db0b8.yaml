@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The deprecated ``iscsi`` deploy interface has been removed. Please update
+    to a different deploy interface before upgrading.

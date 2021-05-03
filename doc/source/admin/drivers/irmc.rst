@@ -88,7 +88,7 @@ interfaces enabled for ``irmc`` hardware type.
    enabled_bios_interfaces = irmc
    enabled_boot_interfaces = irmc-virtual-media,irmc-pxe
    enabled_console_interfaces = ipmitool-socat,ipmitool-shellinabox,no-console
-   enabled_deploy_interfaces = iscsi,direct
+   enabled_deploy_interfaces = direct
    enabled_inspect_interfaces = irmc,inspector,no-inspect
    enabled_management_interfaces = irmc
    enabled_network_interfaces = flat,neutron

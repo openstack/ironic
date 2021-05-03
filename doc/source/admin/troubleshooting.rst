@@ -420,13 +420,10 @@ Overall:
   timers to help ensure a deployment does not fail due to a short-lived
   transitory network connectivity failure in the form of a switch port having
   moved to a temporary blocking state. Where applicable and possible,
-  many of these patches have been backported to supported releases,
-  however users of the iSCSI deployment interface will see the least
-  capability for these sorts of situations to be handled
-  automatically. These patches also require that the switchport has an
-  eventual fallback to a non-bonded mode. If the port remains in a blocking
-  state, then traffic will be unable to flow and the deloyment is likely to
-  time out.
+  many of these patches have been backported to supported releases.
+  These patches also require that the switchport has an eventual fallback to a
+  non-bonded mode. If the port remains in a blocking state, then traffic will
+  be unable to flow and the deployment is likely to time out.
 * If you must use LACP, consider ``passive`` LACP negotiation settings
   in the network switch as opposed to ``active``. The difference being with
   passive the connected workload is likely a server where it should likely
@@ -543,16 +540,10 @@ Again, these sorts of cases will depend upon the exact configuration of the
 deployment, but hopefully these are areas where these actions can occur.
 
 * Conversion to raw image files upon download to the conductor, from the
-  ``[DEFAULT]force_raw_images`` option, in particular with the ``iscsi``
-  deployment interface. Users using glance and the ``direct`` deployment
-  interface may also experience issues here as the conductor will cache
-  the image to be written which takes place when the
-  ``[agent]image_download_source`` is set to ``http`` instead of ``swift``.
-
-* Write of a QCOW2 file over the ``iscsi`` deployment interface from the
-  conductor to the node being deployed can result in large amounts of
-  "white space" to be written to be transmitted over the wire and written
-  to the end device.
+  ``[DEFAULT]force_raw_images`` option. Users using Glance may also experience
+  issues here as the conductor will cache the image to be written which takes
+  place when the ``[agent]image_download_source`` is set to ``http`` instead of
+  ``swift``.
 
 .. note::
    The QCOW2 image conversion utility does consume quite a bit of memory
@@ -560,9 +551,8 @@ deployment, but hopefully these are areas where these actions can occur.
    is because the files are not sequential in nature, and must be re-assembled
    from an internal block mapping. Internally Ironic limits this to 1GB
    of RAM. Operators performing large numbers of deployments may wish to
-   explore the ``direct`` deployment interface in these sorts of cases in
-   order to minimize the conductor becoming a limiting factor due to memory
-   and network IO.
+   disable raw images in these sorts of cases in order to minimize the
+   conductor becoming a limiting factor due to memory and network IO.
 
 Why are my nodes stuck in a "wait" state?
 =========================================

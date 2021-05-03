@@ -35,7 +35,6 @@ from ironic.conf import ilo
 from ironic.conf import inspector
 from ironic.conf import ipmi
 from ironic.conf import irmc
-from ironic.conf import iscsi
 from ironic.conf import metrics
 from ironic.conf import metrics_statsd
 from ironic.conf import molds
@@ -51,6 +50,7 @@ from ironic.conf import xclarity
 CONF = cfg.CONF
 
 agent.register_opts(CONF)
+anaconda.register_opts(CONF)
 ansible.register_opts(CONF)
 api.register_opts(CONF)
 audit.register_opts(CONF)
@@ -69,8 +69,6 @@ ilo.register_opts(CONF)
 inspector.register_opts(CONF)
 ipmi.register_opts(CONF)
 irmc.register_opts(CONF)
-iscsi.register_opts(CONF)
-anaconda.register_opts(CONF)
 metrics.register_opts(CONF)
 metrics_statsd.register_opts(CONF)
 molds.register_opts(CONF)

@@ -99,18 +99,6 @@ implementation is available for the hardware, it is recommended using it
 for better scalability and security. Otherwise, it is recommended to use iPXE,
 when it is supported by target hardware.
 
-Deploy interface
-~~~~~~~~~~~~~~~~
-
-There are two deploy interfaces in-tree, ``iscsi`` and ``direct``. See
-:doc:`../../admin/interfaces/deploy` for explanation of the difference.
-With the ``iscsi`` deploy method, most of the deployment operations happen on
-the conductor. If the Object Storage service (swift) or RadosGW is present in
-the environment, it is recommended to use the ``direct`` deploy method for
-better scalability and reliability.
-
-.. TODO(dtantsur): say something about the ansible deploy, when it's in
-
 Hardware specifications
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -327,11 +315,6 @@ the space requirements are different:
   .. note::
     ``image_download_source`` can also be provided in the node's
     ``driver_info`` or ``instance_info``. See :ref:`image_download_source`.
-
-* The ``iscsi`` deploy method always requires caching of the whole instance
-  image locally during the deployment. The image has to be converted to the raw
-  format, which may increase the required amount of disk space, as well as the
-  CPU load.
 
 * When network boot is used, the instance image kernel and ramdisk are cached
   locally while the instance is active.

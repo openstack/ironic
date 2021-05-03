@@ -17,26 +17,11 @@ For more information see the
 Drivers
 =======
 
-Starting with the Kilo release all deploy interfaces (except for fake ones)
-are using IPA. There are two types of them:
-
-* For nodes using the :ref:`iscsi-deploy` interface, IPA exposes the root hard
-  drive as an iSCSI share and calls back to the ironic conductor. The
-  conductor mounts the share and copies an image there. It then signals back
-  to IPA for post-installation actions like setting up a bootloader for local
-  boot support.
-
-* For nodes using the :ref:`direct-deploy` interface, the conductor prepares
-  a swift temporary URL for an image. IPA then handles the whole deployment
-  process: downloading an image from swift, putting it on the machine and doing
-  any post-deploy actions.
-
-Which one to choose depends on your environment. :ref:`iscsi-deploy` puts
-higher load on conductors, :ref:`direct-deploy` currently requires the whole
-image to fit in the node's memory, except when using raw images. It also
-requires :doc:`/install/configure-glance-swift`.
-
-.. todo: other differences?
+Starting with the Kilo release all deploy interfaces (except for fake ones) are
+using IPA. For nodes using the :ref:`direct-deploy` interface, the conductor
+prepares a swift temporary URL or a local HTTP URL for the image. IPA then
+handles the whole deployment process: downloading an image from swift, putting
+it on the machine and doing any post-deploy actions.
 
 Requirements
 ------------

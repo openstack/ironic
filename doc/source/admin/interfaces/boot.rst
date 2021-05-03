@@ -24,8 +24,8 @@ common, and usually requires bootstrapping using PXE first.
 The ``pxe`` boot interface works by preparing a PXE/iPXE environment for a
 node on the file system, then instructing the DHCP provider (for example,
 the Networking service) to boot the node from it. See
-:ref:`iscsi-deploy-example` and :ref:`direct-deploy-example` for a better
-understanding of the whole deployment process.
+ref:`direct-deploy-example` for a better understanding of the whole deployment
+process.
 
 .. note::
     Both PXE and iPXE are configured differently, when UEFI boot is used

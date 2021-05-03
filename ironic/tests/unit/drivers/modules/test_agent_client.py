@@ -464,46 +464,6 @@ class TestAgentClient(base.TestCase):
                 timeout=CONF.agent.command_timeout,
                 verify='/path/to/agent.crt')
 
-    def test_start_iscsi_target(self):
-        self.client._command = mock.MagicMock(spec_set=[])
-        iqn = 'fake-iqn'
-        port = agent_client.DEFAULT_IPA_PORTAL_PORT
-        wipe_disk_metadata = False
-        params = {'iqn': iqn, 'portal_port': port,
-                  'wipe_disk_metadata': wipe_disk_metadata}
-
-        self.client.start_iscsi_target(self.node, iqn)
-        self.client._command.assert_called_once_with(
-            node=self.node, method='iscsi.start_iscsi_target',
-            params=params, wait=True)
-
-    def test_start_iscsi_target_custom_port(self):
-        self.client._command = mock.MagicMock(spec_set=[])
-        iqn = 'fake-iqn'
-        port = 3261
-        wipe_disk_metadata = False
-        params = {'iqn': iqn, 'portal_port': port,
-                  'wipe_disk_metadata': wipe_disk_metadata}
-
-        self.client.start_iscsi_target(self.node, iqn, portal_port=port)
-        self.client._command.assert_called_once_with(
-            node=self.node, method='iscsi.start_iscsi_target',
-            params=params, wait=True)
-
-    def test_start_iscsi_target_wipe_disk_metadata(self):
-        self.client._command = mock.MagicMock(spec_set=[])
-        iqn = 'fake-iqn'
-        port = agent_client.DEFAULT_IPA_PORTAL_PORT
-        wipe_disk_metadata = True
-        params = {'iqn': iqn, 'portal_port': port,
-                  'wipe_disk_metadata': wipe_disk_metadata}
-
-        self.client.start_iscsi_target(self.node, iqn,
-                                       wipe_disk_metadata=wipe_disk_metadata)
-        self.client._command.assert_called_once_with(
-            node=self.node, method='iscsi.start_iscsi_target',
-            params=params, wait=True)
-
     def _test_install_bootloader(self, root_uuid, efi_system_part_uuid=None,
                                  prep_boot_part_uuid=None):
         self.client._command = mock.MagicMock(spec_set=[])
