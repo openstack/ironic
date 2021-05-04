@@ -289,14 +289,11 @@ class CommonTestsMixin:
 
     @mock.patch.object(agent.CustomAgentDeploy, 'refresh_steps',
                        autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'prepare_image',
-                       autospec=True)
     @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
     @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     def test_deploy_fast_track(self, power_mock, mock_pxe_instance,
-                               mock_is_fast_track, prepare_image_mock,
-                               refresh_mock):
+                               mock_is_fast_track, refresh_mock):
         mock_is_fast_track.return_value = True
         self.node.target_provision_state = states.ACTIVE
         self.node.provision_state = states.DEPLOYING
@@ -307,7 +304,6 @@ class CommonTestsMixin:
             self.assertIsNone(result)
             self.assertFalse(power_mock.called)
             self.assertFalse(mock_pxe_instance.called)
-            self.assertFalse(prepare_image_mock.called)
             self.assertEqual(states.DEPLOYING, task.node.provision_state)
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
@@ -1353,21 +1349,21 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                 task, manage_boot=False)
 
     def _test_write_image(self, additional_driver_info=None,
-                          additional_expected_image_info=None,
-                          compat=False):
+                          additional_expected_image_info=None):
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE
         driver_info = self.node.driver_info
         driver_info.update(additional_driver_info or {})
         self.node.driver_info = driver_info
-        if not compat:
-            step = {'step': 'write_image', 'interface': 'deploy'}
-            dii = self.node.driver_internal_info
-            dii['agent_cached_deploy_steps'] = {
-                'deploy': [step],
-            }
-            self.node.driver_internal_info = dii
+
+        step = {'step': 'write_image', 'interface': 'deploy'}
+        dii = self.node.driver_internal_info
+        dii['agent_cached_deploy_steps'] = {
+            'deploy': [step],
+        }
+        self.node.driver_internal_info = dii
         self.node.save()
+
         test_temp_url = 'http://image'
         expected_image_info = {
             'urls': [test_temp_url],
@@ -1380,31 +1376,23 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
         }
         expected_image_info.update(additional_expected_image_info or {})
 
-        client_mock = mock.MagicMock(spec_set=['prepare_image',
-                                               'execute_deploy_step'])
+        client_mock = mock.MagicMock(spec_set=['execute_deploy_step'])
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy._client = client_mock
             task.driver.deploy.write_image(task)
 
-            if compat:
-                client_mock.prepare_image.assert_called_with(
-                    task.node, expected_image_info, wait=True)
-            else:
-                step['args'] = {'image_info': expected_image_info,
-                                'configdrive': None}
-                client_mock.execute_deploy_step.assert_called_once_with(
-                    step, task.node, mock.ANY)
+            step['args'] = {'image_info': expected_image_info,
+                            'configdrive': None}
+            client_mock.execute_deploy_step.assert_called_once_with(
+                step, task.node, mock.ANY)
             self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
 
     def test_write_image(self):
         self._test_write_image()
-
-    def test_write_image_compat(self):
-        self._test_write_image(compat=True)
 
     def test_write_image_with_proxies(self):
         self._test_write_image(
@@ -1478,16 +1466,18 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             'disk_label': 'msdos'
         }
 
-        client_mock = mock.MagicMock(spec_set=['prepare_image'])
+        client_mock = mock.MagicMock(spec_set=['execute_deploy_step'])
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.deploy._client = client_mock
             task.driver.deploy.write_image(task)
 
-            client_mock.prepare_image.assert_called_with(task.node,
-                                                         expected_image_info,
-                                                         wait=True)
+            step = {'step': 'write_image', 'interface': 'deploy',
+                    'args': {'image_info': expected_image_info,
+                             'configdrive': 'configdrive'}}
+            client_mock.execute_deploy_step.assert_called_once_with(
+                step, task.node, mock.ANY)
             self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
@@ -1579,46 +1569,6 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                              driver_int_info['root_uuid_or_disk_id']),
             boot_mode_mock.assert_called_once_with(task.node)
             self.assertFalse(log_mock.called)
-            prepare_instance_mock.assert_called_once_with(mock.ANY,
-                                                          task,
-                                                          'root_uuid',
-                                                          None, None)
-            self.assertEqual(states.DEPLOYING, task.node.provision_state)
-            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
-
-    @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
-    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
-                       autospec=True)
-    @mock.patch.object(agent.AgentDeploy, '_get_uuid_from_result',
-                       autospec=True)
-    @mock.patch.object(agent_client.AgentClient, 'get_partition_uuids',
-                       autospec=True)
-    @mock.patch.object(agent.AgentDeploy, 'prepare_instance_to_boot',
-                       autospec=True)
-    def test_prepare_instance_boot_partition_image_compat(
-            self, prepare_instance_mock, uuid_mock,
-            old_uuid_mock, boot_mode_mock, log_mock):
-        self.node.instance_info = {
-            'capabilities': {'boot_option': 'netboot'}}
-        uuid_mock.side_effect = exception.AgentAPIError
-        old_uuid_mock.return_value = 'root_uuid'
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
-        self.node.save()
-        boot_mode_mock.return_value = 'bios'
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            driver_internal_info = task.node.driver_internal_info
-            driver_internal_info['is_whole_disk_image'] = False
-            task.node.driver_internal_info = driver_internal_info
-            task.driver.deploy.prepare_instance_boot(task)
-            uuid_mock.assert_called_once_with(mock.ANY, task.node)
-            old_uuid_mock.assert_called_once_with(mock.ANY, task, 'root_uuid')
-            driver_int_info = task.node.driver_internal_info
-            self.assertEqual('root_uuid',
-                             driver_int_info['root_uuid_or_disk_id']),
-            boot_mode_mock.assert_called_once_with(task.node)
-            self.assertTrue(log_mock.called)
             prepare_instance_mock.assert_called_once_with(mock.ANY,
                                                           task,
                                                           'root_uuid',
@@ -1780,34 +1730,6 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                 task, states.POWER_OFF)
         self.node.refresh()
         self.assertEqual('bar', self.node.instance_info['foo'])
-
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
-                       autospec=True)
-    def test_get_uuid_from_result(self, mock_statuses):
-        mock_statuses.return_value = [
-            {'command_name': 'banana', 'command_result': None},
-            {'command_name': 'prepare_image',
-             'command_result': {'result': 'okay root_uuid=abcd'}},
-            {'command_name': 'get_deploy_steps',
-             'command_result': {'deploy_steps': []}}
-        ]
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=False) as task:
-            result = self.driver._get_uuid_from_result(task, 'root_uuid')
-            self.assertEqual('abcd', result)
-
-    @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
-                       autospec=True)
-    def test_get_uuid_from_result_fails(self, mock_statuses):
-        mock_statuses.return_value = [
-            {'command_name': 'banana', 'command_result': None},
-            {'command_name': 'get_deploy_steps',
-             'command_result': {'deploy_steps': []}}
-        ]
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=False) as task:
-            result = self.driver._get_uuid_from_result(task, 'root_uuid')
-            self.assertIsNone(result)
 
     @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
                        autospec=True)

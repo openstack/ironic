@@ -401,55 +401,8 @@ def _step_failure_handler(task, msg, step_type, traceback=False):
 class HeartbeatMixin(object):
     """Mixin class implementing heartbeat processing."""
 
-    has_decomposed_deploy_steps = False
-    """Whether the driver supports decomposed deploy steps.
-
-    Previously (since Rocky), drivers used a single 'deploy' deploy step on
-    the deploy interface. Some additional steps were added for the 'direct'
-    and 'iscsi' deploy interfaces in the Ussuri cycle, which means that
-    more of the deployment flow is driven by deploy steps.
-    """
-
     def __init__(self):
         self._client = _get_client()
-        if not self.has_decomposed_deploy_steps:
-            LOG.warning('%s does not support decomposed deploy steps. This '
-                        'is deprecated and will stop working in a future '
-                        'release', self.__class__.__name__)
-
-    def continue_deploy(self, task):
-        """Continues the deployment of baremetal node.
-
-        This method continues the deployment of the baremetal node after
-        the ramdisk have been booted.
-
-        :param task: a TaskManager instance
-        """
-
-    def deploy_has_started(self, task):
-        """Check if the deployment has started already.
-
-        :returns: True if the deploy has started, False otherwise.
-        """
-
-    def deploy_is_done(self, task):
-        """Check if the deployment is already completed.
-
-        :returns: True if the deployment is completed. False otherwise
-        """
-
-    def in_core_deploy_step(self, task):
-        """Check if we are in the deploy.deploy deploy step.
-
-        Assumes that we are in the DEPLOYWAIT state.
-
-        :param task: a TaskManager instance
-        :returns: True if the current deploy step is deploy.deploy.
-        """
-        step = task.node.deploy_step
-        return (step
-                and step['interface'] == 'deploy'
-                and step['step'] == 'deploy')
 
     def reboot_to_instance(self, task):
         """Method invoked after the deployment is completed.
@@ -530,33 +483,14 @@ class HeartbeatMixin(object):
                 # booted and we need to collect in-band steps.
                 self.refresh_steps(task, 'deploy')
 
-            # NOTE(mgoddard): Only handle heartbeats during DEPLOYWAIT if we
-            # are currently in the core deploy.deploy step. Other deploy steps
-            # may cause the agent to boot, but we should not trigger deployment
-            # at that point if the driver is polling for completion of a step.
-            if (not self.has_decomposed_deploy_steps
-                    and self.in_core_deploy_step(task)):
-                msg = _('Failed checking if deploy is done')
-                # NOTE(mgoddard): support backwards compatibility for
-                # drivers which do not implement continue_deploy and
-                # reboot_to_instance as deploy steps.
-                if not self.deploy_has_started(task):
-                    msg = _('Node failed to deploy')
-                    self.continue_deploy(task)
-                elif self.deploy_is_done(task):
-                    msg = _('Node failed to move to active state')
-                    self.reboot_to_instance(task)
-                else:
-                    node.touch_provisioning()
-            else:
-                node.touch_provisioning()
-                # Check if the driver is polling for completion of
-                # a step, via the 'deployment_polling' flag.
-                polling = node.driver_internal_info.get(
-                    'deployment_polling', False)
-                if not polling:
-                    msg = _('Failed to process the next deploy step')
-                    self.process_next_step(task, 'deploy')
+            node.touch_provisioning()
+            # Check if the driver is polling for completion of
+            # a step, via the 'deployment_polling' flag.
+            polling = node.driver_internal_info.get(
+                'deployment_polling', False)
+            if not polling:
+                msg = _('Failed to process the next deploy step')
+                self.process_next_step(task, 'deploy')
         except Exception as e:
             last_error = _('%(msg)s. Error: %(exc)s') % {'msg': msg, 'exc': e}
             LOG.exception('Asynchronous exception for node %(node)s: %(err)s',

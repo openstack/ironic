@@ -381,8 +381,6 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
                     base.DeployInterface):
     """Interface for deploy-related actions."""
 
-    has_decomposed_deploy_steps = True
-
     def __init__(self):
         super(AnsibleDeploy, self).__init__()
         # NOTE(pas-ha) overriding agent creation as we won't be
@@ -446,6 +444,19 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
         self._required_image_info(task)
         manager_utils.node_power_action(task, states.REBOOT)
         return states.DEPLOYWAIT
+
+    def in_core_deploy_step(self, task):
+        """Check if we are in the deploy.deploy deploy step.
+
+        Assumes that we are in the DEPLOYWAIT state.
+
+        :param task: a TaskManager instance
+        :returns: True if the current deploy step is deploy.deploy.
+        """
+        step = task.node.deploy_step
+        return (step
+                and step['interface'] == 'deploy'
+                and step['step'] == 'deploy')
 
     def process_next_step(self, task, step_type):
         """Start the next clean/deploy step if the previous one is complete.

@@ -342,38 +342,6 @@ class AgentClient(object):
                       {'cmd': method, 'node': node.uuid})
             return None
 
-    @METRICS.timer('AgentClient.prepare_image')
-    def prepare_image(self, node, image_info, wait=False):
-        """Call the `prepare_image` method on the node.
-
-        :param node: A Node object.
-        :param image_info: A dictionary containing various image related
-                           information.
-        :param wait: True to wait for the command to finish executing, False
-                     otherwise.
-        :raises: IronicException when failed to issue the request or there was
-                 a malformed response from the agent.
-        :raises: AgentAPIError when agent failed to execute specified command.
-        :raises: AgentInProgress when the command fails to execute as the agent
-                 is presently executing the prior command.
-        :returns: A dict containing command status from agent.
-                  See :func:`get_commands_status` for a command result sample.
-        """
-        LOG.debug('Preparing image %(image)s on node %(node)s.',
-                  {'image': image_info.get('id'),
-                   'node': node.uuid})
-        params = {'image_info': image_info}
-
-        # this should be an http(s) URL
-        configdrive = node.instance_info.get('configdrive')
-        if configdrive is not None:
-            params['configdrive'] = configdrive
-
-        return self._command(node=node,
-                             method='standby.prepare_image',
-                             params=params,
-                             poll=wait)
-
     @METRICS.timer('AgentClient.start_iscsi_target')
     def start_iscsi_target(self, node, iqn,
                            portal_port=DEFAULT_IPA_PORTAL_PORT,
