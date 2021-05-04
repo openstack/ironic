@@ -215,3 +215,9 @@ use.
   wish to explore a mix of the ``direct`` deploy interface and caching
   proxies. Such a configuration can be highly beneficial in wide area
   deployments. See :ref:`Using proxies for image download <ipa-proxies>`.
+* If you're making use of large configuration drives, you may wish to ensure
+  you're using Swift to store them as opposed to housing them inside of the
+  database. The entire object and contents are returned whenever Ironic
+  needs to evaluate the entire node, which can become a performance impact.
+  For more information on configuration drives, please see
+  :ref:`Enabling the configuration drive <configdrive>`.
