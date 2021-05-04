@@ -386,7 +386,7 @@ class ImageNotAuthorized(NotAuthorized):
     _msg_fmt = _("Not authorized for image %(image_id)s.")
 
 
-class InvalidImageRef(Invalid):
+class InvalidImageRef(InvalidParameterValue):
     _msg_fmt = _("Invalid image href %(image_href)s.")
 
 
