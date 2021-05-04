@@ -410,6 +410,13 @@ permissions, but does provide a script to perform the task::
     git clone https://opendev.org/openstack/devstack.git devstack
     sudo ./devstack/tools/create-stack-user.sh
 
+.. note::
+    In case you receive an error "Could not determine host ip address.
+    See local.conf for suggestions on setting HOST_IP", you need to manually
+    add the main ip of your machine to the localrc file under devstack/ using
+    the HOST_IP variable, e.g. HOST_IP=YOURIP
+    This could happen when running devstack on virtual machines.
+
 Switch to the stack user and clone DevStack::
 
     sudo su - stack
@@ -427,40 +434,37 @@ hardware type by default::
     cd devstack
     cat >local.conf <<END
     [[local|localrc]]
+    # Enable only minimal services
+    disable_all_services
+    enable_service g-api
+    enable_service key
+    enable_service memory_tracker
+    enable_service mysql
+    enable_service q-agt
+    enable_service q-dhcp
+    enable_service q-l3
+    enable_service q-meta
+    enable_service q-metering
+    enable_service q-svc
+    enable_service rabbit
+
     # Credentials
     ADMIN_PASSWORD=password
     DATABASE_PASSWORD=password
     RABBIT_PASSWORD=password
     SERVICE_PASSWORD=password
     SERVICE_TOKEN=password
-    SWIFT_HASH=password
-    SWIFT_TEMPURL_KEY=password
 
     # Enable Ironic plugin
     enable_plugin ironic https://opendev.org/openstack/ironic
-
-    # Disable nova novnc service, ironic does not support it anyway.
-    disable_service n-novnc
-
-    # Enable Swift for the direct deploy interface.
-    enable_service s-proxy
-    enable_service s-object
-    enable_service s-container
-    enable_service s-account
-
-    # Disable Horizon
-    disable_service horizon
-
-    # Disable Cinder
-    disable_service cinder c-sch c-api c-vol
-
-    # Swift temp URL's are required for the direct deploy interface
-    SWIFT_ENABLE_TEMPURLS=True
 
     # Create 3 virtual machines to pose as Ironic's baremetal nodes.
     IRONIC_VM_COUNT=3
     IRONIC_BAREMETAL_BASIC_OPS=True
     DEFAULT_INSTANCE_TYPE=baremetal
+
+    IRONIC_RPC_TRANSPORT=json-rpc
+    IRONIC_RAMDISK_TYPE=tinyipa
 
     # Enable additional hardware types, if needed.
     #IRONIC_ENABLED_HARDWARE_TYPES=ipmi,fake-hardware
@@ -474,12 +478,12 @@ hardware type by default::
 
     # Change this to alter the default driver for nodes created by devstack.
     # This driver should be in the enabled list above.
-    IRONIC_DEPLOY_DRIVER=ipmi
+    IRONIC_DEPLOY_DRIVER="ipmi"
 
     # The parameters below represent the minimum possible values to create
     # functional nodes.
-    IRONIC_VM_SPECS_RAM=2048
-    IRONIC_VM_SPECS_DISK=10
+    IRONIC_VM_SPECS_RAM=1024
+    IRONIC_VM_SPECS_DISK=3
 
     # Size of the ephemeral partition in GB. Use 0 for no ephemeral partition.
     IRONIC_VM_EPHEMERAL_DISK=0
@@ -487,19 +491,25 @@ hardware type by default::
     # To build your own IPA ramdisk from source, set this to True
     IRONIC_BUILD_DEPLOY_RAMDISK=False
 
+    INSTALL_TEMPEST=False
     VIRT_DRIVER=ironic
 
     # By default, DevStack creates a 10.0.0.0/24 network for instances.
     # If this overlaps with the hosts network, you may adjust with the
     # following.
+    IP_VERSION=4
+    FIXED_RANGE=10.1.0.0/20
+    IPV4_ADDRS_SAFE_TO_USE=10.1.0.0/20
     NETWORK_GATEWAY=10.1.0.1
-    FIXED_RANGE=10.1.0.0/24
-    FIXED_NETWORK_SIZE=256
+
+    Q_AGENT=openvswitch
+    Q_ML2_PLUGIN_MECHANISM_DRIVERS=openvswitch
+    Q_ML2_TENANT_NETWORK_TYPE=vxlan
 
     # Log all output to files
-    LOGFILE=$HOME/devstack.log
-    LOGDIR=$HOME/logs
-    IRONIC_VM_LOG_DIR=$HOME/ironic-bm-logs
+    LOGFILE=/opt/stack/devstack.log
+    LOGDIR=/opt/stack/logs
+    IRONIC_VM_LOG_DIR=/opt/stack/ironic-bm-logs
 
     END
 
