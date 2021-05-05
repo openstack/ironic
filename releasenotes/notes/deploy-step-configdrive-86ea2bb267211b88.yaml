@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    No longer masks configdrive when sending the node's record to in-band
+    deploy steps.
