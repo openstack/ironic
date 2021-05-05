@@ -312,15 +312,26 @@ the space requirements are different:
 
 * The deployment kernel and ramdisk are always cached during the deployment.
 
-* The ``iscsi`` deploy method requires caching of the whole instance image
-  locally during the deployment. The image has to be converted to the raw
-  format, which may increase the required amount of disk space, as well as
-  the CPU load.
+* When ``[agent]image_download_source`` is set to ``http`` and Glance is used,
+  the conductor will download instances images locally to serve them from its
+  HTTP server. Use ``swift`` to publish images using temporary URLs and convert
+  them on the node's side.
+
+  When ``[agent]image_download_source`` is set to ``local``, it will happen
+  even for HTTP(s) URLs. For standalone case use ``http`` to avoid unnecessary
+  caching of images.
+
+  In both cases a cached image is converted to raw if ``force_raw_images``
+  is ``True`` (the default).
 
   .. note::
-    This is not a concern for the ``direct`` deploy interface, as in this case
-    the deployment ramdisk downloads the image and either streams it to the
-    disk or caches it in memory.
+    ``image_download_source`` can also be provided in the node's
+    ``driver_info`` or ``instance_info``. See :ref:`image_download_source`.
+
+* The ``iscsi`` deploy method always requires caching of the whole instance
+  image locally during the deployment. The image has to be converted to the raw
+  format, which may increase the required amount of disk space, as well as the
+  CPU load.
 
 * When network boot is used, the instance image kernel and ramdisk are cached
   locally while the instance is active.
