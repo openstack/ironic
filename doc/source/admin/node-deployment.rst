@@ -116,6 +116,13 @@ An example by passing a JSON string:
 Format of JSON for deploy steps argument is described in `Deploy step format`_
 section.
 
+Excluding the default steps
+---------------------------
+
+Starting with the Xena release, you can use the new :ref:`custom-agent-deploy`
+interface to exclude the default step ``write_image`` and skip bootloader
+installation in the ``prepare_instance_boot`` step.
+
 Writing a Deploy Step
 ---------------------
 

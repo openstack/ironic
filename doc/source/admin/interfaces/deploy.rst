@@ -133,3 +133,16 @@ Ramdisk deploy
 The ramdisk interface is intended to provide a mechanism to "deploy" an
 instance where the item to be deployed is in reality a ramdisk. It is
 documented separately, see :doc:`/admin/ramdisk-boot`.
+
+.. _custom-agent-deploy:
+
+Custom agent deploy
+===================
+
+The ``custom-agent`` deploy interface is designed for operators who want to
+completely orchestrate writing the instance image using
+:ironic-python-agent-doc:`in-band deploy steps from a custom agent image
+<admin/hardware_managers.html>`. If you use this deploy interface, you are
+responsible to provide all necessary deploy steps with priorities between
+61 and 99 (see :ref:`node-deployment-core-steps` for information on
+priorities).
