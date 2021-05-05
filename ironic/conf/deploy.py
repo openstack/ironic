@@ -193,6 +193,22 @@ opts = [
                        'cleaning operations to fail due to the possible '
                        'operational security risk of data being retained '
                        'between deployments of the bare metal node.')),
+    cfg.StrOpt('ramdisk_image_download_source',
+               choices=[('http', _('In case the ramdisk is already a bootable '
+                                   'iso, using this option it will be '
+                                   'directly provided by an external HTTP '
+                                   'service using its full url.')),
+                        ('local', _('This is the default behavior. '
+                                    'The image is downloaded, prepared and '
+                                    'cached locally, to be served from '
+                                    'the conductor.'))],
+               default='local',
+               mutable=True,
+               help=_('Specifies whether a boot iso image should be served '
+                      'from its own original location using the image source '
+                      'url directly, or if ironic should cache the image on '
+                      'the conductor and serve it from ironic\'s own http '
+                      'server.')),
 ]
 
 

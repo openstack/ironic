@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    The behavior when a bootable iso ramdisk is provided behind an http server
+    is to download and serve the image from the conductor; the image is
+    removed only when the node is undeployed.
+    In certain cases, for example on large deployments, this could cause
+    undesired behaviors, like the conductor nodes running out of disk
+    storage.
+    To avoid this event we provide an option
+    ``[deploy]ramdisk_image_download_source`` to be able to tell the ramdisk
+    interface to directly use the bootable iso url from its original source
+    instead of downloading it and serving it from the conductor node.
+    The default behavior is unchanged.
