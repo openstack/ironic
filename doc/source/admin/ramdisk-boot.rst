@@ -18,7 +18,7 @@ non-default interfaces, it must be enabled and set for a node to be utilized:
 
    [DEFAULT]
    ...
-   enabled_deploy_interfaces = iscsi,direct,ramdisk
+   enabled_deploy_interfaces = direct,ramdisk
    ...
 
 Once enabled and the conductor(s) have been restarted, the interface can

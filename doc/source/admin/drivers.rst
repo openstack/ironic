@@ -76,7 +76,7 @@ not compatible with them. There are three ways to deal with this situation:
 
     baremetal node set test --driver ipmi \
         --boot-interface pxe \
-        --deploy-interface iscsi \
+        --deploy-interface direct \
         --management-interface ipmitool \
         --power-interface ipmitool
 

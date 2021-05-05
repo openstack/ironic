@@ -1097,8 +1097,9 @@ Netboot with glance and swift
       IPA -> Conductor [label = "Lookup node"];
       Conductor -> IPA [label = "Provides node UUID"];
       IPA -> Conductor [label = "Heartbeat"];
-      Conductor -> IPA [label = "Exposes the disk over iSCSI"];
-      Conductor -> Conductor [label = "Connects to bare metal's disk over iSCSI and writes image"];
+      Conductor -> IPA [label = "Sends the user image HTTP(S) URL"];
+      IPA -> Swift [label = "Retrieves the user image on bare metal"];
+      IPA -> IPA [label = "Writes user image to disk"];
       Conductor -> Conductor [label = "Generates the boot ISO"];
       Conductor -> Swift [label = "Uploads the boot ISO"];
       Conductor -> Conductor [label = "Generates swift tempURL for boot ISO"];
@@ -1222,8 +1223,9 @@ Netboot in swiftless deploy for intermediate images
       IPA -> Conductor [label = "Lookup node"];
       Conductor -> IPA [label = "Provides node UUID"];
       IPA -> Conductor [label = "Heartbeat"];
-      Conductor -> IPA [label = "Exposes the disk over iSCSI"];
-      Conductor -> Conductor [label = "Connects to bare metal's disk over iSCSI and writes image"];
+      Conductor -> IPA [label = "Sends the user image HTTP(S) URL"];
+      IPA -> ConductorWebserver [label = "Retrieves the user image on bare metal"];
+      IPA -> IPA [label = "Writes user image to root partition"];
       Conductor -> Conductor [label = "Generates the boot ISO"];
       Conductor -> ConductorWebserver [label = "Uploads the boot ISO"];
       Conductor -> iLO [label = "Attaches boot ISO URL as virtual media CDROM"];
@@ -1303,8 +1305,9 @@ Netboot with HTTP(S) based deploy
       IPA -> Conductor [label = "Lookup node"];
       Conductor -> IPA [label = "Provides node UUID"];
       IPA -> Conductor [label = "Heartbeat"];
-      Conductor -> IPA [label = "Exposes the disk over iSCSI"];
-      Conductor -> Conductor [label = "Connects to bare metal's disk over iSCSI and writes image"];
+      Conductor -> IPA [label = "Sends the user image HTTP(S) URL"];
+      IPA -> Swift [label = "Retrieves the user image on bare metal"];
+      IPA -> IPA [label = "Writes user image to disk"];
       Conductor -> Conductor [label = "Generates the boot ISO"];
       Conductor -> Swift [label = "Uploads the boot ISO"];
       Conductor -> Conductor [label = "Generates swift tempURL for boot ISO"];
@@ -1381,8 +1384,9 @@ Netboot in standalone ironic
       IPA -> Conductor [label = "Lookup node"];
       Conductor -> IPA [label = "Provides node UUID"];
       IPA -> Conductor [label = "Heartbeat"];
-      Conductor -> IPA [label = "Exposes the disk over iSCSI"];
-      Conductor -> Conductor [label = "Connects to bare metal's disk over iSCSI and writes image"];
+      Conductor -> IPA [label = "Sends the user image HTTP(S) URL"];
+      IPA -> ConductorWebserver [label = "Retrieves the user image on bare metal"];
+      IPA -> IPA [label = "Writes user image to root partition"];
       Conductor -> Conductor [label = "Generates the boot ISO"];
       Conductor -> ConductorWebserver [label = "Uploads the boot ISO"];
       Conductor -> iLO [label = "Attaches boot ISO URL as virtual media CDROM"];

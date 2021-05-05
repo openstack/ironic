@@ -106,7 +106,7 @@
       "default_bios_interface": "no-bios",
       "default_boot_interface": "pxe",
       "default_console_interface": "no-console",
-      "default_deploy_interface": "iscsi",
+      "default_deploy_interface": "direct",
       "default_inspect_interface": "no-inspect",
       "default_management_interface": "ipmitool",
       "default_network_interface": "flat",
@@ -125,7 +125,7 @@
         "no-console"
       ],
       "enabled_deploy_interfaces": [
-        "iscsi",
+        "ansible",
         "direct"
       ],
       "enabled_inspect_interfaces": [

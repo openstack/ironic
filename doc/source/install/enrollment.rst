@@ -572,7 +572,7 @@ interfaces for a hardware type (for your deployment):
     +-------------------------------+----------------+
     | default_boot_interface        | pxe            |
     | default_console_interface     | no-console     |
-    | default_deploy_interface      | iscsi          |
+    | default_deploy_interface      | direct         |
     | default_inspect_interface     | no-inspect     |
     | default_management_interface  | ipmitool       |
     | default_network_interface     | flat           |
@@ -581,7 +581,7 @@ interfaces for a hardware type (for your deployment):
     | default_vendor_interface      | no-vendor      |
     | enabled_boot_interfaces       | pxe            |
     | enabled_console_interfaces    | no-console     |
-    | enabled_deploy_interfaces     | iscsi, direct  |
+    | enabled_deploy_interfaces     | direct         |
     | enabled_inspect_interfaces    | no-inspect     |
     | enabled_management_interfaces | ipmitool       |
     | enabled_network_interfaces    | flat, noop     |
@@ -627,10 +627,10 @@ Consider the following configuration (shortened for simplicity):
     [DEFAULT]
     enabled_hardware_types = ipmi,redfish
     enabled_console_interfaces = no-console,ipmitool-shellinabox
-    enabled_deploy_interfaces = iscsi,direct
+    enabled_deploy_interfaces = direct
     enabled_management_interfaces = ipmitool,redfish
     enabled_power_interfaces = ipmitool,redfish
-    default_deploy_interface = direct
+    default_deploy_interface = ansible
 
 A new node is created with the ``ipmi`` driver and no interfaces specified:
 
@@ -654,7 +654,7 @@ Then the defaults for the interfaces that will be used by the node in this
 example are calculated as follows:
 
 deploy
-    An explicit value of ``direct`` is provided for
+    An explicit value of ``ansible`` is provided for
     ``default_deploy_interface``, so it is used.
 power
     No default is configured. The ``ipmi`` hardware type supports only

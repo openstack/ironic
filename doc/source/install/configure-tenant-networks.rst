@@ -93,10 +93,8 @@ provisioning will happen in a multi-tenant environment (which means using the
       * TFTP
       * egress port used for the Bare Metal service (6385 by default)
       * ingress port used for ironic-python-agent (9999 by default)
-      * if using :ref:`iscsi-deploy`, the ingress port used for iSCSI
-        (3260 by default)
       * if using :ref:`direct-deploy`, the egress port used for the Object
-        Storage service (typically 80 or 443)
+        Storage service or the local HTTP server (typically 80 or 443)
       * if using iPXE, the egress port used for the HTTP server running
         on the ironic-conductor nodes (typically 80).
 

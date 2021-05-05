@@ -2,7 +2,6 @@
 ipmitool [default]
 ipxe [platform:dpkg default]
 ipxe-bootimgs [platform:rpm default]
-open-iscsi [platform:dpkg default]
 socat [default]
 xinetd [default]
 tftpd-hpa [platform:dpkg default]

@@ -78,7 +78,7 @@ console
 deploy
     defines how the image gets transferred to the target disk. See
     :doc:`/admin/interfaces/deploy` for an explanation of the difference
-    between supported deploy interfaces ``direct`` and ``iscsi``.
+    between supported deploy interfaces.
 
     The deploy interfaces can be enabled as follows:
 
@@ -86,13 +86,10 @@ deploy
 
         [DEFAULT]
         enabled_hardware_types = ipmi,redfish
-        enabled_deploy_interfaces = iscsi,direct
+        enabled_deploy_interfaces = direct,ramdisk
 
-    Additionally,
-
-    * the ``iscsi`` deploy interface requires :doc:`configure-iscsi`
-
-    * the ``direct`` deploy interface requires the Object Storage service
+    .. note::
+      The ``direct`` deploy interface requires the Object Storage service
       or an HTTP service
 inspect
     implements fetching hardware information from nodes. Can be implemented
@@ -186,7 +183,7 @@ IPMI and Redfish, with a few additional features:
     enabled_hardware_types = ipmi,redfish
     enabled_boot_interfaces = pxe
     enabled_console_interfaces = ipmitool-socat,no-console
-    enabled_deploy_interfaces = iscsi,direct
+    enabled_deploy_interfaces = direct
     enabled_inspect_interfaces = inspector
     enabled_management_interfaces = ipmitool,redfish
     enabled_network_interfaces = flat,neutron
@@ -222,7 +219,7 @@ respectively:
 
     [DEFAULT]
     enabled_hardware_types = redfish
-    enabled_deploy_interfaces = iscsi
+    enabled_deploy_interfaces = ansible
     enabled_power_interfaces = redfish
     enabled_management_interfaces = redfish
 
@@ -241,13 +238,13 @@ respectively:
 
     [DEFAULT]
     enabled_hardware_types = redfish
-    enabled_deploy_interfaces = iscsi
+    enabled_deploy_interfaces = ansible
     enabled_power_interfaces = redfish
     enabled_management_interfaces = redfish
 
 This is because the ``redfish`` hardware type will have different enabled
 *deploy* interfaces on these conductors. It would have been fine, if the second
-conductor had ``enabled_deploy_interfaces = direct`` instead of ``iscsi``.
+conductor had ``enabled_deploy_interfaces = direct`` instead of ``ansible``.
 
 This situation is not detected by the Bare Metal service, but it can cause
 inconsistent behavior in the API, when node functionality will depend on

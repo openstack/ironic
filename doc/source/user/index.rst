@@ -260,7 +260,7 @@ options.
 
 .. _direct-deploy-example:
 
-Example 1: PXE Boot and Direct Deploy Process
+Example: PXE Boot and Direct Deploy Process
 ---------------------------------------------
 
 This process is how :ref:`direct-deploy` works.
@@ -307,64 +307,6 @@ This process is how :ref:`direct-deploy` works.
       Conductor -> Node [label = "Install boot loader, if requested"];
       Conductor -> Neutron [label = "Update DHCP boot options"];
       Conductor -> Conductor [label = "Prepare PXE\nenvironment for\ninstance image\nif needed"];
-      Conductor -> Node [label = "Set boot device either to PXE or to disk"];
-      Conductor -> Node [label = "Collect ramdisk logs"];
-      Conductor -> Node [label = "POWER OFF"];
-      Conductor -> Neutron [label = "Detach provisioning network\nfrom port(s)"];
-      Conductor -> Neutron [label = "Bind tenant port"];
-      Conductor -> Node [label = "POWER ON"];
-      Conductor -> Conductor [label = "Mark node as\nACTIVE"];
-   }
-
-(From a `talk`_  and `slides`_)
-
-.. _iscsi-deploy-example:
-
-Example 2: PXE Boot and iSCSI Deploy Process
---------------------------------------------
-
-This process is how the currently deprecated :ref:`iscsi-deploy` works.
-
-.. seqdiag::
-   :scale: 75
-
-   diagram {
-      Nova; API; Conductor; Neutron; HTTPStore; "TFTP/HTTPd"; Node;
-      activation = none;
-      span_height = 1;
-      edge_length = 250;
-      default_note_color = white;
-      default_fontsize = 14;
-
-      Nova -> API [label = "Set instance_info\n(image_source,\nroot_gb, etc.)"];
-      Nova -> API [label = "Validate power and deploy\ninterfaces"];
-      Nova -> API [label = "Plug VIFs to the node"];
-      Nova -> API [label = "Set provision_state,\noptionally pass configdrive"];
-      API -> Conductor [label = "do_node_deploy()"];
-      Conductor -> Conductor [label = "Validate power and deploy interfaces"];
-      Conductor -> HTTPStore [label = "Store configdrive if configdrive_use_swift \noption is set"];
-      Conductor -> Node [label = "POWER OFF"];
-      Conductor -> Neutron [label = "Attach provisioning network to port(s)"];
-      Conductor -> Neutron [label = "Update DHCP boot options"];
-      Conductor -> Conductor [label = "Prepare PXE\nenvironment for\ndeployment"];
-      Conductor -> Node [label = "Set PXE boot device \nthrough the BMC"];
-      Conductor -> Conductor [label = "Cache deploy\nkernel, ramdisk,\ninstance images"];
-      Conductor -> Node [label = "REBOOT"];
-      Node -> Neutron [label = "DHCP request"];
-      Neutron -> Node [label = "next-server = Conductor"];
-      Node -> Node [label = "Runs agent\nramdisk"];
-      Node -> API [label = "lookup()"];
-      API -> Node [label = "Pass UUID"];
-      Node -> API [label = "Heartbeat (UUID)"];
-      API -> Conductor [label = "Heartbeat"];
-      Conductor -> Node [label = "Send IPA a command to expose disks via iSCSI"];
-      Conductor -> Node [label = "iSCSI attach"];
-      Conductor -> Node [label = "Copies user image and configdrive, if present"];
-      Conductor -> Node [label = "iSCSI detach"];
-      Conductor -> Conductor [label = "Delete instance\nimage from cache"];
-      Conductor -> Node [label = "Install boot loader, if requested"];
-      Conductor -> Neutron [label = "Update DHCP boot options"];
-      Conductor -> Conductor [label = "Prepare PXE\nenvironment for\ninstance image"];
       Conductor -> Node [label = "Set boot device either to PXE or to disk"];
       Conductor -> Node [label = "Collect ramdisk logs"];
       Conductor -> Node [label = "POWER OFF"];

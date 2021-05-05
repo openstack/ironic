@@ -163,7 +163,7 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
             be a dictionary conaining "hardware_type", "interface_type",
             "interface_name" and "default", e.g.
             {'hardware_type': 'hardware-type', 'interface_type': 'deploy',
-            'interface_name': 'iscsi', 'default': True}
+            'interface_name': 'direct', 'default': True}
         """
         self.dbapi.register_conductor_hardware_interfaces(self.id, interfaces)
 

@@ -61,7 +61,7 @@ class HashRingManagerTestCase(db_base.DbTestCase):
             self.dbapi.register_conductor_hardware_interfaces(
                 c.id,
                 [{'hardware_type': 'hardware-type', 'interface_type': 'deploy',
-                  'interface_name': 'iscsi', 'default': True},
+                  'interface_name': 'ansible', 'default': True},
                  {'hardware_type': 'hardware-type', 'interface_type': 'deploy',
                   'interface_name': 'direct', 'default': False}]
             )
@@ -107,7 +107,7 @@ class HashRingManagerTestCase(db_base.DbTestCase):
         self.dbapi.register_conductor_hardware_interfaces(
             c1.id,
             [{'hardware_type': 'hardware-type', 'interface_type': 'deploy',
-              'interface_name': 'iscsi', 'default': True},
+              'interface_name': 'ansible', 'default': True},
              {'hardware_type': 'hardware-type', 'interface_type': 'deploy',
               'interface_name': 'direct', 'default': False}]
         )
@@ -118,7 +118,7 @@ class HashRingManagerTestCase(db_base.DbTestCase):
         self.dbapi.register_conductor_hardware_interfaces(
             c2.id,
             [{'hardware_type': 'hardware-type', 'interface_type': 'deploy',
-              'interface_name': 'iscsi', 'default': True},
+              'interface_name': 'ansible', 'default': True},
              {'hardware_type': 'hardware-type', 'interface_type': 'deploy',
               'interface_name': 'direct', 'default': False}]
         )

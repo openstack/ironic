@@ -713,7 +713,7 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     IFACE_UPDATE_DICT = {
         'boot_interface': UpdateInterfaces('pxe', 'fake'),
         'console_interface': UpdateInterfaces('no-console', 'fake'),
-        'deploy_interface': UpdateInterfaces('iscsi', 'fake'),
+        'deploy_interface': UpdateInterfaces('direct', 'fake'),
         'inspect_interface': UpdateInterfaces('no-inspect', 'fake'),
         'management_interface': UpdateInterfaces(None, 'fake'),
         'network_interface': UpdateInterfaces('noop', 'flat'),
@@ -984,7 +984,7 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                           deploy_interface='fake',
                                           extra={'test': 'one'})
 
-        node.deploy_interface = 'iscsi'
+        node.deploy_interface = 'direct'
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.update_node,
                                 self.context, node)

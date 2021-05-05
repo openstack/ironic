@@ -7,4 +7,3 @@ Set up the drivers for the Bare Metal service
    enabling-drivers
    configure-pxe
    configure-ipmi
-   configure-iscsi

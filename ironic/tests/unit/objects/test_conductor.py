@@ -166,9 +166,9 @@ class TestConductorObject(db_base.DbTestCase):
 
     def test_register_hardware_interfaces(self):
         host = self.fake_conductor['hostname']
-        self.config(default_deploy_interface='iscsi')
+        self.config(default_deploy_interface='ansible')
         arg = [{"hardware_type": "hardware-type", "interface_type": "deploy",
-                "interface_name": "iscsi", "default": True},
+                "interface_name": "ansible", "default": True},
                {"hardware_type": "hardware-type", "interface_type": "deploy",
                 "interface_name": "direct", "default": False}]
         with mock.patch.object(self.dbapi, 'get_conductor',

@@ -40,7 +40,6 @@ Upgrade Guide
   :maxdepth: 2
 
   admin/upgrade-guide
-  admin/upgrade-to-hardware-types
 
 User Guide
 ==========

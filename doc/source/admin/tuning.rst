@@ -10,7 +10,7 @@ be asked by API consumers to perform work for which the underlying tools
 require large amounts of memory.
 
 The biggest example of this is image conversion. Images not in a raw format
-need to be written out to disk (local files or remote in iscsi deploy) which
+need to be written out to disk for conversion (when requested) which
 requires the conversion process to generate an in-memory map to re-assemble
 the image contents into a coherent stream of data. This entire process also
 stresses the kernel buffers and cache.

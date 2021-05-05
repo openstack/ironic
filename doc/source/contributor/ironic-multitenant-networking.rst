@@ -93,7 +93,6 @@ configured in Neutron.
     # interfaces, most often power and management:
     #IRONIC_ENABLED_MANAGEMENT_INTERFACES=ipmitool,fake
     #IRONIC_ENABLED_POWER_INTERFACES=ipmitool,fake
-    # The default deploy interface is 'iscsi', you can use 'direct' with
     #IRONIC_DEFAULT_DEPLOY_INTERFACE=direct
 
     # Change this to alter the default driver for nodes created by devstack.

@@ -974,18 +974,6 @@ class Connection(object, metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def migrate_from_iscsi_deploy(self, context, max_count):
-        """Tries to migrate away from the iscsi deploy interface.
-
-        :param context: the admin context
-        :param max_count: The maximum number of objects to migrate. Must be
-                          >= 0. If zero, all the objects will be migrated.
-        :returns: A 2-tuple, 1. the total number of objects that need to be
-                  migrated (at the beginning of this call) and 2. the number
-                  of migrated objects.
-        """
-
-    @abc.abstractmethod
     def set_node_traits(self, node_id, traits, version):
         """Replace all of the node traits with specified list of traits.
 

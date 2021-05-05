@@ -96,7 +96,7 @@ Interface            Supported Implementations
 ``bios``             ``idrac-wsman``, ``idrac-redfish``, ``no-bios``
 ``boot``             ``ipxe``, ``pxe``, ``idrac-redfish-virtual-media``
 ``console``          ``no-console``
-``deploy``           ``iscsi``, ``direct``, ``ansible``, ``ramdisk``
+``deploy``           ``direct``, ``ansible``, ``ramdisk``
 ``inspect``          ``idrac-wsman``, ``idrac``, ``idrac-redfish``,
                      ``inspector``, ``no-inspect``
 ``management``       ``idrac-wsman``, ``idrac``, ``idrac-redfish``
