@@ -1366,6 +1366,9 @@ def node_sanitize(node, fields):
     if lessee:
         target_dict['node.lessee'] = lessee
 
+    # Scrub the dictionary's contents down to what was requested.
+    api_utils.sanitize_dict(node, fields)
+
     # NOTE(tenbrae): the 'show_password' policy setting name exists for
     #             legacy purposes and can not be changed. Changing it will
     #             cause upgrade problems for any operators who have
@@ -1387,40 +1390,48 @@ def node_sanitize(node, fields):
     evaluate_additional_policies = not policy.check_policy(
         "baremetal:node:get:filter_threshold",
         target_dict, cdict)
+
+    node_keys = node.keys()
+
     if evaluate_additional_policies:
         # NOTE(TheJulia): The net effect of this is that by default,
         # at least matching common/policy.py defaults. is these should
         # be stripped out.
-        if not policy.check("baremetal:node:get:last_error",
-                            target_dict, cdict):
+        if ('last_error' in node_keys
+            and not policy.check("baremetal:node:get:last_error",
+                                 target_dict, cdict)):
             # Guard the last error from being visible as it can contain
             # hostnames revealing infrastucture internal details.
             node['last_error'] = ('** Value Redacted - Requires '
                                   'baremetal:node:get:last_error '
                                   'permission. **')
-        if not policy.check("baremetal:node:get:reservation",
-                            target_dict, cdict):
+        if ('reservation' in node_keys
+            and not policy.check("baremetal:node:get:reservation",
+                                 target_dict, cdict)):
             # Guard conductor names from being visible.
             node['reservation'] = ('** Redacted - requires baremetal:'
                                    'node:get:reservation permission. **')
-        if not policy.check("baremetal:node:get:driver_internal_info",
-                            target_dict, cdict):
+        if ('driver_internal_info' in node_keys
+            and not policy.check("baremetal:node:get:driver_internal_info",
+                                 target_dict, cdict)):
             # Guard conductor names from being visible.
             node['driver_internal_info'] = {
                 'content': '** Redacted - Requires baremetal:node:get:'
                            'driver_internal_info permission. **'}
-        if not policy.check("baremetal:node:get:driver_info",
-                            target_dict, cdict):
+
+    if 'driver_info' in node_keys:
+        if (evaluate_additional_policies
+            and not policy.check("baremetal:node:get:driver_info",
+                                 target_dict, cdict)):
             # Guard infrastructure intenral details from being visible.
             node['driver_info'] = {
                 'content': '** Redacted - requires baremetal:node:get:'
                            'driver_info permission. **'}
+        if not show_driver_secrets:
+            node['driver_info'] = strutils.mask_dict_password(
+                node['driver_info'], "******")
 
-    if not show_driver_secrets and node.get('driver_info'):
-        node['driver_info'] = strutils.mask_dict_password(
-            node['driver_info'], "******")
-
-    if not show_instance_secrets and node.get('instance_info'):
+    if not show_instance_secrets and 'instance_info' in node_keys:
         node['instance_info'] = strutils.mask_dict_password(
             node['instance_info'], "******")
         # NOTE(tenbrae): agent driver may store a swift temp_url on the
@@ -1434,10 +1445,11 @@ def node_sanitize(node, fields):
     if node.get('driver_internal_info', {}).get('agent_secret_token'):
         node['driver_internal_info']['agent_secret_token'] = "******"
 
-    update_state_in_older_versions(node)
+    if 'provision_state' in node_keys:
+        # Update legacy state data for provision state, but only if
+        # the key is present.
+        update_state_in_older_versions(node)
     hide_fields_in_newer_versions(node)
-
-    api_utils.sanitize_dict(node, fields)
 
     show_states_links = (
         api_utils.allow_links_node_states_and_driver_properties())
