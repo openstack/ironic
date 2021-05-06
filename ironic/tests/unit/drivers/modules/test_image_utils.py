@@ -631,6 +631,25 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                                   shared=True) as task:
 
             d_info = {
+                'deploy_iso': 'iso',
+            }
+            task.node.driver_info.update(d_info)
+
+            task.node.instance_info.update(deploy_boot_mode='uefi')
+
+            image_utils.prepare_deploy_iso(task, {}, 'deploy', d_info)
+
+            mock__prepare_iso_image.assert_called_once_with(
+                task, None, None, None, params={},
+                inject_files={}, base_iso='iso')
+
+    @mock.patch.object(image_utils, '_prepare_iso_image', autospec=True)
+    def test_prepare_deploy_iso_existing_iso_vendor_prefix(
+            self, mock__prepare_iso_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+
+            d_info = {
                 'redfish_deploy_iso': 'iso',
             }
             task.node.driver_info.update(d_info)

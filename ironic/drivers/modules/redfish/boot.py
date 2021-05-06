@@ -35,9 +35,11 @@ LOG = log.getLogger(__name__)
 
 REQUIRED_PROPERTIES = {
     'deploy_kernel': _("URL or Glance UUID of the deployment kernel. "
-                       "Required."),
-    'deploy_ramdisk': _("URL or Glance UUID of the ramdisk that is "
-                        "mounted at boot time. Required.")
+                       "Required if deploy_iso is not set."),
+    'deploy_ramdisk': _("URL or Glance UUID of the ramdisk that is mounted at "
+                        "boot time. Required if deploy_iso is not set."),
+    'deploy_iso': _("URL or Glance UUID of the deployment ISO to use. "
+                    "Required if deploy_kernel/deploy_ramdisk are not set.")
 }
 
 OPTIONAL_PROPERTIES = {
@@ -56,27 +58,25 @@ OPTIONAL_PROPERTIES = {
                     "image containing EFI boot loader. This image will be "
                     "used by ironic when building UEFI-bootable ISO "
                     "out of kernel and ramdisk. Required for UEFI "
-                    "boot from partition images."),
+                    "when deploy_iso is not provided."),
 
 }
 
 RESCUE_PROPERTIES = {
-    'rescue_kernel': _('URL or Glance UUID of the rescue kernel. This value '
-                       'is required for rescue mode.'),
+    'rescue_kernel': _('URL or Glance UUID of the rescue kernel. Required for '
+                       'rescue mode if rescue_iso is not set.'),
     'rescue_ramdisk': _('URL or Glance UUID of the rescue ramdisk with agent '
-                        'that is used at node rescue time. This value is '
-                        'required for rescue mode.'),
+                        'that is used at node rescue time. Required for '
+                        'rescue mode if rescue_iso is not set.'),
+    'rescue_iso': _("URL or Glance UUID of the rescue ISO to use. Required "
+                    "for rescue mode if rescue_kernel/rescue_ramdisk are "
+                    "not set.")
 }
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(driver_utils.OPTIONAL_PROPERTIES)
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 COMMON_PROPERTIES.update(RESCUE_PROPERTIES)
-
-KERNEL_RAMDISK_LABELS = {
-    'deploy': REQUIRED_PROPERTIES,
-    'rescue': RESCUE_PROPERTIES
-}
 
 IMAGE_SUBDIR = 'redfish'
 
@@ -100,23 +100,15 @@ def _parse_driver_info(node):
     d_info = node.driver_info
 
     mode = deploy_utils.rescue_or_deploy_mode(node)
-    iso_param = 'redfish_%s_iso' % mode
-    iso_ref = d_info.get(iso_param)
+    iso_param = f'{mode}_iso'
+    iso_ref = driver_utils.get_agent_iso(node, deprecated_prefix='redfish',
+                                         mode=mode)
     if iso_ref is not None:
         deploy_info = {iso_param: iso_ref}
         can_config = False
     else:
-        params_to_check = KERNEL_RAMDISK_LABELS[mode]
-
-        deploy_info = {option: d_info.get(option)
-                       for option in params_to_check}
-
-        if not any(deploy_info.values()):
-            # NOTE(dtantsur): avoid situation when e.g. deploy_kernel comes
-            # from driver_info but deploy_ramdisk comes from configuration,
-            # since it's a sign of a potential operator's mistake.
-            deploy_info = {k: getattr(CONF.conductor, k)
-                           for k in params_to_check}
+        # There was never a deprecated prefix for kernel/ramdisk
+        deploy_info = driver_utils.get_agent_kernel_ramdisk(node, mode)
 
         error_msg = _("Error validating Redfish virtual media. Some "
                       "parameters were missing in node's driver_info")
@@ -378,6 +370,8 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         node = task.node
 
         _parse_driver_info(node)
+        # Issue the deprecation warning if needed
+        driver_utils.get_agent_iso(node, deprecated_prefix='redfish')
 
     def _validate_instance_info(self, task):
         """Validate instance image information for the task's node.

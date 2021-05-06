@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The node's ``driver_info`` parameters ``redfish_deploy_iso`` and
+    ``redfish_rescue_iso`` have been renamed to ``deploy_iso`` and
+    ``rescue_iso`` accordingly. The old names are deprecated.

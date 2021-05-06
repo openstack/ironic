@@ -78,19 +78,31 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.driver_info.update(
+                {'deploy_iso': 'http://boot.iso'})
+
+            actual_driver_info = redfish_boot._parse_driver_info(task.node)
+
+            self.assertEqual('http://boot.iso',
+                             actual_driver_info['deploy_iso'])
+            self.assertFalse(actual_driver_info['can_provide_config'])
+
+    def test_parse_driver_info_iso_deprecated(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.driver_info.update(
                 {'redfish_deploy_iso': 'http://boot.iso'})
 
             actual_driver_info = redfish_boot._parse_driver_info(task.node)
 
             self.assertEqual('http://boot.iso',
-                             actual_driver_info['redfish_deploy_iso'])
+                             actual_driver_info['deploy_iso'])
             self.assertFalse(actual_driver_info['can_provide_config'])
 
     def test_parse_driver_info_removable(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.driver_info.update(
-                {'redfish_deploy_iso': 'http://boot.iso',
+                {'deploy_iso': 'http://boot.iso',
                  'config_via_removable': True}
             )
 
