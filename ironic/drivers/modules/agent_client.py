@@ -179,11 +179,9 @@ class AgentClient(object):
                 verify=self._get_verify(node),
                 timeout=CONF.agent.command_timeout)
         except (requests.ConnectionError, requests.Timeout) as e:
-            msg = (_('Failed to connect to the agent running on node %(node)s '
-                     'for invoking command %(method)s. Error: %(error)s') %
-                   {'node': node.uuid, 'method': method, 'error': e})
-            LOG.error(msg)
-            raise exception.AgentConnectionFailed(reason=msg)
+            result = self._handle_timeout_on_command_execution(node, method,
+                                                               params, e)
+            response = None
         except requests.RequestException as e:
             msg = (_('Error invoking agent command %(method)s for node '
                      '%(node)s. Error: %(error)s') %
@@ -191,28 +189,31 @@ class AgentClient(object):
             LOG.error(msg)
             raise exception.IronicException(msg)
 
-        # TODO(russellhaering): real error handling
-        try:
-            result = response.json()
-        except ValueError:
-            msg = _(
-                'Unable to decode response as JSON.\n'
-                'Request URL: %(url)s\nRequest body: "%(body)s"\n'
-                'Response status code: %(code)s\n'
-                'Response: "%(response)s"'
-            ) % ({'response': response.text, 'body': body, 'url': url,
-                  'code': response.status_code})
-            LOG.error(msg)
-            raise exception.IronicException(msg)
+        if response is not None:
+            # TODO(russellhaering): real error handling
+            try:
+                result = response.json()
+            except ValueError:
+                msg = _(
+                    'Unable to decode response as JSON.\n'
+                    'Request URL: %(url)s\nRequest body: "%(body)s"\n'
+                    'Response status code: %(code)s\n'
+                    'Response: "%(response)s"'
+                ) % ({'response': response.text, 'body': body, 'url': url,
+                      'code': response.status_code})
+                LOG.error(msg)
+                raise exception.IronicException(msg)
 
         error = result.get('command_error')
         LOG.debug('Agent command %(method)s for node %(node)s returned '
-                  'result %(res)s, error %(error)s, HTTP status code %(code)d',
+                  'result %(res)s, error %(error)s, HTTP status code %(code)s',
                   {'node': node.uuid, 'method': method,
                    'res': result.get('command_result'),
                    'error': error,
-                   'code': response.status_code})
-        if response.status_code >= http_client.BAD_REQUEST:
+                   'code': response.status_code if response is not None
+                   else 'unknown'})
+        if (response is not None
+                and response.status_code >= http_client.BAD_REQUEST):
             faultstring = result.get('faultstring')
             if 'agent_token' in faultstring:
                 LOG.error('Agent command %(method)s for node %(node)s '
@@ -317,6 +318,61 @@ class AgentClient(object):
                            for r in result)
         LOG.debug('Status of agent commands for node %(node)s: %(status)s',
                   {'node': node.uuid, 'status': status})
+        return result
+
+    def _status_if_last_command_matches(self, node, method, params):
+        """Return the status of the given command if it's the last running."""
+        try:
+            method = method.split('.', 1)[1]
+        except IndexError:
+            pass
+
+        commands = self.get_commands_status(node)
+        if not commands:
+            return None
+
+        # TODO(dtantsur): a more reliable way to detect repeated execution
+        # would be to pass a sort of require ID to the agent.
+
+        command = commands[-1]
+        if command['command_name'] != method:
+            LOG.debug('Command %(cmd)s is not currently executing, the last '
+                      'command is %(curr)s',
+                      {'cmd': method, 'curr': command['command_name']})
+            return None
+
+        if command['command_status'] != 'RUNNING':
+            LOG.debug('Command %(cmd)s is not currently executing, its status '
+                      'is %(curr)s',
+                      {'cmd': method, 'curr': command['command_status']})
+            return None
+
+        return command
+
+    def _handle_timeout_on_command_execution(self, node, method, params,
+                                             error):
+        result = None
+        # NOTE(dtantsur): it is possible, especially with eventlet+TLS, that
+        # agent receives a command but fails to return the result to Ironic.
+        # To avoid a failure, check if the last command is the one we're trying
+        # to execute.
+        try:
+            result = self._status_if_last_command_matches(node, method, params)
+        except Exception as e:
+            msg = (_('Failed to connect to the agent running on node '
+                     '%(node)s for checking the last command status '
+                     'after failing to invoke command %(method)s. '
+                     'Error: %(error)s') %
+                   {'node': node.uuid, 'method': method, 'error': e})
+            LOG.error(msg)
+
+        if result is None:
+            msg = (_('Failed to connect to the agent running on node %(node)s '
+                     'for invoking command %(method)s. Error: %(error)s') %
+                   {'node': node.uuid, 'method': method, 'error': error})
+            LOG.error(msg)
+            raise exception.AgentConnectionFailed(reason=msg)
+
         return result
 
     def get_last_command_status(self, node, method):
