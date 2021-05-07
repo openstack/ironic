@@ -194,6 +194,123 @@ class TestAgentClient(base.TestCase):
             timeout=60,
             verify=True)
         self.assertEqual(3, self.client.session.post.call_count)
+        self.assertTrue(self.client.session.get.called)
+
+    def test__command_fail_connect_no_command_running(self):
+        error = 'Boom'
+        self.client.session.post.side_effect = requests.ConnectionError(error)
+        self.client.session.get.return_value.json.return_value = {
+            'commands': []
+        }
+        method = 'foo.bar'
+        params = {}
+
+        url = self.client._get_command_url(self.node)
+        self.client._get_command_body(method, params)
+
+        e = self.assertRaises(exception.AgentConnectionFailed,
+                              self.client._command,
+                              self.node, method, params)
+        self.assertEqual('Connection to agent failed: Failed to connect to '
+                         'the agent running on node %(node)s for invoking '
+                         'command %(method)s. Error: %(error)s' %
+                         {'method': method, 'node': self.node.uuid,
+                          'error': error}, str(e))
+        self.client.session.post.assert_called_with(
+            url,
+            data=mock.ANY,
+            params={'wait': 'false'},
+            timeout=60,
+            verify=True)
+        self.assertEqual(3, self.client.session.post.call_count)
+        self.assertTrue(self.client.session.get.called)
+
+    def test__command_fail_connect_wrong_command_running(self):
+        error = 'Boom'
+        self.client.session.post.side_effect = requests.ConnectionError(error)
+        self.client.session.get.return_value.json.return_value = {
+            'commands': [
+                {'command_name': 'meow', 'command_status': 'RUNNING'},
+            ]
+        }
+        method = 'foo.bar'
+        params = {}
+
+        url = self.client._get_command_url(self.node)
+        self.client._get_command_body(method, params)
+
+        e = self.assertRaises(exception.AgentConnectionFailed,
+                              self.client._command,
+                              self.node, method, params)
+        self.assertEqual('Connection to agent failed: Failed to connect to '
+                         'the agent running on node %(node)s for invoking '
+                         'command %(method)s. Error: %(error)s' %
+                         {'method': method, 'node': self.node.uuid,
+                          'error': error}, str(e))
+        self.client.session.post.assert_called_with(
+            url,
+            data=mock.ANY,
+            params={'wait': 'false'},
+            timeout=60,
+            verify=True)
+        self.assertEqual(3, self.client.session.post.call_count)
+        self.assertTrue(self.client.session.get.called)
+
+    def test__command_fail_connect_command_not_running(self):
+        error = 'Boom'
+        self.client.session.post.side_effect = requests.ConnectionError(error)
+        self.client.session.get.return_value.json.return_value = {
+            'commands': [
+                {'command_name': 'bar', 'command_status': 'FINISHED'},
+            ]
+        }
+        method = 'foo.bar'
+        params = {}
+
+        url = self.client._get_command_url(self.node)
+        self.client._get_command_body(method, params)
+
+        e = self.assertRaises(exception.AgentConnectionFailed,
+                              self.client._command,
+                              self.node, method, params)
+        self.assertEqual('Connection to agent failed: Failed to connect to '
+                         'the agent running on node %(node)s for invoking '
+                         'command %(method)s. Error: %(error)s' %
+                         {'method': method, 'node': self.node.uuid,
+                          'error': error}, str(e))
+        self.client.session.post.assert_called_with(
+            url,
+            data=mock.ANY,
+            params={'wait': 'false'},
+            timeout=60,
+            verify=True)
+        self.assertEqual(3, self.client.session.post.call_count)
+        self.assertTrue(self.client.session.get.called)
+
+    def test__command_fail_connect_command_is_running(self):
+        error = 'Boom'
+        self.client.session.post.side_effect = requests.ConnectionError(error)
+        self.client.session.get.return_value.json.return_value = {
+            'commands': [
+                {'command_name': 'bar', 'command_status': 'RUNNING'},
+            ]
+        }
+        method = 'foo.bar'
+        params = {}
+
+        url = self.client._get_command_url(self.node)
+        self.client._get_command_body(method, params)
+
+        result = self.client._command(self.node, method, params)
+        self.assertEqual({'command_name': 'bar', 'command_status': 'RUNNING'},
+                         result)
+        self.client.session.post.assert_called_once_with(
+            url,
+            data=mock.ANY,
+            params={'wait': 'false'},
+            timeout=60,
+            verify=True)
+        self.assertTrue(self.client.session.get.called)
 
     def test__command_error_code(self):
         response_text = {"faultstring": "you dun goofd"}

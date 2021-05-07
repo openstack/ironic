@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    If the agent accepts a command, but is unable to reply to Ironic (which
+    sporadically happens before of the eventlet's TLS implementation), we
+    currently retry the request and fail because the command is already
+    executing. Ironic now detects this situation by checking the list of
+    executing commands after receiving a connection error. If the requested
+    command is the last one, we assume that the command request succeeded.
