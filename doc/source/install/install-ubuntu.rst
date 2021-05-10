@@ -16,7 +16,7 @@ Install and configure components
 
    .. code-block:: console
 
-      # apt-get install ironic-api ironic-conductor python-ironicclient
+      # apt-get install ironic-api ironic-conductor python3-ironicclient
 
 #. Enable services
 
