@@ -9,7 +9,8 @@
     required-projects:
       - openstack/ironic
       - openstack/ironic-python-agent
-      - openstack/ironic-python-agent-builder
+      - name: opendev.org/openstack/ironic-python-agent-builder
+        override-checkout: stable/wallaby
       - openstack/ironic-tempest-plugin
       - openstack/virtualbmc
     irrelevant-files:
@@ -420,7 +421,8 @@
     required-projects:
       - openstack/ironic
       - openstack/ironic-python-agent
-      - openstack/ironic-python-agent-builder
+      - name: opendev.org/openstack/ironic-python-agent-builder
+        override-checkout: stable/wallaby
       - openstack/ironic-tempest-plugin
       - openstack/virtualbmc
       - openstack/networking-generic-switch
@@ -762,7 +764,8 @@
       - openstack/grenade
       - openstack/ironic
       - openstack/ironic-python-agent
-      - openstack/ironic-python-agent-builder
+      - name: opendev.org/openstack/ironic-python-agent-builder
+        override-checkout: stable/wallaby
       - openstack/ironic-tempest-plugin
       - openstack/virtualbmc
     vars:
@@ -837,7 +840,8 @@
       - openstack/ironic
       - openstack/ironic-lib
       - openstack/ironic-python-agent
-      - openstack/ironic-python-agent-builder
+      - name: opendev.org/openstack/ironic-python-agent-builder
+        override-checkout: stable/wallaby
       - openstack/ironic-tempest-plugin
       - openstack/networking-generic-switch
       - openstack/python-ironicclient
