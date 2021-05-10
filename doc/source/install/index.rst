@@ -15,7 +15,6 @@ It contains the following sections:
    get_started.rst
    refarch/index
    install.rst
-   creating-images.rst
    deploy-ramdisk.rst
    configure-integration.rst
    setup-drivers.rst
@@ -25,3 +24,8 @@ It contains the following sections:
    advanced.rst
    troubleshooting.rst
    next-steps.rst
+
+.. toctree::
+   :hidden:
+
+   creating-images.rst
