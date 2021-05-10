@@ -58,11 +58,7 @@ set up on the Bare Metal service nodes which run the ``ironic-conductor``.
 
        sudo apt-get install xinetd tftpd-hpa
 
-   RHEL7/CentOS7::
-
-       sudo yum install tftp-server xinetd
-
-   Fedora::
+   RHEL8/CentOS8/Fedora::
 
        sudo dnf install tftp-server xinetd
 
@@ -94,7 +90,7 @@ set up on the Bare Metal service nodes which run the ``ironic-conductor``.
 
        sudo service xinetd restart
 
-   Fedora/RHEL7/CentOS7/SUSE::
+   Fedora/RHEL8/CentOS8/SUSE::
 
        sudo systemctl restart xinetd
 
@@ -130,11 +126,7 @@ the PXE UEFI environment.
 
        sudo apt-get install grub-efi-amd64-signed shim-signed
 
-   RHEL7/CentOS7::
-
-       sudo yum install grub2-efi shim
-
-   Fedora::
+   RHEL8/CentOS8/Fedora::
 
        sudo dnf install grub2-efi shim
 
@@ -154,7 +146,7 @@ the PXE UEFI environment.
        sudo cp /boot/efi/EFI/fedora/shim.efi /tftpboot/bootx64.efi
        sudo cp /boot/efi/EFI/fedora/grubx64.efi /tftpboot/grubx64.efi
 
-   RHEL7/CentOS7::
+   RHEL8/CentOS8::
 
        sudo cp /boot/efi/EFI/centos/shim.efi /tftpboot/bootx64.efi
        sudo cp /boot/efi/EFI/centos/grubx64.efi /tftpboot/grubx64.efi
@@ -174,7 +166,7 @@ the PXE UEFI environment.
 
         GRUB_DIR=/tftpboot/EFI/fedora
 
-   RHEL7/CentOS7: Create grub.cfg under ``/tftpboot/EFI/centos`` directory::
+   RHEL8/CentOS8: Create grub.cfg under ``/tftpboot/EFI/centos`` directory::
 
        GRUB_DIR=/tftpboot/EFI/centos
 
@@ -221,11 +213,7 @@ mode, perform these additional steps on the ironic conductor node.
 
        sudo apt-get install syslinux-common pxelinux
 
-   RHEL7/CentOS7::
-
-       sudo yum install syslinux-tftpboot
-
-   Fedora::
+   RHEL8/CentOS8/Fedora::
 
        sudo dnf install syslinux-tftpboot
 
@@ -239,7 +227,7 @@ mode, perform these additional steps on the ironic conductor node.
 
        sudo cp /usr/lib/PXELINUX/pxelinux.0 /tftpboot
 
-   RHEL7/CentOS7/SUSE::
+   RHEL8/CentOS8/SUSE::
 
        sudo cp /usr/share/syslinux/pxelinux.0 /tftpboot
 
@@ -254,7 +242,7 @@ mode, perform these additional steps on the ironic conductor node.
 
        sudo cp /boot/extlinux/chain.c32 /tftpboot
 
-   RHEL7/CentOS7/SUSE::
+   RHEL8/CentOS8/SUSE::
 
        sudo cp /usr/share/syslinux/chain.c32 /tftpboot/
 
@@ -337,11 +325,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
        apt-get install ipxe
 
-   RHEL7/CentOS7::
-
-       yum install ipxe-bootimgs
-
-   Fedora::
+   RHEL8/CentOS8/Fedora::
 
        dnf install ipxe-bootimgs
 
@@ -359,7 +343,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
        cp /usr/lib/ipxe/{undionly.kpxe,ipxe.efi,snponly.efi} /tftpboot
 
-   Fedora/RHEL7/CentOS7::
+   Fedora/RHEL8/CentOS8::
 
        cp /usr/share/ipxe/{undionly.kpxe,ipxe.efi,snponly.efi} /tftpboot
 
@@ -452,7 +436,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
 #. Restart the ``ironic-conductor`` process:
 
-   Fedora/RHEL7/CentOS7/SUSE::
+   Fedora/RHEL8/CentOS8/SUSE::
 
      sudo systemctl restart openstack-ironic-conductor
 

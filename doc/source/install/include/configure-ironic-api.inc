@@ -120,7 +120,7 @@ Configuring ironic-api service
 
 #. Restart the ironic-api service:
 
-   Fedora/RHEL7/CentOS7/SUSE::
+   Fedora/RHEL8/CentOS8/SUSE::
 
        sudo systemctl restart openstack-ironic-api
 
