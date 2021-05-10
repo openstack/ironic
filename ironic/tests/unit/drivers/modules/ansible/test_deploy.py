@@ -495,6 +495,36 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
                 mock.call().write('fake-content'),
                 mock.call().__exit__(None, None, None)))
 
+    @mock.patch.object(utils, 'build_configdrive', autospec=True)
+    def test__prepare_variables_configdrive_json(self, mock_build_configdrive):
+        i_info = self.node.instance_info
+        i_info['configdrive'] = {'meta_data': {}}
+        self.node.instance_info = i_info
+        self.node.save()
+        mock_build_configdrive.return_value = 'fake-content'
+        configdrive_path = ('%(tempdir)s/%(node)s.cndrive' %
+                            {'tempdir': ansible_deploy.CONF.tempdir,
+                             'node': self.node.uuid})
+        expected = {"image": {"url": "http://image",
+                              "validate_certs": "yes",
+                              "source": "fake-image",
+                              "disk_format": "qcow2",
+                              "checksum": "md5:checksum"},
+                    'configdrive': {'type': 'file',
+                                    'location': configdrive_path}}
+        with mock.patch.object(ansible_deploy, 'open', mock.mock_open(),
+                               create=True) as open_mock:
+            with task_manager.acquire(self.context, self.node.uuid) as task:
+                self.assertEqual(expected,
+                                 ansible_deploy._prepare_variables(task))
+                mock_build_configdrive.assert_called_once_with(
+                    task.node, {'meta_data': {}})
+            open_mock.assert_has_calls((
+                mock.call(configdrive_path, 'w'),
+                mock.call().__enter__(),
+                mock.call().write('fake-content'),
+                mock.call().__exit__(None, None, None)))
+
     def test__validate_clean_steps(self):
         steps = [{"interface": "deploy",
                   "name": "foo",

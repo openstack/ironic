@@ -561,7 +561,11 @@ class AgentDeploy(CustomAgentDeploy):
             if disk_label is not None:
                 image_info['disk_label'] = disk_label
 
-        configdrive = node.instance_info.get('configdrive')
+        configdrive = manager_utils.get_configdrive_image(node)
+        if configdrive:
+            # FIXME(dtantsur): remove this duplication once IPA is ready:
+            # https://review.opendev.org/c/openstack/ironic-python-agent/+/790471
+            image_info['configdrive'] = configdrive
         # Now switch into the corresponding in-band deploy step and let the
         # result be polled normally.
         new_step = {'interface': 'deploy',

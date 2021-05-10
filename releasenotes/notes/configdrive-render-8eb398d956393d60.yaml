@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Configuration drives are now stored in their JSON representation and only
+    rendered when needed. This allows deploy steps to access the original
+    JSON representation rather than only the rendered ISO image.

@@ -636,21 +636,12 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         managers = redfish_utils.get_system(task.node).managers
 
         deploy_info = _parse_deploy_info(node)
-        configdrive = node.instance_info.get('configdrive')
         iso_ref = image_utils.prepare_boot_iso(task, deploy_info, **params)
         _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_CD)
         _insert_vmedia(task, managers, iso_ref, sushy.VIRTUAL_MEDIA_CD)
 
-        if configdrive and boot_option == 'ramdisk':
-            _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_USBSTICK)
-            cd_ref = image_utils.prepare_configdrive_image(task, configdrive)
-            try:
-                _insert_vmedia(task, managers, cd_ref,
-                               sushy.VIRTUAL_MEDIA_USBSTICK)
-            except exception.InvalidParameterValue:
-                raise exception.InstanceDeployFailure(
-                    _('Cannot attach configdrive for node %s: no suitable '
-                      'virtual USB slot has been found') % node.uuid)
+        if boot_option == 'ramdisk':
+            self._attach_configdrive(task, managers)
 
         del managers
 
@@ -659,6 +650,21 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         LOG.debug("Node %(node)s is set to permanently boot from "
                   "%(device)s", {'node': task.node.uuid,
                                  'device': boot_devices.CDROM})
+
+    def _attach_configdrive(self, task, managers):
+        configdrive = manager_utils.get_configdrive_image(task.node)
+        if not configdrive:
+            return
+
+        _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_USBSTICK)
+        cd_ref = image_utils.prepare_configdrive_image(task, configdrive)
+        try:
+            _insert_vmedia(task, managers, cd_ref,
+                           sushy.VIRTUAL_MEDIA_USBSTICK)
+        except exception.InvalidParameterValue:
+            raise exception.InstanceDeployFailure(
+                _('Cannot attach configdrive for node %s: no suitable '
+                  'virtual USB slot has been found') % task.node.uuid)
 
     def _eject_all(self, task):
         managers = redfish_utils.get_system(task.node).managers
@@ -676,7 +682,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         boot_option = deploy_utils.get_boot_option(task.node)
         if (boot_option == 'ramdisk'
-                and task.node.instance_info.get('configdrive')):
+                and task.node.instance_info.get('configdrive') is not None):
             _eject_vmedia(task, managers, sushy.VIRTUAL_MEDIA_USBSTICK)
             image_utils.cleanup_disk_image(task, prefix='configdrive')
 

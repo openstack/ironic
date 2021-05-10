@@ -186,6 +186,25 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('allocation_id', data)
         self.assertIn('allocation_uuid', data)
 
+    def test_get_one_configdrive_dict(self):
+        fake_instance_info = {
+            "configdrive": {'user_data': 'data'},
+            "image_url": "http://example.com/test_image_url",
+            "foo": "bar",
+        }
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id,
+                                          instance_info=fake_instance_info)
+        data = self.get_json(
+            '/nodes/%s' % node.uuid,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(node.uuid, data['uuid'])
+        self.assertEqual('******', data['driver_info']['fake_password'])
+        self.assertEqual('bar', data['driver_info']['foo'])
+        self.assertEqual('******', data['instance_info']['configdrive'])
+        self.assertEqual('******', data['instance_info']['image_url'])
+        self.assertEqual('bar', data['instance_info']['foo'])
+
     def test_get_one_with_json(self):
         # Test backward compatibility with guess_content_type_from_ext
         node = obj_utils.create_test_node(self.context,
