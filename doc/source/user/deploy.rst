@@ -4,10 +4,63 @@ Deploying with Bare Metal service
 This guide explains how to use Ironic to deploy nodes without any front-end
 service, such as OpenStack Compute (nova) or Metal3_.
 
-.. _Metal3: http://metal3.io/
+.. note::
+   To simplify this task you can use the metalsmith_ tool which provides a
+   convenient CLI for the most common cases.
 
-Populating instance_info
-------------------------
+.. _Metal3: http://metal3.io/
+.. _metalsmith: https://docs.openstack.org/metalsmith/latest/
+
+Allocations
+-----------
+
+Allocation is a way to find and reserve a node suitable for deployment. When an
+allocation is created, the list of available nodes is searched for a node with
+the given *resource class* and *traits*, similarly to how it is done in
+:doc:`OpenStack Compute flavors </install/configure-nova-flavors>`. Only the
+resource class is mandatory, for example:
+
+.. code-block:: console
+
+    $ baremetal allocation create --resource-class baremetal --wait
+    +-----------------+--------------------------------------+
+    | Field           | Value                                |
+    +-----------------+--------------------------------------+
+    | candidate_nodes | []                                   |
+    | created_at      | 2019-04-03T12:18:26+00:00            |
+    | extra           | {}                                   |
+    | last_error      | None                                 |
+    | name            | None                                 |
+    | node_uuid       | 5d946337-b1d9-4b06-8eda-4fb77e994a0d |
+    | resource_class  | baremetal                            |
+    | state           | active                               |
+    | traits          | []                                   |
+    | updated_at      | 2019-04-03T12:18:26+00:00            |
+    | uuid            | e84f5d60-84f1-4701-a635-10ff90e2f3b0 |
+    +-----------------+--------------------------------------+
+
+.. note::
+   The allocation processing is fast but nonetheless asynchronous. Use the
+   ``--wait`` argument to wait for the results.
+
+If an allocation is successful, it sets the node's ``instance_uuid`` to the
+allocation UUID. The node's UUID can be retrieved from the allocation's
+``node_uuid`` field.
+
+An allocation is automatically deleted when the associated node is
+unprovisioned. If you don't provision the node, you're responsible for deleting
+the allocation.
+
+See the `allocation API reference
+<https://docs.openstack.org/api-ref/baremetal/?expanded=create-allocation-detail#create-allocation>`_
+for more information on how to use allocations.
+
+Populating instance information
+-------------------------------
+
+The node's ``instance_info`` field is a JSON object that contains all
+information required for deploying an instance on bare metal. It has to be
+populated before deployment and is automatically cleared on tear down.
 
 Image information
 ~~~~~~~~~~~~~~~~~
@@ -16,7 +69,9 @@ You need to specify image information in the node's ``instance_info``
 (see :doc:`/user/creating-images`):
 
 * ``image_source`` - URL of the whole disk or root partition image,
-  mandatory.
+  mandatory. The following schemes are supported: ``http://``, ``https://``
+  and ``file://``. Files have to be accessible by the conductor. If the scheme
+  is missing, an Image Service (glance) image UUID is assumed.
 
 * ``root_gb`` - size of the root partition, required for partition images.
 
@@ -29,10 +84,9 @@ You need to specify image information in the node's ``instance_info``
   ``image_source``, only required for ``http://`` images when using
   :ref:`direct-deploy`.
 
-  .. note::
-     Additional checksum support exists via the ``image_os_hash_algo`` and
-     ``image_os_hash_value`` fields. They may be used instead of the
-     ``image_checksum`` field.
+  Other checksum algorithms are supported via the ``image_os_hash_algo`` and
+  ``image_os_hash_value`` fields. They may be used instead of the
+  ``image_checksum`` field.
 
   .. warning::
      If your operating system is running in FIPS 140-2 mode, MD5 will not be
@@ -41,23 +95,24 @@ You need to specify image information in the node's ``instance_info``
   Starting with the Stein release of ironic-python-agent can also be a URL
   to a checksums file, e.g. one generated with:
 
-  .. code-block:: shell
+  .. code-block:: console
 
-     cd /path/to/http/root
-     md5sum *.img > checksums
+     $ cd /path/to/http/root
+     $ md5sum *.img > checksums
 
 * ``kernel``, ``ramdisk`` - HTTP(s) or file URLs of the kernel and
   initramfs of the target OS. Must be added **only** for partition images.
+  Supports the same schemes as ``image_source``.
 
-For example:
+An example for a partition image:
 
 .. code-block:: shell
 
  baremetal node set $NODE_UUID \
-     --instance-info image_source=$IMG \
-     --instance-info image_checksum=$MD5HASH \
-     --instance-info kernel=$KERNEL \
-     --instance-info ramdisk=$RAMDISK \
+     --instance-info image_source=http://image.server/my-image.qcow2 \
+     --instance-info image_checksum=1f9c0e1bad977a954ba40928c1e11f33 \
+     --instance-info kernel=http://image.server/my-image.kernel \
+     --instance-info ramdisk=http://image.server/my-image.initramfs \
      --instance-info root_gb=10
 
 With a SHA256 hash:
@@ -65,27 +120,24 @@ With a SHA256 hash:
 .. code-block:: shell
 
  baremetal node set $NODE_UUID \
-     --instance-info image_source=$IMG \
+     --instance-info image_source=http://image.server/my-image.qcow2 \
      --instance-info image_os_hash_algo=sha256 \
-     --instance-info image_os_hash_value=$SHA256HASH \
-     --instance-info kernel=$KERNEL \
-     --instance-info ramdisk=$RAMDISK \
+     --instance-info image_os_hash_value=a64dd95e0c48e61ed741ff026d8c89ca38a51f3799955097c5123b1705ef13d4 \
+     --instance-info kernel=http://image.server/my-image.kernel \
+     --instance-info ramdisk=http://image.server/my-image.initramfs \
      --instance-info root_gb=10
 
-With a whole disk image:
+With a whole disk image and a checksum URL:
 
 .. code-block:: shell
 
  baremetal node set $NODE_UUID \
-     --instance-info image_source=$IMG \
-     --instance-info image_checksum=$MD5HASH
+     --instance-info image_source=http://image.server/my-image.qcow2 \
+     --instance-info image_checksum=http://image.server/my-image.qcow2.CHECKSUM
 
 .. note::
-   For iLO drivers, fields that should be provided are:
-
-   * ``ilo_deploy_iso`` under ``driver_info``;
-
-   * ``ilo_boot_iso``, ``image_source``, ``root_gb`` under ``instance_info``.
+   Certain hardware types and interfaces may require additional or different
+   fields to be provided. See specific guides under :doc:`/admin/drivers`.
 
 When using low RAM nodes with ``http://`` images that are not in the RAW
 format, you may want them cached locally, converted to raw and served from
@@ -164,6 +216,21 @@ override a node's storage interface, run the following:
 .. note::
    This feature is available starting with the Wallaby release.
 
+Attaching virtual interfaces
+----------------------------
+
+If using the OpenStack Networking service (neutron), you can attach its ports
+to a node before deployment as VIFs:
+
+.. code-block:: shell
+
+   baremetal node vif attach $NODE_UUID $PORT_UUID
+
+.. warning::
+   These are **neutron** ports, not **ironic** ports!
+
+VIFs are automatically detached on deprovisioning.
+
 Deployment
 ----------
 
@@ -192,17 +259,84 @@ Deployment
 
     baremetal node deploy $NODE_UUID
 
-#. You can provide a configdrive as a JSON or as an ISO image, e.g.:
+#. Starting with the Wallaby release you can also request custom deploy steps,
+   see :ref:`standalone-deploy-steps` for details.
 
-   .. code-block:: shell
+.. _deploy-configdrive:
+
+Deploying with a config drive
+-----------------------------
+
+The configuration drive is a small image used to store instance-specific
+metadata and is present to the instance as a disk partition labeled
+``config-2``. See :doc:`/install/configdrive` for a detailed explanation.
+
+A configuration drive can be provided either as a whole ISO 9660 image or as
+JSON input for building an image. A first-boot service, such as cloud-init_,
+must be running on the instance image for the configuration to be applied.
+
+.. _cloud-init: https://cloudinit.readthedocs.io/en/latest/
+
+Building a config drive on the client side
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For the format of the configuration drive, Bare Metal service expects a
+``gzipped`` and ``base64`` encoded ISO 9660 file with a ``config-2``
+label. The :python-ironicclient-doc:`baremetal client
+<cli/osc_plugin_cli.html>` can generate a configuration drive in the `expected
+format`_. Pass a directory path containing the files that will be injected
+into it via the ``--config-drive`` parameter of the ``baremetal node deploy``
+command, for example:
+
+.. code-block:: shell
+
+    baremetal node deploy $NODE_UUID --config-drive /dir/configdrive_files
+
+.. note::
+   A configuration drive could also be a data block with a VFAT filesystem on
+   it instead of ISO 9660. But it's unlikely that it would be needed since ISO
+   9660 is widely supported across operating systems.
+
+.. _expected format: https://docs.openstack.org/nova/latest/user/metadata.html#config-drives
+
+Building a config drive on the conductor side
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Starting with the Stein release and `ironicclient` 2.7.0, you can request
+building a configdrive on the server side by providing a JSON with keys
+``meta_data``, ``user_data`` and ``network_data`` (all optional), e.g.:
+
+.. code-block:: bash
+
+    baremetal node deploy $node_identifier \
+        --config-drive '{"meta_data": {"hostname": "server1.cluster"}}'
+
+.. note::
+   When this feature is used, host name defaults to the node's name or UUID.
+
+SSH public keys can be provided as a mapping:
+
+.. code-block:: shell
 
     baremetal node deploy $NODE_UUID \
         --config-drive '{"meta_data": {"public_keys": {"0": "ssh key contents"}}}'
 
-   See :doc:`/install/configdrive` for details.
+If using cloud-init_, its configuration can be supplied as ``user_data``, e.g.:
 
-#. Starting with the Wallaby release you can also request custom deploy steps,
-   see :ref:`standalone-deploy-steps` for details.
+.. code-block:: shell
+
+    baremetal node deploy $NODE_UUID \
+        --config-drive '{"user_data": "#cloud-config\n{\"users\": [{\"name\": ...}]}"}'
+
+.. warning::
+   User data is a string, not a JSON! Also note that a prefix, such as
+   ``#cloud-config``, is required, see `user data format
+   <https://cloudinit.readthedocs.io/en/latest/topics/format.html>`_.
+
+Some first-boot services support network configuration in the `OpenStack
+network data format
+<https://docs.openstack.org/nova/latest/user/metadata.html#openstack-format-metadata>`_.
+It can be provided in the ``network_data`` field of the configuration drive.
 
 Ramdisk booting
 ---------------
@@ -210,8 +344,3 @@ Ramdisk booting
 Advanced operators, specifically ones working with ephemeral workloads,
 may find it more useful to explicitly treat a node as one that would always
 boot from a Ramdisk. See :doc:`/admin/ramdisk-boot` for details.
-
-Other references
-----------------
-
-* :ref:`local-boot-without-compute`

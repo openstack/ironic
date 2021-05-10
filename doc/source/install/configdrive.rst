@@ -41,28 +41,9 @@ To do this, pass ``--user-data /path/to/file`` to the :command:`nova boot` comma
 When used standalone
 --------------------
 
-When used without the Compute service, the operator needs to create a configuration drive
-and provide the file or HTTP URL to the Bare Metal service.
-
-For the format of the configuration drive, Bare Metal service expects a
-``gzipped`` and ``base64`` encoded ISO 9660 [#]_ file with a ``config-2``
-label. The
-:python-ironicclient-doc:`baremetal client <cli/osc_plugin_cli.html>`
-can generate a configuration drive in the `expected format`_. Just pass a
-directory path containing the files that will be injected into it via the
-``--config-drive`` parameter of the ``baremetal node deploy``
-command, for example::
-
-    baremetal node deploy $node_identifier --config-drive /dir/configdrive_files
-
-Starting with the Stein release and `ironicclient` 2.7.0, you can request
-building a configdrive on the server side by providing a JSON with keys
-``meta_data``, ``user_data`` and ``network_data`` (all optional), e.g.:
-
-.. code-block:: bash
-
-    baremetal node deploy $node_identifier \
-        --config-drive '{"meta_data": {"hostname": "server1.cluster"}}'
+When used without the Compute service, the operator needs to create a
+configuration drive and provide the file or HTTP URL to the Bare Metal service.
+See :ref:`deploy-configdrive` for details.
 
 Configuration drive storage in an object store
 ----------------------------------------------
@@ -133,10 +114,6 @@ the configuration drive and mount it, for example::
     mkdir -p /mnt/config
     mount $CONFIG_DEV /mnt/config
 
-
-.. [#] A configuration drive could also be a data block with a VFAT filesystem
-       on it instead of ISO 9660. But it's unlikely that it would be needed
-       since ISO 9660 is widely supported across operating systems.
 
 
 Cloud-init integration
