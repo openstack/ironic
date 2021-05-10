@@ -218,13 +218,25 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                               task.node)
 
     @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
+    def test_validate_local(self, mock_parse_driver_info):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.instance_info = {}
+
+            task.node.driver_info.update(
+                {'deploy_kernel': 'kernel',
+                 'deploy_ramdisk': 'ramdisk',
+                 'bootloader': 'bootloader'}
+            )
+
+            task.driver.boot.validate(task)
+
+    @mock.patch.object(deploy_utils, 'get_boot_option', lambda node: 'ramdisk')
+    @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
     @mock.patch.object(deploy_utils, 'validate_image_properties',
                        autospec=True)
-    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
-                       autospec=True)
-    def test_validate_uefi_boot(self, mock_get_boot_mode,
-                                mock_validate_image_properties,
-                                mock_parse_driver_info):
+    def test_validate_kernel_ramdisk(self, mock_validate_image_properties,
+                                     mock_parse_driver_info):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.instance_info.update(
@@ -239,50 +251,17 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                  'bootloader': 'bootloader'}
             )
 
-            mock_get_boot_mode.return_value = 'uefi'
-
             task.driver.boot.validate(task)
 
             mock_validate_image_properties.assert_called_once_with(
-                mock.ANY, mock.ANY, mock.ANY)
+                task.context, mock.ANY, ['kernel', 'ramdisk'])
 
+    @mock.patch.object(deploy_utils, 'get_boot_option', lambda node: 'ramdisk')
     @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
     @mock.patch.object(deploy_utils, 'validate_image_properties',
                        autospec=True)
-    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
-                       autospec=True)
-    def test_validate_bios_boot(self, mock_get_boot_mode,
-                                mock_validate_image_properties,
-                                mock_parse_driver_info):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.node.instance_info.update(
-                {'kernel': 'kernel',
-                 'ramdisk': 'ramdisk',
-                 'image_source': 'http://image/source'}
-            )
-
-            task.node.driver_info.update(
-                {'deploy_kernel': 'kernel',
-                 'deploy_ramdisk': 'ramdisk',
-                 'bootloader': 'bootloader'}
-            )
-
-            mock_get_boot_mode.return_value = 'bios'
-
-            task.driver.boot.validate(task)
-
-            mock_validate_image_properties.assert_called_once_with(
-                mock.ANY, mock.ANY, mock.ANY)
-
-    @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
-    @mock.patch.object(deploy_utils, 'validate_image_properties',
-                       autospec=True)
-    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
-                       autospec=True)
-    def test_validate_bios_boot_iso(self, mock_get_boot_mode,
-                                    mock_validate_image_properties,
-                                    mock_parse_driver_info):
+    def test_validate_boot_iso(self, mock_validate_image_properties,
+                               mock_parse_driver_info):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.instance_info.update(
@@ -294,44 +273,11 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                  'deploy_ramdisk': 'ramdisk',
                  'bootloader': 'bootloader'}
             )
-            # NOTE(TheJulia): Boot mode doesn't matter for this
-            # test scenario.
-            mock_get_boot_mode.return_value = 'bios'
 
             task.driver.boot.validate(task)
 
             mock_validate_image_properties.assert_called_once_with(
-                mock.ANY, mock.ANY, mock.ANY)
-
-    @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
-    @mock.patch.object(deploy_utils, 'validate_image_properties',
-                       autospec=True)
-    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
-                       autospec=True)
-    def test_validate_bios_boot_iso_conflicting_image_source(
-            self, mock_get_boot_mode,
-            mock_validate_image_properties,
-            mock_parse_driver_info):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.node.instance_info.update(
-                {'boot_iso': 'http://localhost/file.iso',
-                 'image_source': 'http://localhost/file.img'}
-            )
-
-            task.node.driver_info.update(
-                {'deploy_kernel': 'kernel',
-                 'deploy_ramdisk': 'ramdisk',
-                 'bootloader': 'bootloader'}
-            )
-            # NOTE(TheJulia): Boot mode doesn't matter for this
-            # test scenario.
-            mock_get_boot_mode.return_value = 'bios'
-
-            task.driver.boot.validate(task)
-
-            mock_validate_image_properties.assert_called_once_with(
-                mock.ANY, mock.ANY, mock.ANY)
+                task.context, mock.ANY, ['boot_iso'])
 
     @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
     @mock.patch.object(deploy_utils, 'validate_image_properties',

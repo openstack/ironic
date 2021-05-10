@@ -19,7 +19,6 @@ import os
 from unittest import mock
 
 from oslo_config import cfg
-from oslo_serialization import jsonutils as json
 from oslo_utils import uuidutils
 
 from ironic.common import boot_devices
@@ -144,7 +143,9 @@ class iPXEBootTestCase(db_base.DbTestCase):
             self.assertTrue(mock_boot_option.called)
             self.assertTrue(mock_glance.called)
 
-    def test_validate_with_boot_iso_and_image_source(self):
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
+                return_value='ramdisk', autospec=True)
+    def test_validate_with_boot_iso_and_image_source(self, mock_boot_option):
         i_info = self.node.instance_info
         i_info['image_source'] = "http://localhost:1234/image"
         i_info['boot_iso'] = "http://localhost:1234/boot.iso"
@@ -155,16 +156,26 @@ class iPXEBootTestCase(db_base.DbTestCase):
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.boot.validate,
                               task)
+            mock_boot_option.assert_called_once_with(task.node)
 
-    def test_validate_fail_missing_image_source(self):
-        info = dict(INST_INFO_DICT)
-        del info['image_source']
-        self.node.instance_info = json.dumps(info)
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
+                return_value='local', autospec=True)
+    def test_validate_no_image_source_for_local_boot(self, mock_boot_option):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            task.node['instance_info'] = json.dumps(info)
+            del task.node['instance_info']['image_source']
+            task.driver.boot.validate(task)
+            mock_boot_option.assert_called_with(task.node)
+
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
+                return_value='netboot', autospec=True)
+    def test_validate_fail_missing_image_source(self, mock_boot_option):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            del task.node['instance_info']['image_source']
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.boot.validate, task)
+            mock_boot_option.assert_called_with(task.node)
 
     def test_validate_fail_no_port(self):
         new_node = obj_utils.create_test_node(
@@ -212,18 +223,25 @@ class iPXEBootTestCase(db_base.DbTestCase):
                               task.driver.boot.validate,
                               task)
 
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
+                return_value='netboot', autospec=True)
     @mock.patch.object(image_service.GlanceImageService, 'show',
                        autospec=True)
-    def test_validate_fail_glance_image_doesnt_exists(self, mock_glance):
+    def test_validate_fail_glance_image_doesnt_exists(self, mock_glance,
+                                                      mock_boot_option):
         mock_glance.side_effect = exception.ImageNotFound('not found')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.boot.validate, task)
+            mock_boot_option.assert_called_with(task.node)
 
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
+                return_value='netboot', autospec=True)
     @mock.patch.object(image_service.GlanceImageService, 'show',
                        autospec=True)
-    def test_validate_fail_glance_conn_problem(self, mock_glance):
+    def test_validate_fail_glance_conn_problem(self, mock_glance,
+                                               mock_boot_option):
         exceptions = (exception.GlanceConnectionFailed('connection fail'),
                       exception.ImageNotAuthorized('not authorized'),
                       exception.Invalid('invalid'))
@@ -233,6 +251,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
                                       shared=True) as task:
                 self.assertRaises(exception.InvalidParameterValue,
                                   task.driver.boot.validate, task)
+                mock_boot_option.assert_called_with(task.node)
 
     def test_validate_inspection(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:

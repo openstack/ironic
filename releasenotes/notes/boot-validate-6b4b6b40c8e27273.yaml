@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    When local boot is used (e.g. by default), the instance image validation
+    now happens only in the deploy interface, not in the boot interface (as
+    before). This means that the boot interface validation will now pass
+    in many cases where it would previously fail.
