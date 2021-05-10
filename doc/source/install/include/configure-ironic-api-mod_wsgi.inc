@@ -6,11 +6,7 @@ Bare Metal service comes with an example file for configuring the
 
 #. Install the apache service:
 
-   RHEL7/CentOS7::
-
-       sudo yum install httpd
-
-   Fedora::
+   Fedora/RHEL8/CentOS8::
 
        sudo dnf install httpd
 
@@ -27,7 +23,7 @@ Bare Metal service comes with an example file for configuring the
    `Ironic project tree <https://opendev.org/openstack/ironic/raw/branch/master/etc/apache2/ironic>`_
    and copy it to the apache sites:
 
-   Fedora/RHEL7/CentOS7::
+   Fedora/RHEL8/CentOS8::
 
        sudo cp etc/apache2/ironic /etc/httpd/conf.d/ironic.conf
 
@@ -58,7 +54,7 @@ Bare Metal service comes with an example file for configuring the
 
 #. Enable the apache ``ironic`` in site and reload:
 
-   Fedora/RHEL7/CentOS7::
+   Fedora/RHEL8/CentOS8::
 
        sudo systemctl reload httpd
 

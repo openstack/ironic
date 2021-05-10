@@ -6,26 +6,18 @@ Install and configure for Red Hat Enterprise Linux and CentOS
 
 
 This section describes how to install and configure the Bare Metal service
-for Red Hat Enterprise Linux 7 and CentOS 7.
+for Red Hat Enterprise Linux 8 and CentOS 8.
 
 .. include:: include/common-prerequisites.inc
 
 Install and configure components
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#. Install from packages
+#. Install from packages (using dnf)
 
-   - Using ``dnf``
+   .. code-block:: console
 
-     .. code-block:: console
-
-        # dnf install openstack-ironic-api openstack-ironic-conductor python-ironicclient
-
-   - Using ``yum``
-
-     .. code-block:: console
-
-        # yum install openstack-ironic-api openstack-ironic-conductor python-ironicclient
+      # dnf install openstack-ironic-api openstack-ironic-conductor python3-ironicclient
 
 #. Enable services
 

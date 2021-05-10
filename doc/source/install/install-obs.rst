@@ -21,7 +21,7 @@ Install and configure components
 
    .. code-block:: console
 
-      # zypper install openstack-ironic-api openstack-ironic-conductor python-ironicclient
+      # zypper install openstack-ironic-api openstack-ironic-conductor python3-ironicclient
 
 #. Enable services
 
