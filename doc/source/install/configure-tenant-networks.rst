@@ -139,7 +139,7 @@ provisioning will happen in a multi-tenant environment (which means using the
 #. Restart the ironic-conductor and ironic-api services after the
    modifications:
 
-   - Fedora/RHEL7/CentOS7::
+   - Fedora/RHEL8/CentOS8::
 
       sudo systemctl restart openstack-ironic-api
       sudo systemctl restart openstack-ironic-conductor
