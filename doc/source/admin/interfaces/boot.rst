@@ -45,21 +45,31 @@ Common options
 Enable persistent boot device for deploy/clean operation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Ironic uses non-persistent boot for cleaning/deploying phases as default.
-For some drivers, a persistent change is far more costly than a non-persistent
-one, so this can bring performance improvements.
+For (i)PXE booting, Ironic uses non-persistent boot order changes for
+clean/deploy by default. For some drivers, persistent changes are far
+more costly than non-persisent ones, so this approach can bring a
+performance benefit.
 
-Set the flag ``force_persistent_boot_device`` to ``True`` in the node's
-``driver_info``::
+In order to control this behavior, however, Ironic provides the
+``force_persistent_boot_device`` flag in the node's ``driver_info``.
+It allows the values ``Default`` (make all changes but the last one
+upon deployment non-persistent), ``Always`` (make all changes persistent),
+and ``Never`` (make all boot order changes non-persistent). For example
+in order to have only persistent changes one would need to set something
+like::
 
-    $ baremetal node set --driver-info force_persistent_boot_device=True <node>
+    $ openstack baremetal node set --driver-info force_persistent_boot_device='Always' <node>
 
 .. note::
-   It's recommended to check if the node's state has not changed as there
+   It is recommended to check if the node's state has not changed as there
    is no way of locking the node between these commands.
 
-Once the flag is present, the next cleaning and deploy steps will be done
-with persistent boot for that node.
+.. note::
+   The values 'True'/'False' for the option 'force_persistent_boot_device'
+   in the node's driver info for the (i)PXE drivers are deprecated and
+   support for them may be removed in a future release. The former default
+   value 'False' is replaced by the new value 'Default', the value 'True'
+   is replaced by 'Always'.
 
 
 .. _PXE: https://en.wikipedia.org/wiki/Preboot_Execution_Environment
