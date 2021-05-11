@@ -32,13 +32,6 @@ Installation Guide
 
   install/index
   install/standalone
-
-Upgrade Guide
-=============
-
-.. toctree::
-  :maxdepth: 2
-
   admin/upgrade-guide
 
 User Guide
