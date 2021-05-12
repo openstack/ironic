@@ -108,7 +108,67 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         """With required 'irmc_deploy_iso' in share."""
         isfile_mock.return_value = True
         self.node.driver_info['irmc_deploy_iso'] = 'deploy.iso'
-        driver_info_expected = {'irmc_deploy_iso': 'deploy.iso'}
+        driver_info_expected = {
+            'irmc_deploy_iso': 'deploy.iso',
+            'kernel_append_params': CONF.pxe.kernel_append_params,
+        }
+
+        driver_info_actual = irmc_boot._parse_driver_info(self.node,
+                                                          mode='deploy')
+
+        isfile_mock.assert_called_once_with(
+            '/remote_image_share_root/deploy.iso')
+        self.assertEqual(driver_info_expected, driver_info_actual)
+
+    @mock.patch.object(os.path, 'isfile', spec_set=True, autospec=True)
+    def test__parse_driver_info_kernel_params(self, isfile_mock,
+                                              check_share_fs_mounted_mock):
+        """With overridden kernel_append_params."""
+        isfile_mock.return_value = True
+        self.node.driver_info['irmc_deploy_iso'] = 'deploy.iso'
+        self.node.instance_info['kernel_append_params'] = 'kernel params'
+        driver_info_expected = {
+            'irmc_deploy_iso': 'deploy.iso',
+            'kernel_append_params': 'kernel params',
+        }
+
+        driver_info_actual = irmc_boot._parse_driver_info(self.node,
+                                                          mode='deploy')
+
+        isfile_mock.assert_called_once_with(
+            '/remote_image_share_root/deploy.iso')
+        self.assertEqual(driver_info_expected, driver_info_actual)
+
+    @mock.patch.object(os.path, 'isfile', spec_set=True, autospec=True)
+    def test__parse_driver_info_kernel_params_in_conf(
+            self, isfile_mock, check_share_fs_mounted_mock):
+        """With overridden kernel_append_params."""
+        self.config(kernel_append_params='kernel params', group='irmc')
+        isfile_mock.return_value = True
+        self.node.driver_info['irmc_deploy_iso'] = 'deploy.iso'
+        driver_info_expected = {
+            'irmc_deploy_iso': 'deploy.iso',
+            'kernel_append_params': 'kernel params',
+        }
+
+        driver_info_actual = irmc_boot._parse_driver_info(self.node,
+                                                          mode='deploy')
+
+        isfile_mock.assert_called_once_with(
+            '/remote_image_share_root/deploy.iso')
+        self.assertEqual(driver_info_expected, driver_info_actual)
+
+    @mock.patch.object(os.path, 'isfile', spec_set=True, autospec=True)
+    def test__parse_driver_info_kernel_params_in_driver_info(
+            self, isfile_mock, check_share_fs_mounted_mock):
+        """With overridden kernel_append_params."""
+        isfile_mock.return_value = True
+        self.node.driver_info['irmc_deploy_iso'] = 'deploy.iso'
+        self.node.driver_info['kernel_append_params'] = 'kernel params'
+        driver_info_expected = {
+            'irmc_deploy_iso': 'deploy.iso',
+            'kernel_append_params': 'kernel params',
+        }
 
         driver_info_actual = irmc_boot._parse_driver_info(self.node,
                                                           mode='deploy')
@@ -125,8 +185,10 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         """With required 'irmc_deploy_iso' not in share."""
         self.node.driver_info['irmc_rescue_iso'] = (
             'bc784057-a140-4130-add3-ef890457e6b3')
-        driver_info_expected = {'irmc_rescue_iso':
-                                'bc784057-a140-4130-add3-ef890457e6b3'}
+        driver_info_expected = {
+            'irmc_rescue_iso': 'bc784057-a140-4130-add3-ef890457e6b3',
+            'kernel_append_params': CONF.pxe.kernel_append_params
+        }
         is_image_href_ordinary_file_name_mock.return_value = False
 
         driver_info_actual = irmc_boot._parse_driver_info(self.node,
@@ -214,7 +276,10 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         """With optional 'irmc_boot_iso' http url."""
         self.node.driver_info[
             'irmc_deploy_iso'] = 'http://irmc_boot_iso'
-        driver_info_expected = {'irmc_deploy_iso': 'http://irmc_boot_iso'}
+        driver_info_expected = {
+            'irmc_deploy_iso': 'http://irmc_boot_iso',
+            'kernel_append_params': CONF.pxe.kernel_append_params
+        }
         driver_info_actual = irmc_boot._parse_driver_info(self.node)
 
         self.assertEqual(driver_info_expected, driver_info_actual)
@@ -266,9 +331,12 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                                   check_share_fs_mounted_mock):
         CONF.irmc.remote_image_share_root = '/etc'
         get_image_instance_info_mock.return_value = {'a': 'b'}
-        driver_info_expected = {'a': 'b',
-                                'irmc_deploy_iso': 'hosts',
-                                'irmc_boot_iso': 'fstab'}
+        driver_info_expected = {
+            'a': 'b',
+            'irmc_deploy_iso': 'hosts',
+            'irmc_boot_iso': 'fstab',
+            'kernel_append_params': CONF.pxe.kernel_append_params
+        }
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.driver_info['irmc_deploy_iso'] = 'hosts'
@@ -492,11 +560,10 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                                          boot_mode_mock,
                                          create_boot_iso_mock,
                                          check_share_fs_mounted_mock):
-        self.config(kernel_append_params='kernel-params', group='pxe')
-
         deploy_info_mock.return_value = \
             {'image_source': 'image-uuid',
-             'irmc_deploy_iso': '02f9d414-2ce0-4cf5-b48f-dbc1bf678f55'}
+             'irmc_deploy_iso': '02f9d414-2ce0-4cf5-b48f-dbc1bf678f55',
+             'kernel_append_params': 'kernel-params'}
         image_props_mock.return_value = {'kernel_id': 'kernel_uuid',
                                          'ramdisk_id': 'ramdisk_uuid'}
 
