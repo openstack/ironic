@@ -269,10 +269,191 @@ the ports following inspection with the ``idrac-redfish`` inspect interface.
 Management Interface
 ====================
 
-The management interface for ``idrac-redfish`` supports updating firmware on
-nodes using a manual cleaning step.
+The management interface for ``idrac-redfish`` supports:
 
-See :doc:`/admin/drivers/redfish` for more information on firmware update support.
+* updating firmware on nodes using a manual cleaning step. See
+  :doc:`/admin/drivers/redfish` for more information on firmware update
+  support.
+* updating system and getting its inventory using configuration molds. For more
+  information see `Import and export configuration`_.
+
+
+Import and export configuration
+-------------------------------
+
+The clean and deploy steps provided in this section allow to configure the
+system and collect the system inventory using configuration mold files.
+
+The introduction of this feature in the Wallaby release is experimental.
+
+These steps are:
+
+* ``export_configuration`` with the ``export_configuration_location`` input
+  parameter to export the configuration from the existing system.
+* ``import_configuration`` with the ``import_configuration_location`` input
+  parameter to import the existing configuration mold into the system.
+* ``import_export_configuration`` with the ``export_configuration_location``
+  and ``import_configuration_location`` input parameters. This step combines
+  the previous two steps into one step that first imports existing
+  configuration mold into system, then exports the resulting configuration.
+
+The input parameters provided include the URL where the configuration mold is
+to be stored after the export, or the reference location for an import. For
+more information on setting up storage and available options see
+`Storage setup`_.
+
+Configuration molds are JSON files that contain three top-level sections:
+``bios``, ``raid`` and ``oem``. The following is an example of a configuration
+mold:
+
+.. code-block::
+
+  {
+    "bios": {
+      "reset": false,
+      "settings": [
+        {
+          "name": "ProcVirtualization",
+          "value": "Enabled"
+        },
+        {
+          "name": "MemTest",
+          "value": "Disabled"
+        }
+      ]
+    }
+    "raid": {
+      "create_nonroot_volumes": true,
+      "create_root_volume": true,
+      "delete_existing": false,
+      "target_raid_config": {
+        "logical_disks": [
+          {
+            "size_gb": 50,
+            "raid_level": "1+0",
+            "controller": "RAID.Integrated.1-1",
+            "volume_name": "root_volume",
+            "is_root_volume": true,
+            "physical_disks": [
+              "Disk.Bay.0:Encl.Int.0-1:RAID.Integrated.1-1",
+              "Disk.Bay.1:Encl.Int.0-1:RAID.Integrated.1-1"
+            ]
+          },
+          {
+            "size_gb": 100,
+            "raid_level": "5",
+            "controller": "RAID.Integrated.1-1",
+            "volume_name": "data_volume",
+            "physical_disks": [
+              "Disk.Bay.2:Encl.Int.0-1:RAID.Integrated.1-1",
+              "Disk.Bay.3:Encl.Int.0-1:RAID.Integrated.1-1",
+              "Disk.Bay.4:Encl.Int.0-1:RAID.Integrated.1-1"
+            ]
+          }
+        ]
+      }
+    }
+    "oem": {
+      "interface": "idrac-redfish",
+      "data": {
+        "SystemConfiguration": {
+          "Model": "PowerEdge R640",
+          "ServiceTag": "8CY9Z99",
+          "TimeStamp": "Fri Jun 26 08:43:15 2020",
+          "Components": [
+            {
+              [...]
+              "FQDD": "NIC.Slot.1-1-1",
+              "Attributes": [
+                {
+                "Name": "BlnkLeds",
+                "Value": "15",
+                "Set On Import": "True",
+                "Comment": "Read and Write"
+                },
+                {
+                "Name": "VirtMacAddr",
+                "Value": "00:00:00:00:00:00",
+                "Set On Import": "False",
+                "Comment": "Read and Write"
+                },
+                {
+                "Name": "VirtualizationMode",
+                "Value": "NONE",
+                "Set On Import": "True",
+                "Comment": "Read and Write"
+                },
+              [...]
+              ]
+            }
+          ]
+        }
+    }
+  }
+
+In Wallaby, the OEM section is the only section that is supported. The OEM
+section uses the iDRAC Server Configuration Profile (SCP) and can be edited as
+necessary if it complies with the SCP. For more information about SCP and its
+capabilities, see SCP_Reference_Guide_.
+
+To replicate the system configuration to that of a similar system, perform the
+following steps:
+
+#. Configure a golden, or one to many, system.
+#. Use the ``export_configuration`` step to export the configuration to the
+   wanted location.
+#. Adjust the exported configuration mold for other systems to replicate. For
+   example, remove sections that do not need to be replicated such as iDRAC
+   connection settings. The configuration mold can be accessed directly from
+   the storage location.
+#. Import the selected configuration mold into the other systems using the
+   ``import_configuration`` step.
+
+It is not mandatory to use ``export_configuration`` step to create a
+configuration mold. Upload the file to a designated storage location without
+using Ironic if it has been created manually or by other means.
+
+Storage setup
+^^^^^^^^^^^^^
+
+To start using these steps, configure the storage location. The settings can be
+found in the ``[molds]`` section. Configure the storage type from the
+``[molds]storage`` setting. Currently, ``swift``, which is enabled by default,
+and ``http`` are supported.
+
+In the setup input parameters, the complete HTTP URL is used. This requires
+that the containers (for ``swift``) and the directories (for ``http``) are
+created beforehand, and that read/write access is configured accordingly.
+
+.. NOTE::
+  Use of TLS is strongly advised.
+
+This setup configuration allows a user to access these locations outside of
+Ironic to list, create, update, and delete the configuration molds.
+
+For more information see `Swift configuration`_ and `HTTP configuration`_.
+
+Swift configuration
+~~~~~~~~~~~~~~~~~~~
+
+To use Swift with configuration molds,
+
+#. Create the containers to be used for configuration mold storage.
+#. For Ironic Swift user that is configured in the ``[swift]`` section add
+   read/write access to these containers.
+
+HTTP configuration
+~~~~~~~~~~~~~~~~~~
+
+To use HTTP server with configuration molds,
+
+#. Enable HTTP PUT support.
+#. Create the directory to be used for the configuration mold storage.
+#. Configure read/write access for HTTP Basic access authentication and provide
+   user credentials in ``[molds]user`` and ``[molds]password`` fields.
+
+The HTTP web server does not support multitenancy and is intended to be used in
+a stand-alone Ironic, or single-tenant OpenStack environment.
 
 RAID Interface
 ==============
@@ -742,3 +923,5 @@ During upgrade to 4.40.00.00 or newer iDRAC firmware eHTML5 is automatically
 selected if default plug-in type has been used and never changed. Systems that
 have plug-in type changed will keep selected plug-in type after iDRAC firmware
 upgrade.
+
+.. _SCP_Reference_Guide: http://ftp.dell.com/manuals/common/dellemc-server-config-profile-refguide.pdf
