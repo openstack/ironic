@@ -436,6 +436,7 @@ Response
     - portgroups: n_portgroups
     - states: n_states
     - resource_class: resource_class
+    - bios_interface: bios_interface
     - boot_interface: boot_interface
     - console_interface: console_interface
     - deploy_interface: deploy_interface
@@ -558,6 +559,7 @@ Response
     - portgroups: n_portgroups
     - states: n_states
     - resource_class: resource_class
+    - bios_interface: bios_interface
     - boot_interface: boot_interface
     - console_interface: console_interface
     - deploy_interface: deploy_interface
