@@ -1717,7 +1717,7 @@ function configure_ironic_conductor {
     pxe_params+=" $IRONIC_EXTRA_PXE_PARAMS"
 
     if [[ -n "$pxe_params" ]]; then
-        iniset $IRONIC_CONF_FILE pxe pxe_append_params "$pxe_params"
+        iniset $IRONIC_CONF_FILE pxe kernel_append_params "$pxe_params"
     fi
 
     local kernel_append_params="nofb nomodeset console=${IRONIC_TTY_DEV}"

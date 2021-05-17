@@ -308,7 +308,8 @@ def _prepare_boot_iso(task, root_uuid):
 
         deploy_iso_href = deploy_info['irmc_deploy_iso']
         boot_mode = boot_mode_utils.get_boot_mode(task.node)
-        kernel_params = CONF.pxe.pxe_append_params
+        # FIXME(dtantsur): why is iRMC virtual media using PXE options?
+        kernel_params = CONF.pxe.kernel_append_params
 
         boot_iso_filename = _get_iso_name(task.node, label='boot')
         boot_iso_fullpathname = os.path.join(

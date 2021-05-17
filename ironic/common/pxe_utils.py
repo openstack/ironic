@@ -38,6 +38,7 @@ from ironic.conf import CONF
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
+from ironic.drivers import utils as driver_utils
 from ironic import objects
 
 LOG = logging.getLogger(__name__)
@@ -831,10 +832,11 @@ def build_instance_pxe_options(task, pxe_info, ipxe_enabled=False):
     return pxe_opts
 
 
-def build_extra_pxe_options(task=None, ramdisk_params=None):
+def build_extra_pxe_options(task, ramdisk_params=None):
+    pxe_append_params = driver_utils.get_kernel_append_params(
+        task.node, default=CONF.pxe.kernel_append_params)
     # Enable debug in IPA according to CONF.debug if it was not
     # specified yet
-    pxe_append_params = CONF.pxe.pxe_append_params
     if CONF.debug and 'ipa-debug' not in pxe_append_params:
         pxe_append_params += ' ipa-debug=1'
     if ramdisk_params:

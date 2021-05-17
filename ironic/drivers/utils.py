@@ -384,3 +384,23 @@ OPTIONAL_PROPERTIES = {
                                       "deprecated in favor of the new ones."
                                       "Defaults to 'Default'. Optional."),
 }
+
+
+def get_kernel_append_params(node, default):
+    """Get the applicable kernel params.
+
+    The locations are checked in this order:
+
+    1. The node's instance_info.
+    2. The node's driver_info.
+    3. Configuration.
+
+    :param node: Node object.
+    :param default: Default value.
+    """
+    for location in ('instance_info', 'driver_info'):
+        result = getattr(node, location).get('kernel_append_params')
+        if result is not None:
+            return result
+
+    return default

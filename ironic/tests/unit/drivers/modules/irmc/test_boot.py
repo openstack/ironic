@@ -492,7 +492,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                                          boot_mode_mock,
                                          create_boot_iso_mock,
                                          check_share_fs_mounted_mock):
-        CONF.pxe.pxe_append_params = 'kernel-params'
+        self.config(kernel_append_params='kernel-params', group='pxe')
 
         deploy_info_mock.return_value = \
             {'image_source': 'image-uuid',
