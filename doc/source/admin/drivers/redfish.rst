@@ -193,10 +193,21 @@ place into on a FAT image, then insert the image into node's virtual floppy
 drive.
 
 When booting over PXE or virtual media, and user instance requires some
-specific kernel configuration, ``[instance_info]/kernel_append_params``
-property can be used to pass user-specified kernel command line parameters.
-For ramdisk kernel, ``[instance_info]/kernel_append_params`` property serves
-the same purpose.
+specific kernel configuration, the node's
+``instance_info[kernel_append_params]`` or
+``driver_info[kernel_append_params]`` properties can be used to pass
+user-specified kernel command line parameters.
+
+.. code-block:: bash
+
+  baremetal node set node-0 \
+    --driver-info kernel_append_params="nofb nomodeset vga=normal"
+
+.. note::
+   The ``driver_info`` field is supported starting with the Xena release.
+
+For ramdisk boot, the ``instance_info[ramdisk_kernel_arguments]`` property
+serves the same purpose.
 
 Pre-built ISO images
 ~~~~~~~~~~~~~~~~~~~~

@@ -553,6 +553,29 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
                 base_iso='/path/to/baseiso', inject_files=None)
 
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    @mock.patch.object(images, 'create_boot_iso', autospec=True)
+    def test__prepare_iso_image_kernel_params_driver_info(
+            self, mock_create_boot_iso, mock_publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            kernel_params = 'network-config=base64-cloudinit-blob'
+
+            task.node.driver_info['kernel_append_params'] = kernel_params
+
+            image_utils._prepare_iso_image(
+                task, 'http://kernel/img', 'http://ramdisk/img',
+                bootloader_href=None, root_uuid=task.node.uuid,
+                base_iso='/path/to/baseiso')
+
+            mock_create_boot_iso.assert_called_once_with(
+                mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
+                boot_mode='bios', esp_image_href=None,
+                kernel_params=kernel_params,
+                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                base_iso='/path/to/baseiso', inject_files=None)
+
     def test__prepare_iso_image_bootable_iso(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:

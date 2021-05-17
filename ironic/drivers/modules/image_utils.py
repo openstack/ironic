@@ -33,6 +33,7 @@ from ironic.common import utils
 from ironic.conf import CONF
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers import utils as driver_utils
 
 LOG = log.getLogger(__name__)
 
@@ -433,7 +434,6 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
                   {"boot_iso": base_iso})
 
     img_handler = ImageHandler(task.node.driver)
-    k_param = img_handler.kernel_params
 
     i_info = task.node.instance_info
 
@@ -447,7 +447,8 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
             kernel_params = None
 
     else:
-        kernel_params = i_info.get('kernel_append_params', k_param)
+        kernel_params = driver_utils.get_kernel_append_params(
+            task.node, default=img_handler.kernel_params)
 
     if params and not base_iso:
         kernel_params = ' '.join(
