@@ -32,6 +32,10 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 
 sushy = importutils.try_import('sushy')
 
+registry_fields = ('attribute_type', 'allowable_values', 'lower_bound',
+                   'max_length', 'min_length', 'read_only',
+                   'reset_required', 'unique', 'upper_bound')
+
 
 class RedfishBIOS(base.BIOSInterface):
 
@@ -50,6 +54,23 @@ class RedfishBIOS(base.BIOSInterface):
             raise exception.DriverLoadError(
                 driver='redfish',
                 reason=_("Unable to import the sushy library"))
+
+    def _parse_allowable_values(self, allowable_values):
+        """Convert the BIOS registry allowable_value list to expected strings
+
+        :param allowable_values: list of dicts of valid values for enumeration
+        :returns: list containing only allowable value names
+        """
+
+        # Get name from ValueName if it exists, otherwise use DisplayValueName
+        new_list = []
+        for dic in allowable_values:
+            for key in dic:
+                if key == 'ValueName' or key == 'DisplayValueName':
+                    new_list.append(dic[key])
+                    break
+
+        return new_list
 
     def cache_bios_settings(self, task):
         """Store or update the current BIOS settings for the node.
@@ -77,7 +98,39 @@ class RedfishBIOS(base.BIOSInterface):
         settings = []
         # Convert Redfish BIOS attributes to Ironic BIOS settings
         if attributes:
-            settings = [{'name': k, 'value': v} for k, v in attributes.items()]
+            settings = [{'name': k, 'value': v}
+                        for k, v in attributes.items()]
+
+        # Get the BIOS Registry
+        registry_attributes = []
+        try:
+            bios_registry = system.bios.get_attribute_registry()
+
+            if bios_registry:
+                registry_attributes = bios_registry.registry_entries.attributes
+
+        except Exception as e:
+            LOG.info('Cannot get BIOS Registry attributes for node %(node)s, '
+                     'Error %(exc)s.', {'node': task.node.uuid, 'exc': e})
+
+        # TODO(bfournier): use a common list for registry field names
+        # e.g. registry_fields = objects.BIOSSetting.registry_fields
+
+        # The BIOS registry will contain more entries than the BIOS settings
+        # Find the registry entry matching the setting name and get the fields
+        if registry_attributes:
+            for setting in settings:
+                reg = next((r for r in registry_attributes
+                            if r.name == setting['name']), None)
+                fields = [attr for attr in dir(reg)
+                          if not attr.startswith("_")]
+                settable_keys = [f for f in fields if f in registry_fields]
+                # Set registry fields to current values
+                for k in settable_keys:
+                    setting[k] = getattr(reg, k, None)
+                    if k == "allowable_values" and isinstance(setting[k],
+                                                              list):
+                        setting[k] = self._parse_allowable_values(setting[k])
 
         LOG.debug('Cache BIOS settings for node %(node_uuid)s',
                   {'node_uuid': task.node.uuid})
