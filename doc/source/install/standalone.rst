@@ -10,4 +10,11 @@ the bare metal API directly, not though OpenStack Compute.
 
    standalone/configure
    standalone/enrollment
+
+Once the installation is done, please see :doc:`/user/deploy` for information
+on how to deploy bare metal machines.
+
+.. toctree::
+   :hidden:
+
    standalone/deploy
