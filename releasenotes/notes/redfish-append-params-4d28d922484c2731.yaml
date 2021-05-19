@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    The ``redfish-virtual-media``, ``ilo-virtual-media`` and
+    ``idrac-redfish-virtual-media`` boot interfaces now support
+    ``kernel_append_params`` not only in the node's ``instance_info``, but also
+    ``driver_info``. This only applies when the boot image is built from
+    a kernel and an initramfs, not when a pre-built ISO is used.
+deprecations:
+  - |
+    The ``ilo-virtual-media`` boot interface has previously declared support
+    for the ``ilo_kernel_append_params`` option in ``driver_info``. It has
+    never been implemented in reality and has been replaces by the new
+    ``kernel_append_params``.

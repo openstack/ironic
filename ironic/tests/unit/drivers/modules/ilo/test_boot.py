@@ -54,9 +54,9 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
 
     def test_parse_driver_info_deploy_iso(self):
         self.node.driver_info['ilo_deploy_iso'] = 'deploy-iso'
-        self.node.driver_info['ilo_kernel_append_params'] = 'kernel-param'
+        self.node.driver_info['kernel_append_params'] = 'kernel-param'
         expected_driver_info = {'ilo_bootloader': None,
-                                'ilo_kernel_append_params': 'kernel-param',
+                                'kernel_append_params': 'kernel-param',
                                 'ilo_deploy_iso': 'deploy-iso'}
 
         actual_driver_info = ilo_boot.parse_driver_info(self.node)
@@ -65,7 +65,7 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
     def test_parse_driver_info_rescue_iso(self):
         self.node.driver_info['ilo_rescue_iso'] = 'rescue-iso'
         expected_driver_info = {'ilo_bootloader': None,
-                                'ilo_kernel_append_params': None,
+                                'kernel_append_params': None,
                                 'ilo_rescue_iso': 'rescue-iso'}
 
         actual_driver_info = ilo_boot.parse_driver_info(self.node, 'rescue')
@@ -75,11 +75,11 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
         self.node.driver_info['ilo_deploy_kernel'] = 'kernel'
         self.node.driver_info['ilo_deploy_ramdisk'] = 'ramdisk'
         self.node.driver_info['ilo_bootloader'] = 'bootloader'
-        self.node.driver_info['ilo_kernel_append_params'] = 'kernel-param'
+        self.node.driver_info['kernel_append_params'] = 'kernel-param'
         expected_driver_info = {'ilo_deploy_kernel': 'kernel',
                                 'ilo_deploy_ramdisk': 'ramdisk',
                                 'ilo_bootloader': 'bootloader',
-                                'ilo_kernel_append_params': 'kernel-param'}
+                                'kernel_append_params': 'kernel-param'}
 
         actual_driver_info = ilo_boot.parse_driver_info(self.node)
         self.assertEqual(expected_driver_info, actual_driver_info)
@@ -91,7 +91,7 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
         expected_driver_info = {'ilo_rescue_kernel': 'kernel',
                                 'ilo_rescue_ramdisk': 'ramdisk',
                                 'ilo_bootloader': 'bootloader',
-                                'ilo_kernel_append_params': None}
+                                'kernel_append_params': None}
 
         actual_driver_info = ilo_boot.parse_driver_info(self.node, 'rescue')
         self.assertEqual(expected_driver_info, actual_driver_info)
@@ -103,7 +103,7 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
         expected_driver_info = {'ilo_deploy_kernel': 'kernel',
                                 'ilo_deploy_ramdisk': 'ramdisk',
                                 'ilo_bootloader': 'bootloader',
-                                'ilo_kernel_append_params': None}
+                                'kernel_append_params': None}
 
         actual_driver_info = ilo_boot.parse_driver_info(self.node)
         self.assertEqual(expected_driver_info, actual_driver_info)
@@ -116,7 +116,7 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
         expected_driver_info = {'ilo_rescue_kernel': 'kernel',
                                 'ilo_rescue_ramdisk': 'ramdisk',
                                 'ilo_bootloader': 'bootloader',
-                                'ilo_kernel_append_params': None}
+                                'kernel_append_params': None}
 
         actual_driver_info = ilo_boot.parse_driver_info(self.node, 'rescue')
         self.assertEqual(expected_driver_info, actual_driver_info)
@@ -128,7 +128,7 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
         expected_driver_info = {'ilo_deploy_kernel': 'kernel',
                                 'ilo_deploy_ramdisk': 'ramdisk',
                                 'ilo_bootloader': None,
-                                'ilo_kernel_append_params': None}
+                                'kernel_append_params': None}
 
         actual_driver_info = ilo_boot.parse_driver_info(self.node)
         self.assertEqual(expected_driver_info, actual_driver_info)
@@ -1546,7 +1546,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                 'ilo_deploy_kernel': 'deploy-kernel',
                 'ilo_deploy_ramdisk': 'deploy-ramdisk',
                 'ilo_bootloader': 'bootloader',
-                'ilo_kernel_append_params': 'nofb nomodeset vga=normal'
+                'kernel_append_params': 'nofb nomodeset vga=normal'
             }
 
             deploy_info.update({'ilo_username': 'admin',
@@ -1577,7 +1577,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         driver_info['ilo_rescue_ramdisk'] = 'rescue-ramdisk'
         driver_info['ilo_bootloader'] = 'bootloader'
         driver_info['ilo_add_certificates'] = 'false'
-        driver_info['ilo_kernel_append_params'] = 'kernel-param'
+        driver_info['kernel_append_params'] = 'kernel-param'
         driver_info['dummy_key'] = 'dummy-value'
         self.node.driver_info = driver_info
         self.node.save()
@@ -1588,7 +1588,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                 'ilo_rescue_kernel': 'rescue-kernel',
                 'ilo_rescue_ramdisk': 'rescue-ramdisk',
                 'ilo_bootloader': 'bootloader',
-                'ilo_kernel_append_params': 'kernel-param'
+                'kernel_append_params': 'kernel-param'
             }
 
             deploy_info.update({'ilo_username': 'admin',

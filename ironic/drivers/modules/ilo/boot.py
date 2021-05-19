@@ -79,12 +79,12 @@ OPTIONAL_PROPERTIES = {
                               "iLO.")
 }
 KERNEL_PARAM_PROPERTIES = {
-    'ilo_kernel_append_params': _("Additional kernel parameters to pass down "
-                                  "to instance kernel. These parameters can "
-                                  "be consumed by the kernel or by the "
-                                  "applications by reading /proc/cmdline. "
-                                  "Mind severe cmdline size limit. Overrides "
-                                  "[ilo]/kernel_append_params ironic option.")
+    'kernel_append_params': _("Additional kernel parameters to pass down "
+                              "to instance kernel. These parameters can "
+                              "be consumed by the kernel or by the "
+                              "applications by reading /proc/cmdline. "
+                              "Mind severe cmdline size limit. Overrides "
+                              "[ilo]/kernel_append_params ironic option.")
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
 VMEDIA_OPTIONAL_PROPERTIES = OPTIONAL_PROPERTIES.copy()
