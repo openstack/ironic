@@ -40,6 +40,7 @@ from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
+from ironic.drivers.modules.drac import utils as drac_utils
 from ironic.drivers.modules.redfish import management as redfish_management
 from ironic.drivers.modules.redfish import utils as redfish_utils
 
@@ -362,35 +363,9 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                 error=(_("No managers found for %(node)s") %
                        {'node': task.node.uuid}))
 
-        for manager in system.managers:
-
-            try:
-                manager_oem = manager.get_oem_extension('Dell')
-            except sushy.exceptions.OEMExtensionNotFoundError as e:
-                error_msg = (_("Search for Sushy OEM extension Python package "
-                               "'sushy-oem-idrac' failed for node %(node)s. "
-                               "Ensure it is installed. Error: %(error)s") %
-                             {'node': task.node.uuid, 'error': e})
-                LOG.error(error_msg)
-                raise exception.RedfishError(error=error_msg)
-
-            try:
-                configuration = manager_oem.export_system_configuration()
-                LOG.info("Exported %(node)s configuration via OEM",
-                         {'node': task.node.uuid})
-            except sushy.exceptions.SushyError as e:
-                LOG.debug("Sushy OEM extension Python package "
-                          "'sushy-oem-idrac' failed to export system "
-                          " configuration for node %(node)s. Will try next "
-                          "manager, if available. Error: %(error)s",
-                          {'system': system.uuid if system.uuid else
-                           system.identity,
-                           'manager': manager.uuid if manager.uuid else
-                           manager.identity,
-                           'node': task.node.uuid,
-                           'error': e})
-                continue
-            break
+        configuration = drac_utils.execute_oem_manager_method(
+            task, 'export system configuration',
+            lambda m: m.export_system_configuration())
 
         if configuration and configuration.status_code == 200:
             configuration = {"oem": {"interface": "idrac-redfish",
@@ -442,58 +417,25 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                         'configuration_name': import_configuration_location,
                         'interface': interface}))
 
-        system = redfish_utils.get_system(task.node)
+        task_monitor = drac_utils.execute_oem_manager_method(
+            task, 'import system configuration',
+            lambda m: m.import_system_configuration(
+                json.dumps(configuration["oem"]["data"])),)
 
-        if not system.managers:
-            raise exception.DracOperationError(
-                error=(_("No managers found for %(node)s") %
-                       {'node': task.node.uuid}))
+        info = task.node.driver_internal_info
+        info['import_task_monitor_url'] = task_monitor.task_monitor_uri
+        task.node.driver_internal_info = info
 
-        for manager in system.managers:
-            try:
-                manager_oem = manager.get_oem_extension('Dell')
-            except sushy.exceptions.OEMExtensionNotFoundError as e:
-                error_msg = (_("Search for Sushy OEM extension Python package "
-                               "'sushy-oem-idrac' failed for node %(node)s. "
-                               "Ensure it is installed. Error: %(error)s") %
-                             {'node': task.node.uuid, 'error': e})
-                LOG.error(error_msg)
-                raise exception.RedfishError(error=error_msg)
+        deploy_utils.set_async_step_flags(
+            task.node,
+            reboot=True,
+            skip_current_step=True,
+            polling=True)
+        deploy_opts = deploy_utils.build_agent_options(task.node)
+        task.driver.boot.prepare_ramdisk(task, deploy_opts)
+        manager_utils.node_power_action(task, states.REBOOT)
 
-            try:
-                task_monitor = manager_oem.import_system_configuration(
-                    json.dumps(configuration["oem"]["data"]))
-
-                info = task.node.driver_internal_info
-                info['import_task_monitor_url'] = task_monitor.task_monitor_uri
-                task.node.driver_internal_info = info
-
-                deploy_utils.set_async_step_flags(
-                    task.node,
-                    reboot=True,
-                    skip_current_step=True,
-                    polling=True)
-                deploy_opts = deploy_utils.build_agent_options(task.node)
-                task.driver.boot.prepare_ramdisk(task, deploy_opts)
-                manager_utils.node_power_action(task, states.REBOOT)
-
-                return deploy_utils.get_async_step_return_state(task.node)
-            except sushy.exceptions.SushyError as e:
-                LOG.debug("Sushy OEM extension Python package "
-                          "'sushy-oem-idrac' failed to import system "
-                          " configuration for node %(node)s. Will try next "
-                          "manager, if available. Error: %(error)s",
-                          {'system': system.uuid if system.uuid else
-                           system.identity,
-                           'manager': manager.uuid if manager.uuid else
-                           manager.identity,
-                           'node': task.node.uuid,
-                           'error': e})
-                continue
-
-        raise exception.DracOperationError(
-            error=(_("Failed to import configuration for node %(node)s") %
-                   {'node': task.node.uuid}))
+        return deploy_utils.get_async_step_return_state(task.node)
 
     @base.clean_step(priority=0,
                      argsinfo=IMPORT_EXPORT_CONFIGURATION_ARGSINFO)
@@ -646,46 +588,9 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                      on.
         :raises: RedfishError on an error.
         """
-        system = redfish_utils.get_system(task.node)
-        for manager in system.managers:
-            try:
-                oem_manager = manager.get_oem_extension('Dell')
-            except sushy.exceptions.OEMExtensionNotFoundError as e:
-                error_msg = (_("Search for Sushy OEM extension Python package "
-                               "'sushy-oem-idrac' failed for node %(node)s. "
-                               "Ensure it is installed. Error: %(error)s") %
-                             {'node': task.node.uuid, 'error': e})
-                LOG.error(error_msg)
-                raise exception.RedfishError(error=error_msg)
-            try:
-                oem_manager.job_service.delete_jobs(job_ids=['JID_CLEARALL'])
-            except sushy.exceptions.SushyError as e:
-                error_msg = ('Failed to clear iDRAC job queue with system '
-                             '%(system)s manager %(manager)s for node '
-                             '%(node)s. Will try next manager, if available. '
-                             'Error: %(error)s' %
-                             {'system': system.uuid if system.uuid else
-                              system.identity,
-                              'manager': manager.uuid if manager.uuid else
-                              manager.identity,
-                              'node': task.node.uuid,
-                              'error': e})
-                LOG.debug(error_msg)
-                continue
-            LOG.info('Cleared iDRAC job queue for node %(node)s',
-                     {'node': task.node.uuid})
-            break
-        else:
-            error_msg = (_('iDRAC Redfish clear job queue failed for node '
-                           '%(node)s, because system %(system)s has no '
-                           'manager%(no_manager)s.') %
-                         {'node': task.node.uuid,
-                          'system': system.uuid if system.uuid else
-                          system.identity,
-                          'no_manager': '' if not system.managers else
-                          ' which could'})
-            LOG.error(error_msg)
-            raise exception.RedfishError(error=error_msg)
+        drac_utils.execute_oem_manager_method(
+            task, 'clear job queue',
+            lambda m: m.job_service.delete_jobs(job_ids=['JID_CLEARALL']))
 
     @METRICS.timer('DracRedfishManagement.reset_idrac')
     @base.clean_step(priority=0)
@@ -696,45 +601,11 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                      on.
         :raises: RedfishError on an error.
         """
-        system = redfish_utils.get_system(task.node)
-        for manager in system.managers:
-            try:
-                oem_manager = manager.get_oem_extension('Dell')
-            except sushy.exceptions.OEMExtensionNotFoundError as e:
-                error_msg = (_("Search for Sushy OEM extension Python package "
-                               "'sushy-oem-idrac' failed for node %(node)s. "
-                               "Ensure it is installed. Error: %(error)s") %
-                             {'node': task.node.uuid, 'error': e})
-                LOG.error(error_msg)
-                raise exception.RedfishError(error=error_msg)
-            try:
-                oem_manager.reset_idrac()
-            except sushy.exceptions.SushyError as e:
-                error_msg = ('Failed to reset iDRAC with system %(system)s '
-                             'manager %(manager)s for node %(node)s. Will try '
-                             'next manager, if available. Error: %(error)s' %
-                             {'system': system.uuid if system.uuid else
-                              system.identity,
-                              'manager': manager.uuid if manager.uuid else
-                              manager.identity,
-                              'node': task.node.uuid,
-                              'error': e})
-                LOG.debug(error_msg)
-                continue
-            redfish_utils.wait_until_get_system_ready(task.node)
-            LOG.info('Reset iDRAC for node %(node)s', {'node': task.node.uuid})
-            break
-        else:
-            error_msg = (_('iDRAC Redfish reset iDRAC failed for node '
-                           '%(node)s, because system %(system)s has no '
-                           'manager%(no_manager)s.') %
-                         {'node': task.node.uuid,
-                          'system': system.uuid if system.uuid else
-                          system.identity,
-                          'no_manager': '' if not system.managers else
-                          ' which could'})
-            LOG.error(error_msg)
-            raise exception.RedfishError(error=error_msg)
+        drac_utils.execute_oem_manager_method(
+            task, 'reset iDRAC', lambda m: m.reset_idrac())
+        redfish_utils.wait_until_get_system_ready(task.node)
+        LOG.info('Reset iDRAC for node %(node)s done',
+                 {'node': task.node.uuid})
 
     @METRICS.timer('DracRedfishManagement.known_good_state')
     @base.clean_step(priority=0)

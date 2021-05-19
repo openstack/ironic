@@ -34,6 +34,7 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.drac import management as drac_mgmt
+from ironic.drivers.modules.drac import utils as drac_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -849,50 +850,6 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
                           self.management.export_configuration, task, None)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_export_configuration_no_managers(self, mock_get_system):
-        task = mock.Mock(node=self.node, context=self.context)
-        mock_get_system.return_value.managers = []
-
-        self.assertRaises(exception.DracOperationError,
-                          self.management.export_configuration, task, 'edge')
-
-    @mock.patch.object(drac_mgmt, 'LOG', autospec=True)
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_export_configuration_oem_not_found(self, mock_get_system,
-                                                mock_log):
-        task = mock.Mock(node=self.node, context=self.context)
-        fake_manager1 = mock.Mock()
-        fake_manager1.get_oem_extension.side_effect = (
-            sushy.exceptions.OEMExtensionNotFoundError)
-        mock_get_system.return_value.managers = [fake_manager1]
-
-        self.assertRaises(exception.RedfishError,
-                          self.management.export_configuration, task, 'edge')
-        self.assertEqual(mock_log.error.call_count, 1)
-
-    @mock.patch.object(drac_mgmt, 'LOG', autospec=True)
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_export_configuration_all_managers_fail(self, mock_get_system,
-                                                    mock_log):
-        task = mock.Mock(node=self.node, context=self.context)
-        fake_manager_oem1 = mock.Mock()
-        fake_manager_oem1.export_system_configuration.side_effect = (
-            sushy.exceptions.SushyError)
-        fake_manager1 = mock.Mock()
-        fake_manager1.get_oem_extension.return_value = fake_manager_oem1
-        fake_manager_oem2 = mock.Mock()
-        fake_manager_oem2.export_system_configuration.side_effect = (
-            sushy.exceptions.SushyError)
-        fake_manager2 = mock.Mock()
-        fake_manager2.get_oem_extension.return_value = fake_manager_oem2
-        mock_get_system.return_value.managers = [fake_manager1, fake_manager2]
-
-        self.assertRaises(exception.DracOperationError,
-                          self.management.export_configuration,
-                          task, 'edge')
-        self.assertEqual(mock_log.debug.call_count, 2)
-
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_export_configuration_export_failed(self, mock_get_system):
         task = mock.Mock(node=self.node, context=self.context)
         fake_manager_oem1 = mock.Mock()
@@ -905,7 +862,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
         self.assertRaises(exception.DracOperationError,
                           self.management.export_configuration, task, 'edge')
 
-    @mock.patch.object(drac_mgmt, 'LOG', autospec=True)
+    @mock.patch.object(drac_utils, 'LOG', autospec=True)
     @mock.patch.object(molds, 'save_configuration', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_export_configuration_success(self, mock_get_system,
@@ -952,66 +909,6 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
 
     @mock.patch.object(molds, 'get_configuration', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_import_configuration_no_managers(self, mock_get_system,
-                                              mock_get_configuration):
-        task = mock.Mock(node=self.node, context=self.context)
-        fake_system = mock.Mock(managers=[])
-        mock_get_configuration.return_value = json.loads(
-            '{"oem": {"interface": "idrac-redfish", '
-            '"data": {"prop1": "value1", "prop2": 2}}}')
-        mock_get_system.return_value = fake_system
-
-        self.assertRaises(exception.DracOperationError,
-                          self.management.import_configuration, task, 'edge')
-
-    @mock.patch.object(drac_mgmt, 'LOG', autospec=True)
-    @mock.patch.object(molds, 'get_configuration', autospec=True)
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_import_configuration_oem_not_found(self, mock_get_system,
-                                                mock_get_configuration,
-                                                mock_log):
-        task = mock.Mock(node=self.node, context=self.context)
-        fake_manager1 = mock.Mock()
-        fake_manager1.get_oem_extension.side_effect = (
-            sushy.exceptions.OEMExtensionNotFoundError)
-        fake_system = mock.Mock(managers=[fake_manager1])
-        mock_get_system.return_value = fake_system
-        mock_get_configuration.return_value = json.loads(
-            '{"oem": {"interface": "idrac-redfish", '
-            '"data": {"prop1": "value1", "prop2": 2}}}')
-
-        self.assertRaises(exception.RedfishError,
-                          self.management.import_configuration, task, 'edge')
-        self.assertEqual(mock_log.error.call_count, 1)
-
-    @mock.patch.object(drac_mgmt, 'LOG', autospec=True)
-    @mock.patch.object(molds, 'get_configuration', autospec=True)
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_import_configuration_all_managers_fail(self, mock_get_system,
-                                                    mock_get_configuration,
-                                                    mock_log):
-        task = mock.Mock(node=self.node, context=self.context)
-        fake_manager_oem1 = mock.Mock()
-        fake_manager_oem1.import_system_configuration.side_effect = (
-            sushy.exceptions.SushyError)
-        fake_manager1 = mock.Mock()
-        fake_manager1.get_oem_extension.return_value = fake_manager_oem1
-        fake_manager_oem2 = mock.Mock()
-        fake_manager_oem2.import_system_configuration.side_effect = (
-            sushy.exceptions.SushyError)
-        fake_manager2 = mock.Mock()
-        fake_manager2.get_oem_extension.return_value = fake_manager_oem2
-        mock_get_system.return_value.managers = [fake_manager1, fake_manager2]
-        mock_get_configuration.return_value = json.loads(
-            '{"oem": {"interface": "idrac-redfish", '
-            '"data": {"prop1": "value1", "prop2": 2}}}')
-
-        self.assertRaises(exception.DracOperationError,
-                          self.management.import_configuration, task, 'edge')
-        self.assertEqual(mock_log.debug.call_count, 2)
-
-    @mock.patch.object(molds, 'get_configuration', autospec=True)
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_import_configuration_incorrect_interface(self, mock_get_system,
                                                       mock_get_configuration):
         task = mock.Mock(node=self.node, context=self.context)
@@ -1031,7 +928,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(drac_mgmt, 'LOG', autospec=True)
+    @mock.patch.object(drac_utils, 'LOG', autospec=True)
     @mock.patch.object(molds, 'get_configuration', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_import_configuration_success(
@@ -1420,7 +1317,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             mock_deploy_handler.assert_called_once_with(
                 task, 'error', 'log message')
 
-    @mock.patch.object(drac_mgmt, 'redfish_utils', autospec=True)
+    @mock.patch.object(drac_utils, 'redfish_utils', autospec=True)
     def test_clear_job_queue(self, mock_redfish_utils):
         mock_system = mock_redfish_utils.get_system.return_value
         mock_manager = mock.MagicMock()
@@ -1433,8 +1330,10 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             mock_manager_oem.job_service.delete_jobs.assert_called_once_with(
                 job_ids=['JID_CLEARALL'])
 
-    @mock.patch.object(drac_mgmt, 'redfish_utils', autospec=True)
-    def test_reset_idrac(self, mock_redfish_utils):
+    @mock.patch.object(redfish_utils, 'wait_until_get_system_ready',
+                       autospec=True)
+    @mock.patch.object(drac_utils, 'redfish_utils', autospec=True)
+    def test_reset_idrac(self, mock_redfish_utils, mock_wait_system_ready):
         mock_system = mock_redfish_utils.get_system.return_value
         mock_manager = mock.MagicMock()
         mock_system.managers = [mock_manager]
@@ -1445,8 +1344,11 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             task.driver.management.reset_idrac(task)
             mock_manager_oem.reset_idrac.assert_called_once_with()
 
-    @mock.patch.object(drac_mgmt, 'redfish_utils', autospec=True)
-    def test_known_good_state(self, mock_redfish_utils):
+    @mock.patch.object(redfish_utils, 'wait_until_get_system_ready',
+                       autospec=True)
+    @mock.patch.object(drac_utils, 'redfish_utils', autospec=True)
+    def test_known_good_state(self, mock_redfish_utils,
+                              mock_wait_system_ready):
         mock_system = mock_redfish_utils.get_system.return_value
         mock_manager = mock.MagicMock()
         mock_system.managers = [mock_manager]

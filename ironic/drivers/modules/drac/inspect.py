@@ -27,6 +27,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
+from ironic.drivers.modules.drac import utils as drac_utils
 from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.redfish import inspect as redfish_inspect
 from ironic.drivers.modules.redfish import utils as redfish_utils
@@ -118,48 +119,11 @@ class DracRedfishInspect(redfish_inspect.RedfishInspect):
             # how to get it, and Dell does not have OEM redfish calls
             # to selectively retrieve it at this time.
             # Get instance of Sushy OEM manager object
+            pxe_port_macs_list = drac_utils.execute_oem_manager_method(
+                task, 'get PXE port MAC addresses',
+                lambda m: m.get_pxe_port_macs_bios(ethernet_interfaces_mac))
+            pxe_port_macs = [mac for mac in pxe_port_macs_list]
 
-            for manager in system.managers:
-                try:
-                    # Get instance of Sushy OEM manager object
-                    oem_manager = manager.get_oem_extension('Dell')
-                except sushy.exceptions.OEMExtensionNotFoundError as e:
-                    error_msg = (_("Search for Sushy OEM extension package "
-                                   "'sushy-oem-idrac' failed for node "
-                                   "%(node)s. Ensure it's installed. "
-                                   " Error: %(error)s") %
-                                 {'node': task.node.uuid, 'error': e})
-                    LOG.error(error_msg)
-                    raise exception.RedfishError(error=error_msg)
-
-                try:
-                    pxe_port_macs_list = oem_manager.get_pxe_port_macs_bios(
-                        ethernet_interfaces_mac)
-                    pxe_port_macs = [mac for mac in pxe_port_macs_list]
-                    return pxe_port_macs
-                except sushy.exceptions.OEMExtensionNotFoundError as e:
-                    error_msg = (_("Search for Sushy OEM extension package "
-                                   "'sushy-oem-idrac' failed for node "
-                                   " %(node)s. Ensure it is installed. "
-                                   "Error: %(error)s") %
-                                 {'node': task.node.uuid, 'error': e})
-                    LOG.debug(error_msg)
-                    continue
-                LOG.info("Get pxe port MAC addresses for  %(node)s via OEM",
-                         {'node': task.node.uuid})
-                break
-            else:
-                error_msg = (_('iDRAC Redfish Get pxe port MAC addresse '
-                               'failed for node %(node)s, because system '
-                               '%(system)s has no '
-                               'manager%(no_manager)s.') %
-                             {'node': task.node.uuid,
-                              'system': system.uuid if system.uuid else
-                              system.identity,
-                              'no_manager': '' if not system.managers else
-                              ' which could'})
-                LOG.error(error_msg)
-                raise exception.RedfishError(error=error_msg)
         return pxe_port_macs
 
 
