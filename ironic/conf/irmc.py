@@ -106,6 +106,16 @@ opts = [
                       'configuration was successfully finished or not. '
                       'Foreground Initialization (FGI) will start 5 minutes '
                       'after creating virtual drives.')),
+    cfg.StrOpt('kernel_append_params',
+               # TODO(dtantsur): set to the same value as in [pxe] after Xena
+               default=None,
+               mutable=True,
+               help=_('Additional kernel parameters to pass down to the '
+                      'instance kernel. These parameters can be consumed by '
+                      'the kernel or by the applications by reading '
+                      '/proc/cmdline. Mind severe cmdline size limit! Can be '
+                      'overridden by `instance_info/kernel_append_params` '
+                      'property.')),
 ]
 
 

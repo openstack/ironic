@@ -81,6 +81,13 @@ OPTIONAL_PROPERTIES = {
           "the IPv4 subnet mask that the storage network is configured to "
           "utilize, in a range between 1 and 31 inclusive. This is necessary "
           "for booting a node from a remote iSCSI volume. Optional."),
+    'kernel_append_params': _("Additional kernel parameters to pass down to "
+                              "instance kernel. These parameters can be "
+                              "consumed by the kernel or by the applications "
+                              "by reading /proc/cmdline. Mind severe cmdline "
+                              "size limit. Overrides "
+                              "[irmc]/kernel_append_params ironic "
+                              "option."),
 }
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
@@ -163,6 +170,15 @@ def _parse_driver_info(node, mode='deploy'):
                     'iso_file': image_iso_file,
                     'node': node.uuid})
             raise exception.InvalidParameterValue(msg)
+
+    kernel_params = driver_utils.get_kernel_append_params(
+        node, default=CONF.irmc.kernel_append_params)
+    if kernel_params is None:
+        LOG.warning('Relying on [pxe]kernel_append_params in the iRMC '
+                    'hardware type is deprecated, please set '
+                    '[irmc]kernel_append_params')
+        kernel_params = CONF.pxe.kernel_append_params
+    deploy_info['kernel_append_params'] = kernel_params
 
     return deploy_info
 
@@ -308,8 +324,7 @@ def _prepare_boot_iso(task, root_uuid):
 
         deploy_iso_href = deploy_info['irmc_deploy_iso']
         boot_mode = boot_mode_utils.get_boot_mode(task.node)
-        # FIXME(dtantsur): why is iRMC virtual media using PXE options?
-        kernel_params = CONF.pxe.kernel_append_params
+        kernel_params = deploy_info['kernel_append_params']
 
         boot_iso_filename = _get_iso_name(task.node, label='boot')
         boot_iso_fullpathname = os.path.join(

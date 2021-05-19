@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    The ``irmc-virtual-media`` boot interface now supports setting kernel
+    parameters via the ``kernel_append_params`` option in both the node's
+    ``driver_info`` and ``instance_info``. This only applies when an image
+    is built from a kernel and an initramfs, not when a pre-built ISO is used.
+deprecations:
+  - |
+    Using ``[pxe]kernel_append_params`` for the iRMC boot interface is now
+    deprecated, please use ``[irmc]kernel_append_params``.
