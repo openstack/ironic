@@ -215,8 +215,6 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         use_fields = set(fields or self.fields) - {'traits'}
         super(Node, self)._set_from_db_object(context, db_object, use_fields)
         if not fields or 'traits' in fields:
-            # NOTE(TheJulia): No reason to do additional work on a field
-            # selected query, unless they are seeking the traits themselves.
             self.traits = object_base.obj_make_list(
                 context, objects.TraitList(context),
                 objects.Trait, db_object['traits'],
