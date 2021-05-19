@@ -415,7 +415,6 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             self.assertEqual(self.fake_node['uuid'], nodes[0].uuid)
             self.assertEqual(self.fake_node['provision_state'],
                              nodes[0].provision_state)
-            self.assertIsInstance(nodes[0].traits, objects.TraitList)
             # Random assortment of fields which should not be present.
             for field in ['power_state', 'instance_info', 'resource_class',
                           'automated_clean', 'properties', 'driver', 'traits']:
