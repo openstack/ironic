@@ -212,12 +212,16 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             raise exception.InvalidParameterValue(msg)
 
     def _set_from_db_object(self, context, db_object, fields=None):
-        fields = set(fields or self.fields) - {'traits'}
-        super(Node, self)._set_from_db_object(context, db_object, fields)
-        self.traits = object_base.obj_make_list(
-            context, objects.TraitList(context),
-            objects.Trait, db_object['traits'])
-        self.traits.obj_reset_changes()
+        use_fields = set(fields or self.fields) - {'traits'}
+        super(Node, self)._set_from_db_object(context, db_object, use_fields)
+        if not fields or 'traits' in fields:
+            # NOTE(TheJulia): No reason to do additional work on a field
+            # selected query, unless they are seeking the traits themselves.
+            self.traits = object_base.obj_make_list(
+                context, objects.TraitList(context),
+                objects.Trait, db_object['traits'],
+                fields=['trait', 'version'])
+            self.traits.obj_reset_changes()
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -327,7 +331,6 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                        automatically included. These are: id, version,
                        updated_at, created_at, owner, and lessee.
         :returns: a list of :class:`Node` object.
-
         """
         if fields:
             # All requests must include version, updated_at, created_at
