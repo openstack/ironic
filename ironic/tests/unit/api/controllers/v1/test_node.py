@@ -498,6 +498,38 @@ class TestListNodes(test_api_base.BaseApiTest):
             # We always append "links"
             self.assertCountEqual(['uuid', 'instance_info', 'links'], node)
 
+    def test_get_collection_fields_for_nova(self):
+        # Unit test which explicitly attempts to request traits along with
+        # all columns which nova would normally request as part of it's sync
+        # process.
+        fields = ('uuid,power_state,target_power_state,provision_state,'
+                  'target_provision_state,last_error,maintenance,'
+                  'instance_uuid,traits,resource_class')
+        trait_list = ['CUSTOM_TRAIT1', 'CUSTOM_RAID5']
+        for i in range(3):
+            node = obj_utils.create_test_node(
+                self.context, uuid=uuidutils.generate_uuid(),
+                instance_uuid=uuidutils.generate_uuid())
+            self.dbapi.set_node_traits(node.id, trait_list, '1.0')
+
+        data = self.get_json(
+            '/nodes?fields=%s' % fields,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+
+        self.assertEqual(3, len(data['nodes']))
+        for node in data['nodes']:
+            # We always append "links"
+            self.assertCountEqual([
+                'uuid', 'power_state', 'target_power_state',
+                'provision_state', 'target_provision_state', 'last_error',
+                'maintenance', 'instance_uuid', 'traits', 'resource_class',
+                'links'], node)
+            # Ensure traits exists that have been created on the node.
+            # Sorted traits list is an artifact of the data being inserted
+            # as distinct rows and then collected back into a list.
+            # There is no contract around ordering for the results of traits.
+            self.assertEqual(sorted(trait_list, reverse=False), node['traits'])
+
     def test_get_custom_fields_invalid_fields(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
