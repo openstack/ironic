@@ -1,6 +1,6 @@
 # Copyright 2019 Red Hat, Inc.
 # All Rights Reserved.
-# Copyright (c) 2019 Dell Inc. or its subsidiaries.
+# Copyright (c) 2019-2021 Dell Inc. or its subsidiaries.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -23,10 +23,9 @@ from unittest import mock
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
-from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules import deploy_utils
-from ironic.drivers.modules.drac import boot as drac_boot
+from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -36,7 +35,7 @@ sushy = importutils.try_import('sushy')
 INFO_DICT = dict(db_utils.get_test_redfish_info(), **test_utils.INFO_DICT)
 
 
-@mock.patch.object(drac_boot, 'redfish_utils', autospec=True)
+@mock.patch.object(redfish_utils, 'get_system', autospec=True)
 class DracBootTestCase(test_utils.BaseDracTest):
 
     def setUp(self):
@@ -46,7 +45,7 @@ class DracBootTestCase(test_utils.BaseDracTest):
 
     @mock.patch.object(deploy_utils, 'validate_image_properties',
                        autospec=True)
-    def test_validate_correct_vendor(self, mock_redfish_utils,
+    def test_validate_correct_vendor(self, mock_get_system,
                                      mock_validate_image_properties):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -66,14 +65,10 @@ class DracBootTestCase(test_utils.BaseDracTest):
 
             task.driver.boot.validate(task)
 
-    def test__set_boot_device_persistent(self, mock_redfish_utils):
-
-        mock_system = mock_redfish_utils.get_system.return_value
-
+    def test__set_boot_device_persistent(self, mock_get_system):
         mock_manager = mock.MagicMock()
-
+        mock_system = mock_get_system.return_value
         mock_system.managers = [mock_manager]
-
         mock_manager_oem = mock_manager.get_oem_extension.return_value
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -85,14 +80,10 @@ class DracBootTestCase(test_utils.BaseDracTest):
                 'cd', persistent=True, manager=mock_manager,
                 system=mock_system)
 
-    def test__set_boot_device_cd(self, mock_redfish_utils):
-
-        mock_system = mock_redfish_utils.get_system.return_value
-
+    def test__set_boot_device_cd(self, mock_get_system):
+        mock_system = mock_get_system.return_value
         mock_manager = mock.MagicMock()
-
         mock_system.managers = [mock_manager]
-
         mock_manager_oem = mock_manager.get_oem_extension.return_value
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -103,14 +94,10 @@ class DracBootTestCase(test_utils.BaseDracTest):
                 'cd', persistent=False, manager=mock_manager,
                 system=mock_system)
 
-    def test__set_boot_device_floppy(self, mock_redfish_utils):
-
-        mock_system = mock_redfish_utils.get_system.return_value
-
+    def test__set_boot_device_floppy(self, mock_get_system):
+        mock_system = mock_get_system.return_value
         mock_manager = mock.MagicMock()
-
         mock_system.managers = [mock_manager]
-
         mock_manager_oem = mock_manager.get_oem_extension.return_value
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -121,72 +108,11 @@ class DracBootTestCase(test_utils.BaseDracTest):
                 'floppy', persistent=False, manager=mock_manager,
                 system=mock_system)
 
-    def test__set_boot_device_disk(self, mock_redfish_utils):
-
-        mock_system = mock_redfish_utils.get_system.return_value
+    def test__set_boot_device_disk(self, mock_get_system):
+        mock_system = mock_get_system.return_value
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.boot._set_boot_device(task, boot_devices.DISK)
 
             self.assertFalse(mock_system.called)
-
-    def test__set_boot_device_missing_oem(self, mock_redfish_utils):
-
-        mock_system = mock_redfish_utils.get_system.return_value
-
-        mock_manager = mock.MagicMock()
-
-        mock_system.managers = [mock_manager]
-
-        mock_manager.get_oem_extension.side_effect = (
-            sushy.exceptions.OEMExtensionNotFoundError)
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            self.assertRaises(exception.RedfishError,
-                              task.driver.boot._set_boot_device,
-                              task, boot_devices.CDROM)
-
-    def test__set_boot_device_failover(self, mock_redfish_utils):
-
-        mock_system = mock_redfish_utils.get_system.return_value
-
-        mock_manager_fail = mock.MagicMock()
-        mock_manager_ok = mock.MagicMock()
-
-        mock_system.managers = [mock_manager_fail, mock_manager_ok]
-
-        mock_svbd_fail = (mock_manager_fail.get_oem_extension
-                          .return_value.set_virtual_boot_device)
-
-        mock_svbd_ok = (mock_manager_ok.get_oem_extension
-                        .return_value.set_virtual_boot_device)
-
-        mock_svbd_fail.side_effect = sushy.exceptions.SushyError
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.boot._set_boot_device(task, boot_devices.CDROM)
-
-            self.assertFalse(mock_system.called)
-
-        mock_svbd_fail.assert_called_once_with(
-            'cd', manager=mock_manager_fail, persistent=False,
-            system=mock_system)
-
-        mock_svbd_ok.assert_called_once_with(
-            'cd', manager=mock_manager_ok, persistent=False,
-            system=mock_system)
-
-    def test__set_boot_device_no_manager(self, mock_redfish_utils):
-
-        mock_system = mock_redfish_utils.get_system.return_value
-
-        mock_system.managers = []
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            self.assertRaises(exception.RedfishError,
-                              task.driver.boot._set_boot_device,
-                              task, boot_devices.CDROM)

@@ -35,8 +35,8 @@ from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
+from ironic.drivers.modules.drac import utils as drac_utils
 from ironic.drivers.modules.redfish import raid as redfish_raid
-from ironic.drivers.modules.redfish import utils as redfish_utils
 
 drac_exceptions = importutils.try_import('dracclient.exceptions')
 drac_constants = importutils.try_import('dracclient.constants')
@@ -1209,44 +1209,9 @@ def _is_realtime_ready(task):
     :raises RedfishError: If can't find OEM extension or it fails to
         execute
     """
-    system = redfish_utils.get_system(task.node)
-    for manager in system.managers:
-        try:
-            manager_oem = manager.get_oem_extension('Dell')
-        except sushy.exceptions.OEMExtensionNotFoundError as e:
-            error_msg = (_("Search for Sushy OEM extension Python package "
-                           "'sushy-oem-idrac' failed for node %(node)s. "
-                           "Ensure it is installed. Error: %(error)s") %
-                         {'node': task.node.uuid, 'error': e})
-            LOG.error(error_msg)
-            raise exception.RedfishError(error=error_msg)
-
-        try:
-            return manager_oem.lifecycle_service.is_realtime_ready()
-        except sushy.exceptions.SushyError as e:
-            LOG.debug("Failed to get real time ready status with system "
-                      "%(system)s manager %(manager)s for node %(node)s. Will "
-                      "try next manager, if available. Error: %(error)s",
-                      {'system': system.uuid if system.uuid else
-                       system.identity,
-                       'manager': manager.uuid if manager.uuid else
-                       manager.identity,
-                       'node': task.node.uuid,
-                       'error': e})
-            continue
-        break
-
-    else:
-        error_msg = (_("iDRAC Redfish get real time ready status failed for "
-                       "node %(node)s, because system %(system)s has no "
-                       "manager%(no_manager)s.") %
-                     {'node': task.node.uuid,
-                      'system': system.uuid if system.uuid else
-                      system.identity,
-                      'no_manager': '' if not system.managers else
-                      ' which could'})
-        LOG.error(error_msg)
-        raise exception.RedfishError(error=error_msg)
+    return drac_utils.execute_oem_manager_method(
+        task, 'get real-time ready status',
+        lambda m: m.lifecycle_service.is_realtime_ready())
 
 
 class DracRedfishRAID(redfish_raid.RedfishRAID):
