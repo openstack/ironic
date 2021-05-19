@@ -74,7 +74,7 @@ class Connection(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_node_list(self, filters=None, limit=None, marker=None,
-                      sort_key=None, sort_dir=None):
+                      sort_key=None, sort_dir=None, fields=None):
         """Return a list of nodes.
 
         :param filters: Filters to apply. Defaults to None.
@@ -94,6 +94,10 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param sort_key: Attribute by which results should be sorted.
         :param sort_dir: direction in which results should be sorted.
                          (asc, desc)
+        :param fields: Comma separated field list to return, to allow for
+                       only specific fields to be returned to have maximum
+                       API performance calls where not all columns are
+                       needed from the database.
         """
 
     @abc.abstractmethod
