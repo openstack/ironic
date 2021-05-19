@@ -5695,7 +5695,8 @@ class ManagerTestProperties(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                              'image_http_proxy', 'image_https_proxy',
                              'image_no_proxy'])
         if pxe_common:
-            expected.extend(['rescue_kernel', 'rescue_ramdisk'])
+            expected.extend(['kernel_append_params',
+                             'rescue_kernel', 'rescue_ramdisk'])
         expected.append('force_persistent_boot_device')
         self.assertCountEqual(expected, properties)
 

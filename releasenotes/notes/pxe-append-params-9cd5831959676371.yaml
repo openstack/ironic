@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds support for setting kernel parameters for PXE and iPXE boot through
+    the new ``kernel_append_params`` setting in the node's ``driver_info`` or
+    ``instance_info``.
+deprecations:
+  - |
+    The configuration option ``[pxe]pxe_append_params`` has been renamed to
+    ``[pxe]kernel_append_params``. The old name is now deprecated.

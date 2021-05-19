@@ -72,7 +72,8 @@ class ManualManagementHardwareTestCase(db_base.DbTestCase):
             'deploy_kernel', 'deploy_ramdisk',
             'image_download_source', 'image_http_proxy',
             'image_https_proxy', 'image_no_proxy',
-            'force_persistent_boot_device', 'rescue_kernel', 'rescue_ramdisk']
+            'force_persistent_boot_device', 'kernel_append_params',
+            'rescue_kernel', 'rescue_ramdisk']
         hardware_type = driver_factory.get_hardware_type("manual-management")
         properties = hardware_type.get_properties()
         self.assertCountEqual(expected_prop_keys, properties)

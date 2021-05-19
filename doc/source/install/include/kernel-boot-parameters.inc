@@ -13,11 +13,16 @@ Network boot
 Currently, the Bare Metal service supports assigning unified kernel parameters to PXE
 booted instances by:
 
-* Modifying the ``[pxe]/pxe_append_params`` configuration option, for example::
+* Modifying the ``[pxe]/kernel_append_params`` configuration option, for
+  example:
+
+  .. code-block:: ini
 
     [pxe]
+    kernel_append_params = quiet splash
 
-    pxe_append_params = quiet splash
+  .. note::
+     The option was called ``pxe_append_params`` before the Xena cycle.
 
 * Copying a template from shipped templates to another place, for example::
 
@@ -86,7 +91,7 @@ respectively.
         [pxe]
 
         # Additional append parameters for baremetal PXE boot.
-        pxe_append_params = nofb nomodeset vga=normal console=ttyS0,115200n8
+        kernel_append_params = nofb nomodeset vga=normal console=ttyS0,115200n8
 
 
 * For node web console configuration is similar with the addition of ``ttyX``
@@ -95,7 +100,7 @@ respectively.
         [pxe]
 
         # Additional append parameters for baremetal PXE boot.
-        pxe_append_params = nofb nomodeset vga=normal console=tty0 console=ttyS0,115200n8
+        kernel_append_params = nofb nomodeset vga=normal console=tty0 console=ttyS0,115200n8
 
 For detailed information on how to add consoles see the reference documents
 `kernel params`_ and `serial console`_.

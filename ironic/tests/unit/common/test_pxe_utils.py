@@ -1452,9 +1452,10 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
     def _test_build_pxe_config_options_pxe(self, render_mock,
                                            whle_dsk_img=False,
                                            debug=False, mode='deploy',
-                                           ramdisk_params=None):
+                                           ramdisk_params=None,
+                                           expected_pxe_params=None):
         self.config(debug=debug)
-        self.config(pxe_append_params='test_param', group='pxe')
+        self.config(kernel_append_params='test_param', group='pxe')
 
         driver_internal_info = self.node.driver_internal_info
         driver_internal_info['is_whole_disk_image'] = whle_dsk_img
@@ -1498,7 +1499,8 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                                          'ramdisk'))
             })
 
-        expected_pxe_params = 'test_param'
+        if expected_pxe_params is None:
+            expected_pxe_params = 'test_param'
         if debug:
             expected_pxe_params += ' ipa-debug=1'
         if ramdisk_params:
@@ -1554,6 +1556,22 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_build_pxe_config_options_pxe(whle_dsk_img=False)
 
+    def test_build_pxe_config_options_kernel_params_from_driver_info(self):
+        info = self.node.driver_info
+        info['kernel_append_params'] = 'params2'
+        self.node.driver_info = info
+        self.node.save()
+        self._test_build_pxe_config_options_pxe(whle_dsk_img=True,
+                                                expected_pxe_params='params2')
+
+    def test_build_pxe_config_options_kernel_params_from_instance_info(self):
+        info = self.node.instance_info
+        info['kernel_append_params'] = 'params2'
+        self.node.instance_info = info
+        self.node.save()
+        self._test_build_pxe_config_options_pxe(whle_dsk_img=True,
+                                                expected_pxe_params='params2')
+
     def test_build_pxe_config_options_ramdisk_params(self):
         self._test_build_pxe_config_options_pxe(whle_dsk_img=True,
                                                 ramdisk_params={'foo': 'bar'})
@@ -1562,7 +1580,7 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
         del self.node.driver_internal_info['is_whole_disk_image']
         self.node.save()
         pxe_params = 'my-pxe-append-params ipa-debug=0'
-        self.config(group='pxe', pxe_append_params=pxe_params)
+        self.config(group='pxe', kernel_append_params=pxe_params)
         self.config(group='pxe', tftp_server='my-tftp-server')
         self.config(group='pxe', tftp_root='/tftp-path/')
         image_info = {
@@ -1717,7 +1735,7 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                                             iso_boot=False,
                                             multipath=False):
         self.config(debug=debug)
-        self.config(pxe_append_params='test_param', group='pxe')
+        self.config(kernel_append_params='test_param', group='pxe')
         self.config(ipxe_timeout=ipxe_timeout, group='pxe')
         root_dir = CONF.deploy.http_root
 

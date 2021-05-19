@@ -51,9 +51,19 @@ RESCUE_PROPERTIES = {
                         'that is used at node rescue time. This value is '
                         'required for rescue mode.'),
 }
+OPTIONAL_PROPERTIES = {
+    'kernel_append_params': _("Additional kernel parameters to pass down to "
+                              "instance kernel. These parameters can be "
+                              "consumed by the kernel or by the applications "
+                              "by reading /proc/cmdline. Mind severe cmdline "
+                              "size limit. Overrides "
+                              "[pxe]/kernel_append_params ironic "
+                              "option."),
+}
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(driver_utils.OPTIONAL_PROPERTIES)
 COMMON_PROPERTIES.update(RESCUE_PROPERTIES)
+COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 
 
 class PXEBaseMixin(object):

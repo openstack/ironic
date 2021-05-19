@@ -21,7 +21,8 @@ from oslo_config import cfg
 from ironic.common.i18n import _
 
 opts = [
-    cfg.StrOpt('pxe_append_params',
+    cfg.StrOpt('kernel_append_params',
+               deprecated_name='pxe_append_params',
                default='nofb nomodeset vga=normal',
                mutable=True,
                help=_('Additional append parameters for baremetal PXE boot.')),
