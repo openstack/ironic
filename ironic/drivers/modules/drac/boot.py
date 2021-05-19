@@ -106,6 +106,5 @@ class DracRedfishVirtualMediaBoot(redfish_boot.RedfishVirtualMediaBoot):
 
         drac_utils.execute_oem_manager_method(
             task, 'set virtual boot device',
-            lambda m, manager: m.set_virtual_boot_device(
-                device, persistent=persistent, system=system,
-                manager=manager), pass_manager=True)
+            lambda m: m.set_virtual_boot_device(
+                device, persistent=persistent, system=system))

@@ -77,8 +77,7 @@ class DracBootTestCase(test_utils.BaseDracTest):
                 task, boot_devices.CDROM, persistent=True)
 
             mock_manager_oem.set_virtual_boot_device.assert_called_once_with(
-                'cd', persistent=True, manager=mock_manager,
-                system=mock_system)
+                'cd', persistent=True, system=mock_system)
 
     def test__set_boot_device_cd(self, mock_get_system):
         mock_system = mock_get_system.return_value
@@ -91,8 +90,7 @@ class DracBootTestCase(test_utils.BaseDracTest):
             task.driver.boot._set_boot_device(task, boot_devices.CDROM)
 
             mock_manager_oem.set_virtual_boot_device.assert_called_once_with(
-                'cd', persistent=False, manager=mock_manager,
-                system=mock_system)
+                'cd', persistent=False, system=mock_system)
 
     def test__set_boot_device_floppy(self, mock_get_system):
         mock_system = mock_get_system.return_value
@@ -105,8 +103,7 @@ class DracBootTestCase(test_utils.BaseDracTest):
             task.driver.boot._set_boot_device(task, boot_devices.FLOPPY)
 
             mock_manager_oem.set_virtual_boot_device.assert_called_once_with(
-                'floppy', persistent=False, manager=mock_manager,
-                system=mock_system)
+                'floppy', persistent=False, system=mock_system)
 
     def test__set_boot_device_disk(self, mock_get_system):
         mock_system = mock_get_system.return_value
