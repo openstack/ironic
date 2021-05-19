@@ -43,38 +43,6 @@ LOG = logging.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
-def _get_last_system_inventory_time(client, task):
-    """Gets last system inventory time
-
-    Uses last_system_inventory_time, if that is not available, then fall
-    backs to raw requests. Warns user about option to update
-    python-dracclient.
-    :param client: python-dracclient instance
-    :param task: a TaskManager instance with the node to act on
-    :returns: Last system inventory time
-    """
-    try:
-        return client.get_system().last_system_inventory_time
-    except AttributeError as ae:
-        LOG.warning("Failed to get the last system inventory time for node "
-                    "%(node_uuid)s. Update the python-dracclient to the "
-                    "latest version. Reason: %(error)s",
-                    {"node_uuid": task.node.uuid, "error": ae})
-        driver_info = drac_common.parse_driver_info(task.node)
-        client = drac_client.WSManClient(
-            driver_info['drac_address'], driver_info['drac_username'],
-            driver_info['drac_password'], driver_info['drac_port'],
-            driver_info['drac_path'], driver_info['drac_protocol'])
-
-        doc = client.enumerate(
-            drac_uris.DCIM_SystemView, filter_query=(
-                'select LastSystemInventoryTime from DCIM_SystemView'))
-
-        return drac_utils.find_xml(
-            doc, 'LastSystemInventoryTime',
-            drac_uris.DCIM_SystemView).text.split('.')[0]
-
-
 class DracRedfishBIOS(redfish_bios.RedfishBIOS):
     """iDRAC Redfish interface for BIOS settings-related actions.
 
@@ -254,8 +222,8 @@ class DracWSManBIOS(base.BIOSInterface):
         # reset start time
         time_difference = 0
         # Get the last system inventory time after reboot
-        factory_reset_time_endof_reboot = _get_last_system_inventory_time(
-            client, task)
+        factory_reset_time_endof_reboot = (client.get_system()
+                                           .last_system_inventory_time)
 
         LOG.debug("Factory resetting node %(node_uuid)s "
                   "last inventory reboot time after factory reset "
@@ -443,7 +411,7 @@ class DracWSManBIOS(base.BIOSInterface):
             reboot_needed = True
             try:
                 factory_reset_time_before_reboot =\
-                    _get_last_system_inventory_time(client, task)
+                    client.get_system().last_system_inventory_time
 
                 LOG.debug("Factory resetting node %(node_uuid)s "
                           "last inventory reboot time before factory reset "
