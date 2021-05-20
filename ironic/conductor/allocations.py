@@ -103,6 +103,8 @@ def _traits_match(traits, node):
 
 def _candidate_nodes(context, allocation):
     """Get a list of candidate nodes for the allocation."""
+    # NOTE(dtantsur): not checking the retired flag because it's impossible
+    # (by the API contract) to have a retired node in the available state.
     filters = {'resource_class': allocation.resource_class,
                'provision_state': states.AVAILABLE,
                'associated': False,
