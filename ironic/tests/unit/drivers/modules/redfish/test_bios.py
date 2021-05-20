@@ -99,7 +99,9 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             task.driver.bios.cache_bios_settings(task)
             mock_get_system.assert_called_once_with(task.node)
             mock_setting_list.sync_node_setting.assert_called_once_with(
-                task.context, task.node.id, [{'name': 'foo', 'value': 'bar'}])
+                task.context, task.node.id,
+                [{'name': 'foo', 'value': 'bar'}])
+
             mock_setting_list.create.assert_not_called()
             mock_setting_list.save.assert_not_called()
             mock_setting_list.delete.assert_not_called()
@@ -153,7 +155,9 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             task.driver.bios.cache_bios_settings(task)
             mock_get_system.assert_called_once_with(task.node)
             mock_setting_list.sync_node_setting.assert_called_once_with(
-                task.context, task.node.id, [{'name': 'foo', 'value': 'bar'}])
+                task.context, task.node.id,
+                [{'name': 'foo', 'value': 'bar'}])
+
             mock_setting_list.create.assert_called_once_with(
                 task.context, task.node.id, create_list)
             mock_setting_list.save.assert_called_once_with(
@@ -252,6 +256,7 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             # by returning the same as requested
             mock_bios.attributes = attributes_after_reboot \
                 or self.node.driver_internal_info['requested_bios_attrs']
+            mock_bios.get_attribute_registry = []
             mock_system = mock.Mock()
             mock_system.bios = mock_bios
             mock_get_system.return_value = mock_system
@@ -313,7 +318,8 @@ class RedfishBiosTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     def test_apply_conf_post_reboot_cleaning_failed(
             self, mock_cleaning_error_handler):
-        data = [{'name': 'ProcTurboMode', 'value': 'Enabled'}]
+        data = [{'name': 'ProcTurboMode', 'value': 'Enabled',
+                 'registry': {'description': 'Turbo mode'}}]
         self.node.clean_step = {'priority': 100, 'interface': 'bios',
                                 'step': 'apply_configuration',
                                 'argsinfo': {'settings': data}}
@@ -331,8 +337,10 @@ class RedfishBiosTestCase(db_base.DbTestCase):
         mock_cleaning_error_handler.assert_called_once()
 
     def test_apply_conf_post_reboot_deploying(self):
-        data = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
-                {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
+        data = [{'name': 'ProcTurboMode', 'value': 'Enabled',
+                 'registry': {'description': 'Turbo mode'}},
+                {'name': 'NicBoot1', 'value': 'NetworkBoot',
+                 'registry': {'description': 'Boot off network'}}]
         self.node.deploy_step = {'priority': 100, 'interface': 'bios',
                                  'step': 'apply_configuration',
                                  'argsinfo': {'settings': data}}
@@ -349,7 +357,8 @@ class RedfishBiosTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'deploying_error_handler', autospec=True)
     def test_apply_conf_post_reboot_deploying_failed(
             self, mock_deploying_error_handler):
-        data = [{'name': 'ProcTurboMode', 'value': 'Enabled'}]
+        data = [{'name': 'ProcTurboMode', 'value': 'Enabled',
+                 'registry': {'description': 'Turbo mode'}}]
         self.node.deploy_step = {'priority': 100, 'interface': 'bios',
                                  'step': 'apply_configuration',
                                  'argsinfo': {'settings': data}}
@@ -503,3 +512,186 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             bios.set_attributes.assert_called_once_with(
                 {s['name']: s['value'] for s in settings},
                 apply_time=None)
+
+
+@mock.patch('oslo_utils.eventletutils.EventletEvent.wait',
+            lambda *args, **kwargs: None)
+class RedfishBiosRegistryTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(RedfishBiosRegistryTestCase, self).setUp()
+        self.config(enabled_bios_interfaces=['redfish'],
+                    enabled_hardware_types=['redfish'],
+                    enabled_power_interfaces=['redfish'],
+                    enabled_boot_interfaces=['redfish-virtual-media'],
+                    enabled_management_interfaces=['redfish'])
+        self.node = obj_utils.create_test_node(
+            self.context, driver='redfish', driver_info=INFO_DICT)
+
+        self.settings = {'SystemModelName': 'UltraSumma',
+                         'DcuStreamPrefetcher': 'Enabled',
+                         'BootDelay': 10}
+
+        class AttributeField():
+
+            def __init__(self):
+                self.name = None
+                self.allowable_values = None
+                self.attribute_type = None
+                self.lower_bound = None
+                self.max_length = None
+                self.min_length = None
+                self.read_only = None
+                self.reset_required = None
+                self.type = None
+                self.unique = None
+                self.upper_bound = None
+
+        class AttributeRegistryEntryField():
+
+            def __init__(self, num_entries):
+                self.attributes = []
+                for _ in range(num_entries):
+                    self.attributes.append(AttributeField())
+
+        class AttributeRegistryTest():
+
+            def __init__(self, num_entries):
+                self.registry_entries = AttributeRegistryEntryField(
+                    num_entries)
+
+        self.registry = AttributeRegistryTest(4)
+        self.registry.registry_entries.attributes[0].name = "SystemModelName"
+        self.registry.registry_entries.attributes[0].attribute_type = "String"
+        self.registry.registry_entries.attributes[0].max_length = 32
+        self.registry.registry_entries.attributes[0].read_only = True
+        self.registry.registry_entries.attributes[0].unique = True
+        self.registry.registry_entries.attributes[1].name =\
+            "DcuStreamPrefetcher"
+        self.registry.registry_entries.attributes[1].attribute_type =\
+            "Enumeration"
+        self.registry.registry_entries.attributes[1].read_only = False
+        self.registry.registry_entries.attributes[1].allowable_values =\
+            [{'ValueName': 'Enabled', 'ValueDisplayName': 'Enabled'},
+             {'ValueName': 'Disabled', 'ValueDisplayName': 'Disabled'}]
+        self.registry.registry_entries.attributes[2].name = "BootDelay"
+        self.registry.registry_entries.attributes[2].attribute_type = "Integer"
+        self.registry.registry_entries.attributes[2].lower_bound = 5
+        self.registry.registry_entries.attributes[2].upper_bound = 30
+        self.registry.registry_entries.attributes[2].reset_required = True
+        self.registry.registry_entries.attributes[3].name = "SomeAttribute"
+        self.registry.registry_entries.attributes[3].attribute_type = "String"
+        self.registry.registry_entries.attributes[3].max_length = 32
+        self.registry.registry_entries.attributes[3].read_only = True
+
+        self.expected_no_registry = [
+            {'name': 'SystemModelName', 'value': 'UltraSumma'},
+            {'name': 'DcuStreamPrefetcher', 'value': 'Enabled'},
+            {'name': 'BootDelay', 'value': 10}]
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_cache_bios_registry_save(self, mock_get_system,
+                                      mock_setting_list):
+        create_list = []
+        update_list = []
+        delete_list = []
+        nochange_list = []
+        mock_setting_list.sync_node_setting.return_value = (
+            create_list, update_list, delete_list, nochange_list
+        )
+
+        expected = [{'name': 'SystemModelName', 'value': 'UltraSumma',
+                     'allowable_values': None, 'lower_bound': None,
+                     'max_length': 32, 'min_length': None, 'read_only': True,
+                     'reset_required': None, 'attribute_type': 'String',
+                     'unique': True, 'upper_bound': None},
+                    {'name': 'DcuStreamPrefetcher', 'value': 'Enabled',
+                     'allowable_values': ['Enabled', 'Disabled'],
+                     'lower_bound': None, 'max_length': None,
+                     'min_length': None, 'read_only': False,
+                     'reset_required': None, 'attribute_type':
+                     'Enumeration', 'unique': None, 'upper_bound': None},
+                    {'name': 'BootDelay', 'value': 10,
+                     'allowable_values': None, 'lower_bound': 5,
+                     'max_length': None, 'min_length': None, 'read_only': None,
+                     'reset_required': True, 'attribute_type': 'Integer',
+                     'unique': None, 'upper_bound': 30}]
+
+        mock_get_system.return_value.bios.attributes = self.settings
+        mock_get_system.return_value.bios.get_attribute_registry.\
+            return_value = self.registry
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.bios.cache_bios_settings(task)
+            mock_get_system.assert_called_once_with(task.node)
+            mock_setting_list.sync_node_setting.assert_called_once_with(
+                task.context, task.node.id, expected)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_cache_empty_bios_registry(self, mock_get_system,
+                                       mock_setting_list):
+        create_list = []
+        update_list = []
+        delete_list = []
+        nochange_list = []
+        mock_setting_list.sync_node_setting.return_value = (
+            create_list, update_list, delete_list, nochange_list
+        )
+
+        mock_get_system.return_value.bios.attributes = self.settings
+        mock_get_system.return_value.bios.get_attribute_registry.\
+            return_value = {}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.bios.cache_bios_settings(task)
+            mock_setting_list.sync_node_setting.assert_called_once_with(
+                task.context, task.node.id, self.expected_no_registry)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_cache_no_bios_registry(self, mock_get_system,
+                                    mock_setting_list):
+        create_list = []
+        update_list = []
+        delete_list = []
+        nochange_list = []
+        mock_setting_list.sync_node_setting.return_value = (
+            create_list, update_list, delete_list, nochange_list
+        )
+
+        mock_get_system.return_value.bios.attributes = self.settings
+        mock_get_system.return_value.bios.get_attribute_registry.\
+            return_value = None
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.bios.cache_bios_settings(task)
+            mock_setting_list.sync_node_setting.assert_called_once_with(
+                task.context, task.node.id, self.expected_no_registry)
+
+    @mock.patch.object(objects, 'BIOSSettingList', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_cache_exception_bios_registry(self, mock_get_system,
+                                           mock_setting_list):
+        create_list = []
+        update_list = []
+        delete_list = []
+        nochange_list = []
+        mock_setting_list.sync_node_setting.return_value = (
+            create_list, update_list, delete_list, nochange_list
+        )
+
+        mock_get_system.return_value.bios.attributes = self.settings
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            bios = mock_get_system(task.node).bios
+            bios.reset_bios.side_effect = sushy.exceptions.SushyError
+
+            task.driver.bios.cache_bios_settings(task)
+            mock_setting_list.sync_node_setting.assert_called_once_with(
+                task.context, task.node.id, self.expected_no_registry)

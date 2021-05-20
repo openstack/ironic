@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Get the BIOS Registry from Sushy and store the fields in the Ironic DB
+    with the BIOS setting. See `story
+    2008571 <https://storyboard.openstack.org/#!/story/2008571>`_.
