@@ -404,3 +404,45 @@ def get_kernel_append_params(node, default):
             return result
 
     return default
+
+
+def _get_field(node, name, deprecated_prefix=None):
+    value = node.driver_info.get(name)
+    if value or not deprecated_prefix:
+        return value
+
+    deprecated_name = f'{deprecated_prefix}_{name}'
+    value = node.driver_info.get(deprecated_name)
+    if value:
+        LOG.warning("The driver_info field %s of node %s is deprecated, "
+                    "please use %s instead",
+                    deprecated_name, node.uuid, name)
+        return value
+
+
+def get_agent_kernel_ramdisk(node, mode='deploy', deprecated_prefix=None):
+    """Get the agent kernel/ramdisk as a dictionary."""
+    kernel_name = f'{mode}_kernel'
+    ramdisk_name = f'{mode}_ramdisk'
+    kernel, ramdisk = (
+        _get_field(node, kernel_name, deprecated_prefix),
+        _get_field(node, ramdisk_name, deprecated_prefix),
+    )
+    # NOTE(dtantsur): avoid situation when e.g. deploy_kernel comes
+    # from driver_info but deploy_ramdisk comes from configuration,
+    # since it's a sign of a potential operator's mistake.
+    if not kernel or not ramdisk:
+        return {
+            kernel_name: getattr(CONF.conductor, kernel_name),
+            ramdisk_name: getattr(CONF.conductor, ramdisk_name),
+        }
+    else:
+        return {
+            kernel_name: kernel,
+            ramdisk_name: ramdisk
+        }
+
+
+def get_agent_iso(node, mode='deploy', deprecated_prefix=None):
+    """Get the agent ISO image."""
+    return _get_field(node, f'{mode}_iso', deprecated_prefix)

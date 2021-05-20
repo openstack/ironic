@@ -219,12 +219,17 @@ with the Wallaby release it's possible to provide a pre-built ISO image:
 .. code-block:: bash
 
   baremetal node set node-0 \
-    --driver_info redfish_deploy_iso=http://url/of/deploy.iso \
-    --driver_info redfish_rescue_iso=http://url/of/rescue.iso
+    --driver_info deploy_iso=http://url/of/deploy.iso \
+    --driver_info rescue_iso=http://url/of/rescue.iso
 
 .. note::
    OpenStack Image service (glance) image IDs and ``file://`` links are also
    accepted.
+
+.. note::
+   Before the Xena release the parameters were called ``redfish_deploy_iso``
+   and ``redfish_rescue_iso`` accordingly. The old names are still supported
+   for backward compatibility.
 
 No customization is currently done to the image, so e.g.
 :doc:`/admin/dhcp-less` won't work. `Configuring an ESP image`_ is also
