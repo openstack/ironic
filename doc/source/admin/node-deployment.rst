@@ -116,6 +116,10 @@ An example by passing a JSON string:
 Format of JSON for deploy steps argument is described in `Deploy step format`_
 section.
 
+.. note::
+    Starting with `ironicclient` 4.6.0 you can provide a YAML file for
+    ``--deploy-steps``.
+
 Excluding the default steps
 ---------------------------
 
