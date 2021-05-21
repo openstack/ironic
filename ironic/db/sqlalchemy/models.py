@@ -125,6 +125,13 @@ class Node(Base):
         schema.UniqueConstraint('instance_uuid',
                                 name='uniq_nodes0instance_uuid'),
         schema.UniqueConstraint('name', name='uniq_nodes0name'),
+        Index('owner_idx', 'owner'),
+        Index('lessee_idx', 'lessee'),
+        Index('driver_idx', 'driver'),
+        Index('provision_state_idx', 'provision_state'),
+        Index('reservation_idx', 'reservation'),
+        Index('conductor_group_idx', 'conductor_group'),
+        Index('resource_class_idx', 'resource_class'),
         table_args())
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))

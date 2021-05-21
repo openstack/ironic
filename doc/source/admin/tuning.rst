@@ -113,6 +113,82 @@ perform ten concurrent deployments of images requiring conversion, the memory
 needed may exceed 10GB. This does however, entirely depend upon image block
 structure and layout, and what deploy interface is being used.
 
+Database
+========
+
+Query load upon the database is one of the biggest potential bottlenecks which
+can cascade across a deployment and ultimately degrade service to an Ironic
+user.
+
+Often, depending on load, query patterns, periodic tasks, and so on and so
+forth, additional indexes may be needed to help provide hints to the database
+so it can most efficently attempt to reduce the number of rows which need to
+be examined in order to return a result set.
+
+Adding indexes
+--------------
+
+This example below is specific to MariaDB/MySQL, but the syntax should be
+easy to modify for operators using PostgreSQL.
+
+.. code-block:: sql
+
+   use ironic;
+   create index owner_idx on nodes (owner) LOCK = SHARED;
+   create index lessee_idx on nodes (lessee) LOCK = SHARED;
+   create index driver_idx on nodes (driver) LOCK = SHARED;
+   create index provision_state_idx on nodes (provision_state) LOCK = SHARED;
+   create index reservation_idx on nodes (reservation) LOCK = SHARED;
+   create index conductor_group_idx on nodes (conductor_group) LOCK = SHARED;
+   create index resource_class_idx on nodes (resource_class) LOCK = SHARED;
+
+.. note:: The indexes noted have been added automatically by Xena versions of
+   Ironic and later. They are provided here as an example and operators can
+   add them manually prior with versions of Ironic. The database upgrade for
+   the Xena release of Ironic which adds these indexes are only aware of being
+   able to skip index creation if it already exists on MySQL/MariaDB.
+
+.. note:: It may be possible to use "LOCK = NONE". Basic testing indicates
+   this takes a little bit longer, but shouldn't result in the database
+   table becoming write locked during the index creation. If the database
+   engine cannot support this, then the index creation will fail.
+
+Database platforms also have a concept of what is called a "compound index"
+where the index is aligned with the exact query pattern being submitted to
+the database. The database is able to use this compound index to attempt to
+drastically reduce the result set generation time for the remainder of the
+query. As of the composition of this document, we do not ship compound
+indexes in Ironic as we feel the most general benefit is single column
+indexes, and depending on data present, an operator may wish to explore
+compound indexes with their database administrator, as comound indexes
+can also have negative performance impacts if improperly constructed.
+
+.. code-block:: sql
+
+   use ironic;
+   create index my_custom_app_query_index on nodes (reservation, provision_state, driver);
+
+The risk, and *WHY* you should engage a Database Administrator, is depending on
+your configuration, the actual index may need to include one or more additional
+fields such as owner or lessee which may be added on to the index. At the same
+time, queries with less field matches, or in different orders will exhibit
+different performance as the compound index may not be able to be consulted.
+
+Indexes will not fix everything
+-------------------------------
+
+Indexes are not a magical cure-all for all API or database performance issues,
+but they are an increadibly important part depending on data access and query
+patterns.
+
+The underlying object layer and data conversions including record pagination
+do add a substantial amount of overhead to what may otherwise return as a
+result set on a manual database query. In Ironic's case, due to the object
+model and the need to extract multiple pieces of data at varying levels
+of the data model to handle cases such as upgrades, the entire result set
+is downloaded and transformed which is an overhead you do not experience with
+a command line database client.
+
 What can I do?
 ==============
 
