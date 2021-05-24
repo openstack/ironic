@@ -1844,6 +1844,12 @@ uuid:
   type: string
 
 # variables returned from node-validate
+v_bios:
+  description: |
+    Status of the "bios" interface
+  in: body
+  required: true
+  type: object
 v_boot:
   description: |
     Status of the "boot" interface

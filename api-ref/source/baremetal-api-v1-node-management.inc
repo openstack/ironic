@@ -66,6 +66,7 @@ the Node's driver does not support that interface.
 
 .. rest_parameters:: parameters.yaml
 
+  - bios: v_bios
   - boot: v_boot
   - console: v_console
   - deploy: v_deploy

@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The bios_interface is returned in the node validate API but it's not in the
+    api-ref documentation. This change adds it to the documentation.
