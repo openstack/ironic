@@ -21,9 +21,7 @@ Test class for DRAC BIOS configuration specific methods
 
 from unittest import mock
 
-import dracclient.client
 from dracclient import exceptions as drac_exceptions
-import dracclient.utils
 from oslo_utils import timeutils
 
 from ironic.common import exception
@@ -124,8 +122,6 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
             self.assertRaises(exception.DracOperationError,
                               task.driver.bios.cache_bios_settings, task)
 
-    @mock.patch.object(dracclient.client, 'WSManClient', autospec=True)
-    @mock.patch.object(dracclient.utils, 'find_xml', autospec=True)
     @mock.patch.object(deploy_utils, 'get_async_step_return_state',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
@@ -134,8 +130,8 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
     def _test_step(self, mock_validate_job_queue, mock_cache_bios_settings,
-                   mock_set_async_step_flags, mock_get_async_step_return_state,
-                   mock_findxml, mock_wsmanclient, attribute_error=False):
+                   mock_set_async_step_flags,
+                   mock_get_async_step_return_state):
         if self.node.clean_step:
             step_data = self.node.clean_step
             expected_state = states.CLEANWAIT
@@ -156,16 +152,9 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
                 mock_system = None
                 factory_reset_time_before_reboot = None
 
-                if attribute_error:
-                    mock_system = mock.Mock(spec=[])
-                    mock_xml = mock.Mock()
-                    mock_xml.text = '20200910233024.000000+000'
-                    mock_findxml.return_value = mock_xml
-                else:
-                    mock_system = mock.Mock()
-                    factory_reset_time_before_reboot = "20200910233024"
-                    mock_system.last_system_inventory_time =\
-                        "20200910233024"
+                mock_system = mock.Mock()
+                factory_reset_time_before_reboot = "20200910233024"
+                mock_system.last_system_inventory_time = "20200910233024"
 
                 self.mock_client.get_system.return_value = mock_system
 
@@ -177,12 +166,9 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
                 self.mock_client.commit_pending_lifecycle_changes.\
                     assert_called_once_with(reboot=True)
                 self.mock_client.get_system.assert_called_once()
-                if attribute_error:
-                    mock_findxml.assert_called_once()
-                else:
-                    self.assertEqual(factory_reset_time_before_reboot,
-                                     info['factory_reset_time_before_reboot'])
-                    mock_findxml.assert_not_called()
+                self.assertEqual(factory_reset_time_before_reboot,
+                                 info['factory_reset_time_before_reboot'])
+
             if step == 'apply_configuration':
                 ret_state = task.driver.bios.apply_configuration(task, data)
 
@@ -206,23 +192,11 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
         self.node.save()
         self._test_step()
 
-    def test_factory_reset_clean_attribute_error(self):
-        self.node.clean_step = {'priority': 100, 'interface': 'bios',
-                                'step': 'factory_reset', 'argsinfo': {}}
-        self.node.save()
-        self._test_step(attribute_error=True)
-
     def test_factory_reset_deploy(self):
         self.node.deploy_step = {'priority': 100, 'interface': 'bios',
                                  'step': 'factory_reset', 'argsinfo': {}}
         self.node.save()
         self._test_step()
-
-    def test_factory_reset_deploy_attribute_error(self):
-        self.node.deploy_step = {'priority': 100, 'interface': 'bios',
-                                 'step': 'factory_reset', 'argsinfo': {}}
-        self.node.save()
-        self._test_step(attribute_error=True)
 
     def test_apply_configuration_clean(self):
         settings = [{'name': 'ProcVirtualization', 'value': 'Enabled'}]
