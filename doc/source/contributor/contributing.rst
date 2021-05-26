@@ -47,9 +47,12 @@ Internet Relay Chat 'IRC'
 -------------------------
 
 Daily contributor discussions take place on IRC in the '#openstack-ironic'
-channel on Freenode IRC.
+channel on the OFTC IRC network.
 
-Please feel free to join us at irc://irc.freenode.net and join our channel!
+Please feel free to join us at ircs://irc.oftc.net:6697 and join our channel!
+
+Additional information on getting connected can be found in the
+`OpenStack community contribution guide <https://docs.openstack.org/contributors/common/irc.html>`_.
 
 Everything Ironic
 ~~~~~~~~~~~~~~~~~
