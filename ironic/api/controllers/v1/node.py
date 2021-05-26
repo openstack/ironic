@@ -1423,6 +1423,9 @@ def node_sanitize(node, fields):
     if not show_instance_secrets and node.get('instance_info'):
         node['instance_info'] = strutils.mask_dict_password(
             node['instance_info'], "******")
+        # NOTE(dtantsur): configdrive may be a dict
+        if node['instance_info'].get('configdrive'):
+            node['instance_info']['configdrive'] = "******"
         # NOTE(tenbrae): agent driver may store a swift temp_url on the
         # instance_info, which shouldn't be exposed to non-admin users.
         # Now that ironic supports additional policies, we need to hide

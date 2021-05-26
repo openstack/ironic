@@ -1005,6 +1005,21 @@ def build_configdrive(node, configdrive):
                                 vendor_data=configdrive.get('vendor_data'))
 
 
+def get_configdrive_image(node):
+    """Get configdrive as an ISO image or a URL.
+
+    Converts the JSON representation into an image. URLs and raw contents
+    are returned unchanged.
+
+    :param node: an Ironic node object.
+    :returns: A gzipped and base64 encoded configdrive as a string.
+    """
+    configdrive = node.instance_info.get('configdrive')
+    if isinstance(configdrive, dict):
+        configdrive = build_configdrive(node, configdrive)
+    return configdrive
+
+
 def fast_track_able(task):
     """Checks if the operation can be a streamlined deployment sequence.
 

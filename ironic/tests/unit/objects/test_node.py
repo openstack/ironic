@@ -61,6 +61,18 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         # Ensure the node can be serialised.
         jsonutils.dumps(d)
 
+    def test_as_dict_secure_configdrive_as_dict(self):
+        self.node.driver_info['ipmi_password'] = 'fake'
+        self.node.instance_info['configdrive'] = {'user_data': 'data'}
+        self.node.driver_internal_info['agent_secret_token'] = 'abc'
+        d = self.node.as_dict(secure=True)
+        self.assertEqual('******', d['driver_info']['ipmi_password'])
+        self.assertEqual('******', d['instance_info']['configdrive'])
+        self.assertEqual('******',
+                         d['driver_internal_info']['agent_secret_token'])
+        # Ensure the node can be serialised.
+        jsonutils.dumps(d)
+
     def test_as_dict_secure_with_configdrive(self):
         self.node.driver_info['ipmi_password'] = 'fake'
         self.node.instance_info['configdrive'] = 'data'
@@ -68,6 +80,19 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         d = self.node.as_dict(secure=True, mask_configdrive=False)
         self.assertEqual('******', d['driver_info']['ipmi_password'])
         self.assertEqual('data', d['instance_info']['configdrive'])
+        self.assertEqual('******',
+                         d['driver_internal_info']['agent_secret_token'])
+        # Ensure the node can be serialised.
+        jsonutils.dumps(d)
+
+    def test_as_dict_secure_with_configdrive_as_dict(self):
+        self.node.driver_info['ipmi_password'] = 'fake'
+        self.node.instance_info['configdrive'] = {'user_data': 'data'}
+        self.node.driver_internal_info['agent_secret_token'] = 'abc'
+        d = self.node.as_dict(secure=True, mask_configdrive=False)
+        self.assertEqual('******', d['driver_info']['ipmi_password'])
+        self.assertEqual({'user_data': 'data'},
+                         d['instance_info']['configdrive'])
         self.assertEqual('******',
                          d['driver_internal_info']['agent_secret_token'])
         # Ensure the node can be serialised.

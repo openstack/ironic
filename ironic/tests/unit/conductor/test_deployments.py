@@ -174,63 +174,6 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test__do_node_deploy_fast_track(self):
         self._test__do_node_deploy_ok(fast_track=True)
 
-    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
-    def test__do_node_deploy_configdrive_as_dict(self, mock_cd):
-        mock_cd.return_value = 'foo'
-        configdrive = {'user_data': 'abcd'}
-        self._test__do_node_deploy_ok(configdrive=configdrive,
-                                      expected_configdrive='foo')
-        mock_cd.assert_called_once_with({'uuid': self.node.uuid},
-                                        network_data=None,
-                                        user_data=b'abcd',
-                                        vendor_data=None)
-
-    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
-    def test__do_node_deploy_configdrive_as_dict_with_meta_data(self, mock_cd):
-        mock_cd.return_value = 'foo'
-        configdrive = {'meta_data': {'uuid': uuidutils.generate_uuid(),
-                                     'name': 'new-name',
-                                     'hostname': 'example.com'}}
-        self._test__do_node_deploy_ok(configdrive=configdrive,
-                                      expected_configdrive='foo')
-        mock_cd.assert_called_once_with(configdrive['meta_data'],
-                                        network_data=None,
-                                        user_data=None,
-                                        vendor_data=None)
-
-    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
-    def test__do_node_deploy_configdrive_with_network_data(self, mock_cd):
-        mock_cd.return_value = 'foo'
-        configdrive = {'network_data': {'links': []}}
-        self._test__do_node_deploy_ok(configdrive=configdrive,
-                                      expected_configdrive='foo')
-        mock_cd.assert_called_once_with({'uuid': self.node.uuid},
-                                        network_data={'links': []},
-                                        user_data=None,
-                                        vendor_data=None)
-
-    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
-    def test__do_node_deploy_configdrive_and_user_data_as_dict(self, mock_cd):
-        mock_cd.return_value = 'foo'
-        configdrive = {'user_data': {'user': 'data'}}
-        self._test__do_node_deploy_ok(configdrive=configdrive,
-                                      expected_configdrive='foo')
-        mock_cd.assert_called_once_with({'uuid': self.node.uuid},
-                                        network_data=None,
-                                        user_data=b'{"user": "data"}',
-                                        vendor_data=None)
-
-    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
-    def test__do_node_deploy_configdrive_with_vendor_data(self, mock_cd):
-        mock_cd.return_value = 'foo'
-        configdrive = {'vendor_data': {'foo': 'bar'}}
-        self._test__do_node_deploy_ok(configdrive=configdrive,
-                                      expected_configdrive='foo')
-        mock_cd.assert_called_once_with({'uuid': self.node.uuid},
-                                        network_data=None,
-                                        user_data=None,
-                                        vendor_data={'foo': 'bar'})
-
     @mock.patch.object(swift, 'SwiftAPI', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
                 autospec=True)
@@ -1013,6 +956,37 @@ class StoreConfigDriveTestCase(db_base.DbTestCase):
             container_name, expected_obj_name, timeout)
         self.node.refresh()
         self.assertEqual(expected_instance_info, self.node.instance_info)
+
+    @mock.patch.object(conductor_utils, 'build_configdrive', autospec=True)
+    def test_store_configdrive_swift_build(self, mock_cd, mock_swift):
+        container_name = 'foo_container'
+        timeout = 123
+        expected_obj_name = 'configdrive-%s' % self.node.uuid
+        expected_obj_header = {'X-Delete-After': str(timeout)}
+        expected_instance_info = {'configdrive': 'http://1.2.3.4'}
+
+        mock_cd.return_value = 'fake'
+
+        # set configs and mocks
+        CONF.set_override('configdrive_use_object_store', True,
+                          group='deploy')
+        CONF.set_override('configdrive_swift_container', container_name,
+                          group='conductor')
+        CONF.set_override('deploy_callback_timeout', timeout,
+                          group='conductor')
+        mock_swift.return_value.get_temp_url.return_value = 'http://1.2.3.4'
+
+        deployments._store_configdrive(self.node, {'meta_data': {}})
+
+        mock_swift.assert_called_once_with()
+        mock_swift.return_value.create_object.assert_called_once_with(
+            container_name, expected_obj_name, mock.ANY,
+            object_headers=expected_obj_header)
+        mock_swift.return_value.get_temp_url.assert_called_once_with(
+            container_name, expected_obj_name, timeout)
+        self.node.refresh()
+        self.assertEqual(expected_instance_info, self.node.instance_info)
+        mock_cd.assert_called_once_with(self.node, {'meta_data': {}})
 
     def test_store_configdrive_swift_no_deploy_timeout(self, mock_swift):
         container_name = 'foo_container'

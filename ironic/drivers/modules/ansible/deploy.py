@@ -284,7 +284,7 @@ def _prepare_variables(task):
             image['checksum'] = 'md5:%s' % checksum
     _add_ssl_image_options(image)
     variables = {'image': image}
-    configdrive = i_info.get('configdrive')
+    configdrive = manager_utils.get_configdrive_image(task.node)
     if configdrive:
         if urlparse.urlparse(configdrive).scheme in ('http', 'https'):
             cfgdrv_type = 'url'

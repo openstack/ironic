@@ -1482,6 +1482,73 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
 
+    @mock.patch.object(manager_utils, 'build_configdrive', autospec=True)
+    def test_write_image_render_configdrive(self, mock_build_configdrive):
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.target_provision_state = states.ACTIVE
+        i_info = self.node.instance_info
+        i_info['kernel'] = 'kernel'
+        i_info['ramdisk'] = 'ramdisk'
+        i_info['root_gb'] = 10
+        i_info['swap_mb'] = 10
+        i_info['ephemeral_mb'] = 0
+        i_info['ephemeral_format'] = 'abc'
+        i_info['configdrive'] = {'meta_data': {}}
+        i_info['preserve_ephemeral'] = False
+        i_info['image_type'] = 'partition'
+        i_info['root_mb'] = 10240
+        i_info['deploy_boot_mode'] = 'bios'
+        i_info['capabilities'] = {"boot_option": "local",
+                                  "disk_label": "msdos"}
+        self.node.instance_info = i_info
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['is_whole_disk_image'] = False
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        test_temp_url = 'http://image'
+        expected_image_info = {
+            'urls': [test_temp_url],
+            'id': 'fake-image',
+            'node_uuid': self.node.uuid,
+            'checksum': 'checksum',
+            'disk_format': 'qcow2',
+            'container_format': 'bare',
+            'stream_raw_images': True,
+            'kernel': 'kernel',
+            'ramdisk': 'ramdisk',
+            'root_gb': 10,
+            'swap_mb': 10,
+            'ephemeral_mb': 0,
+            'ephemeral_format': 'abc',
+            'configdrive': 'configdrive',
+            'preserve_ephemeral': False,
+            'image_type': 'partition',
+            'root_mb': 10240,
+            'boot_option': 'local',
+            'deploy_boot_mode': 'bios',
+            'disk_label': 'msdos'
+        }
+
+        mock_build_configdrive.return_value = 'configdrive'
+
+        client_mock = mock.MagicMock(spec_set=['execute_deploy_step'])
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.deploy._client = client_mock
+            task.driver.deploy.write_image(task)
+
+            step = {'step': 'write_image', 'interface': 'deploy',
+                    'args': {'image_info': expected_image_info,
+                             'configdrive': 'configdrive'}}
+            client_mock.execute_deploy_step.assert_called_once_with(
+                step, task.node, mock.ANY)
+            self.assertEqual(states.DEPLOYWAIT, task.node.provision_state)
+            self.assertEqual(states.ACTIVE,
+                             task.node.target_provision_state)
+            mock_build_configdrive.assert_called_once_with(
+                task.node, {'meta_data': {}})
+
     @mock.patch.object(deploy_utils, 'remove_http_instance_symlink',
                        autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)

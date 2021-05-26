@@ -2308,3 +2308,71 @@ class CacheVendorTestCase(db_base.DbTestCase):
         self.node.refresh()
         self.assertNotIn('vendor', self.node.properties)
         self.assertTrue(mock_log.called)
+
+
+class GetConfigDriveImageTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(GetConfigDriveImageTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            instance_info={})
+
+    def test_no_configdrive(self):
+        self.assertIsNone(conductor_utils.get_configdrive_image(self.node))
+
+    def test_string(self):
+        self.node.instance_info['configdrive'] = 'data'
+        self.assertEqual('data',
+                         conductor_utils.get_configdrive_image(self.node))
+
+    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
+    def test_build_empty(self, mock_cd):
+        self.node.instance_info['configdrive'] = {}
+        self.assertEqual(mock_cd.return_value,
+                         conductor_utils.get_configdrive_image(self.node))
+        mock_cd.assert_called_once_with({'uuid': self.node.uuid},
+                                        network_data=None,
+                                        user_data=None,
+                                        vendor_data=None)
+
+    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
+    def test_build_populated(self, mock_cd):
+        configdrive = {
+            'meta_data': {'uuid': uuidutils.generate_uuid(),
+                          'name': 'new-name',
+                          'hostname': 'example.com'},
+            'network_data': {'links': []},
+            'vendor_data': {'foo': 'bar'},
+        }
+        self.node.instance_info['configdrive'] = configdrive
+        self.assertEqual(mock_cd.return_value,
+                         conductor_utils.get_configdrive_image(self.node))
+        mock_cd.assert_called_once_with(
+            configdrive['meta_data'],
+            network_data=configdrive['network_data'],
+            user_data=None,
+            vendor_data=configdrive['vendor_data'])
+
+    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
+    def test_build_user_data_as_string(self, mock_cd):
+        self.node.instance_info['configdrive'] = {'user_data': 'abcd'}
+        self.assertEqual(mock_cd.return_value,
+                         conductor_utils.get_configdrive_image(self.node))
+        mock_cd.assert_called_once_with({'uuid': self.node.uuid},
+                                        network_data=None,
+                                        user_data=b'abcd',
+                                        vendor_data=None)
+
+    @mock.patch('openstack.baremetal.configdrive.build', autospec=True)
+    def test_build_user_data_as_dict(self, mock_cd):
+        self.node.instance_info['configdrive'] = {
+            'user_data': {'user': 'data'}
+        }
+        self.assertEqual(mock_cd.return_value,
+                         conductor_utils.get_configdrive_image(self.node))
+        mock_cd.assert_called_once_with({'uuid': self.node.uuid},
+                                        network_data=None,
+                                        user_data=b'{"user": "data"}',
+                                        vendor_data=None)

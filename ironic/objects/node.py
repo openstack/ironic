@@ -174,11 +174,12 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             d['driver_info'] = strutils.mask_dict_password(
                 d.get('driver_info', {}), "******")
             iinfo = d.pop('instance_info', {})
-            if not mask_configdrive:
-                configdrive = iinfo.pop('configdrive', None)
+            configdrive = iinfo.pop('configdrive', None)
             d['instance_info'] = strutils.mask_dict_password(iinfo, "******")
-            if not mask_configdrive and configdrive:
-                d['instance_info']['configdrive'] = configdrive
+            if configdrive is not None:
+                d['instance_info']['configdrive'] = (
+                    "******" if mask_configdrive else configdrive
+                )
             d['driver_internal_info'] = strutils.mask_dict_password(
                 d.get('driver_internal_info', {}), "******")
         return d
