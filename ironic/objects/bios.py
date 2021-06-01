@@ -142,7 +142,7 @@ class BIOSSetting(base.IronicObject):
         the same, older, or newer than the version of the object. This is
         used for DB interactions as well as for serialization/deserialization.
 
-        Version 1.74: remove registry field for unsupported versions if
+        Version 1.1: remove registry field for unsupported versions if
             remove_unavailable_fields is True.
 
         :param target_version: the desired version of the object
