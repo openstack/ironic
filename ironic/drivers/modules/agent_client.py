@@ -24,6 +24,7 @@ import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import utils
 from ironic.conf import CONF
 
 LOG = log.getLogger(__name__)
@@ -51,6 +52,15 @@ def get_command_error(command):
         return error.get('details') or error.get('message') or str(error)
     else:
         return error
+
+
+def _sanitize_for_logging(var):
+    if not var:
+        return var
+    elif isinstance(var, str):
+        return strutils.mask_password(var)
+    else:
+        return utils.remove_large_keys(strutils.mask_dict_password(var))
 
 
 class AgentClient(object):
@@ -170,8 +180,10 @@ class AgentClient(object):
         agent_token = node.driver_internal_info.get('agent_secret_token')
         if agent_token:
             request_params['agent_token'] = agent_token
-        LOG.debug('Executing agent command %(method)s for node %(node)s',
-                  {'node': node.uuid, 'method': method})
+        LOG.debug('Executing agent command %(method)s for node %(node)s '
+                  'with params %(params)s',
+                  {'node': node.uuid, 'method': method,
+                   'params': _sanitize_for_logging(request_params)})
 
         try:
             response = self.session.post(
@@ -208,7 +220,7 @@ class AgentClient(object):
         LOG.debug('Agent command %(method)s for node %(node)s returned '
                   'result %(res)s, error %(error)s, HTTP status code %(code)s',
                   {'node': node.uuid, 'method': method,
-                   'res': result.get('command_result'),
+                   'res': _sanitize_for_logging(result.get('command_result')),
                    'error': error,
                    'code': response.status_code if response is not None
                    else 'unknown'})
@@ -313,7 +325,8 @@ class AgentClient(object):
         result = _get().json()['commands']
         status = '; '.join('%(cmd)s: result "%(res)s", error "%(err)s"' %
                            {'cmd': r.get('command_name'),
-                            'res': r.get('command_result'),
+                            'res': _sanitize_for_logging(
+                                r.get('command_result')),
                             'err': r.get('command_error')}
                            for r in result)
         LOG.debug('Status of agent commands for node %(node)s: %(status)s',
