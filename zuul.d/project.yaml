@@ -47,6 +47,8 @@
             voting: false
         - ironic-tempest-pxe_ipmitool-postgres:
             voting: false
+        - bifrost-benchmark-ironic:
+            voting: false
     gate:
       queue: ironic
       jobs:
