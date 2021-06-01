@@ -111,7 +111,7 @@ Show single Bios setting of a Node
 Return the content of the specific bios ``bios_setting`` associated with
 ``node_ident``.
 
-. versionadded:: 1.74
+.. versionadded:: 1.74
   Introduced fields from the BIOS registry.
 
 Normal response code: 200

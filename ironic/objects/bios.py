@@ -155,7 +155,7 @@ class BIOSSetting(base.IronicObject):
 
         for field in self.get_registry_fields():
             field_is_set = self.obj_attr_is_set(field)
-            if target_version >= (1, 74):
+            if target_version >= (1, 1):
                 # target version supports the major/minor specified
                 if not field_is_set:
                     # set it to its default value if it is not set
