@@ -24,7 +24,7 @@ state.
 Nodes move to the ``deploying`` state when attempting to move to the ``active``
 state (when the hardware is prepared for use by a workload).  For a full
 understanding of all state transitions into deployment, please see
-:doc:`../contributor/states`.
+:doc:`/user/states`.
 
 The Bare Metal service added support for deploy steps in the Rocky release.
 

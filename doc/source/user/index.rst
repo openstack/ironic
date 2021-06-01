@@ -24,5 +24,6 @@ provided by the community drivers.
   :maxdepth: 2
 
   architecture
+  states
   creating-images
   deploy
