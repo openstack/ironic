@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes sub-optimal Ironic API performance where Secure RBAC related
+    field level policy checks were executing without first checking
+    if there were field results. This helps improve API performance when
+    only specific columns have been requested by the API consumer.
