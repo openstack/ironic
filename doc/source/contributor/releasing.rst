@@ -61,7 +61,6 @@ The following deliverables are client libraries:
 
 * python-ironicclient
 * python-ironic-inspector-client
-* sushy-cli
 
 Normal release
 --------------
@@ -94,7 +93,6 @@ The following deliverables are released `independently
 <https://releases.openstack.org/reference/release_models.html#independent>`__:
 
 * ironic-python-agent-builder
-* molteniron
 * sushy-tools
 * tenks
 * virtualbmc
