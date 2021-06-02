@@ -2,7 +2,7 @@
 REST API Version History
 ========================
 
-1.74 (Xena)
+1.74 (Xena, 18.0)
 ----------------------
 
 Add support for BIOS registry fields which include details about the BIOS
@@ -12,7 +12,7 @@ Add a new selector to include the fields in the BIOS settings list:
 Also add a fields selector to the the BIOS settings list:
 * ``/v1/nodes/{node_ident}/bios/?fields=``
 
-1.73 (Xena)
+1.73 (Xena, 18.0)
 ----------------------
 
 Add a new ``deploy`` verb as an alias to ``active`` and

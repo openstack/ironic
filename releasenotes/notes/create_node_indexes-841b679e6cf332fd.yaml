@@ -1,7 +1,7 @@
 ---
 upgrade:
   - |
-    The ``ironic-dbsync upgrade`` command for this verison of ironic will add
+    The ``ironic-dbsync upgrade`` command for this version of ironic will add
     additional database indexes on the ``nodes`` table columns below.
     Depending on database size and complexity, this will take time to complete
     for every single index to be created. On MySQL or MariaDB, these indexes
@@ -23,12 +23,12 @@ upgrade:
 
     In testing with mock data, each column took approximately about 4 seconds
     per column to be indexed on a database with 115,000 rows. The existing
-    database size, and underlying server load will casue this time to vary.
+    database size and underlying server load will cause this time to vary.
     Sample queries also reduced result generation from an average of ``0.40``
     seconds to an average of ``0.02`` seconds with a test data set.
 fixes:
   - |
-    Improves lower level performance issues with database activity where some
+    Improves lower-level performance issues with database activity where some
     often queried columns were not indexed when the database model was created,
     or as the model evolved. Operators seeking to pre-create these indexes may
     do so prior to upgrading. Please consult the

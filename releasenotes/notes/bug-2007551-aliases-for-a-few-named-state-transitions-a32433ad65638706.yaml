@@ -2,5 +2,5 @@
 features:
   - |
     Adds a new ``deploy`` verb as an alias to ``active`` and
-    ``undeploy`` verb as an alias to ``deleted``
+    ``undeploy`` verb as an alias to ``deleted``.
     See `story 2007551 <https://storyboard.openstack.org/#!/story/2007551>`_.

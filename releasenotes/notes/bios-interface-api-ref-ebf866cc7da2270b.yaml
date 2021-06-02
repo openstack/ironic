@@ -1,6 +1,4 @@
 ---
 fixes:
   - |
-    The bios_interface is included in the detailed node list and node
-    show but it wasn't part of the api reference spec. This fix adds it
-    to the api-ref.
+    Adds ``bios_interface`` to the node list and node show api-ref.

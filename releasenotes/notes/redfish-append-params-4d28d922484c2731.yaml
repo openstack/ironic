@@ -10,5 +10,5 @@ deprecations:
   - |
     The ``ilo-virtual-media`` boot interface has previously declared support
     for the ``ilo_kernel_append_params`` option in ``driver_info``. It has
-    never been implemented in reality and has been replaces by the new
+    never been implemented in reality and has been replaced by the new
     ``kernel_append_params``.
