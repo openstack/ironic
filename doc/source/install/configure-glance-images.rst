@@ -3,7 +3,8 @@
 Add images to the Image service
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-#. Build or download the user images as described in :doc:`creating-images`.
+#. Build or download the user images as described in
+   :doc:`/user/creating-images`.
 
 #. Add the user images to the Image service
 
