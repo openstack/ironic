@@ -1377,7 +1377,10 @@ def node_convert_with_links(rpc_node, fields=None, sanitize=True):
     return node
 
 
-def node_sanitize(node, fields):
+def node_sanitize(node, fields, cdict=None,
+                  show_driver_secrets=None,
+                  show_instance_secrets=None,
+                  evaluate_additional_policies=None):
     """Removes sensitive and unrequested data.
 
     Will only keep the fields specified in the ``fields`` parameter.
@@ -1385,13 +1388,37 @@ def node_sanitize(node, fields):
     :param fields:
         list of fields to preserve, or ``None`` to preserve them all
     :type fields: list of str
+    :param cdict: Context dictionary for policy values evaluation.
+                  If not provided, it will be executed by the method,
+                  however for enumarting node lists, it is more efficent
+                  to provide.
+    :param show_driver_secrets: A boolean value to allow external single
+                                evaluation of policy instead of once per
+                                node. Default None.
+    :param show_instance_secrets: A boolean value to allow external
+                                  evaluation of policy instead of once
+                                  per node. Default None.
+    :param evaluate_additional_policies: A boolean value to allow external
+                                         evaluation of policy instead of once
+                                         per node. Default None.
     """
-    # FIXME(TheJulia): As of ironic 18.0, this method is about 88% of
+    # NOTE(TheJulia): As of ironic 18.0, this method is about 88% of
     # the time spent preparing to return a node to. If it takes us
     # ~ 4.5 seconds to get 1000 nodes, we spend approximately 4 seconds
-    # PER 1000 in this call.
-    cdict = api.request.context.to_policy_values()
+    # PER 1000 in this call. When the calling method provides
+    # cdict, show_driver_secrets, show_instane_secrets, and
+    # evaluate_additional_policies, then performance of this method takes
+    # roughly half of the time, but performance increases in excess of 200%
+    # as policy checks are costly.
+
+    if not cdict:
+        cdict = api.request.context.to_policy_values()
+
+    # We need a new target_dict for each node as owner/lessee field have
+    # explicit associations and target comparison.
     target_dict = dict(cdict)
+
+    # These fields are node specific.
     owner = node.get('owner')
     lessee = node.get('lessee')
 
@@ -1410,12 +1437,12 @@ def node_sanitize(node, fields):
     # NOTE(TheJulia): These methods use policy.check and normally return
     # False in a noauth or password auth based situation, because the
     # effective caller doesn't match the policy check rule.
-    show_driver_secrets = policy.check("show_password", cdict, target_dict)
-    show_instance_secrets = policy.check("show_instance_secrets",
-                                         cdict, target_dict)
-    # FIXME(TheJulia): The above two methods take approximately 20% of the
-    # present execution time. This needs to be more efficent as they do not
-    # need to be called for *every* node.
+    if show_driver_secrets is None:
+        show_driver_secrets = policy.check("show_password",
+                                           cdict, target_dict)
+    if show_instance_secrets is None:
+        show_instance_secrets = policy.check("show_instance_secrets",
+                                             cdict, target_dict)
 
     # TODO(TheJulia): The above checks need to be migrated in some direction,
     # but until we have auditing clarity, it might not be a big deal.
@@ -1425,37 +1452,17 @@ def node_sanitize(node, fields):
     # to keep the policy checks for say system-member based roles to
     # a minimum as they are likely the regular API users as well.
     # Also, the default for the filter_threshold is system-member.
-    evaluate_additional_policies = not policy.check_policy(
-        "baremetal:node:get:filter_threshold",
-        target_dict, cdict)
+    if evaluate_additional_policies is None:
+        evaluate_additional_policies = not policy.check_policy(
+            "baremetal:node:get:filter_threshold",
+            target_dict, cdict)
 
     node_keys = node.keys()
 
     if evaluate_additional_policies:
-        # NOTE(TheJulia): The net effect of this is that by default,
-        # at least matching common/policy.py defaults. is these should
-        # be stripped out.
-        if ('last_error' in node_keys
-            and not policy.check("baremetal:node:get:last_error",
-                                 target_dict, cdict)):
-            # Guard the last error from being visible as it can contain
-            # hostnames revealing infrastucture internal details.
-            node['last_error'] = ('** Value Redacted - Requires '
-                                  'baremetal:node:get:last_error '
-                                  'permission. **')
-        if ('reservation' in node_keys
-            and not policy.check("baremetal:node:get:reservation",
-                                 target_dict, cdict)):
-            # Guard conductor names from being visible.
-            node['reservation'] = ('** Redacted - requires baremetal:'
-                                   'node:get:reservation permission. **')
-        if ('driver_internal_info' in node_keys
-            and not policy.check("baremetal:node:get:driver_internal_info",
-                                 target_dict, cdict)):
-            # Guard conductor names from being visible.
-            node['driver_internal_info'] = {
-                'content': '** Redacted - Requires baremetal:node:get:'
-                           'driver_internal_info permission. **'}
+        # Perform extended sanitization of nodes based upon policy
+        # baremetal:node:get:filter_threshold
+        _node_sanitize_extended(node, node_keys, target_dict, cdict)
 
     if 'driver_info' in node_keys:
         if (evaluate_additional_policies
@@ -1505,8 +1512,48 @@ def node_sanitize(node, fields):
         node.pop('states', None)
 
 
+def _node_sanitize_extended(node, node_keys, target_dict, cdict):
+    # NOTE(TheJulia): The net effect of this is that by default,
+    # at least matching common/policy.py defaults. is these should
+    # be stripped out.
+    if ('last_error' in node_keys
+        and not policy.check("baremetal:node:get:last_error",
+                             target_dict, cdict)):
+        # Guard the last error from being visible as it can contain
+        # hostnames revealing infrastucture internal details.
+        node['last_error'] = ('** Value Redacted - Requires '
+                              'baremetal:node:get:last_error '
+                              'permission. **')
+    if ('reservation' in node_keys
+        and not policy.check("baremetal:node:get:reservation",
+                             target_dict, cdict)):
+        # Guard conductor names from being visible.
+        node['reservation'] = ('** Redacted - requires baremetal:'
+                               'node:get:reservation permission. **')
+    if ('driver_internal_info' in node_keys
+        and not policy.check("baremetal:node:get:driver_internal_info",
+                             target_dict, cdict)):
+        # Guard conductor names from being visible.
+        node['driver_internal_info'] = {
+            'content': '** Redacted - Requires baremetal:node:get:'
+                       'driver_internal_info permission. **'}
+
+
 def node_list_convert_with_links(nodes, limit, url=None, fields=None,
                                  **kwargs):
+    cdict = api.request.context.to_policy_values()
+    target_dict = dict(cdict)
+    sanitizer_args = {
+        'cdict': cdict,
+        'show_driver_secrets': policy.check("show_password", cdict,
+                                            target_dict),
+        'show_instance_secrets': policy.check("show_instance_secrets",
+                                              cdict, target_dict),
+        'evaluate_additional_policies': not policy.check_policy(
+            "baremetal:node:get:filter_threshold",
+            target_dict, cdict),
+    }
+
     return collection.list_convert_with_links(
         items=[node_convert_with_links(n, fields=fields,
                                        sanitize=False)
@@ -1516,6 +1563,7 @@ def node_list_convert_with_links(nodes, limit, url=None, fields=None,
         url=url,
         fields=fields,
         sanitize_func=node_sanitize,
+        sanitizer_args=sanitizer_args,
         **kwargs
     )
 
