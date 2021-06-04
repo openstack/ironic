@@ -17,6 +17,7 @@ import datetime
 from http import client as http_client
 import json
 import os
+import sys
 import tempfile
 from unittest import mock
 from urllib import parse as urlparse
@@ -140,6 +141,40 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('retired_reason', data['nodes'][0])
         self.assertNotIn('lessee', data['nodes'][0])
         self.assertNotIn('network_data', data['nodes'][0])
+
+    @mock.patch.object(policy, 'check', autospec=True)
+    @mock.patch.object(policy, 'check_policy', autospec=True)
+    def test_one_field_specific_santization(self, mock_check_policy,
+                                            mock_check):
+        py_ver = sys.version_info
+        if py_ver.major == 3 and py_ver.minor == 6:
+            self.skipTest('Test fails to work on python 3.6 when '
+                          'matching mock.ANY.')
+        obj_utils.create_test_node(self.context,
+                                   chassis_id=self.chassis.id,
+                                   last_error='meow')
+        mock_check_policy.return_value = False
+        data = self.get_json(
+            '/nodes?fields=uuid,provision_state,maintenance,instance_uuid,'
+            'last_error',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertIn('uuid', data['nodes'][0])
+        self.assertIn('provision_state', data['nodes'][0])
+        self.assertIn('maintenance', data['nodes'][0])
+        self.assertIn('instance_uuid', data['nodes'][0])
+        self.assertNotIn('driver_info', data['nodes'][0])
+        mock_check_policy.assert_has_calls([
+            mock.call('baremetal:node:get:filter_threshold',
+                      mock.ANY, mock.ANY)])
+        mock_check.assert_has_calls([
+            mock.call('is_admin', mock.ANY, mock.ANY),
+            mock.call('show_password', mock.ANY, mock.ANY),
+            mock.call('show_instance_secrets', mock.ANY, mock.ANY),
+            # Last error is populated above and should trigger a check.
+            mock.call('baremetal:node:get:last_error', mock.ANY, mock.ANY),
+            mock.call().__bool__(),
+            mock.call().__bool__(),
+        ])
 
     def test_get_one(self):
         node = obj_utils.create_test_node(self.context,
