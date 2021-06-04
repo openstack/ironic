@@ -112,7 +112,7 @@ def convert_drive_units(logical_disks, node):
 
 
 def get_physical_disks(node):
-    """Get the physical drives of the node.
+    """Get the physical drives of the node for RAID controllers.
 
     :param node: an ironic node object.
     :returns: a list of Drive objects from sushy
@@ -126,9 +126,11 @@ def get_physical_disks(node):
     try:
         collection = system.storage
         for storage in collection.get_members():
-            disks.extend(storage.drives)
             controller = (storage.storage_controllers[0]
                           if storage.storage_controllers else None)
+            if controller and controller.raid_types == []:
+                continue
+            disks.extend(storage.drives)
             for drive in storage.drives:
                 disk_to_controller[drive] = controller
     except sushy.exceptions.SushyError as exc:

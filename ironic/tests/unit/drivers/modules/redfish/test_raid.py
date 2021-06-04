@@ -91,6 +91,7 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         mock_identifier = mock.Mock()
         mock_identifier.durable_name = '345C59DBD970859C'
         mock_controller = mock.Mock()
+        mock_controller.raid_types = ['RAID1', 'RAID5', 'RAID10']
         mock_controller.identifiers = [mock_identifier]
         self.mock_storage.storage_controllers = [mock_controller]
         mock_volumes = mock.MagicMock()
@@ -860,3 +861,28 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(exception.InvalidParameterValue,
                                    "with vendor Dell.Inc.",
                                    task.driver.raid.validate, task)
+
+    def test_get_physical_disks(self, mock_get_system):
+        nonraid_controller = mock.Mock()
+        nonraid_controller.raid_types = []
+        nonraid_storage = mock.MagicMock()
+        nonraid_storage.storage_controllers = [nonraid_controller]
+        nonraid_storage.drives = [_mock_drive(
+            identity='Drive1', block_size_bytes=512,
+            capacity_bytes=899527000000,
+            media_type='HDD', name='Drive', protocol='SAS')]
+
+        mock_get_system.return_value.storage.get_members.return_value = [
+            nonraid_storage, self.mock_storage]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            disks, disk_to_controller = redfish_raid.get_physical_disks(
+                task.node)
+
+            for drive in self.mock_storage.drives:
+                self.assertIn(drive, disks)
+                self.assertIn(drive, disk_to_controller)
+
+            self.assertNotIn(nonraid_storage.drives[0], disks)
+            self.assertNotIn(nonraid_storage.drives[0], disk_to_controller)
