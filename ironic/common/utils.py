@@ -18,6 +18,7 @@
 
 """Utilities and helper functions."""
 
+from collections import abc
 import contextlib
 import datetime
 import errno
@@ -638,3 +639,18 @@ def is_memory_insufficent(raise_if_fail=False):
         # Sleep so interpreter can switch threads.
         time.sleep(CONF.minimum_memory_wait_time)
         loop_count = loop_count + 1
+
+
+_LARGE_KEYS = frozenset(['system_logs'])
+
+
+def remove_large_keys(var):
+    """Remove specific keys from the var, recursing into dicts and lists."""
+    if isinstance(var, abc.Mapping):
+        return {key: (remove_large_keys(value)
+                      if key not in _LARGE_KEYS else '<...>')
+                for key, value in var.items()}
+    elif isinstance(var, abc.Sequence) and not isinstance(var, str):
+        return var.__class__(map(remove_large_keys, var))
+    else:
+        return var
