@@ -28,7 +28,6 @@ primarily for developers.
   :maxdepth: 1
 
   Ironic System Architecture <architecture>
-  Provisioning State Machine <states>
   Developing New Notifications <notifications>
   OSProfiler Tracing <osprofiler-support>
   Rolling Upgrades <rolling-upgrades>
@@ -43,6 +42,10 @@ reviewers.
   Releasing Ironic Projects <releasing>
   Ironic Governance Structure <governance>
 
+.. toctree::
+   :hidden:
+
+   states
 
 Writing Drivers
 ---------------
