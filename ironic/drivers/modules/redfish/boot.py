@@ -392,6 +392,13 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         """
         node = task.node
 
+        # NOTE(dtantsur): if we're are writing an image with local boot
+        # the boot interface does not care about image parameters and
+        # must not validate them.
+        if (not task.driver.storage.should_write_image(task)
+                or deploy_utils.get_boot_option(node) == 'local'):
+            return
+
         d_info = _parse_deploy_info(node)
 
         if node.driver_internal_info.get('is_whole_disk_image'):
@@ -432,9 +439,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         """
         self._validate_vendor(task)
         self._validate_driver_info(task)
-
-        if task.driver.storage.should_write_image(task):
-            self._validate_instance_info(task)
+        self._validate_instance_info(task)
 
     def validate_inspection(self, task):
         """Validate that the node has required properties for inspection.
