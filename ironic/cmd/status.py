@@ -51,21 +51,6 @@ class Checks(upgradecheck.UpgradeCommands):
         else:
             return upgradecheck.Result(upgradecheck.Code.FAILURE, details=msg)
 
-    # A tuple of check tuples of (<name of check>, <check function>).
-    # The name of the check will be used in the output of this command.
-    # The check function takes no arguments and returns an
-    # oslo_upgradecheck.upgradecheck.Result object with the appropriate
-    # oslo_upgradecheck.upgradecheck.Code and details set. If the
-    # check function hits warnings or failures then those should be stored
-    # in the returned Result's "details" attribute. The
-    # summary will be rolled up at the end of the check() method.
-    _upgrade_checks = (
-        (_('Object versions'), _check_obj_versions),
-        # Victoria -> Wallaby migration
-        (_('Policy File JSON to YAML Migration'),
-         (common_checks.check_policy_json, {'conf': CONF})),
-    )
-
     def _check_db_indexes(self):
         """Check if indexes exist on heavily used columns.
 
@@ -99,6 +84,22 @@ class Checks(upgradecheck.UpgradeCommands):
             return upgradecheck.Result(upgradecheck.Code.WARNING, details=msg)
         else:
             return upgradecheck.Result(upgradecheck.Code.SUCCESS)
+
+    # A tuple of check tuples of (<name of check>, <check function>).
+    # The name of the check will be used in the output of this command.
+    # The check function takes no arguments and returns an
+    # oslo_upgradecheck.upgradecheck.Result object with the appropriate
+    # oslo_upgradecheck.upgradecheck.Code and details set. If the
+    # check function hits warnings or failures then those should be stored
+    # in the returned Result's "details" attribute. The
+    # summary will be rolled up at the end of the check() method.
+    _upgrade_checks = (
+        (_('Object versions'), _check_obj_versions),
+        (_('Database Index Status'), _check_db_indexes),
+        # Victoria -> Wallaby migration
+        (_('Policy File JSON to YAML Migration'),
+         (common_checks.check_policy_json, {'conf': CONF})),
+    )
 
 
 def main():
