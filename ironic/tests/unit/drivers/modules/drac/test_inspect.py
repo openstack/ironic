@@ -635,33 +635,6 @@ class DracRedfishInspectionTestCase(test_utils.BaseDracTest):
             pxe_port_macs = task.driver.inspect._get_pxe_port_macs(task)
             self.assertEqual(expected_pxe_mac, pxe_port_macs)
 
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test__get_pxe_port_macs_missing_oem(self, mock_get_system):
-        mock_system = self.init_system_mock(mock_get_system.return_value)
-        mock_manager = mock.MagicMock()
-        mock_system.boot.mode = 'bios'
-        mock_system.managers = [mock_manager]
-        set_mgr = (
-            mock_manager.get_oem_extension.return_value.get_pxe_port_macs_bios)
-        set_mgr.side_effect = sushy.exceptions.OEMExtensionNotFoundError
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            self.assertRaises(exception.RedfishError,
-                              task.driver.inspect._get_pxe_port_macs,
-                              task)
-
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test__get_pxe_port_macs_no_manager(self, mock_get_system):
-        mock_system = self.init_system_mock(mock_get_system.return_value)
-        mock_system.boot.mode = 'bios'
-        mock_system.managers = []
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            self.assertRaises(exception.RedfishError,
-                              task.driver.inspect._get_pxe_port_macs,
-                              task)
-
     @mock.patch.object(redfish_inspect.RedfishInspect, 'inspect_hardware',
                        autospec=True)
     @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
