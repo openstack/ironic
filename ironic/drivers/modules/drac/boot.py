@@ -1,6 +1,6 @@
 # Copyright 2019 Red Hat, Inc.
 # All Rights Reserved.
-# Copyright (c) 2019 Dell Inc. or its subsidiaries.
+# Copyright (c) 2019-2021 Dell Inc. or its subsidiaries.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
 # not use this file except in compliance with the License. You may obtain
@@ -18,8 +18,7 @@ from oslo_log import log
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
-from ironic.common import exception
-from ironic.common.i18n import _
+from ironic.drivers.modules.drac import utils as drac_utils
 from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import utils as redfish_utils
 
@@ -102,60 +101,8 @@ class DracRedfishVirtualMediaBoot(redfish_boot.RedfishVirtualMediaBoot):
 
         system = redfish_utils.get_system(task.node)
 
-        for manager in system.managers:
-
-            # This call makes Sushy go fishing in the ocean of Sushy
-            # OEM extensions installed on the system. If it finds one
-            # for 'Dell' which implements the 'Manager' resource
-            # extension, it uses it to create an object which
-            # instantiates itself from the OEM JSON. The object is
-            # returned here.
-            #
-            # If the extension could not be found for one manager, it
-            # will not be found for any others until it is installed, so
-            # abruptly exit the for loop. The vendor and resource name,
-            # 'Dell' and 'Manager', respectively, used to search for the
-            # extension are invariant in the loop.
-            try:
-                manager_oem = manager.get_oem_extension('Dell')
-            except sushy.exceptions.OEMExtensionNotFoundError as e:
-                error_msg = (_("Search for Sushy OEM extension Python package "
-                               "'sushy-oem-idrac' failed for node %(node)s. "
-                               "Ensure it is installed. Error: %(error)s") %
-                             {'node': task.node.uuid, 'error': e})
-                LOG.error(error_msg)
-                raise exception.RedfishError(error=error_msg)
-
-            try:
-                manager_oem.set_virtual_boot_device(
-                    device, persistent=persistent, manager=manager,
-                    system=system)
-            except sushy.exceptions.SushyError as e:
-                LOG.debug("Sushy OEM extension Python package "
-                          "'sushy-oem-idrac' failed to set virtual boot "
-                          "device with system %(system)s manager %(manager)s "
-                          "for node %(node)s. Will try next manager, if "
-                          "available. Error: %(error)s",
-                          {'system': system.uuid if system.uuid else
-                           system.identity,
-                           'manager': manager.uuid if manager.uuid else
-                           manager.identity,
-                           'node': task.node.uuid,
-                           'error': e})
-                continue
-
-            LOG.info("Set node %(node)s boot device to %(device)s via OEM",
-                     {'node': task.node.uuid, 'device': device})
-            break
-
-        else:
-            error_msg = (_('iDRAC Redfish set boot device failed for node '
-                           '%(node)s, because system %(system)s has no '
-                           'manager%(no_manager)s.') %
-                         {'node': task.node.uuid,
-                          'system': system.uuid if system.uuid else
-                          system.identity,
-                          'no_manager': '' if not system.managers else
-                          ' which could'})
-            LOG.error(error_msg)
-            raise exception.RedfishError(error=error_msg)
+        drac_utils.execute_oem_manager_method(
+            task, 'set virtual boot device',
+            lambda m, manager: m.set_virtual_boot_device(
+                device, persistent=persistent, system=system,
+                manager=manager), pass_manager=True)
