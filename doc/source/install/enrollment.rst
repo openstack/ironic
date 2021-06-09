@@ -253,7 +253,7 @@ and may be combined if desired.
       command used to remove the port is ``baremetal port delete
       <port uuid>``. When doing so, it is important to ensure that the
       baremetal node is not in ``maintenance`` as guarding logic to prevent
-      orphaning Neutron Virtual Interfaces (VIFs) will be overriden.
+      orphaning Neutron Virtual Interfaces (VIFs) will be overridden.
 
 .. _enrollment-scheduling:
 
