@@ -22,6 +22,16 @@ from ironic.common.i18n import _
 from ironic.common import utils
 
 
+SATA = 'sata'
+"Serial AT Attachment"
+
+SCSI = 'scsi'
+"Small Computer System Interface"
+
+SAS = 'sas'
+"Serial Attached SCSI"
+
+
 def _check_and_return_root_volumes(raid_config):
     """Returns root logical disks after validating RAID config.
 

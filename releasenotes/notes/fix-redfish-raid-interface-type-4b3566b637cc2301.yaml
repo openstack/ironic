@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes configuring Redfish RAID using ``interface_type`` when error "failed
+    to find matching physical disks for all logical disks" occurs.

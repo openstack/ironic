@@ -22,6 +22,7 @@ from oslo_utils import units
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import raid
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -89,6 +90,12 @@ RAID_LEVELS = {
 }
 
 sushy = importutils.try_import('sushy')
+
+if sushy:
+    PROTOCOL_MAP = {
+        sushy.PROTOCOL_TYPE_SAS: raid.SAS,
+        sushy.PROTOCOL_TYPE_SATA: raid.SATA
+    }
 
 
 def convert_drive_units(logical_disks, node):
@@ -393,7 +400,7 @@ def _assign_disks_to_volume(logical_disks, physical_disks_by_type,
             continue
         if ('interface_type' in logical_disk
                 and logical_disk['interface_type'].lower()
-                != protocol.lower()):
+                != PROTOCOL_MAP[protocol].lower()):
             continue
 
         # filter out disks without free disk space
@@ -714,6 +721,24 @@ class RedfishRAID(base.RAIDInterface):
         """
         self._validate_vendor(task)
         super(RedfishRAID, self).validate(task)
+
+    def validate_raid_config(self, task, raid_config):
+        """Validates the given RAID configuration.
+
+        :param task: A TaskManager instance.
+        :param raid_config: The RAID configuration to validate.
+        :raises: InvalidParameterValue, if the RAID configuration is invalid.
+        """
+
+        super(RedfishRAID, self).validate_raid_config(task, raid_config)
+
+        # Check if any interface_type is scsi that is not supported by Redfish
+        scsi_disks = ([x for x in raid_config['logical_disks']
+                      if x.get('interface_type') == raid.SCSI])
+
+        if len(scsi_disks) > 0:
+            raise exception.InvalidParameterValue(
+                _('interface type `scsi` not supported by Redfish RAID'))
 
     @base.deploy_step(priority=0,
                       argsinfo=base.RAID_APPLY_CONFIGURATION_ARGSINFO)

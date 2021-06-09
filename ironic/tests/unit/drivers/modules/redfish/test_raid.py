@@ -89,11 +89,13 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                   self.drive_id4]:
             mock_drives.append(_mock_drive(
                 identity=i, block_size_bytes=512, capacity_bytes=899527000000,
-                media_type='HDD', name='Drive', protocol='SAS'))
+                media_type='HDD', name='Drive',
+                protocol='Serial Attached SCSI'))
         for i in [self.drive_id5, self.drive_id6, self.drive_id7]:
             mock_drives.append(_mock_drive(
                 identity=i, block_size_bytes=512, capacity_bytes=479559942144,
-                media_type='SSD', name='Solid State Drive', protocol='SATA'))
+                media_type='SSD', name='Solid State Drive',
+                protocol='Serial AT Attachment'))
         self.mock_storage.drives = mock_drives
         mock_identifier = mock.Mock()
         mock_identifier.durable_name = '345C59DBD970859C'
@@ -774,6 +776,79 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'get_async_step_return_state',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    def test_create_config_interface_type(
+            self,
+            mock_set_async_step_flags,
+            mock_get_async_step_return_state,
+            mock_node_power_action,
+            mock_build_agent_options,
+            mock_prepare_ramdisk,
+            mock_get_system):
+
+        target_raid_config = {
+            'logical_disks': [
+                {
+                    'size_gb': 100,
+                    'raid_level': '5',
+                    'is_root_volume': True,
+                    'interface_type': 'sata'
+                },
+                {
+                    'size_gb': 500,
+                    'raid_level': '1',
+                    'interface_type': 'sas'
+                }
+            ]
+        }
+        mock_get_system.return_value.storage.get_members.return_value = [
+            self.mock_storage]
+        self.node.target_raid_config = target_raid_config
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.raid.create_configuration(task)
+            pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
+            expected_payload1 = {
+                'Encrypted': False,
+                'VolumeType': 'StripedWithParity',
+                'RAIDType': 'RAID5',
+                'CapacityBytes': 107374182400,
+                'Links': {
+                    'Drives': [
+                        {'@odata.id': pre + self.drive_id5},
+                        {'@odata.id': pre + self.drive_id6},
+                        {'@odata.id': pre + self.drive_id7}
+                    ]
+                }
+            }
+            expected_payload2 = {
+                'Encrypted': False,
+                'VolumeType': 'Mirrored',
+                'RAIDType': 'RAID1',
+                'CapacityBytes': 536870912000,
+                'Links': {
+                    'Drives': [
+                        {'@odata.id': pre + self.drive_id1},
+                        {'@odata.id': pre + self.drive_id2}
+                    ]
+                }
+            }
+            self.assertEqual(
+                self.mock_storage.volumes.create.call_count, 2)
+            self.mock_storage.volumes.create.assert_any_call(
+                expected_payload1, apply_time=None
+            )
+            self.mock_storage.volumes.create.assert_any_call(
+                expected_payload2, apply_time=None
+            )
+
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_delete_config_immediate(
             self,
             mock_set_async_step_flags,
@@ -899,6 +974,50 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(exception.InvalidParameterValue,
                                    "with vendor Dell.Inc.",
                                    task.driver.raid.validate, task)
+
+    def test_validate_raid_config(self, mock_get_system):
+        raid_config = {
+            'logical_disks': [
+                {
+                    'size_gb': 500,
+                    'raid_level': '1+0',
+                    'interface_type': 'sata'
+                },
+                {
+                    'size_gb': 100,
+                    'raid_level': '5',
+                    'is_root_volume': True,
+                }
+            ]
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.raid.validate_raid_config(task, raid_config)
+
+    def test_validate_raid_config_scsi(self, mock_get_system):
+        raid_config = {
+            'logical_disks': [
+                {
+                    'size_gb': 500,
+                    'raid_level': '1+0',
+                    'interface_type': 'sata'
+                },
+                {
+                    'size_gb': 100,
+                    'raid_level': '5',
+                    'is_root_volume': True,
+                    'interface_type': 'scsi'
+                }
+            ]
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaisesRegex(
+                exception.InvalidParameterValue,
+                "interface type `scsi` not supported by Redfish RAID",
+                task.driver.raid.validate_raid_config, task, raid_config)
 
     def test_get_physical_disks(self, mock_get_system):
         nonraid_controller = mock.Mock()
