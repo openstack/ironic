@@ -123,11 +123,6 @@ class InspectHardwareTestCase(BaseTestCase):
     def test_validate_ok(self, mock_client):
         self.iface.validate(self.task)
 
-    def test_validate_invalid_kernel_params(self, mock_client):
-        CONF.set_override('extra_kernel_params', 'abcdef', group='inspector')
-        self.assertRaises(exception.InvalidParameterValue,
-                          self.iface.validate, self.task)
-
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
                        autospec=True)
@@ -231,7 +226,7 @@ class InspectHardwareTestCase(BaseTestCase):
                                    mock_client):
         CONF.set_override('extra_kernel_params',
                           'ipa-inspection-collectors=default,logs '
-                          'ipa-collect-dhcp=1',
+                          'ipa-collect-dhcp=1 something',
                           group='inspector')
         endpoint = 'http://192.169.0.42:5050/v1'
         mock_client.return_value.get_endpoint.return_value = endpoint
@@ -246,6 +241,7 @@ class InspectHardwareTestCase(BaseTestCase):
                 'ipa-inspection-callback-url': endpoint + '/continue',
                 'ipa-inspection-collectors': 'default,logs',
                 'ipa-collect-dhcp': '1',
+                'something': None,
             })
         self.driver.network.add_inspection_network.assert_called_once_with(
             self.task)

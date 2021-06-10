@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import os
 import tempfile
 from unittest import mock
@@ -575,6 +576,29 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 kernel_params=kernel_params,
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
                 base_iso='/path/to/baseiso', inject_files=None)
+
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    @mock.patch.object(images, 'create_boot_iso', autospec=True)
+    def test__prepare_iso_image_extra_params(
+            self, mock_create_boot_iso, mock_publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            kernel_params = 'network-config=base64-cloudinit-blob'
+            extra_params = collections.OrderedDict([('foo', 'bar'),
+                                                    ('banana', None)])
+            self.config(kernel_append_params=kernel_params, group='redfish')
+
+            image_utils._prepare_iso_image(
+                task, 'http://kernel/img', 'http://ramdisk/img',
+                root_uuid=task.node.uuid, params=extra_params)
+
+            mock_create_boot_iso.assert_called_once_with(
+                mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
+                boot_mode='bios', esp_image_href=None,
+                kernel_params=kernel_params + ' foo=bar banana',
+                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                base_iso=None, inject_files=None)
 
     def test__prepare_iso_image_bootable_iso(self):
         with task_manager.acquire(self.context, self.node.uuid,
