@@ -182,9 +182,9 @@ def _parse_kernel_params():
         try:
             key, value = s.split('=', 1)
         except ValueError:
-            raise exception.InvalidParameterValue(
-                _('Invalid key-value pair in extra_kernel_params: %s') % s)
-        result[key] = value
+            result[s] = None
+        else:
+            result[key] = value
     return result
 
 

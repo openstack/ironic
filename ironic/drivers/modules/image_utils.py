@@ -453,7 +453,8 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
     if params and not base_iso:
         kernel_params = ' '.join(
             (kernel_params, ' '.join(
-                '%s=%s' % kv for kv in params.items())))
+                ('%s=%s' % kv) if kv[1] is not None else kv[0]
+                for kv in params.items())))
 
     boot_mode = boot_mode_utils.get_boot_mode(task.node)
 

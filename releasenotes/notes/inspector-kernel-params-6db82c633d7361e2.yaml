@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes handling of single-value (non-key-value) parameters in the
+    ``[inspector]extra_kernel_params`` configuration options.
