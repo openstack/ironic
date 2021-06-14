@@ -16,7 +16,6 @@
 """Test class for boot methods used by iLO modules."""
 
 from unittest import mock
-from urllib import parse as urlparse
 
 from oslo_config import cfg
 
@@ -53,44 +52,64 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
     boot_interface = 'ilo-virtual-media'
 
     def test_parse_driver_info_deploy_iso(self):
+        self.node.driver_info['deploy_iso'] = 'deploy-iso'
+        self.node.driver_info['kernel_append_params'] = 'kernel-param'
+        expected_driver_info = {'kernel_append_params': 'kernel-param',
+                                'deploy_iso': 'deploy-iso'}
+
+        actual_driver_info = ilo_boot.parse_driver_info(self.node)
+        self.assertEqual(expected_driver_info, actual_driver_info)
+
+    def test_parse_driver_info_deploy_iso_deprecated(self):
         self.node.driver_info['ilo_deploy_iso'] = 'deploy-iso'
         self.node.driver_info['kernel_append_params'] = 'kernel-param'
-        expected_driver_info = {'ilo_bootloader': None,
-                                'kernel_append_params': 'kernel-param',
-                                'ilo_deploy_iso': 'deploy-iso'}
+        expected_driver_info = {'kernel_append_params': 'kernel-param',
+                                'deploy_iso': 'deploy-iso'}
 
         actual_driver_info = ilo_boot.parse_driver_info(self.node)
         self.assertEqual(expected_driver_info, actual_driver_info)
 
     def test_parse_driver_info_rescue_iso(self):
-        self.node.driver_info['ilo_rescue_iso'] = 'rescue-iso'
-        expected_driver_info = {'ilo_bootloader': None,
-                                'kernel_append_params': None,
-                                'ilo_rescue_iso': 'rescue-iso'}
+        self.node.driver_info['rescue_iso'] = 'rescue-iso'
+        expected_driver_info = {'kernel_append_params': None,
+                                'rescue_iso': 'rescue-iso'}
 
         actual_driver_info = ilo_boot.parse_driver_info(self.node, 'rescue')
         self.assertEqual(expected_driver_info, actual_driver_info)
 
     def test_parse_driver_info_deploy(self):
+        self.node.driver_info['deploy_kernel'] = 'kernel'
+        self.node.driver_info['deploy_ramdisk'] = 'ramdisk'
+        self.node.driver_info['bootloader'] = 'bootloader'
+        self.node.driver_info['kernel_append_params'] = 'kernel-param'
+        expected_driver_info = {'deploy_kernel': 'kernel',
+                                'deploy_ramdisk': 'ramdisk',
+                                'bootloader': 'bootloader',
+                                'kernel_append_params': 'kernel-param'}
+
+        actual_driver_info = ilo_boot.parse_driver_info(self.node)
+        self.assertEqual(expected_driver_info, actual_driver_info)
+
+    def test_parse_driver_info_deploy_deprecated(self):
         self.node.driver_info['ilo_deploy_kernel'] = 'kernel'
         self.node.driver_info['ilo_deploy_ramdisk'] = 'ramdisk'
         self.node.driver_info['ilo_bootloader'] = 'bootloader'
         self.node.driver_info['kernel_append_params'] = 'kernel-param'
-        expected_driver_info = {'ilo_deploy_kernel': 'kernel',
-                                'ilo_deploy_ramdisk': 'ramdisk',
-                                'ilo_bootloader': 'bootloader',
+        expected_driver_info = {'deploy_kernel': 'kernel',
+                                'deploy_ramdisk': 'ramdisk',
+                                'bootloader': 'bootloader',
                                 'kernel_append_params': 'kernel-param'}
 
         actual_driver_info = ilo_boot.parse_driver_info(self.node)
         self.assertEqual(expected_driver_info, actual_driver_info)
 
     def test_parse_driver_info_rescue(self):
-        self.node.driver_info['ilo_rescue_kernel'] = 'kernel'
-        self.node.driver_info['ilo_rescue_ramdisk'] = 'ramdisk'
-        self.node.driver_info['ilo_bootloader'] = 'bootloader'
-        expected_driver_info = {'ilo_rescue_kernel': 'kernel',
-                                'ilo_rescue_ramdisk': 'ramdisk',
-                                'ilo_bootloader': 'bootloader',
+        self.node.driver_info['rescue_kernel'] = 'kernel'
+        self.node.driver_info['rescue_ramdisk'] = 'ramdisk'
+        self.node.driver_info['bootloader'] = 'bootloader'
+        expected_driver_info = {'rescue_kernel': 'kernel',
+                                'rescue_ramdisk': 'ramdisk',
+                                'bootloader': 'bootloader',
                                 'kernel_append_params': None}
 
         actual_driver_info = ilo_boot.parse_driver_info(self.node, 'rescue')
@@ -100,9 +119,9 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
         CONF.conductor.deploy_kernel = 'kernel'
         CONF.conductor.deploy_ramdisk = 'ramdisk'
         CONF.conductor.bootloader = 'bootloader'
-        expected_driver_info = {'ilo_deploy_kernel': 'kernel',
-                                'ilo_deploy_ramdisk': 'ramdisk',
-                                'ilo_bootloader': 'bootloader',
+        expected_driver_info = {'deploy_kernel': 'kernel',
+                                'deploy_ramdisk': 'ramdisk',
+                                'bootloader': 'bootloader',
                                 'kernel_append_params': None}
 
         actual_driver_info = ilo_boot.parse_driver_info(self.node)
@@ -113,9 +132,9 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
         CONF.conductor.rescue_ramdisk = 'ramdisk'
         CONF.conductor.bootloader = 'bootloader'
 
-        expected_driver_info = {'ilo_rescue_kernel': 'kernel',
-                                'ilo_rescue_ramdisk': 'ramdisk',
-                                'ilo_bootloader': 'bootloader',
+        expected_driver_info = {'rescue_kernel': 'kernel',
+                                'rescue_ramdisk': 'ramdisk',
+                                'bootloader': 'bootloader',
                                 'kernel_append_params': None}
 
         actual_driver_info = ilo_boot.parse_driver_info(self.node, 'rescue')
@@ -125,13 +144,8 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
         CONF.conductor.deploy_kernel = 'kernel'
         CONF.conductor.deploy_ramdisk = 'ramdisk'
 
-        expected_driver_info = {'ilo_deploy_kernel': 'kernel',
-                                'ilo_deploy_ramdisk': 'ramdisk',
-                                'ilo_bootloader': None,
-                                'kernel_append_params': None}
-
-        actual_driver_info = ilo_boot.parse_driver_info(self.node)
-        self.assertEqual(expected_driver_info, actual_driver_info)
+        self.assertRaisesRegex(exception.MissingParameterValue, 'bootloader',
+                               ilo_boot.parse_driver_info, self.node)
 
     def test_parse_driver_info_exc(self):
         self.assertRaises(exception.MissingParameterValue,
@@ -438,7 +452,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
 
-            task.node.driver_info['ilo_deploy_iso'] = 'deploy-iso'
+            task.node.driver_info['deploy_iso'] = 'deploy-iso'
             storage_mock.return_value = True
             task.driver.boot.validate(task)
             mock_val_instance_image_info.assert_called_once_with(task)
@@ -536,7 +550,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                                        mock_val_driver_info, storage_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.node.driver_info['ilo_deploy_iso'] = 'deploy-iso'
+            task.node.driver_info['deploy_iso'] = 'deploy-iso'
             storage_mock.return_value = False
             task.driver.boot.validate(task)
             mock_val_driver_info.assert_called_once_with(task)
@@ -546,7 +560,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
     def test_validate_inspection(self, mock_val_driver_info):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            task.node.driver_info['ilo_deploy_iso'] = 'deploy-iso'
+            task.node.driver_info['deploy_iso'] = 'deploy-iso'
             task.driver.boot.validate_inspection(task)
             mock_val_driver_info.assert_called_once_with(task)
 
@@ -695,9 +709,9 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
         mode = 'deploy'
         ramdisk_params = {'a': 'b'}
         d_info = {
-            'ilo_deploy_kernel': 'kernel',
-            'ilo_deploy_ramdisk': 'ramdisk',
-            'ilo_bootloader': 'bootloader'
+            'deploy_kernel': 'kernel',
+            'deploy_ramdisk': 'ramdisk',
+            'bootloader': 'bootloader'
         }
         driver_info_mock.return_value = d_info
         prepare_deploy_iso_mock.return_value = 'recreated-iso'
@@ -851,18 +865,13 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
 
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'rescue_or_deploy_mode',
-                       spec_set=True, autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', spec_set=True,
                        autospec=True)
-    def test_clean_up_ramdisk(self, cleanup_iso_mock, mode_mock,
-                              cleanup_vmedia_mock):
-        mode_mock.return_value = 'deploy'
+    def test_clean_up_ramdisk(self, cleanup_iso_mock, cleanup_vmedia_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.boot.clean_up_ramdisk(task)
             cleanup_vmedia_mock.assert_called_once_with(task)
-            mode_mock.assert_called_once_with(task.node)
             cleanup_iso_mock.assert_called_once_with(task)
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
@@ -1033,6 +1042,14 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             update_secure_boot_mode_mock.assert_called_once_with(task)
 
     def test_validate_rescue(self):
+        driver_info = self.node.driver_info
+        driver_info['rescue_iso'] = 'rescue.iso'
+        self.node.driver_info = driver_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.boot.validate_rescue(task)
+
+    def test_validate_rescue_deprecated(self):
         driver_info = self.node.driver_info
         driver_info['ilo_rescue_iso'] = 'rescue.iso'
         self.node.driver_info = driver_info
@@ -1394,86 +1411,29 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                     enabled_raid_interfaces=['ilo5'])
         self.node = obj_utils.create_test_node(self.context, **n)
 
-    @mock.patch.object(urlparse, 'urlparse', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
-                       autospec=True)
-    def test__validate_hrefs_https_image(self, is_glance_mock, urlparse_mock):
-        is_glance_mock.return_value = False
-        urlparse_mock.return_value.scheme = 'https'
+    def test__validate_hrefs_https_image(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             data = {
-                'ilo_deploy_kernel': 'https://a.b.c.d/kernel',
-                'ilo_deploy_ramdisk': 'https://a.b.c.d/ramdisk',
-                'ilo_bootloader': 'https://a.b.c.d/bootloader'
+                'deploy_kernel': 'https://a.b.c.d/kernel',
+                'deploy_ramdisk': 'https://a.b.c.d/ramdisk',
+                'bootloader': 'https://a.b.c.d/bootloader'
             }
             task.driver.boot._validate_hrefs(data)
 
-        glance_calls = [
-            mock.call('https://a.b.c.d/kernel'),
-            mock.call('https://a.b.c.d/ramdisk'),
-            mock.call('https://a.b.c.d/bootloader')
-        ]
-
-        is_glance_mock.assert_has_calls(glance_calls)
-        urlparse_mock.assert_has_calls(glance_calls)
-
-    @mock.patch.object(urlparse, 'urlparse', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
-                       autospec=True)
-    def test__validate_hrefs_http_image(self, is_glance_mock, urlparse_mock):
-        is_glance_mock.return_value = False
-        scheme_mock = mock.PropertyMock(
-            side_effect=['http', 'https', 'http'])
-        type(urlparse_mock.return_value).scheme = scheme_mock
-
+    def test__validate_hrefs_http_image(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             data = {
-                'ilo_deploy_kernel': 'http://a.b.c.d/kernel',
-                'ilo_deploy_ramdisk': 'https://a.b.c.d/ramdisk',
-                'ilo_bootloader': 'http://a.b.c.d/bootloader'
+                'deploy_kernel': 'http://a.b.c.d/kernel',
+                'deploy_ramdisk': 'https://a.b.c.d/ramdisk',
+                'bootloader': 'http://a.b.c.d/bootloader'
             }
 
-            glance_calls = [
-                mock.call('http://a.b.c.d/kernel'),
-                mock.call('https://a.b.c.d/ramdisk'),
-                mock.call('http://a.b.c.d/bootloader')
-            ]
             self.assertRaisesRegex(exception.InvalidParameterValue,
                                    "Secure URLs exposed over HTTPS are .*"
-                                   "['ilo_deploy_kernel', 'ilo_bootloader']",
+                                   "['deploy_kernel', 'bootloader']",
                                    task.driver.boot._validate_hrefs, data)
-            is_glance_mock.assert_has_calls(glance_calls)
-            urlparse_mock.assert_has_calls(glance_calls)
-
-    @mock.patch.object(urlparse, 'urlparse', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
-                       autospec=True)
-    def test__validate_hrefs_glance_image(self, is_glance_mock, urlparse_mock):
-        is_glance_mock.return_value = True
-
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            data = {
-                'ilo_deploy_kernel': 'https://a.b.c.d/kernel',
-                'ilo_deploy_ramdisk': 'https://a.b.c.d/ramdisk',
-                'ilo_bootloader': 'https://a.b.c.d/bootloader'
-            }
-
-            task.driver.boot._validate_hrefs(data)
-
-        glance_calls = [
-            mock.call('https://a.b.c.d/kernel'),
-            mock.call('https://a.b.c.d/ramdisk'),
-            mock.call('https://a.b.c.d/bootloader')
-        ]
-
-        is_glance_mock.assert_has_calls(glance_calls)
-        urlparse_mock.assert_not_called()
 
     @mock.patch.object(ilo_boot.IloUefiHttpsBoot, '_parse_driver_info',
                        autospec=True)
@@ -1482,9 +1442,9 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
     def test__parse_deploy_info(self, get_img_inst_mock,
                                 parse_driver_mock):
         parse_driver_mock.return_value = {
-            'ilo_deploy_kernel': 'deploy-kernel',
-            'ilo_deploy_ramdisk': 'deploy-ramdisk',
-            'ilo_bootloader': 'bootloader'
+            'deploy_kernel': 'deploy-kernel',
+            'deploy_ramdisk': 'deploy-ramdisk',
+            'bootloader': 'bootloader'
         }
         get_img_inst_mock.return_value = {
             'ilo_boot_iso': 'boot-iso',
@@ -1497,18 +1457,18 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         instance_info['image_source'] = '6b2f0c0c-79e8-4db6-842e-43c9764204af'
         self.node.instance_info = instance_info
 
-        driver_info['ilo_deploy_kernel'] = 'deploy-kernel'
-        driver_info['ilo_deploy_ramdisk'] = 'deploy-ramdisk'
-        driver_info['ilo_bootloader'] = 'bootloader'
+        driver_info['deploy_kernel'] = 'deploy-kernel'
+        driver_info['deploy_ramdisk'] = 'deploy-ramdisk'
+        driver_info['bootloader'] = 'bootloader'
         self.node.driver_info = driver_info
         self.node.save()
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             expected_info = {
-                'ilo_deploy_kernel': 'deploy-kernel',
-                'ilo_deploy_ramdisk': 'deploy-ramdisk',
-                'ilo_bootloader': 'bootloader',
+                'deploy_kernel': 'deploy-kernel',
+                'deploy_ramdisk': 'deploy-ramdisk',
+                'bootloader': 'bootloader',
                 'ilo_boot_iso': 'boot-iso',
                 'image_source': '6b2f0c0c-79e8-4db6-842e-43c9764204af'
             }
@@ -1530,11 +1490,11 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             'ilo_password': 'admin'
         }
         driver_info = self.node.driver_info
-        driver_info['ilo_deploy_kernel'] = 'deploy-kernel'
-        driver_info['ilo_rescue_kernel'] = 'rescue-kernel'
-        driver_info['ilo_deploy_ramdisk'] = 'deploy-ramdisk'
-        driver_info['ilo_rescue_ramdisk'] = 'rescue-ramdisk'
-        driver_info['ilo_bootloader'] = 'bootloader'
+        driver_info['deploy_kernel'] = 'deploy-kernel'
+        driver_info['rescue_kernel'] = 'rescue-kernel'
+        driver_info['deploy_ramdisk'] = 'deploy-ramdisk'
+        driver_info['rescue_ramdisk'] = 'rescue-ramdisk'
+        driver_info['bootloader'] = 'bootloader'
         driver_info['ilo_add_certificates'] = True
         driver_info['dummy_key'] = 'dummy-value'
         self.node.driver_info = driver_info
@@ -1543,10 +1503,10 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             deploy_info = {
-                'ilo_deploy_kernel': 'deploy-kernel',
-                'ilo_deploy_ramdisk': 'deploy-ramdisk',
-                'ilo_bootloader': 'bootloader',
-                'kernel_append_params': 'nofb nomodeset vga=normal'
+                'deploy_kernel': 'deploy-kernel',
+                'deploy_ramdisk': 'deploy-ramdisk',
+                'bootloader': 'bootloader',
+                'kernel_append_params': None,
             }
 
             deploy_info.update({'ilo_username': 'admin',
@@ -1571,11 +1531,11 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         }
         mode = 'rescue'
         driver_info = self.node.driver_info
-        driver_info['ilo_deploy_kernel'] = 'deploy-kernel'
-        driver_info['ilo_rescue_kernel'] = 'rescue-kernel'
-        driver_info['ilo_deploy_ramdisk'] = 'deploy-ramdisk'
-        driver_info['ilo_rescue_ramdisk'] = 'rescue-ramdisk'
-        driver_info['ilo_bootloader'] = 'bootloader'
+        driver_info['deploy_kernel'] = 'deploy-kernel'
+        driver_info['rescue_kernel'] = 'rescue-kernel'
+        driver_info['deploy_ramdisk'] = 'deploy-ramdisk'
+        driver_info['rescue_ramdisk'] = 'rescue-ramdisk'
+        driver_info['bootloader'] = 'bootloader'
         driver_info['ilo_add_certificates'] = 'false'
         driver_info['kernel_append_params'] = 'kernel-param'
         driver_info['dummy_key'] = 'dummy-value'
@@ -1585,10 +1545,10 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             deploy_info = {
-                'ilo_rescue_kernel': 'rescue-kernel',
-                'ilo_rescue_ramdisk': 'rescue-ramdisk',
-                'ilo_bootloader': 'bootloader',
-                'kernel_append_params': 'kernel-param'
+                'rescue_kernel': 'rescue-kernel',
+                'rescue_ramdisk': 'rescue-ramdisk',
+                'bootloader': 'bootloader',
+                'kernel_append_params': 'kernel-param',
             }
 
             deploy_info.update({'ilo_username': 'admin',
@@ -1603,21 +1563,19 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ilo_boot.IloUefiHttpsBoot, '_validate_hrefs',
                        autospec=True)
-    @mock.patch.object(deploy_utils, 'check_for_missing_params',
-                       autospec=True)
     @mock.patch.object(ilo_common, 'parse_driver_info', autospec=True)
     def test__parse_driver_info_invalid_params(
-            self, parse_driver_mock, check_missing_mock, validate_href_mock):
+            self, parse_driver_mock, validate_href_mock):
         parse_driver_mock.return_value = {
             'ilo_username': 'admin',
             'ilo_password': 'admin'
         }
         driver_info = self.node.driver_info
-        driver_info['ilo_deploy_kernel'] = 'deploy-kernel'
-        driver_info['ilo_rescue_kernel'] = 'rescue-kernel'
-        driver_info['ilo_deploy_ramdisk'] = 'deploy-ramdisk'
-        driver_info['ilo_rescue_ramdisk'] = 'rescue-ramdisk'
-        driver_info['ilo_bootloader'] = 'bootloader'
+        driver_info['deploy_kernel'] = 'deploy-kernel'
+        driver_info['rescue_kernel'] = 'rescue-kernel'
+        driver_info['deploy_ramdisk'] = 'deploy-ramdisk'
+        driver_info['rescue_ramdisk'] = 'rescue-ramdisk'
+        driver_info['bootloader'] = 'bootloader'
         driver_info['dummy_key'] = 'dummy-value'
         driver_info['ilo_add_certificates'] = 'xyz'
         self.node.driver_info = driver_info
@@ -1626,9 +1584,9 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             deploy_info = {
-                'ilo_deploy_kernel': 'deploy-kernel',
-                'ilo_deploy_ramdisk': 'deploy-ramdisk',
-                'ilo_bootloader': 'bootloader'
+                'deploy_kernel': 'deploy-kernel',
+                'deploy_ramdisk': 'deploy-ramdisk',
+                'bootloader': 'bootloader'
             }
 
             deploy_info.update({'ilo_username': 'admin',
@@ -1638,7 +1596,6 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                                    task.driver.boot._parse_driver_info,
                                    task.node)
             validate_href_mock.assert_not_called()
-            check_missing_mock.assert_not_called()
             parse_driver_mock.assert_not_called()
 
     @mock.patch.object(ilo_boot.IloUefiHttpsBoot, '_validate_hrefs',
@@ -1764,9 +1721,9 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
 
-            task.node.driver_info['ilo_deploy_kernel'] = 'deploy-kernel'
-            task.node.driver_info['ilo_deploy_ramdisk'] = 'deploy-ramdisk'
-            task.node.driver_info['ilo_bootloader'] = 'bootloader'
+            task.node.driver_info['deploy_kernel'] = 'deploy-kernel'
+            task.node.driver_info['deploy_ramdisk'] = 'deploy-ramdisk'
+            task.node.driver_info['bootloader'] = 'bootloader'
             storage_mock.return_value = True
             task.driver.boot.validate(task)
             mock_val_instance_image_info.assert_called_once_with(
@@ -2158,9 +2115,9 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
 
     def test_validate_rescue(self):
         driver_info = self.node.driver_info
-        driver_info['ilo_rescue_kernel'] = 'rescue-kernel'
-        driver_info['ilo_rescue_ramdisk'] = 'rescue-ramdisk'
-        driver_info['ilo_bootloader'] = 'bootloader'
+        driver_info['rescue_kernel'] = 'rescue-kernel'
+        driver_info['rescue_ramdisk'] = 'rescue-ramdisk'
+        driver_info['bootloader'] = 'bootloader'
         self.node.driver_info = driver_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -2168,13 +2125,13 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
 
     def test_validate_rescue_no_rescue_ramdisk(self):
         driver_info = self.node.driver_info
-        driver_info['ilo_rescue_kernel'] = 'rescue-kernel'
-        driver_info['ilo_rescue_ramdisk'] = 'rescue-ramdisk'
-        driver_info.pop('ilo_bootloader', None)
+        driver_info['rescue_kernel'] = 'rescue-kernel'
+        driver_info['rescue_ramdisk'] = 'rescue-ramdisk'
+        driver_info.pop('bootloader', None)
         self.node.driver_info = driver_info
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaisesRegex(exception.MissingParameterValue,
-                                   "Error validating rescue for iLO UEFI "
-                                   "HTTPS boot.* ['ilo_bootloader']",
+                                   "Error validating iLO boot for rescue.*"
+                                   "['bootloader']",
                                    task.driver.boot.validate_rescue, task)

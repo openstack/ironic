@@ -15,8 +15,6 @@
 Boot Interface for iLO drivers and its supporting methods.
 """
 
-from urllib import parse as urlparse
-
 from ironic_lib import metrics_utils
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -47,38 +45,35 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 CONF = cfg.CONF
 
 REQUIRED_PROPERTIES = {
-    'ilo_deploy_iso': _("UUID (from Glance) of the deployment ISO. "
-                        "Required.")
+    'deploy_iso': _("UUID (from Glance) of the deployment ISO. Required.")
 }
 RESCUE_PROPERTIES = {
-    'ilo_rescue_iso': _("UUID (from Glance) of the rescue ISO. Only "
-                        "required if rescue mode is being used and ironic is "
-                        "managing booting the rescue ramdisk.")
+    'rescue_iso': _("UUID (from Glance) of the rescue ISO. Only "
+                    "required if rescue mode is being used and ironic is "
+                    "managing booting the rescue ramdisk.")
 }
 REQUIRED_PROPERTIES_UEFI_HTTPS_BOOT = {
-    'ilo_deploy_kernel': _("URL or Glance UUID of the deployment kernel. "
-                           "Required."),
-    'ilo_deploy_ramdisk': _("URL or Glance UUID of the ramdisk that is "
-                            "mounted at boot time. Required."),
+    'deploy_kernel': _("URL or Glance UUID of the deployment kernel. "
+                       "Required."),
+    'deploy_ramdisk': _("URL or Glance UUID of the ramdisk that is "
+                        "mounted at boot time. Required."),
 }
 RESCUE_PROPERTIES_UEFI_HTTPS_BOOT = {
-    'ilo_rescue_kernel': _('URL or Glance UUID of the rescue kernel. This '
-                           'value is required for rescue mode.'),
-    'ilo_rescue_ramdisk': _('URL or Glance UUID of the rescue ramdisk with '
-                            'agent that is used at node rescue time. '
-                            'The value is required for rescue mode.'),
+    'rescue_kernel': _('URL or Glance UUID of the rescue kernel. This '
+                       'value is required for rescue mode.'),
+    'rescue_ramdisk': _('URL or Glance UUID of the rescue ramdisk with '
+                        'agent that is used at node rescue time. '
+                        'The value is required for rescue mode.'),
 }
 OPTIONAL_PROPERTIES = {
-    'ilo_bootloader': _("URL or Glance UUID  of the EFI system partition "
-                        "image containing EFI boot loader. This image will "
-                        "be used by ironic when building UEFI-bootable ISO "
-                        "out of kernel and ramdisk. Required for UEFI "
-                        "boot from partition images."),
+    'bootloader': _("URL or Glance UUID  of the EFI system partition "
+                    "image containing EFI boot loader. This image will "
+                    "be used by ironic when building UEFI-bootable ISO "
+                    "out of kernel and ramdisk. Required for UEFI "
+                    "boot from partition images."),
     'ilo_add_certificates': _("Boolean value that indicates whether the "
                               "certificates require to be added to the "
-                              "iLO.")
-}
-KERNEL_PARAM_PROPERTIES = {
+                              "iLO."),
     'kernel_append_params': _("Additional kernel parameters to pass down "
                               "to instance kernel. These parameters can "
                               "be consumed by the kernel or by the "
@@ -87,13 +82,6 @@ KERNEL_PARAM_PROPERTIES = {
                               "[ilo]/kernel_append_params ironic option.")
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
-VMEDIA_OPTIONAL_PROPERTIES = OPTIONAL_PROPERTIES.copy()
-VMEDIA_OPTIONAL_PROPERTIES.update(KERNEL_PARAM_PROPERTIES)
-
-KERNEL_RAMDISK_LABELS = {
-    'deploy': REQUIRED_PROPERTIES_UEFI_HTTPS_BOOT,
-    'rescue': RESCUE_PROPERTIES_UEFI_HTTPS_BOOT
-}
 
 
 def parse_driver_info(node, mode='deploy'):
@@ -112,33 +100,22 @@ def parse_driver_info(node, mode='deploy'):
     :raises: MissingParameterValue, if any of the required parameters are
         missing.
     """
-    info = node.driver_info
     d_info = {}
-    if mode == 'rescue' and info.get('ilo_rescue_iso'):
-        d_info['ilo_rescue_iso'] = info.get('ilo_rescue_iso')
-    elif mode == 'deploy' and info.get('ilo_deploy_iso'):
-        d_info['ilo_deploy_iso'] = info.get('ilo_deploy_iso')
+    iso_ref = driver_utils.get_agent_iso(node, mode, deprecated_prefix='ilo')
+    if iso_ref:
+        d_info[f'{mode}_iso'] = iso_ref
     else:
-        params_to_check = KERNEL_RAMDISK_LABELS[mode]
+        d_info = driver_utils.get_agent_kernel_ramdisk(
+            node, mode, deprecated_prefix='ilo')
+        d_info['bootloader'] = driver_utils.get_field(node, 'bootloader',
+                                                      deprecated_prefix='ilo',
+                                                      use_conf=True)
 
-        d_info = {option: info.get(option)
-                  for option in params_to_check}
-
-        if not any(d_info.values()):
-            # NOTE(dtantsur): avoid situation when e.g. deploy_kernel comes
-            # from driver_info but deploy_ramdisk comes from configuration,
-            # since it's a sign of a potential operator's mistake.
-            d_info = {k: getattr(CONF.conductor, k.replace('ilo_', ''))
-                      for k in params_to_check}
-
-    error_msg = (_("Error validating iLO virtual media for %s. Some "
-                   "parameters were missing in node's driver_info.") % mode)
+    error_msg = (_("Error validating iLO boot for %s. Some "
+                   "parameters were missing in node's driver_info") % mode)
     deploy_utils.check_for_missing_params(d_info, error_msg)
-
-    d_info.update(
-        {k: info.get(k, getattr(CONF.conductor, k.replace('ilo_', ''), None))
-         for k in VMEDIA_OPTIONAL_PROPERTIES})
-    d_info.pop('ilo_add_certificates', None)
+    d_info['kernel_append_params'] = node.driver_info.get(
+        'kernel_append_params')
 
     return d_info
 
@@ -458,16 +435,14 @@ class IloVirtualMediaBoot(base.BootInterface):
         deploy_nic_mac = deploy_utils.get_single_nic_with_vif_port_id(task)
         if deploy_nic_mac is not None:
             ramdisk_params['BOOTIF'] = deploy_nic_mac
-        if (node.driver_info.get('ilo_rescue_iso')
-                and node.provision_state == states.RESCUING):
-            iso = node.driver_info['ilo_rescue_iso']
-            ilo_common.setup_vmedia(task, iso, ramdisk_params)
-        elif node.driver_info.get('ilo_deploy_iso'):
-            iso = node.driver_info['ilo_deploy_iso']
-            ilo_common.setup_vmedia(task, iso, ramdisk_params)
+
+        mode = deploy_utils.rescue_or_deploy_mode(node)
+        d_info = parse_driver_info(node, mode)
+        if 'rescue_iso' in d_info:
+            ilo_common.setup_vmedia(task, d_info['rescue_iso'], ramdisk_params)
+        elif 'deploy_iso' in d_info:
+            ilo_common.setup_vmedia(task, d_info['deploy_iso'], ramdisk_params)
         else:
-            mode = deploy_utils.rescue_or_deploy_mode(node)
-            d_info = parse_driver_info(node, mode)
             iso = image_utils.prepare_deploy_iso(task, ramdisk_params,
                                                  mode, d_info)
             ilo_common.setup_vmedia(task, iso)
@@ -583,12 +558,7 @@ class IloVirtualMediaBoot(base.BootInterface):
         :raises: IloOperationError, if some operation on iLO failed.
         """
         ilo_common.cleanup_vmedia_boot(task)
-
-        info = task.node.driver_info
-        mode = deploy_utils.rescue_or_deploy_mode(task.node)
-        if ((mode == 'rescue' and not info.get('ilo_rescue_iso'))
-                or (mode == 'deploy' and not info.get('ilo_deploy_iso'))):
-            image_utils.cleanup_iso_image(task)
+        image_utils.cleanup_iso_image(task)
 
     def _configure_vmedia_boot(self, task, root_uuid):
         """Configure vmedia boot for the node.
@@ -848,10 +818,8 @@ class IloUefiHttpsBoot(base.BootInterface):
 
         for prop in image_dict:
             image_ref = image_dict.get(prop)
-            if not service_utils.is_glance_image(image_ref):
-                prefix = urlparse.urlparse(image_ref).scheme.lower()
-                if prefix == 'http':
-                    insecure_props.append(prop)
+            if image_ref is not None and image_ref.startswith('http://'):
+                insecure_props.append(image_ref)
 
         if len(insecure_props) > 0:
             error = (_('Secure URLs exposed over HTTPS are expected. '
@@ -896,29 +864,9 @@ class IloUefiHttpsBoot(base.BootInterface):
         :raises: InvalidParameterValue, if any of the required parameters are
             invalid.
         """
-        info = node.driver_info
+        deploy_info = parse_driver_info(node, mode)
 
-        if mode == 'rescue':
-            params_to_check = RESCUE_PROPERTIES_UEFI_HTTPS_BOOT.keys()
-        else:
-            params_to_check = REQUIRED_PROPERTIES_UEFI_HTTPS_BOOT.keys()
-
-        deploy_info = {option: info.get(option)
-                       for option in params_to_check}
-
-        if not any(deploy_info.values()):
-            # NOTE(dtantsur): avoid situation when e.g. deploy_kernel comes
-            # from driver_info but deploy_ramdisk comes from configuration,
-            # since it's a sign of a potential operator's mistake.
-            deploy_info = {k: getattr(CONF.conductor, k.replace('ilo_', ''))
-                           for k in params_to_check}
-
-        deploy_info.update(
-            {k: info.get(k, getattr(CONF.conductor,
-                                    k.replace('ilo_', ''), None))
-             for k in OPTIONAL_PROPERTIES})
-
-        should_add_certs = deploy_info.pop('ilo_add_certificates', True)
+        should_add_certs = node.driver_info.get('ilo_add_certificates', True)
 
         if should_add_certs is not None:
             try:
@@ -933,14 +881,6 @@ class IloUefiHttpsBoot(base.BootInterface):
                       ) % {'value': should_add_certs, 'node': node.uuid})
 
         self._validate_hrefs(deploy_info)
-
-        error_msg = (_("Error validating %s for iLO UEFI HTTPS boot. Some "
-                       "parameters were missing in node's driver_info") % mode)
-        deploy_utils.check_for_missing_params(deploy_info, error_msg)
-
-        deploy_info.update(
-            {k: info.get(k, getattr(CONF.ilo, k.replace('ilo_', ''), None))
-             for k in KERNEL_PARAM_PROPERTIES})
 
         deploy_info.update(ilo_common.parse_driver_info(node))
 

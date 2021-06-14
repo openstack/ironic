@@ -246,8 +246,12 @@ The following command can be used to enroll a ProLiant node with
         --driver-info ilo_address=<ilo-ip-address> \
         --driver-info ilo_username=<ilo-username> \
         --driver-info ilo_password=<ilo-password> \
-        --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso> \
-        --driver-info ilo_rescue_iso=<glance-uuid-of-rescue-iso>
+        --driver-info deploy_iso=<glance-uuid-of-deploy-iso> \
+        --driver-info rescue_iso=<glance-uuid-of-rescue-iso>
+
+.. note::
+   The fields ``deploy_iso`` and ``rescue_iso`` used to be called
+   ``ilo_deploy_iso`` and ``ilo_rescue_iso`` before the Xena release.
 
 The following command can be used to enroll a ProLiant node with
 ``ilo5`` hardware type:
@@ -262,8 +266,8 @@ The following command can be used to enroll a ProLiant node with
         --driver-info ilo_address=<ilo-ip-address> \
         --driver-info ilo_username=<ilo-username> \
         --driver-info ilo_password=<ilo-password> \
-        --driver-info ilo_deploy_iso=<glance-uuid-of-deploy-iso> \
-        --driver-info ilo_rescue_iso=<glance-uuid-of-rescue-iso>
+        --driver-info deploy_iso=<glance-uuid-of-deploy-iso> \
+        --driver-info rescue_iso=<glance-uuid-of-rescue-iso>
 
 Please refer to :doc:`/install/enabling-drivers` for detailed
 explanation of hardware type.
@@ -289,7 +293,7 @@ Node configuration
 * The following properties are also required in node object's
   ``driver_info`` if ``ilo-virtual-media`` boot interface is used:
 
-  - ``ilo_deploy_iso``: The glance UUID of the deploy ramdisk ISO image.
+  - ``deploy_iso``: The glance UUID of the deploy ramdisk ISO image.
   - ``instance info/ilo_boot_iso`` property to be either boot iso
     Glance UUID or a HTTP(S) URL. This is optional property and is used when
     ``boot_option`` is set to ``netboot`` or ``ramdisk``.
@@ -299,7 +303,7 @@ Node configuration
        configured to use ``ramdisk`` deploy interface. See :ref:`ramdisk-deploy`
        for details.
 
-  - ``ilo_rescue_iso``: The glance UUID of the rescue ISO image. This is optional
+  - ``rescue_iso``: The glance UUID of the rescue ISO image. This is optional
     property and is used when ``rescue`` interface is set to ``agent``.
 
 * The following properties are also required in node object's
@@ -318,22 +322,26 @@ Node configuration
   ``driver_info`` if ``ilo-uefi-https`` boot interface is used for ``ilo5``
   hardware type:
 
-  - ``ilo_deploy_kernel``: The glance UUID or a HTTPS URL of the deployment kernel.
-  - ``ilo_deploy_ramdisk``: The glance UUID or a HTTPS URL of the deployment ramdisk.
-  - ``ilo_bootloader``: The glance UUID or a HTTPS URL of the bootloader.
-  - ``ilo_rescue_kernel``: The glance UUID or a HTTPS URL of the rescue kernel.
+  - ``deploy_kernel``: The glance UUID or a HTTPS URL of the deployment kernel.
+  - ``deploy_ramdisk``: The glance UUID or a HTTPS URL of the deployment ramdisk.
+  - ``bootloader``: The glance UUID or a HTTPS URL of the bootloader.
+  - ``rescue_kernel``: The glance UUID or a HTTPS URL of the rescue kernel.
     This is optional property and is used when ``rescue`` interface is set to
     ``agent``.
-  - ``ilo_rescue_ramdisk``: The glance UUID or a HTTP(S) URL of the rescue ramdisk.
+  - ``rescue_ramdisk``: The glance UUID or a HTTP(S) URL of the rescue ramdisk.
     This is optional property and is used when ``rescue`` interface is set to
     ``agent``.
 
-    .. note::
-       ``ilo-uefi-https`` boot interface is supported by only ``ilo5`` hardware
-       type. If the images are not hosted in glance, the references
-       must be HTTPS URLs hosted by secure webserver. This boot interface can
-       be used only when the current boot mode is ``UEFI``.
+  .. note::
+     ``ilo-uefi-https`` boot interface is supported by only ``ilo5`` hardware
+     type. If the images are not hosted in glance, the references
+     must be HTTPS URLs hosted by secure webserver. This boot interface can
+     be used only when the current boot mode is ``UEFI``.
 
+  .. note::
+     The fields ``deploy_kernel``, ``deploy_ramdisk``, ``rescue_kernel``
+     ``rescue_ramdisk`` and ``bootloader`` used to have an ``ilo_`` prefix
+     before the Xena release.
 
 * The  following parameters are mandatory in ``driver_info``
   if ``ilo-inspect`` inspect inteface is used and SNMPv3 inspection
@@ -1033,7 +1041,7 @@ for whole disk image support.
 HTTP(S) Based Deploy Support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The user input for the images given in ``driver_info`` like ``ilo_deploy_iso``,
+The user input for the images given in ``driver_info`` like ``deploy_iso``,
 ``deploy_kernel`` and ``deploy_ramdisk`` and in ``instance_info`` like
 ``image_source``, ``kernel``, ``ramdisk`` and ``ilo_boot_iso`` may also be given as
 HTTP(S) URLs.
@@ -2153,8 +2161,8 @@ into the baremetal service using the iLO IPv6 addresses.
         --driver-info ilo_address=2001:0db8:85a3:0000:0000:8a2e:0370:7334 \
         --driver-info ilo_username=test-user \
         --driver-info ilo_password=test-password \
-        --driver-info ilo_deploy_iso=test-iso \
-        --driver-info ilo_rescue_iso=test-iso
+        --driver-info deploy_iso=test-iso \
+        --driver-info rescue_iso=test-iso
 
 
 .. note::
@@ -2259,9 +2267,9 @@ and ``ilo-uefi-https`` boot interface:
         --driver-info ilo_address=<ilo-ip-address> \
         --driver-info ilo_username=<ilo-username> \
         --driver-info ilo_password=<ilo-password> \
-        --driver-info ilo_deploy_kernel=<glance-uuid-of-deploy-kernel> \
-        --driver-info ilo_deploy_ramdisk=<glance-uuid-of-rescue-ramdisk> \
-        --driver-info ilo_bootloader=<glance-uuid-of-bootloader>
+        --driver-info deploy_kernel=<glance-uuid-of-deploy-kernel> \
+        --driver-info deploy_ramdisk=<glance-uuid-of-rescue-ramdisk> \
+        --driver-info bootloader=<glance-uuid-of-bootloader>
 
 Layer 3 or DHCP-less ramdisk booting
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

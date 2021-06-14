@@ -1,0 +1,13 @@
+---
+deprecations:
+  - |
+    The following ``driver_info`` parameters have been renamed with
+    deprecation:
+
+    * ``ilo_deploy_kernel`` -> ``deploy_kernel``
+    * ``ilo_deploy_ramdisk`` -> ``deploy_ramdisk``
+    * ``ilo_deploy_iso`` -> ``deploy_iso``
+    * ``ilo_rescue_kernel`` -> ``rescue_kernel``
+    * ``ilo_rescue_ramdisk`` -> ``rescue_ramdisk``
+    * ``ilo_rescue_iso`` -> ``rescue_iso``
+    * ``ilo_bootloader`` -> ``bootloader``

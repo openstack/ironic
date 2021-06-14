@@ -608,9 +608,9 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
 
     def test__find_param(self):
         param_dict = {
-            'ilo_deploy_kernel': 'kernel',
-            'ilo_deploy_ramdisk': 'ramdisk',
-            'ilo_bootloader': 'bootloader'
+            'deploy_kernel': 'kernel',
+            'deploy_ramdisk': 'ramdisk',
+            'bootloader': 'bootloader'
         }
         param_str = "deploy_kernel"
         expected = "kernel"
@@ -620,8 +620,8 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
 
     def test__find_param_not_found(self):
         param_dict = {
-            'ilo_deploy_ramdisk': 'ramdisk',
-            'ilo_bootloader': 'bootloader'
+            'deploy_ramdisk': 'ramdisk',
+            'bootloader': 'bootloader'
         }
         param_str = "deploy_kernel"
         expected = None
@@ -634,9 +634,9 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                                   shared=True) as task:
 
             d_info = {
-                'ilo_deploy_kernel': 'kernel',
-                'ilo_deploy_ramdisk': 'ramdisk',
-                'ilo_bootloader': 'bootloader'
+                'deploy_kernel': 'kernel',
+                'deploy_ramdisk': 'ramdisk',
+                'bootloader': 'bootloader'
             }
             task.node.driver_info.update(d_info)
 
@@ -691,8 +691,8 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                                   shared=True) as task:
 
             d_info = {
-                'ilo_deploy_kernel': 'kernel',
-                'ilo_deploy_ramdisk': 'ramdisk'
+                'deploy_kernel': 'kernel',
+                'deploy_ramdisk': 'ramdisk'
             }
             task.node.driver_info.update(d_info)
 
@@ -729,9 +729,9 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                                   shared=True) as task:
 
             d_info = {
-                'ilo_deploy_kernel': 'kernel',
-                'ilo_deploy_ramdisk': 'ramdisk',
-                'ilo_bootloader': 'bootloader'
+                'deploy_kernel': 'kernel',
+                'deploy_ramdisk': 'ramdisk',
+                'bootloader': 'bootloader'
             }
             task.node.driver_info.update(d_info)
 
@@ -757,9 +757,9 @@ cafile = /etc/ironic-python-agent/ironic.crt
                                   shared=True) as task:
 
             d_info = {
-                'ilo_deploy_kernel': 'kernel',
-                'ilo_deploy_ramdisk': 'ramdisk',
-                'ilo_bootloader': 'bootloader'
+                'deploy_kernel': 'kernel',
+                'deploy_ramdisk': 'ramdisk',
+                'bootloader': 'bootloader'
             }
             task.node.driver_info.update(d_info)
 
@@ -780,9 +780,9 @@ cafile = /etc/ironic-python-agent/ironic.crt
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             d_info = {
-                'ilo_deploy_kernel': 'kernel',
-                'ilo_deploy_ramdisk': 'ramdisk',
-                'ilo_bootloader': 'bootloader'
+                'deploy_kernel': 'kernel',
+                'deploy_ramdisk': 'ramdisk',
+                'bootloader': 'bootloader'
             }
             task.node.driver_info.update(d_info)
 
