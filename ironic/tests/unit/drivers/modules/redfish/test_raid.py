@@ -924,3 +924,21 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
 
             self.assertNotIn(nonraid_storage.drives[0], disks)
             self.assertNotIn(nonraid_storage.drives[0], disk_to_controller)
+
+    def test__get_storage_controller(self, mock_get_system):
+        nonraid_controller = mock.Mock()
+        nonraid_controller.raid_types = []
+        nonraid_storage = mock.MagicMock()
+        nonraid_storage.storage_controllers = [nonraid_controller]
+        nonraid_storage.drives = mock.Mock()
+
+        mock_get_system.return_value.storage.get_members.return_value = [
+            nonraid_storage, self.mock_storage]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            storage = redfish_raid._get_storage_controller(
+                task.node, mock_get_system.return_value, ['32ADF365C6C1B7BD'])
+
+            self.assertEqual(storage, self.mock_storage)
+            nonraid_storage.drives.assert_not_called()

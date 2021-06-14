@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    In Redfish RAID clean and deploy steps skip non-RAID storage controllers
+    for RAID operations. In Redfish systems that do not implement
+    ``SupportedRAIDTypes`` they are still processed and could result in
+    unexpected errors.
