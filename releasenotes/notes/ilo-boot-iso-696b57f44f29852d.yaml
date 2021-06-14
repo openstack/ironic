@@ -1,0 +1,5 @@
+---
+deprecations:
+  - |
+    The ``driver_info`` property ``ilo_boot_iso`` has been renamed to
+    just ``boot_iso``.

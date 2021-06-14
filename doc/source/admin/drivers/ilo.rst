@@ -294,7 +294,7 @@ Node configuration
   ``driver_info`` if ``ilo-virtual-media`` boot interface is used:
 
   - ``deploy_iso``: The glance UUID of the deploy ramdisk ISO image.
-  - ``instance info/ilo_boot_iso`` property to be either boot iso
+  - ``instance info/boot_iso`` property to be either boot iso
     Glance UUID or a HTTP(S) URL. This is optional property and is used when
     ``boot_option`` is set to ``netboot`` or ``ramdisk``.
 
@@ -302,6 +302,10 @@ Node configuration
        When ``boot_option`` is set to ``ramdisk``, the ironic node must be
        configured to use ``ramdisk`` deploy interface. See :ref:`ramdisk-deploy`
        for details.
+
+    .. note::
+       The ``boot_iso`` property used to be called ``ilo_boot_iso`` before
+       the Xena release.
 
   - ``rescue_iso``: The glance UUID of the rescue ISO image. This is optional
     property and is used when ``rescue`` interface is set to ``agent``.
@@ -1043,7 +1047,7 @@ HTTP(S) Based Deploy Support
 
 The user input for the images given in ``driver_info`` like ``deploy_iso``,
 ``deploy_kernel`` and ``deploy_ramdisk`` and in ``instance_info`` like
-``image_source``, ``kernel``, ``ramdisk`` and ``ilo_boot_iso`` may also be given as
+``image_source``, ``kernel``, ``ramdisk`` and ``boot_iso`` may also be given as
 HTTP(S) URLs.
 
 The HTTP(S) web server can be configured in many ways. For the Apache

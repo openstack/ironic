@@ -161,7 +161,7 @@ class IloBootPrivateMethodsTestCase(test_common.BaseIloTest):
     def test__get_boot_iso_http_url(self, service_mock):
         url = 'http://abc.org/image/qcow2'
         i_info = self.node.instance_info
-        i_info['ilo_boot_iso'] = url
+        i_info['boot_iso'] = url
         self.node.instance_info = i_info
         self.node.save()
 
@@ -178,7 +178,7 @@ class IloBootPrivateMethodsTestCase(test_common.BaseIloTest):
             image_href='file://img.qcow2', reason='fail')
         url = 'file://img.qcow2'
         i_info = self.node.instance_info
-        i_info['ilo_boot_iso'] = url
+        i_info['boot_iso'] = url
         self.node.instance_info = i_info
         self.node.save()
 
@@ -445,7 +445,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
     def test_validate(self, mock_val_instance_image_info,
                       mock_val_driver_info, storage_mock):
         instance_info = self.node.instance_info
-        instance_info['ilo_boot_iso'] = 'deploy-iso'
+        instance_info['boot_iso'] = 'deploy-iso'
         instance_info['image_source'] = '6b2f0c0c-79e8-4db6-842e-43c9764204af'
         self.node.instance_info = instance_info
         self.node.save()
@@ -469,7 +469,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                                                  val_driver_info_mock):
         instance_info = self.node.instance_info
         boot_iso = '6b2f0c0c-79e8-4db6-842e-43c9764204af'
-        instance_info['ilo_boot_iso'] = boot_iso
+        instance_info['boot_iso'] = boot_iso
         instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
         self.node.instance_info = instance_info
         self.node.save()
@@ -492,7 +492,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                                                     val_driver_info_mock):
         instance_info = self.node.instance_info
         boot_iso = 'http://myserver/boot.iso'
-        instance_info['ilo_boot_iso'] = boot_iso
+        instance_info['boot_iso'] = boot_iso
         instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
         self.node.instance_info = instance_info
         self.node.save()
@@ -520,7 +520,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
         validate_href_mock.side_effect = exception.ImageRefValidationFailed(
             image_href='http://myserver/boot.iso', reason='fail')
         boot_iso = 'http://myserver/boot.iso'
-        instance_info['ilo_boot_iso'] = boot_iso
+        instance_info['boot_iso'] = boot_iso
         instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
         self.node.instance_info = instance_info
         self.node.save()
@@ -537,7 +537,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             self.assertFalse(val_driver_info_mock.called)
             self.assertIn("Virtual media deploy with 'ramdisk' boot_option "
                           "accepts only Glance images or HTTP(S) URLs as "
-                          "instance_info['ilo_boot_iso'].",
+                          "instance_info['boot_iso'].",
                           log_mock.call_args[0][0])
 
     @mock.patch.object(noop_storage.NoopStorage, 'should_write_image',
@@ -587,7 +587,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                               ramdisk_params={'a': 'b'},
                               mode='deploy'):
         instance_info = self.node.instance_info
-        instance_info['ilo_boot_iso'] = ilo_boot_iso
+        instance_info['boot_iso'] = ilo_boot_iso
         instance_info['image_source'] = image_source
         self.node.instance_info = instance_info
         self.node.save()
@@ -635,7 +635,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             image_source='6b2f0c0c-79e8-4db6-842e-43c9764204af',
             mode='rescue')
         self.node.refresh()
-        self.assertNotIn('ilo_boot_iso', self.node.instance_info)
+        self.assertNotIn('boot_iso', self.node.instance_info)
 
     def test_prepare_ramdisk_rescue_not_a_glance_image(self):
         self.node.provision_state = states.RESCUING
@@ -646,7 +646,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             mode='rescue')
         self.node.refresh()
         self.assertEqual('http://mybootiso',
-                         self.node.instance_info['ilo_boot_iso'])
+                         self.node.instance_info['boot_iso'])
 
     def test_prepare_ramdisk_glance_image(self):
         self.node.provision_state = states.DEPLOYING
@@ -655,7 +655,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             ilo_boot_iso='swift:abcdef',
             image_source='6b2f0c0c-79e8-4db6-842e-43c9764204af')
         self.node.refresh()
-        self.assertNotIn('ilo_boot_iso', self.node.instance_info)
+        self.assertNotIn('boot_iso', self.node.instance_info)
 
     def test_prepare_ramdisk_not_a_glance_image(self):
         self.node.provision_state = states.DEPLOYING
@@ -665,7 +665,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             image_source='http://myimage')
         self.node.refresh()
         self.assertEqual('http://mybootiso',
-                         self.node.instance_info['ilo_boot_iso'])
+                         self.node.instance_info['boot_iso'])
 
     def test_prepare_ramdisk_glance_image_cleaning(self):
         self.node.provision_state = states.CLEANING
@@ -674,7 +674,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             ilo_boot_iso='swift:abcdef',
             image_source='6b2f0c0c-79e8-4db6-842e-43c9764204af')
         self.node.refresh()
-        self.assertNotIn('ilo_boot_iso', self.node.instance_info)
+        self.assertNotIn('boot_iso', self.node.instance_info)
 
     def test_prepare_ramdisk_not_a_glance_image_cleaning(self):
         self.node.provision_state = states.CLEANING
@@ -684,7 +684,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             image_source='http://myimage')
         self.node.refresh()
         self.assertEqual('http://mybootiso',
-                         self.node.instance_info['ilo_boot_iso'])
+                         self.node.instance_info['boot_iso'])
 
     @mock.patch.object(ilo_boot, 'prepare_node_for_deploy',
                        spec_set=True, autospec=True)
@@ -752,7 +752,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             set_boot_device_mock.assert_called_once_with(
                 task, boot_devices.CDROM, persistent=True)
             self.assertEqual('boot.iso',
-                             task.node.instance_info['ilo_boot_iso'])
+                             task.node.instance_info['boot_iso'])
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
                        autospec=True)
@@ -1447,13 +1447,13 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             'bootloader': 'bootloader'
         }
         get_img_inst_mock.return_value = {
-            'ilo_boot_iso': 'boot-iso',
+            'boot_iso': 'boot-iso',
             'image_source': '6b2f0c0c-79e8-4db6-842e-43c9764204af'
         }
         instance_info = self.node.instance_info
         driver_info = self.node.driver_info
 
-        instance_info['ilo_boot_iso'] = 'boot-iso'
+        instance_info['boot_iso'] = 'boot-iso'
         instance_info['image_source'] = '6b2f0c0c-79e8-4db6-842e-43c9764204af'
         self.node.instance_info = instance_info
 
@@ -1469,7 +1469,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                 'deploy_kernel': 'deploy-kernel',
                 'deploy_ramdisk': 'deploy-ramdisk',
                 'bootloader': 'bootloader',
-                'ilo_boot_iso': 'boot-iso',
+                'boot_iso': 'boot-iso',
                 'image_source': '6b2f0c0c-79e8-4db6-842e-43c9764204af'
             }
 
@@ -1610,7 +1610,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             self, glance_mock, get_image_inst_mock, validate_image_mock,
             validate_href_mock):
         instance_info = {
-            'ilo_boot_iso': 'boot-iso',
+            'boot_iso': 'boot-iso',
             'image_source': '6b2f0c0c-79e8-4db6-842e-43c9764204af'
         }
         driver_internal_info = self.node.driver_internal_info
@@ -1646,7 +1646,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             validate_href_mock):
 
         instance_info = {
-            'ilo_boot_iso': 'boot-iso',
+            'boot_iso': 'boot-iso',
             'image_source': '6b2f0c0c-79e8-4db6-842e-43c9764204af'
         }
         driver_internal_info = self.node.driver_internal_info
@@ -1681,7 +1681,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             self, glance_mock, get_image_inst_mock, validate_image_mock,
             validate_href_mock):
         instance_info = {
-            'ilo_boot_iso': 'boot-iso',
+            'boot_iso': 'boot-iso',
             'image_source': '6b2f0c0c-79e8-4db6-842e-43c9764204af'
         }
         driver_internal_info = self.node.driver_internal_info or {}
@@ -1714,7 +1714,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         get_boot_mock.return_value = 'UEFI'
         instance_info = self.node.instance_info
 
-        instance_info['ilo_boot_iso'] = 'boot-iso'
+        instance_info['boot_iso'] = 'boot-iso'
         instance_info['image_source'] = '6b2f0c0c-79e8-4db6-842e-43c9764204af'
         self.node.instance_info = instance_info
         self.node.save()
@@ -1767,7 +1767,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         get_boot_mock.return_value = 'UEFI'
         instance_info = self.node.instance_info
         boot_iso = '6b2f0c0c-79e8-4db6-842e-43c9764204af'
-        instance_info['ilo_boot_iso'] = boot_iso
+        instance_info['boot_iso'] = boot_iso
         instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
         self.node.instance_info = instance_info
         self.node.save()
@@ -1794,7 +1794,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         get_boot_mock.return_value = 'UEFI'
         instance_info = self.node.instance_info
         boot_iso = 'http://myserver/boot.iso'
-        instance_info['ilo_boot_iso'] = boot_iso
+        instance_info['boot_iso'] = boot_iso
         instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
         self.node.instance_info = instance_info
         self.node.save()
@@ -1824,7 +1824,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         validate_href_mock.side_effect = exception.ImageRefValidationFailed(
             image_href='http://myserver/boot.iso', reason='fail')
         boot_iso = 'http://myserver/boot.iso'
-        instance_info['ilo_boot_iso'] = boot_iso
+        instance_info['boot_iso'] = boot_iso
         instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
         self.node.instance_info = instance_info
         self.node.save()
@@ -1841,7 +1841,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             self.assertFalse(val_driver_info_mock.called)
             self.assertIn("UEFI-HTTPS boot with 'ramdisk' boot_option "
                           "accepts only Glance images or HTTPS URLs as "
-                          "instance_info['ilo_boot_iso'].",
+                          "instance_info['boot_iso'].",
                           log_mock.call_args[0][0])
 
     @mock.patch.object(ilo_boot.IloUefiHttpsBoot, '_validate_driver_info',
@@ -1886,7 +1886,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         self.node.provision_state = state
         self.node.save()
         instance_info = self.node.instance_info
-        instance_info['ilo_boot_iso'] = ilo_boot_iso
+        instance_info['boot_iso'] = ilo_boot_iso
         instance_info['image_source'] = image_source
         self.node.instance_info = instance_info
         self.node.save()
@@ -1927,7 +1927,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             image_source='6b2f0c0c-79e8-4db6-842e-43c9764204af',
             mode='rescue', state=states.RESCUING)
         self.node.refresh()
-        self.assertNotIn('ilo_boot_iso', self.node.instance_info)
+        self.assertNotIn('boot_iso', self.node.instance_info)
 
     def test_prepare_ramdisk_rescue_not_a_glance_image(self):
         self._test_prepare_ramdisk(
@@ -1936,14 +1936,14 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             mode='rescue', state=states.RESCUING)
         self.node.refresh()
         self.assertEqual('http://mybootiso',
-                         self.node.instance_info['ilo_boot_iso'])
+                         self.node.instance_info['boot_iso'])
 
     def test_prepare_ramdisk_glance_image(self):
         self._test_prepare_ramdisk(
             ilo_boot_iso='swift:abcdef',
             image_source='6b2f0c0c-79e8-4db6-842e-43c9764204af')
         self.node.refresh()
-        self.assertNotIn('ilo_boot_iso', self.node.instance_info)
+        self.assertNotIn('boot_iso', self.node.instance_info)
 
     def test_prepare_ramdisk_not_a_glance_image(self):
         self._test_prepare_ramdisk(
@@ -1951,7 +1951,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             image_source='http://myimage')
         self.node.refresh()
         self.assertEqual('http://mybootiso',
-                         self.node.instance_info['ilo_boot_iso'])
+                         self.node.instance_info['boot_iso'])
 
     def test_prepare_ramdisk_glance_image_cleaning(self):
         self._test_prepare_ramdisk(
@@ -1959,7 +1959,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             image_source='6b2f0c0c-79e8-4db6-842e-43c9764204af',
             mode='deploy', state=states.CLEANING)
         self.node.refresh()
-        self.assertNotIn('ilo_boot_iso', self.node.instance_info)
+        self.assertNotIn('boot_iso', self.node.instance_info)
 
     def test_prepare_ramdisk_not_a_glance_image_cleaning(self):
         self._test_prepare_ramdisk(
@@ -1968,7 +1968,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             mode='deploy', state=states.CLEANING)
         self.node.refresh()
         self.assertEqual('http://mybootiso',
-                         self.node.instance_info['ilo_boot_iso'])
+                         self.node.instance_info['boot_iso'])
 
     @mock.patch.object(image_utils, 'cleanup_iso_image', spec_set=True,
                        autospec=True)
@@ -2058,7 +2058,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             update_secureboot_mock.assert_called_once_with(task)
             setup_uefi_https_mock.assert_called_once_with(
                 task, "recreated-iso", True)
-            self.assertEqual(task.node.instance_info['ilo_boot_iso'],
+            self.assertEqual(task.node.instance_info['boot_iso'],
                              "recreated-iso")
 
     @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
@@ -2100,7 +2100,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             update_secureboot_mock.assert_called_once_with(task)
             setup_uefi_https_mock.assert_called_once_with(
                 task, "recreated-iso", True)
-            self.assertTrue('ilo_boot_iso' not in task.node.instance_info)
+            self.assertTrue('boot_iso' not in task.node.instance_info)
 
     @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
                        spec_set=True, autospec=True)

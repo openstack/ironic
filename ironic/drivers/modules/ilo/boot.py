@@ -124,7 +124,7 @@ def _get_boot_iso(task, root_uuid):
     """This method returns a boot ISO to boot the node.
 
     It chooses one of the three options in the order as below:
-    1. Does nothing if 'ilo_boot_iso' is present in node's instance_info.
+    1. Does nothing if 'boot_iso' is present in node's instance_info.
     2. Image deployed has a meta-property 'boot_iso' in Glance. This should
        refer to the UUID of the boot_iso which exists in Glance.
     3. Returns a boot ISO created on the fly using kernel and ramdisk
@@ -146,16 +146,18 @@ def _get_boot_iso(task, root_uuid):
         value in the node's driver_info or instance_info.
     :raises: SwiftOperationError, if operation with Swift fails.
     :raises: ImageCreationFailed, if creation of boot ISO failed.
-    :raises: exception.ImageRefValidationFailed if ilo_boot_iso is not
+    :raises: exception.ImageRefValidationFailed if boot_iso is not
         HTTP(S) URL.
     """
     LOG.debug("Trying to get a boot ISO to boot the baremetal node")
 
-    # Option 1 - Check if user has provided ilo_boot_iso in node's
+    # Option 1 - Check if user has provided boot_iso in node's
     # instance_info
-    if task.node.instance_info.get('ilo_boot_iso'):
-        LOG.debug("Using ilo_boot_iso provided in node's instance_info")
-        boot_iso = task.node.instance_info['ilo_boot_iso']
+    boot_iso = driver_utils.get_field(task.node, 'boot_iso',
+                                      deprecated_prefix='ilo',
+                                      collection='instance_info')
+    if boot_iso:
+        LOG.debug("Using boot_iso provided in node's instance_info")
         if not service_utils.is_glance_image(boot_iso):
             try:
                 image_service.HttpImageService().validate_href(boot_iso)
@@ -163,11 +165,11 @@ def _get_boot_iso(task, root_uuid):
                 with excutils.save_and_reraise_exception():
                     LOG.error("Virtual media deploy accepts only Glance "
                               "images or HTTP(S) URLs as "
-                              "instance_info['ilo_boot_iso']. Either %s "
+                              "instance_info['boot_iso']. Either %s "
                               "is not a valid HTTP(S) URL or is "
                               "not reachable.", boot_iso)
 
-        return task.node.instance_info['ilo_boot_iso']
+        return boot_iso
 
     # Option 2 - Check if user has provided a boot_iso in Glance. If boot_iso
     # is a supported non-glance href execution will proceed to option 3.
@@ -339,8 +341,10 @@ class IloVirtualMediaBoot(base.BootInterface):
         """
         node = task.node
         boot_option = deploy_utils.get_boot_option(node)
-        boot_iso = node.instance_info.get('ilo_boot_iso')
-        if (boot_option == "ramdisk" and boot_iso):
+        boot_iso = driver_utils.get_field(node, 'boot_iso',
+                                          deprecated_prefix='ilo',
+                                          collection='instance_info')
+        if boot_option == "ramdisk" and boot_iso:
             if not service_utils.is_glance_image(boot_iso):
                 try:
                     image_service.HttpImageService().validate_href(boot_iso)
@@ -349,7 +353,7 @@ class IloVirtualMediaBoot(base.BootInterface):
                         LOG.error("Virtual media deploy with 'ramdisk' "
                                   "boot_option accepts only Glance images or "
                                   "HTTP(S) URLs as "
-                                  "instance_info['ilo_boot_iso']. Either %s "
+                                  "instance_info['boot_iso']. Either %s "
                                   "is not a valid HTTP(S) URL or is not "
                                   "reachable.", boot_iso)
             return
@@ -409,12 +413,13 @@ class IloVirtualMediaBoot(base.BootInterface):
 
         prepare_node_for_deploy(task)
 
-        # Clear ilo_boot_iso if it's a glance image to force recreate
+        # Clear boot_iso if it's a glance image to force recreate
         # another one again (or use existing one in glance).
         # This is mainly for rebuild and rescue scenario.
         if service_utils.is_glance_image(
                 node.instance_info.get('image_source')):
             instance_info = node.instance_info
+            instance_info.pop('boot_iso', None)
             instance_info.pop('ilo_boot_iso', None)
             node.instance_info = instance_info
             node.save()
@@ -584,7 +589,7 @@ class IloVirtualMediaBoot(base.BootInterface):
                                            persistent=True)
 
         i_info = node.instance_info
-        i_info['ilo_boot_iso'] = boot_iso
+        i_info['boot_iso'] = boot_iso
         node.instance_info = i_info
         node.save()
 
@@ -951,8 +956,10 @@ class IloUefiHttpsBoot(base.BootInterface):
                       "The node is required to be in 'UEFI' boot mode.")
             raise exception.InvalidParameterValue(error)
 
-        boot_iso = node.instance_info.get('ilo_boot_iso')
-        if (boot_option == "ramdisk" and boot_iso):
+        boot_iso = driver_utils.get_field(node, 'boot_iso',
+                                          deprecated_prefix='ilo',
+                                          collection='instance_info')
+        if boot_option == "ramdisk" and boot_iso:
             if not service_utils.is_glance_image(boot_iso):
                 try:
                     image_service.HttpImageService().validate_href(boot_iso)
@@ -961,7 +968,7 @@ class IloUefiHttpsBoot(base.BootInterface):
                         LOG.error("UEFI-HTTPS boot with 'ramdisk' "
                                   "boot_option accepts only Glance images or "
                                   "HTTPS URLs as "
-                                  "instance_info['ilo_boot_iso']. Either %s "
+                                  "instance_info['boot_iso']. Either %s "
                                   "is not a valid HTTPS URL or is not "
                                   "reachable.", boot_iso)
             return
@@ -1018,12 +1025,13 @@ class IloUefiHttpsBoot(base.BootInterface):
 
         prepare_node_for_deploy(task)
 
-        # Clear ilo_boot_iso if it's a glance image to force recreate
+        # Clear boot_iso if it's a glance image to force recreate
         # another one again (or use existing one in glance).
         # This is mainly for rebuild and rescue scenario.
         if service_utils.is_glance_image(
                 node.instance_info.get('image_source')):
             instance_info = node.instance_info
+            instance_info.pop('boot_iso', None)
             instance_info.pop('ilo_boot_iso', None)
             node.instance_info = instance_info
             node.save()
@@ -1129,7 +1137,7 @@ class IloUefiHttpsBoot(base.BootInterface):
 
         if boot_option != 'ramdisk':
             i_info = node.instance_info
-            i_info['ilo_boot_iso'] = iso_ref
+            i_info['boot_iso'] = iso_ref
             node.instance_info = i_info
             node.save()
 
