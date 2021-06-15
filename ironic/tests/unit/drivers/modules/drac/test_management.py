@@ -806,7 +806,7 @@ class DracManagementTestCase(test_utils.BaseDracTest):
             mock_client.reset_idrac.assert_called_once_with(
                 force=True, wait=True)
             mock_client.delete_jobs.assert_called_once_with(
-                job_ids=['JID_CLEARALL_FORCE'])
+                job_ids=['JID_CLEARALL'])
 
             self.assertIsNone(return_value)
 
@@ -818,6 +818,6 @@ class DracManagementTestCase(test_utils.BaseDracTest):
                                   shared=False) as task:
             return_value = task.driver.management.clear_job_queue(task)
             mock_client.delete_jobs.assert_called_once_with(
-                job_ids=['JID_CLEARALL_FORCE'])
+                job_ids=['JID_CLEARALL'])
 
             self.assertIsNone(return_value)
