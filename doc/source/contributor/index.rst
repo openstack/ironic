@@ -11,6 +11,7 @@ project.
 .. toctree::
   :maxdepth: 1
 
+  Bare Metal Community <community>
   Developer Contribution Guide <contributing>
   Bugs Reporting and Triaging Guide <bugs>
   Setting Up Your Development Environment <dev-quickstart>

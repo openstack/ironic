@@ -24,7 +24,9 @@ Reporting Guide
 We are constantly receiving a lot of requests, so it's important to file a
 meaningful story for it to be acted upon. A good story:
 
-* specifies **why** a change is needed.
+* specifies **why** a change is needed. In case of a bug - what you expected
+  to happen.
+
 * explains how to reproduce the described condition.
 
   .. note::
@@ -35,7 +37,12 @@ meaningful story for it to be acted upon. A good story:
      a product, please try contacting support first.
 
 * should be understandable without additional context. For example, if you see
-  an exception, we will need the full traceback.
+  an exception, we will need the full traceback. Other commonly required
+  things are:
+
+  * the contents of the node in question (use ``baremetal node show <uuid>``)
+  * debug logging related to the event, ideally with logs from the ramdisk
+  * versions of ironic, ironic-python-agent, and any other coupled components.
 
 * should not be too verbose either. Unfortunately, we cannot process a few days
   worth of system logs to find the problems, we expect your collaboration.

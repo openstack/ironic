@@ -6,10 +6,11 @@ So You Want to Contribute...
 
 This document provides some necessary points for developers to consider when
 writing and reviewing Ironic code. The checklist will help developers get
-things right.
+things right. Please make sure to check the :doc:`community page <community>`
+first.
 
-Getting Started
-===============
+Contributing Code
+=================
 
 If you're completely new to OpenStack and want to contribute to the ironic
 project, please start by familiarizing yourself with the `Infra Team's Developer
@@ -18,44 +19,8 @@ help you get your accounts set up in Launchpad and Gerrit, familiarize you with
 the workflow for the OpenStack continuous integration and testing systems, and
 help you with your first commit.
 
-LaunchPad
----------
-
-Most of the tools used for OpenStack require a launchpad.net ID for
-authentication. Ironic previously used to track work on Launchpad,
-but we have not done so since migrating to Storyboard.
-
-.. seealso::
-
-   * https://launchpad.net
-
-Storyboard
-----------
-
-The ironic project moved from Launchpad to `StoryBoard
-<https://storyboard.openstack.org/>`_ for work and task tracking.
-This provides an aggregate view called a "Project Group"
-and individual "Projects". A good starting place is the
-`project group <https://storyboard.openstack.org/#!/project_group/ironic>`_
-representing the whole of the ironic community, as opposed to
-the `ironic project <https://storyboard.openstack.org/#!/project/943>`_
-storyboard which represents ironic as a repository.
-
-See :doc:`bugs` for more details on how we track bugs.
-
-Internet Relay Chat 'IRC'
--------------------------
-
-Daily contributor discussions take place on IRC in the '#openstack-ironic'
-channel on the OFTC IRC network.
-
-Please feel free to join us at ircs://irc.oftc.net:6697 and join our channel!
-
-Additional information on getting connected can be found in the
-`OpenStack community contribution guide <https://docs.openstack.org/contributors/common/irc.html>`_.
-
 Everything Ironic
-~~~~~~~~~~~~~~~~~
+-----------------
 
 Ironic is a community of projects centered around the primary project
 repository 'ironic', which help facilitate the deployment and management
@@ -80,28 +45,6 @@ which are developed by the same community.
    * :ironic-python-agent-doc:`Ironic Python Agent (IPA) Documentation <>`
    * :python-ironicclient-doc:`Ironic Client Documentation <>`
    * :python-ironic-inspector-client-doc:`Ironic Inspector Client Documentation <>`
-
-Useful Links
-------------
-
-Bug/Task tracker
-    https://storyboard.openstack.org/#!/project/943
-
-Mailing list (prefix Subject line with ``[ironic]``)
-    http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-discuss
-
-Code Hosting
-    https://opendev.org/openstack/ironic
-
-Code Review
-    https://review.opendev.org/#/q/status:open+project:openstack/ironic,n,z
-
-Whiteboard
-    https://etherpad.openstack.org/p/IronicWhiteBoard
-
-Weekly Meeting Agenda
-    https://wiki.openstack.org/wiki/Meetings/Ironic#Agenda_for_next_meeting
-
 
 Adding New Features
 ===================
@@ -364,24 +307,6 @@ For approved and completed specs:
 
 Please see the `Ironic specs process wiki page <https://wiki.openstack.org/
 wiki/Ironic/Specs_Process>`_ for further reference.
-
-Bug Reporting
-=============
-
-Bugs can reported via our Task and Bug tracking tool Storyboard.
-
-When filing bugs, please include as much detail as possible, and don't be shy.
-
-Essential pieces of information are generally:
-
-* Contents of the 'node' - `baremetal node show <uuid>`
-* Steps to reproduce the issue.
-* Exceptions and surrounding lines from the logs.
-* Versions of ironic, ironic-python-agent, and any other coupled components.
-
-Please also set your expectations of what *should* be happening.
-Statements of user expectations are how we understand what is occuring and
-how we learn new use cases!
 
 Project Team Leader Duties
 ==========================
