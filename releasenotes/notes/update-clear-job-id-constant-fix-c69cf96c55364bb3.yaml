@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue of powering off with the ``idrac-wsman`` management
+    interface while the execution of a clear job queue cleaning step is
+    proceeding.
+    Prior to this fix, the clean step would fail when powering off a node.

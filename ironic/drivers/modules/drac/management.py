@@ -79,7 +79,7 @@ _DRAC_BOOT_MODES = ['Bios', 'Uefi']
 _NON_PERSISTENT_BOOT_MODE = 'OneTime'
 
 # Clear job id's constant
-_CLEAR_JOB_IDS = 'JID_CLEARALL_FORCE'
+_CLEAR_JOB_IDS = 'JID_CLEARALL'
 
 # Clean steps constant
 _CLEAR_JOBS_CLEAN_STEPS = ['clear_job_queue', 'known_good_state']
