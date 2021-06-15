@@ -14,6 +14,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import os
 import tempfile
 from unittest import mock
@@ -1503,9 +1504,6 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
             expected_pxe_params = 'test_param'
         if debug:
             expected_pxe_params += ' ipa-debug=1'
-        if ramdisk_params:
-            expected_pxe_params += ' ' + ' '.join(
-                '%s=%s' % tpl for tpl in ramdisk_params.items())
         expected_pxe_params += (
             " ipa-global-request-id=%s" % self.context.global_id)
 
@@ -1573,8 +1571,11 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                                                 expected_pxe_params='params2')
 
     def test_build_pxe_config_options_ramdisk_params(self):
-        self._test_build_pxe_config_options_pxe(whle_dsk_img=True,
-                                                ramdisk_params={'foo': 'bar'})
+        self._test_build_pxe_config_options_pxe(
+            whle_dsk_img=True,
+            ramdisk_params=collections.OrderedDict([('foo', 'bar'),
+                                                    ('banana', None)]),
+            expected_pxe_params='test_param foo=bar banana')
 
     def test_build_pxe_config_options_pxe_no_kernel_no_ramdisk(self):
         del self.node.driver_internal_info['is_whole_disk_image']
