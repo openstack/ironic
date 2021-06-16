@@ -709,6 +709,81 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('retired_reason', data['nodes'][0])
         self.assertIn('network_data', data['nodes'][0])
 
+    def test_detail_instance_uuid(self):
+        instance_uuid = '6eccd391-961c-4da5-b3c5-e2fa5cfbbd9d'
+        node = obj_utils.create_test_node(
+            self.context,
+            instance_uuid=instance_uuid)
+        data = self.get_json(
+            '/nodes/detail?instance_uuid=%s' % instance_uuid,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(1, len(data['nodes']))
+        self.assertEqual(node.uuid, data['nodes'][0]["uuid"])
+        expected_fields = [
+            'name', 'driver', 'driver_info', 'extra', 'chassis_uuid',
+            'reservation', 'maintenance', 'console_enabled',
+            'target_power_state', 'target_provision_state',
+            'provision_updated_at', 'inspection_finished_at',
+            'inspection_started_at', 'raid_config', 'target_raid_config',
+            'network_interface', 'resource_class', 'owner', 'lessee',
+            'storage_interface', 'traits', 'automated_clean',
+            'conductor_group', 'protected', 'protected_reason',
+            'retired', 'retired_reason', 'allocation_uuid', 'network_data'
+        ]
+
+        for field in expected_fields:
+            self.assertIn(field, data['nodes'][0])
+        for field in api_utils.V31_FIELDS:
+            self.assertIn(field, data['nodes'][0])
+        # never expose the chassis_id
+        self.assertNotIn('chassis_id', data['nodes'][0])
+        self.assertNotIn('allocation_id', data['nodes'][0])
+        # no pagination marker should be present
+        self.assertNotIn('next', data)
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_detail_instance_uuid_project_not_match(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:node:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        instance_uuid = '6eccd391-961c-4da5-b3c5-e2fa5cfbbd9d'
+        requestor_uuid = '46c0bf8a-846d-49a5-9724-5a61a5efa6bf'
+        obj_utils.create_test_node(
+            self.context,
+            owner='97879042-c0bf-4216-882a-66a7cbf2bd74',
+            instance_uuid=instance_uuid)
+        data = self.get_json(
+            '/nodes/detail?instance_uuid=%s' % instance_uuid,
+            headers={'X-Project-ID': requestor_uuid,
+                     api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(0, len(data['nodes']))
+
+    @mock.patch.object(policy, 'authorize', spec=True)
+    def test_detail_instance_uuid_project_match(self, mock_authorize):
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:node:list_all':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+
+        instance_uuid = '6eccd391-961c-4da5-b3c5-e2fa5cfbbd9d'
+        requestor_uuid = '46c0bf8a-846d-49a5-9724-5a61a5efa6bf'
+        node = obj_utils.create_test_node(
+            self.context,
+            owner=requestor_uuid,
+            instance_uuid=instance_uuid)
+        data = self.get_json(
+            '/nodes/detail?instance_uuid=%s' % instance_uuid,
+            headers={'X-Project-ID': requestor_uuid,
+                     api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(1, len(data['nodes']))
+        # Assert we did get the node and it matched.
+        self.assertEqual(node.uuid, data['nodes'][0]["uuid"])
+        self.assertEqual(node.owner, data['nodes'][0]["owner"])
+
     def test_detail_using_query(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
