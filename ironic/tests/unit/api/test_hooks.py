@@ -220,13 +220,11 @@ class TestContextHook(base.BaseApiTest):
         mock_ctx.from_environ.return_value = ctx
         policy_dict = {'user_id': 'foo'}  # Lots of other values here
         ctx.to_policy_values.return_value = policy_dict
-        mock_policy.return_value = is_admin
+        mock_policy.return_value = False
         context_hook.before(reqstate)
         creds_dict = {'is_public_api': is_public_api}
         mock_ctx.from_environ.assert_called_once_with(environ, **creds_dict)
-        mock_policy.assert_called_once_with('is_admin', policy_dict,
-                                            policy_dict)
-        self.assertIs(is_admin, ctx.is_admin)
+        mock_policy.assert_not_called()
         if auth_strategy == 'noauth':
             self.assertIsNone(ctx.auth_token)
         return context_hook, reqstate
@@ -234,18 +232,14 @@ class TestContextHook(base.BaseApiTest):
     def test_context_hook_not_admin(self):
         self._test_context_hook()
 
-    def test_context_hook_admin(self):
-        self._test_context_hook(is_admin=True)
-
     def test_context_hook_public_api(self):
-        self._test_context_hook(is_admin=True, is_public_api=True)
+        self._test_context_hook(is_public_api=True)
 
     def test_context_hook_noauth_token_removed(self):
         self._test_context_hook(auth_strategy='noauth')
 
     def test_context_hook_after_add_request_id(self):
-        context_hook, reqstate = self._test_context_hook(is_admin=True,
-                                                         request_id='fake-id')
+        context_hook, reqstate = self._test_context_hook(request_id='fake-id')
         context_hook.after(reqstate)
         self.assertEqual('fake-id',
                          reqstate.response.headers['Openstack-Request-Id'])
