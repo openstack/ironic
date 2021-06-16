@@ -1761,74 +1761,59 @@ class NodesController(rest.RestController):
 
         # The query parameters for the 'next' URL
         parameters = {}
+        possible_filters = {
+            'maintenance': maintenance,
+            'chassis_uuid': chassis_uuid,
+            'associated': associated,
+            'provision_state': provision_state,
+            'driver': driver,
+            'resource_class': resource_class,
+            'fault': fault,
+            'conductor_group': conductor_group,
+            'owner': owner,
+            'lessee': lessee,
+            'project': project,
+            'description_contains': description_contains,
+            'retired': retired,
+            'instance_uuid': instance_uuid
+        }
+        filters = {}
+        for key, value in possible_filters.items():
+            if value is not None:
+                filters[key] = value
 
-        if instance_uuid:
-            # NOTE(rloo) if instance_uuid is specified, the other query
-            # parameters are ignored. Since there can be at most one node that
-            # has this instance_uuid, we do not want to generate a 'next' link.
+        nodes = objects.Node.list(api.request.context, limit, marker_obj,
+                                  sort_key=sort_key, sort_dir=sort_dir,
+                                  filters=filters)
 
-            nodes = self._get_nodes_by_instance(instance_uuid)
+        # Special filtering on results based on conductor field
+        if conductor:
+            nodes = self._filter_by_conductor(nodes, conductor)
 
-            # NOTE(rloo) if limit==1 and len(nodes)==1 (see
-            # Collection.has_next()), a 'next' link will
-            # be generated, which we don't want.
-            limit = 0
-        else:
-            possible_filters = {
-                'maintenance': maintenance,
-                'chassis_uuid': chassis_uuid,
-                'associated': associated,
-                'provision_state': provision_state,
-                'driver': driver,
-                'resource_class': resource_class,
-                'fault': fault,
-                'conductor_group': conductor_group,
-                'owner': owner,
-                'lessee': lessee,
-                'project': project,
-                'description_contains': description_contains,
-                'retired': retired,
-            }
-            filters = {}
-            for key, value in possible_filters.items():
-                if value is not None:
-                    filters[key] = value
-
-            nodes = objects.Node.list(api.request.context, limit, marker_obj,
-                                      sort_key=sort_key, sort_dir=sort_dir,
-                                      filters=filters)
-
-            # Special filtering on results based on conductor field
-            if conductor:
-                nodes = self._filter_by_conductor(nodes, conductor)
-
-            parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
-            if associated:
-                parameters['associated'] = associated
-            if maintenance:
-                parameters['maintenance'] = maintenance
-            if retired:
-                parameters['retired'] = retired
+        parameters = {'sort_key': sort_key, 'sort_dir': sort_dir}
+        if associated:
+            parameters['associated'] = associated
+        if maintenance:
+            parameters['maintenance'] = maintenance
+        if retired:
+            parameters['retired'] = retired
 
         if detail is not None:
             parameters['detail'] = detail
+        if instance_uuid:
+            # NOTE(rloo) if limit==1 and len(nodes)==1 (see
+            # Collection.has_next()), a 'next' link will
+            # be generated, which we don't want.
+            # NOTE(TheJulia): This is done after the query as
+            # instance_uuid is a unique constraint in the DB
+            # and we cannot pass a limit of 0 to sqlalchemy
+            # and expect a response.
+            limit = 0
 
         return node_list_convert_with_links(nodes, limit,
                                             url=resource_url,
                                             fields=fields,
                                             **parameters)
-
-    def _get_nodes_by_instance(self, instance_uuid):
-        """Retrieve a node by its instance uuid.
-
-        It returns a list with the node, or an empty list if no node is found.
-        """
-        try:
-            node = objects.Node.get_by_instance_uuid(api.request.context,
-                                                     instance_uuid)
-            return [node]
-        except exception.InstanceNotFound:
-            return []
 
     def _check_names_acceptable(self, names, error_msg):
         """Checks all node 'name's are acceptable, it does not return a value.
