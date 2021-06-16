@@ -167,7 +167,6 @@ class TestListNodes(test_api_base.BaseApiTest):
             mock.call('baremetal:node:get:filter_threshold',
                       mock.ANY, mock.ANY)])
         mock_check.assert_has_calls([
-            mock.call('is_admin', mock.ANY, mock.ANY),
             mock.call('show_password', mock.ANY, mock.ANY),
             mock.call('show_instance_secrets', mock.ANY, mock.ANY),
             # Last error is populated above and should trigger a check.

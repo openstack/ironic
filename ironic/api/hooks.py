@@ -100,9 +100,6 @@ class ContextHook(hooks.PecanHook):
         if cfg.CONF.auth_strategy != 'keystone':
             ctx.auth_token = None
 
-        creds = ctx.to_policy_values()
-        is_admin = policy.check('is_admin', creds, creds)
-        ctx.is_admin = is_admin
         policy_deprecation_check()
 
         state.request.context = ctx
