@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    The ``driver_info`` properties ``irmc_deploy_iso`` and ``irmc_rescue_iso``
+    have been renamed to just ``deploy_iso`` and ``rescue_iso``.
+  - |
+    The ``instance_info`` property ``irmc_boot_iso`` has been renamed to just
+    ``boot_iso``.

@@ -129,11 +129,16 @@ Node configuration
 * The following properties are also required if ``irmc-virtual-media`` boot
   interface is used:
 
-  - ``driver_info/irmc_deploy_iso`` property to be either deploy iso
+  - ``driver_info/deploy_iso`` property to be either deploy iso
     file name, Glance UUID, or Image Service URL.
-  - ``instance info/irmc_boot_iso`` property to be either boot iso
+  - ``instance info/boot_iso`` property to be either boot iso
     file name, Glance UUID, or Image Service URL. This is optional
     property when ``boot_option`` is set to ``netboot``.
+
+  .. note::
+     The ``deploy_iso`` and ``boot_iso`` properties used to be called
+     ``irmc_deploy_iso`` and ``irmc_boot_iso`` accordingly before the Xena
+     release.
 
 * All of the nodes are configured by setting the following configuration
   options in the ``[irmc]`` section of ``/etc/ironic/ironic.conf``:

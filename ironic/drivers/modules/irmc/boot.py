@@ -58,14 +58,13 @@ LOG = logging.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 REQUIRED_PROPERTIES = {
-    'irmc_deploy_iso': _("Deployment ISO image file name. "
-                         "Required."),
+    'deploy_iso': _("Deployment ISO image file name. Required."),
 }
 
 RESCUE_PROPERTIES = {
-    'irmc_rescue_iso': _("UUID (from Glance) of the rescue ISO. Only "
-                         "required if rescue mode is being used and ironic "
-                         "is managing booting the rescue ramdisk.")
+    'rescue_iso': _("UUID (from Glance) of the rescue ISO. Only "
+                    "required if rescue mode is being used and ironic "
+                    "is managing booting the rescue ramdisk.")
 }
 
 OPTIONAL_PROPERTIES = {
@@ -146,15 +145,11 @@ def _parse_driver_info(node, mode='deploy'):
     :raises: InvalidParameterValue, if any of the parameters have invalid
         value.
     """
-    d_info = node.driver_info
     deploy_info = {}
 
-    if mode == 'deploy':
-        image_iso = d_info.get('irmc_deploy_iso')
-        deploy_info['irmc_deploy_iso'] = image_iso
-    else:
-        image_iso = d_info.get('irmc_rescue_iso')
-        deploy_info['irmc_rescue_iso'] = image_iso
+    image_iso = driver_utils.get_agent_iso(node, mode,
+                                           deprecated_prefix='irmc')
+    deploy_info[f'{mode}_iso'] = image_iso
 
     error_msg = (_("Error validating iRMC virtual media for %s. Some "
                    "parameters were missing in node's driver_info") % mode)
@@ -195,16 +190,17 @@ def _parse_instance_info(node):
     :raises: InvalidParameterValue, if any of the parameters have invalid
         value.
     """
-    i_info = node.instance_info
     deploy_info = {}
 
-    if i_info.get('irmc_boot_iso'):
-        deploy_info['irmc_boot_iso'] = i_info['irmc_boot_iso']
+    boot_iso = driver_utils.get_field(node, 'boot_iso',
+                                      deprecated_prefix='irmc',
+                                      collection='instance_info')
+    if boot_iso:
+        deploy_info['boot_iso'] = boot_iso
 
-        if _is_image_href_ordinary_file_name(
-                deploy_info['irmc_boot_iso']):
+        if _is_image_href_ordinary_file_name(boot_iso):
             boot_iso = os.path.join(CONF.irmc.remote_image_share_root,
-                                    deploy_info['irmc_boot_iso'])
+                                    boot_iso)
 
             if not os.path.isfile(boot_iso):
                 msg = (_("Boot ISO file, %(boot_iso)s, "
@@ -256,11 +252,7 @@ def _setup_vmedia(task, mode, ramdisk_options):
     :raises: InvalidParameterValue if the validation of the
         PowerInterface or ManagementInterface fails.
     """
-
-    if mode == 'rescue':
-        iso = task.node.driver_info['irmc_rescue_iso']
-    else:
-        iso = task.node.driver_info['irmc_deploy_iso']
+    iso = driver_utils.get_agent_iso(task.node, mode, deprecated_prefix='irmc')
 
     if _is_image_href_ordinary_file_name(iso):
         iso_file = iso
@@ -299,17 +291,17 @@ def _prepare_boot_iso(task, root_uuid):
     driver_internal_info = task.node.driver_internal_info
 
     # fetch boot iso
-    if deploy_info.get('irmc_boot_iso'):
-        boot_iso_href = deploy_info['irmc_boot_iso']
+    if deploy_info.get('boot_iso'):
+        boot_iso_href = deploy_info['boot_iso']
         if _is_image_href_ordinary_file_name(boot_iso_href):
-            driver_internal_info['irmc_boot_iso'] = boot_iso_href
+            driver_internal_info['boot_iso'] = boot_iso_href
         else:
             boot_iso_filename = _get_iso_name(task.node, label='boot')
             boot_iso_fullpathname = os.path.join(
                 CONF.irmc.remote_image_share_root, boot_iso_filename)
             images.fetch(task.context, boot_iso_href, boot_iso_fullpathname)
 
-            driver_internal_info['irmc_boot_iso'] = boot_iso_filename
+            driver_internal_info['boot_iso'] = boot_iso_filename
 
     # create boot iso
     else:
@@ -322,7 +314,7 @@ def _prepare_boot_iso(task, root_uuid):
         ramdisk_href = (task.node.instance_info.get('ramdisk')
                         or image_properties['ramdisk_id'])
 
-        deploy_iso_href = deploy_info['irmc_deploy_iso']
+        deploy_iso_href = deploy_info['deploy_iso']
         boot_mode = boot_mode_utils.get_boot_mode(task.node)
         kernel_params = deploy_info['kernel_append_params']
 
@@ -337,9 +329,9 @@ def _prepare_boot_iso(task, root_uuid):
                                kernel_params=kernel_params,
                                boot_mode=boot_mode)
 
-        driver_internal_info['irmc_boot_iso'] = boot_iso_filename
+        driver_internal_info['boot_iso'] = boot_iso_filename
 
-    # save driver_internal_info['irmc_boot_iso']
+    # save driver_internal_info['boot_iso']
     task.node.driver_internal_info = driver_internal_info
     task.node.save()
 
@@ -388,7 +380,7 @@ def attach_boot_iso_if_needed(task):
     """Attaches boot ISO for a deployed node if it exists.
 
     This method checks the instance info of the bare metal node for a
-    boot ISO. If the instance info has a value of key 'irmc_boot_iso',
+    boot ISO. If the instance info has a value of key 'boot_iso',
     it indicates that 'boot_option' is 'netboot'. Threfore it attaches
     the boot ISO on the bare metal node and then sets the node to boot from
     virtual media cdrom.
@@ -401,8 +393,10 @@ def attach_boot_iso_if_needed(task):
     d_info = task.node.driver_internal_info
     node_state = task.node.provision_state
 
-    if 'irmc_boot_iso' in d_info and node_state == states.ACTIVE:
-        _setup_vmedia_for_boot(task, d_info['irmc_boot_iso'])
+    # Internal field, no deprecation
+    boot_iso = d_info.get('boot_iso') or d_info.get('irmc_boot_iso')
+    if boot_iso and node_state == states.ACTIVE:
+        _setup_vmedia_for_boot(task, boot_iso)
         manager_utils.node_set_boot_device(task, boot_devices.CDROM)
 
 
@@ -1087,6 +1081,7 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
 
         _remove_share_file(_get_iso_name(task.node, label='boot'))
         driver_internal_info = task.node.driver_internal_info
+        driver_internal_info.pop('boot_iso', None)
         driver_internal_info.pop('irmc_boot_iso', None)
 
         task.node.driver_internal_info = driver_internal_info
@@ -1098,7 +1093,7 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
         node = task.node
         _prepare_boot_iso(task, root_uuid_or_disk_id)
         _setup_vmedia_for_boot(
-            task, node.driver_internal_info['irmc_boot_iso'])
+            task, node.driver_internal_info['boot_iso'])
         manager_utils.node_set_boot_device(task, boot_devices.CDROM,
                                            persistent=True)
 
