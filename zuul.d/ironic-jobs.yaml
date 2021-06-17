@@ -357,6 +357,22 @@
     parent: ironic-base
     required-projects:
       - opendev.org/openstack/ironic-inspector
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^driver-requirements.txt$
+      - ^install-guide/.*$
+      - ^ironic/locale/.*$
+      - ^ironic/tests/.*$
+      # This job is also run on inspector
+      - ^ironic_inspector/locale/.*$
+      - ^ironic_inspector/test/.*$
+      - ^releasenotes/.*$
+      - ^setup.cfg$
+      - ^test-requirements.txt$
+      - ^tools/.*$
+      - ^tox.ini$
     vars:
       tempest_test_regex: InspectorBasicTest
       devstack_localrc:
