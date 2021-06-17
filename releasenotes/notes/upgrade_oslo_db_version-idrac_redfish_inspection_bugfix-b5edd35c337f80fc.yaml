@@ -1,0 +1,23 @@
+---
+fixes:
+  - |
+    Fixes issue arose during inspection of iDRAC node with inspect-interface
+    as idrac-redfish. Earlier, inspection of node was getting failed with
+    error ``port already exists``.
+    This issue arose since MySQL 8.0.19 where duplicate key error
+    information is extended to include the table name in the key. Previously,
+    duplicate key error information included only the key value and key name.
+
+    For more information, see `story 2008901
+    <https://storyboard.openstack.org/#!/story/2008901>`_.
+upgrade:
+  - |
+    The minimum requirement for the ``oslo.db`` library is now version
+    9.1.0 to address duplicate key error changes in MySQL 8.0.19.
+    oslo.db version 9.1.0 fixes issue of idrac driver node inspection
+    for inspect interface as idrac-redfish.
+    Issue was introduced since MySQL 8.0.19 where duplicate key error
+    information is extended to include the table name in the key.
+
+    For more information, see `story 2008901
+    <https://storyboard.openstack.org/#!/story/2008901>`_.
