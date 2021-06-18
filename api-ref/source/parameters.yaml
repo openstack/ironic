@@ -601,6 +601,11 @@ boot_interface:
   in: body
   required: true
   type: string
+boot_mode:
+  description: |
+    The current boot mode state (uefi/bios)
+  in: body
+  type: string
 candidate_nodes:
   description: |
     A list of UUIDs of the nodes that are candidates for this allocation.
@@ -1848,6 +1853,11 @@ retired_reason:
   in: body
   required: false
   type: string
+secure_boot:
+  description: |
+    Indicates whether node is currently booted with secure_boot turned on.
+  in: body
+  type: boolean
 standalone_ports_supported:
   description: |
     Indicates whether ports that are members of this portgroup can be

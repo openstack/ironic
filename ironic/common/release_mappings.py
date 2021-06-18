@@ -339,12 +339,12 @@ RELEASE_MAPPING = {
         }
     },
     'master': {
-        'api': '1.74',
+        'api': '1.75',
         'rpc': '1.54',
         'objects': {
             'Allocation': ['1.1'],
             'BIOSSetting': ['1.1'],
-            'Node': ['1.35'],
+            'Node': ['1.36', '1.35'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
             'Deployment': ['1.0'],

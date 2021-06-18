@@ -1428,3 +1428,47 @@ def node_cache_vendor(task):
     task.node.save()
     LOG.info("Detected vendor %(vendor)s for node %(node)s",
              {'vendor': vendor, 'node': task.node.uuid})
+
+
+def node_cache_boot_mode(task):
+    """Cache boot_mode and secure_boot state if supported by driver.
+
+    Cache current boot_mode and secure_boot in ironic's node representation
+
+    :param task: a TaskManager instance containing the node to check.
+    """
+    # Try to retrieve boot mode and secure_boot state
+    try:
+        boot_mode = task.driver.management.get_boot_mode(task)
+    except exception.UnsupportedDriverExtension:
+        boot_mode = None
+    except Exception as exc:
+        LOG.warning('Unexpected exception when trying to detect boot_mode '
+                    'for node %(node)s. %(class)s: %(exc)s',
+                    {'node': task.node.uuid,
+                     'class': type(exc).__name__, 'exc': exc},
+                    exc_info=not isinstance(exc, exception.IronicException))
+        return
+    try:
+        secure_boot = task.driver.management.get_secure_boot_state(task)
+    except exception.UnsupportedDriverExtension:
+        secure_boot = None
+    except Exception as exc:
+        LOG.warning('Unexpected exception when trying to detect secure_boot '
+                    'state for node %(node)s. %(class)s: %(exc)s',
+                    {'node': task.node.uuid,
+                     'class': type(exc).__name__, 'exc': exc},
+                    exc_info=not isinstance(exc, exception.IronicException))
+        return
+
+    if (boot_mode != task.node.boot_mode
+        or secure_boot != task.node.secure_boot):
+        # Update node if current values different from node's last known info.
+        # Get exclusive lock in case we don't have one already.
+        task.upgrade_lock(purpose='caching boot_mode or secure_boot state')
+        task.node.boot_mode = boot_mode
+        task.node.secure_boot = secure_boot
+        task.node.save()
+        LOG.info("Updated boot_mode %(boot_mode)s, secure_boot %(secure_boot)s"
+                 "for node %(node)s",
+                 {'boot_mode': boot_mode, 'secure_boot': secure_boot})

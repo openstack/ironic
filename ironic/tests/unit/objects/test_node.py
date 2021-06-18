@@ -1292,6 +1292,81 @@ class TestConvertToVersion(db_base.DbTestCase):
         self.assertIsNone(node.lessee)
         self.assertEqual({}, node.obj_get_changes())
 
+    def test_boot_mode_supported_missing(self):
+        # boot_mode and secure_boot not set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        delattr(node, 'boot_mode')
+        delattr(node, 'secure_boot')
+        node.obj_reset_changes()
+        node._convert_to_version("1.36")
+        self.assertIsNone(node.boot_mode)
+        self.assertIsNone(node.secure_boot)
+        self.assertEqual({'boot_mode': None,
+                          'secure_boot': None},
+                         node.obj_get_changes())
+
+    def test_boot_mode_supported_set(self):
+        # boot_mode and secure_boot set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.boot_mode = "uefi"
+        node.secure_boot = True
+        node.obj_reset_changes()
+        node._convert_to_version("1.36")
+        self.assertEqual("uefi", node.boot_mode)
+        self.assertTrue(node.secure_boot)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_boot_mode_unsupported_missing(self):
+        # boot_mode and secure_boot not set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        delattr(node, 'boot_mode')
+        delattr(node, 'secure_boot')
+        node.obj_reset_changes()
+        node._convert_to_version("1.35")
+        self.assertNotIn('boot_mode', node)
+        self.assertNotIn('secure_boot', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_boot_mode_unsupported_set_remove(self):
+        # boot_mode and secure_boot set, should be removed.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.boot_mode = "uefi"
+        node.secure_boot = True
+        node.obj_reset_changes()
+        node._convert_to_version("1.35")
+        self.assertNotIn('boot_mode', node)
+        self.assertNotIn('secure_boot', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_boot_mode_unsupported_set_no_remove_non_default(self):
+        # boot_mode and secure_boot set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.boot_mode = "uefi"
+        node.secure_boot = True
+        node.obj_reset_changes()
+        node._convert_to_version("1.35", False)
+        self.assertIsNone(node.boot_mode)
+        self.assertIsNone(node.secure_boot)
+        self.assertEqual({'boot_mode': None,
+                          'secure_boot': None},
+                         node.obj_get_changes())
+
+    def test_boot_mode_unsupported_set_no_remove_default(self):
+        # boot_mode and secure_boot set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.boot_mode = None
+        node.secure_boot = None
+        node.obj_reset_changes()
+        node._convert_to_version("1.35", False)
+        self.assertIsNone(node.boot_mode)
+        self.assertIsNone(node.secure_boot)
+        self.assertEqual({}, node.obj_get_changes())
+
 
 class TestNodePayloads(db_base.DbTestCase):
 
@@ -1308,6 +1383,8 @@ class TestNodePayloads(db_base.DbTestCase):
         self.assertEqual(self.node.created_at, payload.created_at)
         self.assertEqual(self.node.driver, payload.driver)
         self.assertEqual(self.node.extra, payload.extra)
+        self.assertEqual(self.node.boot_mode, payload.boot_mode)
+        self.assertEqual(self.node.secure_boot, payload.secure_boot)
         self.assertEqual(self.node.inspection_finished_at,
                          payload.inspection_finished_at)
         self.assertEqual(self.node.inspection_started_at,

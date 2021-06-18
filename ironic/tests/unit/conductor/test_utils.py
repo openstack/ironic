@@ -2310,6 +2310,192 @@ class CacheVendorTestCase(db_base.DbTestCase):
         self.assertTrue(mock_log.called)
 
 
+@mock.patch.object(fake.FakeManagement, 'get_secure_boot_state',
+                   autospec=True)
+@mock.patch.object(fake.FakeManagement, 'get_boot_mode',
+                   autospec=True)
+class CacheBootModeTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(CacheBootModeTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context,
+                                               driver='fake-hardware',
+                                               properties={})
+
+    def test_noneness(self, mock_get_boot, mock_get_secure):
+        mock_get_boot.return_value = None
+        mock_get_secure.return_value = None
+
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            conductor_utils.node_cache_boot_mode(task)
+            mock_get_boot.assert_called_once_with(
+                task.driver.management, task)
+            mock_get_secure.assert_called_once_with(
+                task.driver.management, task)
+            # If nothing to save, lock needn't be upgraded
+            self.assertTrue(task.shared)
+
+        self.node.refresh()
+        self.assertIsNone(self.node.boot_mode)
+        self.assertIsNone(self.node.secure_boot)
+
+    def test_unsupported(self, mock_get_boot, mock_get_secure):
+        mock_get_boot.side_effect = exception.UnsupportedDriverExtension
+        mock_get_secure.side_effect = exception.UnsupportedDriverExtension
+
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            conductor_utils.node_cache_boot_mode(task)
+            mock_get_boot.assert_called_once_with(
+                task.driver.management, task)
+            mock_get_secure.assert_called_once_with(
+                task.driver.management, task)
+            # If nothing to save, lock needn't be upgraded
+            self.assertTrue(task.shared)
+
+        self.node.refresh()
+        self.assertIsNone(self.node.boot_mode)
+        self.assertIsNone(self.node.secure_boot)
+
+    def test_retreive_and_set(self, mock_get_boot, mock_get_secure):
+        mock_get_boot.return_value = "fake-efi"
+        mock_get_secure.return_value = True
+
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            conductor_utils.node_cache_boot_mode(task)
+            mock_get_boot.assert_called_once_with(
+                task.driver.management, task)
+            mock_get_secure.assert_called_once_with(
+                task.driver.management, task)
+            # Verify it upgraded lock
+            self.assertFalse(task.shared)
+
+        self.node.refresh()
+        self.assertEqual("fake-efi", self.node.boot_mode)
+        self.assertTrue(self.node.secure_boot)
+
+    def test_already_present(self, mock_get_boot, mock_get_secure):
+        self.node.boot_mode = "fake-efi"
+        self.node.secure_boot = True
+        self.node.save()
+
+        mock_get_boot.return_value = "fake-efi"
+        mock_get_secure.return_value = True
+
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            conductor_utils.node_cache_boot_mode(task)
+            mock_get_boot.assert_called_once_with(
+                task.driver.management, task)
+            mock_get_secure.assert_called_once_with(
+                task.driver.management, task)
+            # If no changes, lock needn't be upgraded
+            self.assertTrue(task.shared)
+
+        self.node.refresh()
+        self.assertEqual("fake-efi", self.node.boot_mode)
+        self.assertTrue(self.node.secure_boot)
+
+    def test_change_secure_off(self, mock_get_boot, mock_get_secure):
+        self.node.boot_mode = "fake-efi"
+        self.node.secure_boot = True
+        self.node.save()
+
+        mock_get_boot.return_value = "fake-efi"
+        mock_get_secure.return_value = False
+
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            conductor_utils.node_cache_boot_mode(task)
+            mock_get_boot.assert_called_once_with(
+                task.driver.management, task)
+            mock_get_secure.assert_called_once_with(
+                task.driver.management, task)
+            # Verify it upgraded lock
+            self.assertFalse(task.shared)
+
+        self.node.refresh()
+        self.assertEqual("fake-efi", self.node.boot_mode)
+        self.assertFalse(self.node.secure_boot)
+
+    def test_change_secure_off_to_none(self, mock_get_boot, mock_get_secure):
+        # Check that False and None are treated as distinct
+        # Say during a transition from uefi to bios
+        self.node.boot_mode = "fake-hybrid"
+        self.node.secure_boot = False
+        self.node.save()
+
+        mock_get_boot.return_value = "fake-hybrid"
+        mock_get_secure.return_value = None
+
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            conductor_utils.node_cache_boot_mode(task)
+            mock_get_boot.assert_called_once_with(
+                task.driver.management, task)
+            mock_get_secure.assert_called_once_with(
+                task.driver.management, task)
+            # Verify it upgraded lock
+            self.assertFalse(task.shared)
+
+        self.node.refresh()
+        self.assertEqual("fake-hybrid", self.node.boot_mode)
+        self.assertIsNone(self.node.secure_boot)
+
+    @mock.patch.object(conductor_utils.LOG, 'warning', autospec=True)
+    def test_failed_boot_mode(self, mock_log, mock_get_boot, mock_get_secure):
+        self.node.boot_mode = "fake-efi"
+        self.node.secure_boot = True
+        self.node.save()
+
+        mock_get_boot.side_effect = RuntimeError
+        mock_get_secure.return_value = None
+
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            conductor_utils.node_cache_boot_mode(task)
+            mock_get_boot.assert_called_once_with(
+                task.driver.management, task)
+            # Test that function aborts and doesn't do anything else.
+            # NOTE(cenne): Do we want to update states to None instead?
+            self.assertFalse(mock_get_secure.called)
+            self.assertTrue(task.shared)
+
+        self.assertTrue(mock_log.called)
+        # Verify no changes
+        self.node.refresh()
+        self.assertEqual("fake-efi", self.node.boot_mode)
+        self.assertTrue(self.node.secure_boot)
+
+    @mock.patch.object(conductor_utils.LOG, 'warning', autospec=True)
+    def test_failed_secure(self, mock_log, mock_get_boot, mock_get_secure):
+        self.node.boot_mode = "fake-efi"
+        self.node.secure_boot = True
+        self.node.save()
+
+        mock_get_boot.return_value = "fake-efi"
+        mock_get_secure.side_effect = RuntimeError
+
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            conductor_utils.node_cache_boot_mode(task)
+            mock_get_boot.assert_called_once_with(
+                task.driver.management, task)
+            mock_get_secure.assert_called_once_with(
+                task.driver.management, task)
+            # Test that function aborts and doesn't do anything else.
+            # NOTE(cenne): Do we want to update states to None instead?
+            self.assertTrue(task.shared)
+
+        self.assertTrue(mock_log.called)
+        # Verify no changes
+        self.node.refresh()
+        self.assertEqual("fake-efi", self.node.boot_mode)
+        self.assertTrue(self.node.secure_boot)
+
+
 class GetConfigDriveImageTestCase(db_base.DbTestCase):
 
     def setUp(self):

@@ -1010,6 +1010,18 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(
             nodes.c.network_data.type, sqlalchemy.types.String)
 
+    def _check_c1846a214450(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('boot_mode', col_names)
+        self.assertIn('secure_boot', col_names)
+        self.assertIsInstance(nodes.c.boot_mode.type,
+                              sqlalchemy.types.String)
+        # in some backends bool type is integer
+        self.assertIsInstance(nodes.c.secure_boot.type,
+                              (sqlalchemy.types.Boolean,
+                               sqlalchemy.types.Integer))
+
     def _pre_upgrade_cd2c80feb331(self, engine):
         data = {
             'node_uuid': uuidutils.generate_uuid(),

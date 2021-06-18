@@ -1,10 +1,12 @@
 {
+  "boot_mode": "uefi",
   "console_enabled": false,
   "last_error": null,
   "power_state": "power off",
   "provision_state": "available",
   "provision_updated_at": "2016-08-18T22:28:49.946416+00:00",
   "raid_config": {},
+  "secure_boot": true,
   "target_power_state": null,
   "target_provision_state": null,
   "target_raid_config": {}

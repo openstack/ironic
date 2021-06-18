@@ -1173,6 +1173,8 @@ class ConductorManager(base_manager.BaseConductorManager):
             utils.node_cache_bios_settings(task, node)
             # Cache the vendor if possible
             utils.node_cache_vendor(task)
+            # Cache also boot_mode and secure_boot states
+            utils.node_cache_boot_mode(task)
 
             if power_state != node.power_state:
                 old_power_state = node.power_state
@@ -3586,6 +3588,8 @@ def do_sync_power_state(task, count):
     # Make sure we have the vendor cached (if for some reason it failed during
     # the transition to manageable or a really old API version was used).
     utils.node_cache_vendor(task)
+    # Also make sure to cache the current boot_mode and secure_boot states
+    utils.node_cache_boot_mode(task)
 
     if node.power_state and node.power_state == power_state:
         # No action is needed

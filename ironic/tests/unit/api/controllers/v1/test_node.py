@@ -471,6 +471,42 @@ class TestListNodes(test_api_base.BaseApiTest):
                              headers={api_base.Version.string: '1.66'})
         self.assertEqual(data['network_data'], NETWORK_DATA)
 
+    def test_node_boot_mode_hidden_in_lower_version(self):
+        self._test_node_field_hidden_in_lower_version('boot_mode',
+                                                      '1.74', '1.75')
+
+    def test_node_secure_boot_hidden_in_lower_version(self):
+        self._test_node_field_hidden_in_lower_version('secure_boot',
+                                                      '1.74', '1.75')
+
+    def test_node_boot_mode_null_field(self):
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.75'})
+        self.assertIsNone(data['boot_mode'])
+        self.assertIsNone(data['secure_boot'])
+
+    def test_node_boot_mode(self):
+        for value in ('bios', 'uefi'):
+            node = obj_utils.create_test_node(self.context,
+                                              boot_mode=value,
+                                              uuid=uuidutils.generate_uuid())
+            data = self.get_json('/nodes/%s' % node.uuid,
+                                 headers={api_base.Version.string: '1.75'})
+            self.assertEqual(data['boot_mode'], value)
+            self.assertIsNone(data['secure_boot'])
+
+    def test_node_secure_boot(self):
+        for value in (True, False):
+            node = obj_utils.create_test_node(self.context,
+                                              boot_mode='uefi',
+                                              secure_boot=value,
+                                              uuid=uuidutils.generate_uuid())
+            data = self.get_json('/nodes/%s' % node.uuid,
+                                 headers={api_base.Version.string: '1.75'})
+            self.assertEqual(data['boot_mode'], 'uefi')
+            self.assertEqual(data['secure_boot'], value)
+
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -1698,6 +1734,50 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual(test_time, prov_up_at)
         self.assertEqual(fake_error, data['last_error'])
         self.assertFalse(data['console_enabled'])
+
+    def test_node_states_boot_mode(self):
+        for value in ('bios', 'uefi'):
+            node = obj_utils.create_test_node(self.context,
+                                              boot_mode=value,
+                                              uuid=uuidutils.generate_uuid())
+            data = self.get_json('/nodes/%s/states' % node.uuid,
+                                 headers={api_base.Version.string: '1.75'})
+            self.assertEqual(data['boot_mode'], value)
+            self.assertIsNone(data['secure_boot'])
+
+    def test_node_states_secure_boot(self):
+        for value in (True, False):
+            node = obj_utils.create_test_node(self.context,
+                                              boot_mode='uefi',
+                                              secure_boot=value,
+                                              uuid=uuidutils.generate_uuid())
+            data = self.get_json('/nodes/%s/states' % node.uuid,
+                                 headers={api_base.Version.string: '1.75'})
+            self.assertEqual(data['boot_mode'], 'uefi')
+            self.assertEqual(data['secure_boot'], value)
+
+    def _test_node_states_subfield_hidden_in_lower_version(self, field,
+                                                           old_version,
+                                                           new_version):
+        node = obj_utils.create_test_node(self.context)
+        data = self.get_json(
+            '/nodes/%s/states' % node.uuid,
+            headers={api_base.Version.string: old_version})
+        self.assertNotIn(field, data)
+        data = self.get_json(
+            '/nodes/%s/states' % node.uuid,
+            headers={api_base.Version.string: new_version})
+        self.assertIn(field, data)
+
+    def test_node_states_boot_mode_hidden_in_lower_version(self):
+        self._test_node_states_subfield_hidden_in_lower_version('boot_mode',
+                                                                '1.74',
+                                                                '1.75')
+
+    def test_node_states_secure_boot_hidden_in_lower_version(self):
+        self._test_node_states_subfield_hidden_in_lower_version('secure_boot',
+                                                                '1.74',
+                                                                '1.75')
 
     def test_node_by_instance_uuid(self):
         node = obj_utils.create_test_node(

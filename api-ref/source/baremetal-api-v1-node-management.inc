@@ -264,7 +264,10 @@ Node State Summary
 
 .. rest_method:: GET /v1/nodes/{node_ident}/states
 
-Get a summary of the Node's current power, provision, raid, and console status.
+Get a summary of the Node's current power, provision, boot mode, raid, and console status.
+
+.. versionadded:: 1.75
+   Introduced ``boot_mode`` and ``secure_boot`` fields.
 
 Normal response code: 200
 
@@ -289,6 +292,8 @@ Response
     - console_enabled: console_enabled
     - raid_config: raid_config
     - target_raid_config: target_raid_config
+    - boot_mode: boot_mode
+    - secure_boot: secure_boot
 
 **Example node state:**
 

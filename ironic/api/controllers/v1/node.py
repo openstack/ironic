@@ -141,6 +141,7 @@ def node_schema():
             'automated_clean': {'type': ['string', 'boolean', 'null']},
             'bios_interface': {'type': ['string', 'null']},
             'boot_interface': {'type': ['string', 'null']},
+            'boot_mode': {'type': ['string', 'null']},
             'chassis_uuid': {'type': ['string', 'null']},
             'conductor_group': {'type': ['string', 'null']},
             'console_enabled': {'type': ['string', 'boolean', 'null']},
@@ -172,6 +173,7 @@ def node_schema():
             'resource_class': {'type': ['string', 'null'], 'maxLength': 80},
             'retired': {'type': ['string', 'boolean', 'null']},
             'retired_reason': {'type': ['string', 'null']},
+            'secure_boot': {'type': ['string', 'boolean', 'null']},
             'storage_interface': {'type': ['string', 'null']},
             'uuid': {'type': ['string', 'null']},
             'vendor_interface': {'type': ['string', 'null']},
@@ -694,6 +696,8 @@ def node_states_convert(rpc_node):
                  'target_provision_state', 'provision_updated_at']
     if api_utils.allow_raid_config():
         attr_list.extend(['raid_config', 'target_raid_config'])
+    if api.request.version.minor >= versions.MINOR_75_NODE_BOOT_MODE:
+        attr_list.extend(['boot_mode', 'secure_boot'])
     states = {}
     for attr in attr_list:
         states[attr] = getattr(rpc_node, attr)
@@ -1221,6 +1225,7 @@ def _get_fields_for_node_query(fields=None):
     valid_fields = ['automated_clean',
                     'bios_interface',
                     'boot_interface',
+                    'boot_mode',
                     'clean_step',
                     'conductor_group',
                     'console_enabled',
@@ -1261,6 +1266,7 @@ def _get_fields_for_node_query(fields=None):
                     'resource_class',
                     'retired',
                     'retired_reason',
+                    'secure_boot',
                     'storage_interface',
                     'target_power_state',
                     'target_provision_state',

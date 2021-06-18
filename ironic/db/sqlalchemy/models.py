@@ -209,6 +209,9 @@ class Node(Base):
     power_interface = Column(String(255), nullable=True)
     vendor_interface = Column(String(255), nullable=True)
 
+    boot_mode = Column(String(16), nullable=True)
+    secure_boot = Column(Boolean, nullable=True)
+
 
 class Port(Base):
     """Represents a network port of a bare metal node."""

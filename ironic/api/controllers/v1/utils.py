@@ -803,6 +803,8 @@ VERSIONED_FIELDS = {
     'retired_reason': versions.MINOR_61_NODE_RETIRED,
     'lessee': versions.MINOR_65_NODE_LESSEE,
     'network_data': versions.MINOR_66_NODE_NETWORK_DATA,
+    'boot_mode': versions.MINOR_75_NODE_BOOT_MODE,
+    'secure_boot': versions.MINOR_75_NODE_BOOT_MODE,
 }
 
 for field in V31_FIELDS:

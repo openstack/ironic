@@ -4653,6 +4653,10 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self.driver = mock.Mock(spec_set=drivers_base.BareDriver)
         self.driver.management.detect_vendor.side_effect = \
             exception.UnsupportedDriverExtension
+        self.driver.management.get_boot_mode.side_effect = \
+            exception.UnsupportedDriverExtension
+        self.driver.management.get_secure_boot_state.side_effect = \
+            exception.UnsupportedDriverExtension
         self.power = self.driver.power
         self.node = obj_utils.create_test_node(
             self.context, driver='fake-hardware', maintenance=False,

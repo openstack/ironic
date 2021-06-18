@@ -76,7 +76,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.33: Add retired and retired_reason fields
     # Version 1.34: Add lessee field
     # Version 1.35: Add network_data field
-    VERSION = '1.35'
+    # Version 1.36: Add boot_mode and secure_boot fields
+    VERSION = '1.36'
 
     dbapi = db_api.get_instance()
 
@@ -166,6 +167,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'retired': objects.fields.BooleanField(nullable=True),
         'retired_reason': object_fields.StringField(nullable=True),
         'network_data': object_fields.FlexibleDictField(nullable=True),
+        'boot_mode': object_fields.StringField(nullable=True),
+        'secure_boot': object_fields.BooleanField(nullable=True),
     }
 
     def as_dict(self, secure=False, mask_configdrive=True):
@@ -644,6 +647,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             be set to None or removed.
         Version 1.35: network_data was added. For versions prior to this, it
             should be set to empty dict (or removed).
+        Version 1.36: boot_mode, secure_boot were was added. Defaults are None.
+            For versions prior to this, it should be set to None or removed.
 
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
@@ -658,7 +663,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                   ('bios_interface', 24), ('fault', 25),
                   ('automated_clean', 28), ('protected_reason', 29),
                   ('owner', 30), ('allocation_id', 31), ('description', 32),
-                  ('retired_reason', 33), ('lessee', 34)]
+                  ('retired_reason', 33), ('lessee', 34), ('boot_mode', 36),
+                  ('secure_boot', 36)]
 
         for name, minor in fields:
             self._adjust_field_to_version(name, None, target_version,
@@ -700,6 +706,8 @@ class NodePayload(notification.NotificationPayloadBase):
         'description': ('node', 'description'),
         'driver': ('node', 'driver'),
         'extra': ('node', 'extra'),
+        'boot_mode': ('node', 'boot_mode'),
+        'secure_boot': ('node', 'secure_boot'),
         'inspection_finished_at': ('node', 'inspection_finished_at'),
         'inspection_started_at': ('node', 'inspection_started_at'),
         'instance_uuid': ('node', 'instance_uuid'),
@@ -754,7 +762,8 @@ class NodePayload(notification.NotificationPayloadBase):
     # Version 1.13: Add description field.
     # Version 1.14: Add retired and retired_reason fields exposed via API.
     # Version 1.15: Add node lessee field.
-    VERSION = '1.15'
+    # Version 1.16: Add boot_mode and secure_boot fields.
+    VERSION = '1.16'
     fields = {
         'clean_step': object_fields.FlexibleDictField(nullable=True),
         'conductor_group': object_fields.StringField(nullable=True),
@@ -764,6 +773,8 @@ class NodePayload(notification.NotificationPayloadBase):
         'description': object_fields.StringField(nullable=True),
         'driver': object_fields.StringField(nullable=True),
         'extra': object_fields.FlexibleDictField(nullable=True),
+        'boot_mode': object_fields.StringField(nullable=True),
+        'secure_boot': object_fields.BooleanField(nullable=True),
         'inspection_finished_at': object_fields.DateTimeField(nullable=True),
         'inspection_started_at': object_fields.DateTimeField(nullable=True),
         'instance_uuid': object_fields.UUIDField(nullable=True),
@@ -843,7 +854,8 @@ class NodeSetPowerStatePayload(NodePayload):
     # Version 1.13: Parent NodePayload version 1.13
     # Version 1.14: Parent NodePayload version 1.14
     # Version 1.15: Parent NodePayload version 1.15
-    VERSION = '1.15'
+    # Version 1.16: Parent NodePayload version 1.16
+    VERSION = '1.16'
 
     fields = {
         # "to_power" indicates the future target_power_state of the node. A
@@ -899,7 +911,8 @@ class NodeCorrectedPowerStatePayload(NodePayload):
     # Version 1.13: Parent NodePayload version 1.13
     # Version 1.14: Parent NodePayload version 1.14
     # Version 1.15: Parent NodePayload version 1.15
-    VERSION = '1.15'
+    # Version 1.16: Parent NodePayload version 1.16
+    VERSION = '1.16'
 
     fields = {
         'from_power': object_fields.StringField(nullable=True)
@@ -940,7 +953,8 @@ class NodeSetProvisionStatePayload(NodePayload):
     # Version 1.14: Parent NodePayload version 1.14
     # Version 1.15: Parent NodePayload version 1.15
     # Version 1.16: add driver_internal_info
-    VERSION = '1.16'
+    # Version 1.17: Parent NodePayload version 1.16
+    VERSION = '1.17'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info'),
@@ -989,7 +1003,8 @@ class NodeCRUDPayload(NodePayload):
     # Version 1.11: Parent NodePayload version 1.13
     # Version 1.12: Parent NodePayload version 1.14
     # Version 1.13: Parent NodePayload version 1.15
-    VERSION = '1.13'
+    # Version 1.14: Parent NodePayload version 1.16
+    VERSION = '1.14'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info'),

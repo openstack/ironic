@@ -68,6 +68,7 @@ def _set_boot_mode_on_bm(task, ironic_boot_mode, fail_if_unsupported=False):
         LOG.info("Baremetal node boot mode is set to boot "
                  "mode %(boot_mode)s",
                  {'uuid': task.node.uuid, 'boot_mode': ironic_boot_mode})
+        manager_utils.node_cache_boot_mode(task)
 
 
 def sync_boot_mode(task):
@@ -331,6 +332,7 @@ def configure_secure_boot_if_needed(task):
                       exc_info=not isinstance(exc, exception.IronicException))
     else:
         LOG.info('Secure boot has been enabled for node %s', task.node.uuid)
+        manager_utils.node_cache_boot_mode(task)
 
 
 @task_manager.require_exclusive_lock
@@ -356,3 +358,4 @@ def deconfigure_secure_boot_if_needed(task):
                       exc_info=not isinstance(exc, exception.IronicException))
     else:
         LOG.info('Secure boot has been disabled for node %s', task.node.uuid)
+        manager_utils.node_cache_boot_mode(task)

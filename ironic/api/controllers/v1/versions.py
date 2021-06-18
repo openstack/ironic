@@ -112,6 +112,7 @@ BASE_VERSION = 1
 # v1.72: Add agent_status and agent_status_message to /v1/heartbeat
 # v1.73: Add support for deploy and undeploy verbs
 # v1.74: Add bios registry to /v1/nodes/{node}/bios/{setting}
+# v1.75: Add boot_mode, secure_boot fields to node object.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -188,6 +189,7 @@ MINOR_71_RBAC_SCOPES = 71
 MINOR_72_HEARTBEAT_STATUS = 72
 MINOR_73_DEPLOY_UNDEPLOY_VERBS = 73
 MINOR_74_BIOS_REGISTRY = 74
+MINOR_75_NODE_BOOT_MODE = 75
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -195,7 +197,7 @@ MINOR_74_BIOS_REGISTRY = 74
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_74_BIOS_REGISTRY
+MINOR_MAX_VERSION = MINOR_75_NODE_BOOT_MODE
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)
