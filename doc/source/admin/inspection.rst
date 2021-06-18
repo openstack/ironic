@@ -117,12 +117,12 @@ Managed inspection
 
 Inspection is *managed* when the Bare Metal conductor fully configures the node
 for inspection, including setting boot device, boot mode and power state. This
-is the only way to conductor inspection using :ref:`redfish-virtual-media` or
+is the only way to conduct inspection using :ref:`redfish-virtual-media` or
 with :doc:`/admin/dhcp-less`. This mode is engaged automatically when the node
 has sufficient information to configure boot (e.g. ports in case of iPXE).
 
 There are a few configuration options that tune managed inspection, the most
-important is ``extra_kernel_params``, which allows add kernel parameters for
+important is ``extra_kernel_params``, which allows adding kernel parameters for
 inspection specifically. This is where you can configure
 :ironic-python-agent-doc:`inspection collectors and other parameters
 <admin/how_it_works.html#inspection>`, for example:
@@ -132,7 +132,7 @@ inspection specifically. This is where you can configure
    [inspector]
    extra_kernel_params = ipa-inspection-collectors=default,logs ipa-collect-lldp=1
 
-For callback URL the ironic-inspector endpoint from the service catalog is
+For the callback URL the ironic-inspector endpoint from the service catalog is
 used. If you want to override the endpoint for callback only, set the following
 option:
 
