@@ -1,0 +1,20 @@
+---
+security:
+  - |
+    Fixes an issue with the ``/v1/nodes/detail`` endpoint where an
+    authenticated user could explicitly ask for an ``instance_uuid`` lookup
+    and the associated node would be returned to the user with sensitive
+    fields redacted in the result payload if the user did not explicitly have
+    ``owner`` or ``lessee`` permissions over the node. This is considered a
+    low-impact low-risk issue as it requires the API consumer to already know
+    the UUID value of the associated instance, and the returned information
+    is mainly metadata in nature. More information can be found in
+    `Storyboard story 2008976 <https://storyboard.openstack.org/#!/story/2008976>`_.
+fixes:
+  - |
+    Fixes an issue with the ``/v1/nodes/detail`` endpoint where requests
+    for an explicit ``instance_uuid`` match would not follow the standard
+    query handling path and thus not be filtered based on policy determined
+    access level and node level ``owner`` or ``lessee`` fields appropriately.
+    Additional information can be found in
+    `story 2008976 <https://storyboard.openstack.org/#!/story/2008976>`_.
