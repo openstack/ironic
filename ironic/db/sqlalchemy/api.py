@@ -79,14 +79,96 @@ def _wrap_session(session):
     return session
 
 
-def _get_node_query_with_all():
+def _get_node_query_with_all_for_single_node():
     """Return a query object for the Node joined with all relevant fields.
+
+    This method utilizes a joined load query which creates a result set
+    where corresponding traits, and tags, are joined together in the result
+    set.
+
+    This is more efficent from a Queries Per Second standpoint with the
+    backend database, as they are not separate distinct queries which
+    are being executed by the client.
+
+    The downside of this, is the relationship of tags and traits to nodes
+    is that there may be multiple tags and traits for each node. Ultimately
+    this style of query forces SQLAlchemy to de-duplicate the result set
+    because the database returns the nodes portion of the result set for
+    every trait, tag, or other table field the query is joined with.
+    This looks like:
+
+    node1, tag1, trait1
+    node1, tag1, trait2
+    node1, tag1, trait3
+    node1, tag2, trait1
+
+    Et cetra, to create:
+
+    node1, [tag1, tag2], [trait1, trait 2, trait3]
+
+    Where joins are super in-efficent for Ironic, is where nodes are being
+    enumerated, as the above result set pattern is not just for one node, but
+    potentially thousands of nodes. In that case, we should use the
+    _get_node_query_with_all_for_list helper to return a more appropriate
+    query object which will be more efficient for the end user.
 
     :returns: a query object.
     """
+    # NOTE(TheJulia): This *likely* ought to be selectinload, however
+    # it is a very common hit pattern for Ironic to query just the node.
+    # In those sorts of locations, the performance issues are less noticable
+    # to end users. *IF/WHEN* we change it to be selectinload for nodes,
+    # the resulting DB load will see a queries per second increase, which
+    # we should be careful about.
+
+    # NOTE(TheJulia): Basic benchmark difference
+    # Test data creation: 67.202 seconds.
+    # 2.43 seconds to obtain all nodes from SQLAlchemy (10k nodes)
+    # 5.15 seconds to obtain all nodes *and* have node objects (10k nodes)
     return (model_query(models.Node)
             .options(joinedload('tags'))
             .options(joinedload('traits')))
+
+
+def _get_node_query_with_all_for_list():
+    """Return a query object for the Node with queried extra fields.
+
+    This method returns a query object joining tags and traits in a pattern
+    where the result set is first built, and then the resulting associations
+    are queried separately and the objects are reconciled by SQLAlchemy to
+    build the composite objects based upon the associations.
+
+    This results in the following query pattern when the query is executed:
+
+    select $fields from nodes where x;
+    # SQLAlchemy creates a list of associated node IDs.
+    select $fields from tags where node_id in ('1', '3', '37268');
+    select $fields from traits where node_id in ('1', '3', '37268');
+
+    SQLAlchemy then returns a result set where the tags and traits are
+    composited together efficently as opposed to having to deduplicate
+    the result set. This shifts additional load to the database which
+    was previously a high overhead operation with-in the conductor...
+    which results in a slower conductor.
+
+    :returns: a query object.
+    """
+    # NOTE(TheJulia): When comparing CI rubs *with* this being the default
+    # for all general list operations, at 10k nodes, this pattern appears
+    # to be on-par with a 5% variability between the two example benchmark
+    # tests. That being said, the test *does* not include tags or traits
+    # in it's test data set so client side deduplication is not measured.
+
+    # NOTE(TheJulia): Basic benchmark difference
+    # tests data creation: 67.117 seconds
+    # 2.32 seconds to obtain all nodes from SQLAlchemy (10k nodes)
+    # 4.99 seconds to obtain all nodes *and* have node objects (10k nodes)
+    # If this holds true, the required record deduplication with joinedload
+    # may be basically the same amount of overhead as requesting the tags
+    # and traits separately.
+    return (model_query(models.Node)
+            .options(selectinload('tags'))
+            .options(selectinload('traits')))
 
 
 def _get_deploy_template_query_with_steps():
@@ -437,7 +519,7 @@ class Connection(api.Connection):
     def get_node_list(self, filters=None, limit=None, marker=None,
                       sort_key=None, sort_dir=None, fields=None):
         if not fields:
-            query = _get_node_query_with_all()
+            query = _get_node_query_with_all_for_list()
             query = self._add_nodes_filters(query, filters)
             return _paginate_query(models.Node, limit, marker,
                                    sort_key, sort_dir, query)
@@ -536,9 +618,8 @@ class Connection(api.Connection):
     @oslo_db_api.retry_on_deadlock
     def reserve_node(self, tag, node_id):
         with _session_for_write():
-            query = _get_node_query_with_all()
+            query = _get_node_query_with_all_for_single_node()
             query = add_identity_filter(query, node_id)
-            # be optimistic and assume we usually create a reservation
             count = query.filter_by(reservation=None).update(
                 {'reservation': tag}, synchronize_session=False)
             try:
@@ -614,7 +695,7 @@ class Connection(api.Connection):
         return node
 
     def get_node_by_id(self, node_id):
-        query = _get_node_query_with_all()
+        query = _get_node_query_with_all_for_single_node()
         query = query.filter_by(id=node_id)
         try:
             return query.one()
@@ -622,7 +703,7 @@ class Connection(api.Connection):
             raise exception.NodeNotFound(node=node_id)
 
     def get_node_by_uuid(self, node_uuid):
-        query = _get_node_query_with_all()
+        query = _get_node_query_with_all_for_single_node()
         query = query.filter_by(uuid=node_uuid)
         try:
             return query.one()
@@ -630,7 +711,7 @@ class Connection(api.Connection):
             raise exception.NodeNotFound(node=node_uuid)
 
     def get_node_by_name(self, node_name):
-        query = _get_node_query_with_all()
+        query = _get_node_query_with_all_for_single_node()
         query = query.filter_by(name=node_name)
         try:
             return query.one()
@@ -641,7 +722,7 @@ class Connection(api.Connection):
         if not uuidutils.is_uuid_like(instance):
             raise exception.InvalidUUID(uuid=instance)
 
-        query = _get_node_query_with_all()
+        query = _get_node_query_with_all_for_single_node()
         query = query.filter_by(instance_uuid=instance)
 
         try:
@@ -758,7 +839,7 @@ class Connection(api.Connection):
             ref.update(values)
 
             # Return the updated node model joined with all relevant fields.
-            query = _get_node_query_with_all()
+            query = _get_node_query_with_all_for_single_node()
             query = add_identity_filter(query, node_id)
             return query.one()
 
@@ -1294,7 +1375,7 @@ class Connection(api.Connection):
         return model_query(q.exists()).scalar()
 
     def get_node_by_port_addresses(self, addresses):
-        q = _get_node_query_with_all()
+        q = _get_node_query_with_all_for_single_node()
         q = q.distinct().join(models.Port)
         q = q.filter(models.Port.address.in_(addresses))
 
