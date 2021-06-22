@@ -316,7 +316,7 @@ class Connection(api.Connection):
     _NODE_QUERY_FIELDS = {'console_enabled', 'maintenance', 'retired',
                           'driver', 'resource_class', 'provision_state',
                           'uuid', 'id', 'fault', 'conductor_group',
-                          'owner', 'lessee'}
+                          'owner', 'lessee', 'instance_uuid'}
     _NODE_IN_QUERY_FIELDS = {'%s_in' % field: field
                              for field in ('uuid', 'provision_state')}
     _NODE_NON_NULL_FILTERS = {'associated': 'instance_uuid',
