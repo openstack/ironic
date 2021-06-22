@@ -424,9 +424,18 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
             "building ISO, or explicit ISO for %(node)s") %
             {'node': task.node.uuid})
 
+    i_info = task.node.instance_info
+
+    boot_option = deploy_utils.get_boot_option(task.node)
+    if boot_option == 'ramdisk':
+        download_source = (i_info.get('ramdisk_image_download_source')
+                           or CONF.deploy.ramdisk_image_download_source)
+    else:
+        download_source = CONF.deploy.ramdisk_image_download_source
+
     # NOTE(rpittau): if base_iso is defined as http address, we just access
     # it directly.
-    if base_iso and CONF.deploy.ramdisk_image_download_source == 'http':
+    if base_iso and download_source == 'http':
         if base_iso.startswith(('http://', 'https://')):
             return base_iso
         LOG.debug("ramdisk_image_download_source set to http but "
@@ -435,11 +444,9 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
 
     img_handler = ImageHandler(task.node.driver)
 
-    i_info = task.node.instance_info
-
     # NOTE(TheJulia): Until we support modifying a base iso, most of
     # this logic actually does nothing in the end. But it should!
-    if deploy_utils.get_boot_option(task.node) == "ramdisk":
+    if boot_option == "ramdisk":
         if not base_iso:
             kernel_params = "root=/dev/ram0 text "
             kernel_params += i_info.get("ramdisk_kernel_arguments", "")
