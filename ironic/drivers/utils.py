@@ -406,18 +406,20 @@ def get_kernel_append_params(node, default):
     return default
 
 
-def get_field(node, name, deprecated_prefix=None, use_conf=False):
+def get_field(node, name, deprecated_prefix=None, use_conf=False,
+              collection='driver_info'):
     """Get a driver_info field with deprecated prefix."""
-    value = node.driver_info.get(name)
+    node_coll = getattr(node, collection)
+    value = node_coll.get(name)
     if value or not deprecated_prefix:
         return value
 
     deprecated_name = f'{deprecated_prefix}_{name}'
-    value = node.driver_info.get(deprecated_name)
+    value = node_coll.get(deprecated_name)
     if value:
-        LOG.warning("The driver_info field %s of node %s is deprecated, "
+        LOG.warning("The %s field %s of node %s is deprecated, "
                     "please use %s instead",
-                    deprecated_name, node.uuid, name)
+                    collection, deprecated_name, node.uuid, name)
         return value
 
     if use_conf:

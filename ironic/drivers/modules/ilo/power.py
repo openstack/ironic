@@ -30,6 +30,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules.ilo import common as ilo_common
+from ironic.drivers import utils as driver_utils
 
 ilo_error = importutils.try_import('proliantutils.exception')
 
@@ -42,24 +43,26 @@ def _attach_boot_iso_if_needed(task):
     """Attaches boot ISO for a deployed node.
 
     This method checks the instance info of the baremetal node for a
-    boot iso. If the instance info has a value of key 'ilo_boot_iso',
+    boot iso. If the instance info has a value of key 'boot_iso',
     it indicates that 'boot_option' is 'netboot'. Therefore it attaches
     the boot ISO on the baremetal node and then sets the node to boot from
     virtual media cdrom.
 
     :param task: a TaskManager instance containing the node to act on.
     """
-    i_info = task.node.instance_info
     node_state = task.node.provision_state
 
-    # NOTE: On instance rebuild, ilo_boot_iso will be present in
+    # NOTE: On instance rebuild, boot_iso will be present in
     # instance_info but the node will be in DEPLOYING state.
-    # In such a scenario, the ilo_boot_iso shouldn't be
+    # In such a scenario, the boot_iso shouldn't be
     # attached to the node while powering on the node (the node
     # should boot from deploy ramdisk instead, which will already
     # be attached by the deploy driver).
-    if 'ilo_boot_iso' in i_info and node_state == states.ACTIVE:
-        ilo_common.setup_vmedia_for_boot(task, i_info['ilo_boot_iso'])
+    boot_iso = driver_utils.get_field(task.node, 'boot_iso',
+                                      deprecated_prefix='ilo',
+                                      collection='instance_info')
+    if boot_iso and node_state == states.ACTIVE:
+        ilo_common.setup_vmedia_for_boot(task, boot_iso)
         manager_utils.node_set_boot_device(task, boot_devices.CDROM)
 
 

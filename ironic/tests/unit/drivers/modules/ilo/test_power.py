@@ -344,7 +344,7 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.provision_state = states.ACTIVE
-            task.node.instance_info['ilo_boot_iso'] = 'boot-iso'
+            task.node.instance_info['boot_iso'] = 'boot-iso'
             ilo_power._attach_boot_iso_if_needed(task)
             setup_vmedia_mock.assert_called_once_with(task, 'boot-iso')
             set_boot_device_mock.assert_called_once_with(task,
@@ -360,7 +360,7 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.provision_state = states.DEPLOYING
-            task.node.instance_info['ilo_boot_iso'] = 'boot-iso'
+            task.node.instance_info['boot_iso'] = 'boot-iso'
             ilo_power._attach_boot_iso_if_needed(task)
             self.assertFalse(setup_vmedia_mock.called)
             self.assertFalse(set_boot_device_mock.called)
