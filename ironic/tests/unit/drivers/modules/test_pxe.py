@@ -942,8 +942,6 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.uuid) as task:
             task.driver.deploy.prepare(task)
             self.assertFalse(mock_prepare_instance.called)
-            self.assertEqual({'boot_option': 'ramdisk'},
-                             task.node.instance_info['capabilities'])
 
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
     def test_prepare_active(self, mock_prepare_instance):
@@ -962,22 +960,6 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, node.uuid) as task:
             task.driver.deploy.prepare(task)
             mock_prepare_instance.assert_called_once_with(mock.ANY, task)
-
-    @mock.patch.object(pxe.LOG, 'warning', autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
-    def test_prepare_fixes_and_logs_boot_option_warning(
-            self, mock_prepare_instance, mock_warning):
-        node = self.node
-        node.properties['capabilities'] = 'boot_option:ramdisk'
-        node.provision_state = states.DEPLOYING
-        node.instance_info = {}
-        node.save()
-        with task_manager.acquire(self.context, node.uuid) as task:
-            task.driver.deploy.prepare(task)
-            self.assertFalse(mock_prepare_instance.called)
-            self.assertEqual({'boot_option': 'ramdisk'},
-                             task.node.instance_info['capabilities'])
-            self.assertTrue(mock_warning.called)
 
     @mock.patch.object(deploy_utils, 'validate_image_properties',
                        autospec=True)

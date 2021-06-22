@@ -90,19 +90,6 @@ class PXERamdiskDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
     @task_manager.require_exclusive_lock
     def prepare(self, task):
         node = task.node
-        # Log a warning if the boot_option is wrong... and
-        # otherwise reset it.
-        boot_option = deploy_utils.get_boot_option(node)
-        if boot_option != 'ramdisk':
-            LOG.warning('Incorrect "boot_option" set for node %(node)s '
-                        'and will be overridden to "ramdisk" as to '
-                        'match the deploy interface. Found: %(boot_opt)s.',
-                        {'node': node.uuid,
-                         'boot_opt': boot_option})
-            i_info = task.node.instance_info
-            i_info.update({'capabilities': {'boot_option': 'ramdisk'}})
-            node.instance_info = i_info
-            node.save()
 
         deploy_utils.populate_storage_driver_internal_info(task)
         if node.provision_state == states.DEPLOYING:
