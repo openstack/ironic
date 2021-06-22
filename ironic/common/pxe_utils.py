@@ -838,8 +838,9 @@ def build_extra_pxe_options(task=None, ramdisk_params=None):
     if CONF.debug and 'ipa-debug' not in pxe_append_params:
         pxe_append_params += ' ipa-debug=1'
     if ramdisk_params:
-        pxe_append_params += ' ' + ' '.join('%s=%s' % tpl
-                                            for tpl in ramdisk_params.items())
+        pxe_append_params += ' ' + ' '.join(
+            ('%s=%s' % tpl) if tpl[1] is not None else tpl[0]
+            for tpl in ramdisk_params.items())
     if task and task.context.global_id:
         pxe_append_params += (
             ' ipa-global-request-id=%s' % task.context.global_id)
