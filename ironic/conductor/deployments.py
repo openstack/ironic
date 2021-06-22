@@ -290,10 +290,8 @@ def do_next_deploy_step(task, step_index):
                        {'node': node.uuid, 'step': node.deploy_step, 'err': e})
             utils.deploying_error_handler(
                 task, log_msg,
-                _("Failed to deploy: Deploy step %(step)s, "
-                  "error: %(err)s.") % {
-                    'step': node.deploy_step,
-                    'err': e})
+                _("Deploy step %(step)s failed: %(err)s.")
+                % {'step': conductor_steps.step_id(step), 'err': e})
             return
         except Exception as e:
             log_msg = ('Node %(node)s failed deploy step %(step)s with '

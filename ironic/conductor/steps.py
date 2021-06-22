@@ -365,7 +365,7 @@ def set_node_deployment_steps(task, reset_current=True, skip_missing=False):
     node.save()
 
 
-def _step_id(step):
+def step_id(step):
     """Return the 'ID' of a deploy step.
 
     The ID is a string, <interface>.<step>.
@@ -399,7 +399,7 @@ def _validate_deploy_steps_unique(user_steps):
     # Check for duplicate steps. Each interface/step combination can be
     # specified at most once.
     errors = []
-    counter = collections.Counter(_step_id(step) for step in user_steps)
+    counter = collections.Counter(step_id(step) for step in user_steps)
     duplicates = {step_id for step_id, count in counter.items() if count > 1}
     if duplicates:
         err = (_('deploy steps from all deploy templates matching this '
@@ -569,14 +569,14 @@ def _validate_user_steps(task, user_steps, driver_steps, step_type,
     errors = []
 
     # Convert driver steps to a dict.
-    driver_steps = {_step_id(s): s for s in driver_steps}
+    driver_steps = {step_id(s): s for s in driver_steps}
 
     result = []
 
     for user_step in user_steps:
         # Check if this user-specified step isn't supported by the driver
         try:
-            driver_step = driver_steps[_step_id(user_step)]
+            driver_step = driver_steps[step_id(user_step)]
         except KeyError:
             if skip_missing:
                 LOG.debug('%(type)s step %(step)s is not currently known for '
