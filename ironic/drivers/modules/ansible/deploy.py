@@ -381,11 +381,7 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
                     base.DeployInterface):
     """Interface for deploy-related actions."""
 
-    def __init__(self):
-        super(AnsibleDeploy, self).__init__()
-        # NOTE(pas-ha) overriding agent creation as we won't be
-        # communicating with it, only processing heartbeats
-        self._client = None
+    collect_deploy_logs = False
 
     def get_properties(self):
         """Return the properties of the interface."""
