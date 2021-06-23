@@ -1253,7 +1253,7 @@ class TestAgentDeploy(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.deploy._client = client_mock
+            task.cached_agent_client = client_mock
             task.driver.deploy.write_image(task)
 
             if compat:
@@ -1350,7 +1350,7 @@ class TestAgentDeploy(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.deploy._client = client_mock
+            task.cached_agent_client = client_mock
             task.driver.deploy.write_image(task)
 
             client_mock.prepare_image.assert_called_with(task.node,

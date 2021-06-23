@@ -31,6 +31,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base
+from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 
@@ -269,6 +270,8 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
                         'step deploy.write_image, using the deprecated '
                         'synchronous fall-back', task.node.uuid)
 
+        client = agent_client.get_client(task)
+
         if self.has_decomposed_deploy_steps and has_write_image:
             configdrive = node.instance_info.get('configdrive')
             # Now switch into the corresponding in-band deploy step and let the
@@ -278,10 +281,10 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
                         'args': {'image_info': image_info,
                                  'configdrive': configdrive}}
             return agent_base.execute_step(task, new_step, 'deploy',
-                                           client=self._client)
+                                           client=client)
         else:
             # TODO(dtantsur): remove in W
-            command = self._client.prepare_image(node, image_info, wait=True)
+            command = client.prepare_image(node, image_info, wait=True)
             if command['command_status'] == 'FAILED':
                 # TODO(jimrollenhagen) power off if using neutron dhcp to
                 #                      align with pxe driver?
@@ -292,8 +295,8 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
 
     # TODO(dtantsur): remove in W
     def _get_uuid_from_result(self, task, type_uuid):
-        command = self._client.get_last_command_status(task.node,
-                                                       'prepare_image')
+        client = agent_client.get_client(task)
+        command = client.get_last_command_status(task.node, 'prepare_image')
         if (not command
                 or not command.get('command_result', {}).get('result')):
             msg = _('Unexpected response from the agent for node %s: the '
@@ -347,8 +350,9 @@ class AgentDeployMixin(agent_base.AgentDeployMixin):
         # ppc64* hardware we need to provide the 'PReP_Boot_partition_uuid' to
         # direct where the bootloader should be installed.
         driver_internal_info = task.node.driver_internal_info
+        client = agent_client.get_client(task)
         try:
-            partition_uuids = self._client.get_partition_uuids(node).get(
+            partition_uuids = client.get_partition_uuids(node).get(
                 'command_result') or {}
             root_uuid = partition_uuids.get('root uuid')
         except exception.AgentAPIError:

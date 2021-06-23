@@ -1000,9 +1000,10 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
         do_agent_iscsi_deploy_mock.return_value = deployment_uuids
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.cached_agent_client = mock.sentinel.agent_client
             task.driver.deploy.write_image(task)
             do_agent_iscsi_deploy_mock.assert_called_once_with(
-                task, task.driver.deploy._client)
+                task, mock.sentinel.agent_client)
             self.assertEqual(
                 task.node.driver_internal_info['deployment_uuids'],
                 deployment_uuids)

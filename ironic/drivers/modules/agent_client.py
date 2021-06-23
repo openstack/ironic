@@ -35,6 +35,15 @@ DEFAULT_IPA_PORTAL_PORT = 3260
 REBOOT_COMMAND = 'run_image'
 
 
+def get_client(task):
+    """Get client for this node."""
+    try:
+        return task.cached_agent_client
+    except AttributeError:
+        task.cached_agent_client = AgentClient()
+        return task.cached_agent_client
+
+
 def get_command_error(command):
     """Extract an error string from the command result.
 

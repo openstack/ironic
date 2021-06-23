@@ -1121,7 +1121,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
             collect_mock.assert_called_once_with(task.node)
             self.assertFalse(power_on_node_if_needed_mock.called)
-            sync_mock.assert_called_once_with(self.deploy._client, task.node)
+            sync_mock.assert_called_once_with(agent_client.get_client(task),
+                                              task.node)
 
     @mock.patch.object(manager_utils, 'restore_power_state_if_needed',
                        autospec=True)
