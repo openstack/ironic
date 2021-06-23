@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes potential cache coherency issues by caching the AgentClient
+    per task, rather than globally.

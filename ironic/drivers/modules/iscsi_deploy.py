@@ -34,6 +34,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base
+from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 
@@ -707,7 +708,9 @@ class ISCSIDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
             node.last_error = "Deploy delayed due to insufficent memory"
             node.save()
             return states.DEPLOYWAIT
-        uuid_dict_returned = do_agent_iscsi_deploy(task, self._client)
+
+        client = agent_client.get_client(task)
+        uuid_dict_returned = do_agent_iscsi_deploy(task, client)
         utils.set_node_nested_field(node, 'driver_internal_info',
                                     'deployment_uuids', uuid_dict_returned)
         node.save()
