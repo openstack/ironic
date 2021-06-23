@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The ``ramdisk`` deploy interface no longer requires a fake ``image_source``
+    value to be provided when ``boot_iso`` is not used.

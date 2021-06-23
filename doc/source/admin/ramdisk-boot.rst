@@ -72,13 +72,13 @@ source, for example,
 
     baremetal node set <NODE> \
         --instance-info kernel=http://path/to/ramdisk.kernel \
-        --instance-info ramdisk=http://path/to/ramdisk.initramfs \
-        --instance-info image_source=http://path/to/ramdisk.initramfs
+        --instance-info ramdisk=http://path/to/ramdisk.initramfs
     baremetal node deploy <NODE>
 
 .. note::
-   The requirement to pass ``image_source`` is artificial and will be fixed
-   in a future version of the Bare Metal service.
+   Before the Xena release, the ``image_source`` field was also required::
+
+        --instance-info image_source=http://path/to/ramdisk.initramfs
 
 Booting an ISO
 --------------
