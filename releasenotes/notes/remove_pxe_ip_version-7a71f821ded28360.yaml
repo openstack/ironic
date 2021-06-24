@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    The ``[pxe]ip_version`` setting has been deprecated and is anticipated to
+    be removed in the Y* release of OpenStack. This option effectively has had
+    no operational impact since the Ussuri release of OpenStack where dual
+    stack IPv4 and IPv6 support was added to Ironic.

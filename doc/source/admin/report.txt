@@ -577,7 +577,6 @@ pxe:
   image_cache_ttl = 10080
   images_path = /var/lib/ironic/images/
   instance_master_path = /var/lib/ironic/master_images
-  ip_version = 4
   ipxe_boot_script = /opt/stack/ironic/ironic/drivers/modules/boot.ipxe
   ipxe_enabled = True
   ipxe_timeout = 0
