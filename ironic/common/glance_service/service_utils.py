@@ -114,12 +114,7 @@ def is_image_available(context, image):
         # be able to be used.
         return True
 
-    # TODO(TheJulia): This is potentially a bug below. Admin context doesn't
-    # necessarilly mean the object is *actually* accessible. We should likely
-    # just ask glance... Although everything should also have an auth_token
-    # as noted above. Ultimately we need to tease the is_admin logic apart
-    # and treat things appropriately by checking them as needed.
-    if getattr(image, 'visibility', None) == 'public' or context.is_admin:
+    if getattr(image, 'visibility', None) == 'public':
         return True
 
     return (context.project_id
