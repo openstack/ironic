@@ -66,12 +66,13 @@ class VendorPassthru(base.VendorInterface):
                    {'node_uuid': task.node.uuid,
                     'state': states.MANAGEABLE})
             raise exception.InvalidStateRequested(msg)
-        d_info = {'boot_iso_href': kwargs.get('boot_iso_href')}
+        boot_iso = kwargs.get('boot_iso_href')
+        d_info = {'boot_iso_href': boot_iso}
         error_msg = _("Error validating input for boot_into_iso vendor "
                       "passthru. Some parameters were not provided: ")
         deploy_utils.check_for_missing_params(d_info, error_msg)
-        deploy_utils.validate_image_properties(
-            task.context, {'image_source': kwargs.get('boot_iso_href')}, [])
+        # Validate that the image exists
+        deploy_utils.get_image_properties(task.context, boot_iso)
 
     @METRICS.timer('IloVendorPassthru.boot_into_iso')
     @base.passthru(['POST'],

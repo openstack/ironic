@@ -513,6 +513,30 @@ def validate_capabilities(node):
                  'value': value, 'valid_values': ', '.join(valid_values)})
 
 
+def get_image_properties(ctx, image_href):
+    """Get properties of the image.
+
+    :param ctx: security context
+    :param image_href: reference to the image
+    :return: properties as a dictionary
+    :raises: InvalidParameterValue if the image cannot be accessed
+    """
+    try:
+        img_service = image_service.get_image_service(image_href, context=ctx)
+        return img_service.show(image_href)['properties']
+    except (exception.GlanceConnectionFailed,
+            exception.ImageNotAuthorized,
+            exception.Invalid):
+        raise exception.InvalidParameterValue(_(
+            "Failed to connect to Glance to get the properties "
+            "of the image %s") % image_href)
+    except exception.ImageNotFound:
+        raise exception.InvalidParameterValue(_(
+            "Image %s can not be found.") % image_href)
+    except exception.ImageRefValidationFailed as e:
+        raise exception.InvalidParameterValue(err=e)
+
+
 def validate_image_properties(ctx, deploy_info, properties):
     """Validate the image.
 
@@ -540,20 +564,8 @@ def validate_image_properties(ctx, deploy_info, properties):
             "specified at the same time."))
     if not image_href:
         image_href = boot_iso
-    try:
-        img_service = image_service.get_image_service(image_href, context=ctx)
-        image_props = img_service.show(image_href)['properties']
-    except (exception.GlanceConnectionFailed,
-            exception.ImageNotAuthorized,
-            exception.Invalid):
-        raise exception.InvalidParameterValue(_(
-            "Failed to connect to Glance to get the properties "
-            "of the image %s") % image_href)
-    except exception.ImageNotFound:
-        raise exception.InvalidParameterValue(_(
-            "Image %s can not be found.") % image_href)
-    except exception.ImageRefValidationFailed as e:
-        raise exception.InvalidParameterValue(err=e)
+
+    image_props = get_image_properties(ctx, image_href)
 
     missing_props = []
     for prop in properties:
