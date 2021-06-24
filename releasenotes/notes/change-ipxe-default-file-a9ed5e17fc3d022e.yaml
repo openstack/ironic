@@ -1,0 +1,10 @@
+---
+upgrade:
+  - |
+    The default UEFI iPXE bootloader, ``[pxe]uefi_ipxe_bootfile_name`` used
+    by the ``ipxe`` boot interface, has been changed from ``ipxe.efi`` to
+    ``snponly.efi``. This is because most deployments actually need to use
+    ``snponly.efi`` as it contains support for the UEFI integrated network
+    stack, where as ``ipxe.efi`` does not and only contained compiled in
+    network drivers, for UEFI, there happen to be few as the UEFI
+    standard requires networking to be handled by the UEFI firmware.

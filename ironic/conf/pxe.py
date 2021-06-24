@@ -119,10 +119,10 @@ opts = [
                default='undionly.kpxe',
                help=_('Bootfile DHCP parameter.')),
     cfg.StrOpt('uefi_ipxe_bootfile_name',
-               default='ipxe.efi',
+               default='snponly.efi',
                help=_('Bootfile DHCP parameter for UEFI boot mode. If you '
                       'experience problems with booting using it, try '
-                      'snponly.efi.')),
+                      'ipxe.efi.')),
     cfg.DictOpt('pxe_bootfile_name_by_arch',
                 default={},
                 help=_('Bootfile DHCP parameter per node architecture. '
