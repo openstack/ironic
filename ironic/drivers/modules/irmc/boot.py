@@ -957,14 +957,7 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
             return
 
         d_info = _parse_deploy_info(task.node)
-        if task.node.driver_internal_info.get('is_whole_disk_image'):
-            props = []
-        elif service_utils.is_glance_image(d_info['image_source']):
-            props = ['kernel_id', 'ramdisk_id']
-        else:
-            props = ['kernel', 'ramdisk']
-        deploy_utils.validate_image_properties(task.context, d_info,
-                                               props)
+        deploy_utils.validate_image_properties(task, d_info)
 
     @METRICS.timer('IRMCVirtualMediaBoot.prepare_ramdisk')
     def prepare_ramdisk(self, task, ramdisk_params):

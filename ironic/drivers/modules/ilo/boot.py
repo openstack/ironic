@@ -246,14 +246,7 @@ def _validate_instance_image_info(task):
     node = task.node
 
     d_info = _parse_deploy_info(node)
-
-    if node.driver_internal_info.get('is_whole_disk_image'):
-        props = []
-    elif service_utils.is_glance_image(d_info['image_source']):
-        props = ['kernel_id', 'ramdisk_id']
-    else:
-        props = ['kernel', 'ramdisk']
-    deploy_utils.validate_image_properties(task.context, d_info, props)
+    deploy_utils.validate_image_properties(task, d_info)
 
 
 def _disable_secure_boot(task):
@@ -920,14 +913,7 @@ class IloUefiHttpsBoot(base.BootInterface):
         d_info = deploy_utils.get_image_instance_info(node)
 
         self._validate_hrefs(d_info)
-
-        if node.driver_internal_info.get('is_whole_disk_image'):
-            props = []
-        elif service_utils.is_glance_image(d_info['image_source']):
-            props = ['kernel_id', 'ramdisk_id']
-        else:
-            props = ['kernel', 'ramdisk']
-        deploy_utils.validate_image_properties(task.context, d_info, props)
+        deploy_utils.validate_image_properties(task, d_info)
 
     @METRICS.timer('IloUefiHttpsBoot.validate')
     def validate(self, task):

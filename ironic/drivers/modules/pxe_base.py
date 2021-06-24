@@ -21,7 +21,6 @@ from oslo_log import log as logging
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
-from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import pxe_utils
 from ironic.common import states
@@ -423,17 +422,7 @@ class PXEBaseMixin(object):
             return
 
         d_info = deploy_utils.get_image_instance_info(node)
-        if node.driver_internal_info.get('is_whole_disk_image'):
-            props = []
-        elif d_info.get('boot_iso'):
-            props = ['boot_iso']
-        elif service_utils.is_glance_image(d_info['image_source']):
-            props = ['kernel_id', 'ramdisk_id']
-            if boot_option == 'kickstart':
-                props.append('squashfs_id')
-        else:
-            props = ['kernel', 'ramdisk']
-        deploy_utils.validate_image_properties(task.context, d_info, props)
+        deploy_utils.validate_image_properties(task, d_info)
 
     @METRICS.timer('PXEBaseMixin.validate_rescue')
     def validate_rescue(self, task):

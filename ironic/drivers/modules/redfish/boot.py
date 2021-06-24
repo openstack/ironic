@@ -19,7 +19,6 @@ import tenacity
 
 from ironic.common import boot_devices
 from ironic.common import exception
-from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import utils as manager_utils
@@ -394,18 +393,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
             return
 
         d_info = _parse_deploy_info(node)
-
-        if node.driver_internal_info.get('is_whole_disk_image'):
-            props = []
-        elif d_info.get('boot_iso'):
-            props = ['boot_iso']
-        elif service_utils.is_glance_image(d_info['image_source']):
-            props = ['kernel_id', 'ramdisk_id']
-
-        else:
-            props = ['kernel', 'ramdisk']
-
-        deploy_utils.validate_image_properties(task.context, d_info, props)
+        deploy_utils.validate_image_properties(task, d_info)
 
     def _validate_vendor(self, task):
         vendor = task.node.properties.get('vendor')

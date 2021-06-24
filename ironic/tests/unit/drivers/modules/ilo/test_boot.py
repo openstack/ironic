@@ -261,38 +261,15 @@ class IloBootPrivateMethodsTestCase(test_common.BaseIloTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_boot, '_parse_deploy_info', spec_set=True,
                        autospec=True)
-    def _test__validate_instance_image_info(self,
-                                            deploy_info_mock,
-                                            validate_prop_mock,
-                                            props_expected):
+    def test__validate_instance_image_info(self, deploy_info_mock,
+                                           validate_prop_mock):
         d_info = {'image_source': 'uuid'}
         deploy_info_mock.return_value = d_info
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             ilo_boot._validate_instance_image_info(task)
             deploy_info_mock.assert_called_once_with(task.node)
-            validate_prop_mock.assert_called_once_with(
-                task.context, d_info, props_expected)
-
-    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
-                       autospec=True)
-    def test__validate_glance_partition_image(self,
-                                              is_glance_image_mock):
-        is_glance_image_mock.return_value = True
-        self._test__validate_instance_image_info(props_expected=['kernel_id',
-                                                                 'ramdisk_id'])
-
-    def test__validate_whole_disk_image(self):
-        self.node.driver_internal_info = {'is_whole_disk_image': True}
-        self.node.save()
-        self._test__validate_instance_image_info(props_expected=[])
-
-    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
-                       autospec=True)
-    def test__validate_non_glance_partition_image(self, is_glance_image_mock):
-        is_glance_image_mock.return_value = False
-        self._test__validate_instance_image_info(props_expected=['kernel',
-                                                                 'ramdisk'])
+            validate_prop_mock.assert_called_once_with(task, d_info)
 
     @mock.patch.object(ilo_common, 'set_secure_boot_mode', spec_set=True,
                        autospec=True)
@@ -1604,100 +1581,20 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'get_image_instance_info',
                        spec_set=True, autospec=True)
-    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
-                       autospec=True)
-    def test__validate_instance_image_info_not_iwdi(
-            self, glance_mock, get_image_inst_mock, validate_image_mock,
+    def test__validate_instance_image_info(
+            self, get_image_inst_mock, validate_image_mock,
             validate_href_mock):
         instance_info = {
             'boot_iso': 'boot-iso',
             'image_source': '6b2f0c0c-79e8-4db6-842e-43c9764204af'
         }
-        driver_internal_info = self.node.driver_internal_info
-        driver_internal_info.pop('is_whole_disk_image', None)
-        self.node.driver_internal_info = driver_internal_info
-        self.node.instance_info = instance_info
-        self.node.save()
         get_image_inst_mock.return_value = instance_info
-        glance_mock.return_value = True
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
 
             task.driver.boot._validate_instance_image_info(task)
             get_image_inst_mock.assert_called_once_with(task.node)
-            glance_mock.assert_called_once_with(
-                '6b2f0c0c-79e8-4db6-842e-43c9764204af')
-            validate_image_mock.assert_called_once_with(task.context,
-                                                        instance_info,
-                                                        ['kernel_id',
-                                                         'ramdisk_id'])
-            validate_href_mock.assert_called_once_with(mock.ANY, instance_info)
-
-    @mock.patch.object(ilo_boot.IloUefiHttpsBoot, '_validate_hrefs',
-                       autospec=True)
-    @mock.patch.object(deploy_utils, 'validate_image_properties',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'get_image_instance_info',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
-                       autospec=True)
-    def test__validate_instance_image_info_neither_iwdi_nor_glance(
-            self, glance_mock, get_image_inst_mock, validate_image_mock,
-            validate_href_mock):
-
-        instance_info = {
-            'boot_iso': 'boot-iso',
-            'image_source': '6b2f0c0c-79e8-4db6-842e-43c9764204af'
-        }
-        driver_internal_info = self.node.driver_internal_info
-        driver_internal_info.pop('is_whole_disk_image', None)
-        self.node.driver_internal_info = driver_internal_info
-        self.node.instance_info = instance_info
-        self.node.save()
-        get_image_inst_mock.return_value = instance_info
-        glance_mock.return_value = False
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-
-            task.driver.boot._validate_instance_image_info(task)
-            get_image_inst_mock.assert_called_once_with(task.node)
-            glance_mock.assert_called_once_with(
-                '6b2f0c0c-79e8-4db6-842e-43c9764204af')
-            validate_image_mock.assert_called_once_with(task.context,
-                                                        instance_info,
-                                                        ['kernel',
-                                                         'ramdisk'])
-            validate_href_mock.assert_called_once_with(mock.ANY, instance_info)
-
-    @mock.patch.object(ilo_boot.IloUefiHttpsBoot, '_validate_hrefs',
-                       autospec=True)
-    @mock.patch.object(deploy_utils, 'validate_image_properties',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(deploy_utils, 'get_image_instance_info',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
-                       autospec=True)
-    def test__validate_instance_image_info_iwdi(
-            self, glance_mock, get_image_inst_mock, validate_image_mock,
-            validate_href_mock):
-        instance_info = {
-            'boot_iso': 'boot-iso',
-            'image_source': '6b2f0c0c-79e8-4db6-842e-43c9764204af'
-        }
-        driver_internal_info = self.node.driver_internal_info or {}
-        driver_internal_info['is_whole_disk_image'] = True
-        self.node.driver_internal_info = driver_internal_info
-        self.node.save()
-        get_image_inst_mock.return_value = instance_info
-        glance_mock.return_value = True
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-
-            task.driver.boot._validate_instance_image_info(task)
-            get_image_inst_mock.assert_called_once_with(task.node)
-            glance_mock.assert_not_called()
-            validate_image_mock.assert_called_once_with(task.context,
-                                                        instance_info, [])
+            validate_image_mock.assert_called_once_with(task, instance_info)
             validate_href_mock.assert_called_once_with(mock.ANY, instance_info)
 
     @mock.patch.object(ilo_common, 'get_current_boot_mode',

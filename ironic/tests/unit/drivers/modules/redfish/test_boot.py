@@ -266,7 +266,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             task.driver.boot.validate(task)
 
             mock_validate_image_properties.assert_called_once_with(
-                task.context, mock.ANY, ['kernel', 'ramdisk'])
+                task, mock.ANY)
 
     @mock.patch.object(deploy_utils, 'get_boot_option', lambda node: 'ramdisk')
     @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
@@ -289,7 +289,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             task.driver.boot.validate(task)
 
             mock_validate_image_properties.assert_called_once_with(
-                task.context, mock.ANY, ['boot_iso'])
+                task, mock.ANY)
 
     @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
     @mock.patch.object(deploy_utils, 'validate_image_properties',

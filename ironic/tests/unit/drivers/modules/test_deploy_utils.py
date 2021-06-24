@@ -1302,44 +1302,59 @@ class AgentMethodsTestCase(db_base.DbTestCase):
 
 class ValidateImagePropertiesTestCase(db_base.DbTestCase):
 
-    @mock.patch.object(image_service, 'get_image_service', autospec=True)
-    def test_validate_image_properties_glance_image(self, image_service_mock):
-        node = obj_utils.create_test_node(
+    def setUp(self):
+        super().setUp()
+        self.node = obj_utils.create_test_node(
             self.context, boot_interface='pxe',
             instance_info=INST_INFO_DICT,
             driver_info=DRV_INFO_DICT,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
-        inst_info = utils.get_image_instance_info(node)
+        self.task = mock.Mock(context=self.context, node=self.node,
+                              spec=['context', 'node'])
+
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test_validate_image_properties_glance_image(self, image_service_mock):
+        inst_info = utils.get_image_instance_info(self.node)
         image_service_mock.return_value.show.return_value = {
             'properties': {'kernel_id': '1111', 'ramdisk_id': '2222'},
         }
 
-        utils.validate_image_properties(self.context, inst_info,
-                                        ['kernel_id', 'ramdisk_id'])
+        utils.validate_image_properties(self.task, inst_info)
         image_service_mock.assert_called_once_with(
-            node.instance_info['image_source'], context=self.context
+            self.node.instance_info['image_source'], context=self.context
         )
 
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image_missing_prop(
             self, image_service_mock):
-        node = obj_utils.create_test_node(
-            self.context, boot_interface='pxe',
-            instance_info=INST_INFO_DICT,
-            driver_info=DRV_INFO_DICT,
-            driver_internal_info=DRV_INTERNAL_INFO_DICT,
-        )
-        inst_info = utils.get_image_instance_info(node)
+        inst_info = utils.get_image_instance_info(self.node)
         image_service_mock.return_value.show.return_value = {
             'properties': {'kernel_id': '1111'},
         }
 
         self.assertRaises(exception.MissingParameterValue,
                           utils.validate_image_properties,
-                          self.context, inst_info, ['kernel_id', 'ramdisk_id'])
+                          self.task, inst_info)
         image_service_mock.assert_called_once_with(
-            node.instance_info['image_source'], context=self.context
+            self.node.instance_info['image_source'], context=self.context
+        )
+
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='kickstart')
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    def test_validate_image_properties_glance_image_missing_squashfs_id(
+            self, image_service_mock, boot_options_mock):
+        inst_info = utils.get_image_instance_info(self.node)
+        image_service_mock.return_value.show.return_value = {
+            'properties': {'kernel_id': '1111', 'ramdisk_id': '2222'},
+        }
+
+        self.assertRaises(exception.MissingParameterValue,
+                          utils.validate_image_properties,
+                          self.task, inst_info)
+        image_service_mock.assert_called_once_with(
+            self.node.instance_info['image_source'], context=self.context
         )
 
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
@@ -1349,8 +1364,8 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
         show_mock = image_service_mock.return_value.show
         show_mock.side_effect = exception.ImageNotAuthorized(image_id='uuid')
         self.assertRaises(exception.InvalidParameterValue,
-                          utils.validate_image_properties, self.context,
-                          inst_info, [])
+                          utils.validate_image_properties, self.task,
+                          inst_info)
 
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image_not_found(
@@ -1359,14 +1374,14 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
         show_mock = image_service_mock.return_value.show
         show_mock.side_effect = exception.ImageNotFound(image_id='uuid')
         self.assertRaises(exception.InvalidParameterValue,
-                          utils.validate_image_properties, self.context,
-                          inst_info, [])
+                          utils.validate_image_properties, self.task,
+                          inst_info)
 
     def test_validate_image_properties_invalid_image_href(self):
         inst_info = {'image_source': 'emule://uuid'}
         self.assertRaises(exception.InvalidParameterValue,
-                          utils.validate_image_properties, self.context,
-                          inst_info, [])
+                          utils.validate_image_properties, self.task,
+                          inst_info)
 
     @mock.patch.object(image_service.HttpImageService, 'show', autospec=True)
     def test_validate_image_properties_nonglance_image(
@@ -1378,15 +1393,9 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
             'root_gb': 100,
         }
         image_service_show_mock.return_value = {'size': 1, 'properties': {}}
-        node = obj_utils.create_test_node(
-            self.context, boot_interface='pxe',
-            instance_info=instance_info,
-            driver_info=DRV_INFO_DICT,
-            driver_internal_info=DRV_INTERNAL_INFO_DICT,
-        )
-        inst_info = utils.get_image_instance_info(node)
-        utils.validate_image_properties(self.context, inst_info,
-                                        ['kernel', 'ramdisk'])
+        self.node.instance_info = instance_info
+        inst_info = utils.get_image_instance_info(self.node)
+        utils.validate_image_properties(self.task, inst_info)
         image_service_show_mock.assert_called_once_with(
             mock.ANY, instance_info['image_source'])
 
@@ -1401,19 +1410,13 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
         }
         img_service_show_mock.side_effect = exception.ImageRefValidationFailed(
             image_href='http://ubuntu', reason='HTTPError')
-        node = obj_utils.create_test_node(
-            self.context, boot_interface='pxe',
-            instance_info=instance_info,
-            driver_info=DRV_INFO_DICT,
-            driver_internal_info=DRV_INTERNAL_INFO_DICT,
-        )
-        inst_info = utils.get_image_instance_info(node)
+        self.node.instance_info = instance_info
+        inst_info = utils.get_image_instance_info(self.node)
         expected_error = ('Validation of image href http://ubuntu '
                           'failed, reason: HTTPError')
         error = self.assertRaises(exception.InvalidParameterValue,
                                   utils.validate_image_properties,
-                                  self.context,
-                                  inst_info, ['kernel', 'ramdisk'])
+                                  self.task, inst_info)
         self.assertEqual(expected_error, str(error))
 
     def test_validate_image_properties_boot_iso_conflict(self):
@@ -1426,8 +1429,8 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
                           "the same time.")
         error = self.assertRaises(exception.InvalidParameterValue,
                                   utils.validate_image_properties,
-                                  self.context,
-                                  instance_info, [])
+                                  self.task,
+                                  instance_info)
         self.assertEqual(expected_error, str(error))
 
 
