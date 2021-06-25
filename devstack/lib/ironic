@@ -2406,7 +2406,7 @@ function enroll_nodes {
                     --driver-info ilo_password=$bmc_passwd \
                     --driver-info ilo_username=$bmc_username"
                 if [[ $IRONIC_ENABLED_BOOT_INTERFACES == *"ilo-virtual-media"* ]]; then
-                    node_options+=" --driver-info ilo_deploy_iso=$IRONIC_DEPLOY_ISO_ID"
+                    node_options+=" --driver-info deploy_iso=$IRONIC_DEPLOY_ISO_ID"
                 fi
             elif is_deployed_by_drac; then
                 node_options+=" --driver-info drac_address=$bmc_address \
