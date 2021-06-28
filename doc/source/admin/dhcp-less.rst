@@ -81,10 +81,29 @@ An example network data:
    Some fields are redundant with the port information. We're looking into
    simplifying the format, but currently all these fields are mandatory.
 
+You'll need the deployed image to support network data, e.g. by pre-installing
+cloud-init_ or Glean_ on it (most cloud images have the former). Then you can
+provide the network data when deploying, for example:
+
+.. code-block:: bash
+
+    baremetal node deploy <node> \
+        --config-drive "{\"network_data\": $(cat ~/network_data.json)}"
+
+Some first-boot services, such as Ignition_, don't support network data. You
+can provide their configuration as part of user data instead:
+
+.. code-block:: bash
+
+    baremetal node deploy <node> \
+        --config-drive "{\"user_data\": \"... ignition config ...\"}"
+
 .. _configdrive: https://docs.openstack.org/nova/queens/user/config-drive.html
 .. _Glean: https://docs.openstack.org/infra/glean/
 .. _simple-init: https://docs.openstack.org/diskimage-builder/latest/elements/simple-init/README.html
 .. _network_data: https://specs.openstack.org/openstack/nova-specs/specs/liberty/implemented/metadata-service-network-info.html
+.. _cloud-init: https://cloudinit.readthedocs.io/en/latest/
+.. _Ignition: https://coreos.github.io/ignition/
 
 .. _l3-external-ip:
 
