@@ -71,7 +71,7 @@ class VendorPassthruTestCase(test_common.BaseIloTest):
                 task.driver.vendor._validate_boot_into_iso,
                 task, {})
 
-    @mock.patch.object(deploy_utils, 'validate_image_properties',
+    @mock.patch.object(deploy_utils, 'get_image_properties',
                        spec_set=True, autospec=True)
     def test__validate_boot_into_iso_manage(self, validate_image_prop_mock):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -81,9 +81,9 @@ class VendorPassthruTestCase(test_common.BaseIloTest):
             task.driver.vendor._validate_boot_into_iso(
                 task, info)
             validate_image_prop_mock.assert_called_once_with(
-                task.context, {'image_source': 'foo'}, [])
+                task.context, 'foo')
 
-    @mock.patch.object(deploy_utils, 'validate_image_properties',
+    @mock.patch.object(deploy_utils, 'get_image_properties',
                        spec_set=True, autospec=True)
     def test__validate_boot_into_iso_maintenance(
             self, validate_image_prop_mock):
@@ -94,4 +94,4 @@ class VendorPassthruTestCase(test_common.BaseIloTest):
             task.driver.vendor._validate_boot_into_iso(
                 task, info)
             validate_image_prop_mock.assert_called_once_with(
-                task.context, {'image_source': 'foo'}, [])
+                task.context, 'foo')
