@@ -588,9 +588,19 @@ def get_boot_option(node):
         return 'local'
     if is_anaconda_deploy(node):
         return 'kickstart'
+    if is_ramdisk_deploy(node):
+        return 'ramdisk'
     capabilities = utils.parse_instance_info_capabilities(node)
     return capabilities.get('boot_option',
                             CONF.deploy.default_boot_option).lower()
+
+
+# FIXME(dtantsur): relying on deploy interface name is an anti-pattern.
+# Refactor the code so that the deploy interface itself provides the only boot
+# option it supports.
+
+def is_ramdisk_deploy(node):
+    return node.deploy_interface == 'ramdisk'
 
 
 def is_anaconda_deploy(node):
