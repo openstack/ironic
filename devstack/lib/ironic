@@ -2425,7 +2425,7 @@ function enroll_nodes {
                     --driver-info irmc_password=$bmc_passwd \
                     --driver-info irmc_username=$bmc_username"
                 if [[ -n "$IRONIC_DEPLOY_ISO_ID" ]]; then
-                    node_options+=" --driver-info irmc_deploy_iso=$IRONIC_DEPLOY_ISO_ID"
+                    node_options+=" --driver-info deploy_iso=$IRONIC_DEPLOY_ISO_ID"
                 fi
             elif is_deployed_by_xclarity; then
                 local xclarity_hardware_id
