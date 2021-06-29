@@ -23,6 +23,7 @@ from oslo_utils import importutils
 from ironic.common import images
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -605,6 +606,17 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             base_image_url = 'http://bearmetal.net/boot.iso'
             self.config(ramdisk_image_download_source='http', group='deploy')
+            url = image_utils._prepare_iso_image(
+                task, None, None, bootloader_href=None, root_uuid=None,
+                base_iso=base_image_url)
+            self.assertEqual(url, base_image_url)
+
+    @mock.patch.object(deploy_utils, 'get_boot_option', lambda node: 'ramdisk')
+    def test__prepare_iso_image_bootable_iso_with_instance_info(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            base_image_url = 'http://bearmetal.net/boot.iso'
+            task.node.instance_info['ramdisk_image_download_source'] = 'http'
             url = image_utils._prepare_iso_image(
                 task, None, None, bootloader_href=None, root_uuid=None,
                 base_iso=base_image_url)

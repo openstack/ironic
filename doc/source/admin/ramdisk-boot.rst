@@ -92,6 +92,14 @@ For example,
         --instance-info boot_iso=http://path/to/boot.iso
     baremetal node deploy <NODE>
 
+By default the Bare Metal service will cache the ISO locally and serve from its
+HTTP server. If you want to avoid that, set the following:
+
+.. code-block:: shell
+
+    baremetal node set <NODE> \
+        --instance-info ramdisk_image_download_source=http
+
 .. warning::
    This feature, when utilized with the ``ipxe`` ``boot_interface``,
    will only allow a kernel and ramdisk to be booted from the

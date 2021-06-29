@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    For the ``ramdisk`` deploy interface, the ``ramdisk_image_download_source``
+    option can now be provided in the node's ``instance_info`` in addition
+    to the global configuration.
