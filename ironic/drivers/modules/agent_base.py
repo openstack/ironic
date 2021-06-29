@@ -99,11 +99,6 @@ _FASTTRACK_HEARTBEAT_ALLOWED = (states.DEPLOYWAIT, states.CLEANWAIT,
 FASTTRACK_HEARTBEAT_ALLOWED = frozenset(_FASTTRACK_HEARTBEAT_ALLOWED)
 
 
-def _get_client():
-    client = agent_client.AgentClient()
-    return client
-
-
 @METRICS.timer('post_clean_step_hook')
 def post_clean_step_hook(interface, step):
     """Decorator method for adding a post clean step hook.
@@ -372,7 +367,7 @@ def execute_step(task, step, step_type, client=None):
         completed async
     """
     if client is None:
-        client = _get_client()
+        client = agent_client.get_client(task)
     ports = objects.Port.list_by_node_id(
         task.context, task.node.id)
     call = getattr(client, 'execute_%s_step' % step_type)
@@ -401,8 +396,7 @@ def _step_failure_handler(task, msg, step_type, traceback=False):
 class HeartbeatMixin(object):
     """Mixin class implementing heartbeat processing."""
 
-    def __init__(self):
-        self._client = _get_client()
+    collect_deploy_logs = True
 
     def reboot_to_instance(self, task):
         """Method invoked after the deployment is completed.
@@ -498,7 +492,7 @@ class HeartbeatMixin(object):
             # Do not call the error handler is the node is already DEPLOYFAIL
             if node.provision_state in (states.DEPLOYING, states.DEPLOYWAIT):
                 deploy_utils.set_failed_state(
-                    task, last_error, collect_logs=bool(self._client))
+                    task, last_error, collect_logs=self.collect_deploy_logs)
 
     def _heartbeat_clean_wait(self, task):
         node = task.node
@@ -621,7 +615,8 @@ class HeartbeatMixin(object):
         """
         node = task.node
         try:
-            result = self._client.finalize_rescue(node)
+            client = agent_client.get_client(task)
+            result = client.finalize_rescue(node)
         except exception.IronicException as e:
             raise exception.InstanceRescueFailure(node=node.uuid,
                                                   instance=node.instance_uuid,
@@ -853,7 +848,8 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                   {'node': node.uuid, 'type': step_type,
                    'steps': previous_steps})
 
-        call = getattr(self._client, 'get_%s_steps' % step_type)
+        client = agent_client.get_client(task)
+        call = getattr(client, 'get_%s_steps' % step_type)
         try:
             agent_result = call(node, task.ports).get('command_result', {})
         except exception.AgentInProgress as exc:
@@ -1039,7 +1035,8 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
         assert step_type in ('clean', 'deploy')
 
         node = task.node
-        agent_commands = self._client.get_commands_status(task.node)
+        client = agent_client.get_client(task)
+        agent_commands = client.get_commands_status(task.node)
 
         if _freshly_booted(agent_commands, step_type):
             field = ('cleaning_reboot' if step_type == 'clean'
@@ -1148,16 +1145,17 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
         can_power_on = (states.POWER_ON in
                         task.driver.power.get_supported_power_states(task))
 
+        client = agent_client.get_client(task)
         try:
             if not can_power_on:
                 LOG.info('Power interface of node %(node)s does not support '
                          'power on, using reboot to switch to the instance',
                          node.uuid)
-                self._client.sync(node)
+                client.sync(node)
                 manager_utils.node_power_action(task, states.REBOOT)
             elif not oob_power_off:
                 try:
-                    self._client.power_off(node)
+                    client.power_off(node)
                 except Exception as e:
                     LOG.warning('Failed to soft power off node %(node_uuid)s. '
                                 '%(cls)s: %(error)s',
@@ -1180,7 +1178,7 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                     manager_utils.node_power_action(task, states.POWER_OFF)
             else:
                 # Flush the file system prior to hard rebooting the node
-                result = self._client.sync(node)
+                result = client.sync(node)
                 error = result.get('faultstring')
                 if error:
                     if 'Unknown command' in error:
@@ -1330,7 +1328,8 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                       'partition %(part)s, EFI system partition %(efi)s',
                       {'node': node.uuid, 'part': root_uuid,
                        'efi': efi_system_part_uuid})
-            result = self._client.install_bootloader(
+            client = agent_client.get_client(task)
+            result = client.install_bootloader(
                 node, root_uuid=root_uuid,
                 efi_system_part_uuid=efi_system_part_uuid,
                 prep_boot_part_uuid=prep_boot_part_uuid,

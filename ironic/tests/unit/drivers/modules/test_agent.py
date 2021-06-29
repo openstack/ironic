@@ -1380,7 +1380,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.deploy._client = client_mock
+            task.cached_agent_client = client_mock
             task.driver.deploy.write_image(task)
 
             step['args'] = {'image_info': expected_image_info,
@@ -1470,7 +1470,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.deploy._client = client_mock
+            task.cached_agent_client = client_mock
             task.driver.deploy.write_image(task)
 
             step = {'step': 'write_image', 'interface': 'deploy',
@@ -1535,7 +1535,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            task.driver.deploy._client = client_mock
+            task.cached_agent_client = client_mock
             task.driver.deploy.write_image(task)
 
             step = {'step': 'write_image', 'interface': 'deploy',

@@ -32,6 +32,7 @@ from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base
+from ironic.drivers.modules import agent_client
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 
@@ -572,8 +573,9 @@ class AgentDeploy(CustomAgentDeploy):
                     'step': 'write_image',
                     'args': {'image_info': image_info,
                              'configdrive': configdrive}}
+        client = agent_client.get_client(task)
         return agent_base.execute_step(task, new_step, 'deploy',
-                                       client=self._client)
+                                       client=client)
 
     @METRICS.timer('AgentDeployMixin.prepare_instance_boot')
     @base.deploy_step(priority=60)
@@ -602,7 +604,8 @@ class AgentDeploy(CustomAgentDeploy):
         # ppc64* hardware we need to provide the 'PReP_Boot_partition_uuid' to
         # direct where the bootloader should be installed.
         driver_internal_info = task.node.driver_internal_info
-        partition_uuids = self._client.get_partition_uuids(node).get(
+        client = agent_client.get_client(task)
+        partition_uuids = client.get_partition_uuids(node).get(
             'command_result') or {}
         root_uuid = partition_uuids.get('root uuid')
 
