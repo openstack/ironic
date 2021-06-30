@@ -361,18 +361,25 @@ def get_enabled_macs(task, system):
         in a {'mac': 'state'} format
     """
 
+    enabled_macs = {}
     if (system.ethernet_interfaces
             and system.ethernet_interfaces.summary):
         macs = system.ethernet_interfaces.summary
 
         # Identify ports for the NICs being in 'enabled' state
-        enabled_macs = {nic_mac: nic_state
-                        for nic_mac, nic_state in macs.items()
-                        if nic_state == sushy.STATE_ENABLED}
-        return enabled_macs
-    else:
-        LOG.debug("No ethernet interface information is available "
-                  "for node %(node)s", {'node': task.node.uuid})
+        for nic_mac, nic_state in macs.items():
+            if nic_state != sushy.STATE_ENABLED:
+                continue
+            elif not nic_mac:
+                LOG.warning("Ignoring device for %(node)s as no MAC "
+                            "reported", {'node': task.node.uuid})
+                continue
+            enabled_macs[nic_mac] = nic_state
+        if enabled_macs:
+            return enabled_macs
+
+    LOG.debug("No ethernet interface information is available "
+              "for node %(node)s", {'node': task.node.uuid})
 
 
 @tenacity.retry(
