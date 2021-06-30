@@ -537,16 +537,15 @@ def get_image_properties(ctx, image_href):
         raise exception.InvalidParameterValue(err=e)
 
 
-def validate_image_properties(ctx, deploy_info, properties):
+def validate_image_properties(task, deploy_info):
     """Validate the image.
 
     For Glance images it checks that the image exists in Glance and its
     properties or deployment info contain the properties passed. If it's not a
     Glance image, it checks that deployment info contains needed properties.
 
-    :param ctx: security context
+    :param task: TaskManager instance with a valid node
     :param deploy_info: the deploy_info to be validated
-    :param properties: the list of image meta-properties to be validated.
     :raises: InvalidParameterValue if:
         * connection to glance failed;
         * authorization for accessing image failed;
@@ -565,7 +564,18 @@ def validate_image_properties(ctx, deploy_info, properties):
     if not image_href:
         image_href = boot_iso
 
-    image_props = get_image_properties(ctx, image_href)
+    properties = []
+    if (not boot_iso
+            and not task.node.driver_internal_info.get('is_whole_disk_image')):
+        if service_utils.is_glance_image(image_href):
+            properties = ['kernel_id', 'ramdisk_id']
+            boot_option = get_boot_option(task.node)
+            if boot_option == 'kickstart':
+                properties.append('squashfs_id')
+        else:
+            properties = ['kernel', 'ramdisk']
+
+    image_props = get_image_properties(task.context, image_href)
 
     missing_props = []
     for prop in properties:

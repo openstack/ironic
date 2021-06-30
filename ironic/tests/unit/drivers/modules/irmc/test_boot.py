@@ -1048,69 +1048,18 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     @mock.patch.object(irmc_boot, '_parse_deploy_info', spec_set=True,
                        autospec=True)
-    def test_validate_whole_disk_image(self,
-                                       deploy_info_mock,
-                                       is_glance_image_mock,
-                                       validate_prop_mock,
-                                       check_share_fs_mounted_mock):
+    def test_validate(self, deploy_info_mock, is_glance_image_mock,
+                      validate_prop_mock, check_share_fs_mounted_mock):
         d_info = {'image_source': '733d1c44-a2ea-414b-aca7-69decf20d810'}
         deploy_info_mock.return_value = d_info
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.node.driver_internal_info = {'is_whole_disk_image': True}
-            task.driver.boot.validate(task)
-
-            self.assertEqual(check_share_fs_mounted_mock.call_count, 2)
-            deploy_info_mock.assert_called_once_with(task.node)
-            self.assertFalse(is_glance_image_mock.called)
-            validate_prop_mock.assert_called_once_with(task.context,
-                                                       d_info, [])
-
-    @mock.patch.object(deploy_utils, 'validate_image_properties',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(irmc_boot, '_parse_deploy_info', spec_set=True,
-                       autospec=True)
-    def test_validate_glance_image(self,
-                                   deploy_info_mock,
-                                   is_glance_image_mock,
-                                   validate_prop_mock,
-                                   check_share_fs_mounted_mock):
-        d_info = {'image_source': '733d1c44-a2ea-414b-aca7-69decf20d810'}
-        deploy_info_mock.return_value = d_info
-        is_glance_image_mock.return_value = True
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.boot.validate(task)
 
             self.assertEqual(check_share_fs_mounted_mock.call_count, 2)
             deploy_info_mock.assert_called_once_with(task.node)
-            validate_prop_mock.assert_called_once_with(
-                task.context, d_info, ['kernel_id', 'ramdisk_id'])
-
-    @mock.patch.object(deploy_utils, 'validate_image_properties',
-                       spec_set=True, autospec=True)
-    @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
-                       autospec=True)
-    @mock.patch.object(irmc_boot, '_parse_deploy_info', spec_set=True,
-                       autospec=True)
-    def test_validate_non_glance_image(self,
-                                       deploy_info_mock,
-                                       is_glance_image_mock,
-                                       validate_prop_mock,
-                                       check_share_fs_mounted_mock):
-        d_info = {'image_source': '733d1c44-a2ea-414b-aca7-69decf20d810'}
-        deploy_info_mock.return_value = d_info
-        is_glance_image_mock.return_value = False
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=False) as task:
-            task.driver.boot.validate(task)
-
-            self.assertEqual(check_share_fs_mounted_mock.call_count, 2)
-            deploy_info_mock.assert_called_once_with(task.node)
-            validate_prop_mock.assert_called_once_with(
-                task.context, d_info, ['kernel', 'ramdisk'])
+            self.assertFalse(is_glance_image_mock.called)
+            validate_prop_mock.assert_called_once_with(task, d_info)
 
     @mock.patch.object(irmc_management, 'backup_bios_config', spec_set=True,
                        autospec=True)
