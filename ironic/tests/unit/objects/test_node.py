@@ -396,17 +396,68 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             self.assertThat(nodes, matchers.HasLength(1))
             self.assertIsInstance(nodes[0], objects.Node)
             self.assertEqual(self.context, nodes[0]._context)
+            self.assertIsInstance(nodes[0].traits, objects.TraitList)
 
     def test_list_with_fields(self):
         with mock.patch.object(self.dbapi, 'get_node_list',
                                autospec=True) as mock_get_list:
             mock_get_list.return_value = [self.fake_node]
-            objects.Node.list(self.context, fields=['name'])
+            nodes = objects.Node.list(self.context,
+                                      fields=['name', 'uuid',
+                                              'provision_state'])
             mock_get_list.assert_called_with(
                 filters=None, limit=None, marker=None, sort_key=None,
                 sort_dir=None,
-                fields=['id', 'name', 'version', 'updated_at', 'created_at',
-                        'owner', 'lessee', 'driver', 'conductor_group'])
+                fields=['id', 'name', 'uuid', 'provision_state', 'version',
+                        'updated_at', 'created_at', 'owner', 'lessee',
+                        'driver', 'conductor_group'])
+            self.assertThat(nodes, matchers.HasLength(1))
+            self.assertEqual(self.fake_node['uuid'], nodes[0].uuid)
+            self.assertEqual(self.fake_node['provision_state'],
+                             nodes[0].provision_state)
+            self.assertIsInstance(nodes[0].traits, objects.TraitList)
+            # Random assortment of fields which should not be present.
+            for field in ['power_state', 'instance_info', 'resource_class',
+                          'automated_clean', 'properties', 'driver', 'traits']:
+                self.assertFalse(field not in dir(nodes[0]))
+
+    def test_list_with_fields_traits(self):
+        with mock.patch.object(self.dbapi, 'get_node_list',
+                               autospec=True) as mock_get_list:
+            # Trait objects and ultimately rows have an underlying
+            # version. Since we've never changed it, it should just
+            # be one, but this is required for the oslo versioned
+            # objects code path to handle objects properly and
+            # navigate mid-upgrade cases.
+            self.fake_node['traits'] = [{
+                'trait': 'traitx', 'version': "1"}]
+            mock_get_list.return_value = [self.fake_node]
+            nodes = objects.Node.list(self.context,
+                                      fields=['uuid', 'provision_state',
+                                              'traits'])
+            self.assertThat(nodes, matchers.HasLength(1))
+            self.assertEqual(self.fake_node['uuid'], nodes[0].uuid)
+            self.assertEqual(self.fake_node['provision_state'],
+                             nodes[0].provision_state)
+            self.assertIsInstance(nodes[0].traits, objects.TraitList)
+            self.assertEqual('traitx', nodes[0].traits[0].trait)
+            for field in ['power_state', 'instance_info', 'resource_class',
+                          'automated_clean', 'properties', 'driver']:
+                self.assertFalse(field not in dir(nodes[0]))
+
+    def test_list_with_fields_empty_trait_present(self):
+        with mock.patch.object(self.dbapi, 'get_node_list',
+                               autospec=True) as mock_get_list:
+            mock_get_list.return_value = [self.fake_node]
+            nodes = objects.Node.list(self.context,
+                                      fields=['uuid', 'provision_state',
+                                              'traits'])
+            self.assertThat(nodes, matchers.HasLength(1))
+            self.assertEqual(self.fake_node['uuid'], nodes[0].uuid)
+            self.assertEqual(self.fake_node['provision_state'],
+                             nodes[0].provision_state)
+            self.assertIsInstance(nodes[0].traits, objects.TraitList)
+            self.assertIn('traits', nodes[0])
 
     def test_reserve(self):
         with mock.patch.object(self.dbapi, 'reserve_node',
