@@ -345,10 +345,16 @@ deprecated_bios_disable_cleaning = policy.DeprecatedRule(
     name='baremetal:node:disable_cleaning',
     check_str='rule:baremetal:node:update',
 )
+# TODO(TheJulia): Since the OpenStack community appears to be
+# coalescing around taking a very long term deprecation path,
+# and is actually seeking to suppress the warnings being generated
+# for the time being, I've changed the warning below to remove
+# reference to the Xena cycle. This should be changed once we
+# determine when the old policies will be fully removed.
 deprecated_node_reason = """
 The baremetal node API is now aware of system scope and default roles.
 Capability to fallback to legacy admin project policy configuration
-will be removed in the Xena release of Ironic.
+will be removed in a future release of Ironic.
 """
 
 
@@ -1803,6 +1809,9 @@ def init_enforcer(policy_file=None, rules=None,
     # each policy started filling the logs limit for various tool.
     # Once we move to new defaults only world then we can enable these
     # warning again.
+    # TODO(TheJulia): *When* we go to enable warnings to be indicated
+    # we need to update the notice in the logs to indicate *when* the
+    # support for older policies will be removed.
     _ENFORCER.suppress_default_change_warnings = True
     _ENFORCER.register_defaults(list_policies())
 
