@@ -406,7 +406,10 @@ There are certain limitations to be aware of:
   from the deployed user image. Depending on how the partitions are mounted,
   the content of the partitions may get out of sync, e.g. when new kernels
   are installed or the bootloader is updated, so measures to keep these
-  partitions in sync need to be taken.
+  partitions in sync need to be taken. Note that starting with the Victoria
+  release, the Ironic Python Agent configures a RAID-1 mirror for the ESPs,
+  so no additional measures to ensure consistency of the ESPs should be
+  required any longer.
 
 Image requirements
 ------------------
