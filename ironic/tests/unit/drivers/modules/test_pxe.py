@@ -853,7 +853,8 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
                             'default_%s_interface' % iface: impl}
             self.config(**config_kwarg)
         self.config(enabled_hardware_types=['fake-hardware'])
-        instance_info = INST_INFO_DICT
+        instance_info = {'kernel': 'kernelUUID',
+                         'ramdisk': 'ramdiskUUID'}
         self.node = obj_utils.create_test_node(
             self.context,
             driver='fake-hardware',
@@ -963,8 +964,16 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_validate(self, mock_validate_img):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.instance_info['capabilities'] = {
-                'boot_option': 'netboot'}
+            task.driver.deploy.validate(task)
+        self.assertTrue(mock_validate_img.called)
+
+    @mock.patch.object(deploy_utils, 'validate_image_properties',
+                       autospec=True)
+    def test_validate_with_boot_iso(self, mock_validate_img):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.instance_info = {
+                'boot_iso': 'isoUUID'
+            }
             task.driver.deploy.validate(task)
         self.assertTrue(mock_validate_img.called)
 

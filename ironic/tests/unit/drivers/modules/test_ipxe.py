@@ -133,15 +133,17 @@ class iPXEBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(image_service.GlanceImageService, 'show', autospec=True)
     @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
-                return_value='ramdisk', autospec=True)
+                autospec=True)
     def test_validate_with_boot_iso(self, mock_boot_option, mock_glance):
-        i_info = self.node.driver_info
-        i_info['boot_iso'] = "http://localhost:1234/boot.iso"
+        self.node.instance_info = {
+            'boot_iso': "http://localhost:1234/boot.iso"
+        }
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.boot.validate(task)
-            self.assertTrue(mock_boot_option.called)
-            self.assertTrue(mock_glance.called)
+            mock_boot_option.assert_called_with(task.node)
+            mock_glance.assert_not_called()
 
     @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
                 return_value='ramdisk', autospec=True)

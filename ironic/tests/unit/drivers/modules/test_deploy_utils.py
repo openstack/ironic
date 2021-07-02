@@ -1433,6 +1433,20 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
                                   instance_info)
         self.assertEqual(expected_error, str(error))
 
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='ramdisk')
+    @mock.patch.object(image_service.HttpImageService, 'show', autospec=True)
+    def test_validate_image_properties_ramdisk_deploy(
+            self, image_service_show_mock, boot_options_mock):
+        instance_info = {
+            'kernel': 'file://kernel',
+            'ramdisk': 'file://initrd',
+        }
+        self.node.instance_info = instance_info
+        inst_info = utils.get_image_instance_info(self.node)
+        utils.validate_image_properties(self.task, inst_info)
+        image_service_show_mock.assert_not_called()
+
 
 class ValidateParametersTestCase(db_base.DbTestCase):
 
@@ -1449,12 +1463,11 @@ class ValidateParametersTestCase(db_base.DbTestCase):
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
 
-        info = utils.get_image_instance_info(node)
-        self.assertIsNotNone(info['image_source'])
-        return info
+        return utils.get_image_instance_info(node)
 
     def test__get_img_instance_info_good(self):
-        self._test__get_img_instance_info()
+        info = self._test__get_img_instance_info()
+        self.assertIsNotNone(info['image_source'])
 
     def test__get_img_instance_info_good_non_glance_image(self):
         instance_info = INST_INFO_DICT.copy()
@@ -1464,6 +1477,7 @@ class ValidateParametersTestCase(db_base.DbTestCase):
 
         info = self._test__get_img_instance_info(instance_info=instance_info)
 
+        self.assertIsNotNone(info['image_source'])
         self.assertIsNotNone(info['ramdisk'])
         self.assertIsNotNone(info['kernel'])
 
@@ -1500,8 +1514,31 @@ class ValidateParametersTestCase(db_base.DbTestCase):
         driver_internal_info = DRV_INTERNAL_INFO_DICT.copy()
         driver_internal_info['is_whole_disk_image'] = True
 
-        self._test__get_img_instance_info(
+        info = self._test__get_img_instance_info(
             driver_internal_info=driver_internal_info)
+        self.assertIsNotNone(info['image_source'])
+
+    def test__get_img_instance_info_boot_iso_only(self):
+        instance_info = {
+            'boot_iso': 'http://iso'
+        }
+
+        info = self._test__get_img_instance_info(instance_info=instance_info)
+        self.assertIsNotNone(info['boot_iso'])
+        self.assertNotIn('image_source', info)
+
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='ramdisk')
+    def test__get_img_instance_info_ramdisk_deploy(self, mock_boot_opt):
+        instance_info = {
+            'kernel': 'http://kernel',
+            'ramdisk': 'http://ramdisk',
+        }
+
+        info = self._test__get_img_instance_info(instance_info=instance_info)
+        self.assertIsNotNone(info['kernel'])
+        self.assertIsNotNone(info['ramdisk'])
+        self.assertNotIn('image_source', info)
 
 
 class InstanceInfoTestCase(db_base.DbTestCase):

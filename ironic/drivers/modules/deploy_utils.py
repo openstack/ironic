@@ -565,17 +565,23 @@ def validate_image_properties(task, deploy_info):
         image_href = boot_iso
 
     properties = []
-    if (not boot_iso
-            and not task.node.driver_internal_info.get('is_whole_disk_image')):
-        if service_utils.is_glance_image(image_href):
-            properties = ['kernel_id', 'ramdisk_id']
-            boot_option = get_boot_option(task.node)
-            if boot_option == 'kickstart':
-                properties.append('squashfs_id')
-        else:
-            properties = ['kernel', 'ramdisk']
+    if boot_iso or task.node.driver_internal_info.get('is_whole_disk_image'):
+        # No image properties are required in this case
+        return
 
-    image_props = get_image_properties(task.context, image_href)
+    if service_utils.is_glance_image(image_href):
+        properties = ['kernel_id', 'ramdisk_id']
+        boot_option = get_boot_option(task.node)
+        if boot_option == 'kickstart':
+            properties.append('squashfs_id')
+    else:
+        properties = ['kernel', 'ramdisk']
+
+    if image_href:
+        image_props = get_image_properties(task.context, image_href)
+    else:
+        # Ramdisk deploy, no image_source is present
+        image_props = []
 
     missing_props = []
     for prop in properties:
@@ -783,17 +789,28 @@ def get_image_instance_info(node):
     # more explicit unit testing to exist.
     info = {}
 
-    is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
     boot_iso = node.instance_info.get('boot_iso')
-    if not boot_iso:
-        info['image_source'] = node.instance_info.get('image_source')
-    else:
+    image_source = node.instance_info.get('image_source')
+    if boot_iso:
+        if image_source:
+            raise exception.InvalidParameterValue(_(
+                "An 'image_source' and 'boot_iso' parameter may not be "
+                "specified at the same time."))
         info['boot_iso'] = boot_iso
-
-    if not is_whole_disk_image and not boot_iso:
-        if not service_utils.is_glance_image(info['image_source']):
+    else:
+        if get_boot_option(node) == 'ramdisk':
+            # Ramdisk deploy does not require an image
             info['kernel'] = node.instance_info.get('kernel')
             info['ramdisk'] = node.instance_info.get('ramdisk')
+        else:
+            info['image_source'] = image_source
+
+            is_whole_disk_image = node.driver_internal_info.get(
+                'is_whole_disk_image')
+            if (not is_whole_disk_image
+                    and not service_utils.is_glance_image(image_source)):
+                info['kernel'] = node.instance_info.get('kernel')
+                info['ramdisk'] = node.instance_info.get('ramdisk')
 
     error_msg = (_("Cannot validate image information for node %s because one "
                    "or more parameters are missing from its instance_info and "
