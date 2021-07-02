@@ -1797,6 +1797,13 @@ def init_enforcer(policy_file=None, rules=None,
         rules=rules,
         default_rule=default_rule,
         use_conf=use_conf)
+    # NOTE(melwitt): Explictly disable the warnings for policies
+    # changing their default check_str. During policy-defaults-refresh
+    # work, all the policy defaults have been changed and warning for
+    # each policy started filling the logs limit for various tool.
+    # Once we move to new defaults only world then we can enable these
+    # warning again.
+    _ENFORCER.suppress_default_change_warnings = True
     _ENFORCER.register_defaults(list_policies())
 
 
