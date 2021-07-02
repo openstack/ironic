@@ -408,6 +408,15 @@ There are certain limitations to be aware of:
   are installed or the bootloader is updated, so measures to keep these
   partitions in sync need to be taken.
 
+* In BIOS mode, the Ironic Python Agent installs the boot loader onto all
+  disks. While nothing is required for kernel or grub package updates,
+  re-installing the bootloader on one disk, e.g. during a disk replacement,
+  may require to re-install the bootloader on all disks. Otherwise, there
+  is a risk of an incompatibility of the grub components stored on the device
+  (i.e. stage1/boot.img in the MBR and stage1.5/core.img in the MBR gap) with
+  the ones stored in /boot (stage2). This incompatibility can render the node
+  unbootable if the wrong disk is selected for booting.
+
 Image requirements
 ------------------
 
