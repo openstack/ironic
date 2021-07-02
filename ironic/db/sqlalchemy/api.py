@@ -32,6 +32,8 @@ from osprofiler import sqlalchemy as osp_sqlalchemy
 import sqlalchemy as sa
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import Load
+from sqlalchemy.orm import selectinload
 from sqlalchemy import sql
 
 from ironic.common import exception
@@ -433,8 +435,63 @@ class Connection(api.Connection):
                                sort_key, sort_dir, query)
 
     def get_node_list(self, filters=None, limit=None, marker=None,
-                      sort_key=None, sort_dir=None):
-        query = _get_node_query_with_all()
+                      sort_key=None, sort_dir=None, fields=None):
+        if not fields:
+            query = _get_node_query_with_all()
+            query = self._add_nodes_filters(query, filters)
+            return _paginate_query(models.Node, limit, marker,
+                                   sort_key, sort_dir, query)
+        else:
+            # Shunt to the proper method to return the limited list.
+            return self.get_node_list_columns(columns=fields, filters=filters,
+                                              limit=limit, marker=marker,
+                                              sort_key=sort_key,
+                                              sort_dir=sort_dir)
+
+    def get_node_list_columns(self, columns=None, filters=None, limit=None,
+                              marker=None, sort_key=None, sort_dir=None):
+        """Get a node list with specific fields/columns.
+
+        :param columns: A list of columns to retrieve from the database
+                        and populate into the object.
+        :param filters: The requested database field filters in the form of
+                        a dictionary with the applicable key, and filter
+                        value.
+        :param limit: Limit the number of returned nodes, default None.
+        :param marker: Starting marker to generate a paginated result
+                       set for the consumer.
+        :param sort_key: Sort key to apply to the result set.
+        :param sort_dir: Sort direction to apply to the result set.
+        :returns: A list of Node objects based on the data model from
+                  a SQLAlchemy result set, which the object layer can
+                  use to convert the node into an Node object list.
+        """
+        traits_found = False
+        use_columns = columns[:]
+        if 'traits' in columns:
+            # Traits is synthetic in the data model and not a direct
+            # table column. As such, a different query pattern is used
+            # with SQLAlchemy.
+            traits_found = True
+            use_columns.remove('traits')
+
+        # Generate the column object list so SQLAlchemy only fulfills
+        # the requested columns.
+        use_columns = [getattr(models.Node, c) for c in use_columns]
+
+        # In essence, traits (and anything else needed to generate the
+        # composite objects) need to be reconciled without using a join
+        # as multiple rows can be generated in the result set being returned
+        # from the database server. In this case, with traits, we use
+        # a selectinload pattern.
+        if traits_found:
+            query = model_query(models.Node).options(
+                Load(models.Node).load_only(*use_columns),
+                selectinload(models.Node.traits))
+        else:
+            query = model_query(models.Node).options(
+                Load(models.Node).load_only(*use_columns))
+
         query = self._add_nodes_filters(query, filters)
         return _paginate_query(models.Node, limit, marker,
                                sort_key, sort_dir, query)

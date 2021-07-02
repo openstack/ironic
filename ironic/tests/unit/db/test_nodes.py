@@ -20,6 +20,7 @@ from unittest import mock
 
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
+from sqlalchemy.orm import exc as sa_exc
 
 from ironic.common import exception
 from ironic.common import states
@@ -302,6 +303,20 @@ class DbNodeTestCase(base.DbTestCase):
             self.assertEqual([], r.tags)
             self.assertEqual([], r.traits)
 
+    def test_get_node_list_includes_traits(self):
+        uuids = []
+        for i in range(1, 6):
+            node = utils.create_test_node(uuid=uuidutils.generate_uuid())
+            uuids.append(str(node['uuid']))
+            self.dbapi.set_node_traits(node.id, ['trait1', 'trait2'], '1.35')
+
+        res = self.dbapi.get_node_list()
+        res_uuids = [r.uuid for r in res]
+        self.assertCountEqual(uuids, res_uuids)
+        for r in res:
+            self.assertEqual([], r.tags)
+            self.assertEqual(2, len(r.traits))
+
     def test_get_node_list_with_filters(self):
         ch1 = utils.create_test_chassis(uuid=uuidutils.generate_uuid())
         ch2 = utils.create_test_chassis(uuid=uuidutils.generate_uuid())
@@ -445,6 +460,140 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertRaises(exception.ChassisNotFound,
                           self.dbapi.get_node_list,
                           {'chassis_uuid': uuidutils.generate_uuid()})
+
+    def test_get_node_list_requested_fields_with_traits(self):
+        # Checks to to ensure we're not returning a node object with all
+        # fields populated as this is a high overhead for SQLAlchemy to do
+        # all of the object conversions, when we have fields which were not
+        # requested nor required.
+        # Modeled after the nova query which is used to collect node state
+        uuids = []
+        for i in range(1, 6):
+            node = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                          provision_state=states.AVAILABLE,
+                                          power_state=states.POWER_OFF,
+                                          target_power_state=None,
+                                          target_provision_state=None,
+                                          last_error=None,
+                                          maintenance=False,
+                                          properties={'cpu': 'x86_64'},
+                                          instance_uuid=None,
+                                          resource_class='CUSTOM_BAREMETAL',
+                                          # Code requires the fields below
+                                          owner='fred',
+                                          lessee='marsha',
+                                          # Fields that should not be
+                                          # present in the obejct.
+                                          driver_internal_info={
+                                              'cat': 'meow'},
+                                          internal_info={'corgi': 'rocks'},
+                                          deploy_interface='purring_machine')
+            # Add some traits for good measure
+            self.dbapi.set_node_traits(node.id, ['trait1', 'trait2'], '1.35')
+            uuids.append(str(node['uuid']))
+        req_fields = ['uuid',
+                      'power_state',
+                      'target_power_state',
+                      'provision_state',
+                      'target_provision_state',
+                      'last_error',
+                      'maintenance',
+                      'properties',
+                      'instance_uuid',
+                      'resource_class',
+                      'traits',
+                      'version',
+                      'updated_at',
+                      'created_at']
+
+        res = self.dbapi.get_node_list(fields=req_fields)
+        res_uuids = [r.uuid for r in res]
+        self.assertCountEqual(uuids, res_uuids)
+        for r in res:
+            self.assertIsNotNone(r.traits)
+            self.assertIsNotNone(r.version)
+            self.assertEqual(states.AVAILABLE, r.provision_state)
+            self.assertEqual(states.POWER_OFF, r.power_state)
+            self.assertIsNone(r.target_power_state)
+            self.assertIsNone(r.target_provision_state)
+            self.assertIsNone(r.last_error)
+            self.assertFalse(r.maintenance)
+            self.assertIsNone(r.instance_uuid)
+            self.assertEqual('CUSTOM_BAREMETAL', r.resource_class)
+            self.assertEqual('trait1', r.traits[0]['trait'])
+            self.assertEqual('trait2', r.traits[1]['trait'])
+            # These always need to be returned, even if not requested.
+            # These should always be empty values as they are not populated
+            # due to the object not returning a value in the field to save on
+            # excess un-necessary data conversions.
+
+            def _attempt_field_access(obj, field):
+                return obj[field]
+
+            for field in ['driver_internal_info', 'internal_info',
+                          'deploy_interface', 'boot_interface',
+                          'driver', 'extra']:
+                try:
+                    self.assertRaises(sa_exc.DetachedInstanceError,
+                                      _attempt_field_access, r, field)
+                except AttributeError:
+                    pass
+
+    def test_get_node_list_requested_fields_no_traits(self):
+        # The join for traits handling requires some special handling
+        # so in this case we execute without traits being joined in.
+        uuids = []
+        for i in range(1, 3):
+            node = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                          provision_state=states.AVAILABLE,
+                                          last_error=None,
+                                          maintenance=False,
+                                          resource_class='CUSTOM_BAREMETAL',
+                                          # Code requires the fields below
+                                          owner='fred',
+                                          lessee='marsha',
+                                          # Fields that should not be
+                                          # present in the object.
+                                          driver_internal_info={
+                                              'cat': 'meow'},
+                                          internal_info={'corgi': 'rocks'},
+                                          deploy_interface='purring_machine')
+            uuids.append(str(node['uuid']))
+        req_fields = ['uuid',
+                      'provision_state',
+                      'last_error',
+                      'owner',
+                      'lessee',
+                      'version']
+
+        res = self.dbapi.get_node_list(fields=req_fields)
+        res_uuids = [r.uuid for r in res]
+        self.assertCountEqual(uuids, res_uuids)
+        for r in res:
+            self.assertIsNotNone(r.version)
+            self.assertEqual(states.AVAILABLE, r.provision_state)
+            self.assertIsNone(r.last_error)
+            # These always need to be returned, even if not requested.
+            self.assertEqual('fred', r.owner)
+            self.assertEqual('marsha', r.lessee)
+            # These should always be empty values as they are not populated
+            # due to the object not returning a value in the field to save on
+            # excess un-necessary data conversions.
+
+            def _attempt_field_access(obj, field):
+                return obj[field]
+
+            for field in ['driver_internal_info', 'internal_info',
+                          'deploy_interface', 'boot_interface',
+                          'driver', 'extra', 'power_state',
+                          'traits']:
+                try:
+                    self.assertRaises(sa_exc.DetachedInstanceError,
+                                      _attempt_field_access, r, field)
+                except AttributeError:
+                    # We expect an AttributeError, in addition to
+                    # SQLAlchemy raising an exception.
+                    pass
 
     def test_get_node_by_instance(self):
         node = utils.create_test_node(

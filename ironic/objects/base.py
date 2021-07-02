@@ -299,7 +299,7 @@ class IronicObject(object_base.VersionedObject):
         return obj
 
     @classmethod
-    def _from_db_object_list(cls, context, db_objects):
+    def _from_db_object_list(cls, context, db_objects, fields=None):
         """Returns objects corresponding to database entities.
 
         Returns a list of formal objects of this class that correspond to
@@ -308,9 +308,13 @@ class IronicObject(object_base.VersionedObject):
         :param cls: the VersionedObject class of the desired object
         :param context: security context
         :param db_objects: A  list of DB models of the object
+        :param fields: A list of field names to comprise lower level
+                       objects.
         :returns: A list of objects corresponding to the database entities
         """
-        return [cls._from_db_object(context, cls(), db_obj)
+        # NOTE(TheJulia): Fields is used in a later patch in this series
+        # and tests are landed in an intermediate change.
+        return [cls._from_db_object(context, cls(), db_obj, fields=None)
                 for db_obj in db_objects]
 
     def do_version_changes_for_db(self):
