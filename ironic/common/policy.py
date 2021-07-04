@@ -221,130 +221,6 @@ default_policies = [
 #             All of these may be overridden by configuration, but we can
 #             depend on their existence throughout the code.
 
-deprecated_node_create = policy.DeprecatedRule(
-    name='baremetal:node:create',
-    check_str='rule:is_admin'
-)
-deprecated_node_get = policy.DeprecatedRule(
-    name='baremetal:node:get',
-    check_str='rule:is_admin or rule:is_observer'
-)
-deprecated_node_list = policy.DeprecatedRule(
-    name='baremetal:node:list',
-    check_str='rule:baremetal:node:get'
-)
-deprecated_node_list_all = policy.DeprecatedRule(
-    name='baremetal:node:list_all',
-    check_str='rule:baremetal:node:get'
-)
-deprecated_node_update = policy.DeprecatedRule(
-    name='baremetal:node:update',
-    check_str='rule:is_admin'
-)
-deprecated_node_update_extra = policy.DeprecatedRule(
-    name='baremetal:node:update_extra',
-    check_str='rule:baremetal:node:update'
-)
-deprecated_node_update_instance_info = policy.DeprecatedRule(
-    name='baremetal:node:update_instance_info',
-    check_str='rule:baremetal:node:update'
-)
-deprecated_node_update_owner_provisioned = policy.DeprecatedRule(
-    name='baremetal:node:update_owner_provisioned',
-    check_str='rule:is_admin'
-)
-deprecated_node_delete = policy.DeprecatedRule(
-    name='baremetal:node:delete',
-    check_str='rule:is_admin'
-)
-deprecated_node_validate = policy.DeprecatedRule(
-    name='baremetal:node:validate',
-    check_str='rule:is_admin'
-)
-deprecated_node_set_maintenance = policy.DeprecatedRule(
-    name='baremetal:node:set_maintenance',
-    check_str='rule:is_admin'
-)
-deprecated_node_clear_maintenance = policy.DeprecatedRule(
-    name='baremetal:node:clear_maintenance',
-    check_str='rule:is_admin'
-)
-deprecated_node_get_boot_device = policy.DeprecatedRule(
-    name='baremetal:node:get_boot_device',
-    check_str='rule:is_admin or rule:is_observer'
-)
-deprecated_node_set_boot_device = policy.DeprecatedRule(
-    name='baremetal:node:set_boot_device',
-    check_str='rule:is_admin'
-)
-deprecated_node_get_indicator_state = policy.DeprecatedRule(
-    name='baremetal:node:get_indicator_state',
-    check_str='rule:is_admin or rule:is_observer'
-)
-deprecated_node_set_indicator_state = policy.DeprecatedRule(
-    name='baremetal:node:set_indicator_state',
-    check_str='rule:is_admin'
-)
-deprecated_node_inject_nmi = policy.DeprecatedRule(
-    name='baremetal:node:inject_nmi',
-    check_str='rule:is_admin'
-)
-deprecated_node_get_states = policy.DeprecatedRule(
-    name='baremetal:node:get_states',
-    check_str='rule:is_admin or rule:is_observer'
-)
-deprecated_node_set_power_state = policy.DeprecatedRule(
-    name='baremetal:node:set_power_state',
-    check_str='rule:is_admin'
-)
-deprecated_node_set_provision_state = policy.DeprecatedRule(
-    name='baremetal:node:set_provision_state',
-    check_str='rule:is_admin'
-)
-deprecated_node_set_raid_state = policy.DeprecatedRule(
-    name='baremetal:node:set_raid_state',
-    check_str='rule:is_admin'
-)
-deprecated_node_get_console = policy.DeprecatedRule(
-    name='baremetal:node:get_console',
-    check_str='rule:is_admin'
-)
-deprecated_node_set_console_state = policy.DeprecatedRule(
-    name='baremetal:node:set_console_state',
-    check_str='rule:is_admin'
-)
-deprecated_node_vif_list = policy.DeprecatedRule(
-    name='baremetal:node:vif:list',
-    check_str='rule:is_admin'
-)
-deprecated_node_vif_attach = policy.DeprecatedRule(
-    name='baremetal:node:vif:attach',
-    check_str='rule:is_admin'
-)
-deprecated_node_vif_detach = policy.DeprecatedRule(
-    name='baremetal:node:vif:detach',
-    check_str='rule:is_admin'
-)
-deprecated_node_traits_list = policy.DeprecatedRule(
-    name='baremetal:node:traits:list',
-    check_str='rule:is_admin or rule:is_observer'
-)
-deprecated_node_traits_set = policy.DeprecatedRule(
-    name='baremetal:node:traits:set',
-    check_str='rule:is_admin'
-)
-deprecated_node_traits_delete = policy.DeprecatedRule(
-    name='baremetal:node:traits:delete',
-    check_str='rule:is_admin'
-)
-deprecated_node_bios_get = policy.DeprecatedRule(
-    name='baremetal:node:bios:get',
-    check_str='rule:is_admin or rule:is_observer'
-)
-deprecated_bios_disable_cleaning = policy.DeprecatedRule(
-    name='baremetal:node:disable_cleaning',
-    check_str='rule:baremetal:node:update',
-)
 # TODO(TheJulia): Since the OpenStack community appears to be
 # coalescing around taking a very long term deprecation path,
 # and is actually seeking to suppress the warnings being generated
@@ -357,6 +233,193 @@ Capability to fallback to legacy admin project policy configuration
 will be removed in a future release of Ironic.
 """
 
+deprecated_node_create = policy.DeprecatedRule(
+    name='baremetal:node:create',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_get = policy.DeprecatedRule(
+    name='baremetal:node:get',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_list = policy.DeprecatedRule(
+    name='baremetal:node:list',
+    check_str='rule:baremetal:node:get',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_list_all = policy.DeprecatedRule(
+    name='baremetal:node:list_all',
+    check_str='rule:baremetal:node:get',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_update = policy.DeprecatedRule(
+    name='baremetal:node:update',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_update_extra = policy.DeprecatedRule(
+    name='baremetal:node:update_extra',
+    check_str='rule:baremetal:node:update',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_update_instance_info = policy.DeprecatedRule(
+    name='baremetal:node:update_instance_info',
+    check_str='rule:baremetal:node:update',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_update_owner_provisioned = policy.DeprecatedRule(
+    name='baremetal:node:update_owner_provisioned',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_delete = policy.DeprecatedRule(
+    name='baremetal:node:delete',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_validate = policy.DeprecatedRule(
+    name='baremetal:node:validate',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_set_maintenance = policy.DeprecatedRule(
+    name='baremetal:node:set_maintenance',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_clear_maintenance = policy.DeprecatedRule(
+    name='baremetal:node:clear_maintenance',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_get_boot_device = policy.DeprecatedRule(
+    name='baremetal:node:get_boot_device',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_set_boot_device = policy.DeprecatedRule(
+    name='baremetal:node:set_boot_device',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_get_indicator_state = policy.DeprecatedRule(
+    name='baremetal:node:get_indicator_state',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_set_indicator_state = policy.DeprecatedRule(
+    name='baremetal:node:set_indicator_state',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_inject_nmi = policy.DeprecatedRule(
+    name='baremetal:node:inject_nmi',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_get_states = policy.DeprecatedRule(
+    name='baremetal:node:get_states',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_set_power_state = policy.DeprecatedRule(
+    name='baremetal:node:set_power_state',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_set_provision_state = policy.DeprecatedRule(
+    name='baremetal:node:set_provision_state',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_set_raid_state = policy.DeprecatedRule(
+    name='baremetal:node:set_raid_state',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_get_console = policy.DeprecatedRule(
+    name='baremetal:node:get_console',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_set_console_state = policy.DeprecatedRule(
+    name='baremetal:node:set_console_state',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_vif_list = policy.DeprecatedRule(
+    name='baremetal:node:vif:list',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_vif_attach = policy.DeprecatedRule(
+    name='baremetal:node:vif:attach',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_vif_detach = policy.DeprecatedRule(
+    name='baremetal:node:vif:detach',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_traits_list = policy.DeprecatedRule(
+    name='baremetal:node:traits:list',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_traits_set = policy.DeprecatedRule(
+    name='baremetal:node:traits:set',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_traits_delete = policy.DeprecatedRule(
+    name='baremetal:node:traits:delete',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_node_bios_get = policy.DeprecatedRule(
+    name='baremetal:node:bios:get',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_bios_disable_cleaning = policy.DeprecatedRule(
+    name='baremetal:node:disable_cleaning',
+    check_str='rule:baremetal:node:update',
+    deprecated_reason=deprecated_node_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+
 
 node_policies = [
     policy.DocumentedRuleDefault(
@@ -365,9 +428,7 @@ node_policies = [
         scope_types=['system'],
         description='Create Node records',
         operations=[{'path': '/nodes', 'method': 'POST'}],
-        deprecated_rule=deprecated_node_create,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_create
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:list',
@@ -377,9 +438,7 @@ node_policies = [
                     'an explicit owner or the client project_id',
         operations=[{'path': '/nodes', 'method': 'GET'},
                     {'path': '/nodes/detail', 'method': 'GET'}],
-        deprecated_rule=deprecated_node_list,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_list
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:list_all',
@@ -388,9 +447,7 @@ node_policies = [
         description='Retrieve multiple Node records',
         operations=[{'path': '/nodes', 'method': 'GET'},
                     {'path': '/nodes/detail', 'method': 'GET'}],
-        deprecated_rule=deprecated_node_list_all,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_list_all
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:get',
@@ -398,9 +455,7 @@ node_policies = [
         scope_types=['system', 'project'],
         description='Retrieve a single Node record',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
-        deprecated_rule=deprecated_node_get,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:get:filter_threshold',
@@ -414,9 +469,7 @@ node_policies = [
         # This rule fallsback to deprecated_node_get in order to provide a
         # mechanism so the additional policies only engage in an updated
         # operating context.
-        deprecated_rule=deprecated_node_get,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY,
+        deprecated_rule=deprecated_node_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:get:last_error',
@@ -425,9 +478,7 @@ node_policies = [
         description='Governs if the node last_error field is masked from API'
                     'clients with insufficent privileges.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
-        deprecated_rule=deprecated_node_get,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:get:reservation',
@@ -436,9 +487,7 @@ node_policies = [
         description='Governs if the node reservation field is masked from API'
                     'clients with insufficent privileges.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
-        deprecated_rule=deprecated_node_get,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:get:driver_internal_info',
@@ -447,9 +496,7 @@ node_policies = [
         description='Governs if the node driver_internal_info field is '
                     'masked from API clients with insufficent privileges.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
-        deprecated_rule=deprecated_node_get,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:get:driver_info',
@@ -458,9 +505,7 @@ node_policies = [
         description='Governs if the driver_info field is masked from API'
                     'clients with insufficent privileges.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
-        deprecated_rule=deprecated_node_get,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update:driver_info',
@@ -469,9 +514,7 @@ node_policies = [
         description='Governs if node driver_info field can be updated via '
                     'the API clients.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update:properties',
@@ -480,9 +523,7 @@ node_policies = [
         description='Governs if node properties field can be updated via '
                     'the API clients.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update:chassis_uuid',
@@ -491,9 +532,7 @@ node_policies = [
         description='Governs if node chassis_uuid field can be updated via '
                     'the API clients.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update:instance_uuid',
@@ -502,9 +541,7 @@ node_policies = [
         description='Governs if node instance_uuid field can be updated via '
                     'the API clients.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update:lessee',
@@ -513,9 +550,7 @@ node_policies = [
         description='Governs if node lessee field can be updated via '
                     'the API clients.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update:owner',
@@ -524,9 +559,7 @@ node_policies = [
         description='Governs if node owner field can be updated via '
                     'the API clients.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update:driver_interfaces',
@@ -535,9 +568,7 @@ node_policies = [
         description='Governs if node driver and driver interfaces field '
                     'can be updated via the API clients.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update:network_data',
@@ -546,9 +577,7 @@ node_policies = [
         description='Governs if node driver_info field can be updated via '
                     'the API clients.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update:conductor_group',
@@ -557,9 +586,7 @@ node_policies = [
         description='Governs if node conductor_group field can be updated '
                     'via the API clients.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update:name',
@@ -568,9 +595,7 @@ node_policies = [
         description='Governs if node name field can be updated via '
                     'the API clients.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update:retired',
@@ -579,9 +604,7 @@ node_policies = [
         description='Governs if node retired and retired reason '
                     'can be updated by API clients.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update
     ),
 
     # If this role is denied we should likely roll into the other rules
@@ -594,9 +617,7 @@ node_policies = [
         scope_types=['system', 'project'],
         description='Generalized update of node records',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update_extra',
@@ -604,9 +625,7 @@ node_policies = [
         scope_types=['system', 'project'],
         description='Update Node extra field',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update_extra,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update_extra
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update_instance_info',
@@ -614,9 +633,7 @@ node_policies = [
         scope_types=['system', 'project'],
         description='Update Node instance_info field',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update_instance_info,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update_instance_info
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:update_owner_provisioned',
@@ -624,9 +641,7 @@ node_policies = [
         scope_types=['system'],
         description='Update Node owner even when Node is provisioned',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_node_update_owner_provisioned,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_update_owner_provisioned
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:delete',
@@ -634,9 +649,7 @@ node_policies = [
         scope_types=['system', 'project'],
         description='Delete Node records',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'DELETE'}],
-        deprecated_rule=deprecated_node_delete,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_delete
     ),
 
     policy.DocumentedRuleDefault(
@@ -647,9 +660,7 @@ node_policies = [
         operations=[
             {'path': '/nodes/{node_ident}/validate', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_node_validate,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_validate
     ),
 
     policy.DocumentedRuleDefault(
@@ -660,9 +671,7 @@ node_policies = [
         operations=[
             {'path': '/nodes/{node_ident}/maintenance', 'method': 'PUT'}
         ],
-        deprecated_rule=deprecated_node_set_maintenance,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_set_maintenance
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:clear_maintenance',
@@ -674,9 +683,7 @@ node_policies = [
         operations=[
             {'path': '/nodes/{node_ident}/maintenance', 'method': 'DELETE'}
         ],
-        deprecated_rule=deprecated_node_clear_maintenance,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_clear_maintenance
     ),
 
     # NOTE(TheJulia): This should liekly be deprecated and be replaced with
@@ -692,9 +699,7 @@ node_policies = [
             {'path': '/nodes/{node_ident}/management/boot_device/supported',
              'method': 'GET'}
         ],
-        deprecated_rule=deprecated_node_get_boot_device,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_get_boot_device
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:set_boot_device',
@@ -705,9 +710,7 @@ node_policies = [
             {'path': '/nodes/{node_ident}/management/boot_device',
              'method': 'PUT'}
         ],
-        deprecated_rule=deprecated_node_set_maintenance,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_set_maintenance
     ),
 
     policy.DocumentedRuleDefault(
@@ -722,9 +725,7 @@ node_policies = [
             {'path': '/nodes/{node_ident}/management/indicators',
              'method': 'GET'}
         ],
-        deprecated_rule=deprecated_node_get_indicator_state,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_get_indicator_state
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:set_indicator_state',
@@ -736,9 +737,7 @@ node_policies = [
                      '{component}/{indicator}',
              'method': 'PUT'}
         ],
-        deprecated_rule=deprecated_node_set_indicator_state,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_set_indicator_state
     ),
 
     policy.DocumentedRuleDefault(
@@ -750,9 +749,7 @@ node_policies = [
             {'path': '/nodes/{node_ident}/management/inject_nmi',
              'method': 'PUT'}
         ],
-        deprecated_rule=deprecated_node_inject_nmi,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_inject_nmi
     ),
 
     policy.DocumentedRuleDefault(
@@ -761,9 +758,7 @@ node_policies = [
         scope_types=['system', 'project'],
         description='View Node power and provision state',
         operations=[{'path': '/nodes/{node_ident}/states', 'method': 'GET'}],
-        deprecated_rule=deprecated_node_get_states,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_get_states
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:set_power_state',
@@ -773,9 +768,7 @@ node_policies = [
         operations=[
             {'path': '/nodes/{node_ident}/states/power', 'method': 'PUT'}
         ],
-        deprecated_rule=deprecated_node_set_power_state,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_set_power_state
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:set_provision_state',
@@ -785,9 +778,7 @@ node_policies = [
         operations=[
             {'path': '/nodes/{node_ident}/states/provision', 'method': 'PUT'}
         ],
-        deprecated_rule=deprecated_node_set_provision_state,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_set_provision_state
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:set_raid_state',
@@ -797,9 +788,7 @@ node_policies = [
         operations=[
             {'path': '/nodes/{node_ident}/states/raid', 'method': 'PUT'}
         ],
-        deprecated_rule=deprecated_node_set_raid_state,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_set_raid_state
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:get_console',
@@ -809,9 +798,7 @@ node_policies = [
         operations=[
             {'path': '/nodes/{node_ident}/states/console', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_node_get_console,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_get_console
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:set_console_state',
@@ -821,9 +808,7 @@ node_policies = [
         operations=[
             {'path': '/nodes/{node_ident}/states/console', 'method': 'PUT'}
         ],
-        deprecated_rule=deprecated_node_set_console_state,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_set_console_state
     ),
 
     policy.DocumentedRuleDefault(
@@ -832,9 +817,7 @@ node_policies = [
         scope_types=['system', 'project'],
         description='List VIFs attached to node',
         operations=[{'path': '/nodes/{node_ident}/vifs', 'method': 'GET'}],
-        deprecated_rule=deprecated_node_vif_list,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_vif_list
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:vif:attach',
@@ -842,9 +825,7 @@ node_policies = [
         scope_types=['system', 'project'],
         description='Attach a VIF to a node',
         operations=[{'path': '/nodes/{node_ident}/vifs', 'method': 'POST'}],
-        deprecated_rule=deprecated_node_vif_attach,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_vif_attach
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:vif:detach',
@@ -855,9 +836,7 @@ node_policies = [
             {'path': '/nodes/{node_ident}/vifs/{node_vif_ident}',
              'method': 'DELETE'}
         ],
-        deprecated_rule=deprecated_node_vif_detach,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_vif_detach
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:traits:list',
@@ -865,9 +844,7 @@ node_policies = [
         scope_types=['system', 'project'],
         description='List node traits',
         operations=[{'path': '/nodes/{node_ident}/traits', 'method': 'GET'}],
-        deprecated_rule=deprecated_node_traits_list,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_traits_list
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:traits:set',
@@ -878,9 +855,7 @@ node_policies = [
             {'path': '/nodes/{node_ident}/traits', 'method': 'PUT'},
             {'path': '/nodes/{node_ident}/traits/{trait}', 'method': 'PUT'}
         ],
-        deprecated_rule=deprecated_node_traits_set,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_traits_set
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:traits:delete',
@@ -892,9 +867,7 @@ node_policies = [
             {'path': '/nodes/{node_ident}/traits/{trait}',
                      'method': 'DELETE'}
         ],
-        deprecated_rule=deprecated_node_traits_delete,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_traits_delete
     ),
 
     policy.DocumentedRuleDefault(
@@ -906,9 +879,7 @@ node_policies = [
             {'path': '/nodes/{node_ident}/bios', 'method': 'GET'},
             {'path': '/nodes/{node_ident}/bios/{setting}', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_node_bios_get,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_bios_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:disable_cleaning',
@@ -918,39 +889,49 @@ node_policies = [
         operations=[
             {'path': '/nodes/{node_ident}', 'method': 'PATCH'}
         ],
-        deprecated_rule=deprecated_bios_disable_cleaning,
-        deprecated_reason=deprecated_node_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_bios_disable_cleaning
     ),
 ]
 
-deprecated_port_get = policy.DeprecatedRule(
-    name='baremetal:port:get',
-    check_str='rule:is_admin or rule:is_observer'
-)
-deprecated_port_list = policy.DeprecatedRule(
-    name='baremetal:port:list',
-    check_str='rule:baremetal:port:get'
-)
-deprecated_port_list_all = policy.DeprecatedRule(
-    name='baremetal:port:list_all',
-    check_str='rule:baremetal:port:get'
-)
-deprecated_port_create = policy.DeprecatedRule(
-    name='baremetal:port:create',
-    check_str='rule:is_admin'
-)
-deprecated_port_delete = policy.DeprecatedRule(
-    name='baremetal:port:delete',
-    check_str='rule:is_admin'
-)
-deprecated_port_update = policy.DeprecatedRule(
-    name='baremetal:port:update',
-    check_str='rule:is_admin'
-)
 deprecated_port_reason = """
 The baremetal port API is now aware of system scope and default roles.
 """
+deprecated_port_get = policy.DeprecatedRule(
+    name='baremetal:port:get',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_port_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_port_list = policy.DeprecatedRule(
+    name='baremetal:port:list',
+    check_str='rule:baremetal:port:get',
+    deprecated_reason=deprecated_port_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_port_list_all = policy.DeprecatedRule(
+    name='baremetal:port:list_all',
+    check_str='rule:baremetal:port:get',
+    deprecated_reason=deprecated_port_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_port_create = policy.DeprecatedRule(
+    name='baremetal:port:create',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_port_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_port_delete = policy.DeprecatedRule(
+    name='baremetal:port:delete',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_port_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_port_update = policy.DeprecatedRule(
+    name='baremetal:port:update',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_port_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
 
 port_policies = [
     policy.DocumentedRuleDefault(
@@ -966,9 +947,7 @@ port_policies = [
             {'path': '/portgroups/{portgroup_ident}/ports/detail',
              'method': 'GET'}
         ],
-        deprecated_rule=deprecated_port_get,
-        deprecated_reason=deprecated_port_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_port_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:port:list',
@@ -979,9 +958,7 @@ port_policies = [
             {'path': '/ports', 'method': 'GET'},
             {'path': '/ports/detail', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_port_list,
-        deprecated_reason=deprecated_port_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_port_list
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:port:list_all',
@@ -992,9 +969,7 @@ port_policies = [
             {'path': '/ports', 'method': 'GET'},
             {'path': '/ports/detail', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_port_list_all,
-        deprecated_reason=deprecated_port_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_port_list_all
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:port:create',
@@ -1002,9 +977,7 @@ port_policies = [
         scope_types=['system', 'project'],
         description='Create Port records',
         operations=[{'path': '/ports', 'method': 'POST'}],
-        deprecated_rule=deprecated_port_create,
-        deprecated_reason=deprecated_port_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_port_create
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:port:delete',
@@ -1012,9 +985,7 @@ port_policies = [
         scope_types=['system', 'project'],
         description='Delete Port records',
         operations=[{'path': '/ports/{port_id}', 'method': 'DELETE'}],
-        deprecated_rule=deprecated_port_delete,
-        deprecated_reason=deprecated_port_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_port_delete
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:port:update',
@@ -1022,31 +993,38 @@ port_policies = [
         scope_types=['system', 'project'],
         description='Update Port records',
         operations=[{'path': '/ports/{port_id}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_port_update,
-        deprecated_reason=deprecated_port_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_port_update
     ),
 ]
 
-deprecated_portgroup_get = policy.DeprecatedRule(
-    name='baremetal:portgroup:get',
-    check_str='rule:is_admin or rule:is_observer'
-)
-deprecated_portgroup_create = policy.DeprecatedRule(
-    name='baremetal:portgroup:create',
-    check_str='rule:is_admin'
-)
-deprecated_portgroup_delete = policy.DeprecatedRule(
-    name='baremetal:portgroup:delete',
-    check_str='rule:is_admin'
-)
-deprecated_portgroup_update = policy.DeprecatedRule(
-    name='baremetal:portgroup:update',
-    check_str='rule:is_admin'
-)
+
 deprecated_portgroup_reason = """
 The baremetal port groups API is now aware of system scope and default roles.
 """
+deprecated_portgroup_get = policy.DeprecatedRule(
+    name='baremetal:portgroup:get',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_portgroup_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_portgroup_create = policy.DeprecatedRule(
+    name='baremetal:portgroup:create',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_portgroup_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_portgroup_delete = policy.DeprecatedRule(
+    name='baremetal:portgroup:delete',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_portgroup_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_portgroup_update = policy.DeprecatedRule(
+    name='baremetal:portgroup:update',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_portgroup_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
 
 portgroup_policies = [
     policy.DocumentedRuleDefault(
@@ -1061,9 +1039,7 @@ portgroup_policies = [
             {'path': '/nodes/{node_ident}/portgroups', 'method': 'GET'},
             {'path': '/nodes/{node_ident}/portgroups/detail', 'method': 'GET'},
         ],
-        deprecated_rule=deprecated_portgroup_get,
-        deprecated_reason=deprecated_portgroup_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_portgroup_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:portgroup:create',
@@ -1071,9 +1047,7 @@ portgroup_policies = [
         scope_types=['system', 'project'],
         description='Create Portgroup records',
         operations=[{'path': '/portgroups', 'method': 'POST'}],
-        deprecated_rule=deprecated_portgroup_create,
-        deprecated_reason=deprecated_portgroup_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_portgroup_create
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:portgroup:delete',
@@ -1083,9 +1057,7 @@ portgroup_policies = [
         operations=[
             {'path': '/portgroups/{portgroup_ident}', 'method': 'DELETE'}
         ],
-        deprecated_rule=deprecated_portgroup_delete,
-        deprecated_reason=deprecated_portgroup_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_portgroup_delete
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:portgroup:update',
@@ -1095,9 +1067,7 @@ portgroup_policies = [
         operations=[
             {'path': '/portgroups/{portgroup_ident}', 'method': 'PATCH'}
         ],
-        deprecated_rule=deprecated_portgroup_update,
-        deprecated_reason=deprecated_portgroup_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_portgroup_update
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:portgroup:list',
@@ -1108,9 +1078,7 @@ portgroup_policies = [
             {'path': '/portgroups', 'method': 'GET'},
             {'path': '/portgroups/detail', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_portgroup_get,
-        deprecated_reason=deprecated_portgroup_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_portgroup_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:portgroup:list_all',
@@ -1121,32 +1089,38 @@ portgroup_policies = [
             {'path': '/portgroups', 'method': 'GET'},
             {'path': '/portgroups/detail', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_portgroup_get,
-        deprecated_reason=deprecated_portgroup_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_portgroup_get
     ),
 ]
 
 
-deprecated_chassis_get = policy.DeprecatedRule(
-    name='baremetal:chassis:get',
-    check_str='rule:is_admin or rule:is_observer'
-)
-deprecated_chassis_create = policy.DeprecatedRule(
-    name='baremetal:chassis:create',
-    check_str='rule:is_admin'
-)
-deprecated_chassis_delete = policy.DeprecatedRule(
-    name='baremetal:chassis:delete',
-    check_str='rule:is_admin'
-)
-deprecated_chassis_update = policy.DeprecatedRule(
-    name='baremetal:chassis:update',
-    check_str='rule:is_admin'
-)
 deprecated_chassis_reason = """
 The baremetal chassis API is now aware of system scope and default roles.
 """
+deprecated_chassis_get = policy.DeprecatedRule(
+    name='baremetal:chassis:get',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_chassis_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_chassis_create = policy.DeprecatedRule(
+    name='baremetal:chassis:create',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_chassis_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_chassis_delete = policy.DeprecatedRule(
+    name='baremetal:chassis:delete',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_chassis_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_chassis_update = policy.DeprecatedRule(
+    name='baremetal:chassis:update',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_chassis_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
 
 chassis_policies = [
     policy.DocumentedRuleDefault(
@@ -1159,9 +1133,7 @@ chassis_policies = [
             {'path': '/chassis/detail', 'method': 'GET'},
             {'path': '/chassis/{chassis_id}', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_chassis_get,
-        deprecated_reason=deprecated_chassis_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_chassis_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:chassis:create',
@@ -1169,9 +1141,7 @@ chassis_policies = [
         scope_types=['system'],
         description='Create Chassis records',
         operations=[{'path': '/chassis', 'method': 'POST'}],
-        deprecated_rule=deprecated_chassis_create,
-        deprecated_reason=deprecated_chassis_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_chassis_create
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:chassis:delete',
@@ -1179,9 +1149,7 @@ chassis_policies = [
         scope_types=['system'],
         description='Delete Chassis records',
         operations=[{'path': '/chassis/{chassis_id}', 'method': 'DELETE'}],
-        deprecated_rule=deprecated_chassis_delete,
-        deprecated_reason=deprecated_chassis_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_chassis_delete
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:chassis:update',
@@ -1189,28 +1157,32 @@ chassis_policies = [
         scope_types=['system'],
         description='Update Chassis records',
         operations=[{'path': '/chassis/{chassis_id}', 'method': 'PATCH'}],
-        deprecated_rule=deprecated_chassis_update,
-        deprecated_reason=deprecated_chassis_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_chassis_update
     ),
 ]
 
 
-deprecated_driver_get = policy.DeprecatedRule(
-    name='baremetal:driver:get',
-    check_str='rule:is_admin or rule:is_observer'
-)
-deprecated_driver_get_properties = policy.DeprecatedRule(
-    name='baremetal:driver:get_properties',
-    check_str='rule:is_admin or rule:is_observer'
-)
-deprecated_driver_get_raid_properties = policy.DeprecatedRule(
-    name='baremetal:driver:get_raid_logical_disk_properties',
-    check_str='rule:is_admin or rule:is_observer'
-)
 deprecated_driver_reason = """
 The baremetal driver API is now aware of system scope and default roles.
 """
+deprecated_driver_get = policy.DeprecatedRule(
+    name='baremetal:driver:get',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_driver_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_driver_get_properties = policy.DeprecatedRule(
+    name='baremetal:driver:get_properties',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_driver_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_driver_get_raid_properties = policy.DeprecatedRule(
+    name='baremetal:driver:get_raid_logical_disk_properties',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_driver_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
 
 driver_policies = [
     policy.DocumentedRuleDefault(
@@ -1222,9 +1194,7 @@ driver_policies = [
             {'path': '/drivers', 'method': 'GET'},
             {'path': '/drivers/{driver_name}', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_driver_get,
-        deprecated_reason=deprecated_driver_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_driver_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:driver:get_properties',
@@ -1234,9 +1204,7 @@ driver_policies = [
         operations=[
             {'path': '/drivers/{driver_name}/properties', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_driver_get_properties,
-        deprecated_reason=deprecated_driver_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_driver_get_properties
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:driver:get_raid_logical_disk_properties',
@@ -1247,24 +1215,27 @@ driver_policies = [
             {'path': '/drivers/{driver_name}/raid/logical_disk_properties',
              'method': 'GET'}
         ],
-        deprecated_rule=deprecated_driver_get_raid_properties,
-        deprecated_reason=deprecated_driver_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_driver_get_raid_properties
     ),
 ]
 
-deprecated_node_passthru = policy.DeprecatedRule(
-    name='baremetal:node:vendor_passthru',
-    check_str='rule:is_admin'
-)
-deprecated_driver_passthru = policy.DeprecatedRule(
-    name='baremetal:driver:vendor_passthru',
-    check_str='rule:is_admin'
-)
+
 deprecated_vendor_reason = """
 The baremetal vendor passthru API is now aware of system scope and default
 roles.
 """
+deprecated_node_passthru = policy.DeprecatedRule(
+    name='baremetal:node:vendor_passthru',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_vendor_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_driver_passthru = policy.DeprecatedRule(
+    name='baremetal:driver:vendor_passthru',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_vendor_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
 
 vendor_passthru_policies = [
     policy.DocumentedRuleDefault(
@@ -1289,9 +1260,7 @@ vendor_passthru_policies = [
             {'path': 'nodes/{node_ident}/vendor_passthru?method={method_name}',
              'method': 'DELETE'},
         ],
-        deprecated_rule=deprecated_node_passthru,
-        deprecated_reason=deprecated_vendor_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_node_passthru
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:driver:vendor_passthru',
@@ -1317,25 +1286,27 @@ vendor_passthru_policies = [
                      'method={method_name}',
              'method': 'DELETE'}
         ],
-        deprecated_rule=deprecated_driver_passthru,
-        deprecated_reason=deprecated_vendor_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_driver_passthru
     ),
 ]
 
 
-deprecated_ipa_heartbeat = policy.DeprecatedRule(
-    name='baremetal:node:ipa_heartbeat',
-    check_str='rule:public_api'
-)
-deprecated_ipa_lookup = policy.DeprecatedRule(
-    name='baremetal:driver:ipa_lookup',
-    check_str='rule:public_api'
-)
 deprecated_utility_reason = """
 The baremetal utility API is now aware of system scope and default
 roles.
 """
+deprecated_ipa_heartbeat = policy.DeprecatedRule(
+    name='baremetal:node:ipa_heartbeat',
+    check_str='rule:public_api',
+    deprecated_reason=deprecated_utility_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_ipa_lookup = policy.DeprecatedRule(
+    name='baremetal:driver:ipa_lookup',
+    check_str='rule:public_api',
+    deprecated_reason=deprecated_utility_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
 
 # NOTE(TheJulia): Empty check strings basically mean nothing to apply,
 # and the request is permitted.
@@ -1345,42 +1316,46 @@ utility_policies = [
         check_str='',
         description='Receive heartbeats from IPA ramdisk',
         operations=[{'path': '/heartbeat/{node_ident}', 'method': 'POST'}],
-        deprecated_rule=deprecated_ipa_heartbeat,
-        deprecated_reason=deprecated_utility_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_ipa_heartbeat
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:driver:ipa_lookup',
         check_str='',
         description='Access IPA ramdisk functions',
         operations=[{'path': '/lookup', 'method': 'GET'}],
-        deprecated_rule=deprecated_ipa_lookup,
-        deprecated_reason=deprecated_utility_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_ipa_lookup
     ),
 ]
 
 
-deprecated_volume_get = policy.DeprecatedRule(
-    name='baremetal:volume:get',
-    check_str='rule:is_admin or rule:is_observer'
-)
-deprecated_volume_create = policy.DeprecatedRule(
-    name='baremetal:volume:create',
-    check_str='rule:is_admin'
-)
-deprecated_volume_delete = policy.DeprecatedRule(
-    name='baremetal:volume:delete',
-    check_str='rule:is_admin'
-)
-deprecated_volume_update = policy.DeprecatedRule(
-    name='baremetal:volume:update',
-    check_str='rule:is_admin'
-)
 deprecated_volume_reason = """
 The baremetal volume API is now aware of system scope and default
 roles.
 """
+deprecated_volume_get = policy.DeprecatedRule(
+    name='baremetal:volume:get',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_volume_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_volume_create = policy.DeprecatedRule(
+    name='baremetal:volume:create',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_volume_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_volume_delete = policy.DeprecatedRule(
+    name='baremetal:volume:delete',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_volume_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_volume_update = policy.DeprecatedRule(
+    name='baremetal:volume:update',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_volume_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
 
 volume_policies = [
     policy.DocumentedRuleDefault(
@@ -1395,9 +1370,7 @@ volume_policies = [
             {'path': '/nodes/{node_ident}/volume/connectors', 'method': 'GET'},
             {'path': '/nodes/{node_ident}/volume/targets', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_volume_get,
-        deprecated_reason=deprecated_volume_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_volume_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:volume:list',
@@ -1410,9 +1383,7 @@ volume_policies = [
             {'path': '/nodes/{node_ident}/volume/connectors', 'method': 'GET'},
             {'path': '/nodes/{node_ident}/volume/targets', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_volume_get,
-        deprecated_reason=deprecated_volume_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_volume_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:volume:get',
@@ -1430,9 +1401,7 @@ volume_policies = [
             {'path': '/nodes/{node_ident}/volume/connectors', 'method': 'GET'},
             {'path': '/nodes/{node_ident}/volume/targets', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_volume_get,
-        deprecated_reason=deprecated_volume_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_volume_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:volume:create',
@@ -1443,9 +1412,7 @@ volume_policies = [
             {'path': '/volume/connectors', 'method': 'POST'},
             {'path': '/volume/targets', 'method': 'POST'}
         ],
-        deprecated_rule=deprecated_volume_create,
-        deprecated_reason=deprecated_volume_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_volume_create
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:volume:delete',
@@ -1458,9 +1425,7 @@ volume_policies = [
             {'path': '/volume/targets/{volume_target_id}',
              'method': 'DELETE'}
         ],
-        deprecated_rule=deprecated_volume_delete,
-        deprecated_reason=deprecated_volume_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_volume_delete
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:volume:update',
@@ -1473,9 +1438,7 @@ volume_policies = [
             {'path': '/volume/targets/{volume_target_id}',
              'method': 'PATCH'}
         ],
-        deprecated_rule=deprecated_volume_update,
-        deprecated_reason=deprecated_volume_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_volume_update
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:volume:view_target_properties',
@@ -1488,21 +1451,21 @@ volume_policies = [
             {'path': '/volume/targets/{volume_target_id}',
              'method': 'GET'}
         ],
-        deprecated_rule=deprecated_volume_update,
-        deprecated_reason=deprecated_volume_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_volume_update
     ),
 ]
 
 
-deprecated_conductor_get = policy.DeprecatedRule(
-    name='baremetal:conductor:get',
-    check_str='rule:is_admin or rule:is_observer'
-)
 deprecated_conductor_reason = """
 The baremetal conductor API is now aware of system scope and default
 roles.
 """
+deprecated_conductor_get = policy.DeprecatedRule(
+    name='baremetal:conductor:get',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_conductor_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
 
 conductor_policies = [
     policy.DocumentedRuleDefault(
@@ -1514,45 +1477,57 @@ conductor_policies = [
             {'path': '/conductors', 'method': 'GET'},
             {'path': '/conductors/{hostname}', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_conductor_get,
-        deprecated_reason=deprecated_conductor_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_conductor_get
     ),
 ]
 
 
-deprecated_allocation_get = policy.DeprecatedRule(
-    name='baremetal:allocation:get',
-    check_str='rule:is_admin or rule:is_observer'
-)
-deprecated_allocation_list = policy.DeprecatedRule(
-    name='baremetal:allocation:list',
-    check_str='rule:baremetal:allocation:get'
-)
-deprecated_allocation_list_all = policy.DeprecatedRule(
-    name='baremetal:allocation:list_all',
-    check_str='rule:baremetal:allocation:get and is_admin_project:True'
-)
-deprecated_allocation_create = policy.DeprecatedRule(
-    name='baremetal:allocation:create',
-    check_str='rule:is_admin and is_admin_project:True'
-)
-deprecated_allocation_create_restricted = policy.DeprecatedRule(
-    name='baremetal:allocation:create_restricted',
-    check_str='rule:baremetal:allocation:create'
-)
-deprecated_allocation_delete = policy.DeprecatedRule(
-    name='baremetal:allocation:delete',
-    check_str='rule:is_admin'
-)
-deprecated_allocation_update = policy.DeprecatedRule(
-    name='baremetal:allocation:update',
-    check_str='rule:is_admin'
-)
 deprecated_allocation_reason = """
 The baremetal allocation API is now aware of system scope and default
 roles.
 """
+deprecated_allocation_get = policy.DeprecatedRule(
+    name='baremetal:allocation:get',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_allocation_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_allocation_list = policy.DeprecatedRule(
+    name='baremetal:allocation:list',
+    check_str='rule:baremetal:allocation:get',
+    deprecated_reason=deprecated_allocation_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_allocation_list_all = policy.DeprecatedRule(
+    name='baremetal:allocation:list_all',
+    check_str='rule:baremetal:allocation:get and is_admin_project:True',
+    deprecated_reason=deprecated_allocation_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_allocation_create = policy.DeprecatedRule(
+    name='baremetal:allocation:create',
+    check_str='rule:is_admin and is_admin_project:True',
+    deprecated_reason=deprecated_allocation_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_allocation_create_restricted = policy.DeprecatedRule(
+    name='baremetal:allocation:create_restricted',
+    check_str='rule:baremetal:allocation:create',
+    deprecated_reason=deprecated_allocation_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_allocation_delete = policy.DeprecatedRule(
+    name='baremetal:allocation:delete',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_allocation_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_allocation_update = policy.DeprecatedRule(
+    name='baremetal:allocation:update',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_allocation_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
 
 allocation_policies = [
     policy.DocumentedRuleDefault(
@@ -1564,9 +1539,7 @@ allocation_policies = [
             {'path': '/allocations/{allocation_id}', 'method': 'GET'},
             {'path': '/nodes/{node_ident}/allocation', 'method': 'GET'}
         ],
-        deprecated_rule=deprecated_allocation_get,
-        deprecated_reason=deprecated_allocation_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_allocation_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:list',
@@ -1574,9 +1547,7 @@ allocation_policies = [
         scope_types=['system', 'project'],
         description='Retrieve multiple Allocation records, filtered by owner',
         operations=[{'path': '/allocations', 'method': 'GET'}],
-        deprecated_rule=deprecated_allocation_list,
-        deprecated_reason=deprecated_allocation_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_allocation_list
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:list_all',
@@ -1584,9 +1555,7 @@ allocation_policies = [
         scope_types=['system', 'project'],
         description='Retrieve multiple Allocation records',
         operations=[{'path': '/allocations', 'method': 'GET'}],
-        deprecated_rule=deprecated_allocation_list_all,
-        deprecated_reason=deprecated_allocation_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_allocation_list_all
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:create',
@@ -1594,9 +1563,7 @@ allocation_policies = [
         scope_types=['system', 'project'],
         description='Create Allocation records',
         operations=[{'path': '/allocations', 'method': 'POST'}],
-        deprecated_rule=deprecated_allocation_create,
-        deprecated_reason=deprecated_allocation_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_allocation_create
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:create_restricted',
@@ -1606,9 +1573,7 @@ allocation_policies = [
             'Create Allocation records with a specific owner.'
         ),
         operations=[{'path': '/allocations', 'method': 'POST'}],
-        deprecated_rule=deprecated_allocation_create_restricted,
-        deprecated_reason=deprecated_allocation_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_allocation_create_restricted
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:delete',
@@ -1618,9 +1583,7 @@ allocation_policies = [
         operations=[
             {'path': '/allocations/{allocation_id}', 'method': 'DELETE'},
             {'path': '/nodes/{node_ident}/allocation', 'method': 'DELETE'}],
-        deprecated_rule=deprecated_allocation_delete,
-        deprecated_reason=deprecated_allocation_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_allocation_delete
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:update',
@@ -1630,9 +1593,7 @@ allocation_policies = [
         operations=[
             {'path': '/allocations/{allocation_id}', 'method': 'PATCH'},
         ],
-        deprecated_rule=deprecated_allocation_update,
-        deprecated_reason=deprecated_allocation_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_allocation_update
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:allocation:create_pre_rbac',
@@ -1649,22 +1610,22 @@ allocation_policies = [
         operations=[
             {'path': '/allocations/{allocation_id}', 'method': 'PATCH'},
         ],
-        deprecated_reason=deprecated_allocation_reason,
-        deprecated_for_removal=True,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_reason=deprecated_allocation_reason
     ),
 
 ]
 
 
-deprecated_event_create = policy.DeprecatedRule(
-    name='baremetal:events:post',
-    check_str='rule:is_admin'
-)
 deprecated_event_reason = """
 The baremetal event API is now aware of system scope and default
 roles.
 """
+deprecated_event_create = policy.DeprecatedRule(
+    name='baremetal:events:post',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_event_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
 
 event_policies = [
     policy.DocumentedRuleDefault(
@@ -1673,33 +1634,39 @@ event_policies = [
         scope_types=['system'],
         description='Post events',
         operations=[{'path': '/events', 'method': 'POST'}],
-        deprecated_rule=deprecated_event_create,
-        deprecated_reason=deprecated_event_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_event_create
     )
 ]
 
 
-deprecated_deploy_template_get = policy.DeprecatedRule(
-    name='baremetal:deploy_template:get',
-    check_str='rule:is_admin or rule:is_observer'
-)
-deprecated_deploy_template_create = policy.DeprecatedRule(
-    name='baremetal:deploy_template:create',
-    check_str='rule:is_admin'
-)
-deprecated_deploy_template_delete = policy.DeprecatedRule(
-    name='baremetal:deploy_template:delete',
-    check_str='rule:is_admin'
-)
-deprecated_deploy_template_update = policy.DeprecatedRule(
-    name='baremetal:deploy_template:update',
-    check_str='rule:is_admin'
-)
 deprecated_template_reason = """
 The baremetal deploy template API is now aware of system scope and
 default roles.
 """
+deprecated_deploy_template_get = policy.DeprecatedRule(
+    name='baremetal:deploy_template:get',
+    check_str='rule:is_admin or rule:is_observer',
+    deprecated_reason=deprecated_template_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_deploy_template_create = policy.DeprecatedRule(
+    name='baremetal:deploy_template:create',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_template_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_deploy_template_delete = policy.DeprecatedRule(
+    name='baremetal:deploy_template:delete',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_template_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
+deprecated_deploy_template_update = policy.DeprecatedRule(
+    name='baremetal:deploy_template:update',
+    check_str='rule:is_admin',
+    deprecated_reason=deprecated_template_reason,
+    deprecated_since=versionutils.deprecated.WALLABY
+)
 
 deploy_template_policies = [
     policy.DocumentedRuleDefault(
@@ -1712,9 +1679,7 @@ deploy_template_policies = [
             {'path': '/deploy_templates/{deploy_template_ident}',
              'method': 'GET'}
         ],
-        deprecated_rule=deprecated_deploy_template_get,
-        deprecated_reason=deprecated_template_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_deploy_template_get
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:deploy_template:create',
@@ -1722,9 +1687,7 @@ deploy_template_policies = [
         scope_types=['system'],
         description='Create Deploy Template records',
         operations=[{'path': '/deploy_templates', 'method': 'POST'}],
-        deprecated_rule=deprecated_deploy_template_create,
-        deprecated_reason=deprecated_template_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_deploy_template_create
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:deploy_template:delete',
@@ -1735,9 +1698,7 @@ deploy_template_policies = [
             {'path': '/deploy_templates/{deploy_template_ident}',
              'method': 'DELETE'}
         ],
-        deprecated_rule=deprecated_deploy_template_delete,
-        deprecated_reason=deprecated_template_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_deploy_template_delete
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:deploy_template:update',
@@ -1748,9 +1709,7 @@ deploy_template_policies = [
             {'path': '/deploy_templates/{deploy_template_ident}',
              'method': 'PATCH'}
         ],
-        deprecated_rule=deprecated_deploy_template_update,
-        deprecated_reason=deprecated_template_reason,
-        deprecated_since=versionutils.deprecated.WALLABY
+        deprecated_rule=deprecated_deploy_template_update
     ),
 ]
 
