@@ -1812,7 +1812,11 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                 task, ramdisk_params, mode, d_info)
             setup_uefi_https_mock.assert_called_once_with(task,
                                                           'recreated-iso')
-            add_mock.assert_called_once_with(task)
+            if task.node.driver_internal_info.get("clear_ca_certs_flag",
+                                                  False):
+                add_mock.assert_not_called()
+            else:
+                add_mock.assert_called_once_with(task)
 
     def test_prepare_ramdisk_rescue_glance_image(self):
         self._test_prepare_ramdisk(
@@ -1832,6 +1836,21 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                          self.node.instance_info['boot_iso'])
 
     def test_prepare_ramdisk_glance_image(self):
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['clear_ca_certs_flag'] = False
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        self._test_prepare_ramdisk(
+            ilo_boot_iso='swift:abcdef',
+            image_source='6b2f0c0c-79e8-4db6-842e-43c9764204af')
+        self.node.refresh()
+        self.assertNotIn('boot_iso', self.node.instance_info)
+
+    def test_prepare_ramdisk_middle_of_clean_step(self):
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['clear_ca_certs_flag'] = True
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
         self._test_prepare_ramdisk(
             ilo_boot_iso='swift:abcdef',
             image_source='6b2f0c0c-79e8-4db6-842e-43c9764204af')

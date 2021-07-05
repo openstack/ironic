@@ -1068,10 +1068,13 @@ def clear_certificates(task, cert_file_list=None):
     node = task.node
     operation = (_("Clearing certificates from node %(node)s.") %
                  {'node': node.uuid})
+    # NOTE(vmud213): Exclude the certificates used to boot deploy images
+    exclude_cfl = _get_certificate_file_list(None)
 
     try:
         ilo_object = get_ilo_object(node)
-        ilo_object.remove_tls_certificate(cert_file_list)
+        ilo_object.remove_tls_certificate(
+            cert_file_list=cert_file_list, excl_cert_file_list=exclude_cfl)
     except ilo_error.IloCommandNotSupportedInBiosError as ilo_exception:
         raise exception.IloOperationNotSupported(operation=operation,
                                                  error=ilo_exception)

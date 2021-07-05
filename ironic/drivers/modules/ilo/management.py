@@ -186,6 +186,20 @@ _FIRMWARE_UPDATE_SUM_ARGSINFO = {
     }
 }
 
+_CLEAR_CA_CERTS_ARGSINFO = {
+    'certificate_files': {
+        'description': (
+            "The list of files containing the certificates to be cleared. "
+            "If empty list is specified, all the certificates on the ilo "
+            "will be cleared, except the certificates in the file "
+            "configured with configuration parameter 'webserver_verify_ca' "
+            "are spared as they are required for booting the deploy image "
+            "for some boot interfaces."
+        ),
+        'required': True
+    }
+}
+
 
 def _execute_ilo_step(node, step, *args, **kwargs):
     """Executes a particular deploy or clean step.
@@ -1128,3 +1142,51 @@ class Ilo5Management(IloManagement):
                        {'node': task.node.uuid, 'message': ilo_exception})
             manager_utils.cleaning_error_handler(task, log_msg,
                                                  errmsg=ilo_exception)
+
+    @base.clean_step(priority=0, argsinfo=_CLEAR_CA_CERTS_ARGSINFO)
+    def clear_ca_certificates(self, task, certificate_files):
+        """Clears the certificates provided in the list of files to iLO.
+
+        :param task: a task from TaskManager.
+        :param certificate_files: a list of cerificate files.
+        :raises: NodeCleaningFailure, on failure to execute of clean step.
+        :raises: InstanceDeployFailure, on failure to execute of deploy step.
+        """
+        node = task.node
+        driver_internal_info = node.driver_internal_info
+
+        if driver_internal_info.get('clear_ca_certs_flag'):
+            # NOTE(vmud213): Clear the flag and do nothing as this flow
+            # is part of the reboot required by the clean step that is
+            # already executed.
+            driver_internal_info.pop('clear_ca_certs_flag', None)
+            node.driver_internal_info = driver_internal_info
+            node.save()
+            return
+
+        try:
+            ilo_common.clear_certificates(task, certificate_files)
+        except (exception.IloOperationNotSupported,
+                exception.IloOperationError) as ir_exception:
+            msg = (_("Step 'clear_ca_certificates' failed on node %(node)s "
+                     "with error: %(err)s") %
+                   {'node': node.uuid, 'err': ir_exception})
+            if node.clean_step:
+                raise exception.NodeCleaningFailure(msg)
+            raise exception.InstanceDeployFailure(msg)
+
+        driver_internal_info['clear_ca_certs_flag'] = True
+        node.driver_internal_info = driver_internal_info
+        node.save()
+
+        deploy_opts = deploy_utils.build_agent_options(task.node)
+        task.driver.boot.prepare_ramdisk(task, deploy_opts)
+        manager_utils.node_power_action(task, states.REBOOT)
+
+        # set_async_step_flags calls node.save()
+        deploy_utils.set_async_step_flags(
+            node,
+            reboot=True,
+            skip_current_step=False)
+
+        return deploy_utils.get_async_step_return_state(task.node)

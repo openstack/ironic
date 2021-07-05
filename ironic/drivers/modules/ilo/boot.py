@@ -1022,11 +1022,16 @@ class IloUefiHttpsBoot(base.BootInterface):
         iso_ref = image_utils.prepare_deploy_iso(task, ramdisk_params,
                                                  mode, d_info)
 
+        # NOTE(vmud213): Do not call if it is in the middle of
+        # clear_ca_certificates clean step as the TLS pending settings will
+        # be overridden
+        if not node.driver_internal_info.get('clear_ca_certs_flag'):
+            ilo_common.add_certificates(task)
+
         LOG.debug("Set 'UEFIHTTP' as one time boot option on the node "
                   "%(node)s to boot from URL %(iso_ref)s.",
                   {'node': node.uuid, 'iso_ref': iso_ref})
 
-        ilo_common.add_certificates(task)
         ilo_common.setup_uefi_https(task, iso_ref)
 
     @METRICS.timer('IloUefiHttpsBoot.clean_up_ramdisk')

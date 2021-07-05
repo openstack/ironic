@@ -1370,34 +1370,50 @@ class IloCommonMethodsTestCase(BaseIloTest):
         get_cl_mock.assert_called_once_with(c_l)
         ilo_mock_object.add_tls_certificate.assert_called_once_with(c_l)
 
+    @mock.patch.object(ilo_common, '_get_certificate_file_list',
+                       spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
-    def test_clear_certificates(self, get_ilo_object_mock):
+    def test_clear_certificates(self, get_ilo_object_mock,
+                                get_certs_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
         c_l = ['/file/path/a', '/file/path/b']
+        get_certs_mock.return_value = ['/file/path/x']
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             ilo_common.clear_certificates(task, c_l)
 
-        ilo_mock_object.remove_tls_certificate.assert_called_once_with(c_l)
+        ilo_mock_object.remove_tls_certificate.assert_called_once_with(
+            cert_file_list=c_l, excl_cert_file_list=['/file/path/x'])
+        get_certs_mock.assert_called_once_with(None)
 
+    @mock.patch.object(ilo_common, '_get_certificate_file_list',
+                       spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
-    def test_clear_certificates_default(self, get_ilo_object_mock):
+    def test_clear_certificates_default(self, get_ilo_object_mock,
+                                        get_certs_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
+        get_certs_mock.return_value = ['/file/path/x']
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             ilo_common.clear_certificates(task)
 
-        ilo_mock_object.remove_tls_certificate.assert_called_once_with(None)
+        ilo_mock_object.remove_tls_certificate.assert_called_once_with(
+            cert_file_list=None, excl_cert_file_list=['/file/path/x'])
+        get_certs_mock.assert_called_once_with(None)
 
+    @mock.patch.object(ilo_common, '_get_certificate_file_list',
+                       spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
-    def test_clear_certificates_raises_ilo_error(self, get_ilo_object_mock):
+    def test_clear_certificates_raises_ilo_error(self, get_ilo_object_mock,
+                                                 get_certs_mock):
         ilo_mock_object = get_ilo_object_mock.return_value
         c_l = ['/file/path/a', '/file/path/b']
+        get_certs_mock.return_value = ['/file/path/x']
         exc = ilo_error.IloError('error')
         ilo_mock_object.remove_tls_certificate.side_effect = exc
 
@@ -1407,7 +1423,9 @@ class IloCommonMethodsTestCase(BaseIloTest):
                               ilo_common.clear_certificates,
                               task, c_l)
 
-        ilo_mock_object.remove_tls_certificate.assert_called_once_with(c_l)
+        ilo_mock_object.remove_tls_certificate.assert_called_once_with(
+            cert_file_list=c_l, excl_cert_file_list=['/file/path/x'])
+        get_certs_mock.assert_called_once_with(None)
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
                        autospec=True)
