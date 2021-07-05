@@ -591,6 +591,11 @@ def _filter_logical_disks(logical_disks, include_root_volume,
 def _get_storage_controller(node, system, physical_disks):
     collection = system.storage
     for storage in collection.get_members():
+        # Using first controller as expecting only one
+        controller = (storage.storage_controllers[0]
+                      if storage.storage_controllers else None)
+        if controller and controller.raid_types == []:
+            continue
         for drive in storage.drives:
             if drive.identity in physical_disks:
                 return storage
