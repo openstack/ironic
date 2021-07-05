@@ -10,13 +10,13 @@ configuration. This page covers the IPv6 specifics only. Please refer to
 Configure ironic PXE driver for provisioning using IPv6 addressing
 ==================================================================
 
-The ironic PXE driver operates in either IPv4 or IPv6 mode (IPv4 is the
-default). To enable IPv6 mode, set the ``[pxe]/ip_version`` option in the Bare
-Metal Service's configuration file (``/etc/ironic/ironic.conf``) to ``6``.
-
-.. Note:: Support for dual mode IPv4 and IPv6 operations is planned for a
-          future version of ironic.
-
+The PXE drivers operate in such a way that they are able to utilize
+both IPv4 and IPv6 addresses based upon the deployment's operating state and
+configuration. Internally, the drivers attempt to prepare configuration options for both formats, which allows ports which are IPv6 only to automatically
+receieve boot parameters. As a result of this, it is critical that the
+``[DEFAULT]my_ipv6`` configuration parameter is set to the conductor's
+IPv6 address. This option is unique per conductor, and due to the nature
+of automatic address assignment, it cannot be "guessed" by the software.
 
 Provisioning with IPv6 stateless addressing
 -------------------------------------------

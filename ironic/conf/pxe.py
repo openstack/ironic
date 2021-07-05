@@ -155,8 +155,10 @@ opts = [
                choices=[('4', _('IPv4')),
                         ('6', _('IPv6'))],
                mutable=True,
+               deprecated_for_removal=True,
                help=_('The IP version that will be used for PXE booting. '
-                      'Defaults to 4. EXPERIMENTAL')),
+                      'Defaults to 4. This option has been a no-op for in-tree'
+                      'drivers since the Ussuri development cycle.')),
     cfg.BoolOpt('ipxe_use_swift',
                 default=False,
                 mutable=True,

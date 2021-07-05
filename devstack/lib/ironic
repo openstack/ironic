@@ -1465,9 +1465,6 @@ function configure_ironic {
         iniset_rpc_backend ironic $IRONIC_CONF_FILE
     fi
 
-    # Set IP version
-    iniset $IRONIC_CONF_FILE pxe ip_version $IRONIC_IP_VERSION
-
     # Configure Ironic conductor, if it was enabled.
     if is_service_enabled ir-cond; then
         configure_ironic_conductor
