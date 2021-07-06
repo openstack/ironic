@@ -312,9 +312,7 @@ class IronicObject(object_base.VersionedObject):
                        objects.
         :returns: A list of objects corresponding to the database entities
         """
-        # NOTE(TheJulia): Fields is used in a later patch in this series
-        # and tests are landed in an intermediate change.
-        return [cls._from_db_object(context, cls(), db_obj, fields=None)
+        return [cls._from_db_object(context, cls(), db_obj, fields=fields)
                 for db_obj in db_objects]
 
     def do_version_changes_for_db(self):

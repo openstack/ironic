@@ -1216,62 +1216,91 @@ class NodeTraitsController(rest.RestController):
                                      chassis_uuid=chassis_uuid)
 
 
+def _get_fields_for_node_query(fields=None):
+
+    valid_fields = ['automated_clean',
+                    'bios_interface',
+                    'boot_interface',
+                    'clean_step',
+                    'conductor_group',
+                    'console_enabled',
+                    'console_interface',
+                    'deploy_interface',
+                    'deploy_step',
+                    'description',
+                    'driver',
+                    'driver_info',
+                    'driver_internal_info',
+                    'extra',
+                    'fault',
+                    'inspection_finished_at',
+                    'inspection_started_at',
+                    'inspect_interface',
+                    'instance_info',
+                    'instance_uuid',
+                    'last_error',
+                    'lessee',
+                    'maintenance',
+                    'maintenance_reason',
+                    'management_interface',
+                    'name',
+                    'network_data',
+                    'network_interface',
+                    'owner',
+                    'power_interface',
+                    'power_state',
+                    'properties',
+                    'protected',
+                    'protected_reason',
+                    'provision_state',
+                    'provision_updated_at',
+                    'raid_config',
+                    'raid_interface',
+                    'rescue_interface',
+                    'reservation',
+                    'resource_class',
+                    'retired',
+                    'retired_reason',
+                    'storage_interface',
+                    'target_power_state',
+                    'target_provision_state',
+                    'target_raid_config',
+                    'traits',
+                    'vendor_interface']
+
+    if not fields:
+        return valid_fields
+    else:
+        object_fields = fields[:]
+        api_fulfilled_fields = ['allocation_uuid', 'chassis_uuid',
+                                'conductor']
+        for api_field in api_fulfilled_fields:
+            if api_field in object_fields:
+                object_fields.remove(api_field)
+
+        query_fields = ['uuid', 'traits'] + api_fulfilled_fields \
+            + valid_fields
+        for field in fields:
+            if field not in query_fields:
+                msg = 'Field %s is not a valid field.' % field
+                raise exception.Invalid(msg)
+
+        return object_fields
+
+
 def node_convert_with_links(rpc_node, fields=None, sanitize=True):
+
+    # NOTE(TheJulia): This takes approximately 10% of the time to
+    # collect and return requests to API consumer, specifically
+    # for the nova sync query which is the most intense overhead
+    # an integrated deployment can really face.
     node = api_utils.object_to_dict(
         rpc_node,
         link_resource='nodes',
-        fields=(
-            'automated_clean',
-            'bios_interface',
-            'boot_interface',
-            'clean_step',
-            'conductor_group',
-            'console_enabled',
-            'console_interface',
-            'deploy_interface',
-            'deploy_step',
-            'description',
-            'driver',
-            'driver_info',
-            'driver_internal_info',
-            'extra',
-            'fault',
-            'inspection_finished_at',
-            'inspection_started_at',
-            'inspect_interface',
-            'instance_info',
-            'instance_uuid',
-            'last_error',
-            'lessee',
-            'maintenance',
-            'maintenance_reason',
-            'management_interface',
-            'name',
-            'network_data',
-            'network_interface',
-            'owner',
-            'power_interface',
-            'power_state',
-            'properties',
-            'protected',
-            'protected_reason',
-            'provision_state',
-            'provision_updated_at',
-            'raid_config',
-            'raid_interface',
-            'rescue_interface',
-            'reservation',
-            'resource_class',
-            'retired',
-            'retired_reason',
-            'storage_interface',
-            'target_power_state',
-            'target_provision_state',
-            'target_raid_config',
-            'vendor_interface'
-        ),
-    )
-    node['traits'] = rpc_node.traits.get_trait_names()
+        fields=_get_fields_for_node_query(fields))
+
+    if node.get('traits') is not None:
+        node['traits'] = rpc_node.traits.get_trait_names()
 
     if (api_utils.allow_expose_conductors()
             and (fields is None or 'conductor' in fields)):
@@ -1285,6 +1314,8 @@ def node_convert_with_links(rpc_node, fields=None, sanitize=True):
                       '%(node)s.', {'node': rpc_node.uuid})
             node['conductor'] = None
 
+    # If allocations ever become the primary use path, this absolutely
+    # needs to become a join. :\
     if (api_utils.allow_allocations()
             and (fields is None or 'allocation_uuid' in fields)):
         node['allocation_uuid'] = None
@@ -1296,7 +1327,6 @@ def node_convert_with_links(rpc_node, fields=None, sanitize=True):
                 node['allocation_uuid'] = allocation.uuid
             except exception.AllocationNotFound:
                 pass
-
     if fields is None or 'chassis_uuid' in fields:
         node['chassis_uuid'] = _get_chassis_uuid(rpc_node)
 
@@ -1356,6 +1386,10 @@ def node_sanitize(node, fields):
         list of fields to preserve, or ``None`` to preserve them all
     :type fields: list of str
     """
+    # FIXME(TheJulia): As of ironic 18.0, this method is about 88% of
+    # the time spent preparing to return a node to. If it takes us
+    # ~ 4.5 seconds to get 1000 nodes, we spend approximately 4 seconds
+    # PER 1000 in this call.
     cdict = api.request.context.to_policy_values()
     target_dict = dict(cdict)
     owner = node.get('owner')
@@ -1379,6 +1413,10 @@ def node_sanitize(node, fields):
     show_driver_secrets = policy.check("show_password", cdict, target_dict)
     show_instance_secrets = policy.check("show_instance_secrets",
                                          cdict, target_dict)
+    # FIXME(TheJulia): The above two methods take approximately 20% of the
+    # present execution time. This needs to be more efficent as they do not
+    # need to be called for *every* node.
+
     # TODO(TheJulia): The above checks need to be migrated in some direction,
     # but until we have auditing clarity, it might not be a big deal.
 
@@ -1782,9 +1820,26 @@ class NodesController(rest.RestController):
             if value is not None:
                 filters[key] = value
 
+        if fields:
+            obj_fields = fields[:]
+            required_object_fields = ('allocation_id', 'chassis_id',
+                                      'uuid', 'owner', 'lessee',
+                                      'created_at', 'updated_at')
+            for req_field in required_object_fields:
+                if req_field not in obj_fields:
+                    obj_fields.append(req_field)
+        else:
+            # map the name for the call, as we did not pickup a specific
+            # list of fields to return.
+            obj_fields = fields
+        # NOTE(TheJulia): When a data set of the nodeds list is being
+        # requested, this method takes approximately 3-3.5% of the time
+        # when requesting specific fields aligning with Nova's sync
+        # process. (Local DB though)
+
         nodes = objects.Node.list(api.request.context, limit, marker_obj,
                                   sort_key=sort_key, sort_dir=sort_dir,
-                                  filters=filters)
+                                  filters=filters, fields=obj_fields)
 
         # Special filtering on results based on conductor field
         if conductor:
@@ -1800,6 +1855,7 @@ class NodesController(rest.RestController):
 
         if detail is not None:
             parameters['detail'] = detail
+
         if instance_uuid:
             # NOTE(rloo) if limit==1 and len(nodes)==1 (see
             # Collection.has_next()), a 'next' link will
@@ -1969,7 +2025,6 @@ class NodesController(rest.RestController):
 
         fields = api_utils.get_request_return_fields(fields, detail,
                                                      _DEFAULT_RETURN_FIELDS)
-
         extra_args = {'description_contains': description_contains}
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
                                           associated, maintenance, retired,

@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Slow database retrieval of nodes has been addressed at the lower layer by
+    explicitly passing and handling only the requested fields. The result is
+    excess discarded work is not performed, making the overall process more
+    efficent.
+    This is particullarly beneficial for OpenStack Nova's syncronization with
+    Ironic.
