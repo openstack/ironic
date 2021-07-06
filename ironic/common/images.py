@@ -357,13 +357,16 @@ def fetch_into(context, image_href, image_file):
               {'image_service': image_service.__class__,
                'image_href': image_href})
 
-    image_service.download(image_href, image_file)
+    if isinstance(image_file, str):
+        with open(image_file, "wb") as image_file_obj:
+            image_service.download(image_href, image_file_obj)
+    else:
+        image_service.download(image_href, image_file)
 
 
 def fetch(context, image_href, path, force_raw=False):
     with fileutils.remove_path_on_error(path):
-        with open(path, "wb") as image_file:
-            fetch_into(context, image_href, image_file)
+        fetch_into(context, image_href, path)
 
     if force_raw:
         image_to_raw(image_href, path, "%s.part" % path)
@@ -527,7 +530,7 @@ def create_boot_iso(context, output_filename, kernel_href,
             # to perform the massaging of the image, because oddly enough
             # we need to do all the same basic things, just a little
             # differently.
-            fetch(context, base_iso, output_filename)
+            fetch_into(context, base_iso, output_filename)
             # Temporary, return to the caller until we support the combined
             # operation.
             return
