@@ -920,7 +920,7 @@ class FsImageTestCase(base.TestCase):
             kernel_params=params, inject_files=None)
 
     @mock.patch.object(images, 'create_isolinux_image_for_bios', autospec=True)
-    @mock.patch.object(images, 'fetch', autospec=True)
+    @mock.patch.object(images, 'fetch_into', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
     def test_create_boot_iso_for_existing_iso(self, tempdir_mock,
                                               fetch_images_mock,
