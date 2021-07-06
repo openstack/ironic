@@ -201,7 +201,10 @@ opts = [
                         ('local', _('This is the default behavior. '
                                     'The image is downloaded, prepared and '
                                     'cached locally, to be served from '
-                                    'the conductor.'))],
+                                    'the conductor.')),
+                        ('swift', _('Same as "http", but if the image '
+                                    'is a Glance UUID, it is exposed via a '
+                                    'Swift temporary URL.'))],
                default='local',
                mutable=True,
                help=_('Specifies whether a boot iso image should be served '

@@ -26,6 +26,7 @@ from ironic_lib import utils as ironic_utils
 from oslo_log import log
 
 from ironic.common import exception
+from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import swift
@@ -435,12 +436,18 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
 
     # NOTE(rpittau): if base_iso is defined as http address, we just access
     # it directly.
-    if base_iso and download_source == 'http':
-        if base_iso.startswith(('http://', 'https://')):
-            return base_iso
-        LOG.debug("ramdisk_image_download_source set to http but "
-                  "boot_iso is not an HTTP URL: %(boot_iso)s",
-                  {"boot_iso": base_iso})
+    if base_iso:
+        if (download_source == 'swift'
+                and service_utils.is_glance_image(base_iso)):
+            base_iso = (
+                images.get_temp_url_for_glance_image(task.context, base_iso))
+
+        if download_source != 'local':
+            if base_iso.startswith(('http://', 'https://')):
+                return base_iso
+            LOG.debug("ramdisk_image_download_source set to http but "
+                      "boot_iso is not an HTTP URL: %(boot_iso)s",
+                      {"boot_iso": base_iso})
 
     img_handler = ImageHandler(task.node.driver)
 
