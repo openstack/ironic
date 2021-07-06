@@ -93,17 +93,17 @@ PARTITION_IMAGE_LABELS = ('kernel', 'ramdisk', 'root_gb', 'root_mb', 'swap_mb',
 
 
 @METRICS.timer('check_image_size')
-def check_image_size(task, image_source, image_disk_format=None):
+def check_image_size(task):
     """Check if the requested image is larger than the ram size.
 
     :param task: a TaskManager instance containing the node to act on.
-    :param image_source: href of the image.
-    :param image_disk_format: The disk format of the image if provided
     :raises: InvalidParameterValue if size of the image is greater than
         the available ram size.
     """
     node = task.node
     properties = node.properties
+    image_source = node.instance_info.get('image_source')
+    image_disk_format = node.instance_info.get('image_disk_format')
     # skip check if 'memory_mb' is not defined
     if 'memory_mb' not in properties:
         LOG.warning('Skip the image size check as memory_mb is not '
@@ -434,6 +434,7 @@ class AgentDeploy(CustomAgentDeploy):
         task.node.instance_info = (
             deploy_utils.build_instance_info_for_deploy(task))
         task.node.save()
+        check_image_size(task)
 
     @METRICS.timer('AgentDeploy.validate')
     def validate(self, task):
@@ -464,7 +465,6 @@ class AgentDeploy(CustomAgentDeploy):
         params = {}
         image_source = node.instance_info.get('image_source')
         image_checksum = node.instance_info.get('image_checksum')
-        image_disk_format = node.instance_info.get('image_disk_format')
         os_hash_algo = node.instance_info.get('image_os_hash_algo')
         os_hash_value = node.instance_info.get('image_os_hash_value')
 
@@ -499,8 +499,6 @@ class AgentDeploy(CustomAgentDeploy):
                 _raise_missing_checksum_exception(node)
 
         validate_http_provisioning_configuration(node)
-
-        check_image_size(task, image_source, image_disk_format)
         validate_image_proxies(node)
 
     @METRICS.timer('AgentDeployMixin.write_image')
