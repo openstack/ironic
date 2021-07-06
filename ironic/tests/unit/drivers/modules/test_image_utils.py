@@ -666,6 +666,15 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 base_iso=base_image_url)
             self.assertEqual(url, base_image_url)
 
+    def test__prepare_iso_image_bootable_iso_swift_schema(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            base_image_url = 'swift://bearmetal.net/boot.iso'
+            url = image_utils._prepare_iso_image(
+                task, None, None, bootloader_href=None, root_uuid=None,
+                base_iso=base_image_url)
+            self.assertEqual(url, base_image_url)
+
     def test__find_param(self):
         param_dict = {
             'deploy_kernel': 'kernel',
