@@ -19,6 +19,7 @@ import tempfile
 from unittest import mock
 
 from oslo_utils import importutils
+from oslo_utils import uuidutils
 
 from ironic.common import images
 from ironic.common import utils
@@ -641,6 +642,29 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
                 kernel_params='nofb nomodeset vga=normal', boot_mode='bios',
                 base_iso='/path/to/baseiso', inject_files=None)
+
+    @mock.patch.object(images, 'get_temp_url_for_glance_image',
+                       autospec=True)
+    def test__prepare_iso_image_bootable_iso_from_swift(self, mock_temp_url):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            base_image_url = uuidutils.generate_uuid()
+            self.config(ramdisk_image_download_source='swift', group='deploy')
+            url = image_utils._prepare_iso_image(
+                task, None, None, bootloader_href=None, root_uuid=None,
+                base_iso=base_image_url)
+            self.assertEqual(mock_temp_url.return_value, url)
+            mock_temp_url.assert_called_once_with(task.context, base_image_url)
+
+    def test__prepare_iso_image_bootable_iso_swift_noop(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            base_image_url = 'http://bearmetal.net/boot.iso'
+            self.config(ramdisk_image_download_source='swift', group='deploy')
+            url = image_utils._prepare_iso_image(
+                task, None, None, bootloader_href=None, root_uuid=None,
+                base_iso=base_image_url)
+            self.assertEqual(url, base_image_url)
 
     def test__find_param(self):
         param_dict = {
