@@ -42,59 +42,26 @@ class RedfishVendorPassthruTestCase(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(
             self.context, driver='redfish', driver_info=INFO_DICT)
 
-    @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
-    def test_eject_vmedia_all(self, mock_redfish_utils):
+    @mock.patch.object(redfish_boot, 'eject_vmedia', autospec=True)
+    def test_eject_vmedia_all(self, mock_eject_vmedia):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-
-            mock_vmedia_cd = mock.MagicMock(
-                inserted=True,
-                media_types=[sushy.VIRTUAL_MEDIA_CD])
-            mock_vmedia_floppy = mock.MagicMock(
-                inserted=True,
-                media_types=[sushy.VIRTUAL_MEDIA_FLOPPY])
-
-            mock_manager = mock.MagicMock()
-
-            mock_manager.virtual_media.get_members.return_value = [
-                mock_vmedia_cd, mock_vmedia_floppy]
-
-            mock_redfish_utils.get_system.return_value.managers = [
-                mock_manager]
 
             task.driver.vendor.eject_vmedia(task)
+            mock_eject_vmedia.assert_called_once_with(task, None)
 
-            mock_vmedia_cd.eject_media.assert_called_once_with()
-            mock_vmedia_floppy.eject_media.assert_called_once_with()
-
-    @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
-    def test_eject_vmedia_cd(self, mock_redfish_utils):
+    @mock.patch.object(redfish_boot, 'eject_vmedia', autospec=True)
+    def test_eject_vmedia_cd(self, mock_eject_vmedia):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-
-            mock_vmedia_cd = mock.MagicMock(
-                inserted=True,
-                media_types=[sushy.VIRTUAL_MEDIA_CD])
-            mock_vmedia_floppy = mock.MagicMock(
-                inserted=True,
-                media_types=[sushy.VIRTUAL_MEDIA_FLOPPY])
-
-            mock_manager = mock.MagicMock()
-
-            mock_manager.virtual_media.get_members.return_value = [
-                mock_vmedia_cd, mock_vmedia_floppy]
-
-            mock_redfish_utils.get_system.return_value.managers = [
-                mock_manager]
 
             task.driver.vendor.eject_vmedia(task,
                                             boot_device=sushy.VIRTUAL_MEDIA_CD)
-
-            mock_vmedia_cd.eject_media.assert_called_once_with()
-            mock_vmedia_floppy.eject_media.assert_not_called()
+            mock_eject_vmedia.assert_called_once_with(task,
+                                                      sushy.VIRTUAL_MEDIA_CD)
 
     @mock.patch.object(redfish_vendor, 'redfish_utils', autospec=True)
-    def test_eject_vmedia_invalid_dev(self, mock_redfish_utils):
+    def test_validate_invalid_dev(self, mock_redfish_utils):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
 
