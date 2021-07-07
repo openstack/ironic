@@ -1390,7 +1390,7 @@ def node_sanitize(node, fields, cdict=None,
     :type fields: list of str
     :param cdict: Context dictionary for policy values evaluation.
                   If not provided, it will be executed by the method,
-                  however for enumarting node lists, it is more efficent
+                  however for enumerating node lists, it is more efficent
                   to provide.
     :param show_driver_secrets: A boolean value to allow external single
                                 evaluation of policy instead of once per
@@ -1406,10 +1406,9 @@ def node_sanitize(node, fields, cdict=None,
     # the time spent preparing to return a node to. If it takes us
     # ~ 4.5 seconds to get 1000 nodes, we spend approximately 4 seconds
     # PER 1000 in this call. When the calling method provides
-    # cdict, show_driver_secrets, show_instane_secrets, and
-    # evaluate_additional_policies, then performance of this method takes
-    # roughly half of the time, but performance increases in excess of 200%
-    # as policy checks are costly.
+    # cdict, show_driver_secrets, show_instance_secrets, and
+    # evaluate_additional_policies, then performance increases
+    # in excess of 200% as policy checks are costly.
 
     if not cdict:
         cdict = api.request.context.to_policy_values()
