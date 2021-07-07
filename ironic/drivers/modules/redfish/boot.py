@@ -221,9 +221,11 @@ def _eject_vmedia(task, managers, boot_device=None):
     :param boot_device: sushy boot device e.g. `VIRTUAL_MEDIA_CD`,
         `VIRTUAL_MEDIA_DVD` or `VIRTUAL_MEDIA_FLOPPY` or `None` to
         eject everything (default).
+    :return: True if any device was ejected, else False
     :raises: InvalidParameterValue, if no suitable virtual CD or DVD is
         found on the node.
     """
+    found = False
     for manager in managers:
         for v_media in manager.virtual_media.get_members():
             if boot_device and boot_device not in v_media.media_types:
@@ -233,12 +235,14 @@ def _eject_vmedia(task, managers, boot_device=None):
 
             if inserted:
                 v_media.eject_media()
+                found = True
 
             LOG.info("Boot media is%(already)s ejected from "
                      "%(boot_device)s for node %(node)s"
                      "", {'node': task.node.uuid,
                           'already': '' if inserted else ' already',
                           'boot_device': v_media.name})
+    return found
 
 
 def eject_vmedia(task, boot_device=None):
@@ -252,7 +256,15 @@ def eject_vmedia(task, boot_device=None):
         found on the node.
     """
     system = redfish_utils.get_system(task.node)
-    _eject_vmedia(task, system.managers, boot_device=boot_device)
+    if _eject_vmedia(task, system.managers, boot_device=boot_device):
+        LOG.debug('Cleaning up unused files after ejecting %(dev)s for node '
+                  '%(node)s', {'dev': boot_device or 'all devices',
+                               'node': task.node.uuid})
+        if (boot_device is None
+                or boot_device == sushy.VIRTUAL_MEDIA_USBSTICK):
+            image_utils.cleanup_disk_image(task, prefix='configdrive')
+        if boot_device is None or boot_device == sushy.VIRTUAL_MEDIA_CD:
+            image_utils.cleanup_iso_image(task)
 
 
 def _has_vmedia_device(managers, boot_device, inserted=None):

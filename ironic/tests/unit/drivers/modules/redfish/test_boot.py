@@ -1277,8 +1277,11 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 redfish_boot._insert_vmedia,
                 task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
 
+    @mock.patch.object(image_utils, 'cleanup_disk_image', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
     @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
-    def test_eject_vmedia_everything(self, mock_redfish_utils):
+    def test_eject_vmedia_everything(self, mock_redfish_utils,
+                                     mock_cleanup_iso, mock_cleanup_disk):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -1301,9 +1304,15 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock_vmedia_cd.eject_media.assert_called_once_with()
             mock_vmedia_floppy.eject_media.assert_called_once_with()
+            mock_cleanup_iso.assert_called_once_with(task)
+            mock_cleanup_disk.assert_called_once_with(task,
+                                                      prefix='configdrive')
 
+    @mock.patch.object(image_utils, 'cleanup_disk_image', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
     @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
-    def test_eject_vmedia_specific(self, mock_redfish_utils):
+    def test_eject_vmedia_specific(self, mock_redfish_utils,
+                                   mock_cleanup_iso, mock_cleanup_disk):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -1326,6 +1335,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock_vmedia_cd.eject_media.assert_called_once_with()
             self.assertFalse(mock_vmedia_floppy.eject_media.call_count)
+            mock_cleanup_iso.assert_called_once_with(task)
+            mock_cleanup_disk.assert_not_called()
 
     @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
     def test_eject_vmedia_not_inserted(self, mock_redfish_utils):
