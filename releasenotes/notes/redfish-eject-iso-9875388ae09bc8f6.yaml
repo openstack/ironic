@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Removes unused local images after ejecting a virtual media device via
+    the ``eject_vmedia`` vendor passthru call of the ``redfish`` vendor
+    interface.
