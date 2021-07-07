@@ -42,7 +42,7 @@ def list_convert_with_links(items, item_name, limit, url=None, fields=None,
         done in-place
     :param key_field:
         Key name for building next URL
-    :parm sanitizer_args:
+    :param sanitizer_args:
         Dictionary with additional arguments to be passed to the sanitizer.
     :param kwargs:
         other arguments passed to ``get_next``
