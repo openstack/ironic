@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Improves record retrieval performance for baremetal nodes by enabling
+    ironic to not make redundant calls as part of generating API result
+    sets for the baremetal nodes endpoint.

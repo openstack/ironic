@@ -23,7 +23,8 @@ def has_next(collection, limit):
 
 
 def list_convert_with_links(items, item_name, limit, url=None, fields=None,
-                            sanitize_func=None, key_field='uuid', **kwargs):
+                            sanitize_func=None, key_field='uuid',
+                            sanitizer_args=None, **kwargs):
     """Build a collection dict including the next link for paging support.
 
     :param items:
@@ -41,6 +42,8 @@ def list_convert_with_links(items, item_name, limit, url=None, fields=None,
         done in-place
     :param key_field:
         Key name for building next URL
+    :parm sanitizer_args:
+        Dictionary with additional arguments to be passed to the sanitizer.
     :param kwargs:
         other arguments passed to ``get_next``
     :returns:
@@ -55,8 +58,12 @@ def list_convert_with_links(items, item_name, limit, url=None, fields=None,
         items_dict['next'] = next_uuid
 
     if sanitize_func:
-        for item in items:
-            sanitize_func(item, fields=fields)
+        if sanitizer_args:
+            for item in items:
+                sanitize_func(item, fields, **sanitizer_args)
+        else:
+            for item in items:
+                sanitize_func(item, fields=fields)
 
     return items_dict
 
