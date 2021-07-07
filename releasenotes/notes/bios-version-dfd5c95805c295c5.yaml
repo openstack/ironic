@@ -1,0 +1,5 @@
+---
+critical:
+  - |
+    Fixes upgrade failure caused by the missing version of ``BIOSSetting``
+    database objects.
