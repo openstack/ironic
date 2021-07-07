@@ -104,6 +104,7 @@ RELEASE_MAPPING = {
         'api': '1.43',
         'rpc': '1.44',
         'objects': {
+            'BIOSSetting': ['1.0'],
             'Node': ['1.25', '1.24'],
             'Conductor': ['1.2'],
             'Chassis': ['1.3'],
@@ -119,6 +120,7 @@ RELEASE_MAPPING = {
         'api': '1.46',
         'rpc': '1.47',
         'objects': {
+            'BIOSSetting': ['1.0'],
             'Node': ['1.27', '1.26'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
@@ -134,6 +136,7 @@ RELEASE_MAPPING = {
         'api': '1.49',
         'rpc': '1.47',
         'objects': {
+            'BIOSSetting': ['1.0'],
             'Node': ['1.29', '1.28'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
@@ -150,6 +153,7 @@ RELEASE_MAPPING = {
         'rpc': '1.48',
         'objects': {
             'Allocation': ['1.0'],
+            'BIOSSetting': ['1.0'],
             'Node': ['1.32', '1.31', '1.30'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
@@ -167,6 +171,7 @@ RELEASE_MAPPING = {
         'rpc': '1.48',
         'objects': {
             'Allocation': ['1.0'],
+            'BIOSSetting': ['1.0'],
             'Node': ['1.32'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
@@ -184,6 +189,7 @@ RELEASE_MAPPING = {
         'rpc': '1.48',
         'objects': {
             'Allocation': ['1.0'],
+            'BIOSSetting': ['1.0'],
             'Node': ['1.32'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
@@ -201,6 +207,7 @@ RELEASE_MAPPING = {
         'rpc': '1.48',
         'objects': {
             'Allocation': ['1.1'],
+            'BIOSSetting': ['1.0'],
             'Node': ['1.33', '1.32'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
@@ -218,6 +225,7 @@ RELEASE_MAPPING = {
         'rpc': '1.50',
         'objects': {
             'Allocation': ['1.1'],
+            'BIOSSetting': ['1.0'],
             'Node': ['1.34', '1.33', '1.32'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
@@ -235,6 +243,7 @@ RELEASE_MAPPING = {
         'rpc': '1.50',
         'objects': {
             'Allocation': ['1.1'],
+            'BIOSSetting': ['1.0'],
             'Node': ['1.35', '1.34'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
@@ -252,6 +261,7 @@ RELEASE_MAPPING = {
         'rpc': '1.51',
         'objects': {
             'Allocation': ['1.1'],
+            'BIOSSetting': ['1.0'],
             'Node': ['1.35'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
@@ -270,6 +280,7 @@ RELEASE_MAPPING = {
         'rpc': '1.51',
         'objects': {
             'Allocation': ['1.1'],
+            'BIOSSetting': ['1.0'],
             'Node': ['1.35'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
@@ -288,6 +299,7 @@ RELEASE_MAPPING = {
         'rpc': '1.52',
         'objects': {
             'Allocation': ['1.1'],
+            'BIOSSetting': ['1.0'],
             'Node': ['1.35'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
@@ -306,6 +318,7 @@ RELEASE_MAPPING = {
         'rpc': '1.54',
         'objects': {
             'Allocation': ['1.1'],
+            'BIOSSetting': ['1.0'],
             'Node': ['1.35'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
