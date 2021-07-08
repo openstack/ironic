@@ -312,7 +312,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def list(cls, context, limit=None, marker=None, sort_key=None,
-             sort_dir=None, filters=None):
+             sort_dir=None, filters=None, fields=None):
         """Return a list of Node objects.
 
         :param cls: the :class:`Node`
@@ -322,13 +322,30 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         :param sort_key: column to sort results by.
         :param sort_dir: direction to sort. "asc" or "desc".
         :param filters: Filters to apply.
+        :param fields: Requested fields to be returned. Please note, some
+                       fields are mandatory for the data model and are
+                       automatically included. These are: id, version,
+                       updated_at, created_at, owner, and lessee.
         :returns: a list of :class:`Node` object.
 
         """
+        if fields:
+            # All requests must include version, updated_at, created_at
+            # owner, and lessee to support access controls and database
+            # version model updates. Driver and conductor_group are required
+            # for conductor mapping.
+            target_fields = ['id'] + fields[:] + ['version', 'updated_at',
+                                                  'created_at', 'owner',
+                                                  'lessee', 'driver',
+                                                  'conductor_group']
+        else:
+            target_fields = None
+
         db_nodes = cls.dbapi.get_node_list(filters=filters, limit=limit,
                                            marker=marker, sort_key=sort_key,
-                                           sort_dir=sort_dir)
-        return cls._from_db_object_list(context, db_nodes)
+                                           sort_dir=sort_dir,
+                                           fields=target_fields)
+        return cls._from_db_object_list(context, db_nodes, target_fields)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.

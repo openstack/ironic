@@ -372,6 +372,17 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             self.assertIsInstance(nodes[0], objects.Node)
             self.assertEqual(self.context, nodes[0]._context)
 
+    def test_list_with_fields(self):
+        with mock.patch.object(self.dbapi, 'get_node_list',
+                               autospec=True) as mock_get_list:
+            mock_get_list.return_value = [self.fake_node]
+            objects.Node.list(self.context, fields=['name'])
+            mock_get_list.assert_called_with(
+                filters=None, limit=None, marker=None, sort_key=None,
+                sort_dir=None,
+                fields=['id', 'name', 'version', 'updated_at', 'created_at',
+                        'owner', 'lessee', 'driver', 'conductor_group'])
+
     def test_reserve(self):
         with mock.patch.object(self.dbapi, 'reserve_node',
                                autospec=True) as mock_reserve:
