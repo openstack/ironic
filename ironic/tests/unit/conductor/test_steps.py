@@ -19,6 +19,7 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
+from ironic.conductor import verify as verify_steps
 from ironic import objects
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -1138,3 +1139,163 @@ class ValidateUserDeployStepsTestCase(db_base.DbTestCase):
             result = conductor_steps._get_validated_user_deploy_steps(task)
             self.assertEqual([], result)
             mock_validated.assert_not_called()
+
+
+class NodeVerifyStepsTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(NodeVerifyStepsTestCase, self).setUp()
+
+        self.management_reset_idrac = {
+            'step': 'reset_idrac', 'priority': 0,
+            'interface': 'management'}
+        self.management_clear_job_queue = {
+            'step': 'clear_job_queue', 'priority': 10,
+            'interface': 'management'}
+        self.verify_steps = [self.management_clear_job_queue,
+                             self.management_reset_idrac]
+        self.verify_steps_only_enabled = [self.management_clear_job_queue]
+
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_verify_steps',
+                autospec=True)
+    def test__get_verify_steps_priority_override_ok(self,
+                                                    mock_verify_steps):
+        # Test verify_step_priority_override
+        cfg.CONF.set_override('verify_step_priority_override',
+                              ["management.clear_job_queue:9"],
+                              'conductor')
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ENROLL,
+            target_provision_state=states.MANAGEABLE)
+
+        mock_verify_steps.return_value = [self.management_clear_job_queue]
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=True) as task:
+            steps = conductor_steps._get_verify_steps(task, enabled=True)
+
+        expected_step_priorities = [{'interface': 'management', 'priority': 9,
+                                     'step': 'clear_job_queue'}]
+
+        self.assertEqual(expected_step_priorities, steps)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_verify_steps',
+                autospec=True)
+    def test__get_verify_steps_priority_override_fail(self,
+                                                      mock_verify_steps):
+        # Test verify_step_priority_override for failure
+        cfg.CONF.set_override('verify_step_priority_override',
+                              ["management.clear_job_queue:9"],
+                              'conductor')
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ENROLL,
+            target_provision_state=states.MANAGEABLE)
+
+        mock_verify_steps.return_value = [self.management_clear_job_queue]
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=True) as task:
+            steps = conductor_steps._get_verify_steps(task, enabled=True)
+
+        expected_step_priorities = [{'interface': 'management', 'priority': 10,
+                                     'step': 'clear_job_queue'}]
+
+        self.assertNotEqual(expected_step_priorities, steps)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_verify_steps',
+                autospec=True)
+    def test__get_verify_steps_priority_override_off(self,
+                                                     mock_verify_steps):
+        # Test disabling steps with verify_step_priority_override
+        cfg.CONF.set_override('verify_step_priority_override',
+                              ["management.clear_job_queue:0"],
+                              'conductor')
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ENROLL,
+            target_provision_state=states.MANAGEABLE)
+
+        mock_verify_steps.return_value = [self.management_clear_job_queue]
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=True) as task:
+            steps = conductor_steps._get_verify_steps(task, enabled=True)
+
+        expected_step_priorities = []
+
+        self.assertEqual(expected_step_priorities, steps)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_verify_steps',
+                autospec=True)
+    def test__get_verify_steps(self, mock_verify_steps):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ENROLL,
+            target_provision_state=states.MANAGEABLE)
+
+        mock_verify_steps.return_value = [self.management_clear_job_queue,
+                                          self.management_reset_idrac]
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            steps = conductor_steps._get_verify_steps(task, enabled=False)
+
+        self.assertEqual(self.verify_steps, steps)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_verify_steps',
+                autospec=True)
+    def test__get_verify_steps_unsorted(self, mock_verify_steps):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ENROLL,
+            target_provision_state=states.MANAGEABLE)
+
+        mock_verify_steps.return_value = [self.management_clear_job_queue,
+                                          self.management_reset_idrac]
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            steps = conductor_steps._get_verify_steps(task, enabled=False,
+                                                      sort=False)
+
+        self.assertEqual(self.verify_steps, steps)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_verify_steps',
+                autospec=True)
+    def test__get_verify_steps_only_enabled(self, mock_verify_steps):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ENROLL,
+            target_provision_state=states.MANAGEABLE)
+
+        mock_verify_steps.return_value = [self.management_clear_job_queue]
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            steps = conductor_steps._get_verify_steps(task, enabled=True)
+
+        self.assertEqual(self.verify_steps_only_enabled, steps)
+
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.'
+                'execute_verify_step',
+                autospec=True)
+    @mock.patch.object(conductor_steps, '_get_verify_steps', autospec=True)
+    def test_execute_verify_step(self, mock_steps, mock_execute):
+        mock_steps.return_value = self.verify_steps
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.VERIFYING,
+            target_provision_state=states.MANAGEABLE,
+            last_error=None,
+            clean_step=None)
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            verify_steps.do_node_verify(task)
+            node.refresh()
+            self.assertTrue(mock_execute.called)

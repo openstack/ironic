@@ -18,6 +18,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import notification_utils as notify_utils
+from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils
 
@@ -49,6 +50,37 @@ def do_node_verify(task):
                      {'node': node.uuid, 'msg': e})
             log_traceback = not isinstance(e, exception.IronicException)
             LOG.error(error, exc_info=log_traceback)
+
+    verify_steps = conductor_steps._get_verify_steps(task,
+                                                     enabled=True,
+                                                     sort=True)
+    for step in verify_steps:
+        interface = getattr(task.driver, step.get('interface'))
+        LOG.info('Executing %(step)s on node %(node)s',
+                 {'step': step, 'node': node.uuid})
+        try:
+            result = interface.execute_verify_step(task, step)
+        except Exception as e:
+            error = ('Node %(node)s failed verify step %(step)s '
+                     'with unexpected error: %(err)s' %
+                     {'node': node.uuid, 'step': node.verify_step,
+                      'err': e})
+            utils.verifying_error_handler(
+                task, error,
+                _("Failed to verify. Exception: %s") % e,
+                traceback=True)
+        if result is not None:
+            # NOTE(rloo): This is an internal/dev error; shouldn't
+            # happen.
+            error = (_('While executing verify step %(step)s on '
+                       'node %(node)s, step returned unexpected '
+                       'state: %(val)s')
+                     % {'step': step, 'node': node.uuid,
+                        'val': result})
+            utils.verifying_error_handler(
+                task, error,
+                _("Failed to verify: %s") % node.deploy_step)
+
     if error is None:
         # NOTE(janders) this can eventually move to driver-specific
         # verify steps, will leave this for a follow-up change.
@@ -67,6 +99,10 @@ def do_node_verify(task):
 
         else:
             task.process_event('done')
+
+        LOG.info('Successfully verified node %(node)s',
+                 {'node': node.uuid})
+
     else:
         utils.node_history_record(task.node, event=error,
                                   event_type=states.VERIFY,

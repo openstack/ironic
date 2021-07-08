@@ -50,6 +50,25 @@ DEPLOYING_INTERFACE_PRIORITY = {
     'raid': 1,
 }
 
+VERIFYING_INTERFACE_PRIORITY = {
+    # When two verify steps have the same priority, their order is determined
+    # by which interface is implementing the verify step. The verifying step of
+    # the interface with the highest value here, will be executed first in
+    # that case.
+    'power': 12,
+    'management': 11,
+    'boot': 8,
+    'inspect': 10,
+    'deploy': 9,
+    'bios': 7,
+    'raid': 6,
+    'vendor': 5,
+    'network': 4,
+    'storage': 3,
+    'console': 2,
+    'rescue': 1,
+}
+
 
 def _clean_step_key(step):
     """Sort by priority, then interface priority in event of tie.
@@ -67,6 +86,15 @@ def _deploy_step_key(step):
     """
     return (step.get('priority'),
             DEPLOYING_INTERFACE_PRIORITY[step.get('interface')])
+
+
+def _verify_step_key(step):
+    """Sort by priority, then interface priority in event of tie.
+
+    :param step: verify step dict to get priority for.
+    """
+    return (step.get('priority'),
+            VERIFYING_INTERFACE_PRIORITY[step.get('interface')])
 
 
 def _sorted_steps(steps, sort_step_key):
@@ -192,6 +220,37 @@ def _get_deployment_steps(task, enabled=False, sort=True):
     sort_key = _deploy_step_key if sort else None
     return _get_steps(task, DEPLOYING_INTERFACE_PRIORITY, 'get_deploy_steps',
                       enabled=enabled, sort_step_key=sort_key)
+
+
+def _get_verify_steps(task, enabled=False, sort=True):
+    """Get verify steps for task.node.
+
+    :param task: A TaskManager object
+    :param enabled: If True, returns only enabled (priority > 0) steps. If
+        False, returns all verify steps.
+    :param sort: If True, the steps are sorted from highest priority to lowest
+        priority. For steps having the same priority, they are sorted from
+        highest interface priority to lowest.
+    :raises: NodeVerifyFailure if there was a problem getting the
+        verify steps.
+    :returns: A list of verify step dictionaries
+    """
+    sort_key = _verify_step_key if sort else None
+    if CONF.conductor.verify_step_priority_override:
+        vsp_override = {}
+        for element in CONF.conductor.verify_step_priority_override:
+            vsp_override.update(element)
+
+        verify_steps = _get_steps(task, VERIFYING_INTERFACE_PRIORITY,
+                                  'get_verify_steps', enabled=enabled,
+                                  sort_step_key=sort_key,
+                                  prio_overrides=vsp_override)
+
+    else:
+        verify_steps = _get_steps(task, VERIFYING_INTERFACE_PRIORITY,
+                                  'get_verify_steps', enabled=enabled,
+                                  sort_step_key=sort_key)
+    return verify_steps
 
 
 def set_node_cleaning_steps(task, disable_ramdisk=False):

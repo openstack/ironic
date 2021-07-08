@@ -226,8 +226,9 @@ class BaseInterface(object, metaclass=abc.ABCMeta):
         """
 
     def __new__(cls, *args, **kwargs):
-        # Get the list of clean steps and deploy steps, when the interface is
-        # initialized by the conductor. We use __new__ instead of __init___
+        # Get the list of clean steps, deploy steps and verify steps when the
+        # interface is initialized by the conductor.
+        # We use __new__ instead of __init___
         # to avoid breaking backwards compatibility with all the drivers.
         # We want to return all steps, regardless of priority.
 
@@ -238,6 +239,7 @@ class BaseInterface(object, metaclass=abc.ABCMeta):
             instance = super_new(cls, *args, **kwargs)
         instance.clean_steps = []
         instance.deploy_steps = []
+        instance.verify_steps = []
         for n, method in inspect.getmembers(instance, inspect.ismethod):
             if getattr(method, '_is_clean_step', False):
                 # Create a CleanStep to represent this method
@@ -256,6 +258,13 @@ class BaseInterface(object, metaclass=abc.ABCMeta):
                         'argsinfo': method._deploy_step_argsinfo,
                         'interface': instance.interface_type}
                 instance.deploy_steps.append(step)
+            if getattr(method, '_is_verify_step', False):
+                # Create a VerifyStep to represent this method
+                step = {'step': method.__name__,
+                        'priority': method._verify_step_priority,
+                        'interface': instance.interface_type}
+                instance.verify_steps.append(step)
+
         if instance.clean_steps:
             LOG.debug('Found clean steps %(steps)s for interface '
                       '%(interface)s',
@@ -266,6 +275,12 @@ class BaseInterface(object, metaclass=abc.ABCMeta):
                       '%(interface)s',
                       {'steps': instance.deploy_steps,
                        'interface': instance.interface_type})
+        if instance.verify_steps:
+            LOG.debug('Found verify steps %(steps)s for interface '
+                      '%(interface)s',
+                      {'steps': instance.deploy_steps,
+                       'interface': instance.interface_type})
+
         return instance
 
     def _execute_step(self, task, step):
@@ -357,6 +372,35 @@ class BaseInterface(object, metaclass=abc.ABCMeta):
         :returns: None if this method has completed synchronously, or
             states.DEPLOYWAIT if the step will continue to execute
             asynchronously.
+        """
+        return self._execute_step(task, step)
+
+    def get_verify_steps(self, task):
+        """Get a list of (enabled and disabled) verify steps for the interface.
+
+        This function will return all verify steps (both enabled and disabled)
+        for the interface, in an unordered list.
+
+        :param task: A TaskManager object, useful for interfaces overriding
+            this function
+        :raises NodeVerifyFailure: if there is a problem getting the steps
+            from the driver. For example, when a node (using an agent driver)
+            has just been enrolled and the agent isn't alive yet to be queried
+            for the available verify steps.
+        :returns: A list of deploy step dictionaries
+        """
+        return self.verify_steps
+
+    def execute_verify_step(self, task, step):
+        """Execute the verify step on task.node.
+
+        A verify step must take a single positional argument: a TaskManager
+        object. It does not take keyword variable arguments.
+
+        :param task: A TaskManager object
+        :param step: The deploy step dictionary representing the step to
+            execute
+        :returns: None if this method has completed synchronously
         """
         return self._execute_step(task, step)
 
@@ -1866,5 +1910,46 @@ def deploy_step(priority, argsinfo=None):
 
         _validate_argsinfo(argsinfo)
         func._deploy_step_argsinfo = argsinfo
+        return func
+    return decorator
+
+
+def verify_step(priority):
+    """Decorator for verify steps.
+
+    Only steps with priorities greater than 0 are used. These steps are
+    ordered by priority from highest value to lowest value.
+    For steps with the same priority, they are ordered by driver
+    interface priority (see conductor.steps.VERIFY_INTERFACE_PRIORITY).
+    execute_verify_step() will be called on each step.
+
+    Decorated verify steps must take as the only positional argument, a
+    TaskManager object.
+
+    Verify steps are synchronous and should return `None` when finished,
+    and the conductor will continue on to the next step. While the verify step
+    is executing, the node will be in `states.VERIFYING` provision state.
+
+    Examples::
+
+        class MyInterface(base.BaseInterface):
+            @base.verify_step(priority=100)
+            def example_verifying(self, task):
+                # do some verifying
+
+    :param priority: an integer (>=0) priority; used for determining the order
+        in which the step is run in the verification process.
+
+    :raises InvalidParameterValue: if any of the arguments are invalid
+    """
+    def decorator(func):
+        func._is_verify_step = True
+        if isinstance(priority, int) and priority >= 0:
+            func._verify_step_priority = priority
+        else:
+            raise exception.InvalidParameterValue(
+                _('"priority" must be an integer value >= 0, instead of "%s"')
+                % priority)
+
         return func
     return decorator

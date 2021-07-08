@@ -334,6 +334,16 @@ opts = [
                       'node_history_max_entries setting as users of '
                       'this setting are anticipated to need to retain '
                       'history by policy.')),
+    cfg.MultiOpt('verify_step_priority_override',
+                 item_type=types.Dict(),
+                 default={},
+                 mutable=True,
+                 help=_('Priority to run automated verify steps '
+                        'provided in interface.step_name:priority format,'
+                        'e.g. management.clear_job_queue:123. The option can '
+                        'be specified multiple times to define priorities '
+                        'for multiple steps. If set to 0, this specific step '
+                        'will not run during cleaning. ')),
 ]
 
 
