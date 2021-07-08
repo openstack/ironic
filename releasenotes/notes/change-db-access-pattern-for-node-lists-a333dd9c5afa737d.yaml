@@ -1,0 +1,16 @@
+---
+upgrade:
+  - |
+    The query pattern for the database when lists of nodes are retrieved has
+    been changed to a more efficient pattern at scale, where a list of nodes
+    is generated, and then additional queries are executed to composite this
+    data together. This is from a model where the database client in the
+    conductor was having to deduplicate the resulting data set which is
+    overall less efficent.
+other:
+  - |
+    The default database query pattern has been changed which will result
+    in additional database queries when compositing lists of ``nodes``
+    by separately querying ``traits`` and ``tags``. Previously this was a
+    joined query which requires deduplication of the result set before
+    building composite objects.
