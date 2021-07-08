@@ -1754,6 +1754,13 @@ req_storage_interface:
   in: body
   required: false
   type: string
+req_target_boot_mode:
+  description: |
+    If a boot mode change has been requested, this field represents the
+    requested (ie, "target") state, either "uefi" or "bios".
+  in: body
+  required: true
+  type: string
 req_target_power_state:
   description: |
     If a power state transition has been requested, this field represents the
@@ -1770,6 +1777,13 @@ req_target_raid_config:
   in: body
   required: true
   type: JSON
+req_target_secure_boot:
+  description: |
+    If a secure boot change has been requested, this field represents the
+    requested (ie, "target") state, either ``true`` or ``false``.
+  in: body
+  required: true
+  type: boolean
 req_uuid:
   description: |
     The UUID for the resource.

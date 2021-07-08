@@ -771,6 +771,26 @@ node_policies = [
         deprecated_rule=deprecated_node_set_power_state
     ),
     policy.DocumentedRuleDefault(
+        name='baremetal:node:set_boot_mode',
+        check_str=SYSTEM_OR_PROJECT_MEMBER,
+        scope_types=['system', 'project'],
+        description='Change Node boot mode',
+        operations=[
+            {'path': '/nodes/{node_ident}/states/boot_mode', 'method': 'PUT'}
+        ],
+        deprecated_rule=deprecated_node_set_power_state
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:set_secure_boot',
+        check_str=SYSTEM_OR_PROJECT_MEMBER,
+        scope_types=['system', 'project'],
+        description='Change Node secure boot state',
+        operations=[
+            {'path': '/nodes/{node_ident}/states/secure_boot', 'method': 'PUT'}
+        ],
+        deprecated_rule=deprecated_node_set_power_state
+    ),
+    policy.DocumentedRuleDefault(
         name='baremetal:node:set_provision_state',
         check_str=SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN,
         scope_types=['system', 'project'],

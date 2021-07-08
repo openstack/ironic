@@ -26,6 +26,7 @@ import oslo_messaging as messaging
 from oslo_messaging import _utils as messaging_utils
 
 from ironic.common import boot_devices
+from ironic.common import boot_modes
 from ironic.common import components
 from ironic.common import exception
 from ironic.common import indicator_states
@@ -300,6 +301,20 @@ class RPCAPITestCase(db_base.DbTestCase):
                           version='1.39',
                           node_id=self.fake_node['uuid'],
                           new_state=states.POWER_ON)
+
+    def test_change_node_boot_mode(self):
+        self._test_rpcapi('change_node_boot_mode',
+                          'call',
+                          version='1.55',
+                          node_id=self.fake_node['uuid'],
+                          new_state=boot_modes.LEGACY_BIOS)
+
+    def test_change_node_secure_boot(self):
+        self._test_rpcapi('change_node_secure_boot',
+                          'call',
+                          version='1.55',
+                          node_id=self.fake_node['uuid'],
+                          new_state=True)
 
     def test_vendor_passthru(self):
         self._test_rpcapi('vendor_passthru',

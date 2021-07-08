@@ -133,14 +133,22 @@ def node_set_boot_mode(task, mode):
         return
 
     task.driver.management.validate(task)
+    try:
+        supported_boot_modes = (
+            task.driver.management.get_supported_boot_modes(task)
+        )
+    except exception.UnsupportedDriverExtension:
+        LOG.debug(
+            "Cannot determine supported boot modes of driver "
+            "%(driver)s. Will make an attempt to set boot mode %(mode)s",
+            {'driver': task.node.driver, 'mode': mode})
+        supported_boot_modes = ()
 
-    boot_modes = task.driver.management.get_supported_boot_modes(task)
-
-    if mode not in boot_modes:
+    if supported_boot_modes and mode not in supported_boot_modes:
         msg = _("Unsupported boot mode %(mode)s specified for "
                 "node %(node_id)s. Supported boot modes are: "
                 "%(modes)s") % {'mode': mode,
-                                'modes': ', '.join(boot_modes),
+                                'modes': ', '.join(supported_boot_modes),
                                 'node_id': task.node.uuid}
         raise exception.InvalidParameterValue(msg)
 
@@ -1473,3 +1481,95 @@ def node_cache_boot_mode(task):
                  "for node %(node)s",
                  {'boot_mode': boot_mode, 'secure_boot': secure_boot,
                   'node': task.node.uuid})
+
+
+def node_change_boot_mode(task, target_boot_mode):
+    """Change boot mode to requested state for node
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param target_boot_mode: Any boot mode in :mod:`ironic.common.boot_modes`.
+    """
+    try:
+        current_boot_mode = task.driver.management.get_boot_mode(task)
+    except Exception as exc:
+        current_boot_mode = None
+        LOG.warning('Unexpected exception when trying to detect boot_mode '
+                    'while changing boot mode for node '
+                    '%(node)s. %(class)s: %(exc)s',
+                    {'node': task.node.uuid,
+                     'class': type(exc).__name__, 'exc': exc},
+                    exc_info=not isinstance(exc, exception.IronicException))
+
+    if (current_boot_mode is not None
+        and target_boot_mode == current_boot_mode):
+        LOG.info("Target boot mode '%(target)s', and current boot mode "
+                 "'%(current)s' are identical. No change being made "
+                 "for node %(node)s",
+                 {'target': target_boot_mode, 'current': current_boot_mode,
+                  'node': task.node.uuid})
+        return
+    try:
+        task.driver.management.set_boot_mode(task, mode=target_boot_mode)
+    except Exception as exc:
+        LOG.error('Unexpected exception when trying to change boot_mode '
+                  'to %(target)s for node %(node)s. %(class)s: %(exc)s',
+                  {'node': task.node.uuid, 'target': target_boot_mode,
+                   'class': type(exc).__name__, 'exc': exc},
+                  exc_info=not isinstance(exc, exception.IronicException))
+        task.node.last_error = (
+            "Failed to change boot mode to '%(target)s'. "
+            "Error: %(err)s" % {'target': target_boot_mode, 'err': exc})
+        task.node.save()
+    else:
+        LOG.info("Changed boot_mode to %(mode)s for node %(node)s",
+                 {'mode': target_boot_mode, 'node': task.node.uuid})
+        task.node.boot_mode = target_boot_mode
+        task.node.save()
+
+
+def node_change_secure_boot(task, secure_boot_target):
+    """Change secure_boot state to requested state for node
+
+    :param task: a TaskManager instance containing the node to act on.
+    :param secure_boot_target: Target secure_boot state
+                                     OneOf(True => on, False => off)
+    :type secure_boot_target: boolean
+    """
+    try:
+        secure_boot_current = task.driver.management.get_secure_boot_state(
+            task)
+    except Exception as exc:
+        secure_boot_current = None
+        LOG.warning('Unexpected exception when trying to detect secure_boot '
+                    'state while changing secure_boot for node '
+                    '%(node)s. %(class)s: %(exc)s',
+                    {'node': task.node.uuid,
+                     'class': type(exc).__name__, 'exc': exc},
+                    exc_info=not isinstance(exc, exception.IronicException))
+
+    if (secure_boot_current is not None
+        and secure_boot_target == secure_boot_current):
+        LOG.info("Target secure_boot state '%(target)s', and current "
+                 "secure_boot state '%(current)s' are identical. "
+                 "No change being made for node %(node)s",
+                 {'target': secure_boot_target,
+                  'current': secure_boot_current,
+                  'node': task.node.uuid})
+        return
+    try:
+        task.driver.management.set_secure_boot_state(task, secure_boot_target)
+    except Exception as exc:
+        LOG.error('Unexpected exception when trying to change secure_boot '
+                  'to %(target)s for node %(node)s. %(class)s: %(exc)s',
+                  {'node': task.node.uuid, 'target': secure_boot_target,
+                   'class': type(exc).__name__, 'exc': exc},
+                  exc_info=not isinstance(exc, exception.IronicException))
+        task.node.last_error = (
+            "Failed to change secure_boot state to '%(target)s'. "
+            "Error: %(err)s" % {'target': secure_boot_target, 'err': exc})
+        task.node.save()
+    else:
+        LOG.info("Changed secure_boot state to %(state)s for node %(node)s",
+                 {'state': secure_boot_target, 'node': task.node.uuid})
+        task.node.secure_boot = secure_boot_target
+        task.node.save()

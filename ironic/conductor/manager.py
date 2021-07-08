@@ -91,7 +91,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.54'
+    RPC_API_VERSION = '1.55'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -345,6 +345,64 @@ class ConductorManager(base_manager.BaseConductorManager):
                                       task.node, task.node.power_state)
             task.spawn_after(self._spawn_worker, utils.node_power_action,
                              task, new_state, timeout=power_timeout)
+
+    @METRICS.timer('ConductorManager.change_node_boot_mode')
+    @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.NoFreeConductorWorker,
+                                   exception.NodeLocked)
+    def change_node_boot_mode(self, context, node_id, new_state):
+        """RPC method to encapsulate changes to a node's boot_mode.
+
+        :param context: an admin context.
+        :param node_id: the id or uuid of a node.
+        :param new_state: the desired boot mode for the node.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+        :raises: InvalidParameterValue
+        """
+        LOG.debug("RPC change_node_boot_mode called for node %(node)s. "
+                  "The desired new state is %(state)s.",
+                  {'node': node_id, 'state': new_state})
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='changing node boot mode') as task:
+            task.driver.management.validate(task)
+            # Starting new operation, so clear the previous error.
+            # We'll be putting an error here soon if we fail task.
+            task.node.last_error = None
+            task.node.save()
+            task.set_spawn_error_hook(utils._spawn_error_handler,
+                                      task.node, "changing node boot mode")
+            task.spawn_after(self._spawn_worker,
+                             utils.node_change_boot_mode, task, new_state)
+
+    @METRICS.timer('ConductorManager.change_node_secure_boot')
+    @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.NoFreeConductorWorker,
+                                   exception.NodeLocked)
+    def change_node_secure_boot(self, context, node_id, new_state):
+        """RPC method to encapsulate changes to a node's secure_boot state.
+
+        :param context: an admin context.
+        :param node_id: the id or uuid of a node.
+        :param new_state: the desired secure_boot state for the node.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+        :raises: InvalidParameterValue
+        """
+        LOG.debug("RPC change_node_secure_boot called for node %(node)s. "
+                  "The desired new state is %(state)s.",
+                  {'node': node_id, 'state': new_state})
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='changing node secure') as task:
+            task.driver.management.validate(task)
+            # Starting new operation, so clear the previous error.
+            # We'll be putting an error here soon if we fail task.
+            task.node.last_error = None
+            task.node.save()
+            task.set_spawn_error_hook(utils._spawn_error_handler,
+                                      task.node, "changing node secure boot")
+            task.spawn_after(self._spawn_worker,
+                             utils.node_change_secure_boot, task, new_state)
 
     @METRICS.timer('ConductorManager.vendor_passthru')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,

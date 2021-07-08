@@ -863,6 +863,110 @@ third_party_admin_cannot_put_power_state_change:
   body: *power_body
   assert_status: 404
 
+# Boot mode state
+
+owner_admin_can_put_boot_mode_state_change:
+  path: '/v1/nodes/{owner_node_ident}/states/boot_mode'
+  method: put
+  headers: *owner_admin_headers
+  body: &boot_mode_body
+    target: "uefi"
+  assert_status: 503
+
+lessee_admin_can_put_boot_mode_state_change:
+  path: '/v1/nodes/{lessee_node_ident}/states/boot_mode'
+  method: put
+  headers: *lessee_admin_headers
+  body: *boot_mode_body
+  assert_status: 503
+
+owner_member_can_put_boot_mode_state_change:
+  path: '/v1/nodes/{owner_node_ident}/states/boot_mode'
+  method: put
+  headers: *owner_member_headers
+  body: *boot_mode_body
+  assert_status: 503
+
+lessee_member_can_put_boot_mode_state_change:
+  path: '/v1/nodes/{lessee_node_ident}/states/boot_mode'
+  method: put
+  headers: *lessee_member_headers
+  body: *boot_mode_body
+  assert_status: 503
+
+owner_reader_cannot_put_boot_mode_state_change:
+  path: '/v1/nodes/{owner_node_ident}/states/boot_mode'
+  method: put
+  headers: *owner_reader_headers
+  body: *boot_mode_body
+  assert_status: 403
+
+lessee_reader_cannot_put_boot_mode_state_change:
+  path: '/v1/nodes/{lessee_node_ident}/states/boot_mode'
+  method: put
+  headers: *lessee_reader_headers
+  body: *boot_mode_body
+  assert_status: 403
+
+third_party_admin_cannot_put_boot_mode_state_change:
+  path: '/v1/nodes/{node_ident}/states/boot_mode'
+  method: put
+  headers: *third_party_admin_headers
+  body: *boot_mode_body
+  assert_status: 404
+
+# Secure Boot state
+
+owner_admin_can_put_secure_boot_state_change:
+  path: '/v1/nodes/{owner_node_ident}/states/secure_boot'
+  method: put
+  headers: *owner_admin_headers
+  body: &secure_boot_body
+    target: "true"
+  assert_status: 503
+
+lessee_admin_can_put_secure_boot_state_change:
+  path: '/v1/nodes/{lessee_node_ident}/states/secure_boot'
+  method: put
+  headers: *lessee_admin_headers
+  body: *secure_boot_body
+  assert_status: 503
+
+owner_member_can_put_secure_boot_state_change:
+  path: '/v1/nodes/{owner_node_ident}/states/secure_boot'
+  method: put
+  headers: *owner_member_headers
+  body: *secure_boot_body
+  assert_status: 503
+
+lessee_member_can_put_secure_boot_state_change:
+  path: '/v1/nodes/{lessee_node_ident}/states/secure_boot'
+  method: put
+  headers: *lessee_member_headers
+  body: *secure_boot_body
+  assert_status: 503
+
+owner_reader_cannot_put_secure_boot_state_change:
+  path: '/v1/nodes/{owner_node_ident}/states/secure_boot'
+  method: put
+  headers: *owner_reader_headers
+  body: *secure_boot_body
+  assert_status: 403
+
+lessee_reader_cannot_put_secure_boot_state_change:
+  path: '/v1/nodes/{lessee_node_ident}/states/secure_boot'
+  method: put
+  headers: *lessee_reader_headers
+  body: *secure_boot_body
+  assert_status: 403
+
+third_party_admin_cannot_put_secure_boot_state_change:
+  path: '/v1/nodes/{node_ident}/states/secure_boot'
+  method: put
+  headers: *third_party_admin_headers
+  body: *secure_boot_body
+  assert_status: 404
+
 # Provision states
 
 owner_admin_can_change_provision_state:

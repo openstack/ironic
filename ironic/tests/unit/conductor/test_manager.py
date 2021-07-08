@@ -34,6 +34,7 @@ from oslo_versionedobjects import fields
 import tenacity
 
 from ironic.common import boot_devices
+from ironic.common import boot_modes
 from ironic.common import components
 from ironic.common import driver_factory
 from ironic.common import exception
@@ -445,6 +446,431 @@ class ChangeNodePowerStateTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.POWER_ON, node.power_state)
         self.assertIsNone(node.target_power_state)
         self.assertIsNone(node.last_error)
+
+
+@mgr_utils.mock_record_keepalive
+class ChangeNodeBootModeTestCase(mgr_utils.ServiceSetUpMixin,
+                                 db_base.DbTestCase):
+    @mock.patch.object(fake.FakeManagement, 'set_boot_mode', autospec=True)
+    @mock.patch.object(fake.FakeManagement, 'get_boot_mode', autospec=True)
+    def test_change_node_boot_mode_valid(self, get_boot_mock, set_boot_mock):
+        # Test change_node_boot_mode including integration with
+        # conductor.utils.node_change_boot_mode
+        get_boot_mock.side_effect = [boot_modes.LEGACY_BIOS,  # before setting
+                                     boot_modes.UEFI]         # after setting
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake-hardware',
+                                          boot_mode=boot_modes.LEGACY_BIOS)
+        self._start_service()
+
+        self.service.change_node_boot_mode(self.context,
+                                           node.uuid,
+                                           boot_modes.UEFI)
+        self._stop_service()
+
+        set_boot_mock.assert_called_once_with(mock.ANY, mock.ANY,
+                                              mode=boot_modes.UEFI)
+        self.assertEqual(get_boot_mock.call_count, 1)
+        # Call once before setting to see if it's required
+
+        node.refresh()
+        self.assertEqual(boot_modes.UEFI, node.boot_mode)
+        self.assertIsNone(node.last_error)
+        # Verify the reservation has been cleared by
+        # background task's link callback.
+        self.assertIsNone(node.reservation)
+
+    @mock.patch.object(fake.FakeManagement, 'set_boot_mode', autospec=True)
+    @mock.patch.object(fake.FakeManagement, 'get_boot_mode', autospec=True)
+    def test_change_node_boot_mode_existing(self, get_boot_mock,
+                                            set_boot_mock):
+        # Test change_node_boot_mode including integration with
+        # conductor.utils.node_change_boot_mode when target==current
+        get_boot_mock.return_value = boot_modes.LEGACY_BIOS
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake-hardware',
+                                          boot_mode=boot_modes.LEGACY_BIOS)
+        self._start_service()
+
+        self.service.change_node_boot_mode(self.context,
+                                           node.uuid,
+                                           boot_modes.LEGACY_BIOS)
+        self._stop_service()
+
+        set_boot_mock.assert_not_called()
+        self.assertEqual(get_boot_mock.call_count, 1)
+        # Called once before setting to see if it's even required
+
+        node.refresh()
+        self.assertEqual(boot_modes.LEGACY_BIOS, node.boot_mode)
+        self.assertIsNone(node.last_error)
+        # Verify the reservation has been cleared by
+        # background task's link callback.
+        self.assertIsNone(node.reservation)
+
+    @mock.patch.object(conductor_utils, 'node_change_boot_mode',
+                       autospec=True)
+    def test_change_node_boot_mode_node_already_locked(self, ncbm_mock):
+        # Test change_node_boot_mode with mocked
+        # conductor.utils.node_change_boot_mode.
+        fake_reservation = 'fake-reserv'
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake-hardware',
+                                          boot_mode=boot_modes.LEGACY_BIOS,
+                                          reservation=fake_reservation)
+        self._start_service()
+
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.change_node_boot_mode,
+                                self.context,
+                                node.uuid,
+                                boot_modes.LEGACY_BIOS)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+
+        # In this test worker should not be spawned, but waiting to make sure
+        # the below perform_mock assertion is valid.
+        self._stop_service()
+        self.assertFalse(ncbm_mock.called, 'node_change_boot_mode has been '
+                         'unexpectedly called.')
+        # Verify existing reservation wasn't broken.
+        node.refresh()
+        self.assertEqual(fake_reservation, node.reservation)
+
+    def test_change_node_boot_mode_worker_pool_full(self):
+        # Test change_node_boot_mode including integration with
+        # conductor.utils.change_node_boot_mode.
+        initial_state = boot_modes.LEGACY_BIOS
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          boot_mode=initial_state)
+        self._start_service()
+
+        with mock.patch.object(self.service,
+                               '_spawn_worker', autospec=True) as spawn_mock:
+            spawn_mock.side_effect = exception.NoFreeConductorWorker()
+
+            exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                    self.service.change_node_boot_mode,
+                                    self.context,
+                                    node.uuid,
+                                    boot_modes.UEFI)
+            # Compare true exception hidden by @messaging.expected_exceptions
+            self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
+
+            spawn_mock.assert_called_once_with(mock.ANY, mock.ANY,
+                                               mock.ANY)
+            node.refresh()
+            self.assertEqual(initial_state, node.boot_mode)
+            self.assertIsNotNone(node.last_error)
+            # Verify the picked reservation has been cleared due to full pool.
+            self.assertIsNone(node.reservation)
+
+    @mock.patch.object(fake.FakeManagement, 'set_boot_mode', autospec=True)
+    @mock.patch.object(fake.FakeManagement, 'get_boot_mode', autospec=True)
+    def test_change_node_boot_mode_exception_in_background_task(
+            self, get_boot_mock, set_boot_mock):
+        # Test change_node_boot_mode including integration with
+        # conductor.utils.node_change_boot_mode.
+        initial_state = boot_modes.LEGACY_BIOS
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          boot_mode=initial_state)
+        self._start_service()
+
+        get_boot_mock.return_value = boot_modes.LEGACY_BIOS
+        new_state = boot_modes.UEFI
+        set_boot_mock.side_effect = exception.UnsupportedDriverExtension(
+            driver=fake, extension='set_boot_mode')
+
+        self.service.change_node_boot_mode(self.context,
+                                           node.uuid,
+                                           new_state)
+        self._stop_service()
+
+        # Call once before setting to see if it was required
+        self.assertEqual(get_boot_mock.call_count, 1)
+        set_boot_mock.assert_called_once_with(mock.ANY, mock.ANY,
+                                              new_state)
+        node.refresh()
+        self.assertEqual(initial_state, node.boot_mode)
+        self.assertIsNotNone(node.last_error)
+        # Verify the reservation has been cleared by background task's
+        # link callback despite exception in background task.
+        self.assertIsNone(node.reservation)
+
+    @mock.patch.object(fake.FakeManagement, 'validate', autospec=True)
+    def test_change_node_boot_mode_validate_fail(self, validate_mock):
+        # Test change_node_power_state where task.driver.management.validate
+        # fails
+        initial_state = boot_modes.UEFI
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake-hardware',
+                                          boot_mode=initial_state)
+        self._start_service()
+
+        validate_mock.side_effect = exception.InvalidParameterValue(
+            'wrong management driver info')
+        new_state = boot_modes.LEGACY_BIOS
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.change_node_boot_mode,
+                                self.context,
+                                node.uuid,
+                                new_state)
+
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+        node.refresh()
+        validate_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(initial_state, node.boot_mode)
+        self.assertIsNone(node.last_error)
+
+    @mock.patch.object(fake.FakeManagement, 'set_boot_mode', autospec=True)
+    @mock.patch.object(fake.FakeManagement, 'get_boot_mode', autospec=True)
+    def test_change_node_boot_mode_exception_getting_current(self,
+                                                             get_boot_mock,
+                                                             set_boot_mock):
+        # Test change_node_boot_mode smooth opertion when get_boot_mode mode
+        # raises an exception
+        initial_state = boot_modes.LEGACY_BIOS
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          boot_mode=initial_state)
+        self._start_service()
+
+        get_boot_mock.side_effect = exception.UnsupportedDriverExtension(
+            driver=fake, extension='get_boot_mode')
+        new_state = boot_modes.UEFI
+
+        self.service.change_node_boot_mode(self.context,
+                                           node.uuid,
+                                           new_state)
+        self._stop_service()
+
+        # Call once before setting to see if it is required
+        self.assertEqual(get_boot_mock.call_count, 1)
+        set_boot_mock.assert_called_once_with(mock.ANY, mock.ANY,
+                                              new_state)
+        node.refresh()
+        self.assertEqual(new_state, node.boot_mode)
+        self.assertIsNone(node.last_error)
+        # Verify the reservation has been cleared by
+        # background task's link callback.
+        self.assertIsNone(node.reservation)
+
+
+@mgr_utils.mock_record_keepalive
+class ChangeNodeSecureBootTestCase(mgr_utils.ServiceSetUpMixin,
+                                   db_base.DbTestCase):
+    @mock.patch.object(fake.FakeManagement, 'set_secure_boot_state',
+                       autospec=True)
+    @mock.patch.object(fake.FakeManagement, 'get_secure_boot_state',
+                       autospec=True)
+    def test_change_node_secure_boot_valid(self, get_boot_mock, set_boot_mock):
+        # Test change_node_secure_boot including integration with
+        # conductor.utils.node_change_secure_boot
+        get_boot_mock.side_effect = [False,  # before setting
+                                     True]   # after setting
+        initial_state = False
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake-hardware',
+                                          secure_boot=initial_state)
+        self._start_service()
+        target_state = True
+        self.service.change_node_secure_boot(self.context,
+                                             node.uuid,
+                                             target_state)
+        self._stop_service()
+
+        set_boot_mock.assert_called_once_with(mock.ANY, mock.ANY,
+                                              target_state)
+        self.assertEqual(get_boot_mock.call_count, 1)
+        # Call once before setting to see if it's required
+
+        node.refresh()
+        self.assertEqual(target_state, node.secure_boot)
+        self.assertIsNone(node.last_error)
+        # Verify the reservation has been cleared by
+        # background task's link callback.
+        self.assertIsNone(node.reservation)
+
+    @mock.patch.object(fake.FakeManagement, 'set_secure_boot_state',
+                       autospec=True)
+    @mock.patch.object(fake.FakeManagement, 'get_secure_boot_state',
+                       autospec=True)
+    def test_change_node_secure_boot_existing(self, get_boot_mock,
+                                              set_boot_mock):
+        # Test change_node_secure_boot including integration with
+        # conductor.utils.node_change_secure_boot when target==current
+        get_boot_mock.return_value = False
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake-hardware',
+                                          secure_boot=False)
+        self._start_service()
+
+        self.service.change_node_secure_boot(self.context,
+                                             node.uuid,
+                                             False)
+        self._stop_service()
+
+        set_boot_mock.assert_not_called()
+        self.assertEqual(get_boot_mock.call_count, 1)
+        # Called once before setting to see if it's even required
+
+        node.refresh()
+        self.assertEqual(False, node.secure_boot)
+        self.assertIsNone(node.last_error)
+        # Verify the reservation has been cleared by
+        # background task's link callback.
+        self.assertIsNone(node.reservation)
+
+    @mock.patch.object(conductor_utils, 'node_change_secure_boot',
+                       autospec=True)
+    def test_change_node_secure_boot_node_already_locked(self, ncbm_mock):
+        # Test change_node_secure_boot with mocked
+        # conductor.utils.node_change_secure_boot.
+        fake_reservation = 'fake-reserv'
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake-hardware',
+                                          secure_boot=False,
+                                          reservation=fake_reservation)
+        self._start_service()
+
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.change_node_secure_boot,
+                                self.context,
+                                node.uuid,
+                                False)
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+
+        # In this test worker should not be spawned, but waiting to make sure
+        # the below perform_mock assertion is valid.
+        self._stop_service()
+        self.assertFalse(ncbm_mock.called, 'node_change_secure_boot has been '
+                         'unexpectedly called.')
+        # Verify existing reservation wasn't broken.
+        node.refresh()
+        self.assertEqual(fake_reservation, node.reservation)
+
+    def test_change_node_secure_boot_worker_pool_full(self):
+        # Test change_node_secure_boot including integration with
+        # conductor.utils.change_node_secure_boot.
+        initial_state = False
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          secure_boot=initial_state)
+        self._start_service()
+
+        with mock.patch.object(self.service,
+                               '_spawn_worker', autospec=True) as spawn_mock:
+            spawn_mock.side_effect = exception.NoFreeConductorWorker()
+
+            exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                    self.service.change_node_secure_boot,
+                                    self.context,
+                                    node.uuid,
+                                    True)
+            # Compare true exception hidden by @messaging.expected_exceptions
+            self.assertEqual(exception.NoFreeConductorWorker, exc.exc_info[0])
+
+            spawn_mock.assert_called_once_with(mock.ANY, mock.ANY,
+                                               mock.ANY)
+            node.refresh()
+            self.assertEqual(initial_state, node.secure_boot)
+            self.assertIsNotNone(node.last_error)
+            # Verify the picked reservation has been cleared due to full pool.
+            self.assertIsNone(node.reservation)
+
+    @mock.patch.object(fake.FakeManagement, 'set_secure_boot_state',
+                       autospec=True)
+    @mock.patch.object(fake.FakeManagement, 'get_secure_boot_state',
+                       autospec=True)
+    def test_change_node_secure_boot_exception_in_background_task(
+            self, get_boot_mock, set_boot_mock):
+        # Test change_node_secure_boot including integration with
+        # conductor.utils.node_change_secure_boot.
+        initial_state = False
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          secure_boot=initial_state)
+        self._start_service()
+
+        get_boot_mock.return_value = False
+        new_state = True
+        set_boot_mock.side_effect = exception.UnsupportedDriverExtension(
+            driver=fake, extension='set_secure_boot_state')
+
+        self.service.change_node_secure_boot(self.context,
+                                             node.uuid,
+                                             new_state)
+        self._stop_service()
+
+        # Call once before setting to see if it was required
+        self.assertEqual(get_boot_mock.call_count, 1)
+        set_boot_mock.assert_called_once_with(mock.ANY, mock.ANY,
+                                              new_state)
+        node.refresh()
+        self.assertEqual(initial_state, node.secure_boot)
+        self.assertIsNotNone(node.last_error)
+        # Verify the reservation has been cleared by background task's
+        # link callback despite exception in background task.
+        self.assertIsNone(node.reservation)
+
+    @mock.patch.object(fake.FakeManagement, 'validate', autospec=True)
+    def test_change_node_secure_boot_validate_fail(self, validate_mock):
+        # Test change_node_power_state where task.driver.management.validate
+        # fails
+        initial_state = True
+        node = obj_utils.create_test_node(self.context,
+                                          driver='fake-hardware',
+                                          secure_boot=initial_state)
+        self._start_service()
+
+        validate_mock.side_effect = exception.InvalidParameterValue(
+            'wrong management driver info')
+        new_state = False
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.change_node_secure_boot,
+                                self.context,
+                                node.uuid,
+                                new_state)
+
+        self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
+
+        node.refresh()
+        validate_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(initial_state, node.secure_boot)
+        self.assertIsNone(node.last_error)
+
+    @mock.patch.object(fake.FakeManagement, 'set_secure_boot_state',
+                       autospec=True)
+    @mock.patch.object(fake.FakeManagement, 'get_secure_boot_state',
+                       autospec=True)
+    def test_change_node_secure_boot_exception_getting_current(self,
+                                                               get_boot_mock,
+                                                               set_boot_mock):
+        # Test change_node_secure_boot smooth opertion when
+        # get_secure_boot_state raises an exception
+        initial_state = False
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          secure_boot=initial_state)
+        self._start_service()
+
+        get_boot_mock.side_effect = exception.UnsupportedDriverExtension(
+            driver=fake, extension='get_secure_boot_state')
+        new_state = True
+
+        self.service.change_node_secure_boot(self.context,
+                                             node.uuid,
+                                             new_state)
+        self._stop_service()
+
+        # Call once before setting to see if it is required
+        self.assertEqual(get_boot_mock.call_count, 1)
+        set_boot_mock.assert_called_once_with(mock.ANY, mock.ANY,
+                                              new_state)
+        node.refresh()
+        self.assertEqual(new_state, node.secure_boot)
+        self.assertIsNone(node.last_error)
+        # Verify the reservation has been cleared by
+        # background task's link callback.
+        self.assertIsNone(node.reservation)
 
 
 @mgr_utils.mock_record_keepalive

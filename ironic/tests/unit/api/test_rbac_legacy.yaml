@@ -412,6 +412,56 @@ nodes_states_power_put_observer:
   assert_status: 403
   deprecated: true
 
+nodes_states_boot_mode_put_admin:
+  path: '/v1/nodes/{node_ident}/states/boot_mode'
+  method: put
+  headers: *admin_headers
+  body: &boot_mode_body
+    target: "uefi"
+  assert_status: 503
+  deprecated: true
+
+nodes_states_boot_mode_put_member:
+  path: '/v1/nodes/{node_ident}/states/boot_mode'
+  method: put
+  headers: *member_headers
+  body: *boot_mode_body
+  assert_status: 404
+  deprecated: true
+
+nodes_states_boot_mode_put_observer:
+  path: '/v1/nodes/{node_ident}/states/boot_mode'
+  method: put
+  headers: *observer_headers
+  body: *boot_mode_body
+  assert_status: 403
+  deprecated: true
+
+nodes_states_secure_boot_put_admin:
+  path: '/v1/nodes/{node_ident}/states/secure_boot'
+  method: put
+  headers: *admin_headers
+  body: &secure_boot_body
+    target: "true"
+  assert_status: 503
+  deprecated: true
+
+nodes_states_secure_boot_put_member:
+  path: '/v1/nodes/{node_ident}/states/secure_boot'
+  method: put
+  headers: *member_headers
+  body: *secure_boot_body
+  assert_status: 404
+  deprecated: true
+
+nodes_states_secure_boot_put_observer:
+  path: '/v1/nodes/{node_ident}/states/secure_boot'
+  method: put
+  headers: *observer_headers
+  body: *secure_boot_body
+  assert_status: 403
+  deprecated: true
+
 nodes_states_provision_put_admin:
   path: '/v1/nodes/{node_ident}/states/provision'
   method: put

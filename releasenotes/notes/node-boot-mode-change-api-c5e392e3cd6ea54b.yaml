@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Adds endpoints to change boot mode and secure boot state of node.
+
+    * ``PUT /v1/nodes/{node_ident}/states/boot_mode``
+    * ``PUT /v1/nodes/{node_ident}/states/secure_boot``
+
+    The API will respond with 202 (Accepted) on validating the request
+    and accepting to process it. Changes occur asynchronously in a
+    background task. The user can then poll the states endpoint
+    ``/v1/nodes/{node_ident}/states`` for observing current status of the
+    requested change.
