@@ -40,6 +40,14 @@ def _check_versions_compatibility(conf_version, actual_version):
     return conf_cap <= actual_cap
 
 
+NUMERIC_RELEASES = sorted(
+    map(versionutils.convert_version_to_tuple,
+        set(release_mappings.RELEASE_MAPPING)
+        # Update the exceptions whenever needed
+        - {'master', 'wallaby', 'victoria'}),
+    reverse=True)
+
+
 class ReleaseMappingsTestCase(base.TestCase):
     """Tests the dict release_mappings.RELEASE_MAPPING.
 
@@ -84,11 +92,12 @@ class ReleaseMappingsTestCase(base.TestCase):
     def test_contains_all_db_objects(self):
         self.assertIn('master', release_mappings.RELEASE_MAPPING)
         model_names = set((s.__name__ for s in models.Base.__subclasses__()))
-        exceptions = set(['NodeTag', 'ConductorHardwareInterfaces',
-                          'NodeTrait', 'DeployTemplateStep'])
         # NOTE(xek): As a rule, all models which can be changed between
         # releases or are sent through RPC should have their counterpart
-        # versioned objects.
+        # versioned objects. Do not add an exception for such objects,
+        # initialize them with the version 1.0 instead.
+        exceptions = set(['NodeTag', 'ConductorHardwareInterfaces',
+                          'NodeTrait', 'DeployTemplateStep'])
         model_names -= exceptions
         # NodeTrait maps to two objects
         model_names |= set(['Trait', 'TraitList'])
@@ -107,6 +116,37 @@ class ReleaseMappingsTestCase(base.TestCase):
                 for ver in obj_vers:
                     self.assertTrue(_check_versions_compatibility(
                         ver, registered_objects[obj_name][0].VERSION))
+
+    def test_no_gaps_in_release_versions(self):
+        for i, ver in enumerate(NUMERIC_RELEASES[:-1]):
+            prev = NUMERIC_RELEASES[i + 1]
+            if ver != (prev[0] + 1, 0) and ver != (prev[0], prev[1] + 1):
+                self.fail("Versions %s and %s are not sequential"
+                          % (prev, ver))
+
+    def test_no_gaps_in_object_versions(self):
+        oldest_release = '%d.%d' % NUMERIC_RELEASES[-1]
+        oldest_versions = release_mappings.RELEASE_MAPPING[
+            oldest_release]['objects']
+        all_versions = release_mappings.get_object_versions()
+        for obj, versions in all_versions.items():
+            try:
+                # NOTE(dtantsur): assuming all versions are 1.x, fix this test
+                # if this assumption ever changes.
+                min_version = min(map(versionutils.convert_version_to_tuple,
+                                      oldest_versions[obj]))[1]
+            except (KeyError, ValueError):
+                # If the object was introduced after the oldest known release,
+                # then 1.0 must be known.
+                expected = {"1.%d" % i for i in range(len(versions))}
+            else:
+                # The object was introduced before or in the oldest known
+                # release, start counting from this release.
+                expected = {"1.%d" % i
+                            for i in range(min_version,
+                                           min_version + len(versions))}
+            self.assertEqual(expected, versions,
+                             "There are gaps in versions for %s" % obj)
 
 
 class GetObjectVersionsTestCase(base.TestCase):
