@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Allows reboot to hard disk following iso ramdisk deploy. Re-uses the
+    ``force_persistent_boot_device`` driver_info option which can be
+    set to ``Never`` in order to set the virtual media to one time
+    boot.

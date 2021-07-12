@@ -135,6 +135,21 @@ or desired. As such, this interface does come with several caveats:
   still occur with the contents of any local storage being wiped between
   deployments.
 
+Common options
+--------------
+
+Disable persistent boot device for ramdisk iso boot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For iso boot, Ironic sets the boot target to continuously boot from
+the iso attached over virtual media. This behaviour may not always be
+desired e.g. if the vmedia is installing to hard drive and then
+rebooting. In order to instead set the virtual media to be one time
+boot Ironic provides the ``force_persistent_boot_device`` flag in the
+node's ``driver_info``. Which can be set to ``Never``::
+
+    $ openstack baremetal node set --driver-info force_persistent_boot_device='Never' <node>
+
 .. _ironic-python-agent-builder: https://opendev.org/openstack/ironic-python-agent-builder
 .. _openssh-server: https://docs.openstack.org/diskimage-builder/latest/elements/openssh-server/README.html
 .. _devuser: https://docs.openstack.org/diskimage-builder/latest/elements/devuser/README.html
