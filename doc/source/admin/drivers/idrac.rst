@@ -728,15 +728,15 @@ To resolve this issue, increase the timeout to 90 seconds by setting the retry c
     [agent]
     post_deploy_get_power_state_retries = 18
 
-Unable to mount remote share with iDRAC firmware 4.40.00.00 or newer
----------------------------------------------------------------------
+Unable to mount remote share with iDRAC firmware before 4.40.40.00
+------------------------------------------------------------------
 
-When using iDRAC firmware 4.40.00.00 or newer with virtual media boot and new
-Virtual Console plug-in type eHTML5, there is an error: "Unable to mount remote
-share". This is a known issue that will be fixed in future iDRAC firmware
-releases. Until then can adjust settings in iDRAC to use plug-in type HTML5. In
-iDRAC web UI go to Configuration -> Virtual Console and select Plug-in Type to
-HTML5.
+When using iDRAC firmware 4.40.00.00 and consecutive versions before 4.40.40.00
+with virtual media boot and new Virtual Console plug-in type eHTML5, there is
+an error: "Unable to mount remote share". This is a known issue that is fixed
+in 4.40.40.00 iDRAC firmware release. If cannot upgrade, then adjust settings
+in iDRAC to use plug-in type HTML5. In iDRAC web UI go to Configuration ->
+Virtual Console and select Plug-in Type to HTML5.
 
 During upgrade to 4.40.00.00 or newer iDRAC firmware eHTML5 is automatically
 selected if default plug-in type has been used and never changed. Systems that
