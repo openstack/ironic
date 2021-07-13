@@ -345,7 +345,9 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
    Fedora/RHEL8/CentOS8::
 
-       cp /usr/share/ipxe/{undionly.kpxe,ipxe.efi,snponly.efi} /tftpboot
+       cp /usr/share/ipxe/{undionly.kpxe,ipxe-x86_64.efi,ipxe-snponly-x86_64.efi} /tftpboot
+
+   .. note:: ``snponly`` variants may not be available for all distributions.
 
 #. Enable/Configure iPXE overrides in the Bare Metal Service's configuration
    file **if required** (/etc/ironic/ironic.conf):
@@ -366,7 +368,8 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
    .. note::
       Most UEFI systems have integrated networking which means the
       ``[pxe]uefi_ipxe_bootfile_name`` setting should be set to
-      ``snponly.efi``.
+      ``snponly.efi`` or ``ipxe-snponly-x86_64.efi`` if it's available for
+      your distribution.
 
    .. note::
       Setting the iPXE parameters noted in the code block above to no value,
