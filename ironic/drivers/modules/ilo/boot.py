@@ -132,14 +132,7 @@ def _get_boot_iso(task, root_uuid):
 
     :param task: a TaskManager instance containing the node to act on.
     :param root_uuid: the uuid of the root partition.
-    :returns: boot ISO URL. Should be either of below:
-        * A Swift object - It should be of format 'swift:<object-name>'. It is
-          assumed that the image object is present in
-          CONF.ilo.swift_ilo_container;
-        * A Glance image - It should be format 'glance://<glance-image-uuid>'
-          or just <glance-image-uuid>;
-        * An HTTP URL.
-        On error finding the boot iso, it returns None.
+    :returns: boot ISO HTTP or swift:// URL.
     :raises: MissingParameterValue, if any of the required parameters are
         missing in the node's driver_info or instance_info.
     :raises: InvalidParameterValue, if any of the parameters have invalid
@@ -156,35 +149,24 @@ def _get_boot_iso(task, root_uuid):
     boot_iso = driver_utils.get_field(task.node, 'boot_iso',
                                       deprecated_prefix='ilo',
                                       collection='instance_info')
-    if boot_iso:
-        LOG.debug("Using boot_iso provided in node's instance_info")
-        if not service_utils.is_glance_image(boot_iso):
-            try:
-                image_service.HttpImageService().validate_href(boot_iso)
-            except exception.ImageRefValidationFailed:
-                with excutils.save_and_reraise_exception():
-                    LOG.error("Virtual media deploy accepts only Glance "
-                              "images or HTTP(S) URLs as "
-                              "instance_info['boot_iso']. Either %s "
-                              "is not a valid HTTP(S) URL or is "
-                              "not reachable.", boot_iso)
-
-        return boot_iso
+    deploy_info = _parse_deploy_info(task.node)
 
     # Option 2 - Check if user has provided a boot_iso in Glance. If boot_iso
     # is a supported non-glance href execution will proceed to option 3.
-    deploy_info = _parse_deploy_info(task.node)
+    if not boot_iso:
+        # TODO(dtantsur): this approach should be generic across drivers.
+        image_href = deploy_info['image_source']
+        image_properties = (
+            images.get_image_properties(
+                task.context, image_href, ['boot_iso']))
 
-    image_href = deploy_info['image_source']
-    image_properties = (
-        images.get_image_properties(
-            task.context, image_href, ['boot_iso']))
+        boot_iso = image_properties.get('boot_iso')
 
-    boot_iso_uuid = image_properties.get('boot_iso')
-
-    if boot_iso_uuid:
-        LOG.debug("Found boot_iso %s in Glance", boot_iso_uuid)
-        return boot_iso_uuid
+    if boot_iso:
+        i_info = task.node.instance_info
+        i_info['boot_iso'] = boot_iso
+        task.node.instance_info = i_info
+        task.node.save()
 
     # NOTE(rameshg87): Functionality to share the boot ISOs created for
     # similar instances (instances with same deployed image) is
@@ -436,14 +418,12 @@ class IloVirtualMediaBoot(base.BootInterface):
 
         mode = deploy_utils.rescue_or_deploy_mode(node)
         d_info = parse_driver_info(node, mode)
-        if 'rescue_iso' in d_info:
-            ilo_common.setup_vmedia(task, d_info['rescue_iso'], ramdisk_params)
-        elif 'deploy_iso' in d_info:
-            ilo_common.setup_vmedia(task, d_info['deploy_iso'], ramdisk_params)
-        else:
-            iso = image_utils.prepare_deploy_iso(task, ramdisk_params,
-                                                 mode, d_info)
-            ilo_common.setup_vmedia(task, iso)
+        iso = image_utils.prepare_deploy_iso(task, ramdisk_params,
+                                             mode, d_info)
+        if not d_info.get(f'{mode}_iso'):
+            # No need to attach a floopy when an ISO is built by us.
+            ramdisk_params = None
+        ilo_common.setup_vmedia(task, iso, ramdisk_params)
 
     @METRICS.timer('IloVirtualMediaBoot.prepare_instance')
     def prepare_instance(self, task):
@@ -569,9 +549,6 @@ class IloVirtualMediaBoot(base.BootInterface):
 
         node = task.node
         boot_iso = _get_boot_iso(task, root_uuid)
-        if not boot_iso:
-            LOG.error("Cannot get boot ISO for node %s", node.uuid)
-            return
 
         # Upon deploy complete, some distros cloud images reboot the system as
         # part of its configuration. Hence boot device should be persistent and

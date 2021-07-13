@@ -437,13 +437,23 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
     # NOTE(rpittau): if base_iso is defined as http address, we just access
     # it directly.
     if base_iso:
+        scheme = urlparse.urlparse(base_iso).scheme.lower()
+        if scheme == 'swift':
+            # FIXME(dtantsur): iLO supports swift: scheme. In the long run we
+            # should support it for all boot interfaces by using temporary
+            # URLs. Until it's done, return base_iso as it is.
+            return base_iso
+
         if (download_source == 'swift'
                 and service_utils.is_glance_image(base_iso)):
             base_iso = (
                 images.get_temp_url_for_glance_image(task.context, base_iso))
+            # get_temp_url_for_glance_image return an HTTP (or HTTPS - doesn't
+            # matter here) image.
+            scheme = 'http'
 
         if download_source != 'local':
-            if base_iso.startswith(('http://', 'https://')):
+            if scheme in ('http', 'https'):
                 return base_iso
             LOG.debug("ramdisk_image_download_source set to http but "
                       "boot_iso is not an HTTP URL: %(boot_iso)s",

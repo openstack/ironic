@@ -1,0 +1,22 @@
+---
+features:
+  - |
+    The ``ilo-virtual-media`` deploy interface now supports ``file:///`` URLs
+    for ``boot_iso`` and ``deploy_iso``.
+  - |
+    The ``ilo-virtual-media`` deploy interface now supports the
+    ``[deploy]ramdisk_image_download_source`` configuration option.
+fixes:
+  - |
+    The ``ilo-virtual-media`` deploy interface no longer requires the Image
+    service backend to be Swift for Glance images in ``boot_iso`` and
+    ``deploy_iso``.
+upgrade:
+  - |
+    Since ``ilo-virtual-media`` deploy interface now respects the
+    ``[deploy]ramdisk_image_download_source`` configuration options, its
+    default caching behavior has changed. Now HTTP ``boot_iso``/``deploy_iso``
+    are cached locally and served from the conductor's HTTP server instead of
+    passing them directly to the BMC. Glance images are also cached locally.
+    To revert to the previous behavior, set the
+    ``[deploy]ramdisk_image_download_source`` option to ``swift``.
