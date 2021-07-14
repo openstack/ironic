@@ -31,6 +31,7 @@ the services.
    Fast-Track Deployment <fast-track>
    Booting a Ramdisk or an ISO <ramdisk-boot>
    Deploying with anaconda deploy interface <anaconda-deploy-interface>
+   Hardware Burn-in <hardware-burn-in>
 
 Drivers, Hardware Types and Hardware Interfaces
 -----------------------------------------------
