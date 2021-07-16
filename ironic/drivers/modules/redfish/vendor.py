@@ -16,6 +16,9 @@ Vendor Interface for Redfish drivers and its supporting methods.
 """
 
 from ironic_lib import metrics_utils
+from oslo_log import log
+from oslo_utils import importutils
+import rfc3986
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -23,7 +26,14 @@ from ironic.drivers import base
 from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import utils as redfish_utils
 
+sushy = importutils.try_import('sushy')
+
+LOG = log.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
+SUBSCRIPTION_FIELDS_REMOVE = {
+    '@odata.context', '@odate.etag', '@odata.id', '@odata.type',
+    'HttpHeaders', 'Oem', 'Name', 'Description'
+}
 
 
 class RedfishVendorPassthru(base.VendorInterface):
@@ -48,6 +58,12 @@ class RedfishVendorPassthru(base.VendorInterface):
         """
         if method == 'eject_vmedia':
             self._validate_eject_vmedia(task, kwargs)
+            return
+        if method == 'create_subscription':
+            self._validate_create_subscription(task, kwargs)
+            return
+        if method == 'delete_subscription':
+            self._validate_delete_subscription(task, kwargs)
             return
         super(RedfishVendorPassthru, self).validate(task, method, **kwargs)
 
@@ -90,3 +106,179 @@ class RedfishVendorPassthru(base.VendorInterface):
         # If boot_device not provided all vmedia devices will be ejected
         boot_device = kwargs.get('boot_device')
         redfish_boot.eject_vmedia(task, boot_device)
+
+    def _validate_create_subscription(self, task, kwargs):
+        """Verify that the args input are valid."""
+        destination = kwargs.get('Destination')
+        event_types = kwargs.get('EventTypes')
+        context = kwargs.get('Context')
+        protocol = kwargs.get('Protocol')
+
+        if event_types is not None:
+            event_service = redfish_utils.get_event_service(task.node)
+            allowed_values = set(
+                event_service.get_event_types_for_subscription())
+            if not (isinstance(event_types, list)
+                    and set(event_types).issubset(allowed_values)):
+                raise exception.InvalidParameterValue(
+                    _("EventTypes %s is not a valid value, allowed values %s")
+                    % (str(event_types), str(allowed_values)))
+
+        # NOTE(iurygregory): check only if they are strings.
+        # BMCs will fail to create a subscription if the context, protocol or
+        # destination are invalid.
+        if not isinstance(context, str):
+            raise exception.InvalidParameterValue(
+                _("Context %s is not a valid string") % context)
+        if not isinstance(protocol, str):
+            raise exception.InvalidParameterValue(
+                _("Protocol %s is not a string") % protocol)
+
+        try:
+            parsed = rfc3986.uri_reference(destination)
+            if not parsed.is_valid(require_scheme=True,
+                                   require_authority=True):
+                # NOTE(iurygregory): raise error because the parsed
+                # destination does not contain scheme or authority.
+                raise TypeError
+        except TypeError:
+            raise exception.InvalidParameterValue(
+                _("Destination %s is not a valid URI") % destination)
+
+    def _filter_subscription_fields(self, subscription_json):
+        filter_subscription = {k: v for k, v in subscription_json.items()
+                               if k not in SUBSCRIPTION_FIELDS_REMOVE}
+        return filter_subscription
+
+    @METRICS.timer('RedfishVendorPassthru.create_subscription')
+    @base.passthru(['POST'], async_call=False,
+                   description=_("Creates a subscription on a node. "
+                                 "Required argument: a dictionary of "
+                                 "{'destination': 'destination_url'}"))
+    def create_subscription(self, task, **kwargs):
+        """Creates a subscription.
+
+        :param task: A TaskManager object.
+        :param kwargs: The arguments sent with vendor passthru.
+        :raises: RedfishError, if any problem occurs when trying to create
+            a subscription.
+        """
+        payload = {
+            'Destination': kwargs.get('Destination'),
+            'Protocol': kwargs.get('Protocol', "Redfish"),
+            'Context': kwargs.get('Context', ""),
+            'EventTypes': kwargs.get('EventTypes', ["Alert"])
+        }
+
+        try:
+            event_service = redfish_utils.get_event_service(task.node)
+            subscription = event_service.subscriptions.create(payload)
+            return self._filter_subscription_fields(subscription.json)
+        except sushy.exceptions.SushyError as e:
+            error_msg = (_('Failed to create subscription on node %(node)s. '
+                           'Subscription payload: %(payload)s. '
+                           'Error: %(error)s') % {'node': task.node.uuid,
+                                                  'payload': str(payload),
+                                                  'error': e})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
+
+    def _validate_delete_subscription(self, task, kwargs):
+        """Verify that the args input are valid."""
+        # We can only check if the kwargs contain the id field.
+
+        if not kwargs.get('id'):
+            raise exception.InvalidParameterValue(_("id can't be None"))
+
+    @METRICS.timer('RedfishVendorPassthru.delete_subscription')
+    @base.passthru(['DELETE'], async_call=False,
+                   description=_("Delete a subscription on a node. "
+                                 "Required argument: a dictionary of "
+                                 "{'id': 'subscription_bmc_id'}"))
+    def delete_subscription(self, task, **kwargs):
+        """Creates a subscription.
+
+        :param task: A TaskManager object.
+        :param kwargs: The arguments sent with vendor passthru.
+        :raises: RedfishError, if any problem occurs when trying to delete
+            the subscription.
+        """
+        try:
+            event_service = redfish_utils.get_event_service(task.node)
+            redfish_subscriptions = event_service.subscriptions
+            bmc_id = kwargs.get('id')
+            # NOTE(iurygregory): some BMCs doesn't report the last /
+            # in the path for the resource, since we will add the ID
+            # we need to make sure the separator is present.
+            separator = "" if redfish_subscriptions.path[-1] == "/" else "/"
+
+            resource = redfish_subscriptions.path + separator + bmc_id
+            subscription = redfish_subscriptions.get_member(resource)
+            msg = (_('Sucessfuly deleted subscription %(id)s on node '
+                     '%(node)s') % {'id': bmc_id, 'node': task.node.uuid})
+            subscription.delete()
+            LOG.debug(msg)
+        except sushy.exceptions.SushyError as e:
+            error_msg = (_('Redfish delete_subscription failed for '
+                           'subscription %(id)s on node %(node)s. '
+                           'Error: %(error)s') % {'id': bmc_id,
+                                                  'node': task.node.uuid,
+                                                  'error': e})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
+
+    @METRICS.timer('RedfishVendorPassthru.get_subscriptions')
+    @base.passthru(['GET'], async_call=False,
+                   description=_("Returns all subscriptions on the node."))
+    def get_all_subscriptions(self, task, **kwargs):
+        """Get all Subscriptions on the node
+
+        :param task: A TaskManager object.
+        :param kwargs: Not used.
+        :raises: RedfishError, if any problem occurs when retrieving all
+            subscriptions.
+        """
+        try:
+            event_service = redfish_utils.get_event_service(task.node)
+            subscriptions = event_service.subscriptions.json
+            return subscriptions
+        except sushy.exceptions.SushyError as e:
+            error_msg = (_('Redfish get_subscriptions failed for '
+                           'node %(node)s. '
+                           'Error: %(error)s') % {'node': task.node.uuid,
+                                                  'error': e})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
+
+    @METRICS.timer('RedfishVendorPassthru.get_subscription')
+    @base.passthru(['GET'], async_call=False,
+                   description=_("Get a subscription on the node. "
+                                 "Required argument: a dictionary of "
+                                 "{'id': 'subscription_bmc_id'}"))
+    def get_subscription(self, task, **kwargs):
+        """Get a specific subscription on the node
+
+        :param task: A TaskManager object.
+        :param kwargs: The arguments sent with vendor passthru.
+        :raises: RedfishError, if any problem occurs when retrieving the
+            subscription.
+        """
+        try:
+            event_service = redfish_utils.get_event_service(task.node)
+            redfish_subscriptions = event_service.subscriptions
+            bmc_id = kwargs.get('id')
+            # NOTE(iurygregory): some BMCs doesn't report the last /
+            # in the path for the resource, since we will add the ID
+            # we need to make sure the separator is present.
+            separator = "" if redfish_subscriptions.path[-1] == "/" else "/"
+            resource = redfish_subscriptions.path + separator + bmc_id
+            subscription = event_service.subscriptions.get_member(resource)
+            return self._filter_subscription_fields(subscription.json)
+        except sushy.exceptions.SushyError as e:
+            error_msg = (_('Redfish get_subscription failed for '
+                           'subscription %(id)s on node %(node)s. '
+                           'Error: %(error)s') % {'id': bmc_id,
+                                                  'node': task.node.uuid,
+                                                  'error': e})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=error_msg)
