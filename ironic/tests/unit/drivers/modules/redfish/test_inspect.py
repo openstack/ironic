@@ -279,6 +279,21 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             port = mock_list_by_node_id.return_value
             self.assertFalse(port[0].pxe_enabled)
 
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_inspect_hardware_with_no_mac(self, mock_get_system):
+        self.init_system_mock(mock_get_system.return_value)
+        system = mock_get_system.return_value
+        system.ethernet_interfaces.summary = {
+            '00:11:22:33:44:55': sushy.STATE_ENABLED,
+            '': sushy.STATE_ENABLED,
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.inspect.inspect_hardware(task)
+            ports = objects.Port.list_by_node_id(task.context, self.node.id)
+            self.assertEqual(1, len(ports))
+
     @mock.patch.object(objects.Port, 'list_by_node_id') # noqa
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_with_empty_pxe_port_macs(

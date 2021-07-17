@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Skips port creation during redfish inspect for devices
+    reported without a MAC address.
