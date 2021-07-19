@@ -455,6 +455,9 @@ hardware type by default::
     SERVICE_PASSWORD=password
     SERVICE_TOKEN=password
 
+    # Set glance's default limit to be baremetal image friendly
+    GLANCE_LIMIT_IMAGE_SIZE_TOTAL=5000
+
     # Enable Ironic plugin
     enable_plugin ironic https://opendev.org/openstack/ironic
 
@@ -538,6 +541,9 @@ Ironic will have enabled the ``direct`` :doc:`deploy interface
     SERVICE_TOKEN=password
     SWIFT_HASH=password
     SWIFT_TEMPURL_KEY=password
+
+    # Set glance's default limit to be baremetal image friendly
+    GLANCE_LIMIT_IMAGE_SIZE_TOTAL=5000
 
     # Enable Ironic plugin
     enable_plugin ironic https://opendev.org/openstack/ironic

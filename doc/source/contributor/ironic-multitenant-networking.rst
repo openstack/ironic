@@ -80,6 +80,9 @@ configured in Neutron.
     # Disable Tempest
     disable_service tempest
 
+    # Set glance's default limit to be baremetal image friendly
+    GLANCE_LIMIT_IMAGE_SIZE_TOTAL=5000
+
     # Swift temp URL's are required for the direct deploy interface.
     SWIFT_ENABLE_TEMPURLS=True
 
