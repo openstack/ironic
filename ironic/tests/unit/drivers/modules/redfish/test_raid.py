@@ -81,12 +81,19 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         self.drive_id2 = '3F5A8C54207B7233'
         self.drive_id3 = '32ADF365C6C1B7BD'
         self.drive_id4 = '3D58ECBC375FD9F2'
+        self.drive_id5 = '5C966D719B0E1770'
+        self.drive_id6 = '778B2A13449B8292'
+        self.drive_id7 = 'E901FB234162E503'
         mock_drives = []
         for i in [self.drive_id1, self.drive_id2, self.drive_id3,
                   self.drive_id4]:
             mock_drives.append(_mock_drive(
                 identity=i, block_size_bytes=512, capacity_bytes=899527000000,
                 media_type='HDD', name='Drive', protocol='SAS'))
+        for i in [self.drive_id5, self.drive_id6, self.drive_id7]:
+            mock_drives.append(_mock_drive(
+                identity=i, block_size_bytes=512, capacity_bytes=479559942144,
+                media_type='SSD', name='Solid State Drive', protocol='SATA'))
         self.mock_storage.drives = mock_drives
         mock_identifier = mock.Mock()
         mock_identifier.durable_name = '345C59DBD970859C'
@@ -400,7 +407,7 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             mock_build_agent_options,
             mock_prepare_ramdisk,
             mock_get_system):
-        # TODO(bdodd): update mock_storage to allow this to pass w/o Exception
+
         target_raid_config = {
             'logical_disks': [
                 {
@@ -422,10 +429,41 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            self.assertRaisesRegex(
-                exception.RedfishError,
-                'failed to find matching physical disks for all logical disks',
-                task.driver.raid.create_configuration, task)
+            task.driver.raid.create_configuration(task)
+            pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
+            expected_payload1 = {
+                'Encrypted': False,
+                'VolumeType': 'StripedWithParity',
+                'RAIDType': 'RAID5',
+                'CapacityBytes': 107374182400,
+                'Links': {
+                    'Drives': [
+                        {'@odata.id': pre + self.drive_id5},
+                        {'@odata.id': pre + self.drive_id6},
+                        {'@odata.id': pre + self.drive_id7}
+                    ]
+                }
+            }
+            expected_payload2 = {
+                'Encrypted': False,
+                'VolumeType': 'Mirrored',
+                'RAIDType': 'RAID1',
+                'CapacityBytes': 536870912000,
+                'Links': {
+                    'Drives': [
+                        {'@odata.id': pre + self.drive_id1},
+                        {'@odata.id': pre + self.drive_id2}
+                    ]
+                }
+            }
+            self.assertEqual(
+                self.mock_storage.volumes.create.call_count, 2)
+            self.mock_storage.volumes.create.assert_any_call(
+                expected_payload1, apply_time=None
+            )
+            self.mock_storage.volumes.create.assert_any_call(
+                expected_payload2, apply_time=None
+            )
 
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
                        spec_set=True, autospec=True)
