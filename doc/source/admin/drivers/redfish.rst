@@ -478,7 +478,33 @@ In the following example, the JSON is specified directly on the command line::
    firmware may result in devices in the server, or the server itself becoming
    inoperable.
 
+Retrieving BIOS Settings
+========================
+
+When the :doc:`bios interface </admin/bios>` is set to ``redfish``, Ironic will
+retrieve the node's BIOS settings as described in `BIOS Configuration`_. In
+addition, via Sushy_, Ironic will get the BIOS Attribute Registry
+(`BIOS Registry`_) from the node which is a schema providing details on the
+settings. The following fields will be returned in the BIOS API
+(``/v1/nodes/{node_ident}/bios``) along with the setting name and value:
+
+.. csv-table::
+    :header: "Field", "Description"
+    :widths: 25, 120
+
+    "``attribute_type``", "The type of setting - ``Enumeration``, ``Integer``, ``String``, ``Boolean``, or ``Password``"
+    "``allowable_values``", "A list of allowable values when the attribute_type is ``Enumeration``"
+    "``lower_bound``", "The lowest allowed value when attribute_type is ``Integer``"
+    "``upper_bound``", "The highest allowed value when attribute_type is ``Integer``"
+    "``min_length``", "The shortest string length that the value can have when attribute_type is ``String``"
+    "``max_length``", "The longest string length that the value can have when attribute_type is ``String``"
+    "``read_only``", "The setting is ready only and cannot be modified"
+    "``unique``", "The setting is specific to this node"
+    "``reset_required``", "After changing this setting a node reboot is required"
+
 .. _Redfish: http://redfish.dmtf.org/
 .. _Sushy: https://opendev.org/openstack/sushy
 .. _TLS: https://en.wikipedia.org/wiki/Transport_Layer_Security
 .. _ESP: https://wiki.ubuntu.com/EFIBootLoaders#Booting_from_EFI
+.. _`BIOS Registry`: https://redfish.dmtf.org/schemas/v1/AttributeRegistry.v1_3_5.json
+.. _`BIOS Configuration`: https://docs.openstack.org/ironic/latest/admin/bios.html
