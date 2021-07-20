@@ -2,7 +2,7 @@
 REST API Version History
 ========================
 
-1.75 (Xena, ?)
+1.75 (Xena, 18.1)
 ----------------------
 Add `boot_mode` and `secure_boot` to node object and expose their state at:
 

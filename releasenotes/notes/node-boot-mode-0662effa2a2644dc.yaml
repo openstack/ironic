@@ -1,14 +1,10 @@
 ---
-
 features:
-
   - |
     Adds ``boot_mode`` and ``secure_boot`` fields to node. These indicate the
     boot mode (bios/uefi) and secure boot state (True/False) detected in the
     most recent power sync or during transition to the ``manageable`` state.
     If underlying driver does not support detecting these, they shall be
     populated with null values.
-
-    These fields are also be available under a node's states endpoint:
-
+    These fields are also available under a node's states endpoint:
     * ``/v1/nodes/{node_ident}/states``

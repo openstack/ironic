@@ -2,8 +2,8 @@
 features:
   - |
     The anaconda deploy interface now handles config drive. The config drive
-    contents are written to the disk at /var/lib/cloud/seed/config_drive
+    contents are written to the disk in the /var/lib/cloud/seed/config_drive
     directory by the driver via kickstart files %post section. cloud-init
-    should be able to pick up the the config drive information and process
-    them. Because the config drive is extracted on to disk as plain text files
-    tools like glean will not work with this deploy interface.
+    picks up the the config drive information and processes them.
+    Because the config drive is extracted on to disk as plain text files,
+    tools like glean do not work with this deploy interface.

@@ -2,6 +2,7 @@
 features:
   - |
     The configuration option ``[deploy]ramdisk_image_download_source`` now
-    supports a new value ``swift``. If ``boot_iso`` or ``deploy_iso`` is a
-    Glance image, it will expose it via a Swift temporary URL. For other types
-    of images the new value works the same way as the existing ``http``.
+    supports a new value ``swift``. If set, and if ``boot_iso`` or
+    ``deploy_iso`` is a Glance image, the image is exposed via a Swift
+    temporary URL. For other types of images the new value works the same
+    way as the existing ``http`` value.
