@@ -487,6 +487,28 @@ class TestAgentClient(base.TestCase):
             timeout=60,
             verify=False)
 
+    @mock.patch('os.path.exists', autospec=True, return_value=True)
+    def test__command_verify_disable_in_driver_info(self, mock_exists):
+        response_data = {'status': 'ok'}
+        self.client.session.post.return_value = MockResponse(response_data)
+        method = 'standby.run_image'
+        image_info = {'image_id': 'test_image'}
+        params = {'image_info': image_info}
+
+        self.node.driver_info['agent_verify_ca'] = False
+
+        url = self.client._get_command_url(self.node)
+        body = self.client._get_command_body(method, params)
+
+        response = self.client._command(self.node, method, params)
+        self.assertEqual(response, response_data)
+        self.client.session.post.assert_called_once_with(
+            url,
+            data=body,
+            params={'wait': 'false'},
+            timeout=60,
+            verify=False)
+
     @mock.patch('os.path.exists', autospec=True, return_value=False)
     def test__command_verify_invalid_file(self, mock_exists):
         response_data = {'status': 'ok'}

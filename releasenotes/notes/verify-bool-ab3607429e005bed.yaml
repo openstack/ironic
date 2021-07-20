@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixes overriding ``agent_verify_ca`` with ``False`` via ``driver_info``.

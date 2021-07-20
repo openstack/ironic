@@ -98,9 +98,13 @@ class AgentClient(object):
         })
 
     def _get_verify(self, node):
-        value = (node.driver_internal_info.get('agent_verify_ca')
-                 or node.driver_info.get('agent_verify_ca')
-                 or CONF.agent.verify_ca)
+        # False is a valid value, don't use 'or'
+        value = node.driver_internal_info.get('agent_verify_ca')
+        if value is None:
+            value = node.driver_info.get('agent_verify_ca')
+        if value is None:
+            value = CONF.agent.verify_ca
+
         if isinstance(value, str):
             try:
                 value = strutils.bool_from_string(value, strict=True)
