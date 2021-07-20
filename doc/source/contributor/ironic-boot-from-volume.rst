@@ -33,6 +33,9 @@ description for DevStack is at :ref:`deploy_devstack`.
     SWIFT_HASH=password
     SWIFT_TEMPURL_KEY=password
 
+    # Set glance's default limit to be baremetal image friendly
+    GLANCE_LIMIT_IMAGE_SIZE_TOTAL=5000
+
     # Enable Neutron which is required by Ironic and disable nova-network.
     disable_service n-net
     disable_service n-novnc

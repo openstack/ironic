@@ -56,6 +56,10 @@
         Q_ML2_TENANT_NETWORK_TYPE: vxlan
         Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch
         SERVICE_TIMEOUT: 90
+        # NOTE(TheJulia): Devstack default glance limit is 1GB, we need
+        # something more like 5GB for baremetal jobs due to image sizes
+        # with firmware.
+        GLANCE_LIMIT_IMAGE_SIZE_TOTAL: 5000
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
       tempest_plugins:
