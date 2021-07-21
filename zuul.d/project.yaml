@@ -11,6 +11,7 @@
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
+        - ironic-tempest-functional-rbac-scope-enforced
         - ironic-grenade
         - ironic-standalone
         - ironic-standalone-redfish
@@ -41,6 +42,8 @@
             voting: false
         - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
             voting: false
+        - ironic-inspector-tempest-rbac-scope-enforced:
+            voting: false
         - bifrost-integration-tinyipa-ubuntu-focal:
             voting: false
         - bifrost-integration-redfish-vmedia-uefi-centos-8:
@@ -54,6 +57,7 @@
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
+        - ironic-tempest-functional-rbac-scope-enforced
         - ironic-grenade
         - ironic-standalone
         - ironic-standalone-redfish
