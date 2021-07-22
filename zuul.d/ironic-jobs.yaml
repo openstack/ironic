@@ -7,8 +7,11 @@
     post-run: playbooks/ci-workarounds/get_extra_logging.yaml
     timeout: 10800
     required-projects:
+      - name: opendev.org/openstack/devstack
+        override-checkout: master
       - opendev.org/openstack/ironic
-      - opendev.org/openstack/ironic-python-agent
+      - name: opendev.org/openstack/ironic-python-agent
+        override-checkout: bugfix/8.1
       - opendev.org/openstack/ironic-python-agent-builder
       - opendev.org/openstack/ironic-tempest-plugin
       - opendev.org/openstack/virtualbmc
@@ -460,12 +463,16 @@
     nodeset: openstack-two-node-focal
     pre-run: playbooks/ci-workarounds/pre.yaml
     required-projects:
+      - name: opendev.org/openstack/devstack
+        override-checkout: master
       - opendev.org/openstack/ironic
-      - opendev.org/openstack/ironic-python-agent
+      - name: opendev.org/openstack/ironic-python-agent
+        override-checkout: bugfix/8.1
       - opendev.org/openstack/ironic-python-agent-builder
       - opendev.org/openstack/ironic-tempest-plugin
       - opendev.org/openstack/virtualbmc
-      - opendev.org/openstack/networking-generic-switch
+      - name: opendev.org/openstack/networking-generic-switch
+        override-checkout: master
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
