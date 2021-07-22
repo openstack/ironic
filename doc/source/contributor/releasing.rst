@@ -105,6 +105,31 @@ The following deliverables do not need to be released:
 * ironic-inspector-specs
 * ironic-specs
 
+Bugfix branches
+===============
+
+The following projects have ``bugfix/X.Y`` branches in addition to standard
+openstack ``stable/NAME`` branches:
+
+* bifrost
+* ironic
+* ironic-inspector
+* ironic-python-agent
+
+They are also released on a regular cadence as opposed to on-demand, namely
+three times a release cycle (roughly a release every 2 months). One of the
+releases corresponds to the coordinated OpenStack released and receives a
+``stable/NAME`` branch. The other two happen during the cycle and receive a
+``bugfix/X.Y`` branch, where ``X.Y`` consists of the major and the minor
+component of the version (e.g. ``bugfix/8.1`` for 8.1.0).
+
+To leave some version space for releases from these branches, releases of these
+projects from the master branch always increase either the major or the minor
+version.
+
+Currently releases from bugfix branches cannot be automated and must be done by
+the release team manually.
+
 Things to do before releasing
 =============================
 
@@ -305,6 +330,25 @@ We need to submit patches for changes on master to:
     shouldn't be needed after that.)
 
   * remove any model class names from ``ironic.cmd.dbsync.NEW_MODELS``.
+
+When a release is done that results in a bugfix branch
+------------------------------------------------------
+
+In this case the release management only creates a change to point
+``.gitreview`` at the branch, ``tox.ini`` is not modified.
+
+After the release:
+
+* update the Tempest microversions as explained above.
+
+* the CI needs additional configuration, so that Zuul knows which branch to
+  take jobs definitions from. See the following examples:
+
+  * `ironic 18.1 <https://review.opendev.org/c/openstack/ironic/+/801876>`_
+  * `ironic-inspector 10.7
+    <https://review.opendev.org/c/openstack/ironic-inspector/+/801873>`_
+  * `ironic-python-agent 8.1
+    <https://review.opendev.org/c/openstack/ironic-python-agent/+/801898>`_
 
 Ironic Tempest plugin
 ~~~~~~~~~~~~~~~~~~~~~
