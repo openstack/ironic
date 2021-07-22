@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Provides new vendor passthru methods for Redfish to create, delete
+    and get subscriptions.

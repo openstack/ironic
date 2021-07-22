@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+
 from unittest import mock
 
 from oslo_utils import importutils
@@ -19,6 +20,7 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.conductor import task_manager
 from ironic.drivers.modules.redfish import boot as redfish_boot
+from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.drivers.modules.redfish import vendor as redfish_vendor
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -81,3 +83,211 @@ class RedfishVendorPassthruTestCase(db_base.DbTestCase):
             self.assertRaises(
                 exception.InvalidParameterValue,
                 task.driver.vendor.validate, task, 'eject_vmedia', **kwargs)
+
+    @mock.patch.object(redfish_utils, 'get_event_service', autospec=True)
+    def test_validate_invalid_create_subscription(self,
+                                                  mock_get_event_service):
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            kwargs = {'Destination': 10000}
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                task.driver.vendor.validate, task, 'create_subscription',
+                **kwargs)
+
+            kwargs = {'Context': 10}
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                task.driver.vendor.validate, task, 'create_subscription',
+                **kwargs)
+
+            kwargs = {'Protocol': 10}
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                task.driver.vendor.validate, task, 'create_subscription',
+                **kwargs)
+
+            mock_evt_serv = mock_get_event_service.return_value
+            mock_evt_serv.get_event_types_for_subscription.return_value = \
+                ['Alert']
+            kwargs = {'EventTypes': ['Other']}
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                task.driver.vendor.validate, task, 'create_subscription',
+                **kwargs)
+
+    def test_validate_invalid_delete_subscription(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            kwargs = {}  # Empty missing id key
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                task.driver.vendor.validate, task, 'delete_subscription',
+                **kwargs)
+
+    @mock.patch.object(redfish_utils, 'get_event_service', autospec=True)
+    def test_delete_subscription(self, mock_get_event_service):
+        kwargs = {'id': '30'}
+        mock_subscriptions = mock.MagicMock()
+        mock_evt_serv = mock_get_event_service.return_value
+        mock_evt_serv.subscriptions = mock_subscriptions
+        mock_subscriptions.path.return_value = \
+            "/redfish/v1/EventService/Subscriptions/"
+        subscription = mock_subscriptions.get_member.return_value
+        subscription.delete.return_value = None
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.vendor.delete_subscription(task, **kwargs)
+
+            self.assertTrue(subscription.delete.called)
+
+    @mock.patch.object(redfish_utils, 'get_event_service', autospec=True)
+    def test_invalid_delete_subscription(self, mock_get_event_service):
+        kwargs = {'id': '30'}
+        mock_subscriptions = mock.MagicMock()
+        mock_evt_serv = mock_get_event_service.return_value
+        mock_evt_serv.subscriptions = mock_subscriptions
+        mock_subscriptions.path.return_value = \
+            "/redfish/v1/EventService/Subscriptions/"
+        uri = "/redfish/v1/EventService/Subscriptions/" + kwargs.get('id')
+        mock_subscriptions.get_member.side_effect = [
+            sushy.exceptions.ResourceNotFoundError('GET', uri, mock.Mock())
+        ]
+        subscription = mock_subscriptions.get_member.return_value
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.RedfishError,
+                              task.driver.vendor.delete_subscription,
+                              task, **kwargs)
+            self.assertFalse(subscription.delete.called)
+
+    @mock.patch.object(redfish_utils, 'get_event_service', autospec=True)
+    def test_get_all_subscriptions_empty(self, mock_get_event_service):
+        mock_subscriptions = mock.MagicMock()
+        mock_evt_serv = mock_get_event_service.return_value
+        mock_evt_serv.subscriptions = mock_subscriptions
+        mock_subscriptions.json.return_value = {
+            "@odata.context": "<some context>",
+            "@odata.id": "/redfish/v1/EventService/Subscriptions",
+            "@odata.type": "#EventDestinationCollection",
+            "Description": "List of Event subscriptions",
+            "Members": [],
+            "Members@odata.count": 0,
+            "Name": "Event Subscriptions Collection"
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            output = task.driver.vendor.get_all_subscriptions(task)
+            self.assertEqual(len(output.return_value['Members']), 0)
+            mock_get_event_service.assert_called_once_with(task.node)
+
+    @mock.patch.object(redfish_utils, 'get_event_service', autospec=True)
+    def test_get_all_subscriptions(self, mock_get_event_service):
+        mock_subscriptions = mock.MagicMock()
+        mock_evt_serv = mock_get_event_service.return_value
+        mock_evt_serv.subscriptions = mock_subscriptions
+        mock_subscriptions.json.return_value = {
+            "@odata.context": "<some context>",
+            "@odata.id": "/redfish/v1/EventService/Subscriptions",
+            "@odata.type": "#EventDestinationCollection.",
+            "Description": "List of Event subscriptions",
+            "Members": [
+                {
+                    "@odata.id": "/redfish/v1/EventService/Subscriptions/33/"
+                }
+            ],
+            "Members@odata.count": 1,
+            "Name": "Event Subscriptions Collection"
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            output = task.driver.vendor.get_all_subscriptions(task)
+            self.assertEqual(len(output.return_value['Members']), 1)
+            mock_get_event_service.assert_called_once_with(task.node)
+
+    @mock.patch.object(redfish_utils, 'get_event_service', autospec=True)
+    def test_get_subscription_does_not_exist(self, mock_get_event_service):
+        kwargs = {'id': '30'}
+        mock_subscriptions = mock.MagicMock()
+        mock_evt_serv = mock_get_event_service.return_value
+        mock_evt_serv.subscriptions = mock_subscriptions
+        mock_subscriptions.path.return_value = \
+            "/redfish/v1/EventService/Subscriptions/"
+        uri = "/redfish/v1/EventService/Subscriptions/" + kwargs.get('id')
+        mock_subscriptions.get_member.side_effect = [
+            sushy.exceptions.ResourceNotFoundError('GET', uri, mock.Mock())
+        ]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.RedfishError,
+                              task.driver.vendor.get_subscription,
+                              task, **kwargs)
+
+    @mock.patch.object(redfish_utils, 'get_event_service', autospec=True)
+    def test_create_subscription(self, mock_get_event_service):
+        subscription_json = {
+            "@odata.context": "",
+            "@odata.etag": "",
+            "@odata.id": "/redfish/v1/EventService/Subscriptions/100",
+            "@odata.type": "#EventDestination.v1_0_0.EventDestination",
+            "Id": "100",
+            "Context": "Ironic",
+            "Description": "iLO Event Subscription",
+            "Destination": "https://someurl",
+            "EventTypes": [
+                "Alert"
+            ],
+            "HttpHeaders": [],
+            "Name": "Event Subscription",
+            "Oem": {
+            },
+            "Protocol": "Redfish"
+        }
+        mock_event_service = mock_get_event_service.return_value
+
+        subscription = mock.MagicMock()
+        subscription.json.return_value = subscription_json
+        mock_event_service.subscriptions.create = subscription
+        kwargs = {'destination': 'https://someurl'}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.vendor.create_subscription(task, **kwargs)
+
+    @mock.patch.object(redfish_utils, 'get_event_service', autospec=True)
+    def test_get_subscription_exists(self, mock_get_event_service):
+        kwargs = {'id': '36'}
+        mock_subscriptions = mock.MagicMock()
+        mock_evt_serv = mock_get_event_service.return_value
+        mock_evt_serv.subscriptions = mock_subscriptions
+        mock_subscriptions.path.return_value = \
+            "/redfish/v1/EventService/Subscriptions/"
+        subscription = mock_subscriptions.get_member.return_value
+        subscription.json.return_value = {
+            "@odata.context": "",
+            "@odata.etag": "",
+            "@odata.id": "/redfish/v1/EventService/Subscriptions/36",
+            "@odata.type": "#EventDestination.v1_0_0.EventDestination",
+            "Id": "36",
+            "Context": "Ironic",
+            "Description": "iLO Event Subscription",
+            "Destination": "https://someurl",
+            "EventTypes": [
+                "Alert"
+            ],
+            "HttpHeaders": [],
+            "Name": "Event Subscription",
+            "Oem": {
+            },
+            "Protocol": "Redfish"
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.vendor.get_subscription(task, **kwargs)

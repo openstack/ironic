@@ -168,64 +168,6 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         response = redfish_utils.parse_driver_info(self.node)
         self.assertEqual(self.parsed_driver_info, response)
 
-    @mock.patch.object(sushy, 'Sushy', autospec=True)
-    @mock.patch('ironic.drivers.modules.redfish.utils.'
-                'SessionCache._sessions', {})
-    def test_get_system(self, mock_sushy):
-        fake_conn = mock_sushy.return_value
-        fake_system = fake_conn.get_system.return_value
-        response = redfish_utils.get_system(self.node)
-        self.assertEqual(fake_system, response)
-        fake_conn.get_system.assert_called_once_with(
-            '/redfish/v1/Systems/FAKESYSTEM')
-
-    @mock.patch.object(sushy, 'Sushy', autospec=True)
-    @mock.patch('ironic.drivers.modules.redfish.utils.'
-                'SessionCache._sessions', {})
-    def test_get_system_resource_not_found(self, mock_sushy):
-        fake_conn = mock_sushy.return_value
-        fake_conn.get_system.side_effect = (
-            sushy.exceptions.ResourceNotFoundError('GET',
-                                                   '/',
-                                                   requests.Response()))
-
-        self.assertRaises(exception.RedfishError,
-                          redfish_utils.get_system, self.node)
-        fake_conn.get_system.assert_called_once_with(
-            '/redfish/v1/Systems/FAKESYSTEM')
-
-    @mock.patch.object(sushy, 'Sushy', autospec=True)
-    @mock.patch('ironic.drivers.modules.redfish.utils.'
-                'SessionCache._sessions', {})
-    def test_get_system_multiple_systems(self, mock_sushy):
-        self.node.driver_info.pop('redfish_system_id')
-        fake_conn = mock_sushy.return_value
-        redfish_utils.get_system(self.node)
-        fake_conn.get_system.assert_called_once_with(None)
-
-    @mock.patch.object(time, 'sleep', lambda seconds: None)
-    @mock.patch.object(sushy, 'Sushy', autospec=True)
-    @mock.patch('ironic.drivers.modules.redfish.utils.'
-                'SessionCache._sessions', {})
-    def test_get_system_resource_connection_error_retry(self, mock_sushy):
-        # Redfish specific configurations
-        self.config(connection_attempts=3, group='redfish')
-
-        fake_conn = mock_sushy.return_value
-        fake_conn.get_system.side_effect = sushy.exceptions.ConnectionError()
-
-        self.assertRaises(exception.RedfishConnectionError,
-                          redfish_utils.get_system, self.node)
-
-        expected_get_system_calls = [
-            mock.call(self.parsed_driver_info['system_id']),
-            mock.call(self.parsed_driver_info['system_id']),
-            mock.call(self.parsed_driver_info['system_id']),
-        ]
-        fake_conn.get_system.assert_has_calls(expected_get_system_calls)
-        self.assertEqual(fake_conn.get_system.call_count,
-                         redfish_utils.CONF.redfish.connection_attempts)
-
     def test_get_task_monitor(self):
         redfish_utils._get_connection = mock.Mock()
         fake_monitor = mock.Mock()
@@ -244,6 +186,64 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
 
         self.assertRaises(exception.RedfishError,
                           redfish_utils.get_task_monitor, self.node, uri)
+
+    def test_get_update_service(self):
+        redfish_utils._get_connection = mock.Mock()
+        mock_update_service = mock.Mock()
+        redfish_utils._get_connection.return_value = mock_update_service
+
+        result = redfish_utils.get_update_service(self.node)
+
+        self.assertEqual(mock_update_service, result)
+
+    def test_get_update_service_error(self):
+        redfish_utils._get_connection = mock.Mock()
+        redfish_utils._get_connection.side_effect =\
+            sushy.exceptions.MissingAttributeError
+
+        self.assertRaises(exception.RedfishError,
+                          redfish_utils.get_update_service, self.node)
+
+    def test_get_event_service(self):
+        redfish_utils._get_connection = mock.Mock()
+        mock_event_service = mock.Mock()
+        redfish_utils._get_connection.return_value = mock_event_service
+
+        result = redfish_utils.get_event_service(self.node)
+
+        self.assertEqual(mock_event_service, result)
+
+    def test_get_event_service_error(self):
+        redfish_utils._get_connection = mock.Mock()
+        redfish_utils._get_connection.side_effect =\
+            sushy.exceptions.MissingAttributeError
+
+        self.assertRaises(exception.RedfishError,
+                          redfish_utils.get_event_service, self.node)
+
+
+class RedfishUtilsAuthTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(RedfishUtilsAuthTestCase, self).setUp()
+        # Default configurations
+        self.config(enabled_hardware_types=['redfish'],
+                    enabled_power_interfaces=['redfish'],
+                    enabled_boot_interfaces=['redfish-virtual-media'],
+                    enabled_management_interfaces=['redfish'])
+        # Redfish specific configurations
+        self.config(connection_attempts=1, group='redfish')
+        self.node = obj_utils.create_test_node(
+            self.context, driver='redfish', driver_info=INFO_DICT)
+        self.parsed_driver_info = {
+            'address': 'https://example.com',
+            'system_id': '/redfish/v1/Systems/FAKESYSTEM',
+            'username': 'username',
+            'password': 'password',
+            'verify_ca': True,
+            'auth_type': 'auto',
+            'node_uuid': self.node.uuid
+        }
 
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
@@ -359,22 +359,87 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
             auth=mock_basic_auth.return_value
         )
 
-    def test_get_update_service(self):
-        redfish_utils._get_connection = mock.Mock()
-        mock_update_service = mock.Mock()
-        redfish_utils._get_connection.return_value = mock_update_service
 
-        result = redfish_utils.get_update_service(self.node)
+class RedfishUtilsSystemTestCase(db_base.DbTestCase):
 
-        self.assertEqual(mock_update_service, result)
+    def setUp(self):
+        super(RedfishUtilsSystemTestCase, self).setUp()
+        # Default configurations
+        self.config(enabled_hardware_types=['redfish'],
+                    enabled_power_interfaces=['redfish'],
+                    enabled_boot_interfaces=['redfish-virtual-media'],
+                    enabled_management_interfaces=['redfish'])
+        # Redfish specific configurations
+        self.config(connection_attempts=1, group='redfish')
+        self.node = obj_utils.create_test_node(
+            self.context, driver='redfish', driver_info=INFO_DICT)
+        self.parsed_driver_info = {
+            'address': 'https://example.com',
+            'system_id': '/redfish/v1/Systems/FAKESYSTEM',
+            'username': 'username',
+            'password': 'password',
+            'verify_ca': True,
+            'auth_type': 'auto',
+            'node_uuid': self.node.uuid
+        }
 
-    def test_get_update_service_error(self):
-        redfish_utils._get_connection = mock.Mock()
-        redfish_utils._get_connection.side_effect =\
-            sushy.exceptions.MissingAttributeError
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_get_system(self, mock_sushy):
+        fake_conn = mock_sushy.return_value
+        fake_system = fake_conn.get_system.return_value
+        response = redfish_utils.get_system(self.node)
+        self.assertEqual(fake_system, response)
+        fake_conn.get_system.assert_called_once_with(
+            '/redfish/v1/Systems/FAKESYSTEM')
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_get_system_resource_not_found(self, mock_sushy):
+        fake_conn = mock_sushy.return_value
+        fake_conn.get_system.side_effect = (
+            sushy.exceptions.ResourceNotFoundError('GET',
+                                                   '/',
+                                                   requests.Response()))
 
         self.assertRaises(exception.RedfishError,
-                          redfish_utils.get_update_service, self.node)
+                          redfish_utils.get_system, self.node)
+        fake_conn.get_system.assert_called_once_with(
+            '/redfish/v1/Systems/FAKESYSTEM')
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_get_system_multiple_systems(self, mock_sushy):
+        self.node.driver_info.pop('redfish_system_id')
+        fake_conn = mock_sushy.return_value
+        redfish_utils.get_system(self.node)
+        fake_conn.get_system.assert_called_once_with(None)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_get_system_resource_connection_error_retry(self, mock_sushy):
+        # Redfish specific configurations
+        self.config(connection_attempts=3, group='redfish')
+
+        fake_conn = mock_sushy.return_value
+        fake_conn.get_system.side_effect = sushy.exceptions.ConnectionError()
+
+        self.assertRaises(exception.RedfishConnectionError,
+                          redfish_utils.get_system, self.node)
+
+        expected_get_system_calls = [
+            mock.call(self.parsed_driver_info['system_id']),
+            mock.call(self.parsed_driver_info['system_id']),
+            mock.call(self.parsed_driver_info['system_id']),
+        ]
+        fake_conn.get_system.assert_has_calls(expected_get_system_calls)
+        self.assertEqual(fake_conn.get_system.call_count,
+                         redfish_utils.CONF.redfish.connection_attempts)
 
     @mock.patch.object(time, 'sleep', lambda seconds: None)
     @mock.patch.object(sushy, 'Sushy', autospec=True)

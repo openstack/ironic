@@ -263,6 +263,23 @@ def get_update_service(node):
         raise exception.RedfishError(error=e)
 
 
+def get_event_service(node):
+    """Get a node's event service.
+
+    :param node: an Ironic node object.
+    :raises: RedfishConnectionError when it fails to connect to Redfish
+    :raises: RedfishError when the EventService is not registered in Redfish
+    """
+
+    try:
+        return _get_connection(node, lambda conn: conn.get_event_service())
+    except sushy.exceptions.MissingAttributeError as e:
+        LOG.error('The Redfish EventService was not found for '
+                  'node %(node)s. Error %(error)s',
+                  {'node': node.uuid, 'error': e})
+        raise exception.RedfishError(error=e)
+
+
 def get_system(node):
     """Get a Redfish System that represents a node.
 
