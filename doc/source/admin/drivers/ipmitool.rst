@@ -168,6 +168,8 @@ protocol version::
    Version *1.5* of the IPMI protocol does not support encryption.
    Therefore, it is highly recommended that version 2.0 is used.
 
+.. _ipmi-cipher-suites:
+
 Cipher suites
 ~~~~~~~~~~~~~
 
@@ -186,7 +188,9 @@ commands fail with
 
 Another possible problem is ``ipmitool`` commands taking very long (tens of
 seconds or even minutes) because the BMC does not support cipher suite
-negotiation. In both cases you can specify the required suite yourself, e.g.::
+negotiation. In both cases you can specify the required suite yourself, e.g.
+
+.. code-block:: console
 
     baremetal node set <UUID or name> --driver-info ipmi_cipher_suite=3
 
@@ -215,6 +219,25 @@ To find the suitable values for this configuration, you can check the field
   Subnet Mask             : <Subnet>
   MAC Address             : <MAC>
   RMCP+ Cipher Suites     : 0,1,2,3,6,7,8,11,12
+
+.. warning::
+   Only the cipher suites 3 and 17 are considered secure by the modern
+   standards. Cipher suite 0 means "no security at all".
+
+.. _ipmi-priv-level:
+
+Using a different privilege level
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default Ironic requests the ``ADMINISTRATOR`` privilege level of all
+commands. This is the easiest option, but if it's not available for you, you
+can change it to ``CALLBACK``, ``OPERATOR`` or ``USER`` this way:
+
+.. code-block:: console
+
+    baremetal node set <UUID or name> --driver-info ipmi_priv_level=OPERATOR
+
+You must ensure that the user can still change power state and boot devices.
 
 Static boot order configuration
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

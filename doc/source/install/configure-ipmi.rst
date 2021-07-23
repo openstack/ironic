@@ -17,7 +17,27 @@ http://ipmitool.sourceforge.net/.
     this tool.
 
 Please refer to the :doc:`/admin/drivers/ipmitool` for information on how to
-use IPMItool-based drivers.
+configure and use IPMItool-based drivers.
+
+Configuring hardware
+~~~~~~~~~~~~~~~~~~~~
+
+IPMI is a relatively old protocol and may require additional set up on the
+hardware side that the Bare Metal service cannot do automatically:
+
+#. Make sure IPMI is enabled and the account you use have the permissions
+   to change power and boot devices. By default the adminstrator rights are
+   expected, you can change it: see :ref:`ipmi-priv-level`.
+
+#. Make sure the cipher suites are configured for maximum security. Suite 17 is
+   recommended, 3 can be used if it's not available. Cipher suite 0 **must** be
+   disabled as it provides unauthenticated access to the BMC.
+
+   .. seealso:: :ref:`ipmi-cipher-suites`
+
+#. Make sure the boot mode correspond to the expected boot mode on the node
+   (see :ref:`boot_mode_support`). Some hardware is able to change the boot
+   mode to the requested by Ironic, some does not.
 
 Validation and troubleshooting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
