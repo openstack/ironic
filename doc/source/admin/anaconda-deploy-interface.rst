@@ -1,14 +1,15 @@
 Deploying with anaconda deploy interface
 ========================================
 
-Ironic supports deploying OS with anaconda installer in addition to IPA. This
-deploy interface supports ``pxe``, ``ipxe`` boot interfaces.
+Ironic supports deploying an OS with the `anaconda`_ installer.
+This anaconda deploy interface works with ``pxe`` and ``ipxe`` boot interfaces.
 
 Configuration
 -------------
 
-The anaconda deploy interface is not enabled by default. To enable this, use
-the ``enabled_deploy_interfaces`` configuration option in ironic.conf
+The anaconda deploy interface is not enabled by default. To enable this, add
+``anaconda`` to the value of the ``enabled_deploy_interfaces`` configuration
+option in ironic.conf. For example:
 
 .. code-block:: ini
 
@@ -17,8 +18,11 @@ the ``enabled_deploy_interfaces`` configuration option in ironic.conf
    enabled_deploy_interfaces = direct,anaconda
    ...
 
-This change will not be effective until all Ironic conductors have been
+This change takes effect after all the ironic conductors have been
 restarted.
+
+When creating an ironic node, specify ``anaconda`` as the deploy interface.
+For example:
 
 .. code-block:: shell
 
@@ -26,22 +30,23 @@ restarted.
        --deploy-interface anaconda \
        --boot-interface ipxe
 
-You can also set ``--deploy-interface`` on an existing node:
+You can also set the anaconda deploy interface via ``--deploy-interface`` on an
+existing node:
 
 .. code-block:: shell
 
-   baremetal node set <NODE> --deploy-interface anaconda
+   baremetal node set <node> --deploy-interface anaconda
 
 
 Creating an OS Image
 --------------------
 
-While anaconda allows installing individual RPMs the default kickstart file
-expects a OS tarball to be used as the OS image.
+While anaconda allows installing individual RPMs, the default kickstart file
+expects an OS tarball to be used as the OS image.
 
-A baremetal.yum file that lists all yum/dnf commands that need to be run to
-generate the OS tarball. The commands normally install packages and package'
-groups that need to be in the image
+This ``baremetal.yum`` file contains all the yum/dnf commands that need to be run
+in order to generate the OS tarball. These commands install packages and
+package groups that need to be in the image:
 
 .. code-block:: ini
 
@@ -49,8 +54,8 @@ groups that need to be in the image
         install cloud-init
         ts run
 
-An OS tarball can be created using following set of commands using above
-baremetal.yum file
+An OS tarball can be created using following set of commands, along with the above
+``baremetal.yum`` file:
 
 .. code-block:: shell
 
@@ -78,21 +83,24 @@ baremetal.yum file
 Configuring the OS Image in glance
 ----------------------------------
 
-Anaconda is a two stage installer - The stage1 consists of the kernel and
-ramdisk and the stage2 lives in a squashfs file. All these components can be
+Anaconda is a two-stage installer -- stage 1 consists of the kernel and
+ramdisk and stage 2 lives in a squashfs file. All these components can be
 found in the CentOS/RHEL/Fedora ISO images.
 
 The kernel and ramdisk can be found at ``/images/pxeboot/vmlinuz`` and
-``/images/pxeboot/initrd.img`` respectively in the  ISO. The stage2 squashfs
+``/images/pxeboot/initrd.img`` respectively in the ISO. The stage 2 squashfs
 image can be normally found at ``/LiveOS/squashfs.img`` or
 ``/images/install.img``.
 
-The OS tarball must be configured with following properties in glance to be
-used with anaconda deploy driver
+The OS tarball must be configured with the following properties in glance, in order
+to be used with the anaconda deploy driver:
 
-    1. ``kernel_id``
-    2. ``ramdisk_id``
-    3. ``stage2_id``
+* ``kernel_id``
+* ``ramdisk_id``
+* ``stage2_id``
+
+This is an example of adding the anaconda-related images and the OS tarball to
+glance:
 
 .. code-block:: shell
 
@@ -108,19 +116,27 @@ used with anaconda deploy driver
             --property ramdisk_id=<glance_uuid_ramdisk> \
             --property stage2_id=<glance_uuid_stage2> <disto-name-version>
 
-Creating a baremetal server
----------------------------
+Creating a bare metal server
+----------------------------
 
 Apart from uploading a custom kickstart template to glance and associating it
-to the OS Image as ``ks_template`` property in glance, operators can also set
-the kickstart template in instance_info. The kickstart template set in
-instance_info takes precedence over the one set in the glance image. If
-kickstart template is not found in instance_info or the glance image property
+with the OS image via the ``ks_template`` property in glance, operators can
+also set the kickstart template in the ironic node's ``instance_info`` field.
+The kickstart template set in ``instance_info`` takes precedence over the one
+specified via the OS image in glance. If no kickstart template is specified
+(via the node's ``instance_info``  or ``ks_template`` glance image property),
 the default kickstart template will be used to deploy the OS.
+
+The default kickstart template is specified via the configuration option
+``[anaconda]default_ks_template``. It is set to this `ks.cfg.template`_
+but can be modified to be some other template.
+
+This is an example of how to set the kickstart template for a specific
+ironic node:
 
 .. code-block:: shell
 
-        openstack baremetal node set $NODE_UUID \
+        openstack baremetal node set <node> \
             --instance_info ks_template=glance://uuid
 
 Limitations
@@ -128,3 +144,6 @@ Limitations
 
 This deploy interface has only been tested with Red Hat based operating systems
 that use anaconda. Other systems are not supported.
+
+.. _`anaconda`: https://fedoraproject.org/wiki/Anaconda
+.. _`ks.cfg.template`: https://opendev.org/openstack/ironic/src/branch/master/ironic/drivers/modules/ks.cfg.template
