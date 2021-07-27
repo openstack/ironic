@@ -29,6 +29,7 @@ from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import images
+from ironic.common import states
 from ironic.common import swift
 from ironic.common import utils
 from ironic.conf import CONF
@@ -426,9 +427,12 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
             {'node': task.node.uuid})
 
     i_info = task.node.instance_info
+    is_ramdisk_boot = (
+        task.node.provision_state == states.DEPLOYING
+        and deploy_utils.get_boot_option(task.node) == 'ramdisk'
+    )
 
-    boot_option = deploy_utils.get_boot_option(task.node)
-    if boot_option == 'ramdisk':
+    if is_ramdisk_boot:
         download_source = (i_info.get('ramdisk_image_download_source')
                            or CONF.deploy.ramdisk_image_download_source)
     else:
@@ -463,7 +467,7 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
 
     # NOTE(TheJulia): Until we support modifying a base iso, most of
     # this logic actually does nothing in the end. But it should!
-    if boot_option == "ramdisk":
+    if is_ramdisk_boot:
         if not base_iso:
             kernel_params = "root=/dev/ram0 text "
             kernel_params += i_info.get("ramdisk_kernel_arguments", "")
