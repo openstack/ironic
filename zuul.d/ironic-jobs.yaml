@@ -495,7 +495,7 @@
 
 - job:
     name: ironic-tox-unit-with-driver-libs
-    parent: tox
+    parent: openstack-tox
     description: |
       Run unit tests with driver dependencies installed.
     vars:
@@ -503,7 +503,7 @@
 
 - job:
     name: ironic-tox-unit-with-driver-libs-python3
-    parent: tox
+    parent: openstack-tox
     description: |
       Run python 3 unit tests with driver dependencies installed.
     vars:
