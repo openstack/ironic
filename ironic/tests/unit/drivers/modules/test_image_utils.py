@@ -22,6 +22,7 @@ from oslo_utils import importutils
 from oslo_utils import uuidutils
 
 from ironic.common import images
+from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules import deploy_utils
@@ -241,7 +242,8 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                     enabled_inspect_interfaces=['redfish'],
                     enabled_bios_interfaces=['redfish'])
         self.node = obj_utils.create_test_node(
-            self.context, driver='redfish', driver_info=INFO_DICT)
+            self.context, driver='redfish', driver_info=INFO_DICT,
+            provision_state=states.DEPLOYING)
 
     @mock.patch.object(image_utils.ImageHandler, 'unpublish_image',
                        autospec=True)
@@ -566,6 +568,79 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             kernel_params = 'network-config=base64-cloudinit-blob'
 
             task.node.driver_info['kernel_append_params'] = kernel_params
+
+            image_utils._prepare_iso_image(
+                task, 'http://kernel/img', 'http://ramdisk/img',
+                bootloader_href=None, root_uuid=task.node.uuid,
+                base_iso='/path/to/baseiso')
+
+            mock_create_boot_iso.assert_called_once_with(
+                mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
+                boot_mode='bios', esp_image_href=None,
+                kernel_params=kernel_params,
+                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                base_iso='/path/to/baseiso', inject_files=None)
+
+    @mock.patch.object(deploy_utils, 'get_boot_option', lambda node: 'ramdisk')
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    @mock.patch.object(images, 'create_boot_iso', autospec=True)
+    def test__prepare_iso_image_kernel_params_for_ramdisk(
+            self, mock_create_boot_iso, mock_publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            kernel_params = 'network-config=base64-cloudinit-blob'
+
+            task.node.instance_info['ramdisk_kernel_arguments'] = kernel_params
+
+            image_utils._prepare_iso_image(
+                task, 'http://kernel/img', 'http://ramdisk/img',
+                bootloader_href=None, root_uuid=task.node.uuid)
+
+            mock_create_boot_iso.assert_called_once_with(
+                mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
+                boot_mode='bios', esp_image_href=None,
+                kernel_params="root=/dev/ram0 text " + kernel_params,
+                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                base_iso=None, inject_files=None)
+
+    @mock.patch.object(deploy_utils, 'get_boot_option', lambda node: 'ramdisk')
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    @mock.patch.object(images, 'create_boot_iso', autospec=True)
+    def test__prepare_iso_image_kernel_params_for_ramdisk_boot_iso(
+            self, mock_create_boot_iso, mock_publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            kernel_params = 'network-config=base64-cloudinit-blob'
+
+            task.node.instance_info['ramdisk_kernel_arguments'] = kernel_params
+
+            image_utils._prepare_iso_image(
+                task, 'http://kernel/img', 'http://ramdisk/img',
+                bootloader_href=None, root_uuid=task.node.uuid,
+                base_iso='/path/to/baseiso')
+
+            mock_create_boot_iso.assert_called_once_with(
+                mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
+                boot_mode='bios', esp_image_href=None,
+                # No custom parameters with a boot ISO present
+                kernel_params=None,
+                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                base_iso='/path/to/baseiso', inject_files=None)
+
+    @mock.patch.object(deploy_utils, 'get_boot_option', lambda node: 'ramdisk')
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    @mock.patch.object(images, 'create_boot_iso', autospec=True)
+    def test__prepare_iso_image_kernel_params_for_ramdisk_cleaning(
+            self, mock_create_boot_iso, mock_publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            kernel_params = 'network-config=base64-cloudinit-blob'
+
+            task.node.driver_info['kernel_append_params'] = kernel_params
+            task.node.provision_state = states.CLEANING
 
             image_utils._prepare_iso_image(
                 task, 'http://kernel/img', 'http://ramdisk/img',
