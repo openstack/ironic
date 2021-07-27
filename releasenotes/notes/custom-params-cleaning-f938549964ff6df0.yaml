@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes a regression in the ``ramdisk`` deploy where custom kernel parameters
+    were not used during inspection and cleaning.

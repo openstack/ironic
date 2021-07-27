@@ -28,6 +28,7 @@ from oslo_log import log
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import images
+from ironic.common import states
 from ironic.common import swift
 from ironic.common import utils
 from ironic.conf import CONF
@@ -423,6 +424,12 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
             "building ISO, or explicit ISO for %(node)s") %
             {'node': task.node.uuid})
 
+    i_info = task.node.instance_info
+    is_ramdisk_boot = (
+        task.node.provision_state == states.DEPLOYING
+        and deploy_utils.get_boot_option(task.node) == 'ramdisk'
+    )
+
     # NOTE(rpittau): if base_iso is defined as http address, we just access
     # it directly.
     if base_iso and CONF.deploy.ramdisk_image_download_source == 'http':
@@ -439,7 +446,7 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
 
     # NOTE(TheJulia): Until we support modifying a base iso, most of
     # this logic actually does nothing in the end. But it should!
-    if deploy_utils.get_boot_option(task.node) == "ramdisk":
+    if is_ramdisk_boot:
         if not base_iso:
             kernel_params = "root=/dev/ram0 text "
             kernel_params += i_info.get("ramdisk_kernel_arguments", "")
