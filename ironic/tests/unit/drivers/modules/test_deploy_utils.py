@@ -1116,6 +1116,34 @@ class GetPxeBootConfigTestCase(db_base.DbTestCase):
         result = utils.get_pxe_boot_file(self.node)
         self.assertEqual('bios-bootfile', result)
 
+    def test_get_ipxe_boot_file(self):
+        self.config(ipxe_bootfile_name='meow', group='pxe')
+        result = utils.get_ipxe_boot_file(self.node)
+        self.assertEqual('meow', result)
+
+    def test_get_ipxe_boot_file_uefi(self):
+        self.config(uefi_ipxe_bootfile_name='ipxe-uefi-bootfile', group='pxe')
+        properties = {'capabilities': 'boot_mode:uefi'}
+        self.node.properties = properties
+        result = utils.get_ipxe_boot_file(self.node)
+        self.assertEqual('ipxe-uefi-bootfile', result)
+
+    def test_get_ipxe_boot_file_other_arch(self):
+        arch_names = {'aarch64': 'ipxe-aa64.efi',
+                      'x86_64': 'ipxe.kpxe'}
+        self.config(ipxe_bootfile_name_by_arch=arch_names, group='pxe')
+        properties = {'cpu_arch': 'aarch64', 'capabilities': 'boot_mode:uefi'}
+        self.node.properties = properties
+        result = utils.get_ipxe_boot_file(self.node)
+        self.assertEqual('ipxe-aa64.efi', result)
+
+    def test_get_ipxe_boot_file_fallback(self):
+        self.config(ipxe_bootfile_name=None, group='pxe')
+        self.config(uefi_ipxe_bootfile_name=None, group='pxe')
+        self.config(pxe_bootfile_name='lolcat', group='pxe')
+        result = utils.get_ipxe_boot_file(self.node)
+        self.assertEqual('lolcat', result)
+
     def test_get_pxe_config_template_emtpy_property(self):
         self.node.properties = {}
         self.config(pxe_config_template_by_arch=self.template_by_arch,
@@ -1130,6 +1158,28 @@ class GetPxeBootConfigTestCase(db_base.DbTestCase):
         )
         result = utils.get_pxe_config_template(node)
         self.assertEqual('fake-template', result)
+
+    def test_get_ipxe_config_template(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware')
+        self.assertIn('ipxe_config.template',
+                      utils.get_ipxe_config_template(node))
+
+    def test_get_ipxe_config_template_none(self):
+        self.config(ipxe_config_template=None, group='pxe')
+        self.config(pxe_config_template='magical_bootloader',
+                    group='pxe')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware')
+        self.assertEqual('magical_bootloader',
+                         utils.get_ipxe_config_template(node))
+
+    def test_get_ipxe_config_template_override_pxe_fallback(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            driver_info={'pxe_template': 'magical'})
+        self.assertEqual('magical',
+                         utils.get_ipxe_config_template(node))
 
 
 @mock.patch('time.sleep', lambda sec: None)

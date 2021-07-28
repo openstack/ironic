@@ -164,7 +164,7 @@ class iPXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
                                                          ipxe_enabled=True)
         pxe_options.update(ramdisk_params)
 
-        pxe_config_template = deploy_utils.get_pxe_config_template(node)
+        pxe_config_template = deploy_utils.get_ipxe_config_template(node)
 
         pxe_utils.create_pxe_config(task, pxe_options,
                                     pxe_config_template,

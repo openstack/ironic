@@ -357,14 +357,14 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
    Ubuntu::
 
-       cp /usr/lib/ipxe/{undionly.kpxe,ipxe.efi} /tftpboot
+       cp /usr/lib/ipxe/{undionly.kpxe,ipxe.efi,snponly.efi} /tftpboot
 
    Fedora/RHEL7/CentOS7::
 
-       cp /usr/share/ipxe/{undionly.kpxe,ipxe.efi} /tftpboot
+       cp /usr/share/ipxe/{undionly.kpxe,ipxe.efi,snponly.efi} /tftpboot
 
-#. Enable/Configure iPXE in the Bare Metal Service's configuration file
-   (/etc/ironic/ironic.conf):
+#. Enable/Configure iPXE overrides in the Bare Metal Service's configuration
+   file **if required** (/etc/ironic/ironic.conf):
 
    .. code-block:: ini
 
@@ -374,24 +374,45 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
       ipxe_enabled=True
 
       # Neutron bootfile DHCP parameter. (string value)
-      pxe_bootfile_name=undionly.kpxe
+      ipxe_bootfile_name=undionly.kpxe
 
       # Bootfile DHCP parameter for UEFI boot mode. (string value)
-      uefi_pxe_bootfile_name=ipxe.efi
+      uefi_ipxe_bootfile_name=ipxe.efi
 
       # Template file for PXE configuration. (string value)
-      pxe_config_template=$pybasedir/drivers/modules/ipxe_config.template
-
-      # Template file for PXE configuration for UEFI boot loader.
-      # (string value)
-      uefi_pxe_config_template=$pybasedir/drivers/modules/ipxe_config.template
+      ipxe_config_template=$pybasedir/drivers/modules/ipxe_config.template
 
    .. note::
-      The ``[pxe]ipxe_enabled`` option has been deprecated and will be removed
-      in the T* development cycle. Users should instead consider use of the
-      ``ipxe`` boot interface. The same default use of iPXE functionality can
-      be achieved by setting the ``[DEFAULT]default_boot_interface`` option
-      to ``ipxe``.
+      Most UEFI systems have integrated networking which means the
+      ``[pxe]uefi_ipxe_bootfile_name`` setting should be set to
+      ``snponly.efi``.
+
+   .. note::
+      Setting the iPXE parameters noted in the code block above to no value,
+      in other words setting a line to something like ``ipxe_bootfile_name=``
+      will result in ironic falling back to the default values of the non-iPXE
+      PXE settings. This is for backwards compatability.
+
+#. Ensure iPXE is the default PXE, if applicable.
+
+   In earlier versions of ironic, a ``[pxe]ipxe_enabled`` setting allowing
+   operators to declare the behavior of the conductor to exclusively operate
+   as if only iPXE was to be used. As time moved on, iPXE functionality was
+   moved to it's own ``ipxe`` boot interface.
+
+   If you want to emulate that same hehavior, set the following in the
+   configuration file (/etc/ironic/ironic.conf):
+
+   .. code-block:: ini
+
+      [DEFAULT]
+      default_boot_interface=ipxe
+      enabled_boot_interfaces=ipxe,pxe
+
+   .. note::
+      The ``[DEFAULT]enabled_boot_interfaces`` setting may be exclusively set
+      to ``ipxe``, however ironic has multiple interfaces available depending
+      on the hardware types available for use.
 
 #. It is possible to configure the Bare Metal service in such a way
    that nodes will boot into the deploy image directly from Object Storage.
@@ -442,7 +463,6 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
      sudo service ironic-conductor restart
 
-
 PXE multi-architecture setup
 ----------------------------
 
@@ -490,6 +510,18 @@ nodes will be deployed by 'grubaa64.efi', and ppc64 nodes by 'bootppc64'::
     # configuration per node architecture. For example:
     # aarch64:/opt/share/grubaa64_pxe_config.template (dict value)
     pxe_config_template_by_arch=aarch64:pxe_grubaa64_config.template,ppc64:pxe_ppc64_config.template
+
+.. note::
+   The grub implementation may vary on different architecture, you may need to
+   tweak the pxe config template for a specific arch. For example, grubaa64.efi
+   shipped with CentoOS7 does not support ``linuxefi`` and ``initrdefi``
+   commands, you'll need to switch to use ``linux`` and ``initrd`` command
+   instead.
+
+.. note::
+   A ``[pxe]ipxe_bootfile_name_by_arch`` setting is available for multi-arch
+   iPXE based deployment, and defaults to the same behavior as the comperable
+   ``[pxe]pxe_bootfile_by_arch`` setting for standard PXE.
 
 PXE timeouts tuning
 -------------------
