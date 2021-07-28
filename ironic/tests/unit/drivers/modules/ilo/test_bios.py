@@ -423,7 +423,7 @@ class IloBiosTestCase(test_common.BaseIloTest):
             step = 'apply_configuration'
             task.driver.bios._execute_post_boot_bios_step(task, step)
             driver_info = task.node.driver_internal_info
-            self.assertTrue('apply_bios' not in driver_info)
+            self.assertNotIn('apply_bios', driver_info)
             ilo_object_mock.get_bios_settings_result.assert_called_once_with()
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
@@ -441,7 +441,7 @@ class IloBiosTestCase(test_common.BaseIloTest):
             step = 'factory_reset'
             task.driver.bios._execute_post_boot_bios_step(task, step)
             driver_info = task.node.driver_internal_info
-            self.assertTrue('reset_bios' not in driver_info)
+            self.assertNotIn('reset_bios', driver_info)
             ilo_object_mock.get_bios_settings_result.assert_called_once_with()
 
     @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
@@ -463,8 +463,7 @@ class IloBiosTestCase(test_common.BaseIloTest):
             self.assertRaises(exept,
                               task.driver.bios._execute_post_boot_bios_step,
                               task, step)
-            self.assertTrue(
-                'apply_bios' not in task.node.driver_internal_info)
+            self.assertNotIn('apply_bios', task.node.driver_internal_info)
 
     def test__execute_post_boot_bios_step_invalid_cleaning(self):
         self.node.clean_step = {'priority': 100, 'interface': 'bios',
@@ -503,8 +502,7 @@ class IloBiosTestCase(test_common.BaseIloTest):
             self.assertRaises(exept,
                               task.driver.bios._execute_post_boot_bios_step,
                               task, step)
-            self.assertTrue(
-                'apply_bios' not in task.node.driver_internal_info)
+            self.assertNotIn('apply_bios', task.node.driver_internal_info)
 
     def test__execute_post_boot_bios_step_iloobj_failed_cleaning(self):
         self.node.clean_step = {'priority': 100, 'interface': 'bios',
@@ -543,8 +541,7 @@ class IloBiosTestCase(test_common.BaseIloTest):
                                  [],
                                  [], mdobj,
                                  ilo_object_mock.get_bios_settings_result)
-            self.assertTrue(
-                'apply_bios' not in task.node.driver_internal_info)
+            self.assertNotIn('apply_bios', task.node.driver_internal_info)
 
     def test__execute_post_boot_bios_get_settings_error_cleaning(
             self):
@@ -584,8 +581,7 @@ class IloBiosTestCase(test_common.BaseIloTest):
             self.assertRaises(exept,
                               task.driver.bios._execute_post_boot_bios_step,
                               task, step)
-            self.assertTrue(
-                'reset_bios' not in task.node.driver_internal_info)
+            self.assertNotIn('reset_bios', task.node.driver_internal_info)
 
     def test__execute_post_boot_bios_get_settings_failed_cleaning(
             self):

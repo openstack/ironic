@@ -2870,7 +2870,7 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             node.refresh()
             self.assertEqual(states.UNRESCUEFAIL, node.provision_state)
             self.assertEqual(states.ACTIVE, node.target_provision_state)
-            self.assertTrue('Unable to unrescue' in node.last_error)
+            self.assertIn('Unable to unrescue', node.last_error)
             self.assertTrue(mock_log.error.called)
 
     @mock.patch.object(manager, 'LOG', autospec=True)
@@ -2889,7 +2889,7 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             node.refresh()
             self.assertEqual(states.UNRESCUEFAIL, node.provision_state)
             self.assertEqual(states.ACTIVE, node.target_provision_state)
-            self.assertTrue('Some failure' in node.last_error)
+            self.assertIn('Some failure', node.last_error)
             self.assertTrue(mock_log.exception.called)
 
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.unrescue',
@@ -2905,8 +2905,7 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             node.refresh()
             self.assertEqual(states.UNRESCUEFAIL, node.provision_state)
             self.assertEqual(states.ACTIVE, node.target_provision_state)
-            self.assertTrue('Driver returned unexpected state' in
-                            node.last_error)
+            self.assertIn('Driver returned unexpected state', node.last_error)
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)

@@ -179,7 +179,7 @@ class TestConvertToVersion(db_base.DbTestCase):
         # no conversion
         portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
         portgroup._convert_to_version("1.3", False)
-        self.assertFalse('tenant_vif_port_id' in portgroup.internal_info)
+        self.assertNotIn('tenant_vif_port_id', portgroup.internal_info)
 
     def test_vif_in_extra(self):
         for v in ['1.4', '1.5']:
@@ -192,7 +192,7 @@ class TestConvertToVersion(db_base.DbTestCase):
         portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
         portgroup.extra.pop('vif_port_id')
         portgroup._convert_to_version('1.4', False)
-        self.assertFalse('tenant_vif_port_id' in portgroup.internal_info)
+        self.assertNotIn('tenant_vif_port_id', portgroup.internal_info)
 
     def test_vif_in_extra_in_internal_info(self):
         vif2 = 'another_uuid'

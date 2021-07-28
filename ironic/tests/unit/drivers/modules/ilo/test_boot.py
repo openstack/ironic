@@ -1993,7 +1993,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             update_secureboot_mock.assert_called_once_with(task)
             setup_uefi_https_mock.assert_called_once_with(
                 task, "recreated-iso", True)
-            self.assertTrue('boot_iso' not in task.node.instance_info)
+            self.assertNotIn('boot_iso', task.node.instance_info)
 
     @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
                        spec_set=True, autospec=True)

@@ -855,7 +855,7 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         node.refresh()
         self.assertEqual(states.POWER_ON, node['power_state'])
         self.assertIsNone(node['target_power_state'])
-        self.assertTrue('unexpected keyword argument' in node['last_error'])
+        self.assertIn('unexpected keyword argument', node['last_error'])
 
 
 class NodeSoftPowerActionTestCase(db_base.DbTestCase):
