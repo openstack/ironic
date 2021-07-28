@@ -46,8 +46,10 @@
             voting: false
         - bifrost-integration-tinyipa-ubuntu-focal:
             voting: false
+            override-checkout: master
         - bifrost-integration-redfish-vmedia-uefi-centos-8:
             voting: false
+            override-checkout: master
         - ironic-tempest-pxe_ipmitool-postgres:
             voting: false
         - bifrost-benchmark-ironic:

@@ -569,7 +569,7 @@ IRONIC_DEPLOY_FAST_TRACK=${IRONIC_DEPLOY_FAST_TRACK:-False}
 TEMPEST_BAREMETAL_MIN_MICROVERSION=${TEMPEST_BAREMETAL_MIN_MICROVERSION:-}
 
 # Define baremetal max_microversion in tempest config. No default value means that it is picked from tempest.
-TEMPEST_BAREMETAL_MAX_MICROVERSION=${TEMPEST_BAREMETAL_MAX_MICROVERSION:-}
+TEMPEST_BAREMETAL_MAX_MICROVERSION=${TEMPEST_BAREMETAL_MAX_MICROVERSION:-1.75}
 
 # TODO(TheJulia): This PHYSICAL_NETWORK needs to be refactored in
 # our devstack plugin. It is used by the neutron-legacy integration,
