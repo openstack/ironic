@@ -30,6 +30,7 @@ from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.drac import raid as drac_raid
+from ironic.drivers.modules.drac import utils as drac_utils
 from ironic.drivers.modules.redfish import raid as redfish_raid
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
@@ -2333,49 +2334,7 @@ class DracRedfishRAIDTestCase(test_utils.BaseDracTest):
         self.assertTrue(is_ready)
         self.assertEqual(2, mock_ready.call_count)
 
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test__is_realtime_ready_no_managers(self, mock_get_system):
-        task = mock.Mock(node=self.node, context=self.context)
-        fake_system = mock.Mock(managers=[])
-        mock_get_system.return_value = fake_system
-        self.assertRaises(exception.RedfishError,
-                          drac_raid._is_realtime_ready, task)
-
-    @mock.patch.object(drac_raid, 'LOG', autospec=True)
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test__is_realtime_ready_oem_not_found(self, mock_get_system, mock_log):
-        task = mock.Mock(node=self.node, context=self.context)
-        fake_manager1 = mock.Mock()
-        fake_manager1.get_oem_extension.side_effect = (
-            sushy.exceptions.OEMExtensionNotFoundError)
-        fake_system = mock.Mock(managers=[fake_manager1])
-        mock_get_system.return_value = fake_system
-        self.assertRaises(exception.RedfishError,
-                          drac_raid._is_realtime_ready, task)
-        self.assertEqual(mock_log.error.call_count, 1)
-
-    @mock.patch.object(drac_raid, 'LOG', autospec=True)
-    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test__is_realtime_ready_all_managers_fail(self, mock_get_system,
-                                                  mock_log):
-        task = mock.Mock(node=self.node, context=self.context)
-        fake_manager_oem1 = mock.Mock()
-        fake_manager_oem1.lifecycle_service.is_realtime_ready.side_effect = (
-            sushy.exceptions.SushyError)
-        fake_manager1 = mock.Mock()
-        fake_manager1.get_oem_extension.return_value = fake_manager_oem1
-        fake_manager_oem2 = mock.Mock()
-        fake_manager_oem2.lifecycle_service.is_realtime_ready.side_effect = (
-            sushy.exceptions.SushyError)
-        fake_manager2 = mock.Mock()
-        fake_manager2.get_oem_extension.return_value = fake_manager_oem2
-        fake_system = mock.Mock(managers=[fake_manager1, fake_manager2])
-        mock_get_system.return_value = fake_system
-        self.assertRaises(exception.RedfishError,
-                          drac_raid._is_realtime_ready, task)
-        self.assertEqual(mock_log.debug.call_count, 2)
-
-    @mock.patch.object(drac_raid, 'LOG', autospec=True)
+    @mock.patch.object(drac_utils, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test__is_realtime_ready(self, mock_get_system, mock_log):
         task = mock.Mock(node=self.node, context=self.context)
