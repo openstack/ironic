@@ -4,5 +4,5 @@
       shell: "journalctl -t in.tftpd  > {{ zuul_output_dir }}/logs/tftpd-journal.txt"
       become: yes
     - name: Get network connection information for ironic process
-      shell: "netstat -apn |grep ironic > {{ zuul_output_dir }}/logs/post-job-network-connections.txt"
+      shell: "netstat -apn  > {{ zuul_output_dir }}/logs/post-job-network-connections.txt"
       become: yes
