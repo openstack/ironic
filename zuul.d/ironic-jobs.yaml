@@ -23,7 +23,6 @@
       - ^releasenotes/.*$
       - ^setup.cfg$
       - ^test-requirements.txt$
-      - ^tools/.*$
       - ^tox.ini$
     vars:
       tox_envlist: all
