@@ -44,3 +44,7 @@ class PolicyFixture(fixtures.Fixture):
         CONF.set_override('policy_file', self.policy_file_name, 'oslo_policy')
         ironic_policy._ENFORCER = None
         self.addCleanup(ironic_policy.get_enforcer().clear)
+        # NOTE(melwitt): Logging all the deprecation warning for every unit
+        # test will overflow the log files. Suppress the deprecation warnings
+        # for tests.
+        ironic_policy._ENFORCER.suppress_deprecation_warnings = True
