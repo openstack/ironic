@@ -1380,3 +1380,21 @@ class Connection(object, metaclass=abc.ABCMeta):
                          (asc, desc)
         :returns: A list of histories.
         """
+
+    @abc.abstractmethod
+    def query_node_history_records_for_purge(self, conductor_id):
+        """Utility method to identify nodes to clean history records for.
+
+        :param conductor_id: Id value for the conductor to perform this
+                             query on behalf of.
+        :returns: A dictionary with key values of node database ID values
+                  and a list of values associated with the node.
+        """
+
+    @abc.abstractmethod
+    def bulk_delete_node_history_records(self, node_id, limit):
+        """Utility method to bulk delete node history entries.
+
+        :param entires: A list of node history entriy id's to be
+                        queried for deletion.
+        """

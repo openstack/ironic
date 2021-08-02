@@ -2329,3 +2329,74 @@ class Connection(api.Connection):
         query = query.filter_by(node_id=node_id)
         return _paginate_query(models.NodeHistory, limit, marker,
                                sort_key, sort_dir, query)
+
+    def query_node_history_records_for_purge(self, conductor_id):
+        min_days = CONF.conductor.node_history_minimum_days
+        max_num = CONF.conductor.node_history_max_entries
+
+        with _session_for_read() as session:
+            # First, figure out our nodes.
+            nodes = session.query(
+                models.Node.id,
+            ).filter(
+                models.Node.conductor_affinity == conductor_id
+            )
+
+            # Build our query to get the node_id and record id.
+            query = session.query(
+                models.NodeHistory.node_id,
+                models.NodeHistory.id,
+            )
+
+            # Filter by the nodes
+            query = query.filter(
+                models.NodeHistory.node_id.in_(nodes)
+            ).order_by(
+                # Order in an ascending order as older is always first.
+                models.NodeHistory.created_at.asc()
+            )
+
+            # Filter by minimum days
+            if min_days > 0:
+                before = datetime.datetime.now() - datetime.timedelta(
+                    days=min_days)
+                query = query.filter(
+                    models.NodeHistory.created_at < before
+                )
+
+            # Build our result set
+            result_set = {}
+            for entry in query.all():
+                if entry[0] not in result_set:
+                    result_set[entry[0]] = []
+                result_set[entry[0]].append(entry[1])
+
+            final_set = {}
+            # Generate our final set of entries which should be removed
+            # by accounting for the number of permitted entries.
+            for entry in result_set:
+                final_set[entry] = []
+                set_len = len(result_set[entry])
+                # Any count <= the maximum number is okay
+                if set_len > max_num:
+                    # figure out how many entries need to be removed
+                    num_to_remove = set_len - max_num
+                    for i in range(0, num_to_remove):
+                        final_set[entry].append(result_set[entry][i])
+                        # remove the entries at the end of the list
+                        # which will be the more recent items as we
+                        # ordered ascending originally.
+            print('returning final set')
+            print(final_set)
+            return final_set
+
+    def bulk_delete_node_history_records(self, entries):
+        with _session_for_write() as session:
+            # Uses input entry list, selects entries matching those ids
+            # then deletes them and does not synchronize the session so
+            # sqlalchemy doesn't do extra un-necessary work.
+            session.query(
+                models.NodeHistory
+            ).filter(
+                models.NodeHistory.id.in_(entries)
+            ).delete(synchronize_session=False)

@@ -297,6 +297,25 @@ ALLOCATING = 'allocating'
 
 # States ERROR and ACTIVE are reused.
 
+###########################
+# History Event State Types
+###########################
+
+PROVISIONING = "provisioning"
+CLEANING = "cleaning"
+DEPLOYING = "deploying"
+TAKEOVER = "takeover"
+INTROSPECTION = "introspection"
+RESCUE = "rescue"
+CONDUCTOR = "conductor"
+TRANSITION = "transition"
+STARTFAIL = "startup failure"
+UNPROVISION = "unprovision"
+ADOPTION = "adoption"
+CONSOLE = "console"
+MONITORING = "monitoring"
+VERIFY = "verify"
+
 
 #####################
 # State machine model

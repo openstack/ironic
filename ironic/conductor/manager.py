@@ -712,7 +712,11 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         def handle_failure(e, errmsg, log_func=LOG.error):
             utils.remove_node_rescue_password(node, save=False)
-            node.last_error = errmsg % e
+            error = errmsg % e
+            utils.node_history_record(task.node, event=error,
+                                      event_type=states.RESCUE,
+                                      error=True,
+                                      user=task.context.user_id)
             task.process_event('fail')
             log_func('Error while performing rescue operation for node '
                      '%(node)s with instance %(instance)s: %(err)s',
@@ -801,7 +805,11 @@ class ConductorManager(base_manager.BaseConductorManager):
         node = task.node
 
         def handle_failure(e, errmsg, log_func=LOG.error):
-            node.last_error = errmsg % e
+            error = errmsg % e
+            utils.node_history_record(task.node, event=error,
+                                      event_type=states.RESCUE,
+                                      error=True,
+                                      user=task.context.user_id)
             task.process_event('fail')
             log_func('Error while performing unrescue operation for node '
                      '%(node)s with instance %(instance)s: %(err)s',
@@ -845,7 +853,9 @@ class ConductorManager(base_manager.BaseConductorManager):
             error_msg = _('Failed to clean up rescue after aborting '
                           'the operation')
             node.refresh()
-            node.last_error = error_msg
+            utils.node_history_record(node, event=error_msg,
+                                      event_type=states.RESCUE, error=True,
+                                      user=task.context.user_id)
             node.maintenance = True
             node.maintenance_reason = error_msg
             node.fault = faults.RESCUE_ABORT_FAILURE
@@ -853,10 +863,15 @@ class ConductorManager(base_manager.BaseConductorManager):
             return
 
         info_message = _('Rescue operation aborted for node %s.') % node.uuid
-        last_error = _('By request, the rescue operation was aborted.')
+        # NOTE(TheJulia): This "error" is not an actual error, the operation
+        # has been aborted and the node returned to normal operation.
+        error = _('By request, the rescue operation was aborted.')
+        utils.node_history_record(task.node, event=error,
+                                  event_type=states.RESCUE,
+                                  error=False,
+                                  user=task.context.user_id)
         node.refresh()
         utils.remove_agent_url(node)
-        node.last_error = last_error
         node.save()
         LOG.info(info_message)
 
@@ -1053,7 +1068,11 @@ class ConductorManager(base_manager.BaseConductorManager):
             with excutils.save_and_reraise_exception():
                 LOG.exception('Error in tear_down of node %(node)s: %(err)s',
                               {'node': node.uuid, 'err': e})
-                node.last_error = _("Failed to tear down. Error: %s") % e
+                error = _("Failed to tear down. Error: %s") % e
+                utils.node_history_record(task.node, event=error,
+                                          event_type=states.UNPROVISION,
+                                          error=True,
+                                          user=task.context.user_id)
                 task.process_event('fail')
         else:
             # NOTE(tenbrae): When tear_down finishes, the deletion is done,
@@ -1339,10 +1358,18 @@ class ConductorManager(base_manager.BaseConductorManager):
                 with excutils.save_and_reraise_exception():
                     LOG.exception('Error in aborting the inspection of '
                                   'node %(node)s', {'node': node.uuid})
-                    node.last_error = _('Failed to abort inspection. '
-                                        'Error: %s') % e
+                    error = _('Failed to abort inspection. '
+                              'Error: %s') % e
+                    utils.node_history_record(task.node, event=error,
+                                              event_type=states.INTROSPECTION,
+                                              error=True,
+                                              user=task.context.user_id)
                     node.save()
-            node.last_error = _('Inspection was aborted by request.')
+            error = _('Inspection was aborted by request.')
+            utils.node_history_record(task.node, event=error,
+                                      event_type=states.INTROSPECTION,
+                                      error=True,
+                                      user=task.context.user_id)
             utils.wipe_token_and_url(task)
             task.process_event('abort')
             LOG.info('Successfully aborted inspection of node %(node)s',
@@ -1659,9 +1686,14 @@ class ConductorManager(base_manager.BaseConductorManager):
                 if not task.node.maintenance and task.node.target_power_state:
                     old_state = task.node.target_power_state
                     task.node.target_power_state = None
-                    task.node.last_error = _('Pending power operation was '
-                                             'aborted due to conductor take '
-                                             'over')
+                    error = _('Pending power operation was '
+                              'aborted due to conductor take '
+                              'over')
+                    utils.node_history_record(task.node, event=error,
+                                              event_type=states.TAKEOVER,
+                                              error=True,
+                                              user=task.context.user_id)
+
                     task.node.save()
                     LOG.warning('Aborted pending power operation %(op)s '
                                 'on node %(node)s due to conductor take over',
@@ -1725,7 +1757,10 @@ class ConductorManager(base_manager.BaseConductorManager):
             LOG.error(msg)
             # Wipe power state from being preserved as it is likely invalid.
             node.power_state = states.NOSTATE
-            node.last_error = msg
+            utils.node_history_record(task.node, event=msg,
+                                      event_type=states.ADOPTION,
+                                      error=True,
+                                      user=task.context.user_id)
             task.process_event('fail')
 
     @METRICS.timer('ConductorManager._do_takeover')
@@ -1764,7 +1799,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                 LOG.error(msg)
                 # If taking over console failed, set node's console_enabled
                 # back to False and set node's last error.
-                task.node.last_error = msg
+                utils.node_history_record(task.node, event=msg,
+                                          event_type=states.TAKEOVER,
+                                          error=True,
+                                          user=task.context.user_id)
                 task.node.console_enabled = False
                 console_error = True
             else:
@@ -2231,7 +2269,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                          'Reason: %(error)s') % {'op': op,
                                                  'node': node.uuid,
                                                  'error': e})
-                node.last_error = msg
+                utils.node_history_record(task.node, event=msg,
+                                          event_type=states.CONSOLE,
+                                          error=True,
+                                          user=task.context.user_id)
                 LOG.error(msg)
                 node.save()
                 notify_utils.emit_console_notification(
@@ -3495,6 +3536,55 @@ class ConductorManager(base_manager.BaseConductorManager):
             task.node.save()
             return task.node
 
+    @METRICS.timer('ConductorManager.manage_node_history')
+    @periodics.periodic(
+        spacing=CONF.conductor.node_history_cleanup_interval,
+        enabled=(
+            CONF.conductor.node_history_cleanup_batch_count > 0
+            and CONF.conductor.node_history_max_entries != 0
+        )
+    )
+    def manage_node_history(self, context):
+        try:
+            self._manage_node_history(context)
+        except Exception as e:
+            LOG.error('Encountered error while cleaning node '
+                      'history records: %s', e)
+
+    def _manage_node_history(self, context):
+        """Periodic task to keep the node history tidy."""
+        max_batch = CONF.conductor.node_history_cleanup_batch_count
+        # NOTE(TheJulia): Asks the db for the list. Presently just gets
+        # the node id and the count. If we incorporate by date constraint
+        # or handling, then it will need to be something like the method
+        # needs to identify the explicit ID values to delete, and then
+        # the deletion process needs to erase in logical chunks.
+        entries_to_clean = self.dbapi.query_node_history_records_for_purge(
+            conductor_id=self.conductor.id)
+        count = 0
+        for node_id in entries_to_clean:
+            if count < max_batch:
+                # If we have not hit our total limit, proceed
+                if entries_to_clean[node_id]:
+                    # if we have work to do on this node, proceed.
+                    self.dbapi.bulk_delete_node_history_records(
+                        entries_to_clean[node_id])
+            else:
+                LOG.warning('While cleaning up node history records, '
+                            'we reached the maximum number of records '
+                            'permitted in a single batch. If this error '
+                            'is repeated, consider tuning node history '
+                            'configuration options to be more aggressive '
+                            'by increasing frequency and lowering the '
+                            'number of entries to be deleted to not '
+                            'negatively impact performance.')
+                break
+            count = count + len(entries_to_clean[node_id])
+            # Yield to other threads, since we also don't want to be
+            # looping tightly deleting rows as that will negatively
+            # impact DB access if done in excess.
+            eventlet.sleep(0)
+
 
 @METRICS.timer('get_vendor_passthru_metadata')
 def get_vendor_passthru_metadata(route_dict):
@@ -3534,7 +3624,9 @@ def handle_sync_power_state_max_retries_exceeded(task, actual_power_state,
 
     old_power_state = node.power_state
     node.power_state = actual_power_state
-    node.last_error = msg
+    utils.node_history_record(task.node, event=msg,
+                              event_type=states.MONITORING,
+                              error=True)
     node.maintenance = True
     node.maintenance_reason = msg
     node.fault = faults.POWER_FAILURE
@@ -3688,7 +3780,9 @@ def _do_inspect_hardware(task):
     node = task.node
 
     def handle_failure(e, log_func=LOG.error):
-        node.last_error = e
+        utils.node_history_record(task.node, event=e,
+                                  event_type=states.INTROSPECTION,
+                                  error=True, user=task.context.user_id)
         task.process_event('fail')
         log_func("Failed to inspect node %(node)s: %(err)s",
                  {'node': node.uuid, 'err': e})

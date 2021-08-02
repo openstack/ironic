@@ -542,6 +542,12 @@ class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                        fields.NotificationStatus.START),
              mock.call(mock.ANY, 'console_restore',
                        fields.NotificationStatus.ERROR)])
+        history = objects.NodeHistory.list_by_node_id(self.context,
+                                                      test_node.id)
+        entry = history[0]
+        self.assertEqual('startup failure', entry['event_type'])
+        self.assertEqual('ERROR', entry['severity'])
+        self.assertIsNotNone(entry['event'])
 
     @mock.patch.object(base_manager, 'LOG', autospec=True)
     def test__start_consoles_node_locked(self, log_mock, mock_notify,
@@ -599,3 +605,9 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service._fail_transient_state(states.DEPLOYING, 'unknown err')
         node.refresh()
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
+        history = objects.NodeHistory.list_by_node_id(self.context,
+                                                      node.id)
+        entry = history[0]
+        self.assertEqual('transition', entry['event_type'])
+        self.assertEqual('ERROR', entry['severity'])
+        self.assertEqual('unknown err', entry['event'])

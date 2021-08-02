@@ -39,6 +39,7 @@ from ironic.common import states
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
 from ironic.objects import fields
+from ironic.objects import node_history
 
 LOG = log.getLogger(__name__)
 CONF = cfg.CONF
@@ -245,9 +246,10 @@ def _can_skip_state_change(task, new_state):
         curr_state = task.driver.power.get_power_state(task)
     except Exception as e:
         with excutils.save_and_reraise_exception():
-            node['last_error'] = _(
+            error = _(
                 "Failed to change power state to '%(target)s'. "
                 "Error: %(error)s") % {'target': new_state, 'error': e}
+            node_history_record(node, event=error, error=True)
             node['target_power_state'] = states.NOSTATE
             node.save()
             notify_utils.emit_power_set_notification(
@@ -329,12 +331,13 @@ def node_power_action(task, new_state, timeout=None):
     except Exception as e:
         with excutils.save_and_reraise_exception():
             node['target_power_state'] = states.NOSTATE
-            node['last_error'] = _(
+            error = _(
                 "Failed to change power state to '%(target_state)s' "
                 "by '%(new_state)s'. Error: %(error)s") % {
                     'target_state': target_state,
                     'new_state': new_state,
                     'error': e}
+            node_history_record(node, event=error, error=True)
             node.save()
             notify_utils.emit_power_set_notification(
                 task, fields.NotificationLevel.ERROR,
@@ -399,7 +402,9 @@ def provisioning_error_handler(e, node, provision_state,
         #             because it isn't updated on a failed deploy
         node.provision_state = provision_state
         node.target_provision_state = target_provision_state
-        node.last_error = (_("No free conductor workers available"))
+        error = (_("No free conductor workers available"))
+        node_history_record(node, event=error, event_type=states.PROVISIONING,
+                            error=True)
         node.save()
         LOG.warning("No free conductor workers available to perform "
                     "an action on node %(node)s, setting node's "
@@ -483,7 +488,8 @@ def cleaning_error_handler(task, logmsg, errmsg=None, traceback=False,
     # For manual cleaning, the target provision state is MANAGEABLE, whereas
     # for automated cleaning, it is AVAILABLE.
     manual_clean = node.target_provision_state == states.MANAGEABLE
-    node.last_error = errmsg
+    node_history_record(node, event=errmsg, event_type=states.CLEANING,
+                        error=True)
     # NOTE(dtantsur): avoid overwriting existing maintenance_reason
     if not node.maintenance_reason and set_maintenance:
         node.maintenance_reason = errmsg
@@ -570,7 +576,8 @@ def deploying_error_handler(task, logmsg, errmsg=None, traceback=False,
     errmsg = errmsg or logmsg
     node = task.node
     LOG.error(logmsg, exc_info=traceback)
-    node.last_error = errmsg
+    node_history_record(node, event=errmsg, event_type=states.DEPLOYING,
+                        error=True)
     node.save()
 
     cleanup_err = None
@@ -600,7 +607,9 @@ def deploying_error_handler(task, logmsg, errmsg=None, traceback=False,
         wipe_deploy_internal_info(task)
 
     if cleanup_err:
-        node.last_error = cleanup_err
+        node_history_record(node, event=cleanup_err,
+                            event_type=states.DEPLOYING,
+                            error=True)
     node.save()
 
     # NOTE(tenbrae): there is no need to clear conductor_affinity
@@ -636,7 +645,8 @@ def abort_on_conductor_take_over(task):
     else:
         # For aborted deployment (and potentially other operations), just set
         # the last_error accordingly.
-        task.node.last_error = msg
+        node_history_record(task.node, event=msg, event_type=states.TAKEOVER,
+                            error=True)
         task.node.save()
 
     LOG.warning('Aborted the current operation on node %s due to '
@@ -657,17 +667,22 @@ def rescuing_error_handler(task, msg, set_fail_state=True):
         node_power_action(task, states.POWER_OFF)
         task.driver.rescue.clean_up(task)
         remove_agent_url(node)
-        node.last_error = msg
+        node_history_record(task.node, event=msg, event_type=states.RESCUE,
+                            error=True)
     except exception.IronicException as e:
-        node.last_error = (_('Rescue operation was unsuccessful, clean up '
-                             'failed for node: %(error)s') % {'error': e})
+        error = (_('Rescue operation was unsuccessful, clean up '
+                   'failed for node: %(error)s') % {'error': e})
+        node_history_record(task.node, event=error, event_type=states.RESCUE,
+                            error=True)
         LOG.error(('Rescue operation was unsuccessful, clean up failed for '
                    'node %(node)s: %(error)s'),
                   {'node': node.uuid, 'error': e})
     except Exception as e:
-        node.last_error = (_('Rescue failed, but an unhandled exception was '
-                             'encountered while aborting: %(error)s') %
-                           {'error': e})
+        error = (_('Rescue failed, but an unhandled exception was '
+                   'encountered while aborting: %(error)s') %
+                 {'error': e})
+        node_history_record(task.node, event=error, event_type=states.RESCUE,
+                            error=True)
         LOG.exception('Rescue failed for node %(node)s, an exception was '
                       'encountered while aborting.', {'node': node.uuid})
     finally:
@@ -708,7 +723,9 @@ def _spawn_error_handler(e, node, operation):
     :param operation: the operation being performed on the node.
     """
     if isinstance(e, exception.NoFreeConductorWorker):
-        node.last_error = (_("No free conductor workers available"))
+        error = (_("No free conductor workers available"))
+        node_history_record(node, event=error, event_type=states.CONDUCTOR,
+                            error=True)
         node.save()
         LOG.warning("No free conductor workers available to perform "
                     "%(operation)s on node %(node)s",
@@ -749,7 +766,9 @@ def power_state_error_handler(e, node, power_state):
     if isinstance(e, exception.NoFreeConductorWorker):
         node.power_state = power_state
         node.target_power_state = states.NOSTATE
-        node.last_error = (_("No free conductor workers available"))
+        error = (_("No free conductor workers available"))
+        node_history_record(node, event=error, event_type=states.CONDUCTOR,
+                            error=True)
         node.save()
         LOG.warning("No free conductor workers available to perform "
                     "an action on node %(node)s, setting node's "
@@ -1573,3 +1592,58 @@ def node_change_secure_boot(task, secure_boot_target):
                  {'state': secure_boot_target, 'node': task.node.uuid})
         task.node.secure_boot = secure_boot_target
         task.node.save()
+
+
+def node_history_record(node, conductor=None, event=None,
+                        event_type=None, user=None,
+                        error=False):
+    """Records a node history record
+
+    Adds an entry to the node history table with the appropriate fields
+    populated to ensure consistent experience by also updating the
+    node ``last_error`` field. Please note the event is only recorded
+    if the ``[conductor]node_history_max_size`` parameter is set to a
+    value greater than ``0``.
+
+    :param node: A node object from a task object. Required.
+    :param conductor: The hostname of the conductor. If not specified
+                      this value is populated with the conductor FQDN.
+    :param event: The text to record to the node history table.
+                  If no value is supplied, the method silently returns
+                  to the caller.
+    :param event_type: The type activity where the event was encountered,
+                       either "provisioning", "monitoring", "cleaning",
+                       or whatever text the a driver author wishes to supply
+                       based upon the activity. The purpose is to help guide
+                       an API consumer/operator to have a better contextual
+                       understanding of what was going on *when* the "event"
+                       occured.
+    :param user: The user_id value which triggered the request,
+                 if available.
+    :param error: Boolean value, default false, to signify if the event
+                  is an error which should be recorded in the node
+                  ``last_error`` field.
+    :returns: None. No value is returned by this method.
+    """
+    if not event:
+        # No error has occured, apparently.
+        return
+    if error:
+        # When the task exits out or is saved, the event
+        # or error is saved, but that is outside of ceating an
+        # entry in the history table.
+        node.last_error = event
+    if not conductor:
+        conductor = CONF.host
+    if CONF.conductor.node_history:
+        # If the maximum number of entries is not set to zero,
+        # then we should record the entry.
+        # NOTE(TheJulia): DB API automatically adds in a uuid.
+        # TODO(TheJulia): At some point, we should allow custom severity.
+        node_history.NodeHistory(
+            node_id=node.id,
+            conductor=CONF.host,
+            user=user,
+            severity=error and "ERROR" or "INFO",
+            event=event,
+            event_type=event_type or "UNKNOWN").create()

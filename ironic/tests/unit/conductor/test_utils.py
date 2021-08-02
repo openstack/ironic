@@ -959,7 +959,7 @@ class NodeSoftPowerActionTestCase(db_base.DbTestCase):
         self.assertIsNone(node['last_error'])
 
 
-class DeployingErrorHandlerTestCase(tests_base.TestCase):
+class DeployingErrorHandlerTestCase(db_base.DbTestCase):
     def setUp(self):
         super(DeployingErrorHandlerTestCase, self).setUp()
         self.task = mock.Mock(spec=task_manager.TaskManager)
@@ -972,6 +972,8 @@ class DeployingErrorHandlerTestCase(tests_base.TestCase):
         self.node.last_error = None
         self.node.deploy_step = None
         self.node.driver_internal_info = {}
+        self.node.id = obj_utils.create_test_node(self.context,
+                                                  driver='fake-hardware').id
         self.logmsg = "log message"
         self.errmsg = "err message"
 
@@ -1023,6 +1025,7 @@ class DeployingErrorHandlerTestCase(tests_base.TestCase):
         self.assertEqual({}, self.node.deploy_step)
         self.assertNotIn('deploy_step_index', self.node.driver_internal_info)
         self.task.process_event.assert_called_once_with('fail')
+        self.assertIsNotNone(self.node.last_error)
 
     def test_deploying_error_handler_cleanup_ironic_exception(self):
         self._test_deploying_error_handler_cleanup(
@@ -1058,7 +1061,7 @@ class DeployingErrorHandlerTestCase(tests_base.TestCase):
         self.task.process_event.assert_called_once_with('fail')
 
 
-class ErrorHandlersTestCase(tests_base.TestCase):
+class ErrorHandlersTestCase(db_base.DbTestCase):
     def setUp(self):
         super(ErrorHandlersTestCase, self).setUp()
         self.task = mock.Mock(spec=task_manager.TaskManager)
@@ -1070,9 +1073,13 @@ class ErrorHandlersTestCase(tests_base.TestCase):
         # strict typing of the node power state fields and would fail if passed
         # a Mock object in constructors. A task context is also required for
         # notifications.
+        fake_node = obj_utils.create_test_node(self.context,
+                                               driver='fake-hardware')
+
         self.node.configure_mock(power_state=states.POWER_OFF,
                                  target_power_state=states.POWER_ON,
-                                 maintenance=False, maintenance_reason=None)
+                                 maintenance=False, maintenance_reason=None,
+                                 id=fake_node.id)
         self.task.context = self.context
 
     @mock.patch.object(conductor_utils, 'LOG', autospec=True)
@@ -1401,6 +1408,7 @@ class ErrorHandlersTestCase(tests_base.TestCase):
                                          '%(node)s, an exception was '
                                          'encountered while aborting.',
                                          {'node': self.node.uuid})
+        self.assertIsNotNone(self.node.last_error)
         self.node.save.assert_called_once_with()
 
     @mock.patch.object(conductor_utils.LOG, 'error', autospec=True)
@@ -2562,3 +2570,60 @@ class GetConfigDriveImageTestCase(db_base.DbTestCase):
                                         network_data=None,
                                         user_data=b'{"user": "data"}',
                                         vendor_data=None)
+
+
+class NodeHistoryRecordTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(NodeHistoryRecordTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid())
+
+    def test_record_node_history(self):
+        conductor_utils.node_history_record(self.node, event='meow')
+        entries = objects.NodeHistory.list_by_node_id(self.context,
+                                                      self.node.id)
+        entry = entries[0]
+        self.assertEqual('meow', entry['event'])
+        self.assertEqual(CONF.host, entry['conductor'])
+        self.assertEqual('INFO', entry['severity'])
+        self.assertIsNone(entry['user'])
+
+    def test_record_node_history_with_user(self):
+        conductor_utils.node_history_record(self.node, event='meow',
+                                            user='peachesthecat')
+        entries = objects.NodeHistory.list_by_node_id(self.context,
+                                                      self.node.id)
+        entry = entries[0]
+        self.assertEqual('meow', entry['event'])
+        self.assertEqual(CONF.host, entry['conductor'])
+        self.assertEqual('peachesthecat', entry['user'])
+
+    def test_record_node_history_with_error_severity(self):
+        conductor_utils.node_history_record(self.node, event='meowmeow',
+                                            error=True,
+                                            event_type='catwantfood')
+        entries = objects.NodeHistory.list_by_node_id(self.context,
+                                                      self.node.id)
+        entry = entries[0]
+        self.assertEqual('meowmeow', entry['event'])
+        self.assertEqual(CONF.host, entry['conductor'])
+        self.assertEqual('ERROR', entry['severity'])
+        self.assertEqual('catwantfood', entry['event_type'])
+
+    @mock.patch.object(objects, 'NodeHistory', autospec=True)
+    def test_record_node_history_noop(self, mock_history):
+        CONF.set_override('node_history', False, group='conductor')
+        self.assertIsNone(conductor_utils.node_history_record(self.node))
+        mock_history.assert_not_called()
+
+    @mock.patch.object(objects, 'NodeHistory', autospec=True)
+    def test_record_node_history_disaled(self, mock_history):
+        mock_create = mock.Mock()
+        conductor_utils.node_history_record(self.node, event='meow',
+                                            error=True)
+        self.assertEqual('meow', self.node.last_error)
+        mock_history.create = mock_create
+        mock_history.assert_not_called()
+        mock_create.assert_not_called()
