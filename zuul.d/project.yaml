@@ -23,8 +23,7 @@
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
         - ironic-tempest-bfv
-        - ironic-tempest-ipa-partition-uefi-pxe-grub2:
-            voting: false
+        - ironic-tempest-ipa-partition-uefi-pxe-grub2
         # Non-voting jobs
         - ironic-tox-bandit:
             voting: false
@@ -55,7 +54,7 @@
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa-indirect
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-tinyipa-indirect
         - ironic-tempest-bfv
-        # - ironic-tempest-ipa-partition-uefi-pxe-grub2
+        - ironic-tempest-ipa-partition-uefi-pxe-grub2
     experimental:
       jobs:
         - ironic-inspector-tempest-discovery-fast-track:
