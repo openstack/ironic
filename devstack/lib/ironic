@@ -626,7 +626,7 @@ UEFI_NVRAM_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_VARS.fd
 if [[ $IRONIC_HW_ARCH == "x86_64" ]]; then
     install_package shim
     if is_ubuntu; then
-        install_package grub-efi-amd64-signed
+        install_package grub-efi-amd64-signed shim-signed
     elif is_fedora; then
         install_package grub2-efi
     fi
@@ -651,7 +651,11 @@ if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
     fi
 
     if is_ubuntu && [[ -z $IRONIC_GRUB2_FILE ]]; then
-        IRONIC_GRUB2_SHIM_FILE=/usr/lib/shim/shimx64.efi
+        if [[ -f /usr/lib/shim/shimx64.efi.signed ]]; then
+            IRONIC_GRUB2_SHIM_FILE=/usr/lib/shim/shimx64.efi.signed
+        else
+            IRONIC_GRUB2_SHIM_FILE=/usr/lib/shim/shimx64.efi
+        fi
         IRONIC_GRUB2_FILE=/usr/lib/grub/x86_64-efi-signed/grubx64.efi.signed
     fi
 
