@@ -122,7 +122,7 @@ the PXE UEFI environment.
 
 #. Install Grub2 and shim packages:
 
-   Ubuntu (16.04LTS and later)::
+   Ubuntu (18.04LTS and later)::
 
        sudo apt-get install grub-efi-amd64-signed shim-signed
 
@@ -136,9 +136,9 @@ the PXE UEFI environment.
 
 #. Copy grub and shim boot loader images to ``/tftpboot`` directory:
 
-   Ubuntu (16.04LTS and later)::
+   Ubuntu (18.04LTS and later)::
 
-       sudo cp /usr/lib/shim/shim.efi.signed /tftpboot/bootx64.efi
+       sudo cp /usr/lib/shim/shimx64.efi.signed /tftpboot/bootx64.efi
        sudo cp /usr/lib/grub/x86_64-efi-signed/grubnetx64.efi.signed /tftpboot/grubx64.efi
 
    Fedora::
