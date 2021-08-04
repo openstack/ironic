@@ -497,6 +497,11 @@ bios interface.
 .. warning::
      ``irmc`` bios interface does not support ``factory_reset``.
 
+     Starting from version ``0.10.0`` of ``python-scciclient``,
+     the BIOS setting obtained may not be the latest. If you want to get the latest BIOS setting,
+     you need to delete the existing BIOS profile in iRMC. For example::
+
+       curl -u user:pass -H "Content-type: application/json" -X DELETE -i http://192.168.0.1/rest/v1/Oem/eLCM/ProfileManagement/BiosConfig
 
 Configuration
 ~~~~~~~~~~~~~
@@ -548,11 +553,7 @@ for more details and examples.
 
 Supported platforms
 ===================
-This driver supports FUJITSU PRIMERGY BX S4 or RX S8 servers and above.
-
-- PRIMERGY BX920 S4
-- PRIMERGY BX924 S4
-- PRIMERGY RX300 S8
+This driver supports FUJITSU PRIMERGY RX M4 servers and above.
 
 When ``irmc`` power interface is used, Soft Reboot (Graceful Reset) and Soft
 Power Off (Graceful Power Off) are only available if
