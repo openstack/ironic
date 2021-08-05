@@ -19,6 +19,7 @@ from oslo_db.sqlalchemy import enginefacade
 from oslo_db.sqlalchemy import utils
 from oslo_upgradecheck import common_checks
 from oslo_upgradecheck import upgradecheck
+from sqlalchemy import exc as sa_exc
 
 from ironic.cmd import dbsync
 from ironic.common.i18n import _
@@ -44,7 +45,15 @@ class Checks(upgradecheck.UpgradeCommands):
         .version field in the database, with the expected versions
         of these objects.
         """
-        msg = dbsync.DBCommand().check_obj_versions(ignore_missing_tables=True)
+        try:
+            # NOTE(TheJulia): Seems an exception is raised by sqlalchemy
+            # when a table is missing, so lets catch it, since it is fatal.
+            msg = dbsync.DBCommand().check_obj_versions(
+                ignore_missing_tables=True)
+        except sa_exc.NoSuchTableError as e:
+            msg = ('Database table missing. Please ensure you have '
+                   'updated the database schema. Not Found: %s' % e)
+            return upgradecheck.Result(upgradecheck.Code.FAILURE, details=msg)
 
         if not msg:
             return upgradecheck.Result(upgradecheck.Code.SUCCESS)

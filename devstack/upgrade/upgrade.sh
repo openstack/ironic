@@ -81,7 +81,12 @@ if [ $ret_val -gt 1 ] ; then
     # Warnings are permissible and returned as status code 1, errors are
     # returned as greater than 1 which means there is a major upgrade
     # stopping issue which needs to be addressed.
-    die $LINENO "Ironic DB Status check failed, returned: $ret_val"
+    echo "WARNING: Status check failed, we're going to attempt to apply the schema update and then re-evaluate."
+    $IRONIC_BIN_DIR/ironic-dbsync --config-file=$IRONIC_CONF_FILE upgrade
+    $IRONIC_BIN_DIR/ironic-status upgrade check && ret_val=$? || ret_val=$?
+    if [ $ret_val -gt 1 ] ; then
+        die $LINENO "Ironic DB Status check failed, returned: $ret_val"
+    fi
 fi
 
 $IRONIC_BIN_DIR/ironic-dbsync --config-file=$IRONIC_CONF_FILE
