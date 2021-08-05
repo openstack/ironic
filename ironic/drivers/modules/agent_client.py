@@ -14,6 +14,7 @@
 
 from http import client as http_client
 import os
+import ssl
 
 from ironic_lib import metrics_utils
 from oslo_log import log
@@ -203,7 +204,7 @@ class AgentClient(object):
                 url, params=request_params, data=body,
                 verify=self._get_verify(node),
                 timeout=CONF.agent.command_timeout)
-        except (requests.ConnectionError, requests.Timeout) as e:
+        except (requests.ConnectionError, requests.Timeout, ssl.SSLError) as e:
             result = self._handle_timeout_on_command_execution(node, method,
                                                                params, e)
             response = None
