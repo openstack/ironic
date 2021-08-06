@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The validation for ``create_subscription`` now uses the default values
+    from Redfish for `Context` and `Protocol` to avoid `None`.
+    The fields returned by ``create_subscription`` and ``get_subscription``
+    are now filtered by the common fields between vendors.
+    Deleting a subscription that doesn't exist will return 404 instead of 500.
+
