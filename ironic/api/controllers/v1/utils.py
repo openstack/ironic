@@ -1334,6 +1334,11 @@ def allow_reset_interfaces():
     return api.request.version.minor >= versions.MINOR_45_RESET_INTERFACES
 
 
+def allow_node_history():
+    """Check if node history access is permitted by API version."""
+    return api.request.version.minor >= versions.MINOR_78_NODE_HISTORY
+
+
 def get_request_return_fields(fields, detail, default_fields,
                               check_detail_version=allow_detail_query,
                               check_fields_version=None):

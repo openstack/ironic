@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds API version ``1.78`` which provides the capability to retrieve
+    node history events which may have been recorded in the process of
+    management of the node, which may be aid in troubleshooting or identifying
+    a problem area with a specific node or configuration which has been
+    supplied.

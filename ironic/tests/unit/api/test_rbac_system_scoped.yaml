@@ -2079,3 +2079,47 @@ chassis_chassis_id_delete_reader:
   method: delete
   headers: *reader_headers
   assert_status: 403
+
+# Node history entries
+
+node_history_get_admin:
+  path: '/v1/nodes/{node_ident}/history'
+  method: get
+  headers: *admin_headers
+  assert_status: 200
+  assert_list_length:
+    history: 1
+
+node_history_get_member:
+  path: '/v1/nodes/{node_ident}/history'
+  method: get
+  headers: *scoped_member_headers
+  assert_status: 200
+  assert_list_length:
+    history: 1
+
+node_history_get_reader:
+  path: '/v1/nodes/{node_ident}/history'
+  method: get
+  headers: *reader_headers
+  assert_status: 200
+  assert_list_length:
+    history: 1
+
+node_history_get_entry_admin:
+  path: '/v1/nodes/{node_ident}/history/{history_ident}'
+  method: get
+  headers: *admin_headers
+  assert_status: 200
+
+node_history_get_entry_member:
+  path: '/v1/nodes/{node_ident}/history/{history_ident}'
+  method: get
+  headers: *scoped_member_headers
+  assert_status: 200
+
+node_history_get_entry_reader:
+  path: '/v1/nodes/{node_ident}/history/{history_ident}'
+  method: get
+  headers: *reader_headers
+  assert_status: 200

@@ -7720,3 +7720,132 @@ class TestTraits(test_api_base.BaseApiTest):
                           headers={api_base.Version.string: "1.36"},
                           expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+
+
+class TestNodeHistory(test_api_base.BaseApiTest):
+
+    def setUp(self):
+        super(TestNodeHistory, self).setUp()
+        self.version = "1.78"
+        self.node = obj_utils.create_test_node(
+            self.context,
+            provision_state=states.AVAILABLE, name='node-54')
+        self.node.save()
+        self.node.obj_reset_changes()
+
+    def _add_history_entries(self):
+        self.event1 = objects.NodeHistory(node_id=self.node.id, event='meow',
+                                          conductor='cat-tree1',
+                                          user='peaches')
+        self.event1.create()
+        self.event2 = objects.NodeHistory(node_id=self.node.id, event='purr',
+                                          conductor='cat-tree2',
+                                          user='sage')
+        self.event2.create()
+        self.event3 = objects.NodeHistory(node_id=self.node.id,
+                                          event='g' + 'rrrr' * 64 + '!',
+                                          conductor='cat-tree3',
+                                          user='bella')
+        self.event3.create()
+
+    def test_get_all_history(self):
+        ret = self.get_json('/nodes/%s/history' % self.node.uuid,
+                            headers={api_base.Version.string: self.version})
+        self.assertEqual({'history': []}, ret)
+
+    def test_get_all_old_version(self):
+        ret = self.get_json('/nodes/%s/history' % self.node.uuid,
+                            headers={api_base.Version.string: "1.77"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+
+    def test_get_all_history_returns_entries(self):
+        self._add_history_entries()
+        ret = self.get_json('/nodes/%s/history' % self.node.uuid,
+                            headers={api_base.Version.string: self.version})
+        self.assertIn('history', ret)
+        entries = ret['history']
+        self.assertEqual(3, len(entries))
+        self.assertEqual('meow', entries[0]['event'])
+        self.assertEqual('purr', entries[1]['event'])
+        self.assertIn('grr', entries[2]['event'])
+        self.assertNotIn('r!', entries[2]['event'])
+        self.assertIn('...', entries[2]['event'])
+        for entry in [0, 1, 2]:
+            for field in ['conductor', 'user']:
+                self.assertNotIn(field, entries[entry])
+            self.assertIn('severity', entries[entry])
+
+    def test_get_all_history_returns_detail(self):
+        self._add_history_entries()
+        ret = self.get_json('/nodes/%s/history?detail=true' % self.node.uuid,
+                            headers={api_base.Version.string: self.version})
+        self.assertIn('history', ret)
+        entries = ret['history']
+        self.assertEqual(3, len(entries))
+        self.assertEqual('meow', entries[0]['event'])
+        self.assertEqual('purr', entries[1]['event'])
+        self.assertIn('grr', entries[2]['event'])
+        self.assertIn('r!', entries[2]['event'])
+        for entry in [0, 1, 2]:
+            for field in ['conductor', 'user', 'severity', 'event_type']:
+                self.assertIn(field, entries[entry])
+
+    def test_get_history_item(self):
+        self._add_history_entries()
+        record = self.get_json('/nodes/%s/history/%s' % (self.node.uuid,
+                                                         self.event1.uuid),
+                               headers={api_base.Version.string: self.version})
+        self.assertEqual(8, len(record))
+        expected_keys = ['created_at', 'links', 'event',
+                         'event_type', 'severity', 'user', 'uuid']
+        for key in expected_keys:
+            self.assertIn(key, record)
+        self.assertNotIn('updated_at', record)
+        self.assertEqual('cat-tree1', record['conductor'])
+        self.assertEqual('meow', record['event'])
+        self.assertEqual('peaches', record['user'])
+        self.assertEqual(self.event1.uuid, record['uuid'])
+
+    def test_get_history_item_not_found(self):
+        self._add_history_entries()
+        ret = self.get_json('/nodes/%s/history/52949728-59fc-'
+                            '4651-84c8-b0a16b469372' % self.node.uuid,
+                            headers={api_base.Version.string: self.version},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+
+    def test_get_history_item_old_version(self):
+        ret = self.get_json('/nodes/%s/history/1234' % self.node.uuid,
+                            headers={api_base.Version.string: "1.77"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+
+    def test_get_all_pagination(self):
+        self._add_history_entries()
+        # First request, initial request with a limit of 1.
+        ret = self.get_json('/nodes/%s/history?limit=1' % self.node.uuid,
+                            headers={api_base.Version.string: self.version})
+        self.assertIn('history', ret)
+        entries = ret['history']
+        self.assertEqual(1, len(entries))
+        result_uuid = entries[0]['uuid']
+        self.assertEqual(self.event1.uuid, result_uuid)
+        # Second request
+        ret = self.get_json('/nodes/%s/history?limit=1&marker=%s' %
+                            (self.node.uuid, result_uuid),
+                            headers={api_base.Version.string: self.version})
+        self.assertIn('history', ret)
+        entries = ret['history']
+        self.assertEqual(1, len(entries))
+        result_uuid = entries[0]['uuid']
+        self.assertEqual(self.event2.uuid, result_uuid)
+        # Third request
+        ret = self.get_json('/nodes/%s/history?limit=1&marker=%s' %
+                            (self.node.uuid, result_uuid),
+                            headers={api_base.Version.string: self.version})
+        self.assertIn('history', ret)
+        entries = ret['history']
+        self.assertEqual(1, len(entries))
+        result_uuid = entries[0]['uuid']
+        self.assertEqual(self.event3.uuid, result_uuid)

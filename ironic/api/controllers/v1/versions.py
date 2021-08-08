@@ -115,6 +115,7 @@ BASE_VERSION = 1
 # v1.75: Add boot_mode, secure_boot fields to node object.
 # v1.76: Add support for changing boot_mode and secure_boot state
 # v1.77: Add fields selector to drivers list and driver detail.
+# v1.78: Add node history endpoint
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -194,6 +195,7 @@ MINOR_74_BIOS_REGISTRY = 74
 MINOR_75_NODE_BOOT_MODE = 75
 MINOR_76_NODE_CHANGE_BOOT_MODE = 76
 MINOR_77_DRIVER_FIELDS_SELECTOR = 77
+MINOR_78_NODE_HISTORY = 78
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -201,7 +203,7 @@ MINOR_77_DRIVER_FIELDS_SELECTOR = 77
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_77_DRIVER_FIELDS_SELECTOR
+MINOR_MAX_VERSION = MINOR_78_NODE_HISTORY
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

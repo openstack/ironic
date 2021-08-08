@@ -74,6 +74,12 @@ driver_ident:
   in: path
   required: true
   type: string
+history_event_ident:
+  description: |
+    The UUID of a history event.
+  in: path
+  required: true
+  type: string
 hostname_ident:
   description: |
     The hostname of the conductor.
@@ -971,6 +977,36 @@ fault:
   in: body
   required: false
   type: string
+history_event:
+  description: |
+    The event message body which has been logged related to the node for
+    this error.
+  in: body
+  required: true
+  type: string
+history_event_type:
+  description: |
+    Short descriptive string to indicate where the error occurred at to
+    enable API users/System Operators to be able to identify repeated
+    issues in a particular area of operation, such as 'deployment',
+    'console', 'cleaning', 'monitoring'.
+  in: body
+  required: true
+  type: string
+history_severity:
+  description: |
+    Severity indicator for the event being returned. Typically this will
+    indicate if this was an Error or Informational entry.
+  in: body
+  required: true
+  type: string
+history_user_ident:
+  description: |
+    The UUID value representing the user whom appears to have caused
+    the recorded event.
+  in: body
+  required: true
+  type: string
 hostname:
   description: |
     The hostname of this conductor.
@@ -1122,6 +1158,12 @@ n_description:
   in: body
   required: true
   type: string
+n_history:
+  description: |
+    History events attached to this node.
+  in: body
+  required: true
+  type: array
 n_ind_state:
   description: |
     The state of an indicator of the component of the node. Possible values

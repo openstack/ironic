@@ -2,8 +2,17 @@
 REST API Version History
 ========================
 
-1.77
+1.78 (Xena, ?)
 ----------------------
+Add endpoints to allow history events for nodes to be retrieved via
+the REST API.
+
+* ``GET /v1/nodes/{node_ident}/history/``
+* ``GET /v1/nodes/{node_ident}/history/{event_uuid}``
+
+1.77 (Xena, ?)
+----------------------
+
 Add a fields selector to the the Drivers list:
 * ``GET /v1/drivers?fields=``
 Also add a fields selector to the the Driver detail:

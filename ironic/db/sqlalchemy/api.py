@@ -2319,7 +2319,7 @@ class Connection(api.Connection):
             raise exception.NodeHistoryNotFound(history=history_uuid)
 
     def get_node_history_list(self, limit=None, marker=None,
-                              sort_key=None, sort_dir=None):
+                              sort_key='created_at', sort_dir='asc'):
         return _paginate_query(models.NodeHistory, limit, marker, sort_key,
                                sort_dir)
 
