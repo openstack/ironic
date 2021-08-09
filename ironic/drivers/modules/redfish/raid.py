@@ -1,4 +1,5 @@
 # Copyright 2021 DMTF. All rights reserved.
+# Copyright (c) 2021 Dell Inc. or its subsidiaries.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -814,7 +815,8 @@ class RedfishRAID(base.RAIDInterface):
         logical_disks_to_create = _filter_logical_disks(
             logical_disks, create_root_volume, create_nonroot_volumes)
 
-        self.pre_create_configuration(task, logical_disks_to_create)
+        logical_disks_to_create = self.pre_create_configuration(
+            task, logical_disks_to_create)
 
         reboot_required = False
         raid_configs = list()
@@ -961,8 +963,9 @@ class RedfishRAID(base.RAIDInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :param logical_disks_to_create: list of logical disks to create.
+        :returns: updated list of logical disks to create.
         """
-        pass
+        return logical_disks_to_create
 
     def post_create_configuration(self, task, raid_configs, return_state=None):
         """Perform post create_configuration action to commit the config.

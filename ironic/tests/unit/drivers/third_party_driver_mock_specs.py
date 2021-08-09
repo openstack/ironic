@@ -1,5 +1,6 @@
 # Copyright 2015 Intel Corporation
 # All Rights Reserved.
+# Copyright (c) 2021 Dell Inc. or its subsidiaries.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -44,6 +45,12 @@ DRACCLIENT_CONSTANTS_REBOOT_REQUIRED_MOD_SPEC = (
 DRACCLIENT_CONSTANTS_RAID_STATUS_MOD_SPEC = (
     'jbod',
     'raid'
+)
+
+# sushy_oem_idrac
+SUSHY_OEM_IDRAC_MOD_SPEC = (
+    'PHYSICAL_DISK_STATE_MODE_RAID',
+    'PHYSICAL_DISK_STATE_MODE_NONRAID',
 )
 
 # proliantutils

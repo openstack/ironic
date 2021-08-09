@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes ``idrac-redfish`` RAID interface in ``create_configuration`` clean
+    step and ``apply_configuration`` deploy step when there are drives in
+    non-RAID mode. With this fix, non-RAID drives are converted to RAID mode
+    before creating virtual disks.
