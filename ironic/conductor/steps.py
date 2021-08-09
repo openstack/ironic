@@ -121,15 +121,22 @@ def _get_steps(task, interfaces, get_method, enabled=False,
     for interface in interfaces:
         interface = getattr(task.driver, interface)
         if interface:
-            interface_steps = [x for x in getattr(interface, get_method)(task)
-                               if not enabled or x['priority'] > 0]
+            # NOTE(janders) get all steps to start with, regardless of whether
+            # enabled is True and priority is zero or not; we need to apply
+            # priority overrides prior to filtering out disabled steps
+            interface_steps = [x for x in getattr(interface, get_method)(task)]
             steps.extend(interface_steps)
+    # Iterate over steps to apply prio overrides if set
     if prio_overrides is not None:
         for step in steps:
             override_key = '%(interface)s.%(step)s' % step
             override_value = prio_overrides.get(override_key)
             if override_value:
                 step["priority"] = int(override_value)
+    # NOTE(janders) If enabled is set to True, we filter out steps with zero
+    # priority now, after applying priority overrides
+    if enabled:
+        steps = [x for x in steps if not (x.get('priority') == 0)]
     if sort_step_key:
         steps = _sorted_steps(steps, sort_step_key)
     return steps
