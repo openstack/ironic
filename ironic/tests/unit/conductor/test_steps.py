@@ -768,6 +768,38 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
 
         self.assertEqual(expected_step_priorities, steps)
 
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps',
+                autospec=True)
+    def test__get_cleaning_steps_priority_override_disable(self,
+                                                           mock_power_steps,
+                                                           mock_deploy_steps):
+        # Test clean_step_priority_override
+        cfg.CONF.set_override('clean_step_priority_override',
+                              ["deploy.erase_disks:0",
+                               "power.update_firmware:0",
+                               "deploy.update_firmware:0", ],
+                              'conductor')
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=states.AVAILABLE)
+
+        mock_power_steps.return_value = [self.power_update]
+        mock_deploy_steps.return_value = [self.deploy_erase,
+                                          self.deploy_update,
+                                          self.deploy_raid]
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=True) as task:
+            steps = conductor_steps._get_cleaning_steps(task, enabled=True)
+
+        expected_step_priorities = []
+
+        self.assertEqual(expected_step_priorities, steps)
+
     @mock.patch.object(conductor_steps, '_validate_user_clean_steps',
                        autospec=True)
     @mock.patch.object(conductor_steps, '_get_cleaning_steps', autospec=True)
