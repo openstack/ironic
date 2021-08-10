@@ -30,9 +30,8 @@ sushy = importutils.try_import('sushy')
 
 LOG = log.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
-SUBSCRIPTION_FIELDS_REMOVE = {
-    '@odata.context', '@odate.etag', '@odata.id', '@odata.type',
-    'HttpHeaders', 'Oem', 'Name', 'Description'
+SUBSCRIPTION_COMMON_FIELDS = {
+    'Id', 'Context', 'Protocol', 'Destination', 'EventTypes'
 }
 
 
@@ -111,8 +110,10 @@ class RedfishVendorPassthru(base.VendorInterface):
         """Verify that the args input are valid."""
         destination = kwargs.get('Destination')
         event_types = kwargs.get('EventTypes')
-        context = kwargs.get('Context')
-        protocol = kwargs.get('Protocol')
+        # NOTE(iurygregory): Use defaults values from Redfish in case they
+        # are not present in the args.
+        context = kwargs.get('Context', "")
+        protocol = kwargs.get('Protocol', "Redfish")
 
         if event_types is not None:
             event_service = redfish_utils.get_event_service(task.node)
@@ -147,7 +148,7 @@ class RedfishVendorPassthru(base.VendorInterface):
 
     def _filter_subscription_fields(self, subscription_json):
         filter_subscription = {k: v for k, v in subscription_json.items()
-                               if k not in SUBSCRIPTION_FIELDS_REMOVE}
+                               if k in SUBSCRIPTION_COMMON_FIELDS}
         return filter_subscription
 
     @METRICS.timer('RedfishVendorPassthru.create_subscription')
@@ -196,7 +197,7 @@ class RedfishVendorPassthru(base.VendorInterface):
                                  "Required argument: a dictionary of "
                                  "{'id': 'subscription_bmc_id'}"))
     def delete_subscription(self, task, **kwargs):
-        """Creates a subscription.
+        """Delete a subscription.
 
         :param task: A TaskManager object.
         :param kwargs: The arguments sent with vendor passthru.
@@ -225,7 +226,7 @@ class RedfishVendorPassthru(base.VendorInterface):
                                                   'node': task.node.uuid,
                                                   'error': e})
             LOG.error(error_msg)
-            raise exception.RedfishError(error=error_msg)
+            raise exception.RedfishError(error=error_msg, code=404)
 
     @METRICS.timer('RedfishVendorPassthru.get_subscriptions')
     @base.passthru(['GET'], async_call=False,
