@@ -649,6 +649,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         node.driver_internal_info = driver_internal_info
 
     @METRICS.timer('DracRedfishManagement.clear_job_queue')
+    @base.verify_step(priority=0)
     @base.clean_step(priority=0)
     def clear_job_queue(self, task):
         """Clear iDRAC job queue.
@@ -662,6 +663,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
             lambda m: m.job_service.delete_jobs(job_ids=['JID_CLEARALL']))
 
     @METRICS.timer('DracRedfishManagement.reset_idrac')
+    @base.verify_step(priority=0)
     @base.clean_step(priority=0)
     def reset_idrac(self, task):
         """Reset the iDRAC.
@@ -677,6 +679,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                  {'node': task.node.uuid})
 
     @METRICS.timer('DracRedfishManagement.known_good_state')
+    @base.verify_step(priority=0)
     @base.clean_step(priority=0)
     def known_good_state(self, task):
         """Reset iDRAC to known good state.
@@ -799,6 +802,7 @@ class DracWSManManagement(base.ManagementInterface):
         raise NotImplementedError()
 
     @METRICS.timer('DracManagement.reset_idrac')
+    @base.verify_step(priority=0)
     @base.clean_step(priority=0)
     def reset_idrac(self, task):
         """Reset the iDRAC.
@@ -813,6 +817,7 @@ class DracWSManManagement(base.ManagementInterface):
         client.reset_idrac(force=True, wait=True)
 
     @METRICS.timer('DracManagement.known_good_state')
+    @base.verify_step(priority=0)
     @base.clean_step(priority=0)
     def known_good_state(self, task):
         """Reset the iDRAC, Clear the job queue.
@@ -828,6 +833,7 @@ class DracWSManManagement(base.ManagementInterface):
         client.delete_jobs(job_ids=[_CLEAR_JOB_IDS])
 
     @METRICS.timer('DracManagement.clear_job_queue')
+    @base.verify_step(priority=0)
     @base.clean_step(priority=0)
     def clear_job_queue(self, task):
         """Clear the job queue.
