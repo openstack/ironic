@@ -79,7 +79,7 @@ Then launch the test with:
 
 .. code-block:: console
 
-   baremetal node clean --clean-steps '[{"step": "burnin_vm", \
+   baremetal node clean --clean-steps '[{"step": "burnin_memory", \
        "interface": "deploy"}]' $NODE_NAME_OR_UUID
 
 Disk burn-in
