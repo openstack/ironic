@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Resolve issue where ``[conductor]clean_step_priority_override`` values
+    are applied too late, after disabled steps have been already filtered out.
+    With this change, priority overrides are applied prior to filtering out
+    disabled steps, so that this configuration option can use used to enable
+    or disable steps (in particular clean steps) in addition to changing
+    priorities they are run with.
