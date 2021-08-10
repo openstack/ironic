@@ -1587,7 +1587,7 @@ class Connection(api.Connection):
                     model.version.notin_(versions)))
         return query.all()
 
-    def check_versions(self, ignore_models=()):
+    def check_versions(self, ignore_models=(), permit_initial_version=False):
         """Checks the whole database for incompatible objects.
 
         This scans all the tables in search of objects that are not supported;
@@ -1596,10 +1596,16 @@ class Connection(api.Connection):
         that have null 'version' values.
 
         :param ignore_models: List of model names to skip.
+        :param permit_initial_version: Boolean, default False, to permit a
+                                       NoSuchTableError exception to be raised
+                                       by SQLAlchemy and accordingly bypass
+                                       when an object has it's initial object
+                                       version.
         :returns: A Boolean. True if all the objects have supported versions;
                   False otherwise.
         """
         object_versions = release_mappings.get_object_versions()
+        table_missing_ok = False
         for model in models.Base.__subclasses__():
             if model.__name__ not in object_versions:
                 continue
@@ -1611,16 +1617,36 @@ class Connection(api.Connection):
             if not supported_versions:
                 continue
 
+            if permit_initial_version and supported_versions == {'1.0'}:
+                # We're getting called from someplace it is okay to handle
+                # a missing table, i.e. database upgrades which will create
+                # the table *and* the field version is 1.0, which means we
+                # are likely about to *create* the table, but first have to
+                # pass the version/compatability checking logic.
+                table_missing_ok = True
+
             # NOTE(mgagne): Additional safety check to detect old database
             # version which does not have the 'version' columns available.
             # This usually means a skip version upgrade is attempted
             # from a version earlier than Pike which added
             # those columns required for the next check.
-            engine = enginefacade.reader.get_engine()
-            if not db_utils.column_exists(engine,
-                                          model.__tablename__,
-                                          model.version.name):
-                raise exception.DatabaseVersionTooOld()
+            try:
+                engine = enginefacade.reader.get_engine()
+                if not db_utils.column_exists(engine,
+                                              model.__tablename__,
+                                              model.version.name):
+                    raise exception.DatabaseVersionTooOld()
+            except sa.exc.NoSuchTableError:
+                if table_missing_ok:
+                    # This is to be expected, it is okay. Moving along.
+                    LOG.warning('Observed missing table while performing '
+                                'upgrade version checking. This is not fatal '
+                                'as the expected version is only 1.0 and '
+                                'the check has been called before the table '
+                                'is to be created. Model: %s',
+                                model.__tablename__)
+                    continue
+                raise
 
             # NOTE(rloo): we use model.version, not model, because we
             #             know that the object has a 'version' column

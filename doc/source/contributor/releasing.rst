@@ -329,8 +329,6 @@ We need to submit patches for changes on master to:
     are used to migrate from an old release to this latest release; they
     shouldn't be needed after that.)
 
-  * remove any model class names from ``ironic.cmd.dbsync.NEW_MODELS``.
-
 When a release is done that results in a bugfix branch
 ------------------------------------------------------
 

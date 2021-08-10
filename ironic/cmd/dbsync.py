@@ -68,11 +68,6 @@ ONLINE_MIGRATIONS = (
     (dbapi, 'update_to_latest_versions'),
 )
 
-# These are the models added in supported releases. We skip the version check
-# for them since the tables do not exist when it happens.
-NEW_MODELS = [
-]
-
 
 class DBCommand(object):
 
@@ -89,14 +84,10 @@ class DBCommand(object):
             # no tables, nothing to check
             return
 
-        if ignore_missing_tables:
-            ignore_models = NEW_MODELS
-        else:
-            ignore_models = ()
-
         msg = None
         try:
-            if not dbapi.check_versions(ignore_models=ignore_models):
+            if not dbapi.check_versions(
+                    permit_initial_version=ignore_missing_tables):
                 msg = (_('The database is not compatible with this '
                          'release of ironic (%s). Please run '
                          '"ironic-dbsync online_data_migrations" using '
