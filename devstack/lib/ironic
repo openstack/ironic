@@ -2202,7 +2202,7 @@ function wait_for_nova_resources {
     for i in $(seq 1 12); do
         # Fetch provider UUIDs from Placement
         local providers
-        providers=$(curl -sH "X-Auth-Token: $token" $endpoint/resource_providers \
+        providers=$(curl --noproxy '*' -sH "X-Auth-Token: $token" $endpoint/resource_providers \
             | jq -r '.resource_providers[].uuid')
 
         local p
@@ -2213,13 +2213,13 @@ function wait_for_nova_resources {
             # A resource class inventory record looks something like
             # {"max_unit": 1, "min_unit": 1, "step_size": 1, "reserved": 0, "total": 1, "allocation_ratio": 1}
             # Subtrack reserved from total (defaulting both to 0)
-            amount=$(curl -sH "X-Auth-Token: $token" $endpoint/resource_providers/$p/inventories \
+            amount=$(curl --noproxy '*' -sH "X-Auth-Token: $token" $endpoint/resource_providers/$p/inventories \
                 | jq ".inventories.CUSTOM_$resource_class as \$cls
                     | (\$cls.total // 0) - (\$cls.reserved // 0)")
 
             # Check whether the resource provider has all expected traits
             # registered against it.
-            rp_traits=$(curl -sH "X-Auth-Token: $token" \
+            rp_traits=$(curl --noproxy '*' -sH "X-Auth-Token: $token" \
                 -H "OpenStack-API-Version: placement 1.6" \
                 $endpoint/resource_providers/$p/traits)
             for trait in $IRONIC_DEFAULT_TRAITS; do
