@@ -2,6 +2,13 @@
 REST API Version History
 ========================
 
+1.77
+----------------------
+Add a fields selector to the the Drivers list:
+* ``GET /v1/drivers?fields=``
+Also add a fields selector to the the Driver detail:
+* ``GET /v1/drivers/{driver_name}?fields=``
+
 1.76 (Xena, ?)
 ----------------------
 Add endpoints for changing boot mode and secure boot state of node

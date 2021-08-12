@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds support for fields selector in driver api.
+    See `story 1674775
+    <https://storyboard.openstack.org/#!/story/1674775>`_.
+
+    * ``GET /v1/drivers?fields=...``
+    * ``GET /v1/drivers/{driver_name}?fields=...``

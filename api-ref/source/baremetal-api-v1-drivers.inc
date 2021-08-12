@@ -49,6 +49,9 @@ List drivers
 
 Lists all drivers.
 
+.. versionadded:: 1.77
+  Added ``fields`` selector to query for particular fields.
+
 Normal response codes: 200
 
 Request
@@ -58,6 +61,7 @@ Request
 
     - type: driver_type
     - detail: driver_detail
+    - fields: fields
 
 Response Parameters
 -------------------
@@ -125,6 +129,9 @@ Show driver details
 
 Shows details for a driver.
 
+.. versionadded:: 1.77
+  Added ``fields`` selector to query for particular fields.
+
 Normal response codes: 200
 
 Request
@@ -133,6 +140,7 @@ Request
 .. rest_parameters:: parameters.yaml
 
    - driver_name: driver_ident
+   - fields: fields
 
 Response Parameters
 -------------------

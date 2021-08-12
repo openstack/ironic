@@ -274,6 +274,77 @@ class TestListDrivers(base.BaseApiTest):
         response = self.get_json('/drivers/nope', expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
 
+    def test_drivers_collection_custom_fields(self):
+        self.register_fake_conductors()
+        fields = "name,hosts"
+        data = self.get_json('/drivers?fields=%s' % fields,
+                             headers={api_base.Version.string: '1.77'})
+        for data_driver in data['drivers']:
+            self.assertCountEqual(['name', 'hosts', 'links'], data_driver)
+
+    def test_get_one_custom_fields(self):
+        self.register_fake_conductors()
+        driver = self.hw1
+        fields = "name,hosts"
+        data = self.get_json('/drivers/%s?fields=%s' % (driver, fields),
+                             headers={api_base.Version.string: '1.77'})
+        self.assertCountEqual(['name', 'hosts', 'links'], data)
+
+    def test_get_custom_fields_invalid_api_version(self):
+        self.register_fake_conductors()
+        driver = self.hw1
+        fields = "name,hosts"
+
+        response = self.get_json('/drivers?fields=%s' % fields,
+                                 headers={api_base.Version.string: '1.76'},
+                                 expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+        response = self.get_json('/drivers/%s?fields=%s' % (driver, fields),
+                                 headers={api_base.Version.string: '1.76'},
+                                 expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_drivers_collection_custom_fields_with_detail_true(self):
+        self.register_fake_conductors()
+        fields = "name,hosts"
+        response = self.get_json('/drivers?detail=true&fields=%s' % fields,
+                                 headers={api_base.Version.string: '1.77'},
+                                 expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_drivers_collection_custom_fields_with_detail_false(self):
+        self.register_fake_conductors()
+        fields = "name,hosts"
+        data = self.get_json('/drivers?fields=%s&detail=false' % fields,
+                             headers={api_base.Version.string: '1.77'})
+        for data_driver in data['drivers']:
+            self.assertCountEqual(['name', 'hosts', 'links'], data_driver)
+
+    def test_drivers_collection_invalid_custom_fields(self):
+        self.register_fake_conductors()
+        fields = "name,invalid"
+        response = self.get_json('/drivers?fields=%s' % fields,
+                                 headers={api_base.Version.string: '1.77'},
+                                 expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertIn('invalid', response.json['error_message'])
+
+    def test_get_one_invalid_custom_fields(self):
+        self.register_fake_conductors()
+        driver = self.hw1
+        fields = "name,invalid"
+        response = self.get_json('/drivers/%s?fields=%s' % (driver, fields),
+                                 headers={api_base.Version.string: '1.77'},
+                                 expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertEqual('application/json', response.content_type)
+        self.assertIn('invalid', response.json['error_message'])
+
     def _test_links(self, public_url=None):
         cfg.CONF.set_override('public_endpoint', public_url, 'api')
         self.register_fake_conductors()
