@@ -55,6 +55,8 @@ The hardware type ``ilo`` supports following HPE server features:
 * `Updating security parameters as manual clean step`_
 * `Update Minimum Password Length security parameter as manual clean step`_
 * `Update Authentication Failure Logging security parameter as manual clean step`_
+* `Create Certificate Signing Request(CSR) as manual clean step`_
+* `Add HTTPS Certificate as manual clean step`_
 * `Activating iLO Advanced license as manual clean step`_
 * `Removing CA certificates from iLO as manual clean step`_
 * `Firmware based UEFI iSCSI boot from volume support`_
@@ -751,6 +753,12 @@ Supported **Manual** Cleaning Operations
   ``update_auth_failure_logging_threshold``:
     Updates the Authentication Failure Logging security parameter. See
     `Update Authentication Failure Logging security parameter as manual clean step`_ for user guidance on usage.
+  ``create_csr``:
+    Creates the certificate signing request. See `Create Certificate Signing Request(CSR) as manual clean step`_
+    for user guidance on usage.
+  ``add_https_certificate``:
+    Adds the signed HTTPS certificate to the iLO. See `Add HTTPS Certificate as manual clean step`_ for user
+    guidance on usage.
 
 * iLO with firmware version 1.5 is minimally required to support all the
   operations.
@@ -1647,6 +1655,54 @@ Both the arguments ``logging_threshold`` and ``ignore`` are optional. The accept
 0 to 5. If user doesn't pass any value, the default value for logging_threshold will be 1 and for ignore the default
 value be False. If user passes the value of logging_threshold as 0, the Authentication Failure Logging security
 parameter will be disabled.
+
+Create Certificate Signing Request(CSR) as manual clean step
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+iLO driver can invoke ``create_csr`` request as a manual clean step. This step is only supported for iLO5 based hardware.
+
+An example of a manual clean step with ``create_csr`` as the only clean step could be::
+
+    "clean_steps": [{
+        "interface": "management",
+        "step": "create_csr",
+        "args": {
+            "csr_params": {
+                "City": "Bengaluru",
+                "CommonName": "1.1.1.1",
+                "Country": "India",
+                "OrgName": "HPE",
+                "State": "Karnataka"
+            }
+        }
+    }]
+
+The ``[ilo]cert_path`` option in ``ironic.conf`` is used as the directory path for
+creating the CSR, which defaults to ``/var/lib/ironic/ilo``. The CSR is created in the directory location
+given in ``[ilo]cert_path`` in ``node_uuid`` directory as <node_uuid>.csr.
+
+
+Add HTTPS Certificate as manual clean step
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+iLO driver can invoke ``add_https_certificate`` request as a manual clean step. This step is only supported for
+iLO5 based hardware.
+
+An example of a manual clean step with ``add_https_certificate`` as the only clean step could be::
+
+    "clean_steps": [{
+        "interface": "management",
+        "step": "add_https_certificate",
+        "args": {
+            "cert_file": "/test1/iLO.crt"
+        }
+    }]
+
+Argument ``cert_file`` is mandatory. The ``cert_file`` takes the path or url of the certificate file.
+The url schemes supported are: ``file``, ``http`` and ``https``.
+The CSR generated in step ``create_csr`` needs to be signed by a valid CA and the resultant HTTPS certificate should
+be provided in ``cert_file``. It copies the ``cert_file`` to ``[ilo]cert_path`` under ``node.uuid`` as <node_uuid>.crt
+before adding it to iLO.
 
 RAID Support
 ^^^^^^^^^^^^
