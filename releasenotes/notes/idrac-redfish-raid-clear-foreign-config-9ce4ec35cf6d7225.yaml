@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes ``idrac-redfish`` RAID interface ``delete_configuration``
+    clean/deploy step for controllers having foreign physical disks. Now
+    foreign configuration is cleared after deleting virtual disks.
