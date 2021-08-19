@@ -1,6 +1,6 @@
-===================================
-Power Sync with the Compute Service
-===================================
+=====================
+Power Synchronization
+=====================
 
 Baremetal Power Sync
 ====================
@@ -10,8 +10,24 @@ value of the :oslo.config:option:`conductor.force_power_state_during_sync`
 option is set to ``true`` the power state in the database will be forced on
 the hardware and if it is set to ``false`` the hardware state will be forced
 on the database. If this periodic task is enabled, it runs at an interval
-defined by the :oslo.config:option:`conductor.sync_power_state_interval` config
-option for those nodes which are not in maintenance.
+defined by the :oslo.config:option:`conductor.sync_power_state_interval`
+config option for those nodes which are not in maintenance. The requests sent
+to Baseboard Management Controllers (BMCs) are done with a parallelism
+controlled by :oslo.config:option:`conductor.sync_power_state_workers`.
+The motivation to send out requests to BMCs in parallel is to handle
+misbehaving BMCs which may delay or even block the synchronization otherwise.
+
+.. note::
+    In deployments with many nodes and IPMI as the configured BMC protocol,
+    the default values of a 60 seconds power sync interval and 8 worker
+    threads may lead to a high rate of required retries due to client-side UDP
+    packet loss (visible via the corresponding warnings in the conductor
+    logs). While Ironic automatically retries to get the power status
+    for the affected nodes, the failure rate may be reduced by increasing
+    the power sync cycle, e.g. to 300 seconds, and/or by reducing the number
+    of power sync workers, e.g. to 2. Pleae keep in mind, however, that
+    depending on the concrete setup increasing the power sync interval may
+    have an impact on other components relying on up-to-date power states.
 
 Compute-Baremetal Power Sync
 ============================

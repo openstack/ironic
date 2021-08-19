@@ -26,7 +26,7 @@ the services.
    Upgrade Guide <upgrade-guide>
    Security <security>
    Troubleshooting FAQ <troubleshooting>
-   Power Sync with the Compute Service <power-sync>
+   Power Synchronization <power-sync>
    Node Multi-Tenancy <node-multitenancy>
    Fast-Track Deployment <fast-track>
    Booting a Ramdisk or an ISO <ramdisk-boot>
