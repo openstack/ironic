@@ -25,6 +25,8 @@ import time
 
 from futurist import periodics
 from ironic_lib import metrics_utils
+import jsonschema
+from jsonschema import exceptions as json_schema_exc
 from oslo_log import log as logging
 from oslo_utils import importutils
 
@@ -92,6 +94,23 @@ _CLEAR_JOB_IDS = 'JID_CLEARALL'
 
 # Clean steps constant
 _CLEAR_JOBS_CLEAN_STEPS = ['clear_job_queue', 'known_good_state']
+
+_CONF_MOLD_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'oem': {
+            'type': 'object',
+            'properties': {
+                'interface': {'const': 'idrac-redfish'},
+                'data': {'type': 'object', 'minProperties': 1}
+            },
+            'required': ['interface', 'data']
+        }
+
+    },
+    'required': ['oem'],
+    'additionalProperties': False
+}
 
 
 def _get_boot_device(node, drac_boot_devices=None):
@@ -184,6 +203,19 @@ def _flexibly_program_boot_order(device, drac_boot_mode):
         bios_settings = {'SetBootOrderFqdd1': 'Optical.*.*'}
 
     return bios_settings
+
+
+def _validate_conf_mold(data):
+    """Validates iDRAC configuration mold JSON schema
+
+    :param data: dictionary of configuration mold data
+    :raises InvalidParameterValue: If configuration mold validation fails
+    """
+    try:
+        jsonschema.validate(data, _CONF_MOLD_SCHEMA)
+    except json_schema_exc.ValidationError as e:
+        raise exception.InvalidParameterValue(
+            _("Invalid configuration mold: %(error)s") % {'error': e})
 
 
 def set_boot_device(node, device, persistent=False):
@@ -407,15 +439,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                        {'node': task.node.uuid,
                         'configuration_name': import_configuration_location}))
 
-        interface = configuration["oem"]["interface"]
-        if interface != "idrac-redfish":
-            raise exception.DracOperationError(
-                error=(_("Invalid configuration for node %(node)s "
-                         "in %(configuration_name)s. Supports only "
-                         "idrac-redfish, but found %(interface)s") %
-                       {'node': task.node.uuid,
-                        'configuration_name': import_configuration_location,
-                        'interface': interface}))
+        _validate_conf_mold(configuration)
 
         task_monitor = drac_utils.execute_oem_manager_method(
             task, 'import system configuration',
