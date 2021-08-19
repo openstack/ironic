@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Retries ``ssl.SSLError`` when connecting to the agent.

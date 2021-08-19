@@ -14,6 +14,7 @@
 
 from http import client as http_client
 import json
+import ssl
 from unittest import mock
 
 import requests
@@ -816,10 +817,11 @@ class TestAgentClientAttempts(base.TestCase):
         method = 'standby.run_image'
         image_info = {'image_id': 'test_image'}
         params = {'image_info': image_info}
-        self.client.session.post.side_effect = [requests.Timeout(error),
-                                                requests.Timeout(error),
-                                                requests.Timeout(error),
-                                                requests.Timeout(error)]
+        self.client.session.post.side_effect = [
+            requests.Timeout(error),
+            ssl.SSLError('timed out'),
+            requests.ConnectionError(error),
+            requests.Timeout(error)]
         self.client._get_command_url(self.node)
         self.client._get_command_body(method, params)
 
@@ -840,7 +842,7 @@ class TestAgentClientAttempts(base.TestCase):
         image_info = {'image_id': 'test_image'}
         params = {'image_info': image_info}
         self.client.session.post.side_effect = [requests.Timeout(error),
-                                                requests.Timeout(error),
+                                                ssl.SSLError('timed out'),
                                                 MockResponse(response_data)]
 
         response = self.client._command(self.node, method, params)
