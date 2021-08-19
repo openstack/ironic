@@ -81,7 +81,17 @@ def get_configuration(task, url):
     auth_header = _get_auth_header(task)
     response = _request(url, auth_header)
     if response.status_code == requests.codes.ok:
-        return response.json()
+        if not response.content:
+            raise exception.IronicException(_(
+                "Configuration mold for node %(node_uuid)s at %(url)s is "
+                "empty") % {'node_uuid': task.node.uuid, 'url': url})
+        try:
+            return response.json()
+        except json.decoder.JSONDecodeError as jde:
+            raise exception.IronicException(_(
+                "Configuration mold for node %(node_uuid)s at %(url)s has "
+                "invalid JSON: %(error)s)")
+                % {'node_uuid': task.node.uuid, 'url': url, 'error': jde})
 
     response.raise_for_status()
 
