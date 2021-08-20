@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fix ``idrac-redfish`` clean/deploy step ``import_configuration`` to handle
+    completed import configuration tasks that are deleted by iDRAC before
+    Ironic has checked task's status.
+    Prior iDRAC firmware version 5.00.00.00 completed tasks are deleted after
+    1 minute in iDRAC Redfish. That is not always sufficient to check for
+    their status in periodic check that runs every minute by default. Before
+    this fix node got stuck in wait mode forever. This is fixed by failing the
+    step with error informing to decrease periodic check interval or upgrade
+    iDRAC firmware if not done already.
