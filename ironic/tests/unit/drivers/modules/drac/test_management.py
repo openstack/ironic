@@ -1150,13 +1150,92 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
                 task.node.driver_internal_info.get('import_task_monitor_url'))
 
     @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test__check_import_configuration_task_partial_failed(
+            self, mock_get_task_monitor):
+        driver_internal_info = {'import_task_monitor_url': '/TaskService/123'}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        mock_message1 = mock.Mock()
+        mock_message1.message_id = 'SYS413'
+        mock_message1.message = 'The operation successfully completed'
+        mock_message1.severity = sushy.SEVERITY_OK
+        mock_message2 = mock.Mock()
+        mock_message2.message_id = 'SYS055'
+        mock_message2.message = 'Firmware upgrade failed'
+        mock_message2.severity = sushy.SEVERITY_CRITICAL
+        mock_import_task = mock.Mock()
+        mock_import_task.task_state = sushy.TASK_STATE_COMPLETED
+        mock_import_task.task_status = sushy.HEALTH_OK
+        mock_import_task.messages = [mock_message1, mock_message2]
+        mock_task_monitor = mock.Mock()
+        mock_task_monitor.is_processing = False
+        mock_task_monitor.get_task.return_value = mock_import_task
+        mock_get_task_monitor.return_value = mock_task_monitor
+
+        self.management._set_success = mock.Mock()
+        self.management._set_failed = mock.Mock()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.management._check_import_configuration_task(
+                task, '/TaskService/123')
+
+            self.management._set_failed.assert_called_once_with(
+                task, mock.ANY,
+                "Failed import configuration task: /TaskService/123. Message: "
+                "'Firmware upgrade failed'.")
+            self.management._set_success.assert_not_called()
+            self.assertIsNone(
+                task.node.driver_internal_info.get('import_task_monitor_url'))
+
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test__check_import_configuration_task_partial_failed_idrac5(
+            self, mock_get_task_monitor):
+        driver_internal_info = {'import_task_monitor_url': '/TaskService/123'}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        mock_message1 = mock.Mock()
+        mock_message1.message = ('Import of Server Configuration Profile '
+                                 'operation completed with errors')
+        mock_message1.message_id = 'IDRAC.2.4.SYS055'
+        mock_import_task = mock.Mock()
+        mock_import_task.task_state = sushy.TASK_STATE_COMPLETED
+        mock_import_task.task_status = sushy.HEALTH_OK
+        mock_import_task.messages = [mock_message1]
+        mock_task_monitor = mock.Mock()
+        mock_task_monitor.is_processing = False
+        mock_task_monitor.get_task.return_value = mock_import_task
+        mock_get_task_monitor.return_value = mock_task_monitor
+
+        self.management._set_success = mock.Mock()
+        self.management._set_failed = mock.Mock()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.management._check_import_configuration_task(
+                task, '/TaskService/123')
+
+            self.management._set_failed.assert_called_once_with(
+                task, mock.ANY,
+                "Failed import configuration task: /TaskService/123. Message: "
+                "'Import of Server Configuration Profile "
+                "operation completed with errors'.")
+            self.management._set_success.assert_not_called()
+            self.assertIsNone(
+                task.node.driver_internal_info.get('import_task_monitor_url'))
+
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
     def test__check_import_configuration_task(self, mock_get_task_monitor):
         driver_internal_info = {'import_task_monitor_url': '/TaskService/123'}
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
 
         mock_message = mock.Mock()
+        mock_message.message_id = 'SYS413'
         mock_message.message = 'Configuration import done'
+        mock_message.severity = sushy.SEVERITY_OK
         mock_import_task = mock.Mock()
         mock_import_task.task_state = sushy.TASK_STATE_COMPLETED
         mock_import_task.task_status = sushy.HEALTH_OK
@@ -1189,7 +1268,9 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
         self.node.save()
 
         mock_message = mock.Mock()
+        mock_message.message_id = 'SYS413'
         mock_message.message = 'Configuration import done'
+        mock_message.severity = sushy.SEVERITY_OK
         mock_import_task = mock.Mock()
         mock_import_task.task_state = sushy.TASK_STATE_COMPLETED
         mock_import_task.task_status = sushy.HEALTH_OK
@@ -1232,7 +1313,9 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
         self.node.save()
 
         mock_message = mock.Mock()
+        mock_message.message_id = 'SYS413'
         mock_message.message = 'Configuration import done'
+        mock_message.severity = sushy.SEVERITY_OK
         mock_import_task = mock.Mock()
         mock_import_task.task_state = sushy.TASK_STATE_COMPLETED
         mock_import_task.task_status = sushy.HEALTH_OK

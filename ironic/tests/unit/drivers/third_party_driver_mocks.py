@@ -228,7 +228,10 @@ if not sushy:
         HEALTH_WARNING='warning',
         SECURE_BOOT_RESET_KEYS_TO_DEFAULT="ResetAllKeysToDefault",
         SECURE_BOOT_RESET_KEYS_DELETE_ALL="DeleteAllKeys",
-        VOLUME_TYPE_RAW_DEVICE='rawdevice'
+        VOLUME_TYPE_RAW_DEVICE='rawdevice',
+        SEVERITY_OK='ok',
+        SEVERITY_WARNING='warning',
+        SEVERITY_CRITICAL='critical'
     )
 
     sys.modules['sushy'] = sushy
