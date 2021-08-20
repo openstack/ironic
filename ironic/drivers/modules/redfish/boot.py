@@ -627,11 +627,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         del managers
 
-        persistent = True
-        if node.driver_info.get('force_persistent_boot_device',
-                                'Default') == 'Never':
-            persistent = False
-        self._set_boot_device(task, boot_devices.CDROM, persistent=persistent)
+        self._set_boot_device(task, boot_devices.CDROM, persistent=True)
 
         LOG.debug("Node %(node)s is set to permanently boot from "
                   "%(device)s", {'node': task.node.uuid,
