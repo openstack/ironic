@@ -1088,6 +1088,25 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             ._check_import_configuration_task
             .assert_called_once_with(task, '/TaskService/123'))
 
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test__check_import_configuration_task_missing(
+            self, mock_get_task_monitor):
+        mock_get_task_monitor.side_effect = exception.RedfishError(
+            error='Task not found')
+        self.management._set_success = mock.Mock()
+        self.management._set_failed = mock.Mock()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.management._check_import_configuration_task(
+                task, '/TaskService/123')
+
+            self.management._set_failed.assert_called_once_with(
+                task, mock.ANY, mock.ANY)
+            self.management._set_success.assert_not_called()
+            self.assertIsNone(
+                task.node.driver_internal_info.get('import_task_monitor_url'))
+
     @mock.patch.object(drac_mgmt.LOG, 'debug', autospec=True)
     @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
     def test__check_import_configuration_task_still_processing(
