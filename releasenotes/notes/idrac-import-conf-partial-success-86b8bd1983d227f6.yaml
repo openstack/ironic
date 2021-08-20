@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes issue in ``idrac-redfish`` clean/deploy step ``import_configuration``
+    where partially successful jobs were treated as fully successful. Such
+    jobs, completed with errors, are now treated as failures.
