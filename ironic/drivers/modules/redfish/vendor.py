@@ -137,8 +137,14 @@ class RedfishVendorPassthru(base.VendorInterface):
 
         try:
             parsed = rfc3986.uri_reference(destination)
-            if not parsed.is_valid(require_scheme=True,
-                                   require_authority=True):
+            validator = rfc3986.validators.Validator().require_presence_of(
+                'scheme', 'host',
+            ).check_validity_of(
+                'scheme', 'userinfo', 'host', 'path', 'query', 'fragment',
+            )
+            try:
+                validator.validate(parsed)
+            except rfc3986.exceptions.RFC3986Exception:
                 # NOTE(iurygregory): raise error because the parsed
                 # destination does not contain scheme or authority.
                 raise TypeError
