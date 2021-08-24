@@ -189,6 +189,18 @@ of the data model to handle cases such as upgrades, the entire result set
 is downloaded and transformed which is an overhead you do not experience with
 a command line database client.
 
+BMC interaction
+===============
+
+In its default configuration, Ironic runs a periodic task to synchronize the
+power state of the managed physical nodes with the Ironic database. For the
+hardware type ``ipmi`` (see :doc:`/admin/drivers/ipmitool`) and depending on
+the number of nodes, the network connectivity, and the parallelism of these
+queries, this synchronization may fail and retries will be triggered. Please
+find more details on the power synchronization and which options to adapt in
+case too many power sync failures occur in the section on
+:doc:`/admin/power-sync`.
+
 What can I do?
 ==============
 
