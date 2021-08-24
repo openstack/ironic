@@ -835,11 +835,11 @@ class NodeStatesController(rest.RestController):
         """Asynchronous set the boot mode of the node.
 
         :param node_ident: the UUID or logical name of a node.
-        :param target: The desired boot_mode for the node. (uefi/bios)
-        :raises: NotFound (HTTP 404) if requested version of the API
-                 is less than 1.76.
+        :param target: The desired boot_mode for the node (uefi/bios).
         :raises: InvalidParameterValue (HTTP 400) if the requested target
                  state is not valid.
+        :raises: NotFound (HTTP 404) if requested version of the API
+                 is less than 1.76.
         :raises: Conflict (HTTP 409) if a node is in adopting state or
                  another transient state.
 
@@ -871,8 +871,7 @@ class NodeStatesController(rest.RestController):
                     ". Try again later.")
             raise exception.Conflict(msg,
                                      action=target, node=node_ident,
-                                     state=rpc_node.provision_state
-                                     )
+                                     state=rpc_node.provision_state)
         api.request.rpcapi.change_node_boot_mode(api.request.context,
                                                  rpc_node.uuid, target,
                                                  topic=topic)
@@ -887,11 +886,11 @@ class NodeStatesController(rest.RestController):
         """Asynchronous set the secure_boot state of the node.
 
         :param node_ident: the UUID or logical name of a node.
-        :param target: The desired secure_boot for the node. (True/False)
-        :raises: NotFound (HTTP 404) if requested version of the API
-                 is less than 1.76.
+        :param target: Should secure_boot be enabled on node (True/False).
         :raises: InvalidParameterValue (HTTP 400) if the requested target
                  state is not valid.
+        :raises: NotFound (HTTP 404) if requested version of the API
+                 is less than 1.76.
         :raises: Conflict (HTTP 409) if a node is in adopting state.
 
         """

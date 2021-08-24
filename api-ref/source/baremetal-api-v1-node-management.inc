@@ -312,9 +312,9 @@ Request a change to the Node's boot mode.
 Normal response code: 202 (Accepted)
 
 Error codes:
-    - 409 (Conflict, NodeLocked, ClientError)
     - 400 (Invalid, InvalidStateRequested, InvalidParameterValue)
     - 404 (NotFound)
+    - 409 (Conflict, NodeLocked, ClientError)
     - 503 (NoFreeConductorWorkers)
 
 Request
@@ -347,9 +347,9 @@ Request a change to the Node's secure boot state.
 Normal response code: 202 (Accepted)
 
 Error codes:
-    - 409 (Conflict, NodeLocked, ClientError)
     - 400 (Invalid, InvalidStateRequested, InvalidParameterValue)
     - 404 (NotFound)
+    - 409 (Conflict, NodeLocked, ClientError)
     - 503 (NoFreeConductorWorkers)
 
 Request
