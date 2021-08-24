@@ -2,9 +2,17 @@
 REST API Version History
 ========================
 
+1.76 (Xena, ?)
+----------------------
+Add endpoints for changing boot mode and secure boot state of node
+asynchronously:
+
+* ``PUT /v1/nodes/{node_ident}/states/boot_mode``
+* ``PUT /v1/nodes/{node_ident}/states/secure_boot``
+
 1.75 (Xena, 18.1)
 ----------------------
-Add `boot_mode` and `secure_boot` to node object and expose their state at:
+Add ``boot_mode`` and ``secure_boot`` to node object and expose their state at:
 
 * ``/v1/nodes/{node_ident}/states``
 

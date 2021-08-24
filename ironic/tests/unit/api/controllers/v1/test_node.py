@@ -35,6 +35,7 @@ from ironic.api.controllers.v1 import notification_utils
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
 from ironic.common import boot_devices
+from ironic.common import boot_modes
 from ironic.common import components
 from ironic.common import driver_factory
 from ironic.common import exception
@@ -5136,6 +5137,14 @@ class TestPut(test_api_base.BaseApiTest):
                               autospec=True)
         self.mock_cnps = p.start()
         self.addCleanup(p.stop)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'change_node_boot_mode',
+                              autospec=True)
+        self.mock_cnbm = p.start()
+        self.addCleanup(p.stop)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'change_node_secure_boot',
+                              autospec=True)
+        self.mock_cnsb = p.start()
+        self.addCleanup(p.stop)
         p = mock.patch.object(rpcapi.ConductorAPI, 'do_node_deploy',
                               autospec=True)
         self.mock_dnd = p.start()
@@ -5300,6 +5309,147 @@ class TestPut(test_api_base.BaseApiTest):
         ret = self.put_json('/nodes/%s/states/power' % self.node.uuid,
                             {'target': 'not-supported'}, expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+
+    def _test_boot_mode_success(self, target_state, api_version):
+
+        body = {'target': target_state}
+
+        if api_version is None:
+            response = self.put_json(
+                '/nodes/%s/states/boot_mode' % self.node.uuid, body)
+        else:
+            response = self.put_json(
+                '/nodes/%s/states/boot_mode' % self.node.uuid, body,
+                headers={api_base.Version.string: api_version})
+
+        self.assertEqual(http_client.ACCEPTED, response.status_code)
+        self.assertEqual(b'', response.body)
+        self.mock_cnbm.assert_called_once_with(mock.ANY,
+                                               mock.ANY,
+                                               self.node.uuid,
+                                               target_state,
+                                               topic='test-topic')
+        # Check location header
+        self.assertIsNotNone(response.location)
+        expected_location = '/v1/nodes/%s/states' % self.node.uuid
+        self.assertEqual(urlparse.urlparse(response.location).path,
+                         expected_location)
+
+    def _test_boot_mode_failure(self, target_state, http_status_code,
+                                api_version):
+
+        body = {'target': target_state}
+
+        if api_version is None:
+            response = self.put_json(
+                '/nodes/%s/states/boot_mode' % self.node.uuid, body,
+                expect_errors=True)
+        else:
+            response = self.put_json(
+                '/nodes/%s/states/boot_mode' % self.node.uuid, body,
+                headers={api_base.Version.string: api_version},
+                expect_errors=True)
+
+        self.assertEqual(http_status_code, response.status_code)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+
+    def test_boot_mode_uefi_valid_soft_ver(self):
+        self._test_boot_mode_success(boot_modes.UEFI, "1.76")
+
+    def test_boot_mode_uefi_older_soft_ver(self):
+        self._test_boot_mode_failure(
+            boot_modes.UEFI, http_client.NOT_FOUND, "1.75")
+
+    def test_boot_mode_bios_valid_soft_ver(self):
+        self._test_boot_mode_success(boot_modes.LEGACY_BIOS, "1.76")
+
+    def test_boot_mode_bios_older_soft_ver(self):
+        self._test_boot_mode_failure(
+            boot_modes.LEGACY_BIOS, http_client.NOT_FOUND, "1.75")
+
+    def test_boot_mode_invalid_request(self):
+        self._test_boot_mode_failure(
+            'unsupported-efi', http_client.BAD_REQUEST, "1.76")
+
+    def _test_secure_boot_success(self, target_state, api_version):
+
+        body = {'target': target_state}
+
+        if api_version is None:
+            response = self.put_json(
+                '/nodes/%s/states/secure_boot' % self.node.uuid, body)
+        else:
+            response = self.put_json(
+                '/nodes/%s/states/secure_boot' % self.node.uuid, body,
+                headers={api_base.Version.string: api_version})
+
+        self.assertEqual(http_client.ACCEPTED, response.status_code)
+        self.assertEqual(b'', response.body)
+        self.mock_cnsb.assert_called_once_with(mock.ANY,
+                                               mock.ANY,
+                                               self.node.uuid,
+                                               target_state,
+                                               topic='test-topic')
+        # Check location header
+        self.assertIsNotNone(response.location)
+        expected_location = '/v1/nodes/%s/states' % self.node.uuid
+        self.assertEqual(urlparse.urlparse(response.location).path,
+                         expected_location)
+
+    def _test_secure_boot_failure(self, target_state, http_status_code,
+                                  api_version):
+
+        body = {'target': target_state}
+
+        if api_version is None:
+            response = self.put_json(
+                '/nodes/%s/states/secure_boot' % self.node.uuid, body,
+                expect_errors=True)
+        else:
+            response = self.put_json(
+                '/nodes/%s/states/secure_boot' % self.node.uuid, body,
+                headers={api_base.Version.string: api_version},
+                expect_errors=True)
+
+        self.assertEqual(http_status_code, response.status_code)
+        self.assertEqual('application/json', response.content_type)
+        self.assertTrue(response.json['error_message'])
+
+    def test_secure_boot_on_valid_soft_ver(self):
+        self._test_secure_boot_success(True, "1.76")
+
+    def test_secure_boot_on_older_soft_ver(self):
+        self._test_secure_boot_failure(
+            True, http_client.NOT_FOUND, "1.75")
+
+    def test_secure_boot_off_valid_soft_ver(self):
+        self._test_secure_boot_success(False, "1.76")
+
+    def test_secure_boot_off_older_soft_ver(self):
+        self._test_secure_boot_failure(
+            False, http_client.NOT_FOUND, "1.75")
+
+    def test_secure_boot_off_valid_undocumented_request_zero(self):
+        self._test_secure_boot_success(0, "1.76")
+
+    def test_secure_boot_on_valid_undocumented_request_one(self):
+        self._test_secure_boot_success(1, "1.76")
+
+    def test_secure_boot_on_invalid_request_two(self):
+        self._test_secure_boot_failure(2, http_client.BAD_REQUEST, "1.76")
+
+    def test_secure_boot_invalid_request_nullstr(self):
+        self._test_secure_boot_failure(
+            '', http_client.BAD_REQUEST, "1.76")
+
+    def test_secure_boot_invalid_request_boo(self):
+        self._test_secure_boot_failure(
+            'boo!', http_client.BAD_REQUEST, "1.76")
+
+    def test_secure_boot_invalid_request_None(self):
+        self._test_secure_boot_failure(
+            None, http_client.BAD_REQUEST, "1.76")
 
     def test_power_change_when_being_cleaned(self):
         for state in (states.CLEANING, states.CLEANWAIT):

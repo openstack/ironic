@@ -108,12 +108,13 @@ class ConductorAPI(object):
     |    1.53 - Added disable_ramdisk to do_node_clean.
     |    1.54 - Added optional agent_status and agent_status_message to
                 heartbeat
+    |    1.55 - Added change_node_boot_mode
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.54'
+    RPC_API_VERSION = '1.55'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -280,6 +281,46 @@ class ConductorAPI(object):
         cctxt = self.client.prepare(topic=topic or self.topic, version='1.39')
         return cctxt.call(context, 'change_node_power_state', node_id=node_id,
                           new_state=new_state, timeout=timeout)
+
+    def change_node_boot_mode(self, context, node_id, new_state,
+                              topic=None):
+        """Change a node's boot mode.
+
+        Synchronously, acquire lock and start the conductor background task
+        to change boot mode of a node.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param new_state: one of ironic.common.boot_modes values
+            ('bios' / 'uefi')
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.55')
+        return cctxt.call(context, 'change_node_boot_mode', node_id=node_id,
+                          new_state=new_state)
+
+    def change_node_secure_boot(self, context, node_id, new_state,
+                                topic=None):
+        """Change a node's secure_boot state.
+
+        Synchronously, acquire lock and start the conductor background task
+        to change secure_boot state of a node.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param new_state: Target secure boot state
+            (True => 'on' / False => 'off')
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+
+        """
+        cctxt = self.client.prepare(topic=topic or self.topic, version='1.55')
+        return cctxt.call(context, 'change_node_secure_boot', node_id=node_id,
+                          new_state=new_state)
 
     def vendor_passthru(self, context, node_id, driver_method, http_method,
                         info, topic=None):

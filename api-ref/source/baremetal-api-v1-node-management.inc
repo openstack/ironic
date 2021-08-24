@@ -299,6 +299,75 @@ Response
 
 .. literalinclude:: samples/node-get-state-response.json
 
+Change Node Boot Mode
+=====================
+
+.. rest_method:: PUT /v1/nodes/{node_ident}/states/boot_mode
+
+Request a change to the Node's boot mode.
+
+.. versionadded:: 1.76
+   A change in node's boot mode can be requested.
+
+Normal response code: 202 (Accepted)
+
+Error codes:
+    - 409 (Conflict, NodeLocked, ClientError)
+    - 400 (Invalid, InvalidStateRequested, InvalidParameterValue)
+    - 404 (NotFound)
+    - 503 (NoFreeConductorWorkers)
+
+Request
+-------
+
+.. rest_parameters:: parameters.yaml
+
+    - node_ident: node_ident
+    - target: req_target_boot_mode
+
+**Example request for UEFI boot:**
+
+.. literalinclude:: samples/node-set-boot-mode-uefi.json
+
+**Example request for Legacy BIOS boot:**
+
+.. literalinclude:: samples/node-set-boot-mode-bios.json
+
+
+Change Node Secure Boot
+=======================
+
+.. rest_method:: PUT /v1/nodes/{node_ident}/states/secure_boot
+
+Request a change to the Node's secure boot state.
+
+.. versionadded:: 1.76
+   A change in node's secure boot state can be requested.
+
+Normal response code: 202 (Accepted)
+
+Error codes:
+    - 409 (Conflict, NodeLocked, ClientError)
+    - 400 (Invalid, InvalidStateRequested, InvalidParameterValue)
+    - 404 (NotFound)
+    - 503 (NoFreeConductorWorkers)
+
+Request
+-------
+
+.. rest_parameters:: parameters.yaml
+
+    - node_ident: node_ident
+    - target: req_target_secure_boot
+
+**Example request to turn off secure boot:**
+
+.. literalinclude:: samples/node-set-secure-boot-off.json
+
+**Example request to turn on secure boot:**
+
+.. literalinclude:: samples/node-set-secure-boot-on.json
+
 
 Change Node Power State
 =======================

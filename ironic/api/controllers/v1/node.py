@@ -40,6 +40,7 @@ from ironic.api.controllers.v1 import versions
 from ironic.api.controllers.v1 import volume
 from ironic.api import method
 from ironic.common import args
+from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import policy
@@ -119,6 +120,9 @@ ALLOWED_TARGET_POWER_STATES = (ir_states.POWER_ON,
                                ir_states.REBOOT,
                                ir_states.SOFT_REBOOT,
                                ir_states.SOFT_POWER_OFF)
+
+ALLOWED_TARGET_BOOT_MODES = (boot_modes.LEGACY_BIOS,
+                             boot_modes.UEFI)
 
 _NODE_DESCRIPTION_MAX_LENGTH = 4096
 
@@ -710,6 +714,8 @@ def node_states_convert(rpc_node):
 class NodeStatesController(rest.RestController):
 
     _custom_actions = {
+        'boot_mode': ['PUT'],
+        'secure_boot': ['PUT'],
         'power': ['PUT'],
         'provision': ['PUT'],
         'raid': ['PUT'],
@@ -817,6 +823,107 @@ class NodeStatesController(rest.RestController):
         api.request.rpcapi.change_node_power_state(api.request.context,
                                                    rpc_node.uuid, target,
                                                    timeout=timeout,
+                                                   topic=topic)
+        # Set the HTTP Location Header
+        url_args = '/'.join([node_ident, 'states'])
+        api.response.location = link.build_url('nodes', url_args)
+
+    @METRICS.timer('NodeStatesController.boot_mode')
+    @method.expose(status_code=http_client.ACCEPTED)
+    @args.validate(node_ident=args.uuid_or_name, target=args.string)
+    def boot_mode(self, node_ident, target):
+        """Asynchronous set the boot mode of the node.
+
+        :param node_ident: the UUID or logical name of a node.
+        :param target: The desired boot_mode for the node. (uefi/bios)
+        :raises: NotFound (HTTP 404) if requested version of the API
+                 is less than 1.76.
+        :raises: InvalidParameterValue (HTTP 400) if the requested target
+                 state is not valid.
+        :raises: Conflict (HTTP 409) if a node is in adopting state or
+                 another transient state.
+
+        """
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:set_boot_mode', node_ident)
+        topic = api.request.rpcapi.get_topic_for(rpc_node)
+
+        if (api.request.version.minor
+                < versions.MINOR_76_NODE_CHANGE_BOOT_MODE):
+            raise exception.NotFound(
+                (_("This endpoint is supported starting with the API version "
+                   "1.%(min_version)s") %
+                 {'min_version': versions.MINOR_76_NODE_CHANGE_BOOT_MODE}))
+
+        if target not in ALLOWED_TARGET_BOOT_MODES:
+            msg = (_("Invalid boot mode %(mode)s requested for node. "
+                     "Allowed boot modes are: "
+                     "%(modes)s") %
+                   {'mode': target,
+                    'modes': ', '.join(ALLOWED_TARGET_BOOT_MODES)})
+            raise exception.InvalidParameterValue(msg)
+
+        # NOTE(cenne): This currenly includes the ADOPTING state
+        if rpc_node.provision_state in ir_states.UNSTABLE_STATES:
+            msg = _("Node is in %(state)s state. Since node is transitioning, "
+                    "the boot mode will not be set as this may interfere "
+                    "with ongoing changes and result in erroneous modification"
+                    ". Try again later.")
+            raise exception.Conflict(msg,
+                                     action=target, node=node_ident,
+                                     state=rpc_node.provision_state
+                                     )
+        api.request.rpcapi.change_node_boot_mode(api.request.context,
+                                                 rpc_node.uuid, target,
+                                                 topic=topic)
+        # Set the HTTP Location Header
+        url_args = '/'.join([node_ident, 'states'])
+        api.response.location = link.build_url('nodes', url_args)
+
+    @METRICS.timer('NodeStatesController.secure_boot')
+    @method.expose(status_code=http_client.ACCEPTED)
+    @args.validate(node_ident=args.uuid_or_name, target=args.boolean)
+    def secure_boot(self, node_ident, target):
+        """Asynchronous set the secure_boot state of the node.
+
+        :param node_ident: the UUID or logical name of a node.
+        :param target: The desired secure_boot for the node. (True/False)
+        :raises: NotFound (HTTP 404) if requested version of the API
+                 is less than 1.76.
+        :raises: InvalidParameterValue (HTTP 400) if the requested target
+                 state is not valid.
+        :raises: Conflict (HTTP 409) if a node is in adopting state.
+
+        """
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:set_secure_boot', node_ident)
+        topic = api.request.rpcapi.get_topic_for(rpc_node)
+
+        if (api.request.version.minor
+                < versions.MINOR_76_NODE_CHANGE_BOOT_MODE):
+            raise exception.NotFound(
+                (_("This endpoint is supported starting with the API version "
+                   "1.%(min_version)s") %
+                 {'min_version': versions.MINOR_76_NODE_CHANGE_BOOT_MODE}))
+        # NOTE(cenne): This is to exclude target=None or other invalid values
+        if target not in (True, False):
+            msg = (_("Invalid secure_boot %(state)s requested for node. "
+                     "Allowed secure_boot states are: True, False) ") %
+                   {'state': target})
+            raise exception.InvalidParameterValue(msg)
+
+        # NOTE(cenne): This currenly includes the ADOPTING state
+        if rpc_node.provision_state in ir_states.UNSTABLE_STATES:
+            msg = _("Node is in %(state)s state. Since node is transitioning, "
+                    "the boot mode will not be set as this may interfere "
+                    "with ongoing changes and result in erroneous modification"
+                    ". Try again later.")
+            raise exception.Conflict(msg,
+                                     action=target, node=node_ident,
+                                     state=rpc_node.provision_state
+                                     )
+        api.request.rpcapi.change_node_secure_boot(api.request.context,
+                                                   rpc_node.uuid, target,
                                                    topic=topic)
         # Set the HTTP Location Header
         url_args = '/'.join([node_ident, 'states'])
