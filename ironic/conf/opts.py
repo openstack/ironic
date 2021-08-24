@@ -86,5 +86,7 @@ def update_opt_defaults():
             'keystonemiddleware.auth_token=INFO',
             'keystoneauth.session=INFO',
             'openstack=WARNING',
+            # Policy logging is not necessarily useless, but very verbose
+            'oslo_policy=WARNING',
         ]
     )
