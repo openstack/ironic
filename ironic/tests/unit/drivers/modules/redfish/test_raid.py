@@ -97,11 +97,8 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                 media_type='SSD', name='Solid State Drive',
                 protocol='Serial AT Attachment'))
         self.mock_storage.drives = mock_drives
-        mock_identifier = mock.Mock()
-        mock_identifier.durable_name = '345C59DBD970859C'
         mock_controller = mock.Mock()
         mock_controller.raid_types = ['RAID1', 'RAID5', 'RAID10']
-        mock_controller.identifiers = [mock_identifier]
         self.mock_storage.storage_controllers = [mock_controller]
         mock_volumes = mock.MagicMock()
         self.mock_storage.volumes = mock_volumes
