@@ -26,7 +26,6 @@ class RequestContextTestCase(tests_base.TestCase):
             "user_id": "user1",
             "project_id": "project1",
             "project_name": "somename",
-            'is_admin': True,
             'read_only': True,
             'show_deleted': True,
             'request_id': 'id1',
@@ -50,10 +49,6 @@ class RequestContextTestCase(tests_base.TestCase):
         ctx_dict = ctx.to_policy_values()
         self.assertEqual('somename', ctx_dict['project_name'])
         self.assertTrue(ctx_dict['is_public_api'])
-
-    def test_get_admin_context(self):
-        admin_context = context.get_admin_context()
-        self.assertTrue(admin_context.is_admin)
 
     @mock.patch.object(oslo_context, 'get_current', autospec=True)
     def test_thread_without_context(self, context_get_mock):
