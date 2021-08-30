@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import json
 from unittest import mock
 
 from oslo_config import cfg
@@ -166,6 +167,7 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
         cfg.CONF.molds.storage = 'swift'
         response = mock.MagicMock()
         response.status_code = 200
+        response.content = "{'key': 'value'}"
         response.json.return_value = {'key': 'value'}
         mock_get.return_value = response
         url = 'https://example.com/file1'
@@ -199,6 +201,7 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
         cfg.CONF.molds.password = 'password'
         response = mock.MagicMock()
         response.status_code = 200
+        response.content = "{'key': 'value'}"
         response.json.return_value = {'key': 'value'}
         mock_get.return_value = response
         url = 'https://example.com/file2'
@@ -217,6 +220,7 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
         cfg.CONF.molds.password = None
         response = mock.MagicMock()
         response.status_code = 200
+        response.content = "{'key': 'value'}"
         response.json.return_value = {'key': 'value'}
         mock_get.return_value = response
         url = 'https://example.com/file2'
@@ -289,3 +293,31 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
                 'https://example.com/file2',
                 headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='})
             self.assertEqual(mock_get.call_count, 2)
+
+    @mock.patch.object(requests, 'get', autospec=True)
+    def test_get_configuration_empty(self, mock_get):
+        cfg.CONF.molds.storage = 'http'
+        response = mock.MagicMock()
+        response.status_code = 200
+        response.content = ''
+        mock_get.return_value = response
+        url = 'https://example.com/file2'
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.IronicException,
+                              molds.get_configuration, task, url)
+
+    @mock.patch.object(requests, 'get', autospec=True)
+    def test_get_configuration_invalid_json(self, mock_get):
+        cfg.CONF.molds.storage = 'http'
+        response = mock.MagicMock()
+        response.status_code = 200
+        response.content = 'not json'
+        response.json.side_effect = json.decoder.JSONDecodeError(
+            'Expecting value', 'not json', 0)
+        mock_get.return_value = response
+        url = 'https://example.com/file2'
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertRaises(exception.IronicException,
+                              molds.get_configuration, task, url)
