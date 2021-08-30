@@ -292,7 +292,7 @@ class ConductorAPI(object):
         :param context: request context.
         :param node_id: node id or uuid.
         :param new_state: one of ironic.common.boot_modes values
-            ('bios' / 'uefi')
+            ('bios' or 'uefi')
         :param topic: RPC topic. Defaults to self.topic.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
@@ -312,7 +312,7 @@ class ConductorAPI(object):
         :param context: request context.
         :param node_id: node id or uuid.
         :param new_state: Target secure boot state
-            (True => 'on' / False => 'off')
+            (True => 'on' or False => 'off')
         :param topic: RPC topic. Defaults to self.topic.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
