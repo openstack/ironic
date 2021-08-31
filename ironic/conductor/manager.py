@@ -69,6 +69,7 @@ from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils
+from ironic.conductor import verify
 from ironic.conf import CONF
 from ironic.drivers import base as drivers_base
 from ironic import objects
@@ -1200,52 +1201,6 @@ class ConductorManager(base_manager.BaseConductorManager):
                 self._spawn_worker,
                 cleaning.continue_node_clean, task)
 
-    @task_manager.require_exclusive_lock
-    def _do_node_verify(self, task):
-        """Internal method to perform power credentials verification."""
-        node = task.node
-        LOG.debug('Starting power credentials verification for node %s',
-                  node.uuid)
-
-        error = None
-        try:
-            task.driver.power.validate(task)
-        except Exception as e:
-            error = (_('Failed to validate power driver interface for node '
-                       '%(node)s. Error: %(msg)s') %
-                     {'node': node.uuid, 'msg': e})
-            log_traceback = not isinstance(e, exception.IronicException)
-            LOG.error(error, exc_info=log_traceback)
-        else:
-            try:
-                power_state = task.driver.power.get_power_state(task)
-            except Exception as e:
-                error = (_('Failed to get power state for node '
-                           '%(node)s. Error: %(msg)s') %
-                         {'node': node.uuid, 'msg': e})
-                log_traceback = not isinstance(e, exception.IronicException)
-                LOG.error(error, exc_info=log_traceback)
-
-        if error is None:
-            # Retrieve BIOS config settings for this node
-            utils.node_cache_bios_settings(task, node)
-            # Cache the vendor if possible
-            utils.node_cache_vendor(task)
-            # Cache also boot_mode and secure_boot states
-            utils.node_cache_boot_mode(task)
-
-            if power_state != node.power_state:
-                old_power_state = node.power_state
-                node.power_state = power_state
-                task.process_event('done')
-                notify_utils.emit_power_state_corrected_notification(
-                    task, old_power_state)
-            else:
-                task.process_event('done')
-        else:
-            node.last_error = error
-            task.process_event('fail')
-
     @METRICS.timer('ConductorManager.do_provisioning_action')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,
                                    exception.NodeLocked,
@@ -1293,7 +1248,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 task.process_event(
                     'manage',
                     callback=self._spawn_worker,
-                    call_args=(self._do_node_verify, task),
+                    call_args=(verify.do_node_verify, task),
                     err_handler=utils.provisioning_error_handler)
                 return
 
