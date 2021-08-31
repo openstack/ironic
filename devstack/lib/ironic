@@ -618,6 +618,7 @@ IRONIC_SECURE_BOOT=${IRONIC_SECURE_BOOT:-False}
 IRONIC_UEFI_BOOT_LOADER=${IRONIC_UEFI_BOOT_LOADER:-grub2}
 IRONIC_GRUB2_SHIM_FILE=${IRONIC_GRUB2_SHIM_FILE:-}
 IRONIC_GRUB2_FILE=${IRONIC_GRUB2_FILE:-}
+IRONIC_GRUB2_NETWORK_FILE=${IRONIC_GRUB2_NETWORK_FILE:-}
 IRONIC_UEFI_FILES_DIR=${IRONIC_UEFI_FILES_DIR:-/var/lib/libvirt/images}
 UEFI_LOADER_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_CODE.fd
 UEFI_NVRAM_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_VARS.fd
@@ -628,7 +629,7 @@ if [[ $IRONIC_HW_ARCH == "x86_64" ]]; then
     if is_ubuntu; then
         install_package grub-efi-amd64-signed shim-signed
     elif is_fedora; then
-        install_package grub2-efi
+        install_package grub2 grub2-efi
     fi
 fi
 
@@ -642,21 +643,14 @@ if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
         die $LINENO "Boot mode UEFI only works in Ubuntu or Fedora for now."
     fi
 
-    if is_arch "x86_64"; then
-        if is_ubuntu; then
-            install_package grub-efi
-        elif is_fedora; then
-            install_package grub2 grub2-efi
-        fi
-    fi
-
     if is_ubuntu && [[ -z $IRONIC_GRUB2_FILE ]]; then
-        if [[ -f /usr/lib/shim/shimx64.efi.signed ]]; then
-            IRONIC_GRUB2_SHIM_FILE=/usr/lib/shim/shimx64.efi.signed
-        else
-            IRONIC_GRUB2_SHIM_FILE=/usr/lib/shim/shimx64.efi
-        fi
+        IRONIC_GRUB2_SHIM_FILE=/usr/lib/shim/shimx64.efi.signed
         IRONIC_GRUB2_FILE=/usr/lib/grub/x86_64-efi-signed/grubx64.efi.signed
+        IRONIC_GRUB2_NETWORK_FILE=/usr/lib/grub/x86_64-efi-signed/grubnetx64.efi.signed
+    elif is_fedora && [[ -z $IRONIC_GRUB2_FILE ]]; then
+        IRONIC_GRUB2_SHIM_FILE=/boot/efi/EFI/fedora/shimx64.efi
+        IRONIC_GRUB2_FILE=/boot/efi/EFI/fedora/grubx64.efi
+        IRONIC_GRUB2_NETWORK_FILE=/boot/efi/EFI/fedora/grubx64.efi
     fi
 
     if [[ "$IRONIC_IPXE_ENABLED" == "False" ]]; then
@@ -2697,7 +2691,6 @@ function configure_tftpd {
     if [[ "$IRONIC_IPXE_ENABLED" == "False" && \
             ( "$IRONIC_BOOT_MODE" == "uefi" || "$IRONIC_SECURE_BOOT" == "True" ) && \
             "$IRONIC_UEFI_BOOT_LOADER" == "grub2" ]]; then
-        local grub_dir
 
         echo "re ^($IRONIC_TFTPBOOT_DIR/) $IRONIC_TFTPBOOT_DIR/\2"  >$IRONIC_TFTPBOOT_DIR/map-file
         echo "re ^$IRONIC_TFTPBOOT_DIR/ $IRONIC_TFTPBOOT_DIR/"  >>$IRONIC_TFTPBOOT_DIR/map-file
@@ -2705,20 +2698,12 @@ function configure_tftpd {
         echo "re ^([^/]) $IRONIC_TFTPBOOT_DIR/\1" >>$IRONIC_TFTPBOOT_DIR/map-file
 
         sudo cp $IRONIC_GRUB2_SHIM_FILE $IRONIC_TFTPBOOT_DIR/bootx64.efi
+        sudo cp $IRONIC_GRUB2_NETWORK_FILE $IRONIC_TFTPBOOT_DIR/grubx64.efi
 
-        if is_fedora; then
-            grub_subdir="EFI/fedora"
-        elif is_ubuntu; then
-            grub_subdir="boot/grub"
-        fi
-        grub_dir=$IRONIC_TFTPBOOT_DIR/$grub_subdir
+        # Write a grub.cfg redirect for the ubuntu grub. The fedora grub
+        # will fetch the generated grub.cfg-01-<mac> directly
+        grub_dir=$IRONIC_TFTPBOOT_DIR/grub
         mkdir -p $grub_dir
-        # Grub looks for numerous files when the grubnetx.efi binary is used :\
-        # specifically .lst files which define module lists which we can't seem
-        # to find on disk. That being said, the grub-mknetdir utility generates
-        # these files for us.
-        grub-mknetdir --net-directory="$IRONIC_TFTPBOOT_DIR" --subdir="$grub_subdir"
-        sudo cp $grub_dir/x86_64-efi/core.efi $IRONIC_TFTPBOOT_DIR/grubx64.efi
         cat << EOF > $grub_dir/grub.cfg
 set default=master
 set timeout=1
@@ -2729,8 +2714,6 @@ configfile $IRONIC_TFTPBOOT_DIR/\$net_default_mac.conf
 }
 EOF
         chmod 644 $grub_dir/grub.cfg
-        iniset $IRONIC_CONF_FILE pxe uefi_pxe_config_template '$pybasedir/drivers/modules/pxe_grub_config.template'
-        iniset $IRONIC_CONF_FILE pxe uefi_pxe_bootfile_name  "bootx64.efi"
     else
         echo "r ^([^/]) $IRONIC_TFTPBOOT_DIR/\1" >$IRONIC_TFTPBOOT_DIR/map-file
         echo "r ^(/tftpboot/) $IRONIC_TFTPBOOT_DIR/\2" >>$IRONIC_TFTPBOOT_DIR/map-file
