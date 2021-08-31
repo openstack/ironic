@@ -3,7 +3,7 @@ automaton==1.9.0
 bandit==1.1.0
 coverage==4.0
 ddt==1.2.1
-eventlet==0.18.2
+eventlet==0.31.0
 fixtures==3.0.0
 futurist==1.2.0
 ironic-lib==4.6.1
