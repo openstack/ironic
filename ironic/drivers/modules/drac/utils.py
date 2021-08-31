@@ -24,7 +24,7 @@ sushy = importutils.try_import('sushy')
 
 
 def execute_oem_manager_method(
-        task, process_name, lambda_oem_func, pass_manager=False):
+        task, process_name, lambda_oem_func):
     """Loads OEM manager and executes passed method on it.
 
     Known iDRAC Redfish systems has only one manager, but as Redfish
@@ -38,12 +38,6 @@ def execute_oem_manager_method(
     :param lambda_oem_func: method to execute as lambda function with
         input parameter OEM extension manager.
         Example: lambda m: m.reset_idrac()
-        For older versions also support second input parameter Redfish
-        manager itself when pass_manager set to True.
-    :param pass_manager: whether to pass manager itself to executed
-        OEM extension method. This is for backward compability, new
-        functions must not pass manager, but acquire it internally. Will
-        be removed in future.
     :returns: Returned value of lambda_oem_func
     :raises: RedfishError if can't execute OEM function either because
         there are no managers to the system, failed to load OEM
@@ -82,10 +76,7 @@ def execute_oem_manager_method(
             raise exception.RedfishError(error=error_msg)
 
         try:
-            if pass_manager:
-                result = lambda_oem_func(manager_oem, manager)
-            else:
-                result = lambda_oem_func(manager_oem)
+            result = lambda_oem_func(manager_oem)
             LOG.info("Completed: %(process_name)s with system %(system)s "
                      "manager %(manager)s for node %(node)s",
                      {'process_name': process_name,
