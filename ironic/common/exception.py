@@ -825,3 +825,8 @@ class InsufficentMemory(IronicException):
 
 class NodeHistoryNotFound(NotFound):
     _msg_fmt = _("Node history record %(history)s could not be found.")
+
+
+class IncorrectConfiguration(IronicException):
+    _msg_fmt = _("Supplied configuration is incorrect and must be fixed. "
+                 "Error: %(error)s")

@@ -17,6 +17,7 @@
 import os
 
 from oslo_config import cfg
+from oslo_config import types as cfg_types
 
 from ironic.common.i18n import _
 
@@ -100,8 +101,15 @@ opts = [
                       "creating files that cannot be read by the TFTP server. "
                       "Setting to <None> will result in the operating "
                       "system's umask to be utilized for the creation of new "
-                      "tftp folders. It is recommended that an octal "
+                      "tftp folders. It is required that an octal "
                       "representation is specified. For example: 0o755")),
+    cfg.IntOpt('file_permission',
+               default=0o644,
+               help=_('The permission which is used on files created as part '
+                      'of configuration and setup of file assets for PXE '
+                      'based operations. Defaults to a value of 0o644.'
+                      'This value must be specified as an octal '
+                      'representation. For example: 0o644')),
     cfg.StrOpt('pxe_bootfile_name',
                default='pxelinux.0',
                help=_('Bootfile DHCP parameter.')),
@@ -178,6 +186,19 @@ opts = [
                        'or with Redfish on machines that cannot do persistent '
                        'boot. Mostly useful for standalone ironic since '
                        'Neutron will prevent incorrect PXE boot.')),
+    cfg.Opt('loader_file_paths',
+            type=cfg_types.Dict(cfg_types.String(quotes=True)),
+            default={},
+            help=_('Dictionary describing the bootloaders to load into '
+                   'conductor PXE/iPXE boot folders values from the host '
+                   'operating system. Formatted as key of destination '
+                   'file name, and value of a full path to a file to be '
+                   'copied. File assets will have [pxe]file_permission '
+                   'applied, if set. If used, the file names should '
+                   'match established bootloader configuration settings '
+                   'for bootloaders. Use example: '
+                   'ipxe.efi:/usr/share/ipxe/ipxe-snponly-x86_64.efi,'
+                   'undionly.kpxe:/usr/share/ipxe/undionly.kpxe')),
 ]
 
 

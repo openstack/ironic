@@ -535,3 +535,28 @@ minutes, allowing two retries after 20 minutes:
 
     [pxe]
     boot_retry_timeout = 1200
+
+PXE artifacts
+-------------
+
+Ironic features the capability to load PXE artifacts into the conductor
+startup, minimizing the need for external installation and configuration
+management tooling from having to do additional work to facilitate.
+
+While this is an advanced feature, and destination file names must match
+existing bootloader configured filenames.
+
+For example, if using iPXE and GRUB across interfaces, you may desire
+a configuration similar to this example.
+
+.. code-block:: ini
+
+   [pxe]
+   loader_file_paths = ipxe.efi:/usr/share/ipxe/ipxe-snponly-x86_64.efi,undionly.kpxe:/usr/share/ipxe/undionly.kpxe,bootx64.efi,/boot/efi/EFI/boot/grubx64.efi,bootx64.efi:/boot/efi/EFI/boot/BOOTX64.EFI
+
+If you choose to use relative paths as part of your destination,
+those paths will be created using configuration parameter
+``[pxe]dir_permission`` where as actual files copied are set with
+the configuration parameter ``[pxe]file_permission``. Absolute destination
+paths are not supported and will result in ironic failing to start up as
+it is a misconfiguration of the deployment.

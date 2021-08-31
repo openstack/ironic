@@ -16,6 +16,7 @@
 
 import copy
 import os
+import shutil
 import tempfile
 
 from ironic_lib import utils as ironic_utils
@@ -1262,3 +1263,60 @@ def clean_up_pxe_env(task, images_info, ipxe_enabled=False):
 
     clean_up_pxe_config(task, ipxe_enabled=ipxe_enabled)
     TFTPImageCache().clean_up()
+
+
+def place_loaders_for_boot(base_path):
+    """Place configured bootloaders from the host OS.
+
+    Example: grubaa64.efi:/path/to/grub-aarch64.efi,...
+
+    :param base_path: Destination path where files should be copied to.
+    """
+    loaders = CONF.pxe.loader_file_paths
+    if not loaders or not base_path:
+        # Do nothing, return.
+        return
+
+    for dest, src in loaders.items():
+        (head, _tail) = os.path.split(dest)
+        if head:
+            if head.startswith('/'):
+                # NOTE(TheJulia): The intent here is to error if the operator
+                # has put absolute paths in place, as we can and likely should
+                # copy to multiple folders based upon the protocol operation
+                # being used. Absolute paths are problematic there, where
+                # as a relative path is more a "well, that is silly, but okay
+                # misconfiguration.
+                msg = ('File paths configured for [pxe]loader_file_paths '
+                       'must be relative paths. Entry: %s') % dest
+                raise exception.IncorrectConfiguration(msg)
+            else:
+                try:
+                    os.makedirs(
+                        os.path.join(base_path, head),
+                        mode=CONF.pxe.dir_permission or 0o755, exist_ok=True)
+                except OSError as e:
+                    msg = ('Failed to create supplied directories in '
+                           'asset copy paths. Error: %s') % e
+                    raise exception.IncorrectConfiguration(msg)
+
+        full_dest = os.path.join(base_path, dest)
+        if not os.path.isfile(src):
+            msg = ('Was not able to find source path %(src)s '
+                   'to copy to %(dest)s.' %
+                   {'src': src, 'dest': full_dest})
+            LOG.error(msg)
+            raise exception.IncorrectConfiguration(error=msg)
+
+        LOG.debug('Copying bootloader %(dest)s from %(src)s.',
+                  {'src': src, 'dest': full_dest})
+        try:
+            shutil.copy2(src, full_dest)
+            if CONF.pxe.file_permission:
+                os.chmod(full_dest, CONF.pxe.file_permission)
+        except OSError as e:
+            msg = ('Error encountered while attempting to '
+                   'copy a configured bootloader into '
+                   'the requested destination. %s' % e)
+            LOG.error(msg)
+            raise exception.IncorrectConfiguration(error=msg)
