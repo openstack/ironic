@@ -114,6 +114,7 @@ class RedfishVendorPassthru(base.VendorInterface):
         # are not present in the args.
         context = kwargs.get('Context', "")
         protocol = kwargs.get('Protocol', "Redfish")
+        http_headers = kwargs.get('HttpHeaders')
 
         if event_types is not None:
             event_service = redfish_utils.get_event_service(task.node)
@@ -134,6 +135,12 @@ class RedfishVendorPassthru(base.VendorInterface):
         if not isinstance(protocol, str):
             raise exception.InvalidParameterValue(
                 _("Protocol %s is not a string") % protocol)
+
+        # NOTE(iurygregory): if http_headers are None there is no problem,
+        # the validation will fail if the value is not None and not a list.
+        if http_headers is not None and not isinstance(http_headers, list):
+            raise exception.InvalidParameterValue(
+                _("HttpHeaders %s is not a list of headers") % http_headers)
 
         try:
             parsed = rfc3986.uri_reference(destination)
@@ -176,6 +183,10 @@ class RedfishVendorPassthru(base.VendorInterface):
             'Context': kwargs.get('Context', ""),
             'EventTypes': kwargs.get('EventTypes', ["Alert"])
         }
+
+        http_headers = kwargs.get('HttpHeaders', [])
+        if http_headers:
+            payload['HttpHeaders'] = http_headers
 
         try:
             event_service = redfish_utils.get_event_service(task.node)

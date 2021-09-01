@@ -96,13 +96,13 @@ class RedfishVendorPassthruTestCase(db_base.DbTestCase):
                 task.driver.vendor.validate, task, 'create_subscription',
                 **kwargs)
 
-            kwargs = {'Context': 10}
+            kwargs = {'Destination': 'https://someulr', 'Context': 10}
             self.assertRaises(
                 exception.InvalidParameterValue,
                 task.driver.vendor.validate, task, 'create_subscription',
                 **kwargs)
 
-            kwargs = {'Protocol': 10}
+            kwargs = {'Destination': 'https://someulr', 'Protocol': 10}
             self.assertRaises(
                 exception.InvalidParameterValue,
                 task.driver.vendor.validate, task, 'create_subscription',
@@ -111,11 +111,20 @@ class RedfishVendorPassthruTestCase(db_base.DbTestCase):
             mock_evt_serv = mock_get_event_service.return_value
             mock_evt_serv.get_event_types_for_subscription.return_value = \
                 ['Alert']
-            kwargs = {'EventTypes': ['Other']}
+            kwargs = {'Destination': 'https://someulr',
+                      'EventTypes': ['Other']}
             self.assertRaises(
                 exception.InvalidParameterValue,
                 task.driver.vendor.validate, task, 'create_subscription',
                 **kwargs)
+
+            kwargs = {'Destination': 'https://someulr',
+                      'HttpHeaders': {'Content-Type': 'application/json'}}
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                task.driver.vendor.validate, task, 'create_subscription',
+                **kwargs
+            )
 
     def test_validate_invalid_delete_subscription(self):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -254,7 +263,10 @@ class RedfishVendorPassthruTestCase(db_base.DbTestCase):
         subscription = mock.MagicMock()
         subscription.json.return_value = subscription_json
         mock_event_service.subscriptions.create = subscription
-        kwargs = {'Destination': 'https://someurl'}
+        kwargs = {
+            'Destination': 'https://someurl',
+            'HttpHeaders': [{"Content-Type": "application/json"}]
+        }
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:

@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds support to specify `HttpHeaders` when creating a subscription
+    via redfish vendor passthru.
