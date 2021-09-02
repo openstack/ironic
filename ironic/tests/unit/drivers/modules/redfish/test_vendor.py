@@ -254,7 +254,7 @@ class RedfishVendorPassthruTestCase(db_base.DbTestCase):
         subscription = mock.MagicMock()
         subscription.json.return_value = subscription_json
         mock_event_service.subscriptions.create = subscription
-        kwargs = {'destination': 'https://someurl'}
+        kwargs = {'Destination': 'https://someurl'}
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
