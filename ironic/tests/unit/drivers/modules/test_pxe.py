@@ -1041,6 +1041,58 @@ class PXERamdiskDeployTestCase(db_base.DbTestCase):
             self.assertIsNone(task.driver.deploy.deploy(task))
             self.assertTrue(mock_warning.called)
 
+    @mock.patch.object(agent_base, 'get_steps', autospec=True)
+    def test_get_clean_steps(self, mock_get_steps):
+        # Test getting clean steps
+        mock_steps = [{'priority': 10, 'interface': 'deploy',
+                       'step': 'erase_devices'}]
+        mock_get_steps.return_value = mock_steps
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            steps = task.driver.deploy.get_clean_steps(task)
+            mock_get_steps.assert_called_once_with(
+                task, 'clean', interface='deploy',
+                override_priorities={'erase_devices': None,
+                                     'erase_devices_metadata': None})
+        self.assertEqual(mock_steps, steps)
+
+    def test_get_deploy_steps(self):
+        # Only the default deploy step exists in the ramdisk deploy
+        expected = [{'argsinfo': None, 'interface': 'deploy', 'priority': 100,
+                     'step': 'deploy'}]
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            steps = task.driver.deploy.get_deploy_steps(task)
+            self.assertEqual(expected, steps)
+
+    @mock.patch.object(agent_base, 'execute_step', autospec=True)
+    def test_execute_clean_step(self, mock_execute_step):
+        step = {
+            'priority': 10,
+            'interface': 'deploy',
+            'step': 'erase_devices',
+            'reboot_requested': False
+        }
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            result = task.driver.deploy.execute_clean_step(task, step)
+            self.assertIs(result, mock_execute_step.return_value)
+            mock_execute_step.assert_called_once_with(task, step, 'clean')
+
+    @mock.patch.object(deploy_utils, 'prepare_inband_cleaning', autospec=True)
+    def test_prepare_cleaning(self, prepare_inband_cleaning_mock):
+        prepare_inband_cleaning_mock.return_value = states.CLEANWAIT
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertEqual(
+                states.CLEANWAIT, task.driver.deploy.prepare_cleaning(task))
+            prepare_inband_cleaning_mock.assert_called_once_with(
+                task, manage_boot=True)
+
+    @mock.patch.object(deploy_utils, 'tear_down_inband_cleaning',
+                       autospec=True)
+    def test_tear_down_cleaning(self, tear_down_cleaning_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.deploy.tear_down_cleaning(task)
+            tear_down_cleaning_mock.assert_called_once_with(
+                task, manage_boot=True)
+
 
 class PXEAnacondaDeployTestCase(db_base.DbTestCase):
 

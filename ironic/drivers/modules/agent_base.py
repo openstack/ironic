@@ -639,18 +639,15 @@ class HeartbeatMixin(object):
 
 
 class AgentBaseMixin(object):
-    """Mixin with base methods not relying on any deploy steps."""
+    """Mixin with base methods not relying on any deploy steps.
+
+    Provides full support for in-band and out-of-band cleaning and
+    the machinery to support both deploy and clean in-band steps.
+    """
 
     def should_manage_boot(self, task):
         """Whether agent boot is managed by ironic."""
         return True
-
-    def refresh_steps(self, task, step_type):
-        """Refresh the node's cached steps.
-
-        :param task: a TaskManager instance
-        :param step_type: "clean" or "deploy"
-        """
 
     @METRICS.timer('AgentBaseMixin.tear_down')
     @task_manager.require_exclusive_lock
@@ -701,7 +698,7 @@ class AgentBaseMixin(object):
         """
         pass
 
-    @METRICS.timer('AgentDeployMixin.prepare_cleaning')
+    @METRICS.timer('AgentBaseMixin.prepare_cleaning')
     def prepare_cleaning(self, task):
         """Boot into the agent to prepare for cleaning.
 
@@ -719,7 +716,7 @@ class AgentBaseMixin(object):
             self.refresh_steps(task, 'clean')
         return result
 
-    @METRICS.timer('AgentDeployMixin.tear_down_cleaning')
+    @METRICS.timer('AgentBaseMixin.tear_down_cleaning')
     def tear_down_cleaning(self, task):
         """Clean up the PXE and DHCP files after cleaning.
 
@@ -730,64 +727,7 @@ class AgentBaseMixin(object):
         deploy_utils.tear_down_inband_cleaning(
             task, manage_boot=self.should_manage_boot(task))
 
-
-class AgentOobStepsMixin(object):
-    """Mixin with out-of-band deploy steps."""
-
-    @METRICS.timer('AgentDeployMixin.switch_to_tenant_network')
-    @base.deploy_step(priority=30)
-    @task_manager.require_exclusive_lock
-    def switch_to_tenant_network(self, task):
-        """Deploy step to switch the node to the tenant network.
-
-        :param task: a TaskManager object containing the node
-        """
-        try:
-            with manager_utils.power_state_for_network_configuration(task):
-                task.driver.network.remove_provisioning_network(task)
-                task.driver.network.configure_tenant_networks(task)
-        except Exception as e:
-            msg = (_('Error changing node %(node)s to tenant networks after '
-                     'deploy. %(cls)s: %(error)s') %
-                   {'node': task.node.uuid, 'cls': e.__class__.__name__,
-                    'error': e})
-            # NOTE(mgoddard): Don't collect logs since the node has been
-            # powered off.
-            log_and_raise_deployment_error(task, msg, collect_logs=False,
-                                           exc=e)
-
-    @METRICS.timer('AgentDeployMixin.boot_instance')
-    @base.deploy_step(priority=20)
-    @task_manager.require_exclusive_lock
-    def boot_instance(self, task):
-        """Deploy step to boot the final instance.
-
-        :param task: a TaskManager object containing the node
-        """
-        can_power_on = (states.POWER_ON in
-                        task.driver.power.get_supported_power_states(task))
-        try:
-            if can_power_on:
-                manager_utils.node_power_action(task, states.POWER_ON)
-            else:
-                LOG.debug('Not trying to power on node %s that does not '
-                          'support powering on, assuming already running',
-                          task.node.uuid)
-        except Exception as e:
-            msg = (_('Error booting node %(node)s after deploy. '
-                     '%(cls)s: %(error)s') %
-                   {'node': task.node.uuid, 'cls': e.__class__.__name__,
-                    'error': e})
-            # NOTE(mgoddard): Don't collect logs since the node has been
-            # powered off.
-            log_and_raise_deployment_error(task, msg, collect_logs=False,
-                                           exc=e)
-
-
-class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
-    """Mixin with deploy methods."""
-
-    @METRICS.timer('AgentDeployMixin.get_clean_steps')
+    @METRICS.timer('AgentBaseMixin.get_clean_steps')
     def get_clean_steps(self, task):
         """Get the list of clean steps from the agent.
 
@@ -806,26 +746,7 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
             task, 'clean', interface='deploy',
             override_priorities=new_priorities)
 
-    @METRICS.timer('AgentDeployMixin.get_deploy_steps')
-    def get_deploy_steps(self, task):
-        """Get the list of deploy steps from the agent.
-
-        :param task: a TaskManager object containing the node
-        :raises InstanceDeployFailure: if the deploy steps are not yet
-            available (cached), for example, when a node has just been
-            enrolled and has not been deployed yet.
-        :returns: A list of deploy step dictionaries
-        """
-        steps = super(AgentDeployMixin, self).get_deploy_steps(task)[:]
-        ib_steps = get_steps(task, 'deploy', interface='deploy')
-        # NOTE(dtantsur): we allow in-band steps to be shadowed by out-of-band
-        # ones, see the docstring of execute_deploy_step for details.
-        steps += [step for step in ib_steps
-                  # FIXME(dtantsur): nested loops are not too efficient
-                  if not conductor_steps.find_step(steps, step)]
-        return steps
-
-    @METRICS.timer('AgentDeployMixin.refresh_steps')
+    @METRICS.timer('AgentBaseMixin.refresh_steps')
     def refresh_steps(self, task, step_type):
         """Refresh the node's cached clean/deploy steps from the booted agent.
 
@@ -911,7 +832,7 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                   '%(steps)s', {'node': node.uuid, 'steps': steps,
                                 'type': step_type})
 
-    @METRICS.timer('AgentDeployMixin.execute_clean_step')
+    @METRICS.timer('AgentBaseMixin.execute_clean_step')
     def execute_clean_step(self, task, step):
         """Execute a clean step asynchronously on the agent.
 
@@ -922,37 +843,6 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
         :returns: states.CLEANWAIT to signify the step will be completed async
         """
         return execute_step(task, step, 'clean')
-
-    @METRICS.timer('AgentDeployMixin.execute_deploy_step')
-    def execute_deploy_step(self, task, step):
-        """Execute a deploy step.
-
-        We're trying to find a step among both out-of-band and in-band steps.
-        In case of duplicates, out-of-band steps take priority. This property
-        allows having an out-of-band deploy step that calls into
-        a corresponding in-band step after some preparation (e.g. with
-        additional input).
-
-        :param task: a TaskManager object containing the node
-        :param step: a deploy step dictionary to execute
-        :raises: InstanceDeployFailure if the agent does not return a command
-            status
-        :returns: states.DEPLOYWAIT to signify the step will be completed async
-        """
-        agent_running = task.node.driver_internal_info.get(
-            'agent_cached_deploy_steps')
-        oob_steps = self.deploy_steps
-
-        if conductor_steps.find_step(oob_steps, step):
-            return super(AgentDeployMixin, self).execute_deploy_step(
-                task, step)
-        elif not agent_running:
-            raise exception.InstanceDeployFailure(
-                _('Deploy step %(step)s has not been found. Available '
-                  'out-of-band steps: %(oob)s. Agent is not running.') %
-                {'step': step, 'oob': oob_steps})
-        else:
-            return execute_step(task, step, 'deploy')
 
     def _process_version_mismatch(self, task, step_type):
         node = task.node
@@ -1015,7 +905,7 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
 
         manager_utils.notify_conductor_resume_operation(task, step_type)
 
-    @METRICS.timer('AgentDeployMixin.process_next_step')
+    @METRICS.timer('AgentBaseMixin.process_next_step')
     def process_next_step(self, task, step_type, **kwargs):
         """Start the next clean/deploy step if the previous one is complete.
 
@@ -1112,6 +1002,113 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                     'step': current_step,
                     'type': step_type})
             return _step_failure_handler(task, msg, step_type)
+
+
+class AgentOobStepsMixin(object):
+    """Mixin with out-of-band deploy steps."""
+
+    @METRICS.timer('AgentOobStepsMixin.switch_to_tenant_network')
+    @base.deploy_step(priority=30)
+    @task_manager.require_exclusive_lock
+    def switch_to_tenant_network(self, task):
+        """Deploy step to switch the node to the tenant network.
+
+        :param task: a TaskManager object containing the node
+        """
+        try:
+            with manager_utils.power_state_for_network_configuration(task):
+                task.driver.network.remove_provisioning_network(task)
+                task.driver.network.configure_tenant_networks(task)
+        except Exception as e:
+            msg = (_('Error changing node %(node)s to tenant networks after '
+                     'deploy. %(cls)s: %(error)s') %
+                   {'node': task.node.uuid, 'cls': e.__class__.__name__,
+                    'error': e})
+            # NOTE(mgoddard): Don't collect logs since the node has been
+            # powered off.
+            log_and_raise_deployment_error(task, msg, collect_logs=False,
+                                           exc=e)
+
+    @METRICS.timer('AgentOobStepsMixin.boot_instance')
+    @base.deploy_step(priority=20)
+    @task_manager.require_exclusive_lock
+    def boot_instance(self, task):
+        """Deploy step to boot the final instance.
+
+        :param task: a TaskManager object containing the node
+        """
+        can_power_on = (states.POWER_ON in
+                        task.driver.power.get_supported_power_states(task))
+        try:
+            if can_power_on:
+                manager_utils.node_power_action(task, states.POWER_ON)
+            else:
+                LOG.debug('Not trying to power on node %s that does not '
+                          'support powering on, assuming already running',
+                          task.node.uuid)
+        except Exception as e:
+            msg = (_('Error booting node %(node)s after deploy. '
+                     '%(cls)s: %(error)s') %
+                   {'node': task.node.uuid, 'cls': e.__class__.__name__,
+                    'error': e})
+            # NOTE(mgoddard): Don't collect logs since the node has been
+            # powered off.
+            log_and_raise_deployment_error(task, msg, collect_logs=False,
+                                           exc=e)
+
+
+class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
+    """Mixin with deploy methods."""
+
+    @METRICS.timer('AgentDeployMixin.get_deploy_steps')
+    def get_deploy_steps(self, task):
+        """Get the list of deploy steps from the agent.
+
+        :param task: a TaskManager object containing the node
+        :raises InstanceDeployFailure: if the deploy steps are not yet
+            available (cached), for example, when a node has just been
+            enrolled and has not been deployed yet.
+        :returns: A list of deploy step dictionaries
+        """
+        steps = super(AgentDeployMixin, self).get_deploy_steps(task)[:]
+        ib_steps = get_steps(task, 'deploy', interface='deploy')
+        # NOTE(dtantsur): we allow in-band steps to be shadowed by out-of-band
+        # ones, see the docstring of execute_deploy_step for details.
+        steps += [step for step in ib_steps
+                  # FIXME(dtantsur): nested loops are not too efficient
+                  if not conductor_steps.find_step(steps, step)]
+        return steps
+
+    @METRICS.timer('AgentDeployMixin.execute_deploy_step')
+    def execute_deploy_step(self, task, step):
+        """Execute a deploy step.
+
+        We're trying to find a step among both out-of-band and in-band steps.
+        In case of duplicates, out-of-band steps take priority. This property
+        allows having an out-of-band deploy step that calls into
+        a corresponding in-band step after some preparation (e.g. with
+        additional input).
+
+        :param task: a TaskManager object containing the node
+        :param step: a deploy step dictionary to execute
+        :raises: InstanceDeployFailure if the agent does not return a command
+            status
+        :returns: states.DEPLOYWAIT to signify the step will be completed async
+        """
+        agent_running = task.node.driver_internal_info.get(
+            'agent_cached_deploy_steps')
+        oob_steps = self.deploy_steps
+
+        if conductor_steps.find_step(oob_steps, step):
+            return super(AgentDeployMixin, self).execute_deploy_step(
+                task, step)
+        elif not agent_running:
+            raise exception.InstanceDeployFailure(
+                _('Deploy step %(step)s has not been found. Available '
+                  'out-of-band steps: %(oob)s. Agent is not running.') %
+                {'step': step, 'oob': oob_steps})
+        else:
+            return execute_step(task, step, 'deploy')
 
     @METRICS.timer('AgentDeployMixin.tear_down_agent')
     @base.deploy_step(priority=40)
