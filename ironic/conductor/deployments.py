@@ -224,7 +224,8 @@ def do_node_deploy(task, conductor_id=None, configdrive=None,
 
 
 @utils.fail_on_error(utils.deploying_error_handler,
-                     _("Unexpected error when processing next deploy step"))
+                     _("Unexpected error when processing next deploy step"),
+                     traceback=True)
 @task_manager.require_exclusive_lock
 def do_next_deploy_step(task, step_index):
     """Do deployment, starting from the specified deploy step.
@@ -367,7 +368,8 @@ def validate_deploy_steps(task):
 
 
 @utils.fail_on_error(utils.deploying_error_handler,
-                     _("Unexpected error when processing next deploy step"))
+                     _("Unexpected error when processing next deploy step"),
+                     traceback=True)
 @task_manager.require_exclusive_lock
 def continue_node_deploy(task):
     """Continue deployment after finishing an async deploy step.
