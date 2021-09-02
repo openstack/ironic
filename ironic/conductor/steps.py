@@ -228,6 +228,11 @@ def set_node_cleaning_steps(task, disable_ramdisk=False):
         driver_internal_info['clean_steps'] = _validate_user_clean_steps(
             task, steps, disable_ramdisk=disable_ramdisk)
 
+    LOG.debug('List of the steps for %(type)s cleaning of node %(node)s: '
+              '%(steps)s', {'type': 'manual' if manual_clean else 'automated',
+                            'node': node.uuid,
+                            'steps': driver_internal_info['clean_steps']})
+
     node.clean_step = {}
     driver_internal_info['clean_step_index'] = None
     node.driver_internal_info = driver_internal_info
@@ -365,6 +370,10 @@ def set_node_deployment_steps(task, reset_current=True, skip_missing=False):
     driver_internal_info = node.driver_internal_info
     driver_internal_info['deploy_steps'] = _get_all_deployment_steps(
         task, skip_missing=skip_missing)
+
+    LOG.debug('List of the deploy steps for node %(node)s: '
+              '%(steps)s', {'node': node.uuid,
+                            'steps': driver_internal_info['deploy_steps']})
     if reset_current:
         node.deploy_step = {}
         driver_internal_info['deploy_step_index'] = None
