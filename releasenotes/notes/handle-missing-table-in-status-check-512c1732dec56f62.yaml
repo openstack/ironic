@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Handles excessively long errors when the status upgrade check is executed,
+    and simply indicates now if a table is missing, suggesting to update the
+    database schema before proceeding.
