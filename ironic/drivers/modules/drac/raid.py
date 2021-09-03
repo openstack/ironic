@@ -1470,8 +1470,7 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
                     reboot=True,
                     skip_current_step=True,
                     polling=True)
-                deploy_opts = deploy_utils.build_agent_options(task.node)
-                task.driver.boot.prepare_ramdisk(task, deploy_opts)
+                deploy_utils.prepare_agent_boot(task)
                 # Reboot already done by non real time task
                 task.upgrade_lock()
                 info = task.node.driver_internal_info

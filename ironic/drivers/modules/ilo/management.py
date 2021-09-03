@@ -395,8 +395,7 @@ class IloManagement(base.ManagementInterface):
         # Reset iLO ejects virtual media
         # Re-create the environment for agent boot, if required
         task.driver.boot.clean_up_ramdisk(task)
-        deploy_opts = deploy_utils.build_agent_options(node)
-        task.driver.boot.prepare_ramdisk(task, deploy_opts)
+        deploy_utils.prepare_agent_boot(task)
 
     @METRICS.timer('IloManagement.reset_ilo_credential')
     @base.deploy_step(priority=0, argsinfo=_RESET_ILO_CREDENTIALS_ARGSINFO)
@@ -657,8 +656,7 @@ class IloManagement(base.ManagementInterface):
         # Firmware might have ejected the virtual media, if it was used.
         # Re-create the environment for agent boot, if required
         task.driver.boot.clean_up_ramdisk(task)
-        deploy_opts = deploy_utils.build_agent_options(node)
-        task.driver.boot.prepare_ramdisk(task, deploy_opts)
+        deploy_utils.prepare_agent_boot(task)
 
         LOG.info("All Firmware update operations completed successfully "
                  "for node: %s.", node.uuid)
@@ -1066,10 +1064,7 @@ class Ilo5Management(IloManagement):
                         'ilo_disk_erase_hdd_check')
                     self._set_driver_internal_value(
                         task, False, 'skip_current_clean_step')
-                    deploy_opts = deploy_utils.build_agent_options(task.node)
-                    task.driver.boot.prepare_ramdisk(task, deploy_opts)
-                    manager_utils.node_power_action(task, states.REBOOT)
-                    return states.CLEANWAIT
+                    return deploy_utils.reboot_to_finish_step(task)
 
                 if not driver_internal_info.get(
                         'ilo_disk_erase_ssd_check') and ('SSD' in disk_types):
@@ -1079,10 +1074,7 @@ class Ilo5Management(IloManagement):
                         'ilo_disk_erase_ssd_check', 'cleaning_reboot')
                     self._set_driver_internal_value(
                         task, False, 'skip_current_clean_step')
-                    deploy_opts = deploy_utils.build_agent_options(task.node)
-                    task.driver.boot.prepare_ramdisk(task, deploy_opts)
-                    manager_utils.node_power_action(task, states.REBOOT)
-                    return states.CLEANWAIT
+                    return deploy_utils.reboot_to_finish_step(task)
 
                 # It will wait until disk erase will complete
                 if self._wait_for_disk_erase_status(task.node):

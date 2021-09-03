@@ -34,7 +34,6 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import molds
-from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
@@ -455,11 +454,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
             reboot=True,
             skip_current_step=True,
             polling=True)
-        deploy_opts = deploy_utils.build_agent_options(task.node)
-        task.driver.boot.prepare_ramdisk(task, deploy_opts)
-        manager_utils.node_power_action(task, states.REBOOT)
-
-        return deploy_utils.get_async_step_return_state(task.node)
+        return deploy_utils.reboot_to_finish_step(task)
 
     @base.clean_step(priority=0,
                      argsinfo=IMPORT_EXPORT_CONFIGURATION_ARGSINFO)

@@ -760,11 +760,7 @@ class RedfishManagement(base.ManagementInterface):
             skip_current_step=True,
             polling=True)
 
-        deploy_opts = deploy_utils.build_agent_options(task.node)
-        task.driver.boot.prepare_ramdisk(task, deploy_opts)
-        manager_utils.node_power_action(task, states.REBOOT)
-
-        return deploy_utils.get_async_step_return_state(task.node)
+        return deploy_utils.reboot_to_finish_step(task)
 
     def _apply_firmware_update(self, node, update_service, firmware_updates):
         """Applies the next firmware update to the node

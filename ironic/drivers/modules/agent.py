@@ -401,8 +401,7 @@ class CustomAgentDeploy(agent_base.AgentBaseMixin, agent_base.AgentDeployMixin,
                                             states.RESCUE, states.RESCUEFAIL):
                 self._update_instance_info(task)
             if CONF.agent.manage_agent_boot:
-                deploy_opts = deploy_utils.build_agent_options(node)
-                task.driver.boot.prepare_ramdisk(task, deploy_opts)
+                deploy_utils.prepare_agent_boot(task)
 
     @METRICS.timer('CustomAgentDeploy.clean_up')
     @task_manager.require_exclusive_lock
@@ -856,9 +855,8 @@ class AgentRescue(base.RescueInterface):
             task.driver.network.unconfigure_tenant_networks(task)
             task.driver.network.add_rescuing_network(task)
         if CONF.agent.manage_agent_boot:
-            ramdisk_opts = deploy_utils.build_agent_options(task.node)
             # prepare_ramdisk will set the boot device
-            task.driver.boot.prepare_ramdisk(task, ramdisk_opts)
+            deploy_utils.prepare_agent_boot(task)
         manager_utils.node_power_action(task, states.POWER_ON)
 
         return states.RESCUEWAIT

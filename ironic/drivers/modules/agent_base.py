@@ -186,11 +186,9 @@ def _post_step_reboot(task, step_type):
     current_step = (task.node.clean_step if step_type == 'clean'
                     else task.node.deploy_step)
     try:
-        # NOTE(fellypefca): Call prepare_ramdisk on ensure that the
-        # baremetal node boots back into the ramdisk after reboot.
-        deploy_opts = deploy_utils.build_agent_options(task.node)
-        task.driver.boot.prepare_ramdisk(task, deploy_opts)
-        manager_utils.node_power_action(task, states.REBOOT)
+        # NOTE(fellypefca): ensure that the baremetal node boots back into
+        # the ramdisk after reboot.
+        deploy_utils.reboot_to_finish_step(task)
     except Exception as e:
         msg = (_('Reboot requested by %(type)s step %(step)s failed for '
                  'node %(node)s: %(err)s') %

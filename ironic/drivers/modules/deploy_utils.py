@@ -721,8 +721,7 @@ def prepare_inband_cleaning(task, manage_boot=True):
     agent_add_clean_params(task)
 
     if manage_boot:
-        ramdisk_opts = build_agent_options(task.node)
-        task.driver.boot.prepare_ramdisk(task, ramdisk_opts)
+        prepare_agent_boot(task)
 
     # NOTE(dtantsur): calling prepare_ramdisk may power off the node, so we
     # need to check fast-track again and reboot if needed.
@@ -1384,6 +1383,27 @@ def set_async_step_flags(node, reboot=None, skip_current_step=None,
         info[fields['polling']] = polling
     node.driver_internal_info = info
     node.save()
+
+
+def prepare_agent_boot(task):
+    """Prepare booting the agent on the node.
+
+    :param task: a TaskManager instance.
+    """
+    deploy_opts = build_agent_options(task.node)
+    task.driver.boot.prepare_ramdisk(task, deploy_opts)
+
+
+def reboot_to_finish_step(task):
+    """Reboot the node into IPA to finish a deploy/clean step.
+
+    :param task: a TaskManager instance.
+    :returns: states.CLEANWAIT if cleaning operation in progress
+              or states.DEPLOYWAIT if deploy operation in progress.
+    """
+    prepare_agent_boot(task)
+    manager_utils.node_power_action(task, states.REBOOT)
+    return get_async_step_return_state(task.node)
 
 
 def get_root_device_for_deploy(node):

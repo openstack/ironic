@@ -509,8 +509,7 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
             node.instance_info = deploy_utils.build_instance_info_for_deploy(
                 task)
             node.save()
-            boot_opt = deploy_utils.build_agent_options(node)
-            task.driver.boot.prepare_ramdisk(task, boot_opt)
+            deploy_utils.prepare_agent_boot(task)
 
     @METRICS.timer('AnsibleDeploy.clean_up')
     def clean_up(self, task):
@@ -595,8 +594,7 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
         task.driver.network.add_cleaning_network(task)
         manager_utils.restore_power_state_if_needed(
             task, power_state_to_restore)
-        boot_opt = deploy_utils.build_agent_options(node)
-        task.driver.boot.prepare_ramdisk(task, boot_opt)
+        deploy_utils.prepare_agent_boot(task)
         if not fast_track:
             manager_utils.node_power_action(task, states.REBOOT)
         return states.CLEANWAIT

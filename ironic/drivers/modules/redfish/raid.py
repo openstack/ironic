@@ -853,10 +853,7 @@ class RedfishRAID(base.RAIDInterface):
             skip_current_step=True,
             polling=True)
         if reboot_required:
-            return_state = deploy_utils.get_async_step_return_state(task.node)
-            deploy_opts = deploy_utils.build_agent_options(task.node)
-            task.driver.boot.prepare_ramdisk(task, deploy_opts)
-            manager_utils.node_power_action(task, states.REBOOT)
+            return_state = deploy_utils.reboot_to_finish_step(task)
 
         return self.post_create_configuration(
             task, raid_configs, return_state=return_state)
@@ -929,10 +926,7 @@ class RedfishRAID(base.RAIDInterface):
             skip_current_step=True,
             polling=True)
         if reboot_required:
-            return_state = deploy_utils.get_async_step_return_state(task.node)
-            deploy_opts = deploy_utils.build_agent_options(task.node)
-            task.driver.boot.prepare_ramdisk(task, deploy_opts)
-            manager_utils.node_power_action(task, states.REBOOT)
+            return_state = deploy_utils.reboot_to_finish_step(task)
 
         return self.post_delete_configuration(
             task, raid_configs, return_state=return_state)
