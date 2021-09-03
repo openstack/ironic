@@ -32,6 +32,7 @@ the services.
    Booting a Ramdisk or an ISO <ramdisk-boot>
    Deploying with anaconda deploy interface <anaconda-deploy-interface>
    Hardware Burn-in <hardware-burn-in>
+   Vendor Passthru <vendor-passthru>
 
 Drivers, Hardware Types and Hardware Interfaces
 -----------------------------------------------
