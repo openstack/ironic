@@ -42,7 +42,8 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
             mock_check_versions.return_value = True
             msg = self.db_cmds.check_obj_versions()
             self.assertIsNone(msg)
-            mock_check_versions.assert_called_once_with(ignore_models=())
+            mock_check_versions.assert_called_once_with(
+                permit_initial_version=False)
 
     def test_check_obj_versions_bad(self):
         with mock.patch.object(self.dbapi, 'check_versions',
@@ -50,7 +51,8 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
             mock_check_versions.return_value = False
             msg = self.db_cmds.check_obj_versions()
             self.assertIsNotNone(msg)
-            mock_check_versions.assert_called_once_with(ignore_models=())
+            mock_check_versions.assert_called_once_with(
+                permit_initial_version=False)
 
     def test_check_obj_versions_ignore_models(self):
         with mock.patch.object(self.dbapi, 'check_versions',
@@ -59,7 +61,7 @@ class OnlineMigrationTestCase(db_base.DbTestCase):
             msg = self.db_cmds.check_obj_versions(ignore_missing_tables=True)
             self.assertIsNone(msg)
             mock_check_versions.assert_called_once_with(
-                ignore_models=dbsync.NEW_MODELS)
+                permit_initial_version=True)
 
     @mock.patch.object(dbsync.DBCommand, 'check_obj_versions', autospec=True)
     def test_check_versions_bad(self, mock_check_versions):

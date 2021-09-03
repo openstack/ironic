@@ -15,6 +15,7 @@ from unittest import mock
 
 from oslo_db.sqlalchemy import utils as db_utils
 from oslo_utils import uuidutils
+import sqlalchemy as sa
 from testtools import matchers
 
 from ironic.common import context
@@ -41,6 +42,25 @@ class UpgradingTestCase(base.DbTestCase):
         column_exists.return_value = False
         self.assertRaises(exception.DatabaseVersionTooOld,
                           self.dbapi.check_versions)
+
+    @mock.patch.object(release_mappings, 'get_object_versions', autospec=True)
+    @mock.patch.object(db_utils, 'column_exists', autospec=True)
+    def test_check_versions_handles_missing_table(
+            self, column_exists, mock_release_mappings):
+        column_exists.side_effect = sa.exc.NoSuchTableError('meow')
+        mock_release_mappings.return_value = {'Node': {'1.0'}}
+        self.assertTrue(
+            self.dbapi.check_versions(permit_initial_version=True))
+        self.assertEqual(1, column_exists.call_count)
+
+    @mock.patch.object(release_mappings, 'get_object_versions', autospec=True)
+    @mock.patch.object(db_utils, 'column_exists', autospec=True)
+    def test_check_versions_raises_missing_table(
+            self, column_exists, mock_release_mappings):
+        column_exists.side_effect = sa.exc.NoSuchTableError('meow')
+        mock_release_mappings.return_value = {'Node': {'1.0', '1.1'}}
+        self.assertRaises(sa.exc.NoSuchTableError, self.dbapi.check_versions)
+        self.assertEqual(1, column_exists.call_count)
 
     def test_check_versions(self):
         for v in self.object_versions['Node']:
