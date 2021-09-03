@@ -99,22 +99,6 @@ The trace results show the time spent in ironic-api, ironic-conductor, and db
 calls. More detailed db tracing is enabled if ``trace_sqlalchemy``
 is set to true.
 
-Sample Trace:
-
-.. figure:: ../images/sample_trace.svg
-   :width: 660px
-   :align: left
-   :alt: Sample Trace
-
-
-Each trace has embedded trace point details as shown below:
-
-.. figure:: ../images/sample_trace_details.svg
-   :width: 660px
-   :align: left
-   :alt: Sample Trace Details
-
-
 References
 ==========
 
