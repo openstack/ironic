@@ -126,7 +126,8 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False):
 
 
 @utils.fail_on_error(utils.cleaning_error_handler,
-                     _("Unexpected error when processing next clean step"))
+                     _("Unexpected error when processing next clean step"),
+                     traceback=True)
 @task_manager.require_exclusive_lock
 def do_next_clean_step(task, step_index, disable_ramdisk=None):
     """Do cleaning, starting from the specified clean step.
@@ -145,6 +146,8 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
     if step_index is None:
         steps = []
     else:
+        assert node.driver_internal_info.get('clean_steps') is not None, \
+            f"BUG: No clean steps for {node.uuid}, step index is {step_index}"
         steps = node.driver_internal_info['clean_steps'][step_index:]
 
     if disable_ramdisk is None:
@@ -285,7 +288,8 @@ def do_node_clean_abort(task, step_name=None):
 
 
 @utils.fail_on_error(utils.cleaning_error_handler,
-                     _("Unexpected error when processing next clean step"))
+                     _("Unexpected error when processing next clean step"),
+                     traceback=True)
 @task_manager.require_exclusive_lock
 def continue_node_clean(task):
     """Continue cleaning after finishing an async clean step.
