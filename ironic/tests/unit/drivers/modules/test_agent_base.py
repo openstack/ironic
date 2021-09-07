@@ -1703,6 +1703,10 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
         }]
         with task_manager.acquire(self.context, self.node['uuid'],
                                   shared=False) as task:
+            task.node.clean_step = {
+                'step': 'erase_devices',
+                'interface': 'deploy',
+            }
             self.deploy.continue_cleaning(task)
             error_mock.assert_called_once_with(task, mock.ANY, traceback=False)
             collect_logs_mock.assert_called_once_with(task.node,
