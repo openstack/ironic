@@ -24,6 +24,7 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as cond_utils
 from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import management as drac_management
@@ -87,15 +88,17 @@ def _commit_boot_list_change(node):
     node.save()
 
 
-def _set_power_state(node, power_state):
+def _set_power_state(task, power_state, timeout=None):
     """Turns the server power on/off or do a reboot.
 
-    :param node: an ironic node object.
+    :param task: a TaskManager instance containing the node to act on.
     :param power_state: a power state from :mod:`ironic.common.states`.
+    :param timeout: Time to wait for the node to reach the requested state.
+        When requested state is reboot, not used as not waiting then.
     :raises: InvalidParameterValue if required DRAC credentials are missing.
     :raises: DracOperationError on an error from python-dracclient
     """
-
+    node = task.node
     # NOTE(ifarkas): DRAC interface doesn't allow changing the boot device
     #                multiple times in a row without a reboot. This is
     #                because a change need to be committed via a
@@ -131,6 +134,20 @@ def _set_power_state(node, power_state):
 
         try:
             client.set_power_state(target_power_state)
+            if calc_power_state == states.REBOOT:
+                # TODO(rloo): Support timeouts!
+                if timeout is not None:
+                    LOG.warning("The 'idrac-wsman' Power Interface  does not "
+                                "support 'timeout' parameter when setting "
+                                "power state to reboot. Ignoring "
+                                "timeout=%(timeout)s",
+                                {'timeout': timeout})
+            else:
+                # Skipped for reboot as can't match reboot with on/off.
+                # Reboot so far has been part of workflow that is not followed
+                # by another power state change that could break the flow.
+                cond_utils.node_wait_for_power_state(
+                    task, calc_power_state, timeout)
             break
         except drac_exceptions.BaseClientException as exc:
             if (power_state == states.REBOOT
@@ -214,20 +231,13 @@ class DracWSManPower(base.PowerInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :param power_state: a power state from :mod:`ironic.common.states`.
-        :param timeout: timeout (in seconds). Unsupported by this interface.
+        :param timeout: Time to wait for the node to reach the requested state.
+            When requested state is reboot, not used as not waiting then.
         :raises: InvalidParameterValue if required DRAC credentials are
                  missing.
         :raises: DracOperationError on an error from python-dracclient.
         """
-        # TODO(rloo): Support timeouts!
-        if timeout is not None:
-            LOG.warning(
-                "The 'idrac' Power Interface's 'set_power_state' method "
-                "doesn't support the 'timeout' parameter. Ignoring "
-                "timeout=%(timeout)s",
-                {'timeout': timeout})
-
-        _set_power_state(task.node, power_state)
+        _set_power_state(task, power_state, timeout)
 
     @METRICS.timer('DracPower.reboot')
     @task_manager.require_exclusive_lock
@@ -240,14 +250,7 @@ class DracWSManPower(base.PowerInterface):
                  missing.
         :raises: DracOperationError on an error from python-dracclient.
         """
-        # TODO(rloo): Support timeouts!
-        if timeout is not None:
-            LOG.warning("The 'idrac' Power Interface's 'reboot' method "
-                        "doesn't support the 'timeout' parameter. Ignoring "
-                        "timeout=%(timeout)s",
-                        {'timeout': timeout})
-
-        _set_power_state(task.node, states.REBOOT)
+        _set_power_state(task, states.REBOOT, timeout)
 
 
 class DracPower(DracWSManPower):
