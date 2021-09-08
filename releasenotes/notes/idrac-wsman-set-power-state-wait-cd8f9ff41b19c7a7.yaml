@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Fixes ``idrac-wsman`` power interface to wait for the hardware to reach the
+    target state before returning. For systems where soft power off at the end
+    of deployment to boot to instance failed and forced hard power off was
+    used, this left node successfully deployed in off state without any errors.
+    This broke other workflows expecting node to be on booted into
+    OS at the end of deployment. Additional information can be found in
+    `story 2009204 <https://storyboard.openstack.org/#!/story/2009204>`_.
