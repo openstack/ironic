@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Fixes an issue in db schema version testing where objects with a initial
+    version, e.g. "1.0", are allowed to not already have their DB tables
+    pre-exist when performing the pre-upgrade compatability check for the
+    database. This allows the upgrade to proceed and update the database
+    schema without an explicit known list having to be maintained in Ironic.
+other:
+  - |
+    Removes a ``NEW_MODELS`` internal list from the dbsync utility which
+    helped the tool navigate new models, however it was never used. Instead
+    the tool now utilizes the database version and appropriate base version
+    to make the appropriate decision in pre-upgrade checks.
