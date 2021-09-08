@@ -212,6 +212,21 @@ opts = [
                       'url directly, or if ironic should cache the image on '
                       'the conductor and serve it from ironic\'s own http '
                       'server.')),
+    cfg.StrOpt('iso_master_path',
+               default='/var/lib/ironic/master_iso_images',
+               help=_('On the ironic-conductor node, directory where master '
+                      'ISO images are stored on disk. '
+                      'Setting to the empty string disables image caching.')),
+    cfg.IntOpt('iso_cache_size',
+               default=20480,
+               help=_('Maximum size (in MiB) of cache for master ISO images, '
+                      'including those in use.')),
+    # 10080 here is 1 week - 60*24*7. It is entirely arbitrary in the absence
+    # of a facility to disable the ttl entirely.
+    cfg.IntOpt('iso_cache_ttl',
+               default=10080,
+               help=_('Maximum TTL (in minutes) for old master ISO images in '
+                      'cache.')),
 ]
 
 

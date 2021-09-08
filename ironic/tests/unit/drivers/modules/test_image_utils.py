@@ -671,10 +671,10 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
 
     @mock.patch.object(image_utils.ImageHandler, 'publish_image',
                        autospec=True)
-    @mock.patch.object(images, 'fetch_into', autospec=True)
+    @mock.patch.object(image_utils, 'ISOImageCache', autospec=True)
     @mock.patch.object(images, 'create_boot_iso', autospec=True)
     def test__prepare_iso_image_bootable_iso_file(self, mock_create_boot_iso,
-                                                  mock_fetch,
+                                                  mock_cache,
                                                   mock_publish_image):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -684,8 +684,8 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 task, 'http://kernel/img', 'http://ramdisk/img',
                 bootloader_href=None, root_uuid=task.node.uuid,
                 base_iso=base_image_url)
-            mock_fetch.assert_called_once_with(task.context,
-                                               base_image_url, mock.ANY)
+            mock_cache.return_value.fetch_image.assert_called_once_with(
+                base_image_url, mock.ANY, ctx=task.context, force_raw=False)
             mock_create_boot_iso.assert_not_called()
 
     @mock.patch.object(images, 'get_temp_url_for_glance_image',

@@ -35,6 +35,7 @@ from ironic.common import utils
 from ironic.conf import CONF
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
 
 LOG = log.getLogger(__name__)
@@ -224,6 +225,19 @@ class ImageHandler(object):
             image_url, os.path.basename(image_file))
 
         return image_url
+
+
+@image_cache.cleanup(priority=75)
+class ISOImageCache(image_cache.ImageCache):
+
+    def __init__(self):
+        master_path = CONF.deploy.iso_master_path or None
+        super(self.__class__, self).__init__(
+            master_path,
+            # MiB -> B
+            cache_size=CONF.deploy.iso_cache_size * 1024 * 1024,
+            # min -> sec
+            cache_ttl=CONF.deploy.iso_cache_ttl * 60)
 
 
 def _get_name(node, prefix='', suffix=''):
@@ -467,10 +481,9 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
 
     boot_mode = boot_mode_utils.get_boot_mode(task.node)
 
-    with tempfile.NamedTemporaryFile(
-            dir=CONF.tempdir, suffix='.iso') as boot_fileobj:
+    with tempfile.TemporaryDirectory(dir=CONF.tempdir) as boot_file_dir:
 
-        boot_iso_tmp_file = boot_fileobj.name
+        boot_iso_tmp_file = os.path.join(boot_file_dir, 'boot.iso')
         if base_iso:
             # NOTE(dtantsur): this should be "params or inject_files", but
             # params are always populated in the calling code.
@@ -479,7 +492,9 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
                      '%(node)s, custom configuration will not be available',
                      {'boot_mode': boot_mode, 'node': task.node.uuid,
                       'iso': base_iso})
-            images.fetch_into(task.context, base_iso, boot_iso_tmp_file)
+
+            ISOImageCache().fetch_image(base_iso, boot_iso_tmp_file,
+                                        ctx=task.context, force_raw=False)
         else:
             if is_ramdisk_boot:
                 kernel_params = "root=/dev/ram0 text "
