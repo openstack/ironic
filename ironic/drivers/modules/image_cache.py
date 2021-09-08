@@ -20,6 +20,7 @@ Utility for caching master images.
 
 import os
 import tempfile
+import threading
 import time
 import uuid
 
@@ -42,6 +43,9 @@ LOG = logging.getLogger(__name__)
 # considered for cleanup. This list will be kept sorted in non-increasing
 # order of priority.
 _cache_cleanup_list = []
+
+
+_concurrency_semaphore = threading.Semaphore(CONF.image_download_concurrency)
 
 
 class ImageCache(object):
@@ -84,7 +88,8 @@ class ImageCache(object):
                 with lockutils.lock(img_download_lock_name):
                     _fetch(ctx, href, dest_path, force_raw)
             else:
-                _fetch(ctx, href, dest_path, force_raw)
+                with _concurrency_semaphore:
+                    _fetch(ctx, href, dest_path, force_raw)
             return
 
         # TODO(ghe): have hard links and counts the same behaviour in all fs
@@ -129,8 +134,8 @@ class ImageCache(object):
                           {'href': href})
                 return
 
-            LOG.info("Master cache miss for image %(href)s, "
-                     "starting download", {'href': href})
+            LOG.info("Master cache miss for image %(href)s, will download",
+                     {'href': href})
             self._download_image(
                 href, master_path, dest_path, ctx=ctx, force_raw=force_raw)
 
@@ -159,7 +164,8 @@ class ImageCache(object):
         tmp_path = os.path.join(tmp_dir, href.split('/')[-1])
 
         try:
-            _fetch(ctx, href, tmp_path, force_raw)
+            with _concurrency_semaphore:
+                _fetch(ctx, href, tmp_path, force_raw)
             # NOTE(dtantsur): no need for global lock here - master_path
             # will have link count >1 at any moment, so won't be cleaned up
             os.link(tmp_path, master_path)

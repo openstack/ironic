@@ -21,6 +21,7 @@ Handling of VM disk images.
 
 import os
 import shutil
+import time
 
 from ironic_lib import disk_utils
 from ironic_lib import utils as ironic_utils
@@ -354,14 +355,18 @@ def fetch_into(context, image_href, image_file):
     image_service = service.get_image_service(image_href,
                                               context=context)
     LOG.debug("Using %(image_service)s to download image %(image_href)s.",
-              {'image_service': image_service.__class__,
+              {'image_service': image_service.__class__.__name__,
                'image_href': image_href})
+    start = time.time()
 
     if isinstance(image_file, str):
         with open(image_file, "wb") as image_file_obj:
             image_service.download(image_href, image_file_obj)
     else:
         image_service.download(image_href, image_file)
+
+    LOG.debug("Image %(image_href)s downloaded in %(time).2f seconds.",
+              {'image_href': image_href, 'time': time.time() - start})
 
 
 def fetch(context, image_href, path, force_raw=False):
