@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    When an ``http(s)://`` image is used, the cached copy of the image will always
+    be updated if the HTTP server does not provide the last modification date
+    and time. Previously the cached image would be considered up-to-date, which
+    could cause invalid behavior if the image is generated on fly or was modified
+    while being served.

@@ -414,20 +414,22 @@ def _delete_master_path_if_stale(master_path, href, ctx):
         img_mtime = img_service.show(href).get('updated_at')
         if not img_mtime:
             # This means that href is not a glance image and doesn't have an
-            # updated_at attribute
+            # updated_at attribute. To play on the safe side, redownload the
+            # master copy of the image.
             LOG.warning("Image service couldn't determine last "
-                        "modification time of %(href)s, considering "
-                        "cached image up to date.", {'href': href})
-            return True
-        master_mtime = utils.unix_file_modification_datetime(master_path)
-        if img_mtime <= master_mtime:
-            return True
-        # Delete image from cache as it is outdated
-        LOG.info('Image %(href)s was last modified at %(remote_time)s. '
-                 'Deleting the cached copy "%(cached_file)s since it was '
-                 'last modified at %(local_time)s and may be outdated.',
-                 {'href': href, 'remote_time': img_mtime,
-                  'local_time': master_mtime, 'cached_file': master_path})
+                        "modification time of %(href)s, updating "
+                        "the cached copy %(cached_file)s.",
+                        {'href': href, 'cached_file': master_path})
+        else:
+            master_mtime = utils.unix_file_modification_datetime(master_path)
+            if img_mtime <= master_mtime:
+                return True
+            # Delete image from cache as it is outdated
+            LOG.info('Image %(href)s was last modified at %(remote_time)s. '
+                     'Deleting the cached copy "%(cached_file)s since it was '
+                     'last modified at %(local_time)s and may be outdated.',
+                     {'href': href, 'remote_time': img_mtime,
+                      'local_time': master_mtime, 'cached_file': master_path})
 
         os.unlink(master_path)
     return False
