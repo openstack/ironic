@@ -1525,12 +1525,10 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
     def setUp(self):
         super(Ilo5ManagementTestCase, self).setUp()
         self.driver = mock.Mock(management=ilo_management.Ilo5Management())
-        self.clean_step = {'step': 'erase_devices',
-                           'interface': 'management'}
+
         n = {
             'driver': 'ilo5',
             'driver_info': INFO_DICT,
-            'clean_step': self.clean_step,
         }
         self.config(enabled_hardware_types=['ilo5'],
                     enabled_boot_interfaces=['ilo-virtual-media'],
@@ -1547,6 +1545,9 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     def test_erase_devices_hdd(self, mock_power, ilo_mock, build_agent_mock):
+        self.node.clean_step = {'interface': 'management',
+                                'step': 'erase_devices'}
+        self.node.save()
         ilo_mock_object = ilo_mock.return_value
         ilo_mock_object.get_available_disk_types.return_value = ['HDD']
         build_agent_mock.return_value = []
@@ -1572,6 +1573,9 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     def test_erase_devices_ssd(self, mock_power, ilo_mock, build_agent_mock):
+        self.node.clean_step = {'interface': 'management',
+                                'step': 'erase_devices'}
+        self.node.save()
         ilo_mock_object = ilo_mock.return_value
         ilo_mock_object.get_available_disk_types.return_value = ['SSD']
         build_agent_mock.return_value = []
@@ -1601,6 +1605,9 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     def test_erase_devices_ssd_when_hdd_done(self, mock_power, ilo_mock,
                                              build_agent_mock):
+        self.node.clean_step = {'interface': 'management',
+                                'step': 'erase_devices'}
+        self.node.save()
         build_agent_mock.return_value = []
         ilo_mock_object = ilo_mock.return_value
         ilo_mock_object.get_available_disk_types.return_value = ['HDD', 'SSD']
@@ -1632,6 +1639,9 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_erase_devices_completed(self, ilo_mock, disk_status_mock,
                                      log_mock):
+        self.node.clean_step = {'interface': 'management',
+                                'step': 'erase_devices'}
+        self.node.save()
         ilo_mock_object = ilo_mock.return_value
         ilo_mock_object.get_available_disk_types.return_value = ['HDD', 'SSD']
         disk_status_mock.return_value = True
@@ -1655,6 +1665,9 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     def test_erase_devices_hdd_with_erase_pattern_zero(
             self, mock_power, ilo_mock, build_agent_mock):
+        self.node.clean_step = {'interface': 'management',
+                                'step': 'erase_devices'}
+        self.node.save()
         ilo_mock_object = ilo_mock.return_value
         ilo_mock_object.get_available_disk_types.return_value = ['HDD']
         build_agent_mock.return_value = []
@@ -1680,6 +1693,9 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)
     def test_erase_devices_when_no_drive_available(
             self, ilo_mock, log_mock):
+        self.node.clean_step = {'interface': 'management',
+                                'step': 'erase_devices'}
+        self.node.save()
         ilo_mock_object = ilo_mock.return_value
         ilo_mock_object.get_available_disk_types.return_value = []
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1689,6 +1705,9 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
 
     def test_erase_devices_hdd_with_invalid_format_erase_pattern(
             self):
+        self.node.clean_step = {'interface': 'management',
+                                'step': 'erase_devices'}
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.assertRaises(exception.InvalidParameterValue,
@@ -1697,6 +1716,9 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
 
     def test_erase_devices_hdd_with_invalid_device_type_erase_pattern(
             self):
+        self.node.clean_step = {'interface': 'management',
+                                'step': 'erase_devices'}
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.assertRaises(exception.InvalidParameterValue,
@@ -1705,6 +1727,9 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
 
     def test_erase_devices_hdd_with_invalid_erase_pattern(
             self):
+        self.node.clean_step = {'interface': 'management',
+                                'step': 'erase_devices'}
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.assertRaises(exception.InvalidParameterValue,
@@ -1716,6 +1741,9 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
                        autospec=True)
     def test_erase_devices_hdd_ilo_error(self, clean_err_handler_mock,
                                          ilo_mock):
+        self.node.clean_step = {'interface': 'management',
+                                'step': 'erase_devices'}
+        self.node.save()
         ilo_mock_object = ilo_mock.return_value
         ilo_mock_object.get_available_disk_types.return_value = ['HDD']
         exc = ilo_error.IloError('error')
@@ -1776,3 +1804,131 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
                 errmsg=exc)
             self.assertTrue(
                 ilo_mock_object.do_one_button_secure_erase.called)
+
+    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(ilo_boot.IloVirtualMediaBoot, 'prepare_ramdisk',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'clear_certificates', spec_set=True,
+                       autospec=True)
+    def test_clear_ca_certificates(self, clear_certs_mock,
+                                   prepare_ramdisk_mock, node_power_mock,
+                                   build_agent_mock, set_async_mock,
+                                   get_async_ret_mock):
+        self.node.clean_step = {'interface': 'management',
+                                'step': 'clear_ca_certificates'}
+        self.node.save()
+        build_agent_mock.return_value = {'a': 'x', 'b': 'y'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            certificate_files = ["/path/to/certsA", "/path/to/certsB"]
+
+            task.driver.management.clear_ca_certificates(
+                task, certificate_files)
+            clear_certs_mock.assert_called_once_with(
+                task, certificate_files)
+            self.assertTrue(task.node.driver_internal_info.get(
+                'clear_ca_certs_flag'))
+            build_agent_mock.assert_called_once_with(task.node)
+            prepare_ramdisk_mock.assert_called_once_with(
+                mock.ANY, task, {'a': 'x', 'b': 'y'})
+            node_power_mock.assert_called_once_with(task, states.REBOOT)
+            set_async_mock.assert_called_once_with(
+                task.node, reboot=True, skip_current_step=False)
+            get_async_ret_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(ilo_boot.IloVirtualMediaBoot, 'prepare_ramdisk',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'clear_certificates', spec_set=True,
+                       autospec=True)
+    def test_clear_ca_certificates_clear_flag(
+            self, clear_certs_mock, prepare_ramdisk_mock, node_power_mock,
+            build_agent_mock, set_async_mock, get_async_ret_mock):
+        self.node.clean_step = {'interface': 'management',
+                                'step': 'clear_ca_certificates'}
+
+        self.node.save()
+        build_agent_mock.return_value = {'a': 'x', 'b': 'y'}
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            certificate_files = ["/path/to/certsA", "/path/to/certsB"]
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['clear_ca_certs_flag'] = True
+            task.node.driver_internal_info = driver_internal_info
+
+            task.driver.management.clear_ca_certificates(
+                task, certificate_files)
+            clear_certs_mock.assert_not_called()
+
+            build_agent_mock.assert_not_called()
+            prepare_ramdisk_mock.assert_not_called()
+            node_power_mock.assert_not_called()
+            set_async_mock.assert_not_called()
+            get_async_ret_mock.assert_not_called()
+
+    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(ilo_boot.IloVirtualMediaBoot, 'prepare_ramdisk',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'clear_certificates', spec_set=True,
+                       autospec=True)
+    def test_clear_ca_certificates_ilo_operation_not_supported(
+            self, clear_certs_mock, prepare_ramdisk_mock, node_power_mock,
+            build_agent_mock, set_async_mock, get_async_ret_mock):
+        self.node.clean_step = {'interface': 'management',
+                                'step': 'clear_ca_certificates'}
+        self.node.save()
+        exc = exception.IloOperationNotSupported('error')
+        clear_certs_mock.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            certificate_files = ["/path/to/certsA", "/path/to/certsB"]
+
+            self.assertRaises(exception.NodeCleaningFailure,
+                              task.driver.management.clear_ca_certificates,
+                              task, certificate_files)
+            build_agent_mock.assert_not_called()
+            prepare_ramdisk_mock.assert_not_called()
+            node_power_mock.assert_not_called()
+            set_async_mock.assert_not_called()
+            get_async_ret_mock.assert_not_called()
+
+    @mock.patch.object(ilo_common, 'clear_certificates', spec_set=True,
+                       autospec=True)
+    def test_clear_ca_certificates_ilo_operation_error(self, clear_certs_mock):
+        self.node.deploy_step = {'interface': 'management',
+                                 'step': 'clear_ca_certificates'}
+        self.node.save()
+
+        exc = exception.IloOperationError('error')
+        clear_certs_mock.side_effect = exc
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            certificate_files = ["/path/to/certsA", "/path/to/certsB"]
+
+            self.assertRaises(exception.InstanceDeployFailure,
+                              task.driver.management.clear_ca_certificates,
+                              task, certificate_files)

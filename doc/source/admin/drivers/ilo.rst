@@ -56,6 +56,7 @@ The hardware type ``ilo`` supports following HPE server features:
 * `Update Minimum Password Length security parameter as manual clean step`_
 * `Update Authentication Failure Logging security parameter as manual clean step`_
 * `Activating iLO Advanced license as manual clean step`_
+* `Removing CA certificates from iLO as manual clean step`_
 * `Firmware based UEFI iSCSI boot from volume support`_
 * `Certificate based validation in iLO`_
 * `Rescue mode support`_
@@ -702,6 +703,10 @@ Supported **Manual** Cleaning Operations
     delivered with a flexible-quantity kit or after completing an Activation
     Key Agreement (AKA), then the driver can still be used for executing
     this cleaning step.
+  ``clear_ca_certificates``:
+    Removes the CA certificates from iLO. See
+    `Removing CA certificates from iLO as manual clean step`_ for user
+    guidance on usage.
   ``apply_configuration``:
     Applies given BIOS settings on the node. See
     `BIOS configuration support`_. This step is part of the ``bios`` interface.
@@ -1476,6 +1481,37 @@ The different attributes of ``activate_license`` clean step are as follows:
     "``step``", "Name of clean step, here ``activate_license``"
     "``args``", "Keyword-argument entry (<name>: <value>) being passed to clean step"
     "``args.ilo_license_key``", "iLO Advanced license key to activate enterprise features. This is mandatory."
+
+Removing CA certificates from iLO as manual clean step
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+iLO driver can remove the invalidated CA certificates as a manual step.
+Any manual cleaning step can only be initiated when a node is in the
+``manageable`` state. Once the manual cleaning is finished, the node will be
+put in the ``manageable`` state again. User can follow steps from
+:ref:`manual_cleaning` to initiate manual cleaning operation on a node.
+
+An example of a manual clean step with ``clear_ca_certificates`` as the only clean
+step could be::
+
+    "clean_steps": [{
+        "interface": "management",
+        "step": "clear_ca_certificates",
+        "args": {
+            "certificate_files" : ["/path/to/certsA", "/path/to/certsB"]
+        }
+    }]
+
+The different attributes of ``clear_ca_certificates`` clean step are as follows:
+
+.. csv-table::
+    :header: "Attribute", "Description"
+    :widths: 30, 120
+
+    "``interface``", "Interface of clean step, here ``management``"
+    "``step``", "Name of clean step, here ``clear_ca_certificates``"
+    "``args``", "Keyword-argument entry (<name>: <value>) being passed to clean step"
+    "``args.certificate_files``", "List of CA certificates which are to be removed. "
+                                  "This is mandatory."
 
 Initiating firmware update as manual clean step
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

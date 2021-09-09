@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Manual clean step ``clear_ca_certificates`` is added to remove the
+    CA certificates from iLO.
