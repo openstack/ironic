@@ -1060,12 +1060,12 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
             return
 
         if command.get('command_status') == 'FAILED':
-            msg = (_('Agent returned error for %(type)s step %(step)s on node '
-                     '%(node)s : %(err)s.') %
+            msg = (_('%(type)s step %(step)s failed on node %(node)s. '
+                     '%(err)s') %
                    {'node': node.uuid,
                     'err': agent_client.get_command_error(command),
-                    'step': current_step,
-                    'type': step_type})
+                    'step': conductor_steps.step_id(current_step),
+                    'type': step_type.capitalize()})
             return _step_failure_handler(task, msg, step_type)
         # NOTE(dtantsur): VERSION_MISMATCH is a new alias for
         # CLEAN_VERSION_MISMATCH, remove the old one after IPA removes it.
