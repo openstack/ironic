@@ -161,7 +161,7 @@ class RedfishVendorPassthru(base.VendorInterface):
     @base.passthru(['POST'], async_call=False,
                    description=_("Creates a subscription on a node. "
                                  "Required argument: a dictionary of "
-                                 "{'destination': 'destination_url'}"))
+                                 "{'Destination': 'destination_url'}"))
     def create_subscription(self, task, **kwargs):
         """Creates a subscription.
 
