@@ -48,6 +48,9 @@ There are however some limitations for different hardware interfaces:
    modification time, Ironic will re-download the content. For "file://"
    images, the file system modification time is used.
 
+   If the HTTP server does not provide the last modification date and time,
+   the image will be redownloaded every time it is used.
+
 .. _hashlib: https://docs.python.org/3/library/hashlib.html
 
 Enrolling nodes
