@@ -249,10 +249,16 @@ image_opts = [
 
 img_cache_opts = [
     cfg.BoolOpt('parallel_image_downloads',
-                default=False,
+                default=True,
                 mutable=True,
                 help=_('Run image downloads and raw format conversions in '
-                       'parallel.')),
+                       'parallel.'),
+                deprecated_for_removal=True,
+                deprecated_reason=_('Use image_download_concurrency')),
+    cfg.IntOpt('image_download_concurrency',
+               default=20, min=1,
+               help=_('How many image downloads and raw format conversions '
+                      'to run in parallel. Only affects image caches.')),
 ]
 
 netconf_opts = [

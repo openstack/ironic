@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Allows limiting the number of parallel downloads for cached images
+    (instance and TFTP images currently).
+upgrade:
+  - |
+    The ``parallel_image_downloads`` option is now set to ``True`` by default.
+    Use the new ``image_download_concurrency`` option to tune the behavior,
+    the default concurrency is 20.
+deprecations:
+  - |
+    The ``parallel_image_downloads`` option is deprecated in favour of
+    the new ``image_download_concurrency`` option that allows more precise
+    tuning.
