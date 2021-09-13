@@ -1032,16 +1032,20 @@ class RedfishRAID(base.RAIDInterface):
         for (node_uuid, driver, conductor_group,
              driver_internal_info) in node_list:
             try:
+                raid_configs = driver_internal_info.get(
+                    'raid_configs')
+                # NOTE(TheJulia): Evaluate the presence of raid configuration
+                # activity before pulling the task, so we don't needlessly
+                # create database queries with tasks which would be skipped
+                # anyhow.
+                if not raid_configs:
+                    continue
+
                 lock_purpose = 'checking async RAID config failed.'
                 with task_manager.acquire(context, node_uuid,
                                           purpose=lock_purpose,
                                           shared=True) as task:
                     if not isinstance(task.driver.raid, RedfishRAID):
-                        continue
-
-                    raid_configs = driver_internal_info.get(
-                        'raid_configs')
-                    if not raid_configs:
                         continue
 
                     node = task.node
@@ -1080,16 +1084,19 @@ class RedfishRAID(base.RAIDInterface):
         for (node_uuid, driver, conductor_group,
              driver_internal_info) in node_list:
             try:
+                raid_configs = driver_internal_info.get(
+                    'raid_configs')
+                # NOTE(TheJulia): Skip to next record if we do not
+                # have raid configuraiton tasks, so we don't pull tasks
+                # for every unrelated node in CLEANWAIT.
+                if not raid_configs:
+                    continue
+
                 lock_purpose = 'checking async RAID config tasks.'
                 with task_manager.acquire(context, node_uuid,
                                           purpose=lock_purpose,
                                           shared=True) as task:
                     if not isinstance(task.driver.raid, RedfishRAID):
-                        continue
-
-                    raid_configs = driver_internal_info.get(
-                        'raid_configs')
-                    if not raid_configs:
                         continue
 
                     self._check_node_raid_config(task)

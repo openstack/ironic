@@ -502,16 +502,23 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         for (node_uuid, driver, conductor_group,
              driver_internal_info) in node_list:
             try:
+
+                task_monitor_url = driver_internal_info.get(
+                    'import_task_monitor_url')
+                # NOTE(TheJulia): Evaluate if a task montitor URL exists
+                # based upon our inital DB query before pulling a task for
+                # every node in the deployment which reduces the overall
+                # number of DB queries triggering in the background where
+                # no work is required.
+                if not task_monitor_url:
+                    continue
+
                 lock_purpose = 'checking async import configuration task'
                 with task_manager.acquire(context, node_uuid,
                                           purpose=lock_purpose,
                                           shared=True) as task:
                     if not isinstance(task.driver.management,
                                       DracRedfishManagement):
-                        continue
-                    task_monitor_url = driver_internal_info.get(
-                        'import_task_monitor_url')
-                    if not task_monitor_url:
                         continue
                     self._check_import_configuration_task(
                         task, task_monitor_url)
