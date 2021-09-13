@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes the pattern of execution for periodic tasks such that the majority
+    of drivers now evaluate *if* work needs to be performed in advance of
+    creating a node task. Depending on the individual driver query pattern,
+    this prevents excess database queries from being triggered with every
+    task execution.

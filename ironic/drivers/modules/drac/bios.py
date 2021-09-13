@@ -169,6 +169,14 @@ class DracWSManBIOS(base.BIOSInterface):
         for (node_uuid, driver, conductor_group,
              driver_internal_info) in node_list:
             try:
+                # NOTE(TheJulia) Evaluate if work is actually required before
+                # creating a task for every node in the deployment which does
+                # not have a lock and is not in maintenance mode.
+                if (not driver_internal_info.get("bios_config_job_ids")
+                    and not driver_internal_info.get(
+                        "factory_reset_time_before_reboot")):
+                    continue
+
                 lock_purpose = 'checking async bios configuration jobs'
                 # Performing read-only/non-destructive work with shared lock
                 with task_manager.acquire(context, node_uuid,

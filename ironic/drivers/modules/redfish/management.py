@@ -872,17 +872,21 @@ class RedfishManagement(base.ManagementInterface):
         for (node_uuid, driver, conductor_group,
              driver_internal_info) in node_list:
             try:
+                firmware_updates = driver_internal_info.get(
+                    'firmware_updates')
+                # NOTE(TheJulia): If we don't have a entry upfront, we can
+                # safely skip past the node as we know work here is not
+                # required, otherwise minimizing the number of potential
+                # nodes to visit.
+                if not firmware_updates:
+                    continue
+
                 lock_purpose = 'checking async firmware update failed.'
                 with task_manager.acquire(context, node_uuid,
                                           purpose=lock_purpose,
                                           shared=True) as task:
                     if not isinstance(task.driver.management,
                                       RedfishManagement):
-                        continue
-
-                    firmware_updates = driver_internal_info.get(
-                        'firmware_updates')
-                    if not firmware_updates:
                         continue
 
                     node = task.node
@@ -921,17 +925,20 @@ class RedfishManagement(base.ManagementInterface):
         for (node_uuid, driver, conductor_group,
              driver_internal_info) in node_list:
             try:
+                firmware_updates = driver_internal_info.get(
+                    'firmware_updates')
+                # NOTE(TheJulia): Check and skip upfront before creating a
+                # task so we don't generate additional tasks and db queries
+                # for every node in CLEANWAIT which is not locked.
+                if not firmware_updates:
+                    continue
+
                 lock_purpose = 'checking async firmware update tasks.'
                 with task_manager.acquire(context, node_uuid,
                                           purpose=lock_purpose,
                                           shared=True) as task:
                     if not isinstance(task.driver.management,
                                       RedfishManagement):
-                        continue
-
-                    firmware_updates = driver_internal_info.get(
-                        'firmware_updates')
-                    if not firmware_updates:
                         continue
 
                     self._check_node_firmware_update(task)
