@@ -48,6 +48,11 @@ DRIVER_INFO = db_utils.get_test_agent_driver_info()
 DRIVER_INTERNAL_INFO = db_utils.get_test_agent_driver_internal_info()
 
 
+class FakeAgentDeploy(agent_base.AgentBaseMixin, agent_base.AgentDeployMixin,
+                      fake.FakeDeploy):
+    pass
+
+
 class AgentDeployMixinBaseTest(db_base.DbTestCase):
 
     def setUp(self):
@@ -66,7 +71,7 @@ class AgentDeployMixinBaseTest(db_base.DbTestCase):
                             'default_%s_interface' % iface: impl}
             self.config(**config_kwarg)
         self.config(enabled_hardware_types=['fake-hardware'])
-        self.deploy = agent_base.AgentDeployMixin()
+        self.deploy = FakeAgentDeploy()
         n = {
             'driver': 'fake-hardware',
             'instance_info': INSTANCE_INFO,
@@ -1716,8 +1721,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
-    @mock.patch.object(agent_base.AgentDeployMixin,
-                       'refresh_steps', autospec=True)
+    @mock.patch.object(agent_base.AgentBaseMixin, 'refresh_steps',
+                       autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def _test_continue_cleaning_clean_version_mismatch(
@@ -1756,8 +1761,8 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(manager_utils, 'notify_conductor_resume_operation',
                        autospec=True)
-    @mock.patch.object(agent_base.AgentDeployMixin,
-                       'refresh_steps', autospec=True)
+    @mock.patch.object(agent_base.AgentBaseMixin, 'refresh_steps',
+                       autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_commands_status',
                        autospec=True)
     def test_continue_cleaning_clean_version_mismatch_fail(
@@ -1851,6 +1856,7 @@ class TestRefreshCleanSteps(AgentDeployMixinBaseTest):
 
     def setUp(self):
         super(TestRefreshCleanSteps, self).setUp()
+        self.deploy = agent_base.AgentBaseMixin()
         self.node.driver_internal_info['agent_url'] = 'http://127.0.0.1:9999'
         self.ports = [object_utils.create_test_port(self.context,
                                                     node_id=self.node.id)]
@@ -1986,10 +1992,6 @@ class TestRefreshCleanSteps(AgentDeployMixinBaseTest):
                                    task, 'clean')
             client_mock.assert_called_once_with(mock.ANY, task.node,
                                                 task.ports)
-
-
-class FakeAgentDeploy(agent_base.AgentDeployMixin, fake.FakeDeploy):
-    pass
 
 
 class StepMethodsTestCase(db_base.DbTestCase):

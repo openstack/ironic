@@ -201,7 +201,7 @@ def validate_http_provisioning_configuration(node):
     deploy_utils.check_for_missing_params(params, error_msg)
 
 
-class CustomAgentDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
+class CustomAgentDeploy(agent_base.AgentBaseMixin, agent_base.AgentDeployMixin,
                         base.DeployInterface):
     """A deploy interface that relies on a custom agent to deploy.
 

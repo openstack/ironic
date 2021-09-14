@@ -1,0 +1,17 @@
+---
+upgrade:
+  - |
+    In-band cleaning has been fixed for ``ramdisk`` and ``anaconda``
+    deploy interfaces. If you rely on actual clean steps not running,
+    you need to disable cleaning instead for the relevant nodes::
+
+      baremetal node set <node> --no-automated-clean
+fixes:
+  - |
+    Fixes in-band cleaning for the ``ramdisk`` and ``anaconda`` deploy
+    interfaces. Previously no in-band steps were fetched from the ramdisk.
+other:
+  - |
+    The cleaning code has been moved from ``AgentDeployMixin`` to
+    ``AgentBaseMixin``. Most of 3rd party deploy interfaces will need to
+    include both anyway.
