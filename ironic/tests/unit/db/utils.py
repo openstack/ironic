@@ -27,6 +27,7 @@ from ironic.objects import chassis
 from ironic.objects import conductor
 from ironic.objects import deploy_template
 from ironic.objects import node
+from ironic.objects import node_history
 from ironic.objects import port
 from ironic.objects import portgroup
 from ironic.objects import trait
@@ -690,3 +691,33 @@ def get_test_ibmc_info():
         "ibmc_password": "password",
         "verify_ca": False,
     }
+
+
+def get_test_history(**kw):
+    return {
+        'id': kw.get('id', 345),
+        'version': kw.get('version', node_history.NodeHistory.VERSION),
+        'uuid': kw.get('uuid', '6f8a5d5c-0f2d-4b2c-a62a-a38e300e3f31'),
+        'node_id': kw.get('node_id', 123),
+        'event': kw.get('event', 'Something is wrong'),
+        'conductor': kw.get('conductor', 'host-1'),
+        'severity': kw.get('severity', 'ERROR'),
+        'event_type': kw.get('event_type', 'provisioning'),
+        'user': kw.get('user', 'fake-user'),
+        'created_at': kw.get('created_at'),
+        'updated_at': kw.get('updated_at'),
+    }
+
+
+def create_test_history(**kw):
+    """Create test history entry in DB and return NodeHistory DB object.
+
+    :param kw: kwargs with overriding values for port's attributes.
+    :returns: Test NodeHistory DB object.
+    """
+    history = get_test_history(**kw)
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del history['id']
+    dbapi = db_api.get_instance()
+    return dbapi.create_node_history(history)

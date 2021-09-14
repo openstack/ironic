@@ -789,6 +789,11 @@ class Connection(api.Connection):
                 models.Allocation).filter_by(node_id=node_id)
             allocation_query.delete()
 
+            # delete all history for this node
+            history_query = model_query(
+                models.NodeHistory).filter_by(node_id=node_id)
+            history_query.delete()
+
             query.delete()
 
     def update_node(self, node_id, values):
@@ -2275,3 +2280,52 @@ class Connection(api.Connection):
         query = (_get_deploy_template_query_with_steps()
                  .filter(models.DeployTemplate.name.in_(names)))
         return query.all()
+
+    @oslo_db_api.retry_on_deadlock
+    def create_node_history(self, values):
+        values['uuid'] = uuidutils.generate_uuid()
+
+        history = models.NodeHistory()
+        history.update(values)
+        with _session_for_write() as session:
+            try:
+                session.add(history)
+                session.flush()
+            except db_exc.DBDuplicateEntry:
+                raise exception.NodeHistoryAlreadyExists(uuid=values['uuid'])
+            return history
+
+    @oslo_db_api.retry_on_deadlock
+    def destroy_node_history_by_uuid(self, history_uuid):
+        with _session_for_write():
+            query = model_query(models.NodeHistory).filter_by(
+                uuid=history_uuid)
+            count = query.delete()
+            if count == 0:
+                raise exception.NodeHistoryNotFound(history=history_uuid)
+
+    def get_node_history_by_id(self, history_id):
+        query = model_query(models.NodeHistory).filter_by(id=history_id)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.NodeHistoryNotFound(history=history_id)
+
+    def get_node_history_by_uuid(self, history_uuid):
+        query = model_query(models.NodeHistory).filter_by(uuid=history_uuid)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.NodeHistoryNotFound(history=history_uuid)
+
+    def get_node_history_list(self, limit=None, marker=None,
+                              sort_key=None, sort_dir=None):
+        return _paginate_query(models.NodeHistory, limit, marker, sort_key,
+                               sort_dir)
+
+    def get_node_history_by_node_id(self, node_id, limit=None, marker=None,
+                                    sort_key=None, sort_dir=None):
+        query = model_query(models.NodeHistory)
+        query = query.filter_by(node_id=node_id)
+        return _paginate_query(models.NodeHistory, limit, marker,
+                               sort_key, sort_dir, query)
