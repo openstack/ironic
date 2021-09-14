@@ -16,6 +16,7 @@ from oslo_log import log
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import states
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils
@@ -67,5 +68,8 @@ def do_node_verify(task):
         else:
             task.process_event('done')
     else:
-        node.last_error = error
+        utils.node_history_record(task.node, event=error,
+                                  event_type=states.VERIFY,
+                                  error=True,
+                                  user=task.context.user_id)
         task.process_event('fail')

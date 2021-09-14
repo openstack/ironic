@@ -37,6 +37,7 @@ from ironic.common import states
 from ironic.conductor import allocations
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
+from ironic.conductor import utils
 from ironic.conf import CONF
 from ironic.db import api as dbapi
 from ironic.drivers import base as driver_base
@@ -536,7 +537,10 @@ class BaseConductorManager(object):
                                            err_handler=err_handler,
                                            target_state=target_state)
                     else:
-                        task.node.last_error = last_error
+                        utils.node_history_record(
+                            task.node, event=last_error,
+                            error=True,
+                            event_type=states.TRANSITION)
                         task.process_event('fail', target_state=target_state)
             except exception.NoFreeConductorWorker:
                 break
@@ -580,7 +584,9 @@ class BaseConductorManager(object):
                         LOG.error(msg)
                         # If starting console failed, set node console_enabled
                         # back to False and set node's last error.
-                        task.node.last_error = msg
+                        utils.node_history_record(task.node, event=msg,
+                                                  error=True,
+                                                  event_type=states.STARTFAIL)
                         task.node.console_enabled = False
                         task.node.save()
                         notify_utils.emit_console_notification(

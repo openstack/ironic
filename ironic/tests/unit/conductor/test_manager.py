@@ -3361,7 +3361,7 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
         with task_manager.acquire(self.context, node.uuid) as task:
             self.service._do_node_rescue_abort(task)
             clean_up_mock.assert_called_once_with(task.driver.rescue, task)
-            self.assertIsNotNone(task.node.last_error)
+            self.assertIsNone(task.node.last_error)
             self.assertFalse(task.node.maintenance)
             self.assertNotIn('agent_url', task.node.driver_internal_info)
 
@@ -8153,3 +8153,166 @@ class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
         self.assertIn('Inspection was aborted', node.last_error)
         self.assertNotIn('agent_url', node.driver_internal_info)
         self.assertNotIn('agent_secret_token', node.driver_internal_info)
+
+
+class NodeHistoryRecordCleanupTestCase(mgr_utils.ServiceSetUpMixin,
+                                       db_base.DbTestCase):
+
+    def setUp(self):
+        super(NodeHistoryRecordCleanupTestCase, self).setUp()
+        self.node1 = obj_utils.get_test_node(self.context,
+                                             driver='fake-hardware',
+                                             id=10,
+                                             uuid=uuidutils.generate_uuid(),
+                                             conductor_affinity=1)
+        self.node2 = obj_utils.get_test_node(self.context,
+                                             driver='fake-hardware',
+                                             id=11,
+                                             uuid=uuidutils.generate_uuid(),
+                                             conductor_affinity=1)
+        self.node3 = obj_utils.get_test_node(self.context,
+                                             driver='fake-hardware',
+                                             id=12,
+                                             uuid=uuidutils.generate_uuid(),
+                                             conductor_affinity=1)
+        self.nodes = [self.node1, self.node2, self.node3]
+        # Create the nodes, as the tasks need to operate across tables.
+        self.node1.create()
+        self.node2.create()
+        self.node3.create()
+        CONF.set_override('node_history_max_entries', 2, group='conductor')
+        CONF.set_override('node_history_cleanup_batch_count', 2,
+                          group='conductor')
+        self._start_service()
+
+    def test_history_is_pruned_to_config(self):
+        for node in self.nodes:
+            for event in ['one', 'two', 'three']:
+                conductor_utils.node_history_record(node, event=event)
+        conductor_utils.node_history_record(self.node1, event="final")
+        self.service._manage_node_history(self.context)
+        events = objects.NodeHistory.list(self.context)
+        self.assertEqual(8, len(events))
+        events = objects.NodeHistory.list_by_node_id(self.context, 10)
+        self.assertEqual('three', events[0].event)
+        self.assertEqual('final', events[1].event)
+        self.assertEqual(2, len(events))
+        events = objects.NodeHistory.list_by_node_id(self.context, 11)
+        self.assertEqual(3, len(events))
+        self.assertEqual('one', events[0].event)
+        self.assertEqual('two', events[1].event)
+        self.assertEqual('three', events[2].event)
+        events = objects.NodeHistory.list_by_node_id(self.context, 12)
+        self.assertEqual(3, len(events))
+        self.assertEqual('one', events[0].event)
+        self.assertEqual('two', events[1].event)
+        self.assertEqual('three', events[2].event)
+
+    def test_history_is_pruned_to_config_two_pass(self):
+        for node in self.nodes:
+            for event in ['one', 'two', 'three']:
+                conductor_utils.node_history_record(node, event=event)
+        conductor_utils.node_history_record(self.node1, event="final")
+        with mock.patch.object(manager.LOG, 'warning',
+                               autospec=True) as mock_log:
+            self.service._manage_node_history(self.context)
+            # assert we did call a warning entry
+            self.assertEqual(1, mock_log.call_count)
+        events = objects.NodeHistory.list(self.context)
+        self.assertEqual(8, len(events))
+        self.service._manage_node_history(self.context)
+        events = objects.NodeHistory.list(self.context)
+        print(events)
+        self.assertEqual(6, len(events))
+        events = objects.NodeHistory.list_by_node_id(self.context, 10)
+        self.assertEqual(2, len(events))
+        self.assertEqual('three', events[0].event)
+        self.assertEqual('final', events[1].event)
+        events = objects.NodeHistory.list_by_node_id(self.context, 11)
+        self.assertEqual(2, len(events))
+        self.assertEqual('two', events[0].event)
+        self.assertEqual('three', events[1].event)
+        events = objects.NodeHistory.list_by_node_id(self.context, 12)
+        self.assertEqual(2, len(events))
+        self.assertEqual('two', events[0].event)
+        self.assertEqual('three', events[1].event)
+
+    def test_history_is_pruned_from_all_nodes_one_pass(self):
+        CONF.set_override('node_history_cleanup_batch_count', 15,
+                          group='conductor')
+        for node in self.nodes:
+            for event in ['one', 'two', 'three']:
+                conductor_utils.node_history_record(node, event=event)
+        self.service._manage_node_history(self.context)
+        events = objects.NodeHistory.list(self.context)
+        self.assertEqual(6, len(events))
+
+    def test_history_pruning_no_work(self):
+        conductor_utils.node_history_record(self.node1, event='meow')
+        with mock.patch.object(self.dbapi,
+                               'bulk_delete_node_history_records',
+                               autospec=True) as mock_delete:
+            self.service._manage_node_history(self.context)
+            mock_delete.assert_not_called()
+        events = objects.NodeHistory.list(self.context)
+        self.assertEqual(1, len(events))
+
+    def test_history_pruning_not_other_conductor(self):
+        node = obj_utils.get_test_node(self.context,
+                                       driver='fake-hardware',
+                                       id=33,
+                                       uuid=uuidutils.generate_uuid(),
+                                       conductor_affinity=2)
+        # create node so it can be queried
+        node.create()
+        for i in range(0, 3):
+            conductor_utils.node_history_record(node, event='meow%s' % i)
+        with mock.patch.object(self.dbapi,
+                               'bulk_delete_node_history_records',
+                               autospec=True) as mock_delete:
+            self.service._manage_node_history(self.context)
+            mock_delete.assert_not_called()
+        events = objects.NodeHistory.list(self.context)
+        self.assertEqual(3, len(events))
+        self.assertEqual('meow0', events[0].event)
+
+    def test_history_is_pruned_to_config_with_days(self):
+        CONF.set_override('node_history_cleanup_batch_count', 15,
+                          group='conductor')
+        CONF.set_override('node_history_minimum_days', 1,
+                          group='conductor')
+        CONF.set_override('node_history_max_entries', 1, group='conductor')
+
+        old_date = datetime.datetime.now() - datetime.timedelta(days=7)
+        # Creates 18 entries
+        for node in self.nodes:
+            for event in ['oldone', 'oldtwo', 'oldthree']:
+                objects.NodeHistory(created_at=old_date,
+                                    event=event,
+                                    node_id=node.id).create()
+            for event in ['one', 'two', 'three']:
+                conductor_utils.node_history_record(node, event=event)
+
+        # 9 retained due to days, 3 to config
+        self.service._manage_node_history(self.context)
+        events = objects.NodeHistory.list(self.context)
+        print(events)
+        self.assertEqual(12, len(events))
+        events = objects.NodeHistory.list_by_node_id(self.context, 10)
+        self.assertEqual(4, len(events))
+        self.assertEqual('oldthree', events[0].event)
+        self.assertEqual('one', events[1].event)
+        self.assertEqual('two', events[2].event)
+        self.assertEqual('three', events[3].event)
+        events = objects.NodeHistory.list_by_node_id(self.context, 11)
+        self.assertEqual(4, len(events))
+        self.assertEqual('oldthree', events[0].event)
+        self.assertEqual('one', events[1].event)
+        self.assertEqual('two', events[2].event)
+        self.assertEqual('three', events[3].event)
+        events = objects.NodeHistory.list_by_node_id(self.context, 12)
+        self.assertEqual(4, len(events))
+        self.assertEqual('oldthree', events[0].event)
+        self.assertEqual('one', events[1].event)
+        self.assertEqual('two', events[2].event)
+        self.assertEqual('three', events[3].event)

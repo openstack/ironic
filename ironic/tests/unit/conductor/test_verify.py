@@ -27,6 +27,7 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
 from ironic.conductor import verify
+from ironic import objects
 from ironic.tests.unit.conductor import mgr_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -138,6 +139,11 @@ class DoNodeVerifyTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.ENROLL, node.provision_state)
         self.assertIsNone(node.target_provision_state)
         self.assertTrue(node.last_error)
+        history = objects.NodeHistory.list_by_node_id(self.context,
+                                                      node.id)
+        entry = history[0]
+        self.assertEqual('verify', entry['event_type'])
+        self.assertEqual('ERROR', entry['severity'])
 
     @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',

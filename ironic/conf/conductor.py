@@ -283,6 +283,57 @@ opts = [
                         'will not run during cleaning. If unset for an '
                         'inband clean step, will use the priority set in the '
                         'ramdisk.')),
+    cfg.BoolOpt('node_history',
+                default=True,
+                mutable=True,
+                help=_('Boolean value, default True, if node event history '
+                       'is to be recorded. Errors and other noteworthy '
+                       'events in relation to a node are journaled to a '
+                       'database table which incurs some additional load. '
+                       'A periodic task does periodically remove entries '
+                       'from the database. Please note, if this is disabled, '
+                       'the conductor will continue to purge entries as '
+                       'long as [conductor]node_history_cleanup_batch_count '
+                       'is not 0.')),
+    cfg.IntOpt('node_history_max_entries',
+               default=300,
+               min=0,
+               mutable=True,
+               help=_('Maximum number of history entries which will be stored '
+                      'in the database per node. Default is 300. This setting '
+                      'excludes the minimum number of days retained using the '
+                      '[conductor]node_history_minimum_days setting.')),
+    cfg.IntOpt('node_history_cleanup_interval',
+               min=0,
+               default=86400,
+               mutable=False,
+               help=_('Interval in seconds at which node history entries '
+                      'can be cleaned up in the database. Setting to 0 '
+                      'disables the periodic task. Defaults to once a day, '
+                      'or 86400 seconds.')),
+    cfg.IntOpt('node_history_cleanup_batch_count',
+               min=0,
+               default=1000,
+               mutable=False,
+               help=_('The target number of node history records to purge '
+                      'from the database when performing clean-up. '
+                      'Deletes are performed by node, and a node with excess '
+                      'records for a node will still be deleted. '
+                      'Defaults to 1000. Operators who find node history '
+                      'building up may wish to '
+                      'lower this threshold and decrease the time between '
+                      'cleanup operations using the '
+                      '``node_history_cleanup_interval`` setting.')),
+    cfg.IntOpt('node_history_minimum_days',
+               min=0,
+               default=0,
+               mutable=True,
+               help=_('The minimum number of days to explicitly keep on '
+                      'hand in the database history entries for nodes. '
+                      'This is exclusive from the [conductor]'
+                      'node_history_max_entries setting as users of '
+                      'this setting are anticipated to need to retain '
+                      'history by policy.')),
 ]
 
 
