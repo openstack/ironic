@@ -513,6 +513,7 @@ Node Vendor Passthru Methods
     "``delete_subscription``", "Delete a subscription of a Node"
     "``get_all_subscriptions``", "List all subscriptions of a Node"
     "``get_subscription``", "Show a single subscription of a Node"
+    "``eject_vmedia``", "Eject attached virtual media from a Node"
 
 
 Create Subscription
@@ -577,6 +578,16 @@ Get All Subscriptions
 ~~~~~~~~~~~~~~~~~~~~~
 
 The ``get_all_subscriptions`` doesn't require any parameters.
+
+
+Eject Virtual Media
+~~~~~~~~~~~~~~~~~~~
+
+.. csv-table:: Request
+    :header: "Name", "In", "Type", "Description"
+    :widths: 25, 15, 15, 90
+
+    "boot_device (optional)", "body", "string", "Type of the device to eject (all devices by default)"
 
 .. _Redfish: http://redfish.dmtf.org/
 .. _Sushy: https://opendev.org/openstack/sushy
