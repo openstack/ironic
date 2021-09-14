@@ -72,7 +72,8 @@ class DracPowerTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_power.LOG, 'warning', autospec=True)
     def test_set_power_state(self, mock_log, mock_get_drac_client):
         mock_client = mock_get_drac_client.return_value
-
+        mock_client.get_power_state.side_effect = [drac_constants.POWER_ON,
+                                                   drac_constants.POWER_OFF]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.power.set_power_state(task, states.POWER_OFF)
@@ -98,6 +99,8 @@ class DracPowerTestCase(test_utils.BaseDracTest):
     @mock.patch.object(drac_power.LOG, 'warning', autospec=True)
     def test_set_power_state_timeout(self, mock_log, mock_get_drac_client):
         mock_client = mock_get_drac_client.return_value
+        mock_client.get_power_state.side_effect = [drac_constants.POWER_ON,
+                                                   drac_constants.POWER_OFF]
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -106,7 +109,7 @@ class DracPowerTestCase(test_utils.BaseDracTest):
 
         drac_power_state = drac_power.REVERSE_POWER_STATES[states.POWER_OFF]
         mock_client.set_power_state.assert_called_once_with(drac_power_state)
-        self.assertTrue(mock_log.called)
+        self.assertFalse(mock_log.called)
 
     @mock.patch.object(drac_power.LOG, 'warning', autospec=True)
     def test_reboot_while_powered_on(self, mock_log, mock_get_drac_client):
@@ -137,7 +140,8 @@ class DracPowerTestCase(test_utils.BaseDracTest):
 
     def test_reboot_while_powered_off(self, mock_get_drac_client):
         mock_client = mock_get_drac_client.return_value
-        mock_client.get_power_state.return_value = drac_constants.POWER_OFF
+        mock_client.get_power_state.side_effect = [drac_constants.POWER_OFF,
+                                                   drac_constants.POWER_ON]
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -149,7 +153,9 @@ class DracPowerTestCase(test_utils.BaseDracTest):
     @mock.patch('time.sleep', autospec=True)
     def test_reboot_retries_success(self, mock_sleep, mock_get_drac_client):
         mock_client = mock_get_drac_client.return_value
-        mock_client.get_power_state.return_value = drac_constants.POWER_OFF
+        mock_client.get_power_state.side_effect = [drac_constants.POWER_OFF,
+                                                   drac_constants.POWER_OFF,
+                                                   drac_constants.POWER_ON]
         exc = drac_exceptions.DRACOperationFailed(
             drac_messages=['The command failed to set RequestedState'])
         mock_client.set_power_state.side_effect = [exc, None]
