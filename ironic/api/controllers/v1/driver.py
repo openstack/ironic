@@ -81,7 +81,8 @@ def hide_fields_in_newer_versions(driver):
         driver.pop('enabled_bios_interfaces', None)
 
 
-def convert_with_links(name, hosts, detail=False, interface_info=None):
+def convert_with_links(name, hosts, detail=False, interface_info=None,
+                       fields=None, sanitize=True):
     """Convert driver/hardware type info to a dict.
 
     :param name: name of a hardware type.
@@ -90,6 +91,8 @@ def convert_with_links(name, hosts, detail=False, interface_info=None):
                     the 'type' field and default/enabled interfaces fields.
     :param interface_info: optional list of dicts of hardware interface
                             info.
+    :param fields: list of fields to preserve, or ``None`` to preserve default
+    :param sanitize: boolean,  sanitize driver
     :returns: dict representing the driver object.
     """
     driver = {
@@ -143,16 +146,35 @@ def convert_with_links(name, hosts, detail=False, interface_info=None):
                 driver[enabled_key] = list(enabled)
 
     hide_fields_in_newer_versions(driver)
+
+    if not sanitize:
+        return driver
+
+    driver_sanitize(driver, fields)
+
     return driver
 
 
-def list_convert_with_links(hardware_types, detail=False):
+def driver_sanitize(driver, fields=None):
+    if fields is not None:
+        api_utils.sanitize_dict(driver, fields)
+        api_utils.check_for_invalid_fields(fields, driver)
+
+
+def _check_allow_driver_fields(fields):
+    if (fields is not None and api.request.version.minor
+            < api.controllers.v1.versions.MINOR_77_DRIVER_FIELDS_SELECTOR):
+        raise exception.NotAcceptable()
+
+
+def list_convert_with_links(hardware_types, detail=False, fields=None):
     """Convert drivers and hardware types to an API-serializable object.
 
     :param hardware_types: dict mapping hardware type names to conductor
                             hostnames.
     :param detail: boolean, whether to include detailed info, such as
                     the 'type' field and default/enabled interfaces fields.
+    :param fields: list of fields to preserve, or ``None`` to preserve default
     :returns: an API-serializable driver collection object.
     """
     drivers = []
@@ -177,7 +199,8 @@ def list_convert_with_links(hardware_types, detail=False):
             convert_with_links(htname,
                                list(hardware_types[htname]),
                                detail=detail,
-                               interface_info=interface_info))
+                               interface_info=interface_info,
+                               fields=fields))
     return collection
 
 
@@ -294,16 +317,22 @@ class DriversController(rest.RestController):
 
     @METRICS.timer('DriversController.get_all')
     @method.expose()
-    @args.validate(type=args.string, detail=args.boolean)
-    def get_all(self, type=None, detail=None):
+    @args.validate(type=args.string, detail=args.boolean,
+                   fields=args.string_list)
+    def get_all(self, type=None, detail=None, fields=None):
         """Retrieve a list of drivers."""
         # FIXME(tenbrae): formatting of the auto-generated REST API docs
         #              will break from a single-line doc string.
         #              This is a result of a bug in sphinxcontrib-pecanwsme
         # https://github.com/dreamhost/sphinxcontrib-pecanwsme/issues/8
+        if fields and detail:
+            raise exception.InvalidParameterValue(
+                "Can not specify ?detail=True and fields in the same request.")
+
         api_utils.check_policy('baremetal:driver:get')
         api_utils.check_allow_driver_detail(detail)
         api_utils.check_allow_filter_driver_type(type)
+        _check_allow_driver_fields(fields)
         if type not in (None, 'classic', 'dynamic'):
             raise exception.Invalid(_(
                 '"type" filter must be one of "classic" or "dynamic", '
@@ -315,12 +344,13 @@ class DriversController(rest.RestController):
             # NOTE(dtantsur): we don't support classic drivers starting with
             # the Rocky release.
             hw_type_dict = {}
-        return list_convert_with_links(hw_type_dict, detail=detail)
+        return list_convert_with_links(hw_type_dict, detail=detail,
+                                       fields=fields)
 
     @METRICS.timer('DriversController.get_one')
     @method.expose()
-    @args.validate(driver_name=args.string)
-    def get_one(self, driver_name):
+    @args.validate(driver_name=args.string, fields=args.string_list)
+    def get_one(self, driver_name, fields=None):
         """Retrieve a single driver."""
         # NOTE(russell_h): There is no way to make this more efficient than
         # retrieving a list of drivers using the current sqlalchemy schema, but
@@ -328,11 +358,13 @@ class DriversController(rest.RestController):
         # choose to expose below it.
         api_utils.check_policy('baremetal:driver:get')
 
+        _check_allow_driver_fields(fields)
+
         hw_type_dict = api.request.dbapi.get_active_hardware_type_dict()
         for name, hosts in hw_type_dict.items():
             if name == driver_name:
                 return convert_with_links(name, list(hosts),
-                                          detail=True)
+                                          detail=True, fields=fields)
 
         raise exception.DriverNotFound(driver_name=driver_name)
 
