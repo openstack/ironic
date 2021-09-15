@@ -29,6 +29,7 @@ from ironic.drivers.modules.network import noop as noop_net
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import noop_mgmt
 from ironic.drivers.modules import pxe
+from ironic.drivers.modules import ramdisk
 from ironic.drivers.modules.storage import cinder
 from ironic.drivers.modules.storage import external as external_storage
 from ironic.drivers.modules.storage import noop as noop_storage
@@ -49,7 +50,7 @@ class GenericHardware(hardware_type.AbstractHardwareType):
     def supported_deploy_interfaces(self):
         """List of supported deploy interfaces."""
         return [agent.AgentDeploy, ansible_deploy.AnsibleDeploy,
-                pxe.PXERamdiskDeploy, pxe.PXEAnacondaDeploy,
+                ramdisk.RamdiskDeploy, pxe.PXEAnacondaDeploy,
                 agent.CustomAgentDeploy]
 
     @property
