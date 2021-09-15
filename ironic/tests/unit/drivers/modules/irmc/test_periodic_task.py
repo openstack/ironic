@@ -308,3 +308,41 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
         clean_fail_mock.assert_called_once_with(mock.ANY,
                                                 task, fgi_status_dict)
         clean_mock.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch('ironic.drivers.modules.irmc.raid.IRMCRAID._resume_cleaning',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid.IRMCRAID._set_clean_failed',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.raid._get_fgi_status',
+                autospec=True)
+    @mock.patch.object(irmc_common, 'get_irmc_report', autospec=True)
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test__query_raid_config_fgi_status_avoid_repeatedly_resume_cleaning(
+            self, mock_acquire, report_mock, fgi_mock, clean_fail_mock,
+            clean_mock):
+        mock_manager = mock.Mock()
+        raid_config = self.raid_config
+        fgi_mock.return_value = {'0': 'Idle', '1': 'Idle'}
+        task = mock.Mock(node=self.node, driver=self.driver)
+        mock_acquire.return_value = mock.MagicMock(
+            __enter__=mock.MagicMock(return_value=task))
+        task.node.raid_config = raid_config
+        node_list = [(self.node.uuid, 'irmc', '', raid_config)]
+        mock_manager.iter_nodes.return_value = node_list
+        # Set provision state value
+        task.node.provision_state = 'clean wait'
+        task.node.save()
+        task.driver.raid._query_raid_config_fgi_status(mock_manager,
+                                                       self.context)
+        raid_config = task.node.raid_config
+        node_list = [(self.node.uuid, 'irmc', '', raid_config)]
+        mock_manager.iter_nodes.return_value = node_list
+        task.node.provision_state = 'clean wait'
+        task.node.save()
+        task.driver.raid._query_raid_config_fgi_status(mock_manager,
+                                                       self.context)
+        self.assertEqual(0, clean_fail_mock.call_count)
+        report_mock.assert_called_once_with(task.node)
+        fgi_mock.assert_called_once_with(report_mock.return_value,
+                                         self.node.uuid)
+        clean_mock.assert_called_once_with(mock.ANY, task)
