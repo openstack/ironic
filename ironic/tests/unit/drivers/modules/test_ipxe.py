@@ -392,7 +392,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
             os.path.join(
                 CONF.deploy.http_root,
                 os.path.basename(CONF.pxe.ipxe_boot_script)),
-            'foo')
+            'foo', 0o644)
         render_mock.assert_called_once_with(
             CONF.pxe.ipxe_boot_script,
             {'ipxe_for_mac_uri': 'pxelinux.cfg/',
@@ -413,7 +413,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
             os.path.join(
                 CONF.deploy.http_root,
                 os.path.basename(CONF.pxe.ipxe_boot_script)),
-            'foo')
+            'foo', 0o644)
         render_mock.assert_called_once_with(
             CONF.pxe.ipxe_boot_script,
             {'ipxe_for_mac_uri': 'pxelinux.cfg/',
@@ -441,7 +441,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
             os.path.join(
                 CONF.deploy.http_root,
                 os.path.basename(CONF.pxe.ipxe_boot_script)),
-            'foo')
+            'foo', 0o644)
 
     @mock.patch.object(common_utils, 'render_template', lambda *args: 'foo')
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
@@ -455,7 +455,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
             os.path.join(
                 CONF.deploy.http_root,
                 os.path.basename(CONF.pxe.ipxe_boot_script)),
-            'foo')
+            'foo', 0o644)
 
     def test_prepare_ramdisk_cleaning(self):
         self.node.provision_state = states.CLEANING

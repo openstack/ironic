@@ -278,9 +278,11 @@ def rmtree_without_raise(path):
                     {'path': path, 'e': e})
 
 
-def write_to_file(path, contents):
+def write_to_file(path, contents, permission=None):
     with open(path, 'w') as f:
         f.write(contents)
+    if permission:
+        os.chmod(path, permission)
 
 
 def create_link_without_raise(source, link):

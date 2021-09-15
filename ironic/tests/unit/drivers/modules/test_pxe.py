@@ -862,7 +862,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             render_mock.assert_called()
             write_file_mock.assert_called_with(
-                '/path/to/ks.cfg', render_mock.return_value
+                '/path/to/ks.cfg', render_mock.return_value, 0o644
             )
             create_pxe_config_mock.assert_called_once_with(
                 task, mock.ANY, CONF.pxe.uefi_pxe_config_template,
@@ -926,7 +926,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             render_mock.assert_called()
             write_file_mock.assert_called_with(
-                '/path/to/ks.cfg', render_mock.return_value
+                '/path/to/ks.cfg', render_mock.return_value, 0o644
             )
             create_pxe_config_mock.assert_called_once_with(
                 task, mock.ANY, CONF.pxe.pxe_config_template,

@@ -476,7 +476,7 @@ class TestPXEUtils(db_base.DbTestCase):
 
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
-                                      render_mock.return_value)
+                                      render_mock.return_value, 0o644)
         self.assertTrue(mock_link_ip_addr.called)
 
     @mock.patch.object(pxe_utils, '_link_ip_address_pxe_configs',
@@ -509,7 +509,7 @@ class TestPXEUtils(db_base.DbTestCase):
 
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
-                                      render_mock.return_value)
+                                      render_mock.return_value, 0o644)
         self.assertTrue(mock_link_ip_addr.called)
 
     @mock.patch.object(pxe_utils, '_link_ip_address_pxe_configs',
@@ -540,7 +540,7 @@ class TestPXEUtils(db_base.DbTestCase):
         isdir_mock.assert_has_calls([])
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
-                                      render_mock.return_value)
+                                      render_mock.return_value, 0o644)
         self.assertTrue(mock_link_ip_address.called)
 
     @mock.patch.object(os.path, 'isdir', autospec=True)
@@ -569,7 +569,7 @@ class TestPXEUtils(db_base.DbTestCase):
         isdir_mock.assert_has_calls([])
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
-                                      render_mock.return_value)
+                                      render_mock.return_value, 0o644)
 
     @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch('ironic.common.pxe_utils._link_ip_address_pxe_configs',
@@ -601,7 +601,7 @@ class TestPXEUtils(db_base.DbTestCase):
 
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
-                                      render_mock.return_value)
+                                      render_mock.return_value, 0o644)
 
     @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch('ironic.common.pxe_utils._link_mac_pxe_configs',
@@ -642,7 +642,7 @@ class TestPXEUtils(db_base.DbTestCase):
 
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
-                                      render_mock.return_value)
+                                      render_mock.return_value, 0o644)
 
     @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch('ironic.common.pxe_utils._link_mac_pxe_configs', autospec=True)
@@ -675,7 +675,7 @@ class TestPXEUtils(db_base.DbTestCase):
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(
             self.node.uuid, ipxe_enabled=True)
         write_mock.assert_called_with(pxe_cfg_file_path,
-                                      render_mock.return_value)
+                                      render_mock.return_value, 0o644)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.get_ip_addresses',
                 autospec=True)
@@ -714,7 +714,7 @@ class TestPXEUtils(db_base.DbTestCase):
         write_mock.assert_called_once_with(
             os.path.join(CONF.deploy.http_root,
                          os.path.basename(CONF.pxe.ipxe_boot_script)),
-            'foo')
+            'foo', 0o644)
         render_mock.assert_called_once_with(
             CONF.pxe.ipxe_boot_script,
             {'ipxe_for_mac_uri': 'pxelinux.cfg/',
@@ -736,7 +736,7 @@ class TestPXEUtils(db_base.DbTestCase):
         write_mock.assert_called_once_with(
             os.path.join(CONF.deploy.http_root,
                          os.path.basename(CONF.pxe.ipxe_boot_script)),
-            'foo')
+            'foo', 0o644)
         render_mock.assert_called_once_with(
             CONF.pxe.ipxe_boot_script,
             {'ipxe_for_mac_uri': 'pxelinux.cfg/',
@@ -755,7 +755,7 @@ class TestPXEUtils(db_base.DbTestCase):
         write_mock.assert_called_once_with(
             os.path.join(CONF.deploy.http_root,
                          os.path.basename(CONF.pxe.ipxe_boot_script)),
-            'foo')
+            'foo', 0o644)
         render_mock.assert_called_once_with(
             CONF.pxe.ipxe_boot_script,
             {'ipxe_for_mac_uri': 'pxelinux.cfg/',
@@ -1317,8 +1317,10 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
                 task, ipxe_enabled=False
             )
 
+    @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
-    def test__cache_tftp_images_master_path(self, mock_fetch_image):
+    def test__cache_tftp_images_master_path(self, mock_fetch_image,
+                                            mock_chmod):
         temp_dir = tempfile.mkdtemp()
         self.config(tftp_root=temp_dir, group='pxe')
         self.config(tftp_master_path=os.path.join(temp_dir,
@@ -1338,11 +1340,13 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
                                                    image_path)],
                                                  True)
 
+    @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch.object(pxe_utils, 'TFTPImageCache', lambda: None)
     @mock.patch.object(pxe_utils, 'ensure_tree', autospec=True)
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
-    def test_cache_ramdisk_kernel(self, mock_fetch_image, mock_ensure_tree):
-        fake_pxe_info = {'foo': 'bar'}
+    def test_cache_ramdisk_kernel(self, mock_fetch_image, mock_ensure_tree,
+                                  mock_chmod):
+        fake_pxe_info = pxe_utils.get_image_info(self.node)
         expected_path = os.path.join(CONF.pxe.tftp_root, self.node.uuid)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -1351,12 +1355,13 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         mock_fetch_image.assert_called_once_with(
             self.context, mock.ANY, list(fake_pxe_info.values()), True)
 
+    @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch.object(pxe_utils, 'TFTPImageCache', lambda: None)
     @mock.patch.object(pxe_utils, 'ensure_tree', autospec=True)
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test_cache_ramdisk_kernel_ipxe(self, mock_fetch_image,
-                                       mock_ensure_tree):
-        fake_pxe_info = {'foo': 'bar'}
+                                       mock_ensure_tree, mock_chmod):
+        fake_pxe_info = pxe_utils.get_image_info(self.node)
         expected_path = os.path.join(CONF.deploy.http_root,
                                      self.node.uuid)
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1475,7 +1480,7 @@ class PXEBuildKickstartConfigOptionsTestCase(db_base.DbTestCase):
                 image_info['ks_template'][1], {'ks_options': params}
             )
             write_mock.assert_called_with(image_info['ks_cfg'][1],
-                                          render_mock.return_value)
+                                          render_mock.return_value, 0o644)
 
     def test_validate_kickstart_template(self):
         self.config_temp_dir('http_root', group='deploy')

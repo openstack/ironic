@@ -348,7 +348,8 @@ def create_pxe_config(task, pxe_options, template=None, ipxe_enabled=False):
               'DISK_IDENTIFIER': pxe_config_disk_ident}
 
     pxe_config = utils.render_template(template, params)
-    utils.write_to_file(pxe_config_file_path, pxe_config)
+    utils.write_to_file(pxe_config_file_path, pxe_config,
+                        CONF.pxe.file_permission)
 
     # Always write the mac addresses
     _link_mac_pxe_configs(task, ipxe_enabled=ipxe_enabled)
@@ -381,7 +382,8 @@ def create_ipxe_boot_script():
     # which should be rather rare
     if (not os.path.isfile(bootfile_path)
             or not utils.file_has_content(bootfile_path, boot_script)):
-        utils.write_to_file(bootfile_path, boot_script)
+        utils.write_to_file(bootfile_path, boot_script,
+                            CONF.pxe.file_permission)
 
 
 def clean_up_pxe_config(task, ipxe_enabled=False):
@@ -1168,7 +1170,8 @@ def prepare_instance_kickstart_config(task, image_info, anaconda_boot=False):
     ks_config_drive = ks_utils.prepare_config_drive(task)
     if ks_config_drive:
         ks_cfg = ks_cfg + ks_config_drive
-    utils.write_to_file(image_info['ks_cfg'][1], ks_cfg)
+    utils.write_to_file(image_info['ks_cfg'][1], ks_cfg,
+                        CONF.pxe.file_permission)
 
 
 @image_cache.cleanup(priority=25)
@@ -1210,8 +1213,12 @@ def cache_ramdisk_kernel(task, pxe_info, ipxe_enabled=False):
 
     LOG.debug("Fetching necessary kernel and ramdisk for node %s",
               node.uuid)
-    deploy_utils.fetch_images(ctx, TFTPImageCache(), list(t_pxe_info.values()),
+    images_info = list(t_pxe_info.values())
+    deploy_utils.fetch_images(ctx, TFTPImageCache(), images_info,
                               CONF.force_raw_images)
+    if CONF.pxe.file_permission:
+        for info in images_info:
+            os.chmod(info[1], CONF.pxe.file_permission)
 
 
 def clean_up_pxe_env(task, images_info, ipxe_enabled=False):
