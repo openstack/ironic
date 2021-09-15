@@ -137,6 +137,9 @@
     description: ironic-tempest-ipa-partition-redfish-tinyipa
     parent: ironic-base
     timeout: 5400
+    required-projects:
+      - name: openstack/sushy-tools
+        override-checkout: 0.8.0
     vars:
       devstack_localrc:
         IRONIC_DEPLOY_DRIVER: redfish
