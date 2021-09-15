@@ -24,7 +24,9 @@
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
         - ironic-tempest-bfv
-        - ironic-tempest-ipa-partition-uefi-pxe-grub2
+        # Temporary to allow for multiple breakages to be resolved.
+        - ironic-tempest-ipa-partition-uefi-pxe-grub2:
+            voting: false
         - metalsmith-integration-glance-localboot-centos7
         # Non-voting jobs
         - ironic-tox-bandit:
@@ -61,7 +63,7 @@
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
         - ironic-tempest-bfv
-        - ironic-tempest-ipa-partition-uefi-pxe-grub2
+        # - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-localboot-centos7
     experimental:
       jobs:

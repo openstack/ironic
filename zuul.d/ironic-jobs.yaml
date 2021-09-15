@@ -148,7 +148,8 @@
     parent: ironic-base
     timeout: 5400
     required-projects:
-      - openstack/sushy-tools
+      - name: openstack/sushy-tools
+        override-checkout: 0.17.0
     vars:
       devstack_localrc:
         IRONIC_DEPLOY_DRIVER: redfish
