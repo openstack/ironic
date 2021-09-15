@@ -483,6 +483,7 @@ class IRMCRAID(base.RAIDInterface):
                     if all(fgi_status == 'Idle' for fgi_status in
                            fgi_status_dict.values()):
                         raid_config.update({'fgi_status': RAID_COMPLETED})
+                        raid_common.update_raid_info(node, raid_config)
                         LOG.info('RAID configuration has completed on '
                                  'node %(node)s with fgi_status is %(fgi)s',
                                  {'node': node_uuid, 'fgi': RAID_COMPLETED})
@@ -506,5 +507,4 @@ class IRMCRAID(base.RAIDInterface):
         task.process_event('fail')
 
     def _resume_cleaning(self, task):
-        raid_common.update_raid_info(task.node, task.node.raid_config)
         manager_utils.notify_conductor_resume_clean(task)
