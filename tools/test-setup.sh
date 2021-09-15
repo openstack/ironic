@@ -48,8 +48,24 @@ DB_ROOT_PW=${POSTGRES_ROOT_PW:-insecure_slave}
 # which it can't when executed as the postgres user, which is required
 # as same user as process for initial administrative authentication to
 # the postgres database
-
 cd /tmp
+
+# Identify and update the postgres hba file which can be in
+# a version specific path.
+PG_HBA=$(sudo -H -u postgres psql -t -c "show hba_file")
+PG_CONF=$(sudo -H -u postgres psql -t -c "show config_file")
+
+# setup postgres encryption algorithm and authentication
+sudo sed -i 's/ident$/scram-sha-256/g' $PG_HBA
+sudo sed -i 's/md5$/scram-sha-256/g' $PG_HBA
+sudo sed -i 's/^.*password_encryption =.*/password_encryption = scram-sha-256/' $PG_CONF
+
+sudo cat $PG_HBA
+sudo cat $PG_CONF
+
+# restart postgres fo new HBA file is loaded
+sudo systemctl stop postgresql || true
+sudo systemctl start postgresql || true
 
 # Setup user
 root_roles=$(sudo -H -u postgres psql -t -c "
@@ -59,15 +75,6 @@ if [[ ${root_roles} == *HERE ]];then
 else
     sudo -H -u postgres psql -c "CREATE ROLE $DB_USER WITH SUPERUSER LOGIN PASSWORD '$DB_PW'"
 fi
-
-# Identify and update the postgres hba file which can be in
-# a version specific path.
-PG_HBA=$(sudo -H -u postgres psql -t -c "show hba_file")
-sudo sed -i 's/ident/trust/g' $PG_HBA
-sudo cat $PG_HBA
-# restart postgres fo new HBA file is loaded and our user trusted.
-sudo systemctl stop postgresql || true
-sudo systemctl start postgresql || true
 
 # Store password for tests
 cat << EOF > $HOME/.pgpass
