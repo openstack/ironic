@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    When configuring RAID on iRMC machines through ironic,
+    polling is not set when RAID is created.
+    After creating the RAID, set up polling will notify ironic to
+    wait for the RAID configuration to complete before
+    proceeding to the next step instead of check IPA.
