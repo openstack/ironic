@@ -535,7 +535,29 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         """Checks progress of running import configuration task"""
 
         node = task.node
-        task_monitor = redfish_utils.get_task_monitor(node, task_monitor_url)
+        try:
+            task_monitor = redfish_utils.get_task_monitor(
+                node, task_monitor_url)
+        except exception.RedfishError as e:
+            error_msg = (_("Failed import configuration task: "
+                           "%(task_monitor_url)s. Message: '%(message)s'. "
+                           "Most likely this happened because could not find "
+                           "the task anymore as it got deleted by iDRAC. "
+                           "If not already, upgrade iDRAC firmware to "
+                           "5.00.00.00 or later that preserves tasks for "
+                           "longer or decrease "
+                           "[drac]query_import_config_job_status_interval")
+                         % {'task_monitor_url': task_monitor_url,
+                            'message': e})
+            log_msg = ("Import configuration task failed for node "
+                       "%(node)s. %(error)s" % {'node': task.node.uuid,
+                                                'error': error_msg})
+            info = node.driver_internal_info
+            info.pop('import_task_monitor_url', None)
+            node.driver_internal_info = info
+            node.save()
+            self._set_failed(task, log_msg, error_msg)
+            return
 
         if not task_monitor.is_processing:
             import_task = task_monitor.get_task()
