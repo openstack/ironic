@@ -451,12 +451,12 @@ class TestPXEUtils(db_base.DbTestCase):
 
     @mock.patch.object(pxe_utils, '_link_ip_address_pxe_configs',
                        autospec=True)
-    @mock.patch.object(os, 'chmod', autospec=True)
+    @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
     def test_create_pxe_config(self, ensure_tree_mock, render_mock,
-                               write_mock, chmod_mock, mock_link_ip_addr):
+                               write_mock, makedirs_mock, mock_link_ip_addr):
         self.config(tftp_root=tempfile.mkdtemp(), group='pxe')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             pxe_utils.create_pxe_config(task, self.pxe_options,
@@ -469,11 +469,10 @@ class TestPXEUtils(db_base.DbTestCase):
             )
         node_dir = os.path.join(CONF.pxe.tftp_root, self.node.uuid)
         pxe_dir = os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')
-        ensure_calls = [
-            mock.call(node_dir), mock.call(pxe_dir),
-        ]
-        ensure_tree_mock.assert_has_calls(ensure_calls)
-        chmod_mock.assert_not_called()
+        makedirs_mock.assert_has_calls([
+            mock.call(node_dir, 0o755, exist_ok=True),
+            mock.call(pxe_dir, 0o755, exist_ok=True),
+        ])
 
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
@@ -482,13 +481,13 @@ class TestPXEUtils(db_base.DbTestCase):
 
     @mock.patch.object(pxe_utils, '_link_ip_address_pxe_configs',
                        autospec=True)
-    @mock.patch.object(os, 'chmod', autospec=True)
+    @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
     def test_create_pxe_config_set_dir_permission(self, ensure_tree_mock,
                                                   render_mock,
-                                                  write_mock, chmod_mock,
+                                                  write_mock, makedirs_mock,
                                                   mock_link_ip_addr):
         self.config(tftp_root=tempfile.mkdtemp(), group='pxe')
         self.config(dir_permission=0o755, group='pxe')
@@ -503,12 +502,10 @@ class TestPXEUtils(db_base.DbTestCase):
             )
         node_dir = os.path.join(CONF.pxe.tftp_root, self.node.uuid)
         pxe_dir = os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')
-        ensure_calls = [
-            mock.call(node_dir), mock.call(pxe_dir),
-        ]
-        ensure_tree_mock.assert_has_calls(ensure_calls)
-        chmod_calls = [mock.call(node_dir, 0o755), mock.call(pxe_dir, 0o755)]
-        chmod_mock.assert_has_calls(chmod_calls)
+        makedirs_mock.assert_has_calls([
+            mock.call(node_dir, 0o755, exist_ok=True),
+            mock.call(pxe_dir, 0o755, exist_ok=True),
+        ])
 
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
@@ -518,14 +515,14 @@ class TestPXEUtils(db_base.DbTestCase):
     @mock.patch.object(pxe_utils, '_link_ip_address_pxe_configs',
                        autospec=True)
     @mock.patch.object(os.path, 'isdir', autospec=True)
-    @mock.patch.object(os, 'chmod', autospec=True)
+    @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
     def test_create_pxe_config_existing_dirs_uefi(
             self, ensure_tree_mock,
             render_mock,
-            write_mock, chmod_mock,
+            write_mock, makedirs_mock,
             isdir_mock, mock_link_ip_address):
         self.config(dir_permission=0o755, group='pxe')
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -539,7 +536,7 @@ class TestPXEUtils(db_base.DbTestCase):
                  'DISK_IDENTIFIER': '(( DISK_IDENTIFIER ))'}
             )
         ensure_tree_mock.assert_has_calls([])
-        chmod_mock.assert_not_called()
+        makedirs_mock.assert_not_called()
         isdir_mock.assert_has_calls([])
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
@@ -547,14 +544,14 @@ class TestPXEUtils(db_base.DbTestCase):
         self.assertTrue(mock_link_ip_address.called)
 
     @mock.patch.object(os.path, 'isdir', autospec=True)
-    @mock.patch.object(os, 'chmod', autospec=True)
+    @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
     def test_create_pxe_config_existing_dirs_bios(
             self, ensure_tree_mock,
             render_mock,
-            write_mock, chmod_mock,
+            write_mock, makedirs_mock,
             isdir_mock):
         self.config(dir_permission=0o755, group='pxe')
         self.config(default_boot_mode='bios', group='deploy')
@@ -568,22 +565,20 @@ class TestPXEUtils(db_base.DbTestCase):
                  'ROOT': '{{ ROOT }}',
                  'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'}
             )
-        ensure_tree_mock.assert_has_calls([])
-        chmod_mock.assert_not_called()
+        makedirs_mock.assert_not_called()
         isdir_mock.assert_has_calls([])
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
                                       render_mock.return_value)
 
-    @mock.patch.object(os, 'chmod', autospec=True)
+    @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch('ironic.common.pxe_utils._link_ip_address_pxe_configs',
                 autospec=True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
-    @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
-    def test_create_pxe_config_uefi_grub(self, ensure_tree_mock, render_mock,
+    def test_create_pxe_config_uefi_grub(self, render_mock,
                                          write_mock, link_ip_configs_mock,
-                                         chmod_mock):
+                                         makedirs_mock):
         self.config(tftp_root=tempfile.mkdtemp(), group='pxe')
         grub_tmplte = "ironic/drivers/modules/pxe_grub_config.template"
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -591,12 +586,12 @@ class TestPXEUtils(db_base.DbTestCase):
             pxe_utils.create_pxe_config(task, self.pxe_options,
                                         grub_tmplte)
 
-            ensure_calls = [
-                mock.call(os.path.join(CONF.pxe.tftp_root, self.node.uuid)),
-                mock.call(os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')),
-            ]
-            ensure_tree_mock.assert_has_calls(ensure_calls)
-            chmod_mock.assert_not_called()
+            makedirs_mock.assert_has_calls([
+                mock.call(os.path.join(CONF.pxe.tftp_root, self.node.uuid),
+                          0o755, exist_ok=True),
+                mock.call(os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg'),
+                          0o755, exist_ok=True),
+            ])
             render_mock.assert_called_with(
                 grub_tmplte,
                 {'pxe_options': self.pxe_options,
@@ -608,18 +603,16 @@ class TestPXEUtils(db_base.DbTestCase):
         write_mock.assert_called_with(pxe_cfg_file_path,
                                       render_mock.return_value)
 
-    @mock.patch.object(os, 'chmod', autospec=True)
+    @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch('ironic.common.pxe_utils._link_mac_pxe_configs',
                 autospec=True)
     @mock.patch('ironic.common.pxe_utils._link_ip_address_pxe_configs',
                 autospec=True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
-    @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
     def test_create_pxe_config_uefi_mac_address(
-            self, ensure_tree_mock, render_mock,
-            write_mock, link_ip_configs_mock,
-            link_mac_pxe_configs_mock, chmod_mock):
+            self, render_mock, write_mock, link_ip_configs_mock,
+            link_mac_pxe_configs_mock, makedirs_mock):
         # TODO(TheJulia): We should... like... fix the template to
         # enable mac address usage.....
         grub_tmplte = "ironic/drivers/modules/pxe_grub_config.template"
@@ -632,12 +625,12 @@ class TestPXEUtils(db_base.DbTestCase):
             pxe_utils.create_pxe_config(task, self.pxe_options,
                                         grub_tmplte)
 
-            ensure_calls = [
-                mock.call(os.path.join(CONF.pxe.tftp_root, self.node.uuid)),
-                mock.call(os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')),
-            ]
-            ensure_tree_mock.assert_has_calls(ensure_calls)
-            chmod_mock.assert_not_called()
+            makedirs_mock.assert_has_calls([
+                mock.call(os.path.join(CONF.pxe.tftp_root, self.node.uuid),
+                          0o755, exist_ok=True),
+                mock.call(os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg'),
+                          0o755, exist_ok=True),
+            ])
             render_mock.assert_called_with(
                 grub_tmplte,
                 {'pxe_options': self.pxe_options,
@@ -651,14 +644,13 @@ class TestPXEUtils(db_base.DbTestCase):
         write_mock.assert_called_with(pxe_cfg_file_path,
                                       render_mock.return_value)
 
-    @mock.patch.object(os, 'chmod', autospec=True)
+    @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch('ironic.common.pxe_utils._link_mac_pxe_configs', autospec=True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
-    @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
-    def test_create_pxe_config_uefi_ipxe(self, ensure_tree_mock, render_mock,
+    def test_create_pxe_config_uefi_ipxe(self, render_mock,
                                          write_mock, link_mac_pxe_mock,
-                                         chmod_mock):
+                                         makedirs_mock):
 
         self.config(http_root=tempfile.mkdtemp(), group='deploy')
         ipxe_template = "ironic/drivers/modules/ipxe_config.template"
@@ -667,12 +659,12 @@ class TestPXEUtils(db_base.DbTestCase):
             pxe_utils.create_pxe_config(task, self.ipxe_options,
                                         ipxe_template, ipxe_enabled=True)
 
-            ensure_calls = [
-                mock.call(os.path.join(CONF.deploy.http_root, self.node.uuid)),
-                mock.call(os.path.join(CONF.deploy.http_root, 'pxelinux.cfg')),
-            ]
-            ensure_tree_mock.assert_has_calls(ensure_calls)
-            chmod_mock.assert_not_called()
+            makedirs_mock.assert_has_calls([
+                mock.call(os.path.join(CONF.deploy.http_root, self.node.uuid),
+                          0o755, exist_ok=True),
+                mock.call(os.path.join(CONF.deploy.http_root, 'pxelinux.cfg'),
+                          0o755, exist_ok=True),
+            ])
             render_mock.assert_called_with(
                 ipxe_template,
                 {'pxe_options': self.ipxe_options,
@@ -1335,7 +1327,7 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         image_path = os.path.join(temp_dir, self.node.uuid,
                                   'deploy_kernel')
         image_info = {'deploy_kernel': ('deploy_kernel', image_path)}
-        fileutils.ensure_tree(CONF.pxe.tftp_master_path)
+        pxe_utils.ensure_tree(CONF.pxe.tftp_master_path)
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             pxe_utils.cache_ramdisk_kernel(task, image_info)
@@ -1347,7 +1339,7 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
                                                  True)
 
     @mock.patch.object(pxe_utils, 'TFTPImageCache', lambda: None)
-    @mock.patch.object(fileutils, 'ensure_tree', autospec=True)
+    @mock.patch.object(pxe_utils, 'ensure_tree', autospec=True)
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test_cache_ramdisk_kernel(self, mock_fetch_image, mock_ensure_tree):
         fake_pxe_info = {'foo': 'bar'}
@@ -1360,7 +1352,7 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
             self.context, mock.ANY, list(fake_pxe_info.values()), True)
 
     @mock.patch.object(pxe_utils, 'TFTPImageCache', lambda: None)
-    @mock.patch.object(fileutils, 'ensure_tree', autospec=True)
+    @mock.patch.object(pxe_utils, 'ensure_tree', autospec=True)
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test_cache_ramdisk_kernel_ipxe(self, mock_fetch_image,
                                        mock_ensure_tree):

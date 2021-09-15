@@ -24,7 +24,6 @@ import jinja2
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
-from oslo_utils import fileutils
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -72,6 +71,11 @@ def _get_root_dir(ipxe_enabled):
         return CONF.pxe.tftp_root
 
 
+def ensure_tree(path):
+    mode = CONF.pxe.dir_permission or 0o755
+    os.makedirs(path, mode=mode, exist_ok=True)
+
+
 def _ensure_config_dirs_exist(task, ipxe_enabled=False):
     """Ensure that the node's and PXE configuration directories exist.
 
@@ -88,9 +92,7 @@ def _ensure_config_dirs_exist(task, ipxe_enabled=False):
     # which may not recurse downward.
     for directory in (node_dir, pxe_dir):
         if not os.path.isdir(directory):
-            fileutils.ensure_tree(directory)
-            if CONF.pxe.dir_permission:
-                os.chmod(directory, CONF.pxe.dir_permission)
+            ensure_tree(directory)
 
 
 def _link_mac_pxe_configs(task, ipxe_enabled=False):
@@ -1190,12 +1192,12 @@ def cache_ramdisk_kernel(task, pxe_info, ipxe_enabled=False):
         path = os.path.join(CONF.deploy.http_root, node.uuid)
     else:
         path = os.path.join(CONF.pxe.tftp_root, node.uuid)
-    fileutils.ensure_tree(path)
+    ensure_tree(path)
     # anconda deploy will have 'stage2' as one of the labels in pxe_info dict
     if 'stage2' in pxe_info.keys():
         # stage2  will be stored in ipxe http directory. So make sure they
         # exist.
-        fileutils.ensure_tree(
+        ensure_tree(
             get_file_path_from_label(
                 node.uuid,
                 CONF.deploy.http_root,
@@ -1258,9 +1260,7 @@ def place_loaders_for_boot(base_path):
                 raise exception.IncorrectConfiguration(msg)
             else:
                 try:
-                    os.makedirs(
-                        os.path.join(base_path, head),
-                        mode=CONF.pxe.dir_permission or 0o755, exist_ok=True)
+                    ensure_tree(os.path.join(base_path, head))
                 except OSError as e:
                     msg = ('Failed to create supplied directories in '
                            'asset copy paths. Error: %s') % e
