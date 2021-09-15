@@ -20,6 +20,7 @@ from unittest import mock
 
 from ironic.common import exception
 from ironic.conductor import task_manager
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.irmc import raid
 from ironic.tests.unit.drivers.modules.irmc import test_common
 
@@ -604,8 +605,10 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
     @mock.patch('ironic.common.raid.update_raid_info', autospec=True)
     @mock.patch('ironic.drivers.modules.irmc.raid.client.elcm.'
                 'get_raid_adapter', autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test__commit_raid_config_with_logical_drives(
-            self, get_raid_adapter_mock, update_raid_info_mock):
+            self, set_async_step_flags_mock,
+            get_raid_adapter_mock, update_raid_info_mock):
         get_raid_adapter_mock.return_value = {
             "Server": {
                 "HWConfigurationIrmc": {
@@ -698,6 +701,8 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                 task.node.driver_info)
             update_raid_info_mock.assert_called_once_with(
                 task.node, task.node.raid_config)
+            set_async_step_flags_mock.assert_called_once_with(
+                task.node, reboot=True, skip_current_step=True, polling=True)
             self.assertEqual(task.node.raid_config['logical_disks'],
                              expected_raid_config)
 
