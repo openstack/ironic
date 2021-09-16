@@ -131,7 +131,9 @@ if not sushy_oem_idrac:
     sushy_oem_idrac = mock.MagicMock(
         spec_set=mock_specs.SUSHY_OEM_IDRAC_MOD_SPEC,
         PHYSICAL_DISK_STATE_MODE_RAID=raidmode,
-        PHYSICAL_DISK_STATE_MODE_NONRAID=nonraidmode
+        PHYSICAL_DISK_STATE_MODE_NONRAID=nonraidmode,
+        JOB_TYPE_RT_NO_REBOOT_CONF=mock.sentinel.JOB_TYPE_RT_NO_REBOOT_CONF,
+        JOB_TYPE_RAID_CONF=mock.sentinel.JOB_TYPE_RAID_CONF
     )
 
     sys.modules['sushy_oem_idrac'] = sushy_oem_idrac

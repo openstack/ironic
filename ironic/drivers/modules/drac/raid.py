@@ -1322,6 +1322,25 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
         else:
             return logical_disks_to_create
 
+    def post_delete_configuration(self, task, raid_configs, return_state=None):
+        """Perform post delete_configuration action to commit the config.
+
+        Clears foreign configuration for all RAID controllers.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param raid_configs: a list of dictionaries containing the RAID
+                             configuration operation details.
+        :param return_state: state to return based on operation being invoked
+        """
+
+        system = redfish_utils.get_system(task.node)
+        async_proc = DracRedfishRAID._clear_foreign_config(system, task)
+        if async_proc:
+            # Async processing with system rebooting in progress
+            return deploy_utils.get_async_step_return_state(task.node)
+
+        return return_state
+
     @staticmethod
     def _get_storage_controller(system, identity):
         """Finds storage and controller by identity
@@ -1418,6 +1437,150 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
             return new_processed_volumes
 
         return logical_disks_to_create
+
+    @staticmethod
+    def _clear_foreign_config(system, task):
+        """Clears foreign config for given system
+
+        :param system: Redfish system
+        :param task: a TaskManager instance containing the node to act on
+        :returns: True if system needs rebooting and async processing for
+            tasks necessary, otherwise False
+        """
+        oem_sys = system.get_oem_extension('Dell')
+        try:
+            task_mons = oem_sys.clear_foreign_config()
+        except AttributeError as ae:
+            # For backported version where libraries could be too old
+            LOG.warning('Failed to find method to clear foreign config. '
+                        'Possibly because `sushy-oem-idrac` is too old. '
+                        'Without newer `sushy-oem-idrac` no foreign '
+                        'configuration will be cleared if there is any. '
+                        'To avoid that update `sushy-oem-idrac`. '
+                        'Error: %(err)s', {'err': ae})
+            return False
+
+        # Check if any of tasks requires reboot
+        for task_mon in task_mons:
+            oem_task = task_mon.get_task().get_oem_extension('Dell')
+            if oem_task.job_type == sushy_oem_idrac.JOB_TYPE_RAID_CONF:
+                # System rebooting, prepare ramdisk to boot back in IPA
+                deploy_utils.set_async_step_flags(
+                    task.node,
+                    reboot=True,
+                    skip_current_step=True,
+                    polling=True)
+                deploy_opts = deploy_utils.build_agent_options(task.node)
+                task.driver.boot.prepare_ramdisk(task, deploy_opts)
+                # Reboot already done by non real time task
+                task.upgrade_lock()
+                info = task.node.driver_internal_info
+                info['raid_task_monitor_uris'] = [
+                    tm.task_monitor_uri for tm in task_mons]
+                task.node.driver_internal_info = info
+                task.node.save()
+                return True
+
+        # No task requiring reboot found, proceed with waiting for sync tasks
+        for task_mon in task_mons:
+            if task_mon.check_is_processing:
+                task_mon.wait(CONF.drac.raid_job_timeout)
+        return False
+
+    @METRICS.timer('DracRedfishRAID._query_raid_tasks_status')
+    @periodics.periodic(
+        spacing=CONF.drac.query_raid_config_job_status_interval)
+    def _query_raid_tasks_status(self, manager, context):
+        """Periodic task to check the progress of running RAID tasks"""
+
+        filters = {'reserved': False, 'maintenance': False}
+        fields = ['driver_internal_info']
+        node_list = manager.iter_nodes(fields=fields, filters=filters)
+        for (node_uuid, driver, conductor_group,
+             driver_internal_info) in node_list:
+            task_monitor_uris = driver_internal_info.get(
+                'raid_task_monitor_uris')
+            if not task_monitor_uris:
+                continue
+            try:
+                lock_purpose = 'checking async RAID tasks'
+                with task_manager.acquire(context, node_uuid,
+                                          purpose=lock_purpose,
+                                          shared=True) as task:
+                    if not isinstance(task.driver.raid,
+                                      DracRedfishRAID):
+                        continue
+                    self._check_raid_tasks_status(
+                        task, task_monitor_uris)
+            except exception.NodeNotFound:
+                LOG.info('During _query_raid_tasks_status, node '
+                         '%(node)s was not found and presumed deleted by '
+                         'another process.', {'node': node_uuid})
+            except exception.NodeLocked:
+                LOG.info('During _query_raid_tasks_status, node '
+                         '%(node)s was already locked by another process. '
+                         'Skip.', {'node': node_uuid})
+
+    def _check_raid_tasks_status(self, task, task_mon_uris):
+        """Checks RAID tasks for completion
+
+        If at least one of the jobs failed, then all step failed.
+        If some tasks are still running, they are checked in next period.
+        """
+        node = task.node
+        completed_task_mon_uris = []
+        failed_msgs = []
+        for task_mon_uri in task_mon_uris:
+            task_mon = redfish_utils.get_task_monitor(node, task_mon_uri)
+            if not task_mon.is_processing:
+                raid_task = task_mon.get_task()
+                completed_task_mon_uris.append(task_mon_uri)
+                if not (raid_task.task_state == sushy.TASK_STATE_COMPLETED
+                        and raid_task.task_status in
+                        [sushy.HEALTH_OK, sushy.HEALTH_WARNING]):
+                    messages = [m.message for m in raid_task.messages
+                                if m.message is not None]
+                    failed_msgs.append(
+                        (_("Task %(task_mon_uri)s. "
+                            "Message: '%(message)s'.")
+                            % {'task_mon_uri': task_mon_uri,
+                               'message': ', '.join(messages)}))
+
+        task.upgrade_lock()
+        info = node.driver_internal_info
+        if failed_msgs:
+            error_msg = (_("Failed RAID configuration tasks: %(messages)s")
+                         % {'messages': ', '.join(failed_msgs)})
+            log_msg = ("RAID configuration task failed for node "
+                       "%(node)s. %(error)s" % {'node': node.uuid,
+                                                'error': error_msg})
+            info.pop('raid_task_monitor_uris', None)
+            self._set_failed(task, log_msg, error_msg)
+        else:
+            running_task_mon_uris = [x for x in task_mon_uris
+                                     if x not in completed_task_mon_uris]
+            if running_task_mon_uris:
+                info['raid_task_monitor_uris'] = running_task_mon_uris
+                node.driver_internal_info = info
+                # will check remaining jobs in the next period
+            else:
+                # all tasks completed and none of them failed
+                info.pop('raid_task_monitor_uris', None)
+                self._set_success(task)
+        node.driver_internal_info = info
+        node.save()
+
+    def _set_failed(self, task, log_msg, error_msg):
+        if task.node.clean_step:
+            manager_utils.cleaning_error_handler(task, log_msg, error_msg)
+        else:
+            manager_utils.deploying_error_handler(task, log_msg, error_msg)
+
+    def _set_success(self, task):
+        if task.node.clean_step:
+            manager_utils.notify_conductor_resume_clean(task)
+        else:
+            manager_utils.notify_conductor_resume_deploy(task)
 
 
 class DracWSManRAID(base.RAIDInterface):

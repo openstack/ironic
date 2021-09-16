@@ -26,8 +26,10 @@ import tenacity
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.drac import raid as drac_raid
@@ -2450,3 +2452,338 @@ class DracRedfishRAIDTestCase(test_utils.BaseDracTest):
 
         self.assertEqual(False, result)
         mock_log.assert_called_once()
+
+    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_post_delete_configuration_foreign_async(
+            self, mock_get_system, mock_build_agent_options,
+            mock_get_async_step_return_state):
+        fake_oem_system = mock.Mock()
+        fake_system = mock.Mock()
+        fake_system.get_oem_extension.return_value = fake_oem_system
+        mock_get_system.return_value = fake_system
+        task = mock.Mock(node=self.node, context=self.context)
+        mock_return_state1 = mock.Mock()
+        mock_return_state2 = mock.Mock()
+        mock_get_async_step_return_state.return_value = mock_return_state2
+        mock_oem_task1 = mock.Mock(
+            job_type=sushy_oem_idrac.JOB_TYPE_RT_NO_REBOOT_CONF)
+        mock_task1 = mock.Mock()
+        mock_task1.get_oem_extension.return_value = mock_oem_task1
+        mock_task_mon1 = mock.Mock(check_is_processing=True)
+        mock_task_mon1.task_monitor_uri = '/TaskService/1'
+        mock_task_mon1.get_task.return_value = mock_task1
+        mock_oem_task2 = mock.Mock(job_type=sushy_oem_idrac.JOB_TYPE_RAID_CONF)
+        mock_task2 = mock.Mock()
+        mock_task2.get_oem_extension.return_value = mock_oem_task2
+        mock_task_mon2 = mock.Mock(check_is_processing=False)
+        mock_task_mon2.task_monitor_uri = '/TaskService/2'
+        mock_task_mon2.get_task.return_value = mock_task2
+        fake_oem_system.clear_foreign_config.return_value = [
+            mock_task_mon1, mock_task_mon2]
+
+        result = self.raid.post_delete_configuration(
+            task, None, return_state=mock_return_state1)
+
+        self.assertEqual(result, mock_return_state2)
+        fake_oem_system.clear_foreign_config.assert_called_once()
+        mock_build_agent_options.assert_called_once_with(task.node)
+        mock_get_async_step_return_state.assert_called_once_with(task.node)
+        mock_task_mon1.wait.assert_not_called()
+        mock_task_mon2.wait.assert_not_called()
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_post_delete_configuration_foreign_sync(self, mock_get_system):
+        fake_oem_system = mock.Mock()
+        fake_system = mock.Mock()
+        fake_system.get_oem_extension.return_value = fake_oem_system
+        mock_get_system.return_value = fake_system
+        task = mock.Mock(node=self.node, context=self.context)
+        mock_return_state1 = mock.Mock()
+        mock_oem_task1 = mock.Mock(
+            job_type=sushy_oem_idrac.JOB_TYPE_RT_NO_REBOOT_CONF)
+        mock_task1 = mock.Mock()
+        mock_task1.get_oem_extension.return_value = mock_oem_task1
+        mock_task_mon1 = mock.Mock(check_is_processing=True)
+        mock_task_mon1.get_task.return_value = mock_task1
+        mock_oem_task2 = mock.Mock(
+            job_type=sushy_oem_idrac.JOB_TYPE_RT_NO_REBOOT_CONF)
+        mock_task2 = mock.Mock()
+        mock_task2.get_oem_extension.return_value = mock_oem_task2
+        mock_task_mon2 = mock.Mock(check_is_processing=False)
+        mock_task_mon2.get_task.return_value = mock_task2
+        fake_oem_system.clear_foreign_config.return_value = [
+            mock_task_mon1, mock_task_mon2]
+
+        result = self.raid.post_delete_configuration(
+            task, None, return_state=mock_return_state1)
+
+        self.assertEqual(result, mock_return_state1)
+        fake_oem_system.clear_foreign_config.assert_called_once()
+        mock_task_mon1.wait.assert_called_once_with(CONF.drac.raid_job_timeout)
+        mock_task_mon2.wait.assert_not_called()
+
+    @mock.patch.object(drac_raid.LOG, 'warning', autospec=True)
+    def test__clear_foreign_config_attribute_error(self, mock_log):
+        fake_oem_system = mock.Mock(spec=[])
+        fake_system = mock.Mock()
+        fake_system.get_oem_extension.return_value = fake_oem_system
+
+        result = drac_raid.DracRedfishRAID._clear_foreign_config(
+            fake_system, mock.Mock())
+
+        self.assertEqual(False, result)
+        mock_log.assert_called_once()
+
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test__query_raid_tasks_status(self, mock_acquire):
+        driver_internal_info = {'raid_task_monitor_uris': ['/TaskService/123']}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        mock_manager = mock.Mock()
+        node_list = [(self.node.uuid, 'idrac', '', driver_internal_info)]
+        mock_manager.iter_nodes.return_value = node_list
+        task = mock.Mock(node=self.node,
+                         driver=mock.Mock(raid=self.raid))
+        mock_acquire.return_value = mock.MagicMock(
+            __enter__=mock.MagicMock(return_value=task))
+        self.raid._check_raid_tasks_status = mock.Mock()
+
+        self.raid._query_raid_tasks_status(mock_manager, self.context)
+
+        self.raid._check_raid_tasks_status.assert_called_once_with(
+            task, ['/TaskService/123'])
+
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test__query_raid_tasks_status_not_drac(self, mock_acquire):
+        driver_internal_info = {'raid_task_monitor_uris': ['/TaskService/123']}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        mock_manager = mock.Mock()
+        node_list = [(self.node.uuid, 'not-idrac', '', driver_internal_info)]
+        mock_manager.iter_nodes.return_value = node_list
+        task = mock.Mock(node=self.node,
+                         driver=mock.Mock(raid=mock.Mock()))
+        mock_acquire.return_value = mock.MagicMock(
+            __enter__=mock.MagicMock(return_value=task))
+        self.raid._check_raid_tasks_status = mock.Mock()
+
+        self.raid._query_raid_tasks_status(mock_manager, self.context)
+
+        self.raid._check_raid_tasks_status.assert_not_called()
+
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test__query_raid_tasks_status_no_task_monitor_url(self, mock_acquire):
+        driver_internal_info = {'something': 'else'}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        mock_manager = mock.Mock()
+        node_list = [(self.node.uuid, 'idrac', '', driver_internal_info)]
+        mock_manager.iter_nodes.return_value = node_list
+        task = mock.Mock(node=self.node,
+                         driver=mock.Mock(raid=self.raid))
+        mock_acquire.return_value = mock.MagicMock(
+            __enter__=mock.MagicMock(return_value=task))
+        self.raid._check_raid_tasks_status = mock.Mock()
+
+        self.raid._query_raid_tasks_status(mock_manager, self.context)
+
+        self.raid._check_raid_tasks_status.assert_not_called()
+
+    @mock.patch.object(drac_raid.LOG, 'info', autospec=True)
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test__query_raid_tasks_status_node_notfound(
+            self, mock_acquire, mock_log):
+        driver_internal_info = {'raid_task_monitor_uris': ['/TaskService/123']}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        mock_manager = mock.Mock()
+        node_list = [(self.node.uuid, 'idrac', '', driver_internal_info)]
+        mock_manager.iter_nodes.return_value = node_list
+        mock_acquire.side_effect = exception.NodeNotFound
+        self.raid._check_raid_tasks_status = mock.Mock()
+
+        self.raid._query_raid_tasks_status(mock_manager, self.context)
+
+        self.raid._check_raid_tasks_status.assert_not_called()
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(drac_raid.LOG, 'info', autospec=True)
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test__query_raid_tasks_status_node_locked(
+            self, mock_acquire, mock_log):
+        driver_internal_info = {'raid_task_monitor_uris': ['/TaskService/123']}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        mock_manager = mock.Mock()
+        node_list = [(self.node.uuid, 'idrac', '', driver_internal_info)]
+        mock_manager.iter_nodes.return_value = node_list
+        mock_acquire.side_effect = exception.NodeLocked
+        self.raid._check_raid_tasks_status = mock.Mock()
+
+        self.raid._query_raid_tasks_status(mock_manager, self.context)
+
+        self.raid._check_raid_tasks_status.assert_not_called()
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test__check_raid_tasks_status(self, mock_get_task_monitor):
+        driver_internal_info = {
+            'raid_task_monitor_uris': '/TaskService/123'}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        mock_message = mock.Mock()
+        mock_message.message = 'Clear foreign config done'
+        mock_config_task = mock.Mock()
+        mock_config_task.task_state = sushy.TASK_STATE_COMPLETED
+        mock_config_task.task_status = sushy.HEALTH_OK
+        mock_config_task.messages = [mock_message]
+        mock_task_monitor = mock.Mock()
+        mock_task_monitor.is_processing = False
+        mock_task_monitor.get_task.return_value = mock_config_task
+        mock_get_task_monitor.return_value = mock_task_monitor
+
+        self.raid._set_success = mock.Mock()
+        self.raid._set_failed = mock.Mock()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.raid._check_raid_tasks_status(
+                task, ['/TaskService/123'])
+
+            self.raid._set_success.assert_called_once_with(task)
+            self.assertIsNone(
+                task.node.driver_internal_info.get('raid_task_monitor_uris'))
+            self.raid._set_failed.assert_not_called()
+
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test__check_raid_tasks_status_task_still_processing(
+            self, mock_get_task_monitor):
+        driver_internal_info = {
+            'raid_task_monitor_uris': '/TaskService/123'}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        mock_message = mock.Mock()
+        mock_message.message = 'Clear foreign config done'
+        mock_config_task = mock.Mock()
+        mock_config_task.task_state = sushy.TASK_STATE_COMPLETED
+        mock_config_task.task_status = sushy.HEALTH_OK
+        mock_config_task.messages = [mock_message]
+        mock_task_monitor = mock.Mock()
+        mock_task_monitor.is_processing = False
+        mock_task_monitor.get_task.return_value = mock_config_task
+        mock_task_monitor2 = mock.Mock()
+        mock_task_monitor2.is_processing = True
+        mock_get_task_monitor.side_effect = [
+            mock_task_monitor, mock_task_monitor2]
+
+        self.raid._set_success = mock.Mock()
+        self.raid._set_failed = mock.Mock()
+        self.raid._substep_change_physical_disk_state_nonraid = mock.Mock()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.raid._check_raid_tasks_status(
+                task, ['/TaskService/123', '/TaskService/456'])
+
+            (self.raid._substep_change_physical_disk_state_nonraid
+                .assert_not_called())
+            self.raid._set_success.assert_not_called()
+            self.assertEqual(
+                ['/TaskService/456'],
+                task.node.driver_internal_info.get('raid_task_monitor_uris'))
+            self.raid._set_failed.assert_not_called()
+
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test__check_raid_tasks_status_task_failed(self, mock_get_task_monitor):
+        driver_internal_info = {
+            'raid_task_monitor_uris': '/TaskService/123'}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        mock_message = mock.Mock()
+        mock_message.message = 'Clear foreign config failed'
+        mock_config_task = mock.Mock()
+        mock_config_task.task_state = sushy.TASK_STATE_COMPLETED
+        mock_config_task.task_status = 'Failed'
+        mock_config_task.messages = [mock_message]
+        mock_task_monitor = mock.Mock()
+        mock_task_monitor.is_processing = False
+        mock_task_monitor.get_task.return_value = mock_config_task
+        mock_get_task_monitor.return_value = mock_task_monitor
+
+        self.raid._set_success = mock.Mock()
+        self.raid._set_failed = mock.Mock()
+        self.raid._substep_change_physical_disk_state_nonraid = mock.Mock()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.raid._check_raid_tasks_status(
+                task, ['/TaskService/123'])
+
+            (self.raid._substep_change_physical_disk_state_nonraid
+                .assert_not_called())
+            self.raid._set_success.assert_not_called()
+            self.assertIsNone(
+                task.node.driver_internal_info.get('raid_task_monitor_uris'))
+            self.raid._set_failed.assert_called_once()
+
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+                       autospec=True)
+    def test__set_success_clean(self, mock_notify_clean, mock_notify_deploy):
+        self.node.clean_step = {'test': 'value'}
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.raid._set_success(task)
+
+            mock_notify_clean.assert_called_once_with(task)
+
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_clean',
+                       autospec=True)
+    def test__set_success_deploy(self, mock_notify_clean, mock_notify_deploy):
+        self.node.clean_step = None
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.raid._set_success(task)
+
+            mock_notify_deploy.assert_called_once_with(task)
+
+    @mock.patch.object(manager_utils, 'deploying_error_handler',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'cleaning_error_handler',
+                       autospec=True)
+    def test__set_failed_clean(self, mock_clean_handler, mock_deploy_handler):
+        self.node.clean_step = {'test': 'value'}
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.raid._set_failed(task, 'error', 'log message')
+
+            mock_clean_handler.assert_called_once_with(
+                task, 'error', 'log message')
+
+    @mock.patch.object(manager_utils, 'deploying_error_handler',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'cleaning_error_handler',
+                       autospec=True)
+    def test__set_failed_deploy(self, mock_clean_handler, mock_deploy_handler):
+        self.node.clean_step = None
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.raid._set_failed(task, 'error', 'log message')
+
+            mock_deploy_handler.assert_called_once_with(
+                task, 'error', 'log message')
