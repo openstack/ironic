@@ -45,7 +45,7 @@
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
         IRONIC_VM_COUNT: 2
         IRONIC_VM_EPHEMERAL_DISK: 1
-        IRONIC_VM_SPECS_RAM: 3072
+        IRONIC_VM_SPECS_RAM: 2800
         IRONIC_VM_LOG_DIR: '{{ devstack_base_dir }}/ironic-bm-logs'
         # NOTE(dtantsur): in some jobs we end up with 12 disks total, so reduce
         # each of them. For don't need all 10 GiB for CirrOS anyway.
