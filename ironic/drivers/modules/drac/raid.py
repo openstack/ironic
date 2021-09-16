@@ -37,10 +37,12 @@ from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
 from ironic.drivers.modules.drac import utils as drac_utils
 from ironic.drivers.modules.redfish import raid as redfish_raid
+from ironic.drivers.modules.redfish import utils as redfish_utils
 
 drac_exceptions = importutils.try_import('dracclient.exceptions')
 drac_constants = importutils.try_import('dracclient.constants')
 sushy = importutils.try_import('sushy')
+sushy_oem_idrac = importutils.try_import('sushy_oem_idrac')
 
 LOG = logging.getLogger(__name__)
 
@@ -1287,6 +1289,135 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
 
     def _validate_vendor(self, task):
         pass  # for now assume idrac-redfish is used with iDRAC BMC, thus pass
+
+    def pre_create_configuration(self, task, logical_disks_to_create):
+        """Perform required actions before creating config.
+
+        Converts any physical disks of selected controllers to RAID mode
+        if in non-RAID mode.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param logical_disks_to_create: list of logical disks to create.
+        :returns: updated list of logical disks to create
+        """
+        system = redfish_utils.get_system(task.node)
+        controller_to_disks = {}
+        for logical_disk in logical_disks_to_create:
+            storage, controller = DracRedfishRAID._get_storage_controller(
+                system, logical_disk.get('controller'))
+            controller_to_disks[controller] = []
+            for drive in storage.drives:
+                if drive.identity in logical_disk.get('physical_disks'):
+                    controller_to_disks[controller].append(drive)
+
+        converted = DracRedfishRAID._change_physical_disk_state(
+            system,
+            sushy_oem_idrac.PHYSICAL_DISK_STATE_MODE_RAID,
+            controller_to_disks)
+
+        if converted:
+            # Recalculate sizes as disks size changes after conversion
+            return DracRedfishRAID._get_revalidated_logical_disks(
+                task.node, system, logical_disks_to_create)
+        else:
+            return logical_disks_to_create
+
+    @staticmethod
+    def _get_storage_controller(system, identity):
+        """Finds storage and controller by identity
+
+        :param system: Redfish system
+        :param identity: identity of controller to find
+        :returns: Storage and its controller
+        """
+        for storage in system.storage.get_members():
+            if storage.identity == identity:
+                controller = (storage.storage_controllers[0]
+                              if storage.storage_controllers else None)
+                if controller:
+                    return storage, controller
+
+        raise exception.IronicException(
+            (_("Couldn't find storage by '%(identity)s'"),
+             {'identity': identity}))
+
+    @staticmethod
+    def _change_physical_disk_state(system, mode, controller_to_disks=None):
+        """Changes physical disk state and waits for it to complete
+
+        :param system: Redfish system
+        :param mode: sushy_oem_idrac.PHYSICAL_DISK_STATE_MODE_RAID or
+            sushy_oem_idrac.PHYSICAL_DISK_STATE_MODE_NONRAID
+        :controller_to_disks: dictionary of controllers and their
+            drives. Optional. If not provided, then converting all
+            eligible drives on system.
+        :returns: True if any drive got converted, otherwise False
+        """
+        oem_sys = system.get_oem_extension('Dell')
+        try:
+            task_mons = oem_sys.change_physical_disk_state(
+                mode, controller_to_disks)
+        except AttributeError as ae:
+            # For backported version where libraries could be too old
+            LOG.warning('Failed to find method to convert drives to RAID '
+                        'mode. Possibly because `sushy-oem-idrac` is too old. '
+                        'Without newer `sushy-oem-idrac` RAID configuration '
+                        'will fail if selected physical disks are in non-RAID '
+                        'mode. To avoid that update `sushy-oem-idrac`. '
+                        'Error: %(err)s', {'err': ae})
+            return False
+
+        for task_mon in task_mons:
+            # All jobs should be real-time, because all RAID controllers
+            # that offer physical disk mode conversion support real-time
+            # task execution. Note that BOSS does not offer disk mode
+            # conversion nor support real-time task execution.
+            if task_mon.check_is_processing:
+                task_mon.wait(CONF.drac.raid_job_timeout)
+
+        return bool(task_mons)
+
+    @staticmethod
+    def _get_revalidated_logical_disks(
+            node, system, logical_disks_to_create):
+        """Revalidates calculated volume size after RAID mode conversion
+
+        :param node: an Ironic node
+        :param system: Redfish system
+        :param logical_disks_to_create:
+        :returns: Revalidated logical disk list. If no changes in size,
+            same as input `logical_disks_to_create`
+        """
+        new_physical_disks, disk_to_controller =\
+            redfish_raid.get_physical_disks(node)
+        free_space_bytes = {}
+        for disk in new_physical_disks:
+            free_space_bytes[disk] = disk.capacity_bytes
+
+        new_processed_volumes = []
+        for logical_disk in logical_disks_to_create:
+            selected_disks = [disk for disk in new_physical_disks
+                              if disk.identity
+                              in logical_disk['physical_disks']]
+
+            spans_count = redfish_raid._calculate_spans(
+                logical_disk['raid_level'], len(selected_disks))
+            new_max_vol_size_bytes = redfish_raid._max_volume_size_bytes(
+                logical_disk['raid_level'], selected_disks, free_space_bytes,
+                spans_count=spans_count)
+            if logical_disk['size_bytes'] > new_max_vol_size_bytes:
+                logical_disk['size_bytes'] = new_max_vol_size_bytes
+                LOG.info("Logical size does not match so calculating volume "
+                         "properties for current logical_disk")
+                redfish_raid._calculate_volume_props(
+                    logical_disk, new_physical_disks, free_space_bytes,
+                    disk_to_controller)
+                new_processed_volumes.append(logical_disk)
+
+        if new_processed_volumes:
+            return new_processed_volumes
+
+        return logical_disks_to_create
 
 
 class DracWSManRAID(base.RAIDInterface):

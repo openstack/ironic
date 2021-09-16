@@ -26,6 +26,7 @@ import tenacity
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules.drac import common as drac_common
 from ironic.drivers.modules.drac import job as drac_job
@@ -37,6 +38,7 @@ from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 sushy = importutils.try_import('sushy')
+sushy_oem_idrac = importutils.try_import('sushy_oem_idrac')
 
 INFO_DICT = test_utils.INFO_DICT
 
@@ -2360,3 +2362,91 @@ class DracRedfishRAIDTestCase(test_utils.BaseDracTest):
         task = mock.Mock(node=self.node, context=self.context)
         self.node.properties['vendor'] = 'Dell Inc.'
         self.raid.validate(task)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_pre_create_configuration(self, mock_get_system):
+        mock_task_mon1 = mock.Mock(check_is_processing=True)
+        mock_task_mon2 = mock.Mock(check_is_processing=False)
+        fake_oem_system = mock.Mock()
+        fake_oem_system.change_physical_disk_state.return_value = [
+            mock_task_mon1, mock_task_mon2]
+        fake_system = mock.Mock()
+        fake_system.get_oem_extension.return_value = fake_oem_system
+
+        mock_drive1 = mock.Mock(
+            identity='Disk.Bay.0:Enclosure.Internal.0-1:RAID.Integrated.1-1')
+        mock_drive2 = mock.Mock(
+            identity='Disk.Bay.1:Enclosure.Internal.0-1:RAID.Integrated.1-1',
+            capacity_bytes=599550590976)  # mocked size in RAID mode
+        mock_drive3 = mock.Mock(
+            identity='Disk.Direct.0-0:AHCI.Slot.2-1')
+
+        mock_controller1 = mock.Mock()
+        mock_storage1 = mock.Mock(storage_controllers=[mock_controller1],
+                                  drives=[mock_drive1, mock_drive2],
+                                  identity='RAID.Integrated.1-1')
+        mock_controller2 = mock.Mock()
+        mock_storage2 = mock.Mock(storage_controllers=[mock_controller2],
+                                  drives=[mock_drive3],
+                                  identity='AHCI.Slot.2-1')
+
+        fake_system.storage.get_members.return_value = [
+            mock_storage1, mock_storage2]
+
+        mock_get_system.return_value = fake_system
+        task = mock.Mock(node=self.node, context=self.context)
+
+        logical_disks_to_create = [{
+            'raid_level': '0',
+            'size_bytes': 600087461888,  # before RAID conversion
+            'physical_disks': [
+                'Disk.Bay.1:Enclosure.Internal.0-1:RAID.Integrated.1-1'],
+            'span_depth': 1,
+            'span_length': 1.0,
+            'controller': 'RAID.Integrated.1-1'}]
+
+        result = self.raid.pre_create_configuration(
+            task, logical_disks_to_create)
+
+        self.assertEqual(
+            [{'controller': 'RAID.Integrated.1-1',
+              'physical_disks': [
+                  'Disk.Bay.1:Enclosure.Internal.0-1:RAID.Integrated.1-1'],
+              'raid_level': '0',
+              'size_bytes': 599550590976,  # recalculated after RAID conversion
+              'span_depth': 1,
+              'span_length': 1.0}], result)
+        fake_oem_system.change_physical_disk_state.assert_called_once_with(
+            sushy_oem_idrac.PHYSICAL_DISK_STATE_MODE_RAID,
+            {mock_controller1: [mock_drive2]})
+        mock_task_mon1.wait.assert_called_once_with(CONF.drac.raid_job_timeout)
+        mock_task_mon2.wait.assert_not_called()
+
+    def test__get_storage_controller_invalid_identity(self):
+        fake_system = mock.Mock()
+
+        mock_storage1 = mock.Mock(storage_controllers=[mock.Mock()],
+                                  identity='RAID.Integrated.1-1')
+        mock_storage2 = mock.Mock(storage_controllers=[mock.Mock()],
+                                  identity='AHCI.Slot.2-1')
+
+        fake_system.storage.get_members.return_value = [
+            mock_storage1, mock_storage2]
+
+        self.assertRaises(
+            exception.IronicException,
+            drac_raid.DracRedfishRAID._get_storage_controller,
+            fake_system, 'NonExisting')
+
+    @mock.patch.object(drac_raid.LOG, 'warning', autospec=True)
+    def test__change_physical_disk_state_attribute_error(self, mock_log):
+        fake_oem_system = mock.Mock(spec=[])
+        fake_system = mock.Mock()
+        fake_system.get_oem_extension.return_value = fake_oem_system
+
+        result = drac_raid.DracRedfishRAID._change_physical_disk_state(
+            fake_system, sushy_oem_idrac.PHYSICAL_DISK_STATE_MODE_RAID
+        )
+
+        self.assertEqual(False, result)
+        mock_log.assert_called_once()

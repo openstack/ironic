@@ -1,5 +1,6 @@
 # Copyright 2014 Hewlett-Packard Development Company, L.P.
 # All Rights Reserved.
+# Copyright (c) 2021 Dell Inc. or its subsidiaries.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
@@ -27,6 +28,7 @@ Current list of mocked libraries:
 - scciclient
 - python-dracclient
 - python-ibmcclient
+- sushy_oem_idrac
 """
 
 import importlib
@@ -122,6 +124,17 @@ if not dracclient:
     if 'ironic.drivers.modules.drac' in sys.modules:
         importlib.reload(sys.modules['ironic.drivers.modules.drac'])
 
+sushy_oem_idrac = importutils.try_import('sushy_oem_idrac')
+if not sushy_oem_idrac:
+    raidmode = mock.sentinel.PHYSICAL_DISK_STATE_MODE_RAID
+    nonraidmode = mock.sentinel.PHYSICAL_DISK_STATE_MODE_NONRAID
+    sushy_oem_idrac = mock.MagicMock(
+        spec_set=mock_specs.SUSHY_OEM_IDRAC_MOD_SPEC,
+        PHYSICAL_DISK_STATE_MODE_RAID=raidmode,
+        PHYSICAL_DISK_STATE_MODE_NONRAID=nonraidmode
+    )
+
+    sys.modules['sushy_oem_idrac'] = sushy_oem_idrac
 
 # attempt to load the external 'pysnmp' library, which is required by
 # the optional drivers.modules.snmp module

@@ -44,7 +44,12 @@ opts = [
                default=600,
                min=1,
                help=_('Maximum time (in seconds) to wait for factory reset of '
-                      'BIOS settings to complete.'))
+                      'BIOS settings to complete.')),
+    cfg.IntOpt('raid_job_timeout',
+               default=300,
+               min=1,
+               help=_('Maximum time (in seconds) to wait for RAID job to '
+                      'complete'))
 
 ]
 
