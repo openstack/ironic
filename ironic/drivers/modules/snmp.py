@@ -511,6 +511,7 @@ class SNMPDriverBase(object, metaclass=abc.ABCMeta):
         :raises: SNMPFailure if an SNMP request fails.
         :returns: power state. One of :class:`ironic.common.states`.
         """
+        time.sleep(CONF.snmp.power_action_delay)
         self._snmp_power_on()
         return self._snmp_wait_for_state(states.POWER_ON)
 
@@ -521,6 +522,7 @@ class SNMPDriverBase(object, metaclass=abc.ABCMeta):
         :returns: power state. One of :class:`ironic.common.states`.
         """
         self._snmp_power_off()
+        time.sleep(CONF.snmp.power_action_delay)
         return self._snmp_wait_for_state(states.POWER_OFF)
 
     def power_reset(self):
