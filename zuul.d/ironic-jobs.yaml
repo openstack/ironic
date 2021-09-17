@@ -63,6 +63,11 @@
         # something more like 5GB for baremetal jobs due to image sizes
         # with firmware.
         GLANCE_LIMIT_IMAGE_SIZE_TOTAL: 5000
+        # NOTE(TheJulia): Disable neutron firewall as bug
+        # https://bugs.launchpad.net/neutron/+bug/1944201
+        # causes us an abnormally high job failure rate due to the ports
+        # not being found (as neutron crashed on initailization).
+        Q_USE_SECGROUP: False
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
       tempest_plugins:
