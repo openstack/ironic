@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes ``idrac-wsman`` BIOS and RAID interface steps to correctly check
+    status of iDRAC job that completed with errors. Now these jobs are treated
+    as failures. Before this fix node stayed in wait state as it was only
+    checking for "Completed" or "Failed" job status, but not "Completed
+    with Errors".

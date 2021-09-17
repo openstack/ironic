@@ -329,6 +329,34 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
             mock_cleaning_error_handler.assert_called_once_with(
                 task, mock.ANY, "Failed config job: 123. Message: 'Invalid'.")
 
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(drac_job, 'get_job', spec_set=True,
+                       autospec=True)
+    def test__check_node_bios_jobs_completed_with_errors(
+            self, mock_get_job, mock_cleaning_error_handler):
+        mock_job = mock.Mock()
+        mock_job.status = 'Completed with Errors'
+        mock_job.id = '123'
+        mock_job.message = 'PR31: Completed with Errors'
+        mock_get_job.return_value = mock_job
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            driver_internal_info = task.node.driver_internal_info
+            driver_internal_info['bios_config_job_ids'] = ['123']
+            task.node.driver_internal_info = driver_internal_info
+            task.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                    'step': 'factory_reset', 'argsinfo': {}}
+            task.node.save()
+
+            task.driver.bios._check_node_bios_jobs(task)
+
+            self.assertEqual([],
+                             task.node.driver_internal_info.get(
+                                 'bios_config_job_ids'))
+            mock_cleaning_error_handler.assert_called_once_with(
+                task, mock.ANY, "Failed config job: 123. Message: "
+                                "'PR31: Completed with Errors'.")
+
     def test__check_last_system_inventory_changed_different_inventory_time(
             self):
         with task_manager.acquire(self.context, self.node.uuid,
