@@ -465,58 +465,53 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
 
     img_handler = ImageHandler(task.node.driver)
 
-    # NOTE(TheJulia): Until we support modifying a base iso, most of
-    # this logic actually does nothing in the end. But it should!
-    if is_ramdisk_boot:
-        if not base_iso:
-            kernel_params = "root=/dev/ram0 text "
-            kernel_params += i_info.get("ramdisk_kernel_arguments", "")
-        else:
-            kernel_params = None
-
-    else:
-        kernel_params = driver_utils.get_kernel_append_params(
-            task.node, default=img_handler.kernel_params)
-
-    if params and not base_iso:
-        kernel_params = ' '.join(
-            (kernel_params, ' '.join(
-                ('%s=%s' % kv) if kv[1] is not None else kv[0]
-                for kv in params.items())))
-
     boot_mode = boot_mode_utils.get_boot_mode(task.node)
-
-    if base_iso:
-        # TODO(dtantsur): fix this limitation eventually (see
-        # images.create_boot_iso).
-        LOG.debug('Using pre-built %(boot_mode)s ISO %(iso)s for node '
-                  '%(node)s, custom configuration will not be available',
-                  {'boot_mode': boot_mode, 'node': task.node.uuid,
-                   'iso': base_iso})
-    else:
-        LOG.debug("Trying to create %(boot_mode)s ISO image for node %(node)s "
-                  "with kernel %(kernel_href)s, ramdisk %(ramdisk_href)s, "
-                  "bootloader %(bootloader_href)s and kernel params %(params)s"
-                  "", {'node': task.node.uuid,
-                       'boot_mode': boot_mode,
-                       'kernel_href': kernel_href,
-                       'ramdisk_href': ramdisk_href,
-                       'bootloader_href': bootloader_href,
-                       'params': kernel_params})
 
     with tempfile.NamedTemporaryFile(
             dir=CONF.tempdir, suffix='.iso') as boot_fileobj:
 
         boot_iso_tmp_file = boot_fileobj.name
-        images.create_boot_iso(
-            task.context, boot_iso_tmp_file,
-            kernel_href, ramdisk_href,
-            esp_image_href=bootloader_href,
-            root_uuid=root_uuid,
-            kernel_params=kernel_params,
-            boot_mode=boot_mode,
-            base_iso=base_iso,
-            inject_files=inject_files)
+        if base_iso:
+            # NOTE(dtantsur): this should be "params or inject_files", but
+            # params are always populated in the calling code.
+            log_func = LOG.warning if inject_files else LOG.debug
+            log_func('Using pre-built %(boot_mode)s ISO %(iso)s for node '
+                     '%(node)s, custom configuration will not be available',
+                     {'boot_mode': boot_mode, 'node': task.node.uuid,
+                      'iso': base_iso})
+            images.fetch_into(task.context, base_iso, boot_iso_tmp_file)
+        else:
+            if is_ramdisk_boot:
+                kernel_params = "root=/dev/ram0 text "
+                kernel_params += i_info.get("ramdisk_kernel_arguments", "")
+            else:
+                kernel_params = driver_utils.get_kernel_append_params(
+                    task.node, default=img_handler.kernel_params)
+
+            if params:
+                kernel_params = ' '.join(
+                    (kernel_params, ' '.join(
+                        ('%s=%s' % kv) if kv[1] is not None else kv[0]
+                        for kv in params.items())))
+
+            LOG.debug(
+                "Trying to create %(boot_mode)s ISO image for node %(node)s "
+                "with kernel %(kernel_href)s, ramdisk %(ramdisk_href)s, "
+                "bootloader %(bootloader_href)s and kernel params %(params)s",
+                {'node': task.node.uuid,
+                 'boot_mode': boot_mode,
+                 'kernel_href': kernel_href,
+                 'ramdisk_href': ramdisk_href,
+                 'bootloader_href': bootloader_href,
+                 'params': kernel_params})
+            images.create_boot_iso(
+                task.context, boot_iso_tmp_file,
+                kernel_href, ramdisk_href,
+                esp_image_href=bootloader_href,
+                root_uuid=root_uuid,
+                kernel_params=kernel_params,
+                boot_mode=boot_mode,
+                inject_files=inject_files)
 
         iso_object_name = _get_name(task.node, prefix='boot', suffix='.iso')
 
