@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    Adds a capability to allow bootloaders to be copied into the configured
+    network boot path. This capability can be opted in by using the
+    ``[pxe]loader_file_paths`` by being set to a list of key, value pairs
+    of destination filename, and source file path.
+
+    .. code-block::
+
+       [pxe]
+       loader_file_paths = bootx64.efi:/path/to/shimx64.efi,grubx64.efi:/path/to/grubx64.efi
