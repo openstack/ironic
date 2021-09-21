@@ -1,0 +1,7 @@
+---
+deprecations:
+  - |
+    Ironic previously announced the default for the
+    ``[deploy]default_boot_mode`` would be changing "in a future release".
+    This was announced during the Stein development cycle. Ironic will change
+    This default to ``uefi`` during the Yoga development cycle.
