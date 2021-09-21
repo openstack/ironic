@@ -275,7 +275,7 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
             value=fake_setting)
         db_utils.create_test_node_trait(
             node_id=fake_db_node['id'])
-
+        fake_history = db_utils.create_test_history(node_id=fake_db_node.id)
         # dedicated node for portgroup addition test to avoid
         # false positives with test runners.
         db_utils.create_test_node(
@@ -298,6 +298,7 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
             'trait': fake_trait,
             'volume_target_ident': fake_db_volume_target['uuid'],
             'volume_connector_ident': fake_db_volume_connector['uuid'],
+            'history_ident': fake_history['uuid'],
         })
 
 
@@ -402,6 +403,8 @@ class TestRBACProjectScoped(TestACLBase):
             node_id=owned_node['id'],
             owner=owner_project_id,
             resource_class="CUSTOM_TEST")
+        owned_node_history = db_utils.create_test_history(
+            node_id=owned_node.id)
 
         # Leased nodes
         fake_allocation_id = 61
@@ -427,6 +430,9 @@ class TestRBACProjectScoped(TestACLBase):
             node_id=leased_node['id'],
             owner=lessee_project_id,
             resource_class="CUSTOM_LEASED")
+
+        leased_node_history = db_utils.create_test_history(
+            node_id=leased_node.id)
 
         # Random objects that shouldn't be project visible
         other_port = db_utils.create_test_port(
@@ -460,7 +466,9 @@ class TestRBACProjectScoped(TestACLBase):
             'other_portgroup_ident': other_pgroup['uuid'],
             'driver_name': 'fake-driverz',
             'owner_allocation': fake_owner_allocation['uuid'],
-            'lessee_allocation': fake_leased_allocation['uuid']})
+            'lessee_allocation': fake_leased_allocation['uuid'],
+            'owned_history_ident': owned_node_history['uuid'],
+            'lessee_history_ident': leased_node_history['uuid']})
 
     @ddt.file_data('test_rbac_project_scoped.yaml')
     @ddt.unpack

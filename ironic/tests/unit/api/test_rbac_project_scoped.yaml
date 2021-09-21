@@ -2629,3 +2629,95 @@ third_party_admin_cannot_create_chassis:
   body:
     description: 'test-chassis'
   assert_status: 500
+
+# Node history entries
+
+node_history_get_admin:
+  path: '/v1/nodes/{owner_node_ident}/history'
+  method: get
+  headers: *owner_admin_headers
+  assert_status: 200
+  assert_list_length:
+    history: 1
+
+node_history_get_member:
+  path: '/v1/nodes/{owner_node_ident}/history'
+  method: get
+  headers: *owner_member_headers
+  assert_status: 200
+  assert_list_length:
+    history: 1
+
+node_history_get_reader:
+  path: '/v1/nodes/{owner_node_ident}/history'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  assert_list_length:
+    history: 1
+
+node_history_get_entry_admin:
+  path: '/v1/nodes/{owner_node_ident}/history/{owned_history_ident}'
+  method: get
+  headers: *owner_admin_headers
+  assert_status: 200
+
+node_history_get_entry_member:
+  path: '/v1/nodes/{owner_node_ident}/history/{owned_history_ident}'
+  method: get
+  headers: *owner_member_headers
+  assert_status: 200
+
+node_history_get_entry_reader:
+  path: '/v1/nodes/{owner_node_ident}/history/{owned_history_ident}'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+
+lessee_node_history_get_admin:
+  path: '/v1/nodes/{node_ident}/history'
+  method: get
+  headers: *lessee_admin_headers
+  assert_status: 404
+
+lessee_node_history_get_member:
+  path: '/v1/nodes/{node_ident}/history'
+  method: get
+  headers: *lessee_member_headers
+  assert_status: 404
+
+lessee_node_history_get_reader:
+  path: '/v1/nodes/{node_ident}/history'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 404
+
+lessee_node_history_get_entry_admin:
+  path: '/v1/nodes/{node_ident}/history/{lessee_history_ident}'
+  method: get
+  headers: *lessee_admin_headers
+  assert_status: 404
+
+lessee_history_get_entry_member:
+  path: '/v1/nodes/{node_ident}/history/{lessee_history_ident}'
+  method: get
+  headers: *lessee_member_headers
+  assert_status: 404
+
+lessee_node_history_get_entry_reader:
+  path: '/v1/nodes/{node_ident}/history/{lessee_history_ident}'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 404
+
+third_party_admin_cannot_get_node_history:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 404
+
+node_history_get_entry_admin:
+  path: '/v1/nodes/{owner_node_ident}/history/{owned_history_ident}'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 404

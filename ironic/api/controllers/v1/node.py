@@ -1840,6 +1840,107 @@ class NodeVIFController(rest.RestController):
                                       vif_id=vif_id, topic=topic)
 
 
+class NodeHistoryController(rest.RestController):
+
+    detail_fields = ['uuid', 'created_at', 'severity', 'event_type',
+                     'event', 'conductor', 'user']
+
+    standard_fields = ['uuid', 'created_at', 'severity', 'event']
+
+    def __init__(self, node_ident):
+        super(NodeHistoryController).__init__()
+        self.node_ident = node_ident
+
+    def _history_event_convert_with_links(self, node_uuid, event,
+                                          detail=False):
+        """Add link and convert history event"""
+        url = api.request.public_url
+        if not detail:
+            fields = self.standard_fields
+        else:
+            fields = self.detail_fields
+
+        event_entry = api_utils.object_to_dict(
+            event,
+            link_resource='nodes',
+            fields=fields)
+        if not detail:
+            # The spec for this feature calls to truncate the event
+            # field if not detailed, which makes sense in some environments
+            # with many events, espescialy if the event text is particullarlly
+            # long.
+            entry_len = len(event_entry['event'])
+            if entry_len > 255:
+                event_entry['event'] = event_entry['event'][0:251] + '...'
+            else:
+                event_entry['event'] = event_entry['event'][0:entry_len]
+        # These records cannot be changed by the API consumer,
+        # and updated_at gets handed up from the db model
+        # regardless if we want it or not. As such, strip from
+        # the reply.
+        event_entry.pop('updated_at')
+        event_entry['links'] = [
+            link.make_link(
+                'self', url,
+                'nodes',
+                '%s/history/%s' % (node_uuid, event.uuid)
+            )
+        ]
+        return event_entry
+
+    @METRICS.timer('NodeHistoryController.get_all')
+    @method.expose()
+    @args.validate(details=args.boolean, marker=args.uuid, limit=args.integer)
+    def get_all(self, **kwargs):
+        """List node history."""
+        node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:history:get', self.node_ident)
+
+        if kwargs.get('detail'):
+            detail = True
+            fields = self.detail_fields
+        else:
+            detail = False
+            fields = self.standard_fields
+
+        marker_obj = None
+        marker = kwargs.get('marker')
+        if marker:
+            marker_obj = objects.NodeHistory.get_by_uuid(api.request.context,
+                                                         marker)
+        limit = kwargs.get('limit')
+
+        events = objects.NodeHistory.list_by_node_id(api.request.context,
+                                                     node.id,
+                                                     marker=marker_obj,
+                                                     limit=limit)
+
+        return collection.list_convert_with_links(
+            items=[
+                self._history_event_convert_with_links(
+                    node.uuid, event, detail=detail) for event in events
+            ],
+            item_name='history',
+            fields=fields,
+            marker=marker_obj,
+            limit=limit,
+        )
+
+    @METRICS.timer('NodeHistoryController.get_one')
+    @method.expose()
+    @args.validate(event=args.uuid_or_name)
+    def get_one(self, event):
+        """Get a node history entry"""
+        node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:history:get', self.node_ident)
+        # TODO(TheJulia): Need to check policy to make sure if policy
+        # check fails, that the entry cannot be found.
+        event = objects.NodeHistory.get_by_uuid(api.request.context,
+                                                event)
+        return self._history_event_convert_with_links(
+            node.uuid, event, detail=True)
+
+
 class NodesController(rest.RestController):
     """REST controller for Nodes."""
 
@@ -1885,6 +1986,7 @@ class NodesController(rest.RestController):
         'traits': NodeTraitsController,
         'bios': bios.NodeBiosController,
         'allocation': allocation.NodeAllocationController,
+        'history': NodeHistoryController,
     }
 
     @pecan.expose()
@@ -1906,7 +2008,9 @@ class NodesController(rest.RestController):
             or (remainder[0] == 'bios'
                 and not api_utils.allow_bios_interface())
             or (remainder[0] == 'allocation'
-                and not api_utils.allow_allocations())):
+                and not api_utils.allow_allocations())
+            or (remainder[0] == 'history'
+                and not api_utils.allow_node_history())):
             pecan.abort(http_client.NOT_FOUND)
         if remainder[0] == 'traits' and not api_utils.allow_traits():
             # NOTE(mgoddard): Returning here will ensure we exhibit the

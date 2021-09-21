@@ -420,7 +420,6 @@ deprecated_bios_disable_cleaning = policy.DeprecatedRule(
     deprecated_since=versionutils.deprecated.WALLABY
 )
 
-
 node_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:node:create',
@@ -911,6 +910,24 @@ node_policies = [
         ],
         deprecated_rule=deprecated_bios_disable_cleaning
     ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:history:get',
+        check_str=SYSTEM_OR_OWNER_READER,
+        scope_types=['system', 'project'],
+        description='Filter to allow operators to retreive history records '
+                    'for a node.',
+        operations=[
+            {'path': '/nodes/{node_ident}/history', 'method': 'GET'},
+            {'path': '/nodes/{node_ident}/history/{event_ident}',
+             'method': 'GET'}
+        ],
+        # This rule fallsback to deprecated_node_get in order to provide a
+        # mechanism so the additional policies only engage in an updated
+        # operating context.
+        deprecated_rule=deprecated_node_get
+    ),
+
+
 ]
 
 deprecated_port_reason = """

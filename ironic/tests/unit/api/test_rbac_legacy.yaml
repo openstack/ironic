@@ -2349,3 +2349,49 @@ chassis_chassis_id_delete_observer:
   headers: *observer_headers
   assert_status: 403
   deprecated: true
+
+node_history_get_admin:
+  path: '/v1/nodes/{node_ident}/history'
+  method: get
+  headers: *admin_headers
+  assert_status: 200
+  deprecated: true
+  assert_list_length:
+    history: 1
+
+node_history_get_member:
+  path: '/v1/nodes/{node_ident}/history'
+  method: get
+  headers: *member_headers
+  assert_status: 404
+  deprecated: true
+
+node_history_get_observer:
+  path: '/v1/nodes/{node_ident}/history'
+  method: get
+  headers: *observer_headers
+  assert_status: 200
+  deprecated: true
+  assert_list_length:
+    history: 1
+
+node_history_get_entry_admin:
+  path: '/v1/nodes/{node_ident}/history/{history_ident}'
+  method: get
+  headers: *admin_headers
+  assert_status: 200
+  deprecated: true
+
+node_history_get_entry_member:
+  path: '/v1/nodes/{node_ident}/history/{history_ident}'
+  method: get
+  headers: *member_headers
+  assert_status: 404
+  deprecated: true
+
+node_history_get_entry_observer:
+  path: '/v1/nodes/{node_ident}/history/{history_ident}'
+  method: get
+  headers: *observer_headers
+  assert_status: 200
+  deprecated: true
