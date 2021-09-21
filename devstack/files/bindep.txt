@@ -11,8 +11,8 @@ ipxe [platform:dpkg default]
 ipxe-bootimgs [platform:rpm default]
 socat [default]
 xinetd [default]
-tftpd-hpa [platform:dpkg default]
-tftp-server [platform:rpm default]
+tftpd-hpa [platform:dpkg]
+tftp-server [platform:rpm]
 # Starting with Debian Jessie (and thus in Ubuntu Xenial too),
 # pxelinux package provides the pxelinux.0 boot loader,
 # but such package is absent from Debian Wheezy / Ubuntu Trusty.
@@ -24,31 +24,30 @@ tftp-server [platform:rpm default]
 # or DevStack stops supporting those.
 # In the mean time, new Debian-based release codenames will have to be added
 # as distros can not be pinned with 'if-later-than' specified.
-pxelinux [platform:ubuntu-xenial platform:debian-jessie default]
-syslinux [platform:rpm platform:ubuntu-trusty platform:debian-wheezy default]
-syslinux-common [platform:ubuntu-xenial platform:debian-jessie default]
+pxelinux [platform:dpkg]
+syslinux [platform:rpm platform:ubuntu-trusty platform:debian-wheezy]
+syslinux-common [platform:dpkg]
 socat [default]
 # Grub2 files for boot loadingusing PXE/GRUB2
-shim-signed [platform:dpkg default]
-grub-efi-amd64-signed [platform:dpkg default]
-
-# these are needed to create and access VMs when testing with virtual hardware
-libvirt-bin [platform:dpkg devstack]
-libvirt [platform:rpm devstack]
-libvirt-dev [platform:dpkg devstack]
-libvirt-devel [platform:rpm devstack]
-qemu [platform:dpkg devstack build-image-dib]
-qemu-kvm [platform:dpkg platform:rpm devstack]
-qemu-utils [platform:dpkg devstack build-image-dib]
-qemu-system-data [platform:dpkg devstack]
-sgabios [platform:rpm devstack]
-ipxe-qemu [platform:dpkg devstack]
-edk2-ovmf [platform:rpm devstack]
-ovmf [platform:dpkg devstack]
-ipxe-roms-qemu [platform:rpm devstack]
-openvswitch [platform:rpm devstack]
-iptables [devstack]
-net-tools [platform:rpm devstack]
+shim-signed [platform:dpkg]
+grub-efi-amd64-signed [platform:dpkg]
+libvirt-daemon [platform:dpkg]
+libvirt-clients [platform:dpkg]
+libvirt [platform:rpm]
+libvirt-dev [platform:dpkg]
+libvirt-devel [platform:rpm]
+qemu [platform:dpkg]
+qemu-kvm [platform:dpkg platform:rpm]
+qemu-utils [platform:dpkg]
+qemu-system-data [platform:dpkg]
+sgabios [platform:rpm]
+ipxe-qemu [platform:dpkg]
+edk2-ovmf [platform:rpm]
+ovmf [platform:dpkg]
+ipxe-roms-qemu [platform:rpm]
+openvswitch [platform:rpm]
+iptables [default]
+net-tools [platform:rpm]
 
 # these are needed to compile Python dependencies from sources
 python-dev [platform:dpkg test]
@@ -79,6 +78,11 @@ graphviz [!platform:gentoo test doc]
 # libsrvg2 is needed for sphinxcontrib-svg2pdfconverter in docs builds.
 librsvg2-tools [doc platform:rpm]
 librsvg2-bin [doc platform:dpkg]
+# For parsing of API response json
+jq
+dosfstools [platform:dpkg]
+# Metalsmith jobs
+gdisk [platform:dpkg]
 
 # these are needed to build a deploy ramdisk
 
