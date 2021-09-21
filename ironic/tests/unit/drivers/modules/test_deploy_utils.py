@@ -579,9 +579,23 @@ class GetPxeBootConfigTestCase(db_base.DbTestCase):
         self.config(pxe_bootfile_name_by_arch=self.bootfile_by_arch,
                     group='pxe')
         result = utils.get_pxe_boot_file(self.node)
+        self.assertEqual('uefi-bootfile', result)
+
+    def test_get_pxe_boot_file_emtpy_property_bios_default(self):
+        self.config(default_boot_mode='bios', group='deploy')
+        self.node.properties = {}
+        self.config(pxe_bootfile_name_by_arch=self.bootfile_by_arch,
+                    group='pxe')
+        result = utils.get_pxe_boot_file(self.node)
         self.assertEqual('bios-bootfile', result)
 
-    def test_get_ipxe_boot_file(self):
+    def test_get_ipxe_boot_uefi(self):
+        self.config(uefi_ipxe_bootfile_name='meow', group='pxe')
+        result = utils.get_ipxe_boot_file(self.node)
+        self.assertEqual('meow', result)
+
+    def test_get_ipxe_boot_bios(self):
+        self.config(default_boot_mode='bios', group='deploy')
         self.config(ipxe_bootfile_name='meow', group='pxe')
         result = utils.get_ipxe_boot_file(self.node)
         self.assertEqual('meow', result)
@@ -605,11 +619,28 @@ class GetPxeBootConfigTestCase(db_base.DbTestCase):
     def test_get_ipxe_boot_file_fallback(self):
         self.config(ipxe_bootfile_name=None, group='pxe')
         self.config(uefi_ipxe_bootfile_name=None, group='pxe')
+        self.config(pxe_bootfile_name=None, group='pxe')
+        self.config(uefi_pxe_bootfile_name='lolcat', group='pxe')
+        result = utils.get_ipxe_boot_file(self.node)
+        self.assertEqual('lolcat', result)
+
+    def test_get_ipxe_boot_file_fallback_bios(self):
+        self.config(default_boot_mode='bios', group='deploy')
+        self.config(ipxe_bootfile_name=None, group='pxe')
+        self.config(uefi_ipxe_bootfile_name=None, group='pxe')
         self.config(pxe_bootfile_name='lolcat', group='pxe')
         result = utils.get_ipxe_boot_file(self.node)
         self.assertEqual('lolcat', result)
 
     def test_get_pxe_config_template_emtpy_property(self):
+        self.node.properties = {}
+        self.config(pxe_config_template_by_arch=self.template_by_arch,
+                    group='pxe')
+        result = utils.get_pxe_config_template(self.node)
+        self.assertEqual('uefi-template', result)
+
+    def test_get_pxe_config_template_emtpy_property_bios(self):
+        self.config(default_boot_mode='bios', group='deploy')
         self.node.properties = {}
         self.config(pxe_config_template_by_arch=self.template_by_arch,
                     group='pxe')
@@ -631,6 +662,16 @@ class GetPxeBootConfigTestCase(db_base.DbTestCase):
                       utils.get_ipxe_config_template(node))
 
     def test_get_ipxe_config_template_none(self):
+        self.config(ipxe_config_template=None, group='pxe')
+        self.config(uefi_pxe_config_template='magical_bootloader',
+                    group='pxe')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware')
+        self.assertEqual('magical_bootloader',
+                         utils.get_ipxe_config_template(node))
+
+    def test_get_ipxe_config_template_none_bios(self):
+        self.config(default_boot_mode='bios', group='deploy')
         self.config(ipxe_config_template=None, group='pxe')
         self.config(pxe_config_template='magical_bootloader',
                     group='pxe')
@@ -1013,6 +1054,13 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
         inst_info = {'capabilities': {'cat': 'meows'}}
         self.node.instance_info = inst_info
         result = utils.get_disk_label(self.node)
+        self.assertEqual('gpt', result)
+
+    def test_get_disk_label_nothing_set_bios_mode(self):
+        self.config(default_boot_mode='bios', group='deploy')
+        inst_info = {'capabilities': {'cat': 'meows'}}
+        self.node.instance_info = inst_info
+        result = utils.get_disk_label(self.node)
         self.assertIsNone(result)
 
     def test_get_disk_label_uefi_mode(self):
@@ -1058,6 +1106,7 @@ class TrySetBootDeviceTestCase(db_base.DbTestCase):
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     def test_try_set_boot_device_ipmifailure_bios(
             self, node_set_boot_device_mock):
+        self.config(default_boot_mode='bios', group='deploy')
         node_set_boot_device_mock.side_effect = exception.IPMIFailure(cmd='a')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:

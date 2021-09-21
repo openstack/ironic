@@ -53,10 +53,23 @@ class GetBootModeTestCase(tests_base.TestCase):
         boot_mode_utils.warn_about_default_boot_mode = False
         mock_for_deploy.return_value = None
         boot_mode = boot_mode_utils.get_boot_mode(self.node)
+        self.assertEqual(boot_modes.UEFI, boot_mode)
+        boot_mode = boot_mode_utils.get_boot_mode(self.node)
+        self.assertEqual(boot_modes.UEFI, boot_mode)
+        self.assertEqual(0, mock_log.warning.call_count)
+
+    @mock.patch.object(boot_mode_utils, 'LOG', autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       autospec=True)
+    def test_get_boot_mode_bios_default(self, mock_for_deploy, mock_log):
+        self.config(default_boot_mode='bios', group='deploy')
+        boot_mode_utils.warn_about_default_boot_mode = False
+        mock_for_deploy.return_value = None
+        boot_mode = boot_mode_utils.get_boot_mode(self.node)
         self.assertEqual(boot_modes.LEGACY_BIOS, boot_mode)
         boot_mode = boot_mode_utils.get_boot_mode(self.node)
         self.assertEqual(boot_modes.LEGACY_BIOS, boot_mode)
-        self.assertEqual(1, mock_log.warning.call_count)
+        self.assertEqual(0, mock_log.warning.call_count)
 
     @mock.patch.object(boot_mode_utils, 'LOG', autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',

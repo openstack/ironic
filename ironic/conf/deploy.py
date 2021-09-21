@@ -132,14 +132,17 @@ opts = [
     cfg.StrOpt('default_boot_mode',
                choices=[(boot_modes.UEFI, _('UEFI boot mode')),
                         (boot_modes.LEGACY_BIOS, _('Legacy BIOS boot mode'))],
-               default=boot_modes.LEGACY_BIOS,
+               default=boot_modes.UEFI,
                mutable=True,
                help=_('Default boot mode to use when no boot mode is '
                       'requested in node\'s driver_info, capabilities or '
                       'in the `instance_info` configuration. Currently the '
-                      'default boot mode is "%(bios)s", but it will be '
-                      'changed to "%(uefi)s in the future. It is recommended '
-                      'to set an explicit value for this option. This option '
+                      'default boot mode is "%(uefi)s", but it was '
+                      '"%(bios)s" previously in Ironic. It is recommended '
+                      'to set an explicit value for this option, and if the '
+                      'setting or default differs from nodes, to ensure that '
+                      'nodes are configured specifically for their desired '
+                      'boot mode. This option '
                       'only has effect when management interface supports '
                       'boot mode management') % {
                           'bios': boot_modes.LEGACY_BIOS,

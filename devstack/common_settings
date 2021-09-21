@@ -5,8 +5,8 @@ if [[ -f $TOP_DIR/../../old/devstack/.localrc.auto ]]; then
 fi
 
 # Whether configure the nodes to boot in Legacy BIOS or UEFI mode. Accepted
-# values are: "bios" or "uefi", defaults to "bios".
-IRONIC_BOOT_MODE=${IRONIC_BOOT_MODE:-bios}
+# values are: "bios" or "uefi", defaults to "uefi".
+IRONIC_BOOT_MODE=${IRONIC_BOOT_MODE:-uefi}
 
 CIRROS_VERSION_DEVSTACK=$(set +o xtrace &&
                           source $TOP_DIR/stackrc &&

@@ -213,9 +213,30 @@
 - job:
     name: ironic-tempest-partition-bios-redfish-pxe
     description: "Deploy ironic node over PXE using BIOS boot mode"
-    parent: ironic-base
+    parent: ironic-tempest-partition-uefi-redfish-vmedia
     required-projects:
       - opendev.org/openstack/sushy-tools
+    vars:
+      devstack_localrc:
+        IRONIC_ENABLED_BOOT_INTERFACES: ipxe
+        SWIFT_ENABLE_TEMPURLS: False
+        SWIFT_TEMPURL_KEY: ''
+        # Parent job has a longer timeout due to vmedia usage,
+        # Reset the callback to a normal-ish value.
+        IRONIC_CALLBACK_TIMEOUT: 600
+        IRONIC_DEFAULT_BOOT_OPTION: netboot
+        IRONIC_BOOT_MODE: bios
+      devstack_services:
+        # Parent job uses swift, this one does not, thus we can turn it off.
+        s-account: False
+        s-container: False
+        s-object: False
+        s-proxy: False
+
+- job:
+    name: ironic-tempest-partition-uefi-redfish-vmedia
+    description: "Deploy ironic node over Redfish virtual media using UEFI boot mode"
+    parent: ironic-base
     vars:
       devstack_localrc:
         IRONIC_DEPLOY_DRIVER: redfish
@@ -223,19 +244,12 @@
         IRONIC_ENABLED_POWER_INTERFACES: redfish
         IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        # TODO(TheJulia): We need to excise netboot from
+        # jobs at some point.
         IRONIC_DEFAULT_BOOT_OPTION: netboot
-
-- job:
-    name: ironic-tempest-partition-uefi-redfish-vmedia
-    description: "Deploy ironic node over Redfish virtual media using UEFI boot mode"
-    parent: ironic-tempest-partition-bios-redfish-pxe
-    vars:
-      devstack_localrc:
-        IRONIC_BOOT_MODE: uefi
         IRONIC_ENABLED_BOOT_INTERFACES: redfish-virtual-media
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
-        IRONIC_AUTOMATED_CLEAN_ENABLED: False
         # Ironic has to master a new image, and this CAN take longer as a
         # result and makes this job VERY sensitive to heavy disk IO of the
         # underlying hypervisor/cloud.
@@ -297,6 +311,7 @@
         IRONIC_VM_SPECS_RAM: 3096
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
+        IRONIC_BOOT_MODE: bios
       devstack_services:
         s-account: True
         s-container: True
@@ -315,6 +330,7 @@
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_ENFORCE_SCOPE: True
+        IRONIC_BOOT_MODE: bios
 
 - job:
     name: ironic-tempest-ipa-partition-uefi-pxe_ipmitool
@@ -322,7 +338,6 @@
     parent: ironic-base
     vars:
       devstack_localrc:
-        IRONIC_BOOT_MODE: uefi
         IRONIC_VM_SPECS_RAM: 4096
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEFAULT_BOOT_OPTION: netboot
@@ -655,7 +670,6 @@
         IRONIC_ENABLED_HARDWARE_TYPES: ipmi
         IRONIC_ENABLED_BOOT_INTERFACES: pxe
         IRONIC_IPXE_ENABLED: False
-        IRONIC_BOOT_MODE: uefi
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEFAULT_BOOT_OPTION: netboot
@@ -700,6 +714,7 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
+        IRONIC_BOOT_MODE: bios
 
 - job:
     name: ironic-tempest-ipxe-ipv6
@@ -777,6 +792,7 @@
         IRONIC_VM_EPHEMERAL_DISK: 0
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
+        IRONIC_BOOT_MODE: bios
       devstack_services:
         s-account: True
         s-container: True

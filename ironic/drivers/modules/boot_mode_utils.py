@@ -16,7 +16,6 @@
 from oslo_log import log as logging
 from oslo_utils import excutils
 
-from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils as common_utils
@@ -293,19 +292,6 @@ def get_boot_mode(node):
     boot_mode = get_boot_mode_for_deploy(node)
     if boot_mode:
         return boot_mode
-    # TODO(hshiina): The default boot mode will be changed to UEFI.
-    global warn_about_default_boot_mode
-    if (not warn_about_default_boot_mode
-            and CONF.deploy.default_boot_mode == boot_modes.LEGACY_BIOS):
-        warn_about_default_boot_mode = True
-        LOG.warning('Boot mode is not configured for node %(node_uuid)s '
-                    'explicitly. The default boot mode is "%(bios)s", but, '
-                    'the default will be changed to "%(uefi)s" in the future. '
-                    'It is recommended to set the boot option into '
-                    'properties/capabilities/boot_mode for all nodes.',
-                    {'node_uuid': node.uuid,
-                     'bios': boot_modes.LEGACY_BIOS,
-                     'uefi': boot_modes.UEFI})
     return CONF.deploy.default_boot_mode
 
 

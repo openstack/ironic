@@ -2371,6 +2371,9 @@ function enroll_nodes {
         if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
             node_capabilities+=" --property capabilities=boot_mode:uefi"
         fi
+        if [[ "$IRONIC_BOOT_MODE" == "bios" ]]; then
+            node_capabilities+=" --property capabilities=boot_mode:bios"
+        fi
         if [[ "$IRONIC_SECURE_BOOT" == "True" ]]; then
             if [[ -n "$node_capabilities" ]]; then
                 node_capabilities+=",secure_boot:true"
@@ -2581,7 +2584,9 @@ function enroll_nodes {
             if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
                 openstack --os-cloud $OS_CLOUD flavor set baremetal --property "capabilities:boot_mode"="uefi"
             fi
-
+            if [[ "$IRONIC_BOOT_MODE" == "bios" ]]; then
+                openstack --os-cloud $OS_CLOUD flavor set baremetal --property "capabilities:boot_mode"="bios"
+            fi
             for trait in $IRONIC_DEFAULT_TRAITS; do
                 openstack --os-cloud $OS_CLOUD flavor set baremetal --property "trait:$trait"="required"
             done

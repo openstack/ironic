@@ -290,7 +290,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                     fake_system.set_system_boot_options.assert_has_calls(
                         [mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
                                    enabled=expected),
-                         mock.call(mode=sushy.BOOT_SOURCE_MODE_BIOS)])
+                         mock.call(mode=sushy.BOOT_SOURCE_MODE_UEFI)])
                 else:
                     fake_system.set_system_boot_options.assert_has_calls(
                         [mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
