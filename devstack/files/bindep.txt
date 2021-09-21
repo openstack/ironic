@@ -1,0 +1,99 @@
+# NOTE(TheJulia): This is a special bindep file which is independent of the
+# project bindep file which is for general usage. This binde pfile is
+# intended for execution from Devstack. 
+# The *primary* purpose being, devstack manages sql dependency mangement
+# and credential setup, so they can't be included here or it is installed
+# prematurely.
+
+# these are needed to run ironic with default ipmitool and (i)PXE boot drivers
+ipmitool [default]
+ipxe [platform:dpkg default]
+ipxe-bootimgs [platform:rpm default]
+socat [default]
+xinetd [default]
+tftpd-hpa [platform:dpkg default]
+tftp-server [platform:rpm default]
+# Starting with Debian Jessie (and thus in Ubuntu Xenial too),
+# pxelinux package provides the pxelinux.0 boot loader,
+# but such package is absent from Debian Wheezy / Ubuntu Trusty.
+# Also, in Debian Wheezy / Ubuntu Trusty 'syslinux' depends on syslinux-common,
+# but only recommends it in Jessie/Xenial.
+# Make sure syslinux-common is installed for those distros as it provides
+# *.c32 modules for syslinux
+# TODO remove distro pinning when Wheezy / Trusty are EOLed (May 2019)
+# or DevStack stops supporting those.
+# In the mean time, new Debian-based release codenames will have to be added
+# as distros can not be pinned with 'if-later-than' specified.
+pxelinux [platform:ubuntu-xenial platform:debian-jessie default]
+syslinux [platform:rpm platform:ubuntu-trusty platform:debian-wheezy default]
+syslinux-common [platform:ubuntu-xenial platform:debian-jessie default]
+socat [default]
+# Grub2 files for boot loadingusing PXE/GRUB2
+shim-signed [platform:dpkg default]
+grub-efi-amd64-signed [platform:dpkg default]
+
+# these are needed to create and access VMs when testing with virtual hardware
+libvirt-bin [platform:dpkg devstack]
+libvirt [platform:rpm devstack]
+libvirt-dev [platform:dpkg devstack]
+libvirt-devel [platform:rpm devstack]
+qemu [platform:dpkg devstack build-image-dib]
+qemu-kvm [platform:dpkg platform:rpm devstack]
+qemu-utils [platform:dpkg devstack build-image-dib]
+qemu-system-data [platform:dpkg devstack]
+sgabios [platform:rpm devstack]
+ipxe-qemu [platform:dpkg devstack]
+edk2-ovmf [platform:rpm devstack]
+ovmf [platform:dpkg devstack]
+ipxe-roms-qemu [platform:rpm devstack]
+openvswitch [platform:rpm devstack]
+iptables [devstack]
+net-tools [platform:rpm devstack]
+
+# these are needed to compile Python dependencies from sources
+python-dev [platform:dpkg test]
+python3-all-dev [platform:dpkg !platform:ubuntu-precise test]
+python3-devel [platform:rpm test]
+build-essential [platform:dpkg test]
+libssl-dev [platform:dpkg test]
+libffi-dev [platform:dpkg test]
+libffi-devel [platform:rpm test]
+# these are needed by infra for python-* jobs
+libpq-dev [platform:dpkg test]
+libpq-devel [platform:rpm test]
+postgresql
+postgresql-client [platform:dpkg]
+# postgresql-devel [platform:rpm]
+postgresql-server [platform:rpm]
+mariadb [platform:rpm]
+mariadb-server [platform:rpm]
+# mariadb-devel [platform:rpm]
+dev-db/mariadb [platform:gentoo]
+# gettext and graphviz are needed by doc builds only. For transition,
+# have them in both doc and test.
+# TODO(jaegerandi): Remove test once infra scripts are updated.
+# this is needed for compiling translations
+gettext [test doc]
+# this is needed to build the FSM diagram
+graphviz [!platform:gentoo test doc]
+# libsrvg2 is needed for sphinxcontrib-svg2pdfconverter in docs builds.
+librsvg2-tools [doc platform:rpm]
+librsvg2-bin [doc platform:dpkg]
+
+# these are needed to build a deploy ramdisk
+
+# NOTE apparmor is an undeclared dependency for docker on ubuntu,
+# see https://github.com/docker/docker/issues/9745
+apparmor [platform:dpkg imagebuild]
+gnupg [imagebuild]
+squashfs-tools [platform:dpkg platform:redhat imagebuild]
+squashfs [platform:suse imagebuild]
+libguestfs0 [platform:dpkg imagebuild]
+libguestfs [platform:rpm imagebuild]
+python-guestfs [platform:dpkg imagebuild]
+# for TinyIPA build
+wget [imagebuild]
+python-pip [imagebuild]
+unzip [imagebuild]
+sudo [imagebuild]
+gawk [imagebuild]
