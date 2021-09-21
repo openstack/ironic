@@ -2,7 +2,7 @@
 REST API Version History
 ========================
 
-1.78 (Xena, ?)
+1.78 (Xena, 18.2)
 ----------------------
 Add endpoints to allow history events for nodes to be retrieved via
 the REST API.
@@ -10,7 +10,7 @@ the REST API.
 * ``GET /v1/nodes/{node_ident}/history/``
 * ``GET /v1/nodes/{node_ident}/history/{event_uuid}``
 
-1.77 (Xena, ?)
+1.77 (Xena, 18.2)
 ----------------------
 
 Add a fields selector to the the Drivers list:
@@ -18,7 +18,7 @@ Add a fields selector to the the Drivers list:
 Also add a fields selector to the the Driver detail:
 * ``GET /v1/drivers/{driver_name}?fields=``
 
-1.76 (Xena, ?)
+1.76 (Xena, 18.2)
 ----------------------
 Add endpoints for changing boot mode and secure boot state of node
 asynchronously:

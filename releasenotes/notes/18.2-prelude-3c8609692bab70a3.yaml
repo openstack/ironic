@@ -1,0 +1,9 @@
+---
+prelude: |
+    The Ironic team hearby announces the release of Ironic 18.2.
+
+    During the Xena development cycle, thirty eight contributors collaborated
+    together, and with our adjacent communities to support the needs of our
+    end users in all the many forms they take. Over 48,000 lines of code were
+    modified, and twenty two new features made it into Ironic along with
+    a number of bug fixes. We sincerely hope you enjoy!
