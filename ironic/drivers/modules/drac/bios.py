@@ -292,7 +292,8 @@ class DracWSManBIOS(base.BIOSInterface):
 
             if config_job is None or config_job.status == 'Completed':
                 finished_job_ids.append(config_job_id)
-            elif config_job.status == 'Failed':
+            elif (config_job.status == 'Failed'
+                    or config_job.status == 'Completed with Errors'):
                 finished_job_ids.append(config_job_id)
                 job_failed = True
 
