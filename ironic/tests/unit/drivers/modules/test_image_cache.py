@@ -298,8 +298,8 @@ class TestUpdateImages(base.TestCase):
         res = image_cache._delete_master_path_if_stale(self.master_path, href,
                                                        None)
         mock_gis.assert_called_once_with(href, context=None)
-        self.assertFalse(mock_unlink.called)
-        self.assertTrue(res)
+        mock_unlink.assert_called_once_with(self.master_path)
+        self.assertFalse(res)
 
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test__delete_master_path_if_stale_master_up_to_date(self, mock_gis,
