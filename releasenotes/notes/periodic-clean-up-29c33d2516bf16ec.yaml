@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    All image caches are now cleaned up periodically, not only when used.
+    Set ``[conductor]cache_clean_up_interval`` to tune the interval or disable.
