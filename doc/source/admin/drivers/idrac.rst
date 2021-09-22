@@ -490,11 +490,6 @@ Optional properties
 Backing physical disk hints
 ---------------------------
 
-.. NOTE::
-  Backing physical disk hints are not widely tested with ``idrac-redfish`` yet
-  and they might not work as desired. This will be addressed in future
-  releases.
-
 See :doc:`/admin/raid` for more information on backing disk hints.
 
 These are machine-independent information. The hints are specified for each
