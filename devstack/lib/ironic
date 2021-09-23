@@ -1803,7 +1803,7 @@ function configure_ironic_conductor {
 
     iniset $IRONIC_CONF_FILE deploy default_boot_option $IRONIC_DEFAULT_BOOT_OPTION
 
-    isolinux=$(find -L /usr /opt /etc -type f -name "isolinux.bin" | head -1)
+    isolinux=$(find -L /usr -type f -name "isolinux.bin" | head -1)
     if [[ -n "$isolinux" ]]; then
         iniset $IRONIC_CONF_FILE DEFAULT isolinux_bin "$isolinux"
     fi
