@@ -102,6 +102,7 @@ raised in the background thread.):
 
 import copy
 import functools
+import traceback
 
 import futurist
 from oslo_config import cfg
@@ -141,6 +142,10 @@ def require_exclusive_lock(f):
         else:
             task = args[0]
         if task.shared:
+            LOG.error("Callable %(func)s expected an exclusive lock, got "
+                      "a shared task for node %(node)s. Traceback:\n%(tb)s",
+                      {'func': f.__qualname__, 'node': task.node.uuid,
+                       'tb': ''.join(traceback.format_stack())})
             raise exception.ExclusiveLockRequired()
         # NOTE(lintan): This is a workaround to set the context of async tasks,
         # which should contain an exclusive lock.
