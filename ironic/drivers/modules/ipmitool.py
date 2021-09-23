@@ -1234,7 +1234,6 @@ class IPMIManagement(base.ManagementInterface):
         response['persistent'] = 'Options apply to all future boots' in out
         return response
 
-    @task_manager.require_exclusive_lock
     @METRICS.timer('IPMIManagement.detect_vendor')
     def detect_vendor(self, task):
         """Detects and returns the hardware vendor.
