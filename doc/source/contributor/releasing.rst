@@ -78,6 +78,10 @@ The following deliverables are Tempest plugins:
 
 * ironic-tempest-plugin
 
+The following deliverables are tools:
+
+* ironic-python-agent-builder
+
 The following deliverables are services, or treated as such:
 
 * bifrost
@@ -86,13 +90,19 @@ The following deliverables are services, or treated as such:
 * ironic-prometheus-exporter
 * ironic-python-agent
 
+Manual release
+--------------
+
+The ironic-staging-drivers follows a different procedure, see
+`Releasing ironic-staging-drivers
+<https://ironic-staging-drivers.readthedocs.io/en/latest/releasing.html>`__.
+
 Independent
 -----------
 
 The following deliverables are released `independently
 <https://releases.openstack.org/reference/release_models.html#independent>`__:
 
-* ironic-python-agent-builder
 * sushy-tools
 * tenks
 * virtualbmc
@@ -293,22 +303,12 @@ We need to submit patches for changes in the stable branch to:
 * update the ironic devstack plugin to point at the branched tarball for IPA.
   An example of this patch is
   `here <https://review.opendev.org/685069/>`_.
-* update links in the documentation (``ironic/doc/source/``) to point to the
-  branched versions of any openstack projects' (that branch) documents.
-  As of Pike release, the only outlier is
-  `diskimage-builder <https://docs.openstack.org/diskimage-builder/latest/>`_.
 * set appropriate defaults for ``TEMPEST_BAREMETAL_MIN_MICROVERSION`` and
   ``TEMPEST_BAREMETAL_MAX_MICROVERSION`` in ``devstack/lib/ironic`` to make sure
   that unsupported API tempest tests are skipped on stable branches. E.g.
   `patch 495319 <https://review.opendev.org/495319>`_.
 
 We need to submit patches for changes on master to:
-
-* create an empty commit with a ``Sem-Ver`` tag to bump the generated minor
-  version. See `example
-  <https://opendev.org/openstack/ironic/commit/4b28af4645c2f3b6d7864671e15904ed8f40414d>`_
-  and `pbr documentation
-  <https://docs.openstack.org/pbr/latest/user/features.html#version>`_ for details.
 
 * to support rolling upgrades, since the release was a named release, we
   need to make these changes. Note that we need to wait until *after* the
