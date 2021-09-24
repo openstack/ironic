@@ -393,6 +393,13 @@ def clean_up_caches(ctx, directory, images_info):
     _clean_up_caches(directory, total_size)
 
 
+def clean_up_all():
+    """Clean up all entries from all caches."""
+    caches_to_clean = [x[1]() for x in _cache_cleanup_list]
+    for cache in caches_to_clean:
+        cache.clean_up()
+
+
 def cleanup(priority):
     """Decorator method for adding cleanup priority to a class."""
     def _add_property_to_class_func(cls):

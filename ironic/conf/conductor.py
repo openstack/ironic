@@ -59,6 +59,10 @@ opts = [
                min=0,
                help=_('Interval between checks of orphaned allocations, '
                       'in seconds. Set to 0 to disable checks.')),
+    cfg.IntOpt('cache_clean_up_interval',
+               default=3600, min=0,
+               help=_('Interval between cleaning up image caches, in seconds. '
+                      'Set to 0 to disable periodic clean-up.')),
     cfg.IntOpt('deploy_callback_timeout',
                default=1800,
                min=0,

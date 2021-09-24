@@ -72,6 +72,7 @@ from ironic.conductor import utils
 from ironic.conductor import verify
 from ironic.conf import CONF
 from ironic.drivers import base as drivers_base
+from ironic.drivers.modules import image_cache
 from ironic import objects
 from ironic.objects import base as objects_base
 from ironic.objects import fields
@@ -99,6 +100,12 @@ class ConductorManager(base_manager.BaseConductorManager):
     def __init__(self, host, topic):
         super(ConductorManager, self).__init__(host, topic)
         self.power_state_sync_count = collections.defaultdict(int)
+
+    @METRICS.timer('ConductorManager._clean_up_caches')
+    @periodics.periodic(spacing=CONF.conductor.cache_clean_up_interval,
+                        enabled=CONF.conductor.cache_clean_up_interval > 0)
+    def _clean_up_caches(self, context):
+        image_cache.clean_up_all()
 
     @METRICS.timer('ConductorManager.create_node')
     # No need to add these since they are subclasses of InvalidParameterValue:
