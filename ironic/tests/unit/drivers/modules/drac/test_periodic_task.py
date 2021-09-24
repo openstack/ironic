@@ -236,6 +236,39 @@ class DracPeriodicTaskTestCase(db_base.DbTestCase):
         self.assertEqual({}, self.node.raid_config)
         mock_cleaning_error_handler.assert_called_once_with(task, mock.ANY)
 
+    @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
+    @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,
+                       autospec=True)
+    def test__check_node_raid_jobs_with_completed_with_errors_job(
+            self, mock_get_drac_client, mock_cleaning_error_handler):
+        # mock node.driver_internal_info and node.clean_step
+        driver_internal_info = {'raid_config_job_ids': ['42']}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.clean_step = {'foo': 'bar'}
+        self.node.save()
+        # mock task
+        task = mock.Mock(node=self.node, context=self.context)
+        # mock dracclient.get_job
+        self.job['status'] = 'Completed with Errors'
+        self.job['message'] = 'PR31: Completed with Errors'
+        mock_client = mock.Mock()
+        mock_get_drac_client.return_value = mock_client
+        mock_client.get_job.return_value = test_utils.dict_to_namedtuple(
+            values=self.job)
+        # mock dracclient.list_virtual_disks
+        mock_client.list_virtual_disks.return_value = [
+            test_utils.dict_to_namedtuple(values=self.virtual_disk)]
+
+        self.raid._check_node_raid_jobs(task)
+
+        mock_client.get_job.assert_called_once_with('42')
+        self.assertEqual(0, mock_client.list_virtual_disks.call_count)
+        self.node.refresh()
+        self.assertEqual([],
+                         self.node.driver_internal_info['raid_config_job_ids'])
+        self.assertEqual({}, self.node.raid_config)
+        mock_cleaning_error_handler.assert_called_once_with(task, mock.ANY)
+
     @mock.patch.object(manager_utils, 'deploying_error_handler', autospec=True)
     @mock.patch.object(manager_utils, 'cleaning_error_handler', autospec=True)
     @mock.patch.object(drac_common, 'get_drac_client', spec_set=True,

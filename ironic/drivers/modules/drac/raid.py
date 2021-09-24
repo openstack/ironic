@@ -1521,7 +1521,8 @@ class DracWSManRAID(base.RAIDInterface):
 
             if config_job is None or config_job.status == 'Completed':
                 finished_job_ids.append(config_job_id)
-            elif config_job.status == 'Failed':
+            elif (config_job.status == 'Failed'
+                    or config_job.status == 'Completed with Errors'):
                 finished_job_ids.append(config_job_id)
                 self._set_raid_config_job_failure(node)
 
