@@ -303,7 +303,7 @@ IRONIC_DEPLOY_ISO=${IRONIC_DEPLOY_ISO:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_D
 IRONIC_EFIBOOT=${IRONIC_EFIBOOT:-$TOP_DIR/files/ir-deploy-$IRONIC_DEPLOY_DRIVER.efiboot}
 
 # NOTE(jroll) this needs to be updated when stable branches are cut
-IPA_DOWNLOAD_BRANCH=${IPA_DOWNLOAD_BRANCH:-master}
+IPA_DOWNLOAD_BRANCH=${IPA_DOWNLOAD_BRANCH:-stable/xena}
 IPA_DOWNLOAD_BRANCH=$(echo $IPA_DOWNLOAD_BRANCH | tr / -)
 
 # OS for using with DIB images
@@ -569,7 +569,7 @@ IRONIC_DEPLOY_FAST_TRACK=${IRONIC_DEPLOY_FAST_TRACK:-False}
 TEMPEST_BAREMETAL_MIN_MICROVERSION=${TEMPEST_BAREMETAL_MIN_MICROVERSION:-}
 
 # Define baremetal max_microversion in tempest config. No default value means that it is picked from tempest.
-TEMPEST_BAREMETAL_MAX_MICROVERSION=${TEMPEST_BAREMETAL_MAX_MICROVERSION:-}
+TEMPEST_BAREMETAL_MAX_MICROVERSION=${TEMPEST_BAREMETAL_MAX_MICROVERSION:1.78}
 
 # TODO(TheJulia): This PHYSICAL_NETWORK needs to be refactored in
 # our devstack plugin. It is used by the neutron-legacy integration,
