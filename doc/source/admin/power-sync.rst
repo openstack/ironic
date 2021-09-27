@@ -89,3 +89,33 @@ compute service.
     power state change event is received from the baremetal service in which
     case the power state from compute service's database will be forced on the
     node.
+
+.. _power-fault:
+
+Power fault and recovery
+========================
+
+When `Baremetal Power Sync`_ is enabled, and the Bare Metal service loses
+access to a node (usually because of invalid credentials, BMC issues or
+networking interruptions), the node enters ``maintenance`` mode and its
+``fault`` field is set to ``power failure``. The exact reason is stored in the
+``maintenance_reason`` field.
+
+As always with maintenance mode, only a subset of operations will work on such
+nodes, and both the Compute service and the Ironic's native allocation API will
+refuse to pick them. Any in-progress operations will either pause or fail.
+
+The conductor responsible for the node will try to recover the connection
+periodically (with the interval configured by the
+:oslo.config:option:`conductor.power_failure_recovery_interval` option). If the
+power sync is successful, the ``fault`` field is unset and the node leaves the
+maintenance mode.
+
+.. note::
+   This only applies to automatic maintenance mode with the ``fault`` field
+   set. Maintenance mode set manually is never left automatically.
+
+Alternatively, you can disable maintenance mode yourself once the problem is
+resolved::
+
+       baremetal node maintenance unset <IRONIC NODE>

@@ -33,11 +33,8 @@ A few things should be checked in this case:
        baremetal node provide <IRONIC NODE>
 
    The Bare metal service automatically puts a node in maintenance mode if
-   there are issues with accessing its management interface. Check the power
-   credentials (e.g. ``ipmi_address``, ``ipmi_username`` and ``ipmi_password``)
-   and then move the node out of maintenance mode::
-
-       baremetal node maintenance unset <IRONIC NODE>
+   there are issues with accessing its management interface. See
+   :ref:`power-fault` for details.
 
    The ``node validate`` command can be used to verify that all required fields
    are present. The following command should not return anything::
