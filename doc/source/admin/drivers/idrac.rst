@@ -391,7 +391,7 @@ mold:
     }
   }
 
-In Wallaby, the OEM section is the only section that is supported. The OEM
+Currently, the OEM section is the only section that is supported. The OEM
 section uses the iDRAC Server Configuration Profile (SCP) and can be edited as
 necessary if it complies with the SCP. For more information about SCP and its
 capabilities, see SCP_Reference_Guide_.
@@ -919,4 +919,4 @@ selected if default plug-in type has been used and never changed. Systems that
 have plug-in type changed will keep selected plug-in type after iDRAC firmware
 upgrade.
 
-.. _SCP_Reference_Guide: http://ftp.dell.com/manuals/common/dellemc-server-config-profile-refguide.pdf
+.. _SCP_Reference_Guide: http://downloads.dell.com/manuals/common/dellemc-server-config-profile-refguide.pdf
