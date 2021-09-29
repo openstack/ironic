@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    ISO images provided via ``instance_info/boot_iso`` or
+    `instance_info/deploy_iso`` are now cached in a similar way to normal
+    instance images. Set ``[deploy]iso_master_path`` to an empty string
+    to disable.
