@@ -72,4 +72,4 @@ goto boot_iscsi
 {%- endif %}
 
 :boot_whole_disk
-sanboot --no-describe
+sanboot --no-describe || exit 0
