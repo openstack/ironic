@@ -498,7 +498,7 @@ def get_temp_url_for_glance_image(context, image_uuid):
 def create_boot_iso(context, output_filename, kernel_href,
                     ramdisk_href, deploy_iso_href=None, esp_image_href=None,
                     root_uuid=None, kernel_params=None, boot_mode=None,
-                    base_iso=None, inject_files=None):
+                    inject_files=None):
     """Creates a bootable ISO image for a node.
 
     Given the hrefs for kernel, ramdisk, root partition's UUID and
@@ -522,28 +522,15 @@ def create_boot_iso(context, output_filename, kernel_href,
     :param kernel_params: a string containing whitespace separated values
         kernel cmdline arguments of the form K=V or K (optional).
     :boot_mode: the boot mode in which the deploy is to happen.
-    :param base_iso: URL or glance UUID of a to be used as an override of
-        what should be retrieved for to use, instead of building an ISO
-        bootable ramdisk.
     :param inject_files: Mapping of local source file paths to their location
         on the final ISO image.
     :raises: ImageCreationFailed, if creating boot ISO failed.
     """
     with utils.tempdir() as tmpdir:
-        if base_iso:
-            # NOTE(TheJulia): Eventually we want to use the creation method
-            # to perform the massaging of the image, because oddly enough
-            # we need to do all the same basic things, just a little
-            # differently.
-            fetch_into(context, base_iso, output_filename)
-            # Temporary, return to the caller until we support the combined
-            # operation.
-            return
-        else:
-            kernel_path = os.path.join(tmpdir, kernel_href.split('/')[-1])
-            ramdisk_path = os.path.join(tmpdir, ramdisk_href.split('/')[-1])
-            fetch(context, kernel_href, kernel_path)
-            fetch(context, ramdisk_href, ramdisk_path)
+        kernel_path = os.path.join(tmpdir, kernel_href.split('/')[-1])
+        ramdisk_path = os.path.join(tmpdir, ramdisk_href.split('/')[-1])
+        fetch(context, kernel_href, kernel_path)
+        fetch(context, ramdisk_href, ramdisk_path)
 
         params = []
         if root_uuid:
