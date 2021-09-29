@@ -341,14 +341,14 @@ class PXEBaseMixin(object):
 
         if not driver_utils.get_node_mac_addresses(task):
             raise exception.MissingParameterValue(
-                _("Node %s does not have any port associated with it.")
+                _("Node %s does not have any port associated with it")
                 % node.uuid)
 
         if self.ipxe_enabled:
             if not CONF.deploy.http_url or not CONF.deploy.http_root:
                 raise exception.MissingParameterValue(_(
                     "iPXE boot is enabled but no HTTP URL or HTTP "
-                    "root was specified."))
+                    "root was specified"))
 
         # NOTE(zer0c00l): When 'kickstart' boot option is used we need to store
         # kickstart and squashfs files in http_root directory. These files
@@ -358,12 +358,12 @@ class PXEBaseMixin(object):
             if not CONF.deploy.http_url or not CONF.deploy.http_root:
                 raise exception.MissingParameterValue(_(
                     "'kickstart' boot option is set on the node but no HTTP "
-                    "URL or HTTP root was specified."))
+                    "URL or HTTP root was specified"))
 
             if not CONF.anaconda.default_ks_template:
                 raise exception.MissingParameterValue(_(
                     "'kickstart' boot option is set on the node but no "
-                    "default kickstart template is specified."))
+                    "default kickstart template is specified"))
 
         # Check the trusted_boot capabilities value.
         deploy_utils.validate_capabilities(node)
@@ -390,7 +390,7 @@ class PXEBaseMixin(object):
             and node.instance_info.get('boot_iso')):
             raise exception.InvalidParameterValue(_(
                 "An 'image_source' and 'boot_iso' parameter may not be "
-                "specified at the same time."))
+                "specified at the same time"))
 
         pxe_utils.parse_driver_info(node)
 
