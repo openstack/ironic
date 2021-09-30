@@ -283,7 +283,8 @@ class PXEBaseMixin(object):
 
         # NOTE(pas-ha) do not re-set boot device on ACTIVE nodes
         # during takeover
-        if boot_device and task.node.provision_state != states.ACTIVE:
+        if boot_device and (task.node.provision_state not in
+                            (states.ACTIVE, states.ADOPTING)):
             manager_utils.node_set_boot_device(task, boot_device,
                                                persistent=True)
 

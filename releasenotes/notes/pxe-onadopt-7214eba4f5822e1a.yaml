@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes ``enable_netboot_fallback`` to write out pxe config
+    on adopt.

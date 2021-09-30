@@ -967,7 +967,7 @@ def build_service_pxe_config(task, instance_image_info,
     # fail if the agent was booted outside the direct actions of the
     # boot interface.
     if (node.provision_state in [states.ACTIVE, states.UNRESCUING,
-                                 states.DEPLOYING]
+                                 states.DEPLOYING, states.ADOPTING]
             and not os.path.isfile(pxe_config_path)):
         pxe_options = build_pxe_config_options(task, instance_image_info,
                                                service=True,
