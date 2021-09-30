@@ -1042,20 +1042,6 @@ class TestPost(test_api_base.BaseApiTest):
                                headers=self.headers)
         self.assertEqual('123456', result['owner'])
 
-    def test_create_allocation_is_restricted_until_scope_enforcement(self):
-        cfg.CONF.set_override('enforce_new_defaults', False,
-                              group='oslo_policy')
-        cfg.CONF.set_override('auth_strategy', 'keystone')
-        # We're setting ourselves to be a random ID and member
-        # which is allowed to create an allocation.
-        self.headers['X-Project-ID'] = '1135'
-        self.headers['X-Roles'] = 'admin, member, reader'
-        self.headers['X-Is-Admin-Project'] = 'False'
-        adict = apiutils.allocation_post_data()
-        response = self.post_json('/allocations', adict, expect_errors=True,
-                                  headers=self.headers)
-        self.assertEqual(http_client.FORBIDDEN, response.status_int)
-
     def test_backfill(self):
         node = obj_utils.create_test_node(self.context)
         adict = apiutils.allocation_post_data(node=node.uuid)
@@ -1170,6 +1156,29 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
         self.assertEqual('application/json', response.content_type)
         self.assertTrue(response.json['error_message'])
+
+    @mock.patch.object(policy, 'authorize', autospec=True)
+    def test_create_restricted_allocation_deprecated_without_owner(
+            self, mock_authorize):
+        cfg.CONF.set_override('enforce_new_defaults', False,
+                              group='oslo_policy')
+
+        def mock_authorize_function(rule, target, creds):
+            if rule == 'baremetal:allocation:create':
+                raise exception.HTTPForbidden(resource='fake')
+            return True
+        mock_authorize.side_effect = mock_authorize_function
+        owner = '12345'
+        adict = apiutils.allocation_post_data()
+        headers = {api_base.Version.string: '1.60', 'X-Project-Id': owner}
+        response = self.post_json('/allocations', adict, headers=headers)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        self.assertEqual(owner, response.json['owner'])
+        result = self.get_json('/allocations/%s' % adict['uuid'],
+                               headers=headers)
+        self.assertEqual(adict['uuid'], result['uuid'])
+        self.assertEqual(owner, result['owner'])
 
     @mock.patch.object(policy, 'authorize', autospec=True)
     def test_create_restricted_allocation_with_owner(self, mock_authorize):
