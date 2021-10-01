@@ -731,9 +731,11 @@ IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE=${IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE:-$IRONIC
 # UEFI related functions
 function get_uefi_ipxe_boot_file {
     if is_ubuntu; then
+        # NOTE(TheJulia): This *should* be snponly.efi, however
+        # ubuntu only started shipping it in hirtuse.
         echo /usr/lib/ipxe/ipxe.efi
     elif is_fedora; then
-        echo /usr/share/ipxe/ipxe-x86_64.efi
+        echo /usr/share/ipxe/ipxe-snponly-x86_64.efi
     fi
 }
 
@@ -1257,6 +1259,11 @@ function configure_ironic_dirs {
         fi
 
         cp $uefi_boot_file $IRONIC_TFTPBOOT_DIR
+        if [[ "$IRONIC_IPXE_ENABLED" == "True" ]]; then
+            # This is due to debt needed with external dhcp service
+            # configuration for inspector discovery cases
+            cp $uefi_boot_file $IRONIC_TFTPBOOT_DIR/snponly.efi
+        fi
 
         if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
             local uefi_loader
