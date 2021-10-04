@@ -543,9 +543,21 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
             info.pop('import_task_monitor_url', None)
             node.driver_internal_info = info
 
+            succeeded = False
             if (import_task.task_state == sushy.TASK_STATE_COMPLETED
                 and import_task.task_status in
                     [sushy.HEALTH_OK, sushy.HEALTH_WARNING]):
+
+                # Task could complete with errors (partial success)
+                # iDRAC 5.00.00.00 has stopped reporting Critical messages
+                # so checking also by message_id
+                succeeded = not any(m.message for m in import_task.messages
+                                    if (m.severity
+                                        and m.severity != sushy.SEVERITY_OK)
+                                    or (m.message_id and 'SYS055'
+                                        in m.message_id))
+
+            if succeeded:
                 LOG.info('Configuration import %(task_monitor_url)s '
                          'successful for node %(node)s',
                          {'node': node.uuid,
@@ -575,7 +587,11 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                 # Select all messages, skipping OEM messages that don't have
                 # `message` field populated.
                 messages = [m.message for m in import_task.messages
-                            if m.message is not None]
+                            if m.message is not None
+                            and ((m.severity
+                                  and m.severity != sushy.SEVERITY_OK)
+                                 or (m.message_id
+                                     and 'SYS055' in m.message_id))]
                 error_msg = (_("Failed import configuration task: "
                                "%(task_monitor_url)s. Message: '%(message)s'.")
                              % {'task_monitor_url': task_monitor_url,
