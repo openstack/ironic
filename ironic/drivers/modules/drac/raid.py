@@ -1482,15 +1482,19 @@ class DracWSManRAID(base.RAIDInterface):
         for (node_uuid, driver, conductor_group,
              driver_internal_info) in node_list:
             try:
+
+                job_ids = driver_internal_info.get('raid_config_job_ids')
+                # NOTE(TheJulia): Evaluate if there is work to be done
+                # based upon the original DB query's results so we don't
+                # proceed creating tasks for every node in the deployment.
+                if not job_ids:
+                    continue
+
                 lock_purpose = 'checking async raid configuration jobs'
                 with task_manager.acquire(context, node_uuid,
                                           purpose=lock_purpose,
                                           shared=True) as task:
                     if not isinstance(task.driver.raid, DracWSManRAID):
-                        continue
-
-                    job_ids = driver_internal_info.get('raid_config_job_ids')
-                    if not job_ids:
                         continue
 
                     self._check_node_raid_jobs(task)

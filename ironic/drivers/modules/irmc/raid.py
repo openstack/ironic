@@ -434,6 +434,13 @@ class IRMCRAID(base.RAIDInterface):
         node_list = manager.iter_nodes(fields=fields, filters=filters)
         for (node_uuid, driver, conductor_group, raid_config) in node_list:
             try:
+                # NOTE(TheJulia): Evaluate based upon presence of raid
+                # configuration before triggering a task, as opposed to after
+                # so we don't create excess node task objects with related
+                # DB queries.
+                if not raid_config or raid_config.get('fgi_status'):
+                    continue
+
                 lock_purpose = 'checking async RAID configuration tasks'
                 with task_manager.acquire(context, node_uuid,
                                           purpose=lock_purpose,
@@ -443,8 +450,6 @@ class IRMCRAID(base.RAIDInterface):
                     if not isinstance(task.driver.raid, IRMCRAID):
                         continue
                     if task.node.target_raid_config is None:
-                        continue
-                    if not raid_config or raid_config.get('fgi_status'):
                         continue
                     task.upgrade_lock()
                     if node.provision_state != states.CLEANWAIT:
