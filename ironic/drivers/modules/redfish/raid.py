@@ -129,7 +129,7 @@ def get_physical_disks(node):
     system = redfish_utils.get_system(node)
 
     disks = []
-    disk_to_controller = {}
+    disk_to_storage = {}
     try:
         collection = system.storage
         for storage in collection.get_members():
@@ -139,14 +139,14 @@ def get_physical_disks(node):
                 continue
             disks.extend(storage.drives)
             for drive in storage.drives:
-                disk_to_controller[drive] = controller
+                disk_to_storage[drive] = storage
     except sushy.exceptions.SushyError as exc:
         error_msg = _('Cannot get the list of physical disks for node '
                       '%(node_uuid)s. Reason: %(error)s.' %
                       {'node_uuid': node.uuid, 'error': exc})
         LOG.error(error_msg)
         raise exception.RedfishError(error=exc)
-    return disks, disk_to_controller
+    return disks, disk_to_storage
 
 
 def _raise_raid_level_not_supported(raid_level):
@@ -251,7 +251,7 @@ def _calculate_spans(raid_level, disks_count):
 
 
 def _calculate_volume_props(logical_disk, physical_disks, free_space_bytes,
-                            disk_to_controller):
+                            disk_to_storage):
     """Calculate specific properties of the volume and update logical_disk dict
 
     Calculates various properties like span_depth and span_length for the
@@ -263,7 +263,7 @@ def _calculate_volume_props(logical_disk, physical_disks, free_space_bytes,
            specified by the operator.
     :param physical_disks: list of drives available on the node.
     :param free_space_bytes: dict mapping drives to their available space.
-    :param disk_to_controller: dict mapping drives to their controller.
+    :param disk_to_storage: dict mapping drives to their storage.
     :raises: RedfishError if physical drives cannot fulfill the logical disk.
     """
     # TODO(billdodd): match e.g. {'size': '> 100'} -> oslo_utils.specs_matcher
@@ -328,10 +328,9 @@ def _calculate_volume_props(logical_disk, physical_disks, free_space_bytes,
             free_space_bytes[disk] -= disk_usage
 
     if 'controller' not in logical_disk:
-        controller = disk_to_controller[selected_disks[0]]
-        if controller and controller.identifiers:
-            durable_name = controller.identifiers[0].durable_name
-            logical_disk['controller'] = durable_name
+        storage = disk_to_storage[selected_disks[0]]
+        if storage:
+            logical_disk['controller'] = storage.identity
 
 
 def _raid_level_min_disks(raid_level, spans_count=1):
@@ -388,7 +387,7 @@ def _usable_disks_count(raid_level, disks_count):
 
 
 def _assign_disks_to_volume(logical_disks, physical_disks_by_type,
-                            free_space_bytes, disk_to_controller):
+                            free_space_bytes, disk_to_storage):
     logical_disk = logical_disks.pop(0)
     raid_level = logical_disk['raid_level']
 
@@ -446,7 +445,7 @@ def _assign_disks_to_volume(logical_disks, physical_disks_by_type,
             try:
                 _calculate_volume_props(candidate_volume, selected_disks,
                                         candidate_free_space_bytes,
-                                        disk_to_controller)
+                                        disk_to_storage)
             except exception.RedfishError as exc:
                 LOG.debug('Caught RedfishError in _calculate_volume_props(). '
                           'Reason: %s', exc)
@@ -458,7 +457,7 @@ def _assign_disks_to_volume(logical_disks, physical_disks_by_type,
                         _assign_disks_to_volume(logical_disks,
                                                 physical_disks_by_type,
                                                 candidate_free_space_bytes,
-                                                disk_to_controller))
+                                                disk_to_storage))
                 except exception.RedfishError as exc:
                     LOG.debug('Caught RedfishError in '
                               '_assign_disks_to_volume(). Reason: %s', exc)
@@ -475,7 +474,7 @@ def _assign_disks_to_volume(logical_disks, physical_disks_by_type,
         return False, free_space_bytes
 
 
-def _find_configuration(logical_disks, physical_disks, disk_to_controller):
+def _find_configuration(logical_disks, physical_disks, disk_to_storage):
     """Find RAID configuration.
 
     This method transforms the RAID configuration defined in Ironic to a format
@@ -538,7 +537,7 @@ def _find_configuration(logical_disks, physical_disks, disk_to_controller):
                    if ('physical_disks' in volume
                        and volume['size_bytes'] != 'MAX')]:
         _calculate_volume_props(volume, physical_disks, free_space_bytes,
-                                disk_to_controller)
+                                disk_to_storage)
         processed_volumes.append(volume)
 
     # step 2 - process volumes without predefined disks
@@ -549,7 +548,7 @@ def _find_configuration(logical_disks, physical_disks, disk_to_controller):
         result, free_space_bytes = (
             _assign_disks_to_volume(volumes_without_disks,
                                     physical_disks_by_type, free_space_bytes,
-                                    disk_to_controller))
+                                    disk_to_storage))
         if not result:
             # try again using the reserved physical disks in addition
             for disk_type, disks in physical_disks_by_type.items():
@@ -560,7 +559,7 @@ def _find_configuration(logical_disks, physical_disks, disk_to_controller):
                 _assign_disks_to_volume(volumes_without_disks,
                                         physical_disks_by_type,
                                         free_space_bytes,
-                                        disk_to_controller))
+                                        disk_to_storage))
             if not result:
                 error_msg = _('failed to find matching physical disks for all '
                               'logical disks')
@@ -576,7 +575,7 @@ def _find_configuration(logical_disks, physical_disks, disk_to_controller):
                    if ('physical_disks' in volume
                        and volume['size_bytes'] == 'MAX')]:
         _calculate_volume_props(volume, physical_disks, free_space_bytes,
-                                disk_to_controller)
+                                disk_to_storage)
         processed_volumes.append(volume)
 
     return processed_volumes
@@ -806,11 +805,11 @@ class RedfishRAID(base.RAIDInterface):
 
         logical_disks = node.target_raid_config['logical_disks']
         convert_drive_units(logical_disks, node)
-        physical_disks, disk_to_controller = get_physical_disks(node)
+        physical_disks, disk_to_storage = get_physical_disks(node)
         # TODO(billdodd): filter out physical disks that are already in use?
         #                 filter out disks with HotSpareType != "None"?
         logical_disks = _find_configuration(logical_disks, physical_disks,
-                                            disk_to_controller)
+                                            disk_to_storage)
 
         logical_disks_to_create = _filter_logical_disks(
             logical_disks, create_root_volume, create_nonroot_volumes)
@@ -877,14 +876,14 @@ class RedfishRAID(base.RAIDInterface):
             for storage in system.storage.get_members():
                 controller = (storage.storage_controllers[0]
                               if storage.storage_controllers else None)
-                controller_name = None
-                if controller and controller.identifiers:
-                    controller_name = controller.identifiers[0].durable_name
+                controller_id = None
+                if controller:
+                    controller_id = storage.identity
                 for volume in storage.volumes.get_members():
                     if (volume.raid_type or volume.volume_type not in
                             [None, sushy.VOLUME_TYPE_RAW_DEVICE]):
                         vols_to_delete.append((storage.volumes, volume,
-                                               controller_name))
+                                               controller_id))
         except sushy.exceptions.SushyError as exc:
             error_msg = _('Cannot get the list of volumes to delete for node '
                           '%(node_uuid)s. Reason: %(error)s.' %
@@ -896,7 +895,7 @@ class RedfishRAID(base.RAIDInterface):
 
         reboot_required = False
         raid_configs = list()
-        for vol_coll, volume, controller_name in vols_to_delete:
+        for vol_coll, volume, controller_id in vols_to_delete:
             raid_config = dict()
             apply_time = None
             apply_time_support = vol_coll.operation_apply_time_support
@@ -912,7 +911,7 @@ class RedfishRAID(base.RAIDInterface):
             if (response is not None
                     and hasattr(response, 'task_monitor_uri')):
                 raid_config['operation'] = 'delete'
-                raid_config['raid_controller'] = controller_name
+                raid_config['raid_controller'] = controller_id
                 raid_config['task_monitor_uri'] = response.task_monitor_uri
                 reboot_required = True
                 raid_configs.append(raid_config)
