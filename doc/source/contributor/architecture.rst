@@ -42,7 +42,7 @@ Drivers may run their own periodic tasks, i.e. actions run repeatedly after
 a certain amount of time. Such a task is created by using the periodic_
 decorator on an interface method. For example
 
-::
+.. code-block:: python
 
     from futurist import periodics
 
@@ -54,6 +54,11 @@ decorator on an interface method. For example
 
 Here the ``spacing`` argument is a period in seconds for a given periodic task.
 For example 'spacing=5' means every 5 seconds.
+
+Starting with the Yoga cycle, there is also a new decorator
+:py:func:`ironic.conductor.periodics.node_periodic` to create periodic tasks
+that handle nodes. See :ref:`deploy steps documentation <deploy-steps-polling>`
+for an example.
 
 Driver-Specific Steps
 ---------------------

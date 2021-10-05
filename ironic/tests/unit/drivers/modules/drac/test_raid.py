@@ -25,6 +25,7 @@ import tenacity
 
 from ironic.common import exception
 from ironic.common import states
+from ironic.conductor import periodics
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
@@ -2592,7 +2593,7 @@ class DracRedfishRAIDTestCase(test_utils.BaseDracTest):
 
         self.raid._check_raid_tasks_status.assert_not_called()
 
-    @mock.patch.object(drac_raid.LOG, 'info', autospec=True)
+    @mock.patch.object(periodics.LOG, 'info', autospec=True)
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test__query_raid_tasks_status_node_notfound(
             self, mock_acquire, mock_log):
@@ -2610,7 +2611,7 @@ class DracRedfishRAIDTestCase(test_utils.BaseDracTest):
         self.raid._check_raid_tasks_status.assert_not_called()
         self.assertTrue(mock_log.called)
 
-    @mock.patch.object(drac_raid.LOG, 'info', autospec=True)
+    @mock.patch.object(periodics.LOG, 'info', autospec=True)
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test__query_raid_tasks_status_node_locked(
             self, mock_acquire, mock_log):

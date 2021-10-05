@@ -49,6 +49,8 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
                 {
                     'key': 'value'
                 }]}
+        self.node.raid_config = self.raid_config
+        self.node.target_raid_config = self.target_raid_config
 
     @mock.patch.object(irmc_common, 'get_irmc_report', autospec=True)
     def test__query_raid_config_fgi_status_without_node(
@@ -286,6 +288,7 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
         mock_manager = mock.Mock()
         raid_config = self.raid_config
         raid_config_2 = self.raid_config.copy()
+        self.node_2.raid_config = raid_config_2
         fgi_status_dict = {}
         fgi_mock.side_effect = [{}, {'0': 'Idle', '1': 'Idle'}]
         node_list = [(self.node_2.uuid, 'fake-hardware', '', raid_config_2),

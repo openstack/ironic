@@ -18,7 +18,6 @@ DRAC RAID specific methods
 from collections import defaultdict
 import math
 
-from futurist import periodics
 from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
@@ -28,7 +27,7 @@ import tenacity
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import raid as raid_common
-from ironic.conductor import task_manager
+from ironic.conductor import periodics
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
@@ -1487,38 +1486,22 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
         return False
 
     @METRICS.timer('DracRedfishRAID._query_raid_tasks_status')
-    @periodics.periodic(
-        spacing=CONF.drac.query_raid_config_job_status_interval)
-    def _query_raid_tasks_status(self, manager, context):
+    @periodics.node_periodic(
+        purpose='checking async RAID tasks',
+        spacing=CONF.drac.query_raid_config_job_status_interval,
+        filters={'reserved': False, 'maintenance': False},
+        predicate_extra_fields=['driver_internal_info'],
+        predicate=lambda n: (
+            n.driver_internal_info.get('raid_task_monitor_uris')
+        ),
+    )
+    def _query_raid_tasks_status(self, task, manager, context):
         """Periodic task to check the progress of running RAID tasks"""
+        if not isinstance(task.driver.raid, DracRedfishRAID):
+            return
 
-        filters = {'reserved': False, 'maintenance': False}
-        fields = ['driver_internal_info']
-        node_list = manager.iter_nodes(fields=fields, filters=filters)
-        for (node_uuid, driver, conductor_group,
-             driver_internal_info) in node_list:
-            task_monitor_uris = driver_internal_info.get(
-                'raid_task_monitor_uris')
-            if not task_monitor_uris:
-                continue
-            try:
-                lock_purpose = 'checking async RAID tasks'
-                with task_manager.acquire(context, node_uuid,
-                                          purpose=lock_purpose,
-                                          shared=True) as task:
-                    if not isinstance(task.driver.raid,
-                                      DracRedfishRAID):
-                        continue
-                    self._check_raid_tasks_status(
-                        task, task_monitor_uris)
-            except exception.NodeNotFound:
-                LOG.info('During _query_raid_tasks_status, node '
-                         '%(node)s was not found and presumed deleted by '
-                         'another process.', {'node': node_uuid})
-            except exception.NodeLocked:
-                LOG.info('During _query_raid_tasks_status, node '
-                         '%(node)s was already locked by another process. '
-                         'Skip.', {'node': node_uuid})
+        self._check_raid_tasks_status(
+            task, task.node.driver_internal_info.get('raid_task_monitor_uris'))
 
     def _check_raid_tasks_status(self, task, task_mon_uris):
         """Checks RAID tasks for completion
@@ -1763,43 +1746,21 @@ class DracWSManRAID(base.RAIDInterface):
         return {'logical_disks': logical_disks}
 
     @METRICS.timer('DracRAID._query_raid_config_job_status')
-    @periodics.periodic(
-        spacing=CONF.drac.query_raid_config_job_status_interval)
-    def _query_raid_config_job_status(self, manager, context):
+    @periodics.node_periodic(
+        purpose='checking async raid configuration jobs',
+        spacing=CONF.drac.query_raid_config_job_status_interval,
+        filters={'reserved': False, 'maintenance': False},
+        predicate_extra_fields=['driver_internal_info'],
+        predicate=lambda n: (
+            n.driver_internal_info.get('raid_config_job_ids')
+        ),
+    )
+    def _query_raid_config_job_status(self, task, manager, context):
         """Periodic task to check the progress of running RAID config jobs."""
+        if not isinstance(task.driver.raid, DracWSManRAID):
+            return
 
-        filters = {'reserved': False, 'maintenance': False}
-        fields = ['driver_internal_info']
-
-        node_list = manager.iter_nodes(fields=fields, filters=filters)
-        for (node_uuid, driver, conductor_group,
-             driver_internal_info) in node_list:
-            try:
-
-                job_ids = driver_internal_info.get('raid_config_job_ids')
-                # NOTE(TheJulia): Evaluate if there is work to be done
-                # based upon the original DB query's results so we don't
-                # proceed creating tasks for every node in the deployment.
-                if not job_ids:
-                    continue
-
-                lock_purpose = 'checking async raid configuration jobs'
-                with task_manager.acquire(context, node_uuid,
-                                          purpose=lock_purpose,
-                                          shared=True) as task:
-                    if not isinstance(task.driver.raid, DracWSManRAID):
-                        continue
-
-                    self._check_node_raid_jobs(task)
-
-            except exception.NodeNotFound:
-                LOG.info("During query_raid_config_job_status, node "
-                         "%(node)s was not found and presumed deleted by "
-                         "another process.", {'node': node_uuid})
-            except exception.NodeLocked:
-                LOG.info("During query_raid_config_job_status, node "
-                         "%(node)s was already locked by another process. "
-                         "Skip.", {'node': node_uuid})
+        self._check_node_raid_jobs(task)
 
     @METRICS.timer('DracRAID._check_node_raid_jobs')
     def _check_node_raid_jobs(self, task):

@@ -45,7 +45,6 @@ import datetime
 import queue
 
 import eventlet
-from futurist import periodics
 from futurist import waiters
 from ironic_lib import metrics_utils
 from oslo_log import log
@@ -66,6 +65,7 @@ from ironic.conductor import base_manager
 from ironic.conductor import cleaning
 from ironic.conductor import deployments
 from ironic.conductor import notification_utils as notify_utils
+from ironic.conductor import periodics
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils
@@ -1497,10 +1497,15 @@ class ConductorManager(base_manager.BaseConductorManager):
                 eventlet.sleep(0)
 
     @METRICS.timer('ConductorManager._power_failure_recovery')
-    @periodics.periodic(spacing=CONF.conductor.power_failure_recovery_interval,
-                        enabled=bool(
-                            CONF.conductor.power_failure_recovery_interval))
-    def _power_failure_recovery(self, context):
+    @periodics.node_periodic(
+        purpose='power failure recovery',
+        spacing=CONF.conductor.power_failure_recovery_interval,
+        # NOTE(kaifeng) To avoid conflicts with periodic task of the
+        # regular power state checking, maintenance is still a required
+        # condition.
+        filters={'maintenance': True, 'fault': faults.POWER_FAILURE},
+    )
+    def _power_failure_recovery(self, task, context):
         """Periodic task to check power states for nodes in maintenance.
 
         Attempt to grab a lock and sync only if the following
@@ -1511,19 +1516,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         3) Node is not reserved.
         4) Node is not in the ENROLL state.
         """
-        def should_sync_power_state_for_recovery(task):
-            """Check if ironic should sync power state for recovery."""
-
-            # NOTE(dtantsur): it's also pointless (and dangerous) to
-            # sync power state when a power action is in progress
-            if (task.node.provision_state == states.ENROLL
-                    or not task.node.maintenance
-                    or task.node.fault != faults.POWER_FAILURE
-                    or task.node.target_power_state
-                    or task.node.reservation):
-                return False
-            return True
-
         def handle_recovery(task, actual_power_state):
             """Handle recovery when power sync is succeeded."""
             task.upgrade_lock()
@@ -1546,48 +1538,33 @@ class ConductorManager(base_manager.BaseConductorManager):
                 notify_utils.emit_power_state_corrected_notification(
                     task, old_power_state)
 
-        # NOTE(kaifeng) To avoid conflicts with periodic task of the
-        # regular power state checking, maintenance is still a required
-        # condition.
-        filters = {'maintenance': True,
-                   'fault': faults.POWER_FAILURE}
-        node_iter = self.iter_nodes(fields=['id'], filters=filters)
-        for (node_uuid, driver, conductor_group, node_id) in node_iter:
-            try:
-                with task_manager.acquire(context, node_uuid,
-                                          purpose='power failure recovery',
-                                          shared=True) as task:
-                    if not should_sync_power_state_for_recovery(task):
-                        continue
-                    try:
-                        # Validate driver info in case of parameter changed
-                        # in maintenance.
-                        task.driver.power.validate(task)
-                        # The driver may raise an exception, or may return
-                        # ERROR. Handle both the same way.
-                        power_state = task.driver.power.get_power_state(task)
-                        if power_state == states.ERROR:
-                            raise exception.PowerStateFailure(
-                                _("Power driver returned ERROR state "
-                                  "while trying to get power state."))
-                    except Exception as e:
-                        LOG.debug("During power_failure_recovery, could "
-                                  "not get power state for node %(node)s, "
-                                  "Error: %(err)s.",
-                                  {'node': task.node.uuid, 'err': e})
-                    else:
-                        handle_recovery(task, power_state)
-            except exception.NodeNotFound:
-                LOG.info("During power_failure_recovery, node %(node)s was "
-                         "not found and presumed deleted by another process.",
-                         {'node': node_uuid})
-            except exception.NodeLocked:
-                LOG.info("During power_failure_recovery, node %(node)s was "
-                         "already locked by another process. Skip.",
-                         {'node': node_uuid})
-            finally:
-                # Yield on every iteration
-                eventlet.sleep(0)
+        # NOTE(dtantsur): it's also pointless (and dangerous) to
+        # sync power state when a power action is in progress
+        if (task.node.provision_state == states.ENROLL
+                or not task.node.maintenance
+                or task.node.fault != faults.POWER_FAILURE
+                or task.node.target_power_state
+                or task.node.reservation):
+            return
+
+        try:
+            # Validate driver info in case of parameter changed
+            # in maintenance.
+            task.driver.power.validate(task)
+            # The driver may raise an exception, or may return
+            # ERROR. Handle both the same way.
+            power_state = task.driver.power.get_power_state(task)
+            if power_state == states.ERROR:
+                raise exception.PowerStateFailure(
+                    _("Power driver returned ERROR state "
+                      "while trying to get power state."))
+        except Exception as e:
+            LOG.debug("During power_failure_recovery, could "
+                      "not get power state for node %(node)s, "
+                      "Error: %(err)s.",
+                      {'node': task.node.uuid, 'err': e})
+        else:
+            handle_recovery(task, power_state)
 
     @METRICS.timer('ConductorManager._check_deploy_timeouts')
     @periodics.periodic(
@@ -1869,9 +1846,17 @@ class ConductorManager(base_manager.BaseConductorManager):
                                )
 
     @METRICS.timer('ConductorManager._sync_local_state')
-    @periodics.periodic(spacing=CONF.conductor.sync_local_state_interval,
-                        enabled=CONF.conductor.sync_local_state_interval > 0)
-    def _sync_local_state(self, context):
+    @periodics.node_periodic(
+        purpose='node take over',
+        spacing=CONF.conductor.sync_local_state_interval,
+        filters={'reserved': False, 'maintenance': False,
+                 'provision_state': states.ACTIVE},
+        predicate_extra_fields=['conductor_affinity'],
+        predicate=lambda n, m: n.conductor_affinity != m.conductor.id,
+        limit=lambda: CONF.conductor.periodic_max_workers,
+        shared_task=False,
+    )
+    def _sync_local_state(self, task, context):
         """Perform any actions necessary to sync local state.
 
         This is called periodically to refresh the conductor's copy of the
@@ -1880,40 +1865,20 @@ class ConductorManager(base_manager.BaseConductorManager):
         The ensuing actions could include preparing a PXE environment,
         updating the DHCP server, and so on.
         """
-        filters = {'reserved': False,
-                   'maintenance': False,
-                   'provision_state': states.ACTIVE}
-        node_iter = self.iter_nodes(fields=['id', 'conductor_affinity'],
-                                    filters=filters)
+        # NOTE(tenbrae): now that we have the lock, check again to
+        # avoid racing with deletes and other state changes
+        node = task.node
+        if (node.maintenance
+                or node.conductor_affinity == self.conductor.id
+                or node.provision_state != states.ACTIVE):
+            return False
 
-        workers_count = 0
-        for (node_uuid, driver, conductor_group, node_id,
-             conductor_affinity) in node_iter:
-            if conductor_affinity == self.conductor.id:
-                continue
-
-            # Node is mapped here, but not updated by this conductor last
-            try:
-                with task_manager.acquire(context, node_uuid,
-                                          purpose='node take over') as task:
-                    # NOTE(tenbrae): now that we have the lock, check again to
-                    # avoid racing with deletes and other state changes
-                    node = task.node
-                    if (node.maintenance
-                            or node.conductor_affinity == self.conductor.id
-                            or node.provision_state != states.ACTIVE):
-                        continue
-
-                    task.spawn_after(self._spawn_worker,
-                                     self._do_takeover, task)
-
-            except exception.NoFreeConductorWorker:
-                break
-            except (exception.NodeLocked, exception.NodeNotFound):
-                continue
-            workers_count += 1
-            if workers_count == CONF.conductor.periodic_max_workers:
-                break
+        try:
+            task.spawn_after(self._spawn_worker, self._do_takeover, task)
+        except exception.NoFreeConductorWorker:
+            raise periodics.Stop()
+        else:
+            return True
 
     @METRICS.timer('ConductorManager.validate_driver_interfaces')
     @messaging.expected_exceptions(exception.NodeLocked)
