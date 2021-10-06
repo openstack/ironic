@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixed the bug of repeated resume cleaning due to the value of
+    `fgi_status` not being updated correctly when obtaining the
+    RAID configuration status of the node managed by the `irmc`
+    hardware type.
