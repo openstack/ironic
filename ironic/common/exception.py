@@ -830,3 +830,7 @@ class NodeHistoryNotFound(NotFound):
 class IncorrectConfiguration(IronicException):
     _msg_fmt = _("Supplied configuration is incorrect and must be fixed. "
                  "Error: %(error)s")
+
+
+class NodeVerifyFailure(IronicException):
+    _msg_fmt = _("Failed to verify node %(node)s: %(reason)s")

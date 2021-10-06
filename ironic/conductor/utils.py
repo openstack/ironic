@@ -631,6 +631,32 @@ def fail_on_error(error_callback, msg, *error_args, **error_kwargs):
     return wrapper
 
 
+def verifying_error_handler(task, logmsg, errmsg=None, traceback=False):
+
+    """Handle errors during verification steps
+
+    :param task: the task
+    :param logmsg: message to be logged
+    :param errmsg: message for the user
+    :param traceback: Boolean; True to log a traceback
+    """
+    errmsg = errmsg or logmsg
+    node = task.node
+    LOG.error(logmsg, exc_info=traceback)
+    node_history_record(node, event=errmsg, event_type=states.VERIFYING,
+                        error=True)
+    node.save()
+
+    node.refresh()
+    if node.provision_state in (
+            states.VERIFYING):
+        # Clear verifying step; we leave the list of verify steps
+        # in node.driver_internal_info for debugging purposes.
+        node.verify_step = {}
+
+    node.save()
+
+
 @task_manager.require_exclusive_lock
 def abort_on_conductor_take_over(task):
     """Set node's state when a task was aborted due to conductor take over.
