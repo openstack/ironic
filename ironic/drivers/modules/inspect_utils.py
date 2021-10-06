@@ -47,6 +47,5 @@ def create_ports_if_not_exist(
             LOG.info("Port created for MAC address %(address)s for node "
                      "%(node)s", {'address': mac, 'node': node.uuid})
         except exception.MACAlreadyExists:
-            LOG.warning("Port already exists for MAC address %(address)s "
-                        "for node %(node)s",
-                        {'address': mac, 'node': node.uuid})
+            LOG.info("Port already exists for MAC address %(address)s "
+                     "for node %(node)s", {'address': mac, 'node': node.uuid})

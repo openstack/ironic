@@ -55,8 +55,7 @@ class InspectFunctionTestCase(db_base.DbTestCase):
             port_obj1.create.assert_called_once_with()
             port_obj2.create.assert_called_once_with()
 
-    @mock.patch.object(utils.LOG, 'warning',
-                       spec_set=True, autospec=True)
+    @mock.patch.object(utils.LOG, 'info', spec_set=True, autospec=True)
     @mock.patch.object(objects.Port, 'create', spec_set=True, autospec=True)
     def test_create_ports_if_not_exist_mac_exception(self,
                                                      create_mock,

@@ -238,9 +238,9 @@ def _can_skip_state_change(task, new_state):
         notify_utils.emit_power_set_notification(
             task, fields.NotificationLevel.INFO,
             fields.NotificationStatus.END, new_state)
-        LOG.warning("Not going to change node %(node)s power state because "
-                    "current state = requested state = '%(state)s'.",
-                    {'node': node.uuid, 'state': curr_state})
+        LOG.debug("Not going to change node %(node)s power state because "
+                  "current state = requested state = '%(state)s'.",
+                  {'node': node.uuid, 'state': curr_state})
 
     try:
         curr_state = task.driver.power.get_power_state(task)
