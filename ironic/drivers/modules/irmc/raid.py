@@ -27,6 +27,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic import conf
 from ironic.drivers import base
+from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.irmc import common as irmc_common
 
 client = importutils.try_import('scciclient.irmc')
@@ -205,6 +206,12 @@ def _commit_raid_config(task):
     raid_common.update_raid_info(node, node.raid_config)
     LOG.info('RAID config is created successfully on node %s',
              node_uuid)
+
+    deploy_utils.set_async_step_flags(
+        task.node,
+        reboot=True,
+        skip_current_step=True,
+        polling=True)
 
     return states.CLEANWAIT
 
