@@ -909,8 +909,8 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
 
     @mock.patch.object(molds, 'get_configuration', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_import_configuration_incorrect_interface(self, mock_get_system,
-                                                      mock_get_configuration):
+    def test_import_configuration_incorrect_schema(self, mock_get_system,
+                                                   mock_get_configuration):
         task = mock.Mock(node=self.node, context=self.context)
         fake_manager_oem1 = mock.Mock()
         fake_manager1 = mock.Mock()
@@ -920,7 +920,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             '{"oem": {"interface": "idrac-wsman", '
             '"data": {"prop1": "value1", "prop2": 2}}}')
 
-        self.assertRaises(exception.DracOperationError,
+        self.assertRaises(exception.InvalidParameterValue,
                           self.management.import_configuration, task, 'edge')
 
     @mock.patch.object(deploy_utils, 'get_async_step_return_state',
@@ -1462,3 +1462,43 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             mock_manager_oem.job_service.delete_jobs.assert_called_once_with(
                 job_ids=['JID_CLEARALL'])
             mock_manager_oem.reset_idrac.assert_called_once_with()
+
+    def test__validate_conf_mold(self):
+        drac_mgmt._validate_conf_mold({'oem': {'interface': 'idrac-redfish',
+                                       'data': {'SystemConfiguration': {}}}})
+
+    def test__validate_conf_mold_oem_missing(self):
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            "'oem' is a required property",
+            drac_mgmt._validate_conf_mold,
+            {'bios': {'reset': False}})
+
+    def test__validate_conf_mold_interface_missing(self):
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            "'interface' is a required property",
+            drac_mgmt._validate_conf_mold,
+            {'oem': {'data': {'SystemConfiguration': {}}}})
+
+    def test__validate_conf_mold_interface_not_supported(self):
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            "'idrac-redfish' was expected",
+            drac_mgmt._validate_conf_mold,
+            {'oem': {'interface': 'idrac-wsman',
+             'data': {'SystemConfiguration': {}}}})
+
+    def test__validate_conf_mold_data_missing(self):
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            "'data' is a required property",
+            drac_mgmt._validate_conf_mold,
+            {'oem': {'interface': 'idrac-redfish'}})
+
+    def test__validate_conf_mold_data_empty(self):
+        self.assertRaisesRegex(
+            exception.InvalidParameterValue,
+            "does not have enough properties",
+            drac_mgmt._validate_conf_mold,
+            {'oem': {'interface': 'idrac-redfish', 'data': {}}})
