@@ -397,6 +397,8 @@ def _zip_matching(a, b, key):
 class Connection(api.Connection):
     """SqlAlchemy connection."""
 
+    # NOTE(dtantsur): don't forget to update the get_nodeinfo_list docstring
+    # in ironic/db/api.py when adding new filters!
     _NODE_QUERY_FIELDS = {'console_enabled', 'maintenance', 'retired',
                           'driver', 'resource_class', 'provision_state',
                           'uuid', 'id', 'fault', 'conductor_group',
