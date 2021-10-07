@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Removing `?filename=file.iso` suffix from the virtual media image URL
+    when the image is a regular file due to incompatibility with SuperMicro
+    X12 machines which do not accept special characters such as `=` or `?`
+    in the URL. Historically, this suffix was being added to improve
+    compatibility with those BMCs which require `.iso` suffix in the URL
+    while using swift as the image store. Old behaviour will remain for swift
+    backed images.
