@@ -59,7 +59,7 @@ def do_node_verify(task):
         LOG.info('Executing %(step)s on node %(node)s',
                  {'step': step, 'node': node.uuid})
         try:
-            result = interface.execute_verify_step(task, step)
+            interface.execute_verify_step(task, step)
         except Exception as e:
             error = ('Node %(node)s failed verify step %(step)s '
                      'with unexpected error: %(err)s' %
@@ -67,19 +67,8 @@ def do_node_verify(task):
                       'err': e})
             utils.verifying_error_handler(
                 task, error,
-                _("Failed to verify. Exception: %s") % e,
+                _("Failed to verify: %s") % e,
                 traceback=True)
-        if result is not None:
-            # NOTE(rloo): This is an internal/dev error; shouldn't
-            # happen.
-            error = (_('While executing verify step %(step)s on '
-                       'node %(node)s, step returned unexpected '
-                       'state: %(val)s')
-                     % {'step': step, 'node': node.uuid,
-                        'val': result})
-            utils.verifying_error_handler(
-                task, error,
-                _("Failed to verify: %s") % node.deploy_step)
 
     if error is None:
         # NOTE(janders) this can eventually move to driver-specific
