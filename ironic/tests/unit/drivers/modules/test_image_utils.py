@@ -118,7 +118,7 @@ class RedfishImageHandlerTestCase(db_base.DbTestCase):
         url = img_handler_obj.publish_image('file.iso', 'boot.iso')
 
         self.assertEqual(
-            'http://localhost/redfish/boot.iso?filename=file.iso', url)
+            'http://localhost/redfish/boot.iso', url)
 
         mock_mkdir.assert_called_once_with('/httpboot/redfish', 0o755)
         mock_link.assert_called_once_with(
@@ -140,7 +140,7 @@ class RedfishImageHandlerTestCase(db_base.DbTestCase):
         url = img_handler_obj.publish_image('file.iso', 'boot.iso')
 
         self.assertEqual(
-            'http://non-local.host/redfish/boot.iso?filename=file.iso', url)
+            'http://non-local.host/redfish/boot.iso', url)
 
         mock_mkdir.assert_called_once_with('/httpboot/redfish', 0o755)
         mock_link.assert_called_once_with(
@@ -162,7 +162,7 @@ class RedfishImageHandlerTestCase(db_base.DbTestCase):
         url = img_handler_obj.publish_image('file.iso', 'boot.iso')
 
         self.assertEqual(
-            'http://localhost/redfish/boot.iso?filename=file.iso', url)
+            'http://localhost/redfish/boot.iso', url)
 
         mock_mkdir.assert_called_once_with('/httpboot/redfish', 0o755)
 
