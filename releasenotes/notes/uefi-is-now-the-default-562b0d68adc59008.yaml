@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    The default deployment boot mode is *now* UEFI. Legacy BIOS is still
+    supported, however operators who require BIOS nodes will need to
+    set their nodes, or deployment, appropriately.
+upgrade:
+  - |
+    The default boot mode has been changed and now UEFI. Operators who
+    were explicitly relying upon BIOS based deployments in the past,
+    may wish to consider setting an explicit node level override for
+    the node to only utilize BIOS mode. This can be configured at a
+    conductor level with the ``[deploy]default_boot_mode``. Options
+    to set this at a node level can be found in the
+    `Ironic Installation guide - Advanced features <https://docs.openstack.org/ironic/latest/install/advanced.html#boot-mode-support>`_
+    documentation.

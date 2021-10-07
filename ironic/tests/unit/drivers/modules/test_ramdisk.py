@@ -106,8 +106,8 @@ class RamdiskDeployTestCase(db_base.DbTestCase):
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, None,
-                'bios', False, ipxe_enabled=False, iscsi_boot=False,
-                ramdisk_boot=True, anaconda_boot=False)
+                CONF.deploy.default_boot_mode, False, ipxe_enabled=False,
+                iscsi_boot=False, ramdisk_boot=True, anaconda_boot=False)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)

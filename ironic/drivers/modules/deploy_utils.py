@@ -608,7 +608,7 @@ def get_boot_option(node):
     :raises: InvalidParameterValue if the capabilities string is not a
          dict or is malformed.
     :returns: A string representing the boot option type. Defaults to
-        'netboot'.
+        configuration setting [deploy]default_boot_mode.
     """
 
     # NOTE(TheJulia): Software raid always implies local deployment

@@ -63,6 +63,16 @@ following way:
 
     openstack baremetal node set <node-uuid> --property capabilities='boot_mode:uefi'
 
+  Conversely, to configure a node in ``bios`` mode, then set the
+  ``capabilities`` as below::
+
+    openstack baremetal node set <node-uuid> --property capabilities='boot_mode:bios'
+
+.. note::
+
+   The Ironic project changed the default boot mode setting for nodes from
+   ``bios`` to ``uefi`` during the Yoga development cycle.
+
   Nodes having ``boot_mode`` set to ``uefi`` may be requested by adding an
   ``extra_spec`` to the Compute service flavor::
 

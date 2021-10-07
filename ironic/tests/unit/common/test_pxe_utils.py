@@ -438,12 +438,14 @@ class TestPXEUtils(db_base.DbTestCase):
         unlink_mock.assert_called_once_with('/tftpboot/10.10.0.1.conf')
         create_link_mock.assert_has_calls(create_link_calls)
 
+    @mock.patch.object(pxe_utils, '_link_ip_address_pxe_configs',
+                       autospec=True)
     @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
     def test_create_pxe_config(self, ensure_tree_mock, render_mock,
-                               write_mock, chmod_mock):
+                               write_mock, chmod_mock, mock_link_ip_addr):
         self.config(tftp_root=tempfile.mkdtemp(), group='pxe')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             pxe_utils.create_pxe_config(task, self.pxe_options,
@@ -451,8 +453,8 @@ class TestPXEUtils(db_base.DbTestCase):
             render_mock.assert_called_with(
                 CONF.pxe.pxe_config_template,
                 {'pxe_options': self.pxe_options,
-                 'ROOT': '{{ ROOT }}',
-                 'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'}
+                 'ROOT': '(( ROOT ))',
+                 'DISK_IDENTIFIER': '(( DISK_IDENTIFIER ))'}
             )
         node_dir = os.path.join(CONF.pxe.tftp_root, self.node.uuid)
         pxe_dir = os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')
@@ -465,14 +467,18 @@ class TestPXEUtils(db_base.DbTestCase):
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
                                       render_mock.return_value)
+        self.assertTrue(mock_link_ip_addr.called)
 
+    @mock.patch.object(pxe_utils, '_link_ip_address_pxe_configs',
+                       autospec=True)
     @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
     def test_create_pxe_config_set_dir_permission(self, ensure_tree_mock,
                                                   render_mock,
-                                                  write_mock, chmod_mock):
+                                                  write_mock, chmod_mock,
+                                                  mock_link_ip_addr):
         self.config(tftp_root=tempfile.mkdtemp(), group='pxe')
         self.config(dir_permission=0o755, group='pxe')
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -481,8 +487,8 @@ class TestPXEUtils(db_base.DbTestCase):
             render_mock.assert_called_with(
                 CONF.pxe.pxe_config_template,
                 {'pxe_options': self.pxe_options,
-                 'ROOT': '{{ ROOT }}',
-                 'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'}
+                 'ROOT': '(( ROOT ))',
+                 'DISK_IDENTIFIER': '(( DISK_IDENTIFIER ))'}
             )
         node_dir = os.path.join(CONF.pxe.tftp_root, self.node.uuid)
         pxe_dir = os.path.join(CONF.pxe.tftp_root, 'pxelinux.cfg')
@@ -496,17 +502,51 @@ class TestPXEUtils(db_base.DbTestCase):
         pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
         write_mock.assert_called_with(pxe_cfg_file_path,
                                       render_mock.return_value)
+        self.assertTrue(mock_link_ip_addr.called)
+
+    @mock.patch.object(pxe_utils, '_link_ip_address_pxe_configs',
+                       autospec=True)
+    @mock.patch.object(os.path, 'isdir', autospec=True)
+    @mock.patch.object(os, 'chmod', autospec=True)
+    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
+    @mock.patch('ironic.common.utils.render_template', autospec=True)
+    @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
+    def test_create_pxe_config_existing_dirs_uefi(
+            self, ensure_tree_mock,
+            render_mock,
+            write_mock, chmod_mock,
+            isdir_mock, mock_link_ip_address):
+        self.config(dir_permission=0o755, group='pxe')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            isdir_mock.return_value = True
+            pxe_utils.create_pxe_config(task, self.pxe_options,
+                                        CONF.pxe.pxe_config_template)
+            render_mock.assert_called_with(
+                CONF.pxe.pxe_config_template,
+                {'pxe_options': self.pxe_options,
+                 'ROOT': '(( ROOT ))',
+                 'DISK_IDENTIFIER': '(( DISK_IDENTIFIER ))'}
+            )
+        ensure_tree_mock.assert_has_calls([])
+        chmod_mock.assert_not_called()
+        isdir_mock.assert_has_calls([])
+        pxe_cfg_file_path = pxe_utils.get_pxe_config_file_path(self.node.uuid)
+        write_mock.assert_called_with(pxe_cfg_file_path,
+                                      render_mock.return_value)
+        self.assertTrue(mock_link_ip_address.called)
 
     @mock.patch.object(os.path, 'isdir', autospec=True)
     @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch('ironic.common.utils.write_to_file', autospec=True)
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     @mock.patch('oslo_utils.fileutils.ensure_tree', autospec=True)
-    def test_create_pxe_config_existing_dirs(self, ensure_tree_mock,
-                                             render_mock,
-                                             write_mock, chmod_mock,
-                                             isdir_mock):
+    def test_create_pxe_config_existing_dirs_bios(
+            self, ensure_tree_mock,
+            render_mock,
+            write_mock, chmod_mock,
+            isdir_mock):
         self.config(dir_permission=0o755, group='pxe')
+        self.config(default_boot_mode='bios', group='deploy')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             isdir_mock.return_value = True
             pxe_utils.create_pxe_config(task, self.pxe_options,
@@ -634,9 +674,12 @@ class TestPXEUtils(db_base.DbTestCase):
         write_mock.assert_called_with(pxe_cfg_file_path,
                                       render_mock.return_value)
 
+    @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.get_ip_addresses',
+                autospec=True)
     @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
     @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
-    def test_clean_up_pxe_config(self, unlink_mock, rmtree_mock):
+    def test_clean_up_pxe_config(self, unlink_mock, rmtree_mock,
+                                 mock_get_ip_addr):
         address = "aa:aa:aa:aa:aa:aa"
         object_utils.create_test_port(self.context, node_id=self.node.id,
                                       address=address)
@@ -654,6 +697,7 @@ class TestPXEUtils(db_base.DbTestCase):
         unlink_mock.assert_has_calls(ensure_calls)
         rmtree_mock.assert_called_once_with(
             os.path.join(CONF.pxe.tftp_root, self.node.uuid))
+        self.assertTrue(mock_get_ip_addr.called)
 
     @mock.patch.object(os.path, 'isfile', lambda path: False)
     @mock.patch('ironic.common.utils.file_has_content', autospec=True)
@@ -737,7 +781,19 @@ class TestPXEUtils(db_base.DbTestCase):
             self.config(tftp_server='192.0.2.1', group='pxe')
         elif ip_version == 6:
             self.config(tftp_server='ff80::1', group='pxe')
-        self.config(pxe_bootfile_name='fake-bootfile', group='pxe')
+        if CONF.deploy.default_boot_mode == 'uefi':
+            if ipxe:
+                self.config(uefi_ipxe_bootfile_name='fake-bootfile-ipxe',
+                            group='pxe')
+            else:
+                self.config(uefi_pxe_bootfile_name='fake-bootfile',
+                            group='pxe')
+        else:
+            if ipxe:
+                self.config(ipxe_bootfile_name='fake-bootfile-ipxe',
+                            group='pxe')
+            else:
+                self.config(pxe_bootfile_name='fake-bootfile', group='pxe')
         self.config(tftp_root='/tftp-path/', group='pxe')
         if ipxe:
             bootfile = 'fake-bootfile-ipxe'
@@ -774,10 +830,20 @@ class TestPXEUtils(db_base.DbTestCase):
                              pxe_utils.dhcp_options_for_instance(task))
 
     def test_dhcp_options_for_instance(self):
+        self.config(default_boot_mode='uefi', group='deploy')
+        self._dhcp_options_for_instance(ip_version=4)
+
+    def test_dhcp_options_for_instance_bios(self):
+        self.config(default_boot_mode='bios', group='deploy')
         self._dhcp_options_for_instance(ip_version=4)
 
     def test_dhcp_options_for_instance_ipv6(self):
         self.config(tftp_server='ff80::1', group='pxe')
+        self._dhcp_options_for_instance(ip_version=6)
+
+    def test_dhcp_options_for_instance_ipv6_bios(self):
+        self.config(tftp_server='ff80::1', group='pxe')
+        self.config(default_boot_mode='bios', group='deploy')
         self._dhcp_options_for_instance(ip_version=6)
 
     def _test_get_kernel_ramdisk_info(self, expected_dir, mode='deploy',
@@ -1705,6 +1771,7 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
     def test_dhcp_options_for_instance_ipxe_bios(self):
         self.config(ip_version=4, group='pxe')
         boot_file = 'fake-bootfile-bios-ipxe'
+        self.config(default_boot_mode='bios', group='deploy')
         self.config(ipxe_bootfile_name=boot_file, group='pxe')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self._dhcp_options_for_instance_ipxe(task, boot_file)
@@ -1721,6 +1788,15 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
         self.config(ip_version=6, group='pxe')
         boot_file = 'fake-bootfile-ipxe'
         self.config(ipxe_bootfile_name=boot_file, group='pxe')
+        self.config(default_boot_mode='bios', group='deploy')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self._dhcp_options_for_instance_ipxe(task, boot_file, ip_version=6)
+
+    def test_dhcp_options_for_ipxe_ipv6_uefi(self):
+        self.config(ip_version=6, group='pxe')
+        boot_file = 'fake-bootfile-ipxe'
+        self.config(uefi_ipxe_bootfile_name=boot_file, group='pxe')
+        self.config(default_boot_mode='uefi', group='deploy')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self._dhcp_options_for_instance_ipxe(task, boot_file, ip_version=6)
 

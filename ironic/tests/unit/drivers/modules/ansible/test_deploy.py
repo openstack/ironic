@@ -242,6 +242,7 @@ class TestAnsibleMethods(AnsibleDeployTestCaseBase):
             '--private-key=/path/to/key')
 
     def test__parse_partitioning_info_root_msdos(self):
+        self.config(default_boot_mode='bios', group='deploy')
         expected_info = {
             'partition_info': {
                 'label': 'msdos',
