@@ -193,6 +193,8 @@ class ImageHandler(object):
                                     object_headers=object_headers)
 
             image_url = swift_api.get_temp_url(container, object_name, timeout)
+            image_url = self._append_filename_param(
+                image_url, os.path.basename(image_file))
 
         else:
             public_dir = os.path.join(CONF.deploy.http_root,
@@ -220,9 +222,6 @@ class ImageHandler(object):
 
             http_url = CONF.deploy.external_http_url or CONF.deploy.http_url
             image_url = os.path.join(http_url, self._image_subdir, object_name)
-
-        image_url = self._append_filename_param(
-            image_url, os.path.basename(image_file))
 
         return image_url
 
