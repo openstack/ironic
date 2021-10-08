@@ -30,6 +30,16 @@ opts = [
                min=0,
                help=_('Time (in seconds) to sleep between when rebooting '
                       '(powering off and on again)')),
+    cfg.IntOpt('power_action_delay',
+               default=0,
+               min=0,
+               help=_('Time (in seconds) to sleep before power on and '
+                      'after powering off. Which may be needed with some '
+                      'PDUs as they may not honor toggling a specific power '
+                      'port in rapid succession without a delay. This option '
+                      'may be useful if the attached physical machine has a '
+                      'substantial power supply to hold it over in the event '
+                      'of a brownout.')),
     cfg.FloatOpt('udp_transport_timeout',
                  default=1.0,
                  min=0.0,

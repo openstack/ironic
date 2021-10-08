@@ -725,23 +725,29 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
                           driver.power_state)
         mock_client.get.assert_called_once_with(driver._snmp_oid())
 
-    def test_power_on(self, mock_get_client):
+    @mock.patch.object(time, 'sleep', autospec=True)
+    def test_power_on(self, mock_sleep, mock_get_client):
         # Ensure the device is powered on correctly
+        self.config(power_action_delay=1, group='snmp')
         mock_client = mock_get_client.return_value
         driver = snmp._get_driver(self.node)
         mock_client.get.return_value = driver.value_power_on
         pstate = driver.power_on()
+        mock_sleep.assert_called_once_with(1)
         mock_client.set.assert_called_once_with(driver._snmp_oid(),
                                                 driver.value_power_on)
         mock_client.get.assert_called_once_with(driver._snmp_oid())
         self.assertEqual(states.POWER_ON, pstate)
 
-    def test_power_off(self, mock_get_client):
+    @mock.patch.object(time, 'sleep', autospec=True)
+    def test_power_off(self, mock_sleep, mock_get_client):
         # Ensure the device is powered off correctly
+        self.config(power_action_delay=1, group='snmp')
         mock_client = mock_get_client.return_value
         driver = snmp._get_driver(self.node)
         mock_client.get.return_value = driver.value_power_off
         pstate = driver.power_off()
+        mock_sleep.assert_called_once_with(1)
         mock_client.set.assert_called_once_with(driver._snmp_oid(),
                                                 driver.value_power_off)
         mock_client.get.assert_called_once_with(driver._snmp_oid())
