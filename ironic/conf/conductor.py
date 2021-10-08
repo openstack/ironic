@@ -347,7 +347,7 @@ opts = [
                         'e.g. management.clear_job_queue:123. The option can '
                         'be specified multiple times to define priorities '
                         'for multiple steps. If set to 0, this specific step '
-                        'will not run during cleaning. ')),
+                        'will not run during verification. ')),
 ]
 
 
