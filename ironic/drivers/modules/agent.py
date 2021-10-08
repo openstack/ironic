@@ -106,8 +106,8 @@ def check_image_size(task):
     image_disk_format = node.instance_info.get('image_disk_format')
     # skip check if 'memory_mb' is not defined
     if 'memory_mb' not in properties:
-        LOG.warning('Skip the image size check as memory_mb is not '
-                    'defined in properties on node %s.', node.uuid)
+        LOG.debug('Skip the image size check as memory_mb is not '
+                  'defined in properties on node %s.', node.uuid)
         return
 
     image_show = images.image_show(task.context, image_source)

@@ -454,7 +454,7 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertEqual(states.POWER_ON, node['power_state'])
         self.assertIsNone(node['target_power_state'])
         self.assertIsNone(node['last_error'])
-        log_mock.warning.assert_called_once_with(
+        log_mock.debug.assert_called_once_with(
             u"Not going to change node %(node)s power state because "
             u"current state = requested state = '%(state)s'.",
             {'state': states.POWER_ON, 'node': node.uuid})
@@ -753,7 +753,7 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertEqual(states.POWER_ON, node['power_state'])
         self.assertEqual(states.NOSTATE, node['target_power_state'])
         self.assertIsNone(node['last_error'])
-        mock_log.warning.assert_called_once_with(
+        mock_log.debug.assert_called_once_with(
             u"Not going to change node %(node)s power state because "
             u"current state = requested state = '%(state)s'.",
             {'state': states.POWER_ON, 'node': node.uuid})
