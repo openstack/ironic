@@ -53,16 +53,34 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param filters: Filters to apply. Defaults to None.
 
                         :associated: True | False
+                        :chassis_uuid: uuid of chassis
+                        :conductor_group: conductor group name
+                        :console_enabled: True | False
+                        :description_contains: substring in description
+                        :driver: driver's name
+                        :fault: current fault type
+                        :id: numeric ID
+                        :inspection_started_before:
+                            nodes with inspection_started_at field before this
+                            interval in seconds
+                        :instance_uuid: uuid of instance
+                        :lessee: node's lessee (e.g. project ID)
+                        :maintenance: True | False
+                        :owner: node's owner (e.g. project ID)
+                        :project: either owner or lessee
                         :reserved: True | False
                         :reserved_by_any_of: [conductor1, conductor2]
-                        :maintenance: True | False
+                        :resource_class: resource class name
                         :retired: True | False
-                        :chassis_uuid: uuid of chassis
-                        :driver: driver's name
                         :provision_state: provision state of node
+                        :provision_state_in:
+                            provision state of node (multiple possibilities)
                         :provisioned_before:
                             nodes with provision_updated_at field before this
                             interval in seconds
+                        :uuid: uuid of node
+                        :uuid_in: uuid of node (multiple possibilities)
+                        :with_power_state: True | False
         :param limit: Maximum number of nodes to return.
         :param marker: the last item of the previous page; we return the next
                        result set.
