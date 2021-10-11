@@ -167,10 +167,6 @@ class DracWSManBIOS(base.BIOSInterface):
         :param context: context of the request, needed when acquiring
                         a lock on a node. For access control.
         """
-        # skip a node not being managed by idrac driver
-        if not isinstance(task.driver.bios, DracWSManBIOS):
-            return
-
         # check bios_config_job_id exist & checks job is completed
         if task.node.driver_internal_info.get("bios_config_job_ids"):
             self._check_node_bios_jobs(task)

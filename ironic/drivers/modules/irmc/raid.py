@@ -443,8 +443,6 @@ class IRMCRAID(base.RAIDInterface):
         """Periodic tasks to check the progress of running RAID config."""
         node = task.node
         node_uuid = task.node.uuid
-        if not isinstance(task.driver.raid, IRMCRAID):
-            return
         if task.node.target_raid_config is None:
             return
         task.upgrade_lock()

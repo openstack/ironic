@@ -36,7 +36,6 @@ from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
-from ironic.drivers.modules import fake
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import pxe_base
@@ -1047,6 +1046,7 @@ class PXEValidateRescueTestCase(db_base.DbTestCase):
 class PXEBootRetryTestCase(db_base.DbTestCase):
 
     boot_interface = 'pxe'
+    boot_interface_class = pxe.PXEBoot
 
     def setUp(self):
         super(PXEBootRetryTestCase, self).setUp()
@@ -1058,31 +1058,28 @@ class PXEBootRetryTestCase(db_base.DbTestCase):
             boot_interface=self.boot_interface,
             provision_state=states.DEPLOYWAIT)
 
-    @mock.patch.object(pxe.PXEBoot, '_check_boot_status', autospec=True)
-    def test_check_boot_timeouts(self, mock_check_status, mock_power,
-                                 mock_boot_dev):
+    def test_check_boot_timeouts(self, mock_power, mock_boot_dev):
         def _side_effect(iface, task):
             self.assertEqual(self.node.uuid, task.node.uuid)
 
-        mock_check_status.side_effect = _side_effect
+        fake_node = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            boot_interface='fake',
+            provision_state=states.DEPLOYWAIT)
+
         manager = mock.Mock(spec=['iter_nodes'])
         manager.iter_nodes.return_value = [
-            (uuidutils.generate_uuid(), 'fake-hardware', ''),
-            (self.node.uuid, self.node.driver, self.node.conductor_group)
+            (fake_node.uuid, 'fake-hardware', ''),
+            (self.node.uuid, self.node.driver, self.node.conductor_group),
         ]
-        iface = pxe.PXEBoot()
-        iface._check_boot_timeouts(manager, self.context)
-        mock_check_status.assert_called_once_with(iface, mock.ANY)
-
-    def test_check_boot_status_another_boot_interface(self, mock_power,
-                                                      mock_boot_dev):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.driver.boot = fake.FakeBoot()
-            pxe.PXEBoot()._check_boot_status(task)
-            self.assertTrue(task.shared)
-        self.assertFalse(mock_power.called)
-        self.assertFalse(mock_boot_dev.called)
+        with mock.patch.object(self.boot_interface_class, '_check_boot_status',
+                               autospec=True) as mock_check_status:
+            mock_check_status.side_effect = _side_effect
+            iface = self.boot_interface_class()
+            iface._check_boot_timeouts(manager, self.context)
+            mock_check_status.assert_called_once_with(iface, mock.ANY)
 
     def test_check_boot_status_recent_power_change(self, mock_power,
                                                    mock_boot_dev):
@@ -1133,3 +1130,4 @@ class PXEBootRetryTestCase(db_base.DbTestCase):
 class iPXEBootRetryTestCase(PXEBootRetryTestCase):
 
     boot_interface = 'ipxe'
+    boot_interface_class = ipxe.iPXEBoot
