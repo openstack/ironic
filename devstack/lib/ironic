@@ -582,34 +582,37 @@ PHYSICAL_NETWORK=${NEUTRON_PHYSICAL_NETWORK:-${PHYSICAL_NETWORK:-}}
 # Ramdisk ISO image for Ramdisk Virtual Media/iPXE testing
 IRONIC_RAMDISK_IMAGE=${IRONIC_RAMDISK_IMAGE:-http://tinycorelinux.net/10.x/x86/archive/10.0/Core-10.0.iso}
 
-# get_pxe_boot_file() - Get the PXE/iPXE boot file path
+IRONIC_LOADER_PATHS=${IRONIC_LOADER_PATHS:-}
+
+# update_loader_copy_paths() - Appends to the loader paths for automatic
+#                              file copy in by Ironic upon startup.
+function update_loader_copy_paths {
+    if [[ -n $IRONIC_LOADER_PATHS ]]; then
+        IRONIC_LOADER_PATHS="$IRONIC_LOADER_PATHS,$1"
+    else
+        IRONIC_LOADER_PATHS=$1
+    fi
+}
+
+# get_pxe_boot_file() - Get the PXE boot file path
 function get_pxe_boot_file {
     local pxe_boot_file
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
-        # TODO(TheJulia): This is not UEFI safe.
-        if is_ubuntu; then
-            pxe_boot_file=/usr/lib/ipxe/undionly.kpxe
-        elif is_fedora || is_suse; then
-            pxe_boot_file=/usr/share/ipxe/undionly.kpxe
-        fi
-    else
-        # Standard PXE
-        if is_ubuntu; then
-            # Ubuntu Xenial (16.04) places the file under /usr/lib/PXELINUX
-            pxe_paths="/usr/lib/syslinux/pxelinux.0 /usr/lib/PXELINUX/pxelinux.0"
-            for p in $pxe_paths; do
-                if [[ -f $p ]]; then
-                    pxe_boot_file=$p
-                fi
-            done
-        elif is_fedora || is_suse; then
-            pxe_boot_file=/usr/share/syslinux/pxelinux.0
-        fi
+    # Standard PXE
+    if is_ubuntu; then
+        # Ubuntu Xenial (16.04) places the file under /usr/lib/PXELINUX
+        pxe_paths="/usr/lib/syslinux/pxelinux.0 /usr/lib/PXELINUX/pxelinux.0"
+        for p in $pxe_paths; do
+            if [[ -f $p ]]; then
+                pxe_boot_file=$p
+            fi
+        done
+    elif is_fedora || is_suse; then
+        pxe_boot_file=/usr/share/syslinux/pxelinux.0
     fi
     echo $pxe_boot_file
 }
 
-# PXE boot image
+# PXE boot image - Deprecated
 IRONIC_PXE_BOOT_IMAGE=${IRONIC_PXE_BOOT_IMAGE:-$(get_pxe_boot_file)}
 
 IRONIC_AUTOMATED_CLEAN_ENABLED=$(trueorfalse True IRONIC_AUTOMATED_CLEAN_ENABLED)
@@ -729,6 +732,7 @@ IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE=${IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE:-$IRONIC
 # ---------
 
 # UEFI related functions
+# get_uefi_ipxe_boot_file - Deprecated
 function get_uefi_ipxe_boot_file {
     if is_ubuntu; then
         # NOTE(TheJulia): This *should* be snponly.efi, however
@@ -898,8 +902,8 @@ function setup_syslinux_modules {
 
     # Ubuntu Xenial keeps doesn't ship pxelinux.0 as part of syslinux anymore
     if is_ubuntu && [[ -d /usr/lib/PXELINUX/ ]]; then
-        # TODO(lucasagomes): Figure out whether its UEFI or BIOS once
-        # we have UEFI support in DevStack
+        # NOTE(TheJulia): Few distributions package and ship syslinux.efi,
+        # so this is basically only for bios booting.
         cp -aR /usr/lib/syslinux/modules/bios/*.c32 $IRONIC_TFTPBOOT_DIR
     else
         cp -aR $(dirname $IRONIC_PXE_BOOT_IMAGE)/*.c32 $IRONIC_TFTPBOOT_DIR
@@ -1238,7 +1242,8 @@ function configure_ironic_dirs {
         sudo install -d -o $STACK_USER -g $STACK_USER $IRONIC_HTTP_DIR
     fi
 
-    if [ ! -f "$IRONIC_PXE_BOOT_IMAGE" ]; then
+    # Deprecated - Remove at some point.
+    if [ ! -f "$IRONIC_PXE_BOOT_IMAGE" ] && [[ ! -z $IRONIC_LOADER_PATHS ]]; then
         die $LINENO "PXE boot file $IRONIC_PXE_BOOT_IMAGE not found."
     fi
 
@@ -1250,21 +1255,46 @@ function configure_ironic_dirs {
         setup_syslinux_modules
     fi
 
+    if [[ -z $IRONIC_LOADER_PATHS ]]; then
+        # This takes a slightly different model then the legacy
+        # path of devstack. If file exists, add it to the list.
+        # NOTE(TheJulia): All of these paths are for booting x86
+        # machines only, others arches can be used, just few distros
+        # pre-package such loader files.
+        if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
+            if is_ubuntu; then
+                # NOTE(TheJulia): This is done separately here as this allows
+                # the script to have hirtuse/bionic compatability.
+                if [[ -f /usr/lib/ipxe/snponly.efi ]]; then
+                    update_loader_copy_paths snponly.efi:/usr/lib/ipxe/snponly.efi
+                elif [[ -f /usr/lib/ipxe/ipxe.efi ]]; then
+                    update_loader_copy_paths snponly.efi:/usr/lib/ipxe/ipxe.efi
+                fi
+            fi
+            if is_fedora; then
+                if [ -f /usr/share/ipxe/ipxe-snponly-x86_64.efi ]; then
+                    # NOTE(TheJulia): I think this file got renamed at some
+                    # point during it's centos8 run, but this is current.
+                    update_loader_copy_paths snponly.efi:/usr/share/ipxe/ipxe_snponly-x86_64.efi
+                fi
+            fi
+            if [ -f $IRONIC_GRUB2_SHIM_FILE ]; then
+                update_loader_copy_paths "bootx64.efi:$IRONIC_GRUB2_SHIM_FILE"
+            fi
+            if [ -f $IRONIC_GRUB2_SHIM_FILE ]; then
+                update_loader_copy_paths "grubx64.efi:$IRONIC_GRUB2_NETWORK_FILE"
+            fi
+        else
+            if [[ -f /usr/lib/ipxe/undionly.kpxe ]]; then
+                update_loader_copy_paths undionly.kpxe:/usr/lib/ipxe/undionly.kpxe
+            elif [[ -f /usr/share/ipxe/undionly.kpxe ]]; then
+                update_loader_copy_paths undionly.kpxe:/usr/share/ipxe/undionly.kpxe
+            fi
+        fi
+    fi  # end of IRONIC_LOADER_PATHS check
+
+
     if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
-        local uefi_boot_file
-
-        uefi_boot_file=$(get_uefi_ipxe_boot_file)
-        if [ ! -f $uefi_boot_file ]; then
-            die $LINENO "UEFI boot file $uefi_boot_file not found."
-        fi
-
-        cp $uefi_boot_file $IRONIC_TFTPBOOT_DIR
-        if [[ "$IRONIC_IPXE_ENABLED" == "True" ]]; then
-            # This is due to debt needed with external dhcp service
-            # configuration for inspector discovery cases
-            cp $uefi_boot_file $IRONIC_TFTPBOOT_DIR/snponly.efi
-        fi
-
         if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
             local uefi_loader
             local uefi_nvram
@@ -1708,6 +1738,10 @@ function configure_ironic_conductor {
         iniset $IRONIC_CONF_FILE ansible image_store_insecure "True"
     fi
 
+    if [[ -n $IRONIC_LOADER_PATHS ]]; then
+        iniset $IRONIC_CONF_FILE pxe loader_file_paths $IRONIC_LOADER_PATHS
+    fi
+
     iniset $IRONIC_CONF_FILE DEFAULT rootwrap_config $IRONIC_ROOTWRAP_CONF
     iniset $IRONIC_CONF_FILE service_catalog endpoint_override "$IRONIC_SERVICE_PROTOCOL://$([[ $IRONIC_HTTP_SERVER =~ : ]] && echo "[$IRONIC_HTTP_SERVER]" || echo $IRONIC_HTTP_SERVER)/baremetal"
     if [[ -n "$IRONIC_CALLBACK_TIMEOUT" ]]; then
@@ -1791,15 +1825,8 @@ function configure_ironic_conductor {
         iniset $IRONIC_CONF_FILE deploy http_url "http://$([[ $IRONIC_HTTP_SERVER =~ : ]] && echo "[$IRONIC_HTTP_SERVER]" || echo $IRONIC_HTTP_SERVER):$IRONIC_HTTP_PORT"
     fi
 
-    if [[ "$IRONIC_IPXE_ENABLED" == "True" ]] ; then
-        local pxebin
-        pxebin=`basename $IRONIC_PXE_BOOT_IMAGE`
-        uefipxebin=`basename $(get_uefi_ipxe_boot_file)`
-        iniset $IRONIC_CONF_FILE pxe ipxe_bootfile_name $pxebin
-        iniset $IRONIC_CONF_FILE pxe uefi_ipxe_bootfile_name $uefipxebin
-        if [[ "$IRONIC_IPXE_USE_SWIFT" == "True" ]]; then
-            iniset $IRONIC_CONF_FILE pxe ipxe_use_swift True
-        fi
+    if [[ "$IRONIC_IPXE_USE_SWIFT" == "True" ]]; then
+        iniset $IRONIC_CONF_FILE pxe ipxe_use_swift True
     fi
 
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
@@ -2708,9 +2735,6 @@ function configure_tftpd {
         echo "re ^$IRONIC_TFTPBOOT_DIR/ $IRONIC_TFTPBOOT_DIR/"  >>$IRONIC_TFTPBOOT_DIR/map-file
         echo "re ^(^/) $IRONIC_TFTPBOOT_DIR/\1"  >>$IRONIC_TFTPBOOT_DIR/map-file
         echo "re ^([^/]) $IRONIC_TFTPBOOT_DIR/\1" >>$IRONIC_TFTPBOOT_DIR/map-file
-
-        sudo cp $IRONIC_GRUB2_SHIM_FILE $IRONIC_TFTPBOOT_DIR/bootx64.efi
-        sudo cp $IRONIC_GRUB2_NETWORK_FILE $IRONIC_TFTPBOOT_DIR/grubx64.efi
 
         # Write a grub.cfg redirect for the ubuntu grub. The fedora grub
         # will fetch the generated grub.cfg-01-<mac> directly
