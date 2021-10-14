@@ -23,7 +23,6 @@ DRAC management interface
 import json
 import time
 
-from futurist import periodics
 from ironic_lib import metrics_utils
 import jsonschema
 from jsonschema import exceptions as json_schema_exc
@@ -34,6 +33,7 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import molds
+from ironic.conductor import periodics
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
@@ -485,46 +485,23 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         # Export executed as part of Import async periodic task status check
 
     @METRICS.timer('DracRedfishManagement._query_import_configuration_status')
-    @periodics.periodic(
+    @periodics.node_periodic(
+        purpose='checking async import configuration task',
         spacing=CONF.drac.query_import_config_job_status_interval,
-        enabled=CONF.drac.query_import_config_job_status_interval > 0)
-    def _query_import_configuration_status(self, manager, context):
+        filters={'reserved': False, 'maintenance': False},
+        predicate_extra_fields=['driver_internal_info'],
+        predicate=lambda n: (
+            n.driver_internal_info.get('import_task_monitor_url')
+        ),
+    )
+    def _query_import_configuration_status(self, task, manager, context):
         """Period job to check import configuration task."""
+        if not isinstance(task.driver.management, DracRedfishManagement):
+            return
 
-        filters = {'reserved': False, 'maintenance': False}
-        fields = ['driver_internal_info']
-        node_list = manager.iter_nodes(fields=fields, filters=filters)
-        for (node_uuid, driver, conductor_group,
-             driver_internal_info) in node_list:
-            try:
-
-                task_monitor_url = driver_internal_info.get(
-                    'import_task_monitor_url')
-                # NOTE(TheJulia): Evaluate if a task montitor URL exists
-                # based upon our inital DB query before pulling a task for
-                # every node in the deployment which reduces the overall
-                # number of DB queries triggering in the background where
-                # no work is required.
-                if not task_monitor_url:
-                    continue
-
-                lock_purpose = 'checking async import configuration task'
-                with task_manager.acquire(context, node_uuid,
-                                          purpose=lock_purpose,
-                                          shared=True) as task:
-                    if not isinstance(task.driver.management,
-                                      DracRedfishManagement):
-                        continue
-                    self._check_import_configuration_task(
-                        task, task_monitor_url)
-            except exception.NodeNotFound:
-                LOG.info('During _query_import_configuration_status, node '
-                         '%(node)s was not found and presumed deleted by '
-                         'another process.', {'node': node_uuid})
-            except exception.NodeLocked:
-                LOG.info('During _query_import_configuration_status, node '
-                         '%(node)s was already locked by another process. '
-                         'Skip.', {'node': node_uuid})
+        self._check_import_configuration_task(
+            task, task.node.driver_internal_info.get(
+                'import_task_monitor_url'))
 
     def _check_import_configuration_task(self, task, task_monitor_url):
         """Checks progress of running import configuration task"""

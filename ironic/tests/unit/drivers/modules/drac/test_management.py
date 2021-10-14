@@ -28,6 +28,7 @@ from oslo_utils import importutils
 import ironic.common.boot_devices
 from ironic.common import exception
 from ironic.common import molds
+from ironic.conductor import periodics
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
@@ -1021,7 +1022,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
 
         self.management._check_import_configuration_task.assert_not_called()
 
-    @mock.patch.object(drac_mgmt.LOG, 'info', autospec=True)
+    @mock.patch.object(periodics.LOG, 'info', autospec=True)
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test__query_import_configuration_status_node_notfound(
             self, mock_acquire, mock_log):
@@ -1044,7 +1045,7 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
         self.management._check_import_configuration_task.assert_not_called()
         self.assertTrue(mock_log.called)
 
-    @mock.patch.object(drac_mgmt.LOG, 'info', autospec=True)
+    @mock.patch.object(periodics.LOG, 'info', autospec=True)
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test__query_import_configuration_status_node_locked(
             self, mock_acquire, mock_log):

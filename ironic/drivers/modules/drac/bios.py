@@ -15,7 +15,6 @@
 DRAC BIOS configuration specific methods
 """
 
-from futurist import periodics
 from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
@@ -23,7 +22,7 @@ from oslo_utils import timeutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.conductor import task_manager
+from ironic.conductor import periodics
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
@@ -151,9 +150,16 @@ class DracWSManBIOS(base.BIOSInterface):
     # spacing since BIOS jobs could be comparatively shorter in time than
     # RAID ones currently using the raid spacing to avoid errors
     # spacing parameter for periodic method
-    @periodics.periodic(
-        spacing=CONF.drac.query_raid_config_job_status_interval)
-    def _query_bios_config_job_status(self, manager, context):
+    @periodics.node_periodic(
+        purpose='checking async bios configuration jobs',
+        spacing=CONF.drac.query_raid_config_job_status_interval,
+        filters={'reserved': False, 'maintenance': False},
+        predicate_extra_fields=['driver_internal_info'],
+        predicate=lambda n: (
+            n.driver_internal_info.get('bios_config_job_ids')
+            or n.driver_internal_info.get('factory_reset_time_before_reboot')),
+    )
+    def _query_bios_config_job_status(self, task, manager, context):
         """Periodic task to check the progress of running BIOS config jobs.
 
         :param manager: an instance of Ironic Conductor Manager with
@@ -161,47 +167,17 @@ class DracWSManBIOS(base.BIOSInterface):
         :param context: context of the request, needed when acquiring
                         a lock on a node. For access control.
         """
+        # skip a node not being managed by idrac driver
+        if not isinstance(task.driver.bios, DracWSManBIOS):
+            return
 
-        filters = {'reserved': False, 'maintenance': False}
-        fields = ['driver_internal_info']
+        # check bios_config_job_id exist & checks job is completed
+        if task.node.driver_internal_info.get("bios_config_job_ids"):
+            self._check_node_bios_jobs(task)
 
-        node_list = manager.iter_nodes(fields=fields, filters=filters)
-        for (node_uuid, driver, conductor_group,
-             driver_internal_info) in node_list:
-            try:
-                # NOTE(TheJulia) Evaluate if work is actually required before
-                # creating a task for every node in the deployment which does
-                # not have a lock and is not in maintenance mode.
-                if (not driver_internal_info.get("bios_config_job_ids")
-                    and not driver_internal_info.get(
-                        "factory_reset_time_before_reboot")):
-                    continue
-
-                lock_purpose = 'checking async bios configuration jobs'
-                # Performing read-only/non-destructive work with shared lock
-                with task_manager.acquire(context, node_uuid,
-                                          purpose=lock_purpose,
-                                          shared=True) as task:
-                    # skip a node not being managed by idrac driver
-                    if not isinstance(task.driver.bios, DracWSManBIOS):
-                        continue
-
-                    # check bios_config_job_id exist & checks job is completed
-                    if driver_internal_info.get("bios_config_job_ids"):
-                        self._check_node_bios_jobs(task)
-
-                    if driver_internal_info.get(
-                            "factory_reset_time_before_reboot"):
-                        self._check_last_system_inventory_changed(task)
-
-            except exception.NodeNotFound:
-                LOG.info("During query_bios_config_job_status, node "
-                         "%(node)s was not found and presumed deleted by "
-                         "another process.", {'node': node_uuid})
-            except exception.NodeLocked:
-                LOG.info("During query_bios_config_job_status, node "
-                         "%(node)s was already locked by another process. "
-                         "Skip.", {'node': node_uuid})
+        if task.node.driver_internal_info.get(
+                "factory_reset_time_before_reboot"):
+            self._check_last_system_inventory_changed(task)
 
     def _check_last_system_inventory_changed(self, task):
         """Check the progress of last system inventory time of a node.

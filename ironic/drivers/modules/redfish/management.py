@@ -15,7 +15,6 @@
 
 import collections
 
-from futurist import periodics
 from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import importutils
@@ -29,6 +28,7 @@ from ironic.common.i18n import _
 from ironic.common import indicator_states
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import periodics
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
@@ -853,100 +853,46 @@ class RedfishManagement(base.ManagementInterface):
         node.save()
 
     @METRICS.timer('RedfishManagement._query_firmware_update_failed')
-    @periodics.periodic(
+    @periodics.node_periodic(
+        purpose='checking if async firmware update failed',
         spacing=CONF.redfish.firmware_update_fail_interval,
-        enabled=CONF.redfish.firmware_update_fail_interval > 0)
-    def _query_firmware_update_failed(self, manager, context):
+        filters={'reserved': False, 'provision_state': states.CLEANFAIL,
+                 'maintenance': True},
+        predicate_extra_fields=['driver_internal_info'],
+        predicate=lambda n: n.driver_internal_info.get('firmware_updates'),
+    )
+    def _query_firmware_update_failed(self, task, manager, context):
         """Periodic job to check for failed firmware updates."""
+        if not isinstance(task.driver.management, RedfishManagement):
+            return
 
-        filters = {'reserved': False, 'provision_state': states.CLEANFAIL,
-                   'maintenance': True}
+        node = task.node
 
-        fields = ['driver_internal_info']
+        # A firmware update failed. Discard any remaining firmware
+        # updates so when the user takes the node out of
+        # maintenance mode, pending firmware updates do not
+        # automatically continue.
+        LOG.warning('Firmware update failed for node %(node)s. '
+                    'Discarding remaining firmware updates.',
+                    {'node': node.uuid})
 
-        node_list = manager.iter_nodes(fields=fields, filters=filters)
-        for (node_uuid, driver, conductor_group,
-             driver_internal_info) in node_list:
-            try:
-                firmware_updates = driver_internal_info.get(
-                    'firmware_updates')
-                # NOTE(TheJulia): If we don't have a entry upfront, we can
-                # safely skip past the node as we know work here is not
-                # required, otherwise minimizing the number of potential
-                # nodes to visit.
-                if not firmware_updates:
-                    continue
-
-                lock_purpose = 'checking async firmware update failed.'
-                with task_manager.acquire(context, node_uuid,
-                                          purpose=lock_purpose,
-                                          shared=True) as task:
-                    if not isinstance(task.driver.management,
-                                      RedfishManagement):
-                        continue
-
-                    node = task.node
-
-                    # A firmware update failed. Discard any remaining firmware
-                    # updates so when the user takes the node out of
-                    # maintenance mode, pending firmware updates do not
-                    # automatically continue.
-                    LOG.warning('Firmware update failed for node %(node)s. '
-                                'Discarding remaining firmware updates.',
-                                {'node': node.uuid})
-
-                    task.upgrade_lock()
-                    self._clear_firmware_updates(node)
-
-            except exception.NodeNotFound:
-                LOG.info('During _query_firmware_update_failed, node '
-                         '%(node)s was not found and presumed deleted by '
-                         'another process.', {'node': node_uuid})
-            except exception.NodeLocked:
-                LOG.info('During _query_firmware_update_failed, node '
-                         '%(node)s was already locked by another process. '
-                         'Skip.', {'node': node_uuid})
+        task.upgrade_lock()
+        self._clear_firmware_updates(node)
 
     @METRICS.timer('RedfishManagement._query_firmware_update_status')
-    @periodics.periodic(
+    @periodics.node_periodic(
+        purpose='checking async firmware update tasks',
         spacing=CONF.redfish.firmware_update_status_interval,
-        enabled=CONF.redfish.firmware_update_status_interval > 0)
-    def _query_firmware_update_status(self, manager, context):
+        filters={'reserved': False, 'provision_state': states.CLEANWAIT},
+        predicate_extra_fields=['driver_internal_info'],
+        predicate=lambda n: n.driver_internal_info.get('firmware_updates'),
+    )
+    def _query_firmware_update_status(self, task, manager, context):
         """Periodic job to check firmware update tasks."""
+        if not isinstance(task.driver.management, RedfishManagement):
+            return
 
-        filters = {'reserved': False, 'provision_state': states.CLEANWAIT}
-        fields = ['driver_internal_info']
-
-        node_list = manager.iter_nodes(fields=fields, filters=filters)
-        for (node_uuid, driver, conductor_group,
-             driver_internal_info) in node_list:
-            try:
-                firmware_updates = driver_internal_info.get(
-                    'firmware_updates')
-                # NOTE(TheJulia): Check and skip upfront before creating a
-                # task so we don't generate additional tasks and db queries
-                # for every node in CLEANWAIT which is not locked.
-                if not firmware_updates:
-                    continue
-
-                lock_purpose = 'checking async firmware update tasks.'
-                with task_manager.acquire(context, node_uuid,
-                                          purpose=lock_purpose,
-                                          shared=True) as task:
-                    if not isinstance(task.driver.management,
-                                      RedfishManagement):
-                        continue
-
-                    self._check_node_firmware_update(task)
-
-            except exception.NodeNotFound:
-                LOG.info('During _query_firmware_update_status, node '
-                         '%(node)s was not found and presumed deleted by '
-                         'another process.', {'node': node_uuid})
-            except exception.NodeLocked:
-                LOG.info('During _query_firmware_update_status, node '
-                         '%(node)s was already locked by another process. '
-                         'Skip.', {'node': node_uuid})
+        self._check_node_firmware_update(task)
 
     @METRICS.timer('RedfishManagement._check_node_firmware_update')
     def _check_node_firmware_update(self, task):

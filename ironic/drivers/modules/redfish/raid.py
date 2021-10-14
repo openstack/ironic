@@ -15,7 +15,6 @@
 
 import math
 
-from futurist import periodics
 from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import importutils
@@ -25,7 +24,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import raid
 from ironic.common import states
-from ironic.conductor import task_manager
+from ironic.conductor import periodics
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
@@ -1014,98 +1013,46 @@ class RedfishRAID(base.RAIDInterface):
         node.save()
 
     @METRICS.timer('RedfishRAID._query_raid_config_failed')
-    @periodics.periodic(
+    @periodics.node_periodic(
+        purpose='checking async RAID config failed',
         spacing=CONF.redfish.raid_config_fail_interval,
-        enabled=CONF.redfish.raid_config_fail_interval > 0)
-    def _query_raid_config_failed(self, manager, context):
+        filters={'reserved': False, 'provision_state': states.CLEANFAIL,
+                 'maintenance': True},
+        predicate_extra_fields=['driver_internal_info'],
+        predicate=lambda n: n.driver_internal_info.get('raid_configs'),
+    )
+    def _query_raid_config_failed(self, task, manager, context):
         """Periodic job to check for failed RAID configuration."""
+        if not isinstance(task.driver.raid, RedfishRAID):
+            return
 
-        filters = {'reserved': False, 'provision_state': states.CLEANFAIL,
-                   'maintenance': True}
+        node = task.node
 
-        fields = ['driver_internal_info']
+        # A RAID config failed. Discard any remaining RAID
+        # configs so when the user takes the node out of
+        # maintenance mode, pending RAID configs do not
+        # automatically continue.
+        LOG.warning('RAID configuration failed for node %(node)s. '
+                    'Discarding remaining RAID configurations.',
+                    {'node': node.uuid})
 
-        node_list = manager.iter_nodes(fields=fields, filters=filters)
-        for (node_uuid, driver, conductor_group,
-             driver_internal_info) in node_list:
-            try:
-                raid_configs = driver_internal_info.get(
-                    'raid_configs')
-                # NOTE(TheJulia): Evaluate the presence of raid configuration
-                # activity before pulling the task, so we don't needlessly
-                # create database queries with tasks which would be skipped
-                # anyhow.
-                if not raid_configs:
-                    continue
-
-                lock_purpose = 'checking async RAID config failed.'
-                with task_manager.acquire(context, node_uuid,
-                                          purpose=lock_purpose,
-                                          shared=True) as task:
-                    if not isinstance(task.driver.raid, RedfishRAID):
-                        continue
-
-                    node = task.node
-
-                    # A RAID config failed. Discard any remaining RAID
-                    # configs so when the user takes the node out of
-                    # maintenance mode, pending RAID configs do not
-                    # automatically continue.
-                    LOG.warning('RAID configuration failed for node %(node)s. '
-                                'Discarding remaining RAID configurations.',
-                                {'node': node.uuid})
-
-                    task.upgrade_lock()
-                    self._clear_raid_configs(node)
-
-            except exception.NodeNotFound:
-                LOG.info('During _query_raid_config_failed, node '
-                         '%(node)s was not found and presumed deleted by '
-                         'another process.', {'node': node_uuid})
-            except exception.NodeLocked:
-                LOG.info('During _query_raid_config_failed, node '
-                         '%(node)s was already locked by another process. '
-                         'Skip.', {'node': node_uuid})
+        task.upgrade_lock()
+        self._clear_raid_configs(node)
 
     @METRICS.timer('RedfishRAID._query_raid_config_status')
-    @periodics.periodic(
+    @periodics.node_periodic(
+        purpose='checking async RAID config tasks',
         spacing=CONF.redfish.raid_config_status_interval,
-        enabled=CONF.redfish.raid_config_status_interval > 0)
-    def _query_raid_config_status(self, manager, context):
+        filters={'reserved': False, 'provision_state': states.CLEANWAIT},
+        predicate_extra_fields=['driver_internal_info'],
+        predicate=lambda n: n.driver_internal_info.get('raid_configs'),
+    )
+    def _query_raid_config_status(self, task, manager, context):
         """Periodic job to check RAID config tasks."""
+        if not isinstance(task.driver.raid, RedfishRAID):
+            return
 
-        filters = {'reserved': False, 'provision_state': states.CLEANWAIT}
-        fields = ['driver_internal_info']
-
-        node_list = manager.iter_nodes(fields=fields, filters=filters)
-        for (node_uuid, driver, conductor_group,
-             driver_internal_info) in node_list:
-            try:
-                raid_configs = driver_internal_info.get(
-                    'raid_configs')
-                # NOTE(TheJulia): Skip to next record if we do not
-                # have raid configuraiton tasks, so we don't pull tasks
-                # for every unrelated node in CLEANWAIT.
-                if not raid_configs:
-                    continue
-
-                lock_purpose = 'checking async RAID config tasks.'
-                with task_manager.acquire(context, node_uuid,
-                                          purpose=lock_purpose,
-                                          shared=True) as task:
-                    if not isinstance(task.driver.raid, RedfishRAID):
-                        continue
-
-                    self._check_node_raid_config(task)
-
-            except exception.NodeNotFound:
-                LOG.info('During _query_raid_config_status, node '
-                         '%(node)s was not found and presumed deleted by '
-                         'another process.', {'node': node_uuid})
-            except exception.NodeLocked:
-                LOG.info('During _query_raid_config_status, node '
-                         '%(node)s was already locked by another process. '
-                         'Skip.', {'node': node_uuid})
+        self._check_node_raid_config(task)
 
     def _get_error_messages(self, response):
         try:

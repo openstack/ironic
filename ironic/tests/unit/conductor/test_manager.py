@@ -5567,7 +5567,7 @@ class ManagerPowerRecoveryTestCase(mgr_utils.CommonMixIn,
         self.task.driver = self.driver
         self.filters = {'maintenance': True,
                         'fault': 'power failure'}
-        self.columns = ['uuid', 'driver', 'conductor_group', 'id']
+        self.columns = ['uuid', 'driver', 'conductor_group']
 
     def test_node_not_mapped(self, get_nodeinfo_mock,
                              mapped_mock, acquire_mock):
@@ -6152,7 +6152,7 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         self.filters = {'reserved': False,
                         'maintenance': False,
                         'provision_state': states.ACTIVE}
-        self.columns = ['uuid', 'driver', 'conductor_group', 'id',
+        self.columns = ['uuid', 'driver', 'conductor_group',
                         'conductor_affinity']
 
     def _assert_get_nodeinfo_args(self, get_nodeinfo_mock):
@@ -6200,7 +6200,7 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
             self.service, self.node.uuid, self.node.driver,
             self.node.conductor_group)
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
-                                             purpose=mock.ANY)
+                                             purpose=mock.ANY, shared=False)
         # assert spawn_after has been called
         self.task.spawn_after.assert_called_once_with(
             self.service._spawn_worker,
@@ -6234,7 +6234,7 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
         # assert  acquire() gets called 2 times only instead of 3. When
         # NoFreeConductorWorker is raised the loop should be broken
         expected = [mock.call(self.context, self.node.uuid,
-                              purpose=mock.ANY)] * 2
+                              purpose=mock.ANY, shared=False)] * 2
         self.assertEqual(expected, acquire_mock.call_args_list)
 
         # assert spawn_after has been called twice
@@ -6264,7 +6264,7 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
 
         # assert acquire() gets called 3 times
         expected = [mock.call(self.context, self.node.uuid,
-                              purpose=mock.ANY)] * 3
+                              purpose=mock.ANY, shared=False)] * 3
         self.assertEqual(expected, acquire_mock.call_args_list)
 
         # assert spawn_after has been called only 2 times
@@ -6296,7 +6296,7 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
 
         # assert acquire() gets called only once because of the worker limit
         acquire_mock.assert_called_once_with(self.context, self.node.uuid,
-                                             purpose=mock.ANY)
+                                             purpose=mock.ANY, shared=False)
 
         # assert spawn_after has been called
         self.task.spawn_after.assert_called_once_with(

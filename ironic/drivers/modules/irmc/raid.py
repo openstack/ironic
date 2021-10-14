@@ -15,7 +15,6 @@
 """
 Irmc RAID specific methods
 """
-from futurist import periodics
 from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
@@ -23,7 +22,7 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common import raid as raid_common
 from ironic.common import states
-from ironic.conductor import task_manager
+from ironic.conductor import periodics
 from ironic.conductor import utils as manager_utils
 from ironic import conf
 from ironic.drivers import base
@@ -430,80 +429,63 @@ class IRMCRAID(base.RAIDInterface):
                  {'node_id': node_uuid, 'cfg': node.raid_config})
 
     @METRICS.timer('IRMCRAID._query_raid_config_fgi_status')
-    @periodics.periodic(
-        spacing=CONF.irmc.query_raid_config_fgi_status_interval)
-    def _query_raid_config_fgi_status(self, manager, context):
+    @periodics.node_periodic(
+        purpose='checking async RAID configuration tasks',
+        spacing=CONF.irmc.query_raid_config_fgi_status_interval,
+        filters={'reserved': False, 'provision_state': states.CLEANWAIT,
+                 'maintenance': False},
+        predicate_extra_fields=['raid_config'],
+        predicate=lambda n: (
+            n.raid_config and not n.raid_config.get('fgi_status')
+        ),
+    )
+    def _query_raid_config_fgi_status(self, task, manager, context):
         """Periodic tasks to check the progress of running RAID config."""
+        node = task.node
+        node_uuid = task.node.uuid
+        if not isinstance(task.driver.raid, IRMCRAID):
+            return
+        if task.node.target_raid_config is None:
+            return
+        task.upgrade_lock()
+        if node.provision_state != states.CLEANWAIT:
+            return
+        # Avoid hitting clean_callback_timeout expiration
+        node.touch_provisioning()
 
-        filters = {'reserved': False, 'provision_state': states.CLEANWAIT,
-                   'maintenance': False}
-        fields = ['raid_config']
-        node_list = manager.iter_nodes(fields=fields, filters=filters)
-        for (node_uuid, driver, conductor_group, raid_config) in node_list:
-            try:
-                # NOTE(TheJulia): Evaluate based upon presence of raid
-                # configuration before triggering a task, as opposed to after
-                # so we don't create excess node task objects with related
-                # DB queries.
-                if not raid_config or raid_config.get('fgi_status'):
-                    continue
+        raid_config = node.raid_config
 
-                lock_purpose = 'checking async RAID configuration tasks'
-                with task_manager.acquire(context, node_uuid,
-                                          purpose=lock_purpose,
-                                          shared=True) as task:
-                    node = task.node
-                    node_uuid = task.node.uuid
-                    if not isinstance(task.driver.raid, IRMCRAID):
-                        continue
-                    if task.node.target_raid_config is None:
-                        continue
-                    task.upgrade_lock()
-                    if node.provision_state != states.CLEANWAIT:
-                        continue
-                    # Avoid hitting clean_callback_timeout expiration
-                    node.touch_provisioning()
+        try:
+            report = irmc_common.get_irmc_report(node)
+        except client.scci.SCCIInvalidInputError:
+            raid_config.update({'fgi_status': RAID_FAILED})
+            raid_common.update_raid_info(node, raid_config)
+            self._set_clean_failed(task, RAID_FAILED)
+            return
+        except client.scci.SCCIClientError:
+            raid_config.update({'fgi_status': RAID_FAILED})
+            raid_common.update_raid_info(node, raid_config)
+            self._set_clean_failed(task, RAID_FAILED)
+            return
 
-                    try:
-                        report = irmc_common.get_irmc_report(node)
-                    except client.scci.SCCIInvalidInputError:
-                        raid_config.update({'fgi_status': RAID_FAILED})
-                        raid_common.update_raid_info(node, raid_config)
-                        self._set_clean_failed(task, RAID_FAILED)
-                        continue
-                    except client.scci.SCCIClientError:
-                        raid_config.update({'fgi_status': RAID_FAILED})
-                        raid_common.update_raid_info(node, raid_config)
-                        self._set_clean_failed(task, RAID_FAILED)
-                        continue
-
-                    fgi_status_dict = _get_fgi_status(report, node_uuid)
-                    # Note(trungnv): Allow to check until RAID mechanism to be
-                    # completed with RAID information in report.
-                    if fgi_status_dict == 'completing':
-                        continue
-                    if not fgi_status_dict:
-                        raid_config.update({'fgi_status': RAID_FAILED})
-                        raid_common.update_raid_info(node, raid_config)
-                        self._set_clean_failed(task, fgi_status_dict)
-                        continue
-                    if all(fgi_status == 'Idle' for fgi_status in
-                           fgi_status_dict.values()):
-                        raid_config.update({'fgi_status': RAID_COMPLETED})
-                        raid_common.update_raid_info(node, raid_config)
-                        LOG.info('RAID configuration has completed on '
-                                 'node %(node)s with fgi_status is %(fgi)s',
-                                 {'node': node_uuid, 'fgi': RAID_COMPLETED})
-                        self._resume_cleaning(task)
-
-            except exception.NodeNotFound:
-                LOG.info('During query_raid_config_job_status, node '
-                         '%(node)s was not found raid_config and presumed '
-                         'deleted by another process.', {'node': node_uuid})
-            except exception.NodeLocked:
-                LOG.info('During query_raid_config_job_status, node '
-                         '%(node)s was already locked by another process. '
-                         'Skip.', {'node': node_uuid})
+        fgi_status_dict = _get_fgi_status(report, node_uuid)
+        # Note(trungnv): Allow to check until RAID mechanism to be
+        # completed with RAID information in report.
+        if fgi_status_dict == 'completing':
+            return
+        if not fgi_status_dict:
+            raid_config.update({'fgi_status': RAID_FAILED})
+            raid_common.update_raid_info(node, raid_config)
+            self._set_clean_failed(task, fgi_status_dict)
+            return
+        if all(fgi_status == 'Idle' for fgi_status in
+               fgi_status_dict.values()):
+            raid_config.update({'fgi_status': RAID_COMPLETED})
+            raid_common.update_raid_info(node, raid_config)
+            LOG.info('RAID configuration has completed on '
+                     'node %(node)s with fgi_status is %(fgi)s',
+                     {'node': node_uuid, 'fgi': RAID_COMPLETED})
+            self._resume_cleaning(task)
 
     def _set_clean_failed(self, task, fgi_status_dict):
         LOG.error('RAID configuration task failed for node %(node)s. '

@@ -20,7 +20,6 @@ import shlex
 from urllib import parse as urlparse
 
 import eventlet
-from futurist import periodics
 import openstack
 from oslo_log import log as logging
 
@@ -29,6 +28,7 @@ from ironic.common.i18n import _
 from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
+from ironic.conductor import periodics
 from ironic.conductor import task_manager
 from ironic.conductor import utils as cond_utils
 from ironic.conf import CONF
@@ -292,21 +292,14 @@ class Inspector(base.InspectInterface):
                   'ironic-inspector', {'uuid': node_uuid})
         _get_client(task.context).abort_introspection(node_uuid)
 
-    @periodics.periodic(spacing=CONF.inspector.status_check_period)
-    def _periodic_check_result(self, manager, context):
+    @periodics.node_periodic(
+        purpose='checking hardware inspection status',
+        spacing=CONF.inspector.status_check_period,
+        filters={'provision_state': states.INSPECTWAIT},
+    )
+    def _periodic_check_result(self, task, manager, context):
         """Periodic task checking results of inspection."""
-        filters = {'provision_state': states.INSPECTWAIT}
-        node_iter = manager.iter_nodes(filters=filters)
-
-        for node_uuid, driver, conductor_group in node_iter:
-            try:
-                lock_purpose = 'checking hardware inspection status'
-                with task_manager.acquire(context, node_uuid,
-                                          shared=True,
-                                          purpose=lock_purpose) as task:
-                    _check_status(task)
-            except (exception.NodeLocked, exception.NodeNotFound):
-                continue
+        _check_status(task)
 
 
 def _start_inspection(node_uuid, context):

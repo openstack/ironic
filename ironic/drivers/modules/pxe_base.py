@@ -13,7 +13,6 @@
 Base PXE Interface Methods
 """
 
-from futurist import periodics
 from ironic_lib import metrics_utils
 from oslo_config import cfg
 from oslo_log import log as logging
@@ -24,7 +23,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import pxe_utils
 from ironic.common import states
-from ironic.conductor import task_manager
+from ironic.conductor import periodics
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
@@ -452,29 +451,23 @@ class PXEBaseMixin(object):
                              states.RESCUEWAIT}
 
     @METRICS.timer('PXEBaseMixin._check_boot_timeouts')
-    @periodics.periodic(spacing=CONF.pxe.boot_retry_check_interval,
-                        enabled=bool(CONF.pxe.boot_retry_timeout))
-    def _check_boot_timeouts(self, manager, context):
+    @periodics.node_periodic(
+        purpose='checking PXE boot status',
+        spacing=CONF.pxe.boot_retry_check_interval,
+        enabled=bool(CONF.pxe.boot_retry_timeout),
+        filters={'provision_state_in': _RETRY_ALLOWED_STATES,
+                 'reserved': False,
+                 'maintenance': False,
+                 'provisioned_before': CONF.pxe.boot_retry_timeout},
+    )
+    def _check_boot_timeouts(self, task, manager, context):
         """Periodically checks whether boot has timed out and retry it.
 
+        :param task: a task instance.
         :param manager: conductor manager.
         :param context: request context.
         """
-        filters = {'provision_state_in': self._RETRY_ALLOWED_STATES,
-                   'reserved': False,
-                   'maintenance': False,
-                   'provisioned_before': CONF.pxe.boot_retry_timeout}
-        node_iter = manager.iter_nodes(filters=filters)
-
-        for node_uuid, driver, conductor_group in node_iter:
-            try:
-                lock_purpose = 'checking PXE boot status'
-                with task_manager.acquire(context, node_uuid,
-                                          shared=True,
-                                          purpose=lock_purpose) as task:
-                    self._check_boot_status(task)
-            except (exception.NodeLocked, exception.NodeNotFound):
-                continue
+        self._check_boot_status(task)
 
     def _check_boot_status(self, task):
         if not isinstance(task.driver.boot, PXEBaseMixin):

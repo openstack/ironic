@@ -25,6 +25,7 @@ from ironic.common import components
 from ironic.common import exception
 from ironic.common import indicator_states
 from ironic.common import states
+from ironic.conductor import periodics
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
@@ -905,7 +906,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
         management._clear_firmware_updates.assert_not_called()
 
-    @mock.patch.object(redfish_mgmt.LOG, 'info', autospec=True)
+    @mock.patch.object(periodics.LOG, 'info', autospec=True)
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test__query_firmware_update_failed_node_notfound(self, mock_acquire,
                                                          mock_log):
@@ -928,7 +929,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         management._clear_firmware_updates.assert_not_called()
         self.assertTrue(mock_log.called)
 
-    @mock.patch.object(redfish_mgmt.LOG, 'info', autospec=True)
+    @mock.patch.object(periodics.LOG, 'info', autospec=True)
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test__query_firmware_update_failed_node_locked(
             self, mock_acquire, mock_log):
@@ -1017,7 +1018,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
         management._check_node_firmware_update.assert_not_called()
 
-    @mock.patch.object(redfish_mgmt.LOG, 'info', autospec=True)
+    @mock.patch.object(periodics.LOG, 'info', autospec=True)
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test__query_firmware_update_status_node_notfound(self, mock_acquire,
                                                          mock_log):
@@ -1040,7 +1041,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         management._check_node_firmware_update.assert_not_called()
         self.assertTrue(mock_log.called)
 
-    @mock.patch.object(redfish_mgmt.LOG, 'info', autospec=True)
+    @mock.patch.object(periodics.LOG, 'info', autospec=True)
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test__query_firmware_update_status_node_locked(
             self, mock_acquire, mock_log):
