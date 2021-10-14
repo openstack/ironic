@@ -23,6 +23,7 @@ from oslo_log import log
 from ironic.common import exception
 from ironic.conductor import base_manager
 from ironic.conductor import task_manager
+from ironic.drivers import base as driver_base
 
 
 LOG = log.getLogger(__name__)
@@ -56,6 +57,9 @@ def node_periodic(purpose, spacing, enabled=True, filters=None,
 
     * for conductor manager: ``(self, task, context)``
     * for hardware interfaces: ``(self, task, manager, context)``.
+
+    When the periodic is running on a hardware interface, only tasks
+    using this interface are considered.
 
     ``NodeNotFound`` and ``NodeLocked`` exceptions are ignored. Raise ``Stop``
     to abort the current iteration of the task and reschedule it.
@@ -103,6 +107,10 @@ def node_periodic(purpose, spacing, enabled=True, filters=None,
                 manager = args[0]
                 context = args[1]
 
+            interface_type = (getattr(self, 'interface_type', None)
+                              if isinstance(self, driver_base.BaseInterface)
+                              else None)
+
             if callable(limit):
                 local_limit = limit()
             else:
@@ -125,6 +133,11 @@ def node_periodic(purpose, spacing, enabled=True, filters=None,
                     with task_manager.acquire(context, node_uuid,
                                               purpose=purpose,
                                               shared=shared_task) as task:
+                        if interface_type is not None:
+                            impl = getattr(task.driver, interface_type)
+                            if not isinstance(impl, self.__class__):
+                                continue
+
                         result = func(self, task, *args, **kwargs)
                 except exception.NodeNotFound:
                     LOG.info("During %(action)s, node %(node)s was not found "

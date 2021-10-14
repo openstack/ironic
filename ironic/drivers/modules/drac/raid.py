@@ -1497,9 +1497,6 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
     )
     def _query_raid_tasks_status(self, task, manager, context):
         """Periodic task to check the progress of running RAID tasks"""
-        if not isinstance(task.driver.raid, DracRedfishRAID):
-            return
-
         self._check_raid_tasks_status(
             task, task.node.driver_internal_info.get('raid_task_monitor_uris'))
 
@@ -1757,9 +1754,6 @@ class DracWSManRAID(base.RAIDInterface):
     )
     def _query_raid_config_job_status(self, task, manager, context):
         """Periodic task to check the progress of running RAID config jobs."""
-        if not isinstance(task.driver.raid, DracWSManRAID):
-            return
-
         self._check_node_raid_jobs(task)
 
     @METRICS.timer('DracRAID._check_node_raid_jobs')

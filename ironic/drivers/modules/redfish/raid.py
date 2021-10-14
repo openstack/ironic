@@ -1023,21 +1023,16 @@ class RedfishRAID(base.RAIDInterface):
     )
     def _query_raid_config_failed(self, task, manager, context):
         """Periodic job to check for failed RAID configuration."""
-        if not isinstance(task.driver.raid, RedfishRAID):
-            return
-
-        node = task.node
-
         # A RAID config failed. Discard any remaining RAID
         # configs so when the user takes the node out of
         # maintenance mode, pending RAID configs do not
         # automatically continue.
         LOG.warning('RAID configuration failed for node %(node)s. '
                     'Discarding remaining RAID configurations.',
-                    {'node': node.uuid})
+                    {'node': task.node.uuid})
 
         task.upgrade_lock()
-        self._clear_raid_configs(node)
+        self._clear_raid_configs(task.node)
 
     @METRICS.timer('RedfishRAID._query_raid_config_status')
     @periodics.node_periodic(
@@ -1049,9 +1044,6 @@ class RedfishRAID(base.RAIDInterface):
     )
     def _query_raid_config_status(self, task, manager, context):
         """Periodic job to check RAID config tasks."""
-        if not isinstance(task.driver.raid, RedfishRAID):
-            return
-
         self._check_node_raid_config(task)
 
     def _get_error_messages(self, response):

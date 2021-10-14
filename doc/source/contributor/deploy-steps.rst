@@ -251,10 +251,6 @@ periodic task that operates on relevant nodes:
             predicate=lambda n: n.driver_internal_info.get('in_my_action'),
         )
         def check_my_action(self, task, manager, context):
-            # Double-check that the node is managed by this interface
-            if not isinstance(task.driver.management, MyManagement):
-                return
-
             if not needs_actions():  # insert your checks here
                 return
 

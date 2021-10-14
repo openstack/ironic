@@ -496,9 +496,6 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
     )
     def _query_import_configuration_status(self, task, manager, context):
         """Period job to check import configuration task."""
-        if not isinstance(task.driver.management, DracRedfishManagement):
-            return
-
         self._check_import_configuration_task(
             task, task.node.driver_internal_info.get(
                 'import_task_monitor_url'))

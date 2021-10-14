@@ -863,21 +863,16 @@ class RedfishManagement(base.ManagementInterface):
     )
     def _query_firmware_update_failed(self, task, manager, context):
         """Periodic job to check for failed firmware updates."""
-        if not isinstance(task.driver.management, RedfishManagement):
-            return
-
-        node = task.node
-
         # A firmware update failed. Discard any remaining firmware
         # updates so when the user takes the node out of
         # maintenance mode, pending firmware updates do not
         # automatically continue.
         LOG.warning('Firmware update failed for node %(node)s. '
                     'Discarding remaining firmware updates.',
-                    {'node': node.uuid})
+                    {'node': task.node.uuid})
 
         task.upgrade_lock()
-        self._clear_firmware_updates(node)
+        self._clear_firmware_updates(task.node)
 
     @METRICS.timer('RedfishManagement._query_firmware_update_status')
     @periodics.node_periodic(
@@ -889,9 +884,6 @@ class RedfishManagement(base.ManagementInterface):
     )
     def _query_firmware_update_status(self, task, manager, context):
         """Periodic job to check firmware update tasks."""
-        if not isinstance(task.driver.management, RedfishManagement):
-            return
-
         self._check_node_firmware_update(task)
 
     @METRICS.timer('RedfishManagement._check_node_firmware_update')

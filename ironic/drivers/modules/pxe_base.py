@@ -470,9 +470,6 @@ class PXEBaseMixin(object):
         self._check_boot_status(task)
 
     def _check_boot_status(self, task):
-        if not isinstance(task.driver.boot, PXEBaseMixin):
-            return
-
         if not _should_retry_boot(task.node):
             return
 

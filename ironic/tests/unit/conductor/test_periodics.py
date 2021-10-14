@@ -18,6 +18,7 @@ from ironic.common import context as ironic_context
 from ironic.conductor import base_manager
 from ironic.conductor import periodics
 from ironic.conductor import task_manager
+from ironic.drivers.modules import fake
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -57,6 +58,19 @@ class PeriodicTestService(base_manager.BaseConductorManager):
         self.nodes.append(task.node.uuid)
         if task.node.uuid == 'stop':
             raise periodics.Stop()
+
+
+class PeriodicTestInterface(fake.FakePower):
+
+    def __init__(self, test):
+        self.test = test
+        self.nodes = []
+
+    @periodics.node_periodic(purpose="herding cats", spacing=42)
+    def simple(self, task, manager, context):
+        self.test.assertIsInstance(manager, PeriodicTestService)
+        self.test.assertIsInstance(context, ironic_context.RequestContext)
+        self.nodes.append(task.node.uuid)
 
 
 @mock.patch.object(PeriodicTestService, 'iter_nodes', autospec=True)
@@ -133,3 +147,29 @@ class NodePeriodicTestCase(db_base.DbTestCase):
         mock_iter_nodes.assert_called_once_with(self.service,
                                                 filters=None, fields=())
         self.assertEqual(['stop'], self.service.nodes)
+
+    @mock.patch.object(task_manager, 'acquire', autospec=True)
+    def test_interface_check(self, mock_acquire, mock_iter_nodes):
+        mock_iter_nodes.return_value = iter([
+            (uuidutils.generate_uuid(), 'driver1', ''),
+            (self.uuid, 'driver2', 'group'),
+        ])
+        iface = PeriodicTestInterface(self)
+        tasks = [
+            mock.Mock(spec=task_manager.TaskManager,
+                      # This will not match the subclass
+                      driver=mock.Mock(power=fake.FakePower())),
+            mock.Mock(spec=task_manager.TaskManager,
+                      node=self.node,
+                      driver=mock.Mock(power=iface)),
+        ]
+        mock_acquire.side_effect = [
+            mock.MagicMock(**{'__enter__.return_value': task})
+            for task in tasks
+        ]
+
+        iface.simple(self.service, self.context)
+
+        mock_iter_nodes.assert_called_once_with(self.service,
+                                                filters=None, fields=())
+        self.assertEqual([self.uuid], iface.nodes)
