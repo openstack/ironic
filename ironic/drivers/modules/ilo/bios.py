@@ -21,8 +21,6 @@ from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import states
-from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
@@ -98,9 +96,7 @@ class IloBIOS(base.BIOSInterface):
                 raise exception.NodeCleaningFailure(errmsg)
             raise exception.InstanceDeployFailure(reason=errmsg)
 
-        deploy_opts = deploy_utils.build_agent_options(node)
-        task.driver.boot.prepare_ramdisk(task, deploy_opts)
-        manager_utils.node_power_action(task, states.REBOOT)
+        return_state = deploy_utils.reboot_to_finish_step(task)
 
         deploy_utils.set_async_step_flags(node, reboot=True,
                                           skip_current_step=False)
@@ -112,7 +108,7 @@ class IloBIOS(base.BIOSInterface):
 
         node.driver_internal_info = driver_internal_info
         node.save()
-        return deploy_utils.get_async_step_return_state(node)
+        return return_state
 
     def _execute_post_boot_bios_step(self, task, step):
         """Perform operations required after the reboot.

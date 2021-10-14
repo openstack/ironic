@@ -99,9 +99,7 @@ class Ilo5RAID(base.RAIDInterface):
         task.node.save()
 
     def _prepare_for_read_raid(self, task, raid_step):
-        deploy_opts = deploy_utils.build_agent_options(task.node)
-        task.driver.boot.prepare_ramdisk(task, deploy_opts)
-        manager_utils.node_power_action(task, states.REBOOT)
+        deploy_utils.reboot_to_finish_step(task)
         if raid_step == 'create_raid':
             self._set_driver_internal_true_value(
                 task, 'ilo_raid_create_in_progress')

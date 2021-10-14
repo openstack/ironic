@@ -267,8 +267,7 @@ class RedfishBIOS(base.BIOSInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         """
-        deploy_opts = deploy_utils.build_agent_options(task.node)
-        task.driver.boot.prepare_ramdisk(task, deploy_opts)
+        deploy_utils.prepare_agent_boot(task)
         self._reboot(task)
 
     def post_configuration(self, task, settings):
@@ -282,8 +281,7 @@ class RedfishBIOS(base.BIOSInterface):
         :param task: a TaskManager instance containing the node to act on.
         :param settings: a list of BIOS settings to be updated.
         """
-        deploy_opts = deploy_utils.build_agent_options(task.node)
-        task.driver.boot.prepare_ramdisk(task, deploy_opts)
+        deploy_utils.prepare_agent_boot(task)
         self._reboot(task)
 
     def get_properties(self):
