@@ -1392,7 +1392,7 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
     @mock.patch.object(utils, 'get_boot_option', autospec=True,
                        return_value='kickstart')
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
-    def test_validate_image_properties_glance_image_missing_squashfs_id(
+    def test_validate_image_properties_glance_image_missing_stage2_id(
             self, image_service_mock, boot_options_mock):
         inst_info = utils.get_image_instance_info(self.node)
         image_service_mock.return_value.show.return_value = {

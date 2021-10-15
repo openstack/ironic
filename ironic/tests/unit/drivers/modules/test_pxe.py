@@ -236,7 +236,7 @@ class PXEBootTestCase(db_base.DbTestCase):
                               task.driver.boot.validate_inspection, task)
 
     @mock.patch.object(image_service.GlanceImageService, 'show', autospec=True)
-    def test_validate_kickstart_has_squashfs_id(self, mock_glance):
+    def test_validate_kickstart_missing_stage2_id(self, mock_glance):
         mock_glance.return_value = {'properties': {'kernel_id': 'fake-kernel',
                                                    'ramdisk_id': 'fake-initr'}}
         self.node.deploy_interface = 'anaconda'
@@ -244,7 +244,7 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.config(http_url='http://fake_url', group='deploy')
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaisesRegex(exception.MissingParameterValue,
-                                   'squashfs_id',
+                                   'stage2_id',
                                    task.driver.boot.validate, task)
 
     def test_validate_kickstart_fail_http_url_not_set(self):
@@ -1011,7 +1011,9 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
                       'ks_cfg': ('', '/path/to/ks_cfg')}
         mock_image_info.return_value = image_info
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            self.assertIsNone(task.driver.deploy.deploy(task))
+            self.assertEqual(
+                states.DEPLOYWAIT, task.driver.deploy.deploy(task)
+            )
             mock_image_info.assert_called_once_with(task, ipxe_enabled=False)
             mock_cache.assert_called_once_with(
                 task, image_info, ipxe_enabled=False)
@@ -1050,6 +1052,8 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
                       'ks_template': ('', '/path/to/ks_template'),
                       'ks_cfg': ('', '/path/to/ks_cfg')}
         mock_image_info.return_value = image_info
+        self.node.provision_state = states.DEPLOYWAIT
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.deploy.reboot_to_instance(task)
             mock_set_boot_dev.assert_called_once_with(task, boot_devices.DISK)
@@ -1111,6 +1115,17 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
                 'end',
                 task.node.driver_internal_info['agent_status'])
             self.assertTrue(mock_reboot_to_instance.called)
+
+    @mock.patch.object(deploy_utils, 'prepare_inband_cleaning', autospec=True)
+    def test_prepare_cleaning(self, prepare_inband_cleaning_mock):
+        prepare_inband_cleaning_mock.return_value = states.CLEANWAIT
+        self.node.provision_state = states.CLEANING
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertEqual(
+                states.CLEANWAIT, self.deploy.prepare_cleaning(task))
+            prepare_inband_cleaning_mock.assert_called_once_with(
+                task, manage_boot=True)
 
 
 class PXEValidateRescueTestCase(db_base.DbTestCase):

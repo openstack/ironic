@@ -61,7 +61,7 @@ class PXEAnacondaDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
         # Power-on the instance, with PXE prepared, we're done.
         manager_utils.node_power_action(task, states.POWER_ON)
         LOG.info('Deployment setup for node %s done', task.node.uuid)
-        return None
+        return states.DEPLOYWAIT
 
     @METRICS.timer('AnacondaDeploy.prepare')
     @task_manager.require_exclusive_lock
@@ -95,7 +95,11 @@ class PXEAnacondaDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
         return False
 
     def should_manage_boot(self, task):
-        return False
+        if task.node.provision_state in (
+                states.DEPLOYING, states.DEPLOYWAIT, states.DEPLOYFAIL):
+            return False
+        # For cleaning and rescue, we use IPA, not anaconda
+        return agent_base.AgentBaseMixin.should_manage_boot(self, task)
 
     def reboot_to_instance(self, task):
         node = task.node
