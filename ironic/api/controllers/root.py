@@ -27,8 +27,8 @@ V1 = v1.Controller()
 def root():
     return {
         'name': "OpenStack Ironic API",
-        'description': ("Ironic is an OpenStack project which aims to "
-                        "provision baremetal machines."),
+        'description': ("Ironic is an OpenStack project which enables the "
+                        "provision and management of baremetal machines."),
         'default_version': version.default_version(),
         'versions': version.all_versions()
     }
