@@ -23,7 +23,6 @@ from oslo_utils import uuidutils
 from ironic.conductor import task_manager
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import raid as irmc_raid
-from ironic.drivers.modules import noop
 from ironic.tests.unit.drivers.modules.irmc import test_common
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -60,23 +59,6 @@ class iRMCPeriodicTaskTestCase(test_common.BaseIRMCTest):
         mock_manager.iter_nodes.return_value = node_list
         raid_object = irmc_raid.IRMCRAID()
         raid_object._query_raid_config_fgi_status(mock_manager, None)
-        self.assertEqual(0, report_mock.call_count)
-
-    @mock.patch.object(irmc_common, 'get_irmc_report', autospec=True)
-    @mock.patch.object(task_manager, 'acquire', autospec=True)
-    def test__query_raid_config_fgi_status_without_raid_object(
-            self, mock_acquire, report_mock):
-        mock_manager = mock.Mock()
-        raid_config = self.raid_config
-        task = mock.Mock(node=self.node, driver=self.driver)
-        mock_acquire.return_value = mock.MagicMock(
-            __enter__=mock.MagicMock(return_value=task))
-        node_list = [(self.node.uuid, 'irmc', '', raid_config)]
-        mock_manager.iter_nodes.return_value = node_list
-        task.driver.raid = noop.NoRAID()
-        raid_object = irmc_raid.IRMCRAID()
-        raid_object._query_raid_config_fgi_status(mock_manager,
-                                                  self.context)
         self.assertEqual(0, report_mock.call_count)
 
     @mock.patch.object(irmc_common, 'get_irmc_report', autospec=True)

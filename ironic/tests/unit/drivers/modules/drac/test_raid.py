@@ -25,7 +25,6 @@ import tenacity
 
 from ironic.common import exception
 from ironic.common import states
-from ironic.conductor import periodics
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
@@ -2558,24 +2557,6 @@ class DracRedfishRAIDTestCase(test_utils.BaseDracTest):
             task, ['/TaskService/123'])
 
     @mock.patch.object(task_manager, 'acquire', autospec=True)
-    def test__query_raid_tasks_status_not_drac(self, mock_acquire):
-        driver_internal_info = {'raid_task_monitor_uris': ['/TaskService/123']}
-        self.node.driver_internal_info = driver_internal_info
-        self.node.save()
-        mock_manager = mock.Mock()
-        node_list = [(self.node.uuid, 'not-idrac', '', driver_internal_info)]
-        mock_manager.iter_nodes.return_value = node_list
-        task = mock.Mock(node=self.node,
-                         driver=mock.Mock(raid=mock.Mock()))
-        mock_acquire.return_value = mock.MagicMock(
-            __enter__=mock.MagicMock(return_value=task))
-        self.raid._check_raid_tasks_status = mock.Mock()
-
-        self.raid._query_raid_tasks_status(mock_manager, self.context)
-
-        self.raid._check_raid_tasks_status.assert_not_called()
-
-    @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test__query_raid_tasks_status_no_task_monitor_url(self, mock_acquire):
         driver_internal_info = {'something': 'else'}
         self.node.driver_internal_info = driver_internal_info
@@ -2592,42 +2573,6 @@ class DracRedfishRAIDTestCase(test_utils.BaseDracTest):
         self.raid._query_raid_tasks_status(mock_manager, self.context)
 
         self.raid._check_raid_tasks_status.assert_not_called()
-
-    @mock.patch.object(periodics.LOG, 'info', autospec=True)
-    @mock.patch.object(task_manager, 'acquire', autospec=True)
-    def test__query_raid_tasks_status_node_notfound(
-            self, mock_acquire, mock_log):
-        driver_internal_info = {'raid_task_monitor_uris': ['/TaskService/123']}
-        self.node.driver_internal_info = driver_internal_info
-        self.node.save()
-        mock_manager = mock.Mock()
-        node_list = [(self.node.uuid, 'idrac', '', driver_internal_info)]
-        mock_manager.iter_nodes.return_value = node_list
-        mock_acquire.side_effect = exception.NodeNotFound
-        self.raid._check_raid_tasks_status = mock.Mock()
-
-        self.raid._query_raid_tasks_status(mock_manager, self.context)
-
-        self.raid._check_raid_tasks_status.assert_not_called()
-        self.assertTrue(mock_log.called)
-
-    @mock.patch.object(periodics.LOG, 'info', autospec=True)
-    @mock.patch.object(task_manager, 'acquire', autospec=True)
-    def test__query_raid_tasks_status_node_locked(
-            self, mock_acquire, mock_log):
-        driver_internal_info = {'raid_task_monitor_uris': ['/TaskService/123']}
-        self.node.driver_internal_info = driver_internal_info
-        self.node.save()
-        mock_manager = mock.Mock()
-        node_list = [(self.node.uuid, 'idrac', '', driver_internal_info)]
-        mock_manager.iter_nodes.return_value = node_list
-        mock_acquire.side_effect = exception.NodeLocked
-        self.raid._check_raid_tasks_status = mock.Mock()
-
-        self.raid._query_raid_tasks_status(mock_manager, self.context)
-
-        self.raid._check_raid_tasks_status.assert_not_called()
-        self.assertTrue(mock_log.called)
 
     @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
     def test__check_raid_tasks_status(self, mock_get_task_monitor):
