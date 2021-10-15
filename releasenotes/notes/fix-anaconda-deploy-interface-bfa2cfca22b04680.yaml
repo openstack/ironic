@@ -1,0 +1,25 @@
+---
+fixes:
+  - |
+    Fixes a bug in the anaconda deploy interface where the 'ks_options'
+    key was not found when rendering the default kickstart template.
+  - |
+    Fixes issue where PXEAnacondaDeploy interface's deploy() method did not
+    return states.DEPLOYWAIT so the instance went straight to 'active' instead
+    of 'wait call-back'.
+  - |
+    Fixes an issue where the anaconda deploy interface mistakenly expected
+    'squashfs_id' instead of 'stage2_id'  property on the image.
+  - |
+    Fixes the heartbeat mechanism in the default kickstart template
+    ks.cfg.template as the heartbeat API only accepts 'POST' and expects a
+    mandatory 'callback_url' parameter.
+  - |
+    Fixes handling of tarball images in anaconda deploy interface. Allows user
+    specified file extensions to be appended to the disk image symlink. Users
+    can now set the file extensions by setting the 'disk_file_extension'
+    property on the OS image. This enables users to deploy tarballs with
+    anaconda deploy interface.
+  - |
+    Fixes issue where automated cleaning was not supported when anaconda deploy
+    interface is used.
