@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes ``File name too long`` in the image caching code when a URL contains
+    a long query string.
