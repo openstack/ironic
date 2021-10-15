@@ -227,6 +227,28 @@ class TestImageCacheFetch(base.TestCase):
             self.assertEqual("TEST", fp.read())
 
     @mock.patch.object(image_cache, '_fetch', autospec=True)
+    def test__download_image_large_url(self, mock_fetch):
+        # A long enough URL may exceed the file name limits of the file system.
+        # Make sure we don't use any parts of the URL anywhere.
+        url = "http://example.com/image.iso?secret=%s" % ("x" * 1000)
+
+        def _fake_fetch(ctx, href, tmp_path, *args):
+            self.assertEqual(url, href)
+            self.assertNotEqual(self.dest_path, tmp_path)
+            self.assertNotEqual(os.path.dirname(tmp_path), self.master_dir)
+            with open(tmp_path, 'w') as fp:
+                fp.write("TEST")
+
+        mock_fetch.side_effect = _fake_fetch
+        self.cache._download_image(url, self.master_path, self.dest_path)
+        self.assertTrue(os.path.isfile(self.dest_path))
+        self.assertTrue(os.path.isfile(self.master_path))
+        self.assertEqual(os.stat(self.dest_path).st_ino,
+                         os.stat(self.master_path).st_ino)
+        with open(self.dest_path) as fp:
+            self.assertEqual("TEST", fp.read())
+
+    @mock.patch.object(image_cache, '_fetch', autospec=True)
     @mock.patch.object(image_cache, 'LOG', autospec=True)
     @mock.patch.object(os, 'link', autospec=True)
     def test__download_image_linkfail(self, mock_link, mock_log, mock_fetch):
