@@ -1616,14 +1616,25 @@ function configure_ironic_api {
 function configure_client_for {
     local service_config_section
     service_config_section=$1
+    local use_system_scope="False"
     # keystoneauth auth plugin options
     iniset $IRONIC_CONF_FILE $service_config_section auth_type password
     iniset $IRONIC_CONF_FILE $service_config_section auth_url $KEYSTONE_SERVICE_URI
-    # NOTE(TheJulia): This list is likely to become long as we turn on
-    # support for system scoped enforcement of other services, but for now,
-    # we really only care about inspector and we can figure out the others
-    # as time and their devstack code supports it.
+
+    # NOTE(TheJulia): Below are services which we know, as of late 2021, which support
+    # explicit scope based ops *and* have knobs.
+    # Needed: Neutron, swift, nova ?service_catalog?
+    # Neutron - https://review.opendev.org/c/openstack/devstack/+/797450
+
     if [[ "$service_config_section" == "inspector" ]] && [[ "$IRONIC_INSPECTOR_ENFORCE_SCOPE" == "True" ]]; then
+        use_system_scope="True"
+    elif [[ "$service_config_section" == "cinder" ]] && [[ "${CINDER_ENFORCE_SCOPE:-False}" == "True" ]]; then
+        use_system_scope="True"
+    elif [[ "$service_config_section" == "glance" ]] && [[ "${GLANCE_ENFORCE_SCOPE:-False}" == "True" ]]; then
+        use_system_scope="True"
+    fi
+
+    if [[ "$use_system_scope" == "True" ]]; then
         iniset $IRONIC_CONF_FILE $service_config_section system_scope all
         iniset $IRONIC_CONF_FILE $service_config_section username admin
         iniset $IRONIC_CONF_FILE $service_config_section password $ADMIN_PASSWORD
