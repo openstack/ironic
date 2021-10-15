@@ -420,7 +420,7 @@ class PXEBaseMixin(object):
         elif service_utils.is_glance_image(d_info['image_source']):
             props = ['kernel_id', 'ramdisk_id']
             if boot_option == 'kickstart':
-                props.append('squashfs_id')
+                props.append('stage2_id')
         else:
             props = ['kernel', 'ramdisk']
         deploy_utils.validate_image_properties(task.context, d_info, props)

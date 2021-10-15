@@ -959,14 +959,14 @@ def build_kickstart_config_options(task):
     :returns: A dictionary of kickstart options to be used in the kickstart
               template.
     """
-    ks_options = {}
+    params = {}
     node = task.node
     manager_utils.add_secret_token(node, pregenerated=True)
     node.save()
-    ks_options['liveimg_url'] = node.instance_info['image_url']
-    ks_options['agent_token'] = node.driver_internal_info['agent_secret_token']
-    ks_options['heartbeat_url'] = _build_heartbeat_url(node.uuid)
-    return ks_options
+    params['liveimg_url'] = node.instance_info['image_url']
+    params['agent_token'] = node.driver_internal_info['agent_secret_token']
+    params['heartbeat_url'] = _build_heartbeat_url(node.uuid)
+    return {'ks_options': params}
 
 
 def get_volume_pxe_options(task):

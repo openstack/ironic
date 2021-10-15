@@ -1376,9 +1376,9 @@ class PXEBuildKickstartConfigOptionsTestCase(db_base.DbTestCase):
             expected['heartbeat_url'] = (
                 'http://ironic-api/v1/heartbeat/%s' % task.node.uuid
             )
-            ks_options = pxe_utils.build_kickstart_config_options(task)
-            self.assertTrue(ks_options.pop('agent_token'))
-            self.assertEqual(expected, ks_options)
+            params = pxe_utils.build_kickstart_config_options(task)
+            self.assertTrue(params['ks_options'].pop('agent_token'))
+            self.assertEqual(expected, params['ks_options'])
 
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     def test_prepare_instance_kickstart_config_not_anaconda_boot(self,
@@ -1400,15 +1400,16 @@ class PXEBuildKickstartConfigOptionsTestCase(db_base.DbTestCase):
             'ks_cfg': ['', '/http_root/node_uuid/ks.cfg'],
             'ks_template': ['tmpl_id', '/http_root/node_uuid/ks.cfg.template']
         }
-        ks_options = {'liveimg_url': 'http://fake', 'agent_token': 'faketoken',
-                      'heartbeat_url': 'http://fake_hb'}
+        params = {'liveimg_url': 'http://fake', 'agent_token': 'faketoken',
+                  'heartbeat_url': 'http://fake_hb'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            ks_options_mock.return_value = ks_options
+            ks_options_mock.return_value = {'ks_options': params}
             pxe_utils.prepare_instance_kickstart_config(task, image_info,
                                                         anaconda_boot=True)
-            render_mock.assert_called_with(image_info['ks_template'][1],
-                                           ks_options)
+            render_mock.assert_called_with(
+                image_info['ks_template'][1], {'ks_options': params}
+            )
             write_mock.assert_called_with(image_info['ks_cfg'][1],
                                           render_mock.return_value)
 
