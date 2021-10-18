@@ -161,7 +161,7 @@ class ImageCache(object):
         # TODO(ghe): timeout and retry for downloads
         # TODO(ghe): logging when image cannot be created
         tmp_dir = tempfile.mkdtemp(dir=self.master_dir)
-        tmp_path = os.path.join(tmp_dir, href.split('/')[-1])
+        tmp_path = os.path.join(tmp_dir, os.path.basename(master_path))
 
         try:
             with _concurrency_semaphore:
