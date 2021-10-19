@@ -36,6 +36,8 @@ class PeriodicTestService(base_manager.BaseConductorManager):
     def simple(self, task, context):
         self.test.assertIsInstance(context, ironic_context.RequestContext)
         self.test.assertTrue(task.shared)
+        # This may raise
+        task.upgrade_lock()
         self.nodes.append(task.node.uuid)
 
     @periodics.node_periodic(purpose="herding cats", spacing=42,
@@ -83,10 +85,15 @@ class NodePeriodicTestCase(db_base.DbTestCase):
         self.uuid = uuidutils.generate_uuid()
         self.node = obj_utils.create_test_node(self.context, uuid=self.uuid)
 
-    def test_simple(self, mock_iter_nodes):
+    @mock.patch.object(periodics.LOG, 'info', autospec=True)
+    def test_simple(self, mock_log, mock_iter_nodes):
+        node2 = obj_utils.create_test_node(self.context,
+                                           uuid=uuidutils.generate_uuid(),
+                                           reservation='host0')
         mock_iter_nodes.return_value = iter([
             (uuidutils.generate_uuid(), 'driver1', ''),
             (self.uuid, 'driver2', 'group'),
+            (node2.uuid, 'driver3', 'group'),
         ])
 
         self.service.simple(self.ctx)
@@ -94,6 +101,8 @@ class NodePeriodicTestCase(db_base.DbTestCase):
         mock_iter_nodes.assert_called_once_with(self.service,
                                                 filters=None, fields=())
         self.assertEqual([self.uuid], self.service.nodes)
+        # 1 node not found, 1 locked
+        self.assertEqual(2, mock_log.call_count)
 
     def test_exclusive(self, mock_iter_nodes):
         mock_iter_nodes.return_value = iter([
