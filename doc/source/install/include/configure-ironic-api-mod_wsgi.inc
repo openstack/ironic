@@ -4,6 +4,12 @@ Configuring ironic-api behind mod_wsgi
 Bare Metal service comes with an example file for configuring the
 ``ironic-api`` service to run behind Apache with mod_wsgi.
 
+.. note::
+   This is optional, the ironic APIs can be run using
+   independent scripts that provide HTTP servers. But it is generally
+   considered more performant and flexible to run them using a generic
+   HTTP server that supports WSGI (such as Apache or nginx).
+
 #. Install the apache service:
 
    Fedora/RHEL8/CentOS8::
