@@ -52,6 +52,19 @@ Bare Metal service comes with an example file for configuring the
       to the right directory (on Red Hat systems this is usually under
       /var/log/httpd).
 
+#. Stop and disable the ironic-api service. If ironic-api service is
+   started, the port will be occupied. Apach will fail to start:
+
+   Fedora/RHEL8/CentOS8/SUSE::
+
+       sudo systemctl stop openstack-ironic-api
+       sudo systemctl disable openstack-ironic-api
+
+   Debian/Ubuntu::
+
+       sudo service ironic-api stop
+       sudo service ironic-api disable
+
 #. Enable the apache ``ironic`` in site and reload:
 
    Fedora/RHEL8/CentOS8::
