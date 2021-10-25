@@ -72,7 +72,7 @@ and the amount of RAM to be used to 75% run:
 
     baremetal node set --driver-info agent_burnin_vm_timeout=3600 \
         $NODE_NAME_OR_UUID
-    baremetal node set --driver-info agent_burnin_vm_vm-bytes=75 \
+    baremetal node set --driver-info agent_burnin_vm_vm-bytes=75% \
         $NODE_NAME_OR_UUID
 
 Then launch the test with:
