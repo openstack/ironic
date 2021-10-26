@@ -68,8 +68,9 @@ class RPCService(service.Service):
 
     def stop(self):
         try:
-            self.rpcserver.stop()
-            self.rpcserver.wait()
+            if self.rpcserver is not None:
+                self.rpcserver.stop()
+                self.rpcserver.wait()
         except Exception as e:
             LOG.exception('Service error occurred when stopping the '
                           'RPC server. Error: %s', e)
