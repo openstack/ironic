@@ -512,6 +512,34 @@ def _get_ipmitool_args(driver_info, pw_file=None):
     return args
 
 
+def _ipmitool_timing_args():
+    if not _is_option_supported('timing'):
+        return []
+
+    if not CONF.ipmi.use_ipmitool_retries:
+        return [
+            '-R', '1',
+            '-N', str(CONF.ipmi.min_command_interval)
+        ]
+
+    timeout = CONF.ipmi.command_retry_timeout
+    interval = CONF.ipmi.min_command_interval
+    num_tries = 0
+    cmd_duration = 0
+
+    while cmd_duration + interval <= timeout:
+        cmd_duration += interval
+        # for each attempt, ipmitool adds one second to the previous
+        # interval value
+        interval += 1
+        num_tries += 1
+
+    return [
+        '-R', str(num_tries),
+        '-N', str(CONF.ipmi.min_command_interval)
+    ]
+
+
 def _exec_ipmitool(driver_info, command, check_exit_code=None,
                    kill_on_timeout=False):
     """Execute the ipmitool command.
@@ -532,18 +560,7 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
 
     timeout = CONF.ipmi.command_retry_timeout
 
-    # specify retry timing more precisely, if supported
-    num_tries = max((timeout // CONF.ipmi.min_command_interval), 1)
-
-    if _is_option_supported('timing'):
-        args.append('-R')
-        if CONF.ipmi.use_ipmitool_retries:
-            args.append(str(num_tries))
-        else:
-            args.append('1')
-
-        args.append('-N')
-        args.append(str(CONF.ipmi.min_command_interval))
+    args.extend(_ipmitool_timing_args())
 
     extra_args = {}
 
@@ -562,6 +579,7 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
 
     end_time = (time.time() + timeout)
 
+    num_tries = max((timeout // CONF.ipmi.min_command_interval), 1)
     while True:
         num_tries = num_tries - 1
         # NOTE(tenbrae): ensure that no communications are sent to a BMC more
