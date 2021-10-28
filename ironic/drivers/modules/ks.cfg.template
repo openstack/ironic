@@ -6,8 +6,9 @@ text
 cmdline
 reboot
 selinux --enforcing
-firewall --enabled
+firewall --disabled
 firstboot --disabled
+rootpw --lock
 
 bootloader --location=mbr --append="rhgb quiet crashkernel=auto"
 zerombr
@@ -19,19 +20,18 @@ liveimg --url {{ ks_options.liveimg_url }}
 
 # Following %pre, %onerror and %trackback sections are mandatory
 %pre
-/usr/bin/curl -X PUT -H 'Content-Type: application/json' -H 'Accept: application/json' -H 'X-OpenStack-Ironic-API-Version: 1.72' -d '{"agent_token": "{{ ks_options.agent_token }}", "agent_status": "start", "agent_status_message": "Deployment starting. Running pre-installation scripts."}' {{ ks_options.heartbeat_url }}
+/usr/bin/curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -H 'X-OpenStack-Ironic-API-Version: 1.72' -d '{"callback_url": "", "agent_token": "{{ ks_options.agent_token }}", "agent_status": "start", "agent_status_message": "Deployment starting. Running pre-installation scripts."}' {{ ks_options.heartbeat_url }}
 %end
 
 %onerror
-/usr/bin/curl -X PUT -H 'Content-Type: application/json' -H 'Accept: application/json' -H 'X-OpenStack-Ironic-API-Version: 1.72' -d '{"agent_token": "{{ ks_options.agent_token }}", "agent_status": "error", "agent_status_message": "Error: Deploying using anaconda. Check console for more information."}' {{ ks_options.heartbeat_url }}
+/usr/bin/curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -H 'X-OpenStack-Ironic-API-Version: 1.72' -d '{"callback_url": "", "agent_token": "{{ ks_options.agent_token }}", "agent_status": "error", "agent_status_message": "Error: Deploying using anaconda. Check console for more information."}' {{ ks_options.heartbeat_url }}
 %end
 
 %traceback
-/usr/bin/curl -X PUT -H 'Content-Type: application/json' -H 'Accept: application/json' -H 'X-OpenStack-Ironic-API-Version: 1.72' -d '{"agent_token": "{{ ks_options.agent_token }}", "agent_status": "error", "agent_status_message": "Error: Installer crashed unexpectedly."}' {{ ks_options.heartbeat_url }}
+/usr/bin/curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -H 'X-OpenStack-Ironic-API-Version: 1.72' -d '{"callback_url": "", "agent_token": "{{ ks_options.agent_token }}", "agent_status": "error", "agent_status_message": "Error: Installer crashed unexpectedly."}' {{ ks_options.heartbeat_url }}
 %end
 
 # Sending callback after the installation is mandatory
 %post
-/usr/bin/curl -X PUT -H 'Content-Type: application/json' -H 'Accept: application/json' -H 'X-OpenStack-Ironic-API-Version: 1.72' -d '{"agent_token": "{{ ks_options.agent_token }}", "agent_status": "end", "agent_status_message": "Deployment completed successfully."}' {{ ks_options.heartbeat_url }}
+/usr/bin/curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -H 'X-OpenStack-Ironic-API-Version: 1.72' -d '{"callback_url": "", "agent_token": "{{ ks_options.agent_token }}", "agent_status": "end", "agent_status_message": "Deployment completed successfully."}' {{ ks_options.heartbeat_url }}
 %end
-

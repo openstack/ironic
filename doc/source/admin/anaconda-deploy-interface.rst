@@ -21,6 +21,16 @@ option in ironic.conf. For example:
 This change takes effect after all the ironic conductors have been
 restarted.
 
+The default kickstart template is specified via the configuration option
+``[anaconda]default_ks_template``. It is set to this `ks.cfg.template`_
+but can be modified to be some other template.
+
+.. code-block::  ini
+
+   [anaconda]
+   default_ks_template = file:///etc/ironic/ks.cfg.template
+
+
 When creating an ironic node, specify ``anaconda`` as the deploy interface.
 For example:
 
@@ -92,12 +102,19 @@ The kernel and ramdisk can be found at ``/images/pxeboot/vmlinuz`` and
 image can be normally found at ``/LiveOS/squashfs.img`` or
 ``/images/install.img``.
 
-The OS tarball must be configured with the following properties in glance, in order
-to be used with the anaconda deploy driver:
+The OS tarball must be configured with the following properties in glance, in
+order to be used with the anaconda deploy driver:
 
 * ``kernel_id``
 * ``ramdisk_id``
 * ``stage2_id``
+* ``disk_file_extension`` (optional)
+
+Valid ``disk_file_extension`` values are ``.img``, ``.tar``, ``.tbz``,
+``.tgz``, ``.txz``, ``.tar.gz``, ``.tar.bz2``, and ``.tar.xz``. When
+``disk_file_extension`` property is not set to one of the above valid values
+the anaconda installer will assume that the image provided is a mountable
+OS disk.
 
 This is an example of adding the anaconda-related images and the OS tarball to
 glance:
@@ -114,7 +131,8 @@ glance:
             compressed --disk-format raw --shared \
             --property kernel_id=<glance_uuid_vmlinuz> \
             --property ramdisk_id=<glance_uuid_ramdisk> \
-            --property stage2_id=<glance_uuid_stage2> <disto-name-version>
+            --property stage2_id=<glance_uuid_stage2> disto-name-version \
+            --property disk_file_extension=.tgz
 
 Creating a bare metal server
 ----------------------------
@@ -126,10 +144,6 @@ The kickstart template set in ``instance_info`` takes precedence over the one
 specified via the OS image in glance. If no kickstart template is specified
 (via the node's ``instance_info``  or ``ks_template`` glance image property),
 the default kickstart template will be used to deploy the OS.
-
-The default kickstart template is specified via the configuration option
-``[anaconda]default_ks_template``. It is set to this `ks.cfg.template`_
-but can be modified to be some other template.
 
 This is an example of how to set the kickstart template for a specific
 ironic node:
