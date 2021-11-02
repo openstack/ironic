@@ -593,6 +593,27 @@ helpful to connect to the IPA and inspect its logs, see the trouble shooting
 guide of the :ironic-python-agent-doc:`ironic-python-agent (IPA) <>` on how
 to do this.
 
+Stopping the operation
+----------------------
+
+Cleaning, inspection and rescuing can be stopped while in ``clean wait``,
+``inspect wait`` and ``rescue wait`` states using the ``abort`` command.
+It will move the node to the corresponding failure state (``clean failed``,
+``inspect failed`` or ``rescue failed``)::
+
+    baremetal node abort <node>
+
+Deploying can be aborted while in the ``wait call-back`` state  by starting an
+undeploy (normally resulting in cleaning)::
+
+    baremetal node undeploy <node>
+
+See :doc:`/user/states` for more details.
+
+.. note::
+   Since the Bare Metal service is not doing anything actively in waiting
+   states, the nodes are not moved to failed states on conductor restart.
+
 Deployments fail with "failed to update MAC address"
 ====================================================
 
