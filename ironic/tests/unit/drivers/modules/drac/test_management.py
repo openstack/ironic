@@ -277,7 +277,8 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
 
         self.assertEqual(0, mock_list_unfinished_jobs.call_count)
         self.assertEqual(0, mock_client.delete_jobs.call_count)
-        mock_validate_job_queue.assert_called_once_with(self.node)
+        mock_validate_job_queue.assert_called_once_with(
+            self.node, name_prefix="Configure: BIOS")
         mock_client.change_boot_device_order.assert_called_once_with(
             'OneTime', 'BIOS.Setup.1-1#BootSeq#NIC.Embedded.1-1-1')
         self.assertEqual(0, mock_client.set_bios_settings.call_count)
@@ -541,7 +542,8 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
         self.assertEqual(0, mock_list_unfinished_jobs.call_count)
         self.assertEqual(0, mock_client.delete_jobs.call_count)
 
-        mock_validate_job_queue.assert_called_once_with(self.node)
+        mock_validate_job_queue.assert_called_once_with(
+            self.node, name_prefix="Configure: BIOS")
 
     @mock.patch.object(drac_job, 'validate_job_queue', spec_set=True,
                        autospec=True)
@@ -592,7 +594,8 @@ class DracManagementInternalMethodsTestCase(test_utils.BaseDracTest):
         self.assertEqual(0, mock_list_unfinished_jobs.call_count)
         self.assertEqual(0, mock_client.delete_jobs.call_count)
 
-        mock_validate_job_queue.assert_called_once_with(self.node)
+        mock_validate_job_queue.assert_called_once_with(
+            self.node, name_prefix="Configure: BIOS")
 
     @mock.patch.object(drac_mgmt, '_get_next_persistent_boot_mode',
                        spec_set=True, autospec=True)
