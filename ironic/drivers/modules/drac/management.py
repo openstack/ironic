@@ -247,7 +247,7 @@ def set_boot_device(node, device, persistent=False):
                 client.delete_jobs(job_ids=[job.id for job in unfinished_jobs])
 
     if validate_job_queue:
-        drac_job.validate_job_queue(node)
+        drac_job.validate_job_queue(node, name_prefix="Configure: BIOS")
 
     try:
         drac_boot_devices = client.list_boot_devices()
