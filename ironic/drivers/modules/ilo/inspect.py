@@ -299,7 +299,8 @@ class IloInspect(base.InspectInterface):
         task.node.save()
 
         # Create ports for the nics detected.
-        inspect_utils.create_ports_if_not_exist(task, result['macs'])
+        inspect_utils.create_ports_if_not_exist(
+            task, list(result['macs'].values()))
 
         LOG.debug("Node properties for %(node)s are updated as "
                   "%(properties)s",

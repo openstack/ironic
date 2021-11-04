@@ -1362,13 +1362,11 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_get_mac_addresses_success(self, mock_get_system):
-        expected_properties = {'00:11:22:33:44:55': 'enabled'}
-
         self.init_system_mock(mock_get_system.return_value)
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            self.assertEqual(expected_properties,
+            self.assertEqual(['00:11:22:33:44:55'],
                              task.driver.management.get_mac_addresses(task))
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -1378,4 +1376,5 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         system_mock.ethernet_interfaces.summary = None
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            self.assertIsNone(task.driver.management.get_mac_addresses(task))
+            self.assertEqual([],
+                             task.driver.management.get_mac_addresses(task))

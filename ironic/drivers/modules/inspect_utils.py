@@ -21,8 +21,7 @@ from ironic import objects
 LOG = logging.getLogger(__name__)
 
 
-def create_ports_if_not_exist(
-        task, macs, get_mac_address=lambda x: x[1]):
+def create_ports_if_not_exist(task, macs):
     """Create ironic ports from MAC addresses data dict.
 
     Creates ironic ports from MAC addresses data returned with inspection or
@@ -31,14 +30,10 @@ def create_ports_if_not_exist(
     pair.
 
     :param task: A TaskManager instance.
-    :param macs: A dictionary of MAC addresses returned by node inspection.
-    :param get_mac_address: a function to get the MAC address from mac item.
-        A mac item is the dict key-value pair of the previous ``macs``
-        argument.
+    :param macs: A sequence of MAC addresses.
     """
     node = task.node
-    for k_v_pair in macs.items():
-        mac = get_mac_address(k_v_pair)
+    for mac in macs:
         port_dict = {'address': mac, 'node_id': node.id}
         port = objects.Port(task.context, **port_dict)
 

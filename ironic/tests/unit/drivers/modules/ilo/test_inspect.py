@@ -81,7 +81,8 @@ class IloInspectTestCase(test_common.BaseIloTest):
                                                        ilo_object_mock)
             get_capabilities_mock.assert_called_once_with(task.node,
                                                           ilo_object_mock)
-            create_port_mock.assert_called_once_with(task, macs)
+            create_port_mock.assert_called_once_with(
+                task, ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb'])
 
     @mock.patch.object(ilo_inspect.LOG, 'warning',
                        spec_set=True, autospec=True)
@@ -126,7 +127,8 @@ class IloInspectTestCase(test_common.BaseIloTest):
             self.assertTrue(log_mock.called)
             get_capabilities_mock.assert_called_once_with(task.node,
                                                           ilo_object_mock)
-            create_port_mock.assert_called_once_with(task, macs)
+            create_port_mock.assert_called_once_with(
+                task, ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb'])
 
     @mock.patch.object(ilo_inspect.LOG, 'warning',
                        spec_set=True, autospec=True)
@@ -168,7 +170,8 @@ class IloInspectTestCase(test_common.BaseIloTest):
             self.assertTrue(log_mock.called)
             get_capabilities_mock.assert_called_once_with(task.node,
                                                           ilo_object_mock)
-            create_port_mock.assert_called_once_with(task, macs)
+            create_port_mock.assert_called_once_with(
+                task, ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb'])
 
     @mock.patch.object(ilo_inspect.LOG, 'warning',
                        spec_set=True, autospec=True)
@@ -217,7 +220,8 @@ class IloInspectTestCase(test_common.BaseIloTest):
             self.assertFalse(log_mock.called)
             get_capabilities_mock.assert_called_once_with(task.node,
                                                           ilo_object_mock)
-            create_port_mock.assert_called_once_with(task, macs)
+            create_port_mock.assert_called_once_with(
+                task, ['aa:aa:aa:aa:aa:aa'])
 
     @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
@@ -256,7 +260,8 @@ class IloInspectTestCase(test_common.BaseIloTest):
                                                        ilo_object_mock)
             get_capabilities_mock.assert_called_once_with(task.node,
                                                           ilo_object_mock)
-            create_port_mock.assert_called_once_with(task, macs)
+            create_port_mock.assert_called_once_with(
+                task, ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb'])
 
     @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
@@ -295,7 +300,8 @@ class IloInspectTestCase(test_common.BaseIloTest):
                                                        ilo_object_mock)
             get_capabilities_mock.assert_called_once_with(task.node,
                                                           ilo_object_mock)
-            create_port_mock.assert_called_once_with(task, macs)
+            create_port_mock.assert_called_once_with(
+                task, ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb'])
 
     @mock.patch.object(ilo_inspect, '_get_capabilities', spec_set=True,
                        autospec=True)
@@ -341,7 +347,8 @@ class IloInspectTestCase(test_common.BaseIloTest):
                                                        ilo_object_mock)
             get_capabilities_mock.assert_called_once_with(task.node,
                                                           ilo_object_mock)
-            create_port_mock.assert_called_once_with(task, macs)
+            create_port_mock.assert_called_once_with(
+                task, ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb'])
 
 
 class TestInspectPrivateMethods(test_common.BaseIloTest):

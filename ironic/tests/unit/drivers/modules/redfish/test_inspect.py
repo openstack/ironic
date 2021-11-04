@@ -118,7 +118,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             task.driver.inspect.inspect_hardware(task)
             result = task.driver.management.get_mac_addresses(task)
             inspect_utils.create_ports_if_not_exist.assert_called_once_with(
-                task, result, mock.ANY)
+                task, result)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_fail_missing_cpu(self, mock_get_system):
