@@ -294,6 +294,15 @@ def log_and_raise_deployment_error(task, msg, collect_logs=True, exc=None):
     """
     log_traceback = (exc is not None
                      and not isinstance(exc, exception.IronicException))
+
+    # Replicate the logic in do_next_deploy_step to prepend the current step
+    step_id = (conductor_steps.step_id(task.node.deploy_step)
+               if task.node.deploy_step else None)
+    if step_id and step_id not in msg:
+        msg = _("Deploy step %(step)s failed: %(err)s") % {
+            'step': step_id, 'err': msg
+        }
+
     LOG.error(msg, exc_info=log_traceback)
     deploy_utils.set_failed_state(task, msg, collect_logs=collect_logs)
     raise exception.InstanceDeployFailure(msg)

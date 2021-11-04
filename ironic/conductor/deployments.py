@@ -265,6 +265,16 @@ def do_next_deploy_step(task, step_index):
                  {'step': step, 'node': node.uuid})
         try:
             result = interface.execute_deploy_step(task, step)
+        except exception.AgentInProgress as e:
+            LOG.info('Conductor attempted to process deploy step for '
+                     'node %(node)s. Agent indicated it is presently '
+                     'executing a command. Error: %(error)s',
+                     {'node': task.node.uuid,
+                      'error': e})
+            driver_internal_info['skip_current_deploy_step'] = False
+            node.driver_internal_info = driver_internal_info
+            task.process_event('wait')
+            return
         except exception.IronicException as e:
             if isinstance(e, exception.AgentConnectionFailed):
                 if task.node.driver_internal_info.get('deployment_reboot'):
@@ -276,23 +286,17 @@ def do_next_deploy_step(task, step_index):
                     node.driver_internal_info = driver_internal_info
                     task.process_event('wait')
                     return
-            if isinstance(e, exception.AgentInProgress):
-                LOG.info('Conductor attempted to process deploy step for '
-                         'node %(node)s. Agent indicated it is presently '
-                         'executing a command. Error: %(error)s',
-                         {'node': task.node.uuid,
-                          'error': e})
-                driver_internal_info['skip_current_deploy_step'] = False
-                node.driver_internal_info = driver_internal_info
-                task.process_event('wait')
-                return
-            log_msg = ('Node %(node)s failed deploy step %(step)s. Error: '
-                       '%(err)s' %
-                       {'node': node.uuid, 'step': node.deploy_step, 'err': e})
-            utils.deploying_error_handler(
-                task, log_msg,
-                _("Deploy step %(step)s failed: %(err)s.")
-                % {'step': conductor_steps.step_id(step), 'err': e})
+
+            # Avoid double handling of failures. For example, set_failed_state
+            # from deploy_utils already calls deploying_error_handler.
+            if task.node.provision_state != states.DEPLOYFAIL:
+                log_msg = ('Node %(node)s failed deploy step %(step)s. Error: '
+                           '%(err)s' % {'node': node.uuid,
+                                        'step': node.deploy_step, 'err': e})
+                utils.deploying_error_handler(
+                    task, log_msg,
+                    _("Deploy step %(step)s failed: %(err)s.")
+                    % {'step': conductor_steps.step_id(step), 'err': e})
             return
         except Exception as e:
             log_msg = ('Node %(node)s failed deploy step %(step)s with '
@@ -300,7 +304,10 @@ def do_next_deploy_step(task, step_index):
                        {'node': node.uuid, 'step': node.deploy_step, 'err': e})
             utils.deploying_error_handler(
                 task, log_msg,
-                _("Failed to deploy. Exception: %s") % e, traceback=True)
+                _("Deploy step %(step)s failed with %(exc)s: %(err)s.")
+                % {'step': conductor_steps.step_id(step), 'err': e,
+                   'exc': e.__class__.__name__},
+                traceback=True)
             return
 
         if task.node.provision_state == states.DEPLOYFAIL:
