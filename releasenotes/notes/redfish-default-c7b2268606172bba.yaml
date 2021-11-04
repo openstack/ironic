@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    The ``redfish`` hardware type is now enabled by default along with all
+    its supported hardware interfaces.

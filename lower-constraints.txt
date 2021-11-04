@@ -48,7 +48,8 @@ requests==2.18.0
 rfc3986==1.2.0
 SQLAlchemy==1.2.19
 stestr==2.0.0
-stevedore==1.20.0
+stevedore==1.29.0
+sushy==3.10.0
 tenacity==6.2.0
 testtools==2.2.0
 tooz==2.7.0
