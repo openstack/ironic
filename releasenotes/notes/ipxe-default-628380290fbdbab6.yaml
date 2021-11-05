@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    The ``ipxe`` boot interface is now enabled by default.
+upgrade:
+  - |
+    The ``ipxe`` boot interface is now enabled and will have priority over
+    ``pxe`` by default. If you rely on the default value of the
+    ``enabled_boot_interfaces`` option to not contain ``ipxe``, you need to set
+    it explicitly.
