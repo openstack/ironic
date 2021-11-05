@@ -396,7 +396,8 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
 
         configuration = drac_utils.execute_oem_manager_method(
             task, 'export system configuration',
-            lambda m: m.export_system_configuration())
+            lambda m: m.export_system_configuration(
+                include_destructive_fields=False))
 
         if configuration and configuration.status_code == 200:
             configuration = {"oem": {"interface": "idrac-redfish",

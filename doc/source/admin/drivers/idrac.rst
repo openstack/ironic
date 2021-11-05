@@ -396,6 +396,12 @@ section uses the iDRAC Server Configuration Profile (SCP) and can be edited as
 necessary if it complies with the SCP. For more information about SCP and its
 capabilities, see SCP_Reference_Guide_.
 
+.. NOTE::
+   iDRAC BMC connection settings are not exported to avoid overwriting these in
+   another system when using unmodified exported configuration mold in import
+   step. If need to replicate iDRAC BMC connection settings, then add these
+   settings manually to configuration mold for import step.
+
 To replicate the system configuration to that of a similar system, perform the
 following steps:
 
