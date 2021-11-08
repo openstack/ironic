@@ -559,6 +559,17 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
     def test_payload_schemas(self):
         self._check_payload_schemas(objects.node, objects.Node.fields)
 
+    def test_get_interface(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        node.deploy_interface = 'direct'
+        self.assertEqual('direct', node.get_interface('deploy'))
+
+    def test_get_interface_overriden(self):
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        node.deploy_interface = 'direct'
+        node.instance_info = {'deploy_interface': 'ramdisk'}
+        self.assertEqual('ramdisk', node.get_interface('deploy'))
+
 
 class TestConvertToVersion(db_base.DbTestCase):
 

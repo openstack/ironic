@@ -153,7 +153,7 @@ def _ironic_manages_boot(task, raise_exc=False):
                   'not support managed boot for in-band inspection or '
                   'the required options are not populated: %(exc)s',
                   {'node': task.node.uuid,
-                   'iface': task.node.boot_interface,
+                   'iface': task.node.get_interface('boot'),
                    'exc': e})
         if raise_exc:
             raise
@@ -166,7 +166,7 @@ def _ironic_manages_boot(task, raise_exc=False):
                   'not support managed boot for in-band inspection or '
                   'the required options are not populated: %(exc)s',
                   {'node': task.node.uuid,
-                   'iface': task.node.network_interface,
+                   'iface': task.node.get_interface('network'),
                    'exc': e})
         if raise_exc:
             raise

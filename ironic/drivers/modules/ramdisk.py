@@ -60,7 +60,8 @@ class RamdiskDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
                         'deployment request of node %(node)s with boot '
                         'interface %(drv)s. The configuration drive will be '
                         'ignored for this deployment.',
-                        {'node': task.node, 'drv': task.node.boot_interface})
+                        {'node': task.node,
+                         'drv': task.node.get_interface('boot')})
         manager_utils.node_power_action(task, states.POWER_OFF)
         # Tenant neworks must enable connectivity to the boot
         # location, as reboot() can otherwise be very problematic.
