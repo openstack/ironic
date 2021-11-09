@@ -20,6 +20,7 @@ from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import utils
 from ironic.conf import CONF
 
 scci = importutils.try_import('scciclient.irmc.scci')
@@ -84,6 +85,8 @@ def parse_driver_info(node):
     opt = {param: info.get(param, CONF.irmc.get(param[len('irmc_'):]))
            for param in OPTIONAL_PROPERTIES}
     d_info = dict(req, **opt)
+    d_info['irmc_port'] = utils.validate_network_port(
+        d_info['irmc_port'], 'irmc_port')
 
     error_msgs = []
     if (d_info['irmc_auth_method'].lower() not in ('basic', 'digest')):

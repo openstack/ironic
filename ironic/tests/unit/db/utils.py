@@ -105,7 +105,7 @@ def get_test_irmc_info():
         "irmc_address": "1.2.3.4",
         "irmc_username": "admin0",
         "irmc_password": "fake0",
-        "irmc_port": 80,
+        "irmc_port": "80",
         "irmc_auth_method": "digest",
     }
 
