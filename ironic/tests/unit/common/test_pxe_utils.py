@@ -764,11 +764,6 @@ class TestPXEUtils(db_base.DbTestCase):
         self.assertEqual('/tftpboot/10.10.0.1.conf',
                          pxe_utils._get_pxe_ip_address_path(ipaddress))
 
-    def test_get_root_dir(self):
-        expected_dir = '/tftproot'
-        self.config(tftp_root=expected_dir, group='pxe')
-        self.assertEqual(expected_dir, pxe_utils.get_root_dir())
-
     def test_get_pxe_config_file_path(self):
         self.assertEqual(os.path.join(CONF.pxe.tftp_root,
                                       self.node.uuid,
@@ -794,7 +789,7 @@ class TestPXEUtils(db_base.DbTestCase):
                             group='pxe')
             else:
                 self.config(pxe_bootfile_name='fake-bootfile', group='pxe')
-        self.config(tftp_root='/tftp-path/', group='pxe')
+        self.config(tftp_root='/tftp-path', group='pxe')
         if ipxe:
             bootfile = 'fake-bootfile-ipxe'
         else:
@@ -979,28 +974,6 @@ class TestPXEUtils(db_base.DbTestCase):
             unlink_mock.assert_has_calls(unlink_calls)
             rmtree_mock.assert_called_once_with(
                 os.path.join(CONF.pxe.tftp_root, self.node.uuid))
-
-    def test_get_tftp_path_prefix_with_trailing_slash(self):
-        self.config(tftp_root='/tftpboot-path/', group='pxe')
-        path_prefix = pxe_utils.get_tftp_path_prefix()
-        self.assertEqual(path_prefix, '/tftpboot-path/')
-
-    def test_get_tftp_path_prefix_without_trailing_slash(self):
-        self.config(tftp_root='/tftpboot-path', group='pxe')
-        path_prefix = pxe_utils.get_tftp_path_prefix()
-        self.assertEqual(path_prefix, '/tftpboot-path/')
-
-    def test_get_path_relative_to_tftp_root_with_trailing_slash(self):
-        self.config(tftp_root='/tftpboot-path/', group='pxe')
-        test_file_path = '/tftpboot-path/pxelinux.cfg/test'
-        relpath = pxe_utils.get_path_relative_to_tftp_root(test_file_path)
-        self.assertEqual(relpath, 'pxelinux.cfg/test')
-
-    def test_get_path_relative_to_tftp_root_without_trailing_slash(self):
-        self.config(tftp_root='/tftpboot-path', group='pxe')
-        test_file_path = '/tftpboot-path/pxelinux.cfg/test'
-        relpath = pxe_utils.get_path_relative_to_tftp_root(test_file_path)
-        self.assertEqual(relpath, 'pxelinux.cfg/test')
 
     @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
     @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
