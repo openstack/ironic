@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds a new configuration option ``[pxe]ipxe_fallback_script`` which allows
+    iPXE boot to fall back to e.g. ironic-inspector iPXE script.

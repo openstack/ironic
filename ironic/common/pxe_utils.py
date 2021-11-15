@@ -379,7 +379,8 @@ def create_ipxe_boot_script():
     """Render the iPXE boot script into the HTTP root directory"""
     boot_script = utils.render_template(
         CONF.pxe.ipxe_boot_script,
-        {'ipxe_for_mac_uri': PXE_CFG_DIR_NAME + '/'})
+        {'ipxe_for_mac_uri': PXE_CFG_DIR_NAME + '/',
+         'ipxe_fallback_script': CONF.pxe.ipxe_fallback_script})
     bootfile_path = os.path.join(
         CONF.deploy.http_root,
         os.path.basename(CONF.pxe.ipxe_boot_script))

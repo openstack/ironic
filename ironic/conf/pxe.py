@@ -144,6 +144,10 @@ opts = [
                    '$pybasedir', 'drivers/modules/boot.ipxe'),
                help=_('On ironic-conductor node, the path to the main iPXE '
                       'script file.')),
+    cfg.StrOpt('ipxe_fallback_script',
+               help=_('File name (e.g. inspector.ipxe) of an iPXE script to '
+                      'fall back to when booting to a MAC-specific script '
+                      'fails. When not set, booting will fail in this case.')),
     cfg.IntOpt('ipxe_timeout',
                default=0,
                help=_('Timeout value (in seconds) for downloading an image '
