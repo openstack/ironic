@@ -1512,9 +1512,10 @@ class ConductorManager(base_manager.BaseConductorManager):
         conditions are met:
 
         1) Node is mapped to this conductor.
-        2) Node is in maintenance with maintenance type of power failure.
-        3) Node is not reserved.
-        4) Node is not in the ENROLL state.
+        2) Node is in maintenance.
+        3) Node's fault field is set to 'power failure'.
+        4) Node is not reserved.
+        5) Node is not in the ENROLL state.
         """
         def handle_recovery(task, actual_power_state):
             """Handle recovery when power sync is succeeded."""
