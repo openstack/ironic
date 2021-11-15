@@ -652,7 +652,7 @@ class DracRedfishInspectionTestCase(test_utils.BaseDracTest):
             return_value = task.driver.inspect.inspect_hardware(task)
             self.assertEqual(states.MANAGEABLE, return_value)
             mock_create_ports_if_not_exist.assert_called_once_with(
-                task, ethernet_interfaces_mac)
+                task, ['24:6E:96:70:49:00'])
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test__get_mac_address_with_ethernet_interfaces(self, mock_get_system):

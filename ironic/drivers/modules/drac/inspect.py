@@ -68,7 +68,7 @@ class DracRedfishInspect(redfish_inspect.RedfishInspect):
         # versions of the firmware where the port state is not being
         # reported correctly.
 
-        ethernet_interfaces_mac = self._get_mac_address(task)
+        ethernet_interfaces_mac = list(self._get_mac_address(task).values())
         inspect_utils.create_ports_if_not_exist(task, ethernet_interfaces_mac)
         return super(DracRedfishInspect, self).inspect_hardware(task)
 
@@ -76,7 +76,7 @@ class DracRedfishInspect(redfish_inspect.RedfishInspect):
         """Get a list of MAC addresses
 
         :param task: a TaskManager instance.
-        :returns: Returns list of MAC addresses.
+        :returns: a mapping of interface identities to MAC addresses.
         """
         system = redfish_utils.get_system(task.node)
         # Get dictionary of ethernet interfaces

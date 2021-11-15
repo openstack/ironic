@@ -381,7 +381,7 @@ def get_enabled_macs(task, system):
     :param task: a TaskManager instance containing the node to act on.
     :param system: a Redfish System object
     :returns: a dictionary containing MAC addresses of enabled interfaces
-        in a {'mac': 'state'} format
+        in a {'mac': <state>} format, where <state> is a sushy constant
     """
 
     enabled_macs = {}
@@ -398,11 +398,11 @@ def get_enabled_macs(task, system):
                             "reported", {'node': task.node.uuid})
                 continue
             enabled_macs[nic_mac] = nic_state
-        if enabled_macs:
-            return enabled_macs
 
-    LOG.debug("No ethernet interface information is available "
-              "for node %(node)s", {'node': task.node.uuid})
+    if not enabled_macs:
+        LOG.debug("No ethernet interface information is available "
+                  "for node %(node)s", {'node': task.node.uuid})
+    return enabled_macs
 
 
 def wait_until_get_system_ready(node):

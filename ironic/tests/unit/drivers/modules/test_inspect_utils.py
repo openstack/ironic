@@ -39,7 +39,7 @@ class InspectFunctionTestCase(db_base.DbTestCase):
     @mock.patch.object(utils.LOG, 'info', spec_set=True, autospec=True)
     @mock.patch.object(objects, 'Port', spec_set=True, autospec=True)
     def test_create_ports_if_not_exist(self, port_mock, log_mock):
-        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        macs = {'aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb'}
         node_id = self.node.id
         port_dict1 = {'address': 'aa:aa:aa:aa:aa:aa', 'node_id': node_id}
         port_dict2 = {'address': 'bb:bb:bb:bb:bb:bb', 'node_id': node_id}
@@ -61,7 +61,7 @@ class InspectFunctionTestCase(db_base.DbTestCase):
                                                      create_mock,
                                                      log_mock):
         create_mock.side_effect = exception.MACAlreadyExists('f')
-        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        macs = {'aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb'}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             utils.create_ports_if_not_exist(task, macs)
@@ -71,15 +71,13 @@ class InspectFunctionTestCase(db_base.DbTestCase):
     @mock.patch.object(objects, 'Port', spec_set=True, autospec=True)
     def test_create_ports_if_not_exist_attempts_port_creation_blindly(
             self, port_mock, log_info_mock):
-        macs = {'aa:bb:cc:dd:ee:ff': sushy.STATE_ENABLED,
-                'aa:bb:aa:aa:aa:aa': sushy.STATE_DISABLED}
+        macs = {'aa:bb:cc:dd:ee:ff', 'aa:bb:aa:aa:aa:aa'}
         node_id = self.node.id
         port_dict1 = {'address': 'aa:bb:cc:dd:ee:ff', 'node_id': node_id}
         port_dict2 = {'address': 'aa:bb:aa:aa:aa:aa', 'node_id': node_id}
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            utils.create_ports_if_not_exist(
-                task, macs, get_mac_address=lambda x: x[0])
+            utils.create_ports_if_not_exist(task, macs)
             self.assertTrue(log_info_mock.called)
             expected_calls = [mock.call(task.context, **port_dict1),
                               mock.call(task.context, **port_dict2)]

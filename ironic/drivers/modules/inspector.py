@@ -246,8 +246,7 @@ class Inspector(base.InspectInterface):
         try:
             enabled_macs = task.driver.management.get_mac_addresses(task)
             if enabled_macs:
-                inspect_utils.create_ports_if_not_exist(
-                    task, enabled_macs, get_mac_address=lambda x: x[0])
+                inspect_utils.create_ports_if_not_exist(task, enabled_macs)
             else:
                 LOG.warning("Not attempting to create any port as no NICs "
                             "were discovered in 'enabled' state for node "

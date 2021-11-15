@@ -1114,12 +1114,11 @@ class RedfishManagement(base.ManagementInterface):
         :param task: A TaskManager instance containing the node to act on.
         :raises: RedfishConnectionError when it fails to connect to Redfish
         :raises: RedfishError on an error from the Sushy library
-        :returns: a dictionary containing MAC addresses of enabled interfaces
-                  in a {'mac': 'state'} format
+        :returns: A list of MAC addresses for the node
         """
         try:
             system = redfish_utils.get_system(task.node)
-            return redfish_utils.get_enabled_macs(task, system)
+            return list(redfish_utils.get_enabled_macs(task, system))
         except sushy.exceptions.SushyError as exc:
             msg = (_('Failed to get network interface information on node '
                      '%(node)s: %(exc)s')
