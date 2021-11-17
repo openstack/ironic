@@ -142,7 +142,7 @@ owner_reader_can_get_node:
 lessee_admin_can_get_node:
   path: '/v1/nodes'
   method: get
-  headers: *lessee_reader_headers
+  headers: *lessee_admin_headers
   assert_list_length:
       nodes: 1
   assert_status: 200
@@ -150,7 +150,7 @@ lessee_admin_can_get_node:
 lessee_member_can_get_node:
   path: '/v1/nodes'
   method: get
-  headers: *lessee_reader_headers
+  headers: *lessee_member_headers
   assert_list_length:
       nodes: 1
   assert_status: 200
@@ -206,7 +206,7 @@ lessee_reader_cant_get_other_node:
 third_party_admin_cant_get_node:
   path: '/v1/nodes/{node_ident}'
   method: get
-  headers: *owner_reader_headers
+  headers: *third_party_admin_headers
   assert_status: 404
 
 # Node body filter thresholds before detailed listing
@@ -366,7 +366,7 @@ owner_member_can_patch_all_the_things:
 owner_member_can_change_lessee:
   path: '/v1/nodes/{owner_node_ident}'
   method: patch
-  headers: *owner_admin_headers
+  headers: *owner_member_headers
   assert_status: 503
   body:
     - op: replace
@@ -588,7 +588,7 @@ lessee_admin_can_validate_node:
 owner_member_can_validate_node:
   path: '/v1/nodes/{owner_node_ident}/validate'
   method: get
-  headers: *owner_admin_headers
+  headers: *owner_member_headers
   assert_status: 503
 
 lessee_member_cannot_validate_node:
@@ -711,7 +711,7 @@ owner_admin_can_get_boot_device:
 lessee_admin_cannot_get_boot_device:
   path: '/v1/nodes/{lessee_node_ident}/management/boot_device'
   method: get
-  headers: *lessee_member_headers
+  headers: *lessee_admin_headers
   assert_status: 403
 
 owner_member_cannot_get_boot_device:
@@ -1036,7 +1036,7 @@ owner_member_can_set_raid_config:
 lessee_member_cannot_set_raid_config:
   path: '/v1/nodes/{lessee_node_ident}/states/raid'
   method: put
-  headers: *lessee_admin_headers
+  headers: *lessee_member_headers
   body: *raid_body
   assert_status: 403
 
@@ -1353,7 +1353,7 @@ owner_member_cannot_put_traits:
 lessee_admin_cannot_put_traits:
   path: '/v1/nodes/{lessee_node_ident}/traits'
   method: put
-  headers: *owner_member_headers
+  headers: *lessee_admin_headers
   assert_status: 403
   body: *traits_body
 
@@ -1520,7 +1520,7 @@ lessee_admin_can_delete_vifs:
 owner_member_can_delete_vifs:
   path: '/v1/nodes/{owner_node_ident}/vifs/{vif_ident}'
   method: delete
-  headers: *owner_admin_headers
+  headers: *owner_member_headers
   assert_status: 503
 
 lessee_member_cannot_delete_vifs:
@@ -2058,14 +2058,14 @@ lessee_member_cannot_patch_volume_connectors:
 owner_admin_can_patch_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: patch
-  headers: *owner_member_headers
+  headers: *owner_admin_headers
   body: *connector_patch_body
   assert_status: 503
 
 lessee_admin_cannot_patch_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: patch
-  headers: *owner_member_headers
+  headers: *owner_admin_headers
   body: *connector_patch_body
   assert_status: 503
 
@@ -2093,14 +2093,14 @@ third_party_admin_cannot_patch_volume_connectors:
 owner_admin_can_delete_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
-  headers: *owner_reader_headers
-  assert_status: 403
+  headers: *owner_admin_headers
+  assert_status: 503
 
-lessee_admin_cannot_delete_volume_connectors:
+lessee_admin_can_delete_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
-  headers: *lessee_reader_headers
-  assert_status: 403
+  headers: *lessee_admin_headers
+  assert_status: 503
 
 third_party_admin_cannot_delete_volume_connector:
   path: '/v1/volume/connectors/{volume_connector_ident}'
@@ -2145,7 +2145,6 @@ owner_reader_can_get_volume_target:
     properties:
       redacted_contents: '** Value redacted: Requires permission baremetal:volume:view_target_properties access. Permission denied. **'
 
-
 lessee_reader_can_get_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: get
@@ -2172,10 +2171,10 @@ owner_admin_create_volume_target:
 lessee_admin_create_volume_target:
   path: '/v1/volume/targets'
   method: post
-  headers: *owner_admin_headers
+  headers: *lessee_admin_headers
   assert_status: 201
   body:
-    node_uuid: 38d5abed-c585-4fce-a57e-a2ffc2a2ec6f 
+    node_uuid: 38d5abed-c585-4fce-a57e-a2ffc2a2ec6f
     volume_type: iscsi
     boot_index: 2
     volume_id: 'test-id2'
@@ -2552,7 +2551,7 @@ owner_admin_can_delete_allocation:
   headers: *owner_admin_headers
   assert_status: 503
 
-lessee_admin_not_delete_allocation:
+lessee_admin_can_delete_allocation:
   path: '/v1/nodes/{allocated_node_ident}/allocation'
   method: delete
   headers: *lessee_admin_headers
