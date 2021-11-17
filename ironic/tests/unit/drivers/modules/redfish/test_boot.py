@@ -235,11 +235,12 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_swift_api.delete_object.assert_called_once_with(
                 'ironic_redfish_container', object_name)
 
+    @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch.object(redfish_boot, 'shutil', autospec=True)
     @mock.patch.object(os, 'link', autospec=True)
     @mock.patch.object(os, 'mkdir', autospec=True)
     def test__publish_image_local_link(
-            self, mock_mkdir, mock_link, mock_shutil):
+            self, mock_mkdir, mock_link, mock_shutil, mock_chmod):
         self.config(use_swift=False, group='redfish')
         self.config(http_url='http://localhost', group='deploy')
 
@@ -251,15 +252,17 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertEqual(
                 'http://localhost/redfish/boot.iso?filename=file.iso', url)
 
-            mock_mkdir.assert_called_once_with('/httpboot/redfish', 0x755)
+            mock_mkdir.assert_called_once_with('/httpboot/redfish', 0o755)
             mock_link.assert_called_once_with(
                 'file.iso', '/httpboot/redfish/boot.iso')
+            mock_chmod.assert_called_once_with('file.iso', 0o644)
 
+    @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch.object(redfish_boot, 'shutil', autospec=True)
     @mock.patch.object(os, 'link', autospec=True)
     @mock.patch.object(os, 'mkdir', autospec=True)
     def test__publish_image_local_copy(
-            self, mock_mkdir, mock_link, mock_shutil):
+            self, mock_mkdir, mock_link, mock_shutil, mock_chmod):
         self.config(use_swift=False, group='redfish')
         self.config(http_url='http://localhost', group='deploy')
 
@@ -273,10 +276,12 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertEqual(
                 'http://localhost/redfish/boot.iso?filename=file.iso', url)
 
-            mock_mkdir.assert_called_once_with('/httpboot/redfish', 0x755)
+            mock_mkdir.assert_called_once_with('/httpboot/redfish', 0o755)
 
             mock_shutil.copyfile.assert_called_once_with(
                 'file.iso', '/httpboot/redfish/boot.iso')
+            mock_chmod.assert_called_once_with('/httpboot/redfish/boot.iso',
+                                               0o644)
 
     @mock.patch.object(redfish_boot, 'ironic_utils', autospec=True)
     def test__unpublish_image_local(self, mock_ironic_utils):

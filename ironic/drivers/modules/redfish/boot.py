@@ -266,12 +266,13 @@ class RedfishVirtualMediaBoot(base.BootInterface):
             public_dir = os.path.join(CONF.deploy.http_root, cls.IMAGE_SUBDIR)
 
             if not os.path.exists(public_dir):
-                os.mkdir(public_dir, 0x755)
+                os.mkdir(public_dir, 0o755)
 
             published_file = os.path.join(public_dir, object_name)
 
             try:
                 os.link(image_file, published_file)
+                os.chmod(image_file, CONF.redfish.file_permission)
 
             except OSError as exc:
                 LOG.debug(
@@ -282,6 +283,7 @@ class RedfishVirtualMediaBoot(base.BootInterface):
                                   'error': exc})
 
                 shutil.copyfile(image_file, published_file)
+                os.chmod(published_file, CONF.redfish.file_permission)
 
             image_url = os.path.join(
                 CONF.deploy.http_url, cls.IMAGE_SUBDIR, object_name)
