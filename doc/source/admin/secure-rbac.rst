@@ -62,6 +62,12 @@ Project Scoped
 Project scoped authentication is when a request token and associated records
 indicate an associated ``project_id`` value.
 
+The Secure RBAC model, since the introduction of the base capability has been
+extended as a result of an OpenStack community goal to include a ``manager``
+role in the project scope. By default, this access is equivelent to a Project
+scoped ``admin`` user, however it may be delineated further as time moves
+forward.
+
 Legacy Behavior
 ---------------
 

@@ -64,6 +64,13 @@ SYSTEM_READER = 'role:reader and system_scope:all'
 # default volume type for a project)
 PROJECT_ADMIN = ('role:admin and '
                  'project_id:%(node.owner)s')
+# This check string is reserved for an intermediate point between
+# a Project Admin and a Project Member. This is an outcome of the
+# revised Yoga Secure RBAC community goal.
+# The advantage here may be that this rule *does* match against node owners
+# and lessees.
+PROJECT_MANAGER = ('role:manager and '
+                   '(project_id:%(node.owner)s or project_id:%(node.lessee)s)')
 # This check string is the primary use case for typical end-users, who are
 # working with resources that belong to a project (e.g., creating volumes and
 # backups).
@@ -88,24 +95,30 @@ SYSTEM_OR_PROJECT_READER = (
 )
 
 PROJECT_OWNER_ADMIN = ('role:admin and project_id:%(node.owner)s')
+PROJECT_OWNER_MANAGER = ('role:manager and project_id:%(node.owner)s')
 PROJECT_OWNER_MEMBER = ('role:member and project_id:%(node.owner)s')
 PROJECT_OWNER_READER = ('role:reader and project_id:%(node.owner)s')
 PROJECT_LESSEE_ADMIN = ('role:admin and project_id:%(node.lessee)s')
+PROJECT_LESSEE_MANAGER = ('role:manager and project_id:%(node.lessee)s')
 
+# Not used - Members can create/destroy their allocations.
 ALLOCATION_OWNER_ADMIN = ('role:admin and project_id:%(allocation.owner)s')
+# Not used - Members can create/destroy their allocations.
+ALLOCATION_OWNER_MANAGER = ('role:manager and project_id:%(allocation.owner)s')
+
 ALLOCATION_OWNER_MEMBER = ('role:member and project_id:%(allocation.owner)s')
 ALLOCATION_OWNER_READER = ('role:reader and project_id:%(allocation.owner)s')
 
 SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN = (
-    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_MEMBER + ') or (' + PROJECT_LESSEE_ADMIN + ')'  # noqa
+    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_MEMBER + ') or (' + PROJECT_LESSEE_ADMIN + ') or (' + PROJECT_LESSEE_MANAGER + ')'  # noqa
 )
 
 SYSTEM_ADMIN_OR_OWNER_ADMIN = (
-    '(' + SYSTEM_ADMIN + ') or (' + PROJECT_OWNER_ADMIN + ')'
+    '(' + SYSTEM_ADMIN + ') or (' + PROJECT_OWNER_ADMIN + ') or (' + PROJECT_OWNER_MANAGER + ')'  # noqa
 )
 
 SYSTEM_MEMBER_OR_OWNER_ADMIN = (
-    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_ADMIN + ')'
+    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_ADMIN + ') or (' + PROJECT_OWNER_MANAGER + ')'  # noqa
 )
 
 SYSTEM_MEMBER_OR_OWNER_MEMBER = (
@@ -117,7 +130,7 @@ SYSTEM_OR_OWNER_READER = (
 )
 
 SYSTEM_MEMBER_OR_OWNER_LESSEE_ADMIN = (
-    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_ADMIN + ') or (' + PROJECT_LESSEE_ADMIN + ')'  # noqa
+    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_ADMIN + ') or (' + PROJECT_OWNER_MANAGER + ') or (' + PROJECT_LESSEE_ADMIN + ') or (' + PROJECT_LESSEE_MANAGER + ')'   # noqa
 )
 
 
