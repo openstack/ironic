@@ -111,9 +111,9 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.assertEqual(states.ACTIVE, node.target_provision_state)
             self.assertIsNotNone(node.last_error)
             if unexpected:
-                self.assertIn('Exception', node.last_error)
+                self.assertIn(exc.__class__.__name__, node.last_error)
             else:
-                self.assertNotIn('Exception', node.last_error)
+                self.assertNotIn(exc.__class__.__name__, node.last_error)
 
             mock_deploy.assert_called_once_with(mock.ANY, task)
 
@@ -636,20 +636,23 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
     @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
                 autospec=True)
-    def _do_next_deploy_step_execute_fail(self, exc, traceback,
+    def _do_next_deploy_step_execute_fail(self, exc, traceback, handled,
                                           mock_execute, mock_log):
         # When a deploy step fails, go to DEPLOYFAIL
         driver_internal_info = {'deploy_step_index': None,
                                 'deploy_steps': self.deploy_steps}
         self._start_service()
+
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             driver_internal_info=driver_internal_info,
+            provision_state=states.DEPLOYFAIL if handled else states.DEPLOYING,
+            target_provision_state=states.ACTIVE,
+            last_error='existing error' if handled else None,
             deploy_step={})
         mock_execute.side_effect = exc
 
         task = task_manager.TaskManager(self.context, node.uuid)
-        task.process_event('deploy')
 
         deployments.do_next_deploy_step(task, 0)
 
@@ -657,20 +660,30 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         node.refresh()
         self.assertEqual(states.DEPLOYFAIL, node.provision_state)
         self.assertEqual(states.ACTIVE, node.target_provision_state)
-        self.assertEqual({}, node.deploy_step)
-        self.assertNotIn('deploy_step_index', node.driver_internal_info)
-        self.assertIsNotNone(node.last_error)
+        if handled:
+            self.assertEqual('existing error', node.last_error)
+        else:
+            self.assertEqual({}, node.deploy_step)
+            self.assertNotIn('deploy_step_index', node.driver_internal_info)
+            self.assertIsNotNone(node.last_error)
+            self.assertIn(f"Deploy step deploy.{self.deploy_steps[0]['step']}",
+                          node.last_error)
+            mock_log.error.assert_called_once_with(mock.ANY,
+                                                   exc_info=traceback)
         self.assertFalse(node.maintenance)
         mock_execute.assert_called_once_with(mock.ANY, mock.ANY,
                                              self.deploy_steps[0])
-        mock_log.error.assert_called_once_with(mock.ANY, exc_info=traceback)
 
     def test_do_next_deploy_step_execute_ironic_exception(self):
         self._do_next_deploy_step_execute_fail(
-            exception.IronicException('foo'), False)
+            exception.IronicException('foo'), False, False)
 
     def test_do_next_deploy_step_execute_exception(self):
-        self._do_next_deploy_step_execute_fail(Exception('foo'), True)
+        self._do_next_deploy_step_execute_fail(Exception('foo'), True, False)
+
+    def test_do_next_deploy_step_execute_handled_exception(self):
+        self._do_next_deploy_step_execute_fail(
+            exception.IronicException('foo'), False, True)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_deploy_step',
                 autospec=True)
