@@ -2697,13 +2697,6 @@ function build_tinyipa_ramdisk {
         export AUTHORIZE_SSH=true
         export SSH_PUBLIC_KEY=$IRONIC_ANSIBLE_SSH_KEY.pub
     fi
-    # NOTE(TheJulia): This is insecure. We know it, we don't like it.
-    # but we need CI to work and we're in a catch-22 as we can't explicitly patch
-    # this in to the versions used for CI with ussuri and train releases. This is
-    # because the certificates on qemu.org can no longer be verified since it was
-    # recently in late October 2021.
-    sed -i 's/git\ clone\ --branch/git\ clone\ --insecure\ --branch/' build-tinyipa.sh
-    # Resume our build process.
     make
     cp tinyipa.gz $ramdisk_path
     cp tinyipa.vmlinuz $kernel_path
