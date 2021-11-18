@@ -1095,12 +1095,10 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.instance_info = {}
             node.instance_uuid = None
             utils.wipe_deploy_internal_info(task)
-            driver_internal_info = node.driver_internal_info
-            driver_internal_info.pop('instance', None)
-            driver_internal_info.pop('root_uuid_or_disk_id', None)
-            driver_internal_info.pop('is_whole_disk_image', None)
-            driver_internal_info.pop('deploy_boot_mode', None)
-            node.driver_internal_info = driver_internal_info
+            node.del_driver_internal_info('instance')
+            node.del_driver_internal_info('root_uuid_or_disk_id')
+            node.del_driver_internal_info('is_whole_disk_image')
+            node.del_driver_internal_info('deploy_boot_mode')
             network.remove_vifs_from_node(task)
             node.save()
             if node.allocation_id:
@@ -1720,9 +1718,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # supplied.
             iwdi = images.is_whole_disk_image(task.context,
                                               task.node.instance_info)
-            driver_internal_info = node.driver_internal_info
-            driver_internal_info['is_whole_disk_image'] = iwdi
-            node.driver_internal_info = driver_internal_info
+            node.set_driver_internal_info('is_whole_disk_image', iwdi)
             # Calling boot validate to ensure that sufficient information
             # is supplied to allow the node to be able to boot if takeover
             # writes items such as kernel/ramdisk data to disk.
@@ -1771,10 +1767,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # NOTE(kaifeng) Clear allocated_ipmi_terminal_port if exists,
             # so current conductor can allocate a new free port from local
             # resources.
-            internal_info = task.node.driver_internal_info
-            if 'allocated_ipmi_terminal_port' in internal_info:
-                internal_info.pop('allocated_ipmi_terminal_port')
-                task.node.driver_internal_info = internal_info
+            task.node.del_driver_internal_info('allocated_ipmi_terminal_port')
             try:
                 task.driver.console.start_console(task)
             except Exception as err:
@@ -1906,7 +1899,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # node instance for the current validations.
             iwdi = images.is_whole_disk_image(context,
                                               task.node.instance_info)
-            task.node.driver_internal_info['is_whole_disk_image'] = iwdi
+            task.node.set_driver_internal_info('is_whole_disk_image', iwdi)
             for iface_name in task.driver.non_vendor_interfaces:
                 iface = getattr(task.driver, iface_name)
                 result = reason = None
@@ -3500,7 +3493,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 # unusable value that can't be verified against.
                 # This is important if the agent lookup has occured with
                 # pre-generation of tokens with virtual media usage.
-                node.driver_internal_info['agent_secret_token'] = "******"
+                node.set_driver_internal_info('agent_secret_token', "******")
                 return node
             task.upgrade_lock()
             LOG.debug('Generating agent token for node %(node)s',

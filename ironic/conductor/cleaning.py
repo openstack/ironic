@@ -75,10 +75,9 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False):
 
     utils.wipe_cleaning_internal_info(task)
     if manual_clean:
-        info = node.driver_internal_info
-        info['clean_steps'] = clean_steps
-        info['cleaning_disable_ramdisk'] = disable_ramdisk
-        node.driver_internal_info = info
+        node.set_driver_internal_info('clean_steps', clean_steps)
+        node.set_driver_internal_info('cleaning_disable_ramdisk',
+                                      disable_ramdisk)
     task.node.save()
 
     # Retrieve BIOS config settings for this node
@@ -163,9 +162,7 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
         # Save which step we're about to start so we can restart
         # if necessary
         node.clean_step = step
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['clean_step_index'] = step_index + ind
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('clean_step_index', step_index + ind)
         node.save()
         interface = getattr(task.driver, step.get('interface'))
         LOG.info('Executing %(step)s on node %(node)s',
@@ -179,8 +176,8 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
                              'after cleaning reboot, waiting for agent to '
                              'come up to run next clean step %(step)s.',
                              {'node': node.uuid, 'step': step})
-                    driver_internal_info['skip_current_clean_step'] = False
-                    node.driver_internal_info = driver_internal_info
+                    node.set_driver_internal_info('skip_current_clean_step',
+                                                  False)
                     target_state = (states.MANAGEABLE if manual_clean
                                     else None)
                     task.process_event('wait', target_state=target_state)
@@ -191,8 +188,7 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
                          'executing a command. Error: %(error)s',
                          {'node': task.node.uuid,
                           'error': e})
-                driver_internal_info['skip_current_clean_step'] = False
-                node.driver_internal_info = driver_internal_info
+                node.set_driver_internal_info('skip_current_clean_step', False)
                 target_state = states.MANAGEABLE if manual_clean else None
                 task.process_event('wait', target_state=target_state)
                 return

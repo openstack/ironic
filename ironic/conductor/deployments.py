@@ -91,9 +91,7 @@ def start_deploy(task, manager, configdrive=None, event='deploy',
     # NOTE(sirushtim): The iwdi variable can be None. It's up to
     # the deploy driver to validate this.
     iwdi = images.is_whole_disk_image(task.context, node.instance_info)
-    driver_internal_info = node.driver_internal_info
-    driver_internal_info['is_whole_disk_image'] = iwdi
-    node.driver_internal_info = driver_internal_info
+    node.set_driver_internal_info('is_whole_disk_image', iwdi)
     node.save()
 
     try:
@@ -187,9 +185,7 @@ def do_node_deploy(task, conductor_id=None, configdrive=None,
         # validated & processed later together with driver and deploy template
         # steps.
         if deploy_steps:
-            info = node.driver_internal_info
-            info['user_deploy_steps'] = deploy_steps
-            node.driver_internal_info = info
+            node.set_driver_internal_info('user_deploy_steps', deploy_steps)
             node.save()
         # This gets the deploy steps (if any) from driver, deploy template and
         # deploy_steps argument and updates them in the node's
@@ -256,9 +252,7 @@ def do_next_deploy_step(task, step_index):
         # Save which step we're about to start so we can restart
         # if necessary
         node.deploy_step = step
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['deploy_step_index'] = idx
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('deploy_step_index', idx)
         node.save()
         interface = getattr(task.driver, step.get('interface'))
         LOG.info('Executing %(step)s on node %(node)s',
@@ -271,8 +265,8 @@ def do_next_deploy_step(task, step_index):
                      'executing a command. Error: %(error)s',
                      {'node': task.node.uuid,
                       'error': e})
-            driver_internal_info['skip_current_deploy_step'] = False
-            node.driver_internal_info = driver_internal_info
+            node.set_driver_internal_info('skip_current_deploy_step',
+                                          False)
             task.process_event('wait')
             return
         except exception.IronicException as e:
@@ -282,8 +276,8 @@ def do_next_deploy_step(task, step_index):
                              'deployment reboot, waiting for agent to come up '
                              'to run next deploy step %(step)s.',
                              {'node': node.uuid, 'step': step})
-                    driver_internal_info['skip_current_deploy_step'] = False
-                    node.driver_internal_info = driver_internal_info
+                    node.set_driver_internal_info('skip_current_deploy_step',
+                                                  False)
                     task.process_event('wait')
                     return
 
@@ -364,9 +358,7 @@ def validate_deploy_steps(task):
     conductor_steps.set_node_deployment_steps(
         task, reset_current=False)
 
-    info = task.node.driver_internal_info
-    info['steps_validated'] = True
-    task.node.driver_internal_info = info
+    task.node.set_driver_internal_info('steps_validated', True)
     task.node.save()
 
 
