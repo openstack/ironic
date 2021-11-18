@@ -189,14 +189,14 @@ fi
 IRONIC_ENFORCE_SCOPE=$(trueorfalse False IRONIC_ENFORCE_SCOPE)
 
 if [[ "$IRONIC_ENFORCE_SCOPE" == "True" ]]; then
-    OS_CLOUD=devstack-system-admin
+    IRONIC_OS_CLOUD=devstack-system-admin
 else
-    OS_CLOUD=devstack-admin
+    IRONIC_OS_CLOUD=devstack-admin
 fi
 
 # Versions and command line for API client
 IRONIC_DEFAULT_API_VERSION=${IRONIC_DEFAULT_API_VERSION:-}
-IRONIC_CMD="openstack --os-cloud $OS_CLOUD baremetal"
+IRONIC_CMD="openstack --os-cloud $IRONIC_OS_CLOUD baremetal"
 if [[ -n "$IRONIC_DEFAULT_API_VERSION" ]]; then
     IRONIC_CMD="$IRONIC_CMD --os-baremetal-api-version $IRONIC_DEFAULT_API_VERSION"
 fi
@@ -1972,25 +1972,16 @@ function start_ironic_api {
     fi
 }
 
-# Unsets environment variables so the client doesn't try to be too smart
-# and reads from clouds.yaml.
-function remove_client_environment_variables {
-    unset OS_PROJECT_DOMAIN_ID
-    unset OS_PROJECT_NAME
-    unset OS_USER_DOMAIN_ID
-}
-
 # start_ironic_conductor() - Used by start_ironic().
 # Starts Ironic conductor.
 function start_ironic_conductor {
     run_process ir-cond "$IRONIC_BIN_DIR/ironic-conductor --config-file=$IRONIC_CONF_FILE"
 
-    remove_client_environment_variables
     # Wait up to 30 seconds for ironic-conductor to start and register itself
     local attempt
     local max_attempts=7
     for attempt in $(seq 1 $max_attempts); do
-        if openstack --os-cloud $OS_CLOUD baremetal driver list | grep -q $IRONIC_DEPLOY_DRIVER; then
+        if openstack --os-cloud $IRONIC_OS_CLOUD baremetal driver list | grep -q $IRONIC_DEPLOY_DRIVER; then
             break
         fi
 
@@ -1999,7 +1990,7 @@ function start_ironic_conductor {
         fi
 
         echo "Still waiting for ironic-conductor to start, current state:"
-        openstack --os-cloud $OS_CLOUD baremetal driver list
+        openstack --os-cloud $IRONIC_OS_CLOUD baremetal driver list
         sleep 5
     done
 }
@@ -2024,8 +2015,10 @@ function create_ovs_taps {
     # Work around: No netns exists on host until a Neutron port is created.  We
     # need to create one in Neutron to know what netns to tap into prior to the
     # first node booting.
+    # NOTE(TheJulia): So.. Neutron doesn't allow a port to be created as a
+    # system scoped admin, which makes sense.
     local port_id
-    port_id=$(openstack --os-cloud $OS_CLOUD port create --network ${ironic_net_id} temp_port -c id -f value)
+    port_id=$(openstack --os-cloud devstack-admin port create --network ${ironic_net_id} temp_port -c id -f value)
     die_if_not_set $LINENO port_id "Failed to create neutron port"
 
     # intentional sleep to make sure the tag has been set to port
@@ -2230,9 +2223,9 @@ function wait_for_nova_resources {
 
     # TODO(dtantsur): switch to Placement OSC plugin, once it exists
     local token
-    token=$(openstack --os-cloud $OS_CLOUD token issue -f value -c id)
+    token=$(openstack --os-cloud $IRONIC_OS_CLOUD token issue -f value -c id)
     local endpoint
-    endpoint=$(openstack --os-cloud $OS_CLOUD endpoint list --service placement --interface public -f value -c URL)
+    endpoint=$(openstack --os-cloud $IRONIC_OS_CLOUD endpoint list --service placement --interface public -f value -c URL)
     die_if_not_set $LINENO endpoint "Cannot find Placement API endpoint"
 
     local i
@@ -2303,7 +2296,7 @@ function provide_nodes {
     local attempt
     for attempt in $(seq 1 $IRONIC_CLEANING_ATTEMPTS); do
         local available
-        available=$(openstack --os-cloud $OS_CLOUD baremetal node list --provision-state available -f value -c UUID)
+        available=$(openstack --os-cloud $IRONIC_OS_CLOUD baremetal node list --provision-state available -f value -c UUID)
 
         local nodes_not_finished=
         for node_id in $nodes; do
@@ -3140,7 +3133,7 @@ function ironic_configure_tempest {
 
     if is_service_enabled nova; then
         local bm_flavor_id
-        bm_flavor_id=$(openstack --os-cloud $OS_CLOUD flavor show baremetal -f value -c id)
+        bm_flavor_id=$(openstack --os-cloud $IRONIC_OS_CLOUD flavor show baremetal -f value -c id)
         die_if_not_set $LINENO bm_flavor_id "Failed to get id of baremetal flavor"
         iniset $TEMPEST_CONFIG compute flavor_ref $bm_flavor_id
         iniset $TEMPEST_CONFIG compute flavor_ref_alt $bm_flavor_id

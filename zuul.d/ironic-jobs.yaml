@@ -64,6 +64,13 @@
         # causes us an abnormally high job failure rate due to the ports
         # not being found (as neutron crashed on initailization).
         Q_USE_SECGROUP: False
+        # NOTE(TheJulia): Project scoped admin as of Yoga cycle
+        # the core devstack code doesn't assert any environment variables
+        # upfront except for OS_CLOUd, which is defaulted to devstack-admin
+        # in the last keystone step which executes after ironic's base setup
+        # occurs. We navigate this just fine for yoga with fixes, however
+        # we need this variable for Xena and possibly Wallaby grenade.
+        OS_CLOUD: devstack-admin
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
       tempest_plugins:
@@ -854,6 +861,11 @@
           SWIFT_TEMPURL_KEY: secretkey
           EBTABLES_RACE_FIX: True
           LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
+          # NOTE(TheJulia): For now, not all services are aware
+          # of SRBAC and devstack changes have occured which
+          # delay this being set until after ironic's initial
+          # setup.
+          OS_CLOUD: devstack-admin
         old:
           IRONIC_VM_LOG_DIR: '{{ devstack_bases.old }}/ironic-bm-logs'
       grenade_localrc:
