@@ -2697,6 +2697,12 @@ function build_tinyipa_ramdisk {
         export AUTHORIZE_SSH=true
         export SSH_PUBLIC_KEY=$IRONIC_ANSIBLE_SSH_KEY.pub
     fi
+    # NOTE(TheJulia): This is awful, but we need it to continue to keep CI working
+    # on the train and ussuri branches. Essentially, Tinycore 10.x can't be used
+    # in the field, and we're unable to fix it due to a confluence of issues.
+    sed -i 's/git\ clone\ --branch/\ \ \ \git config --global http.sslVerify false\n\ \ \ \ git\ clone\ --branch/' build-tinyipa.sh
+    # NOTE(TheJulia): qemu pulls in submodules and fails if you disable them. So we need to update it's perception of git.
+    sed -i "s/qemu\ \&\&\ .\/configure\ --disable-system/qemu\ \&\&\ .\/configure\ --with-git='env\ GIT_SSL_NO_VERIFY=true\ git'\ --disable-system/" build-tinyipa.sh
     make
     cp tinyipa.gz $ramdisk_path
     cp tinyipa.vmlinuz $kernel_path
