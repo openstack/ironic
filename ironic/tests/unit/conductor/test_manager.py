@@ -2476,7 +2476,9 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             driver_internal_info={'is_whole_disk_image': False,
                                   'deploy_steps': {},
                                   'root_uuid_or_disk_id': 'foo',
-                                  'instance': {'ephemeral_gb': 10}})
+                                  'instance': {'ephemeral_gb': 10},
+                                  'automatic_lessee': True},
+            lessee='fooproject')
         port = obj_utils.create_test_port(
             self.context, node_id=node.id,
             internal_info={'tenant_vif_port_id': 'foo'})
@@ -2498,11 +2500,13 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNone(node.last_error)
         self.assertIsNone(node.instance_uuid)
         self.assertIsNone(node.allocation_id)
+        self.assertIsNone(node.lessee)
         self.assertEqual({}, node.instance_info)
         self.assertNotIn('instance', node.driver_internal_info)
         self.assertIsNone(node.driver_internal_info['deploy_steps'])
         self.assertNotIn('root_uuid_or_disk_id', node.driver_internal_info)
         self.assertNotIn('is_whole_disk_image', node.driver_internal_info)
+        self.assertNotIn('automatic_lessee', node.driver_internal_info)
         mock_tear_down.assert_called_once_with(task.driver.deploy, task)
         mock_clean.assert_called_once_with(task)
         self.assertEqual({}, port.internal_info)

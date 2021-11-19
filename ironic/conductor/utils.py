@@ -1692,3 +1692,27 @@ def exclude_current_conductor(current_conductor, offline_conductors):
                     current_conductor)
 
     return [x for x in offline_conductors if x != current_conductor]
+
+
+def get_token_project_from_request(ctx):
+    """Identifies the request originator project via keystone token details.
+
+    This method evaluates the ``auth_token_info`` field, which is used to
+    pass information returned from keystone as a token's
+    verification. This information is based upon the actual, original
+    requestor context provided ``auth_token``.
+
+    When a service, such as Nova proxies a request, the request provided
+    auth token value is intended to be from the original user.
+
+    :returns: The project ID value.
+    """
+
+    try:
+        if ctx.auth_token_info:
+            project = ctx.auth_token_info.get('token', {}).get('project', {})
+            if project:
+                return project.get('id')
+    except AttributeError:
+        LOG.warning('Attempted to identify requestor project ID value, '
+                    'however we were unable to do so. Possible older API?')

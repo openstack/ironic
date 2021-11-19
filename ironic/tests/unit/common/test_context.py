@@ -37,6 +37,9 @@ class RequestContextTestCase(tests_base.TestCase):
             "roles": None,
             "overwrite": True
         }
+        self.environ = {
+            'keystone.token_info': {'key': 'value'},
+        }
 
     @mock.patch.object(oslo_context.RequestContext, "__init__", autospec=True)
     def test_create_context(self, context_mock):
@@ -63,3 +66,26 @@ class RequestContextTestCase(tests_base.TestCase):
         context_get_mock.return_value = self.context
         self.context.ensure_thread_contain_context()
         self.assertFalse(self.context.update_store.called)
+
+    def test_create_context_with_environ(self):
+        test_context = context.RequestContext().from_environ(self.environ)
+        self.assertEqual({'key': 'value'}, test_context.auth_token_info)
+
+    def test_to_dict_get_auth_token_info(self):
+        test_context = context.RequestContext().from_environ(self.environ)
+        self.assertEqual({'key': 'value'}, test_context.auth_token_info)
+        result = test_context.to_dict()
+        self.assertIn('auth_token_info', result)
+        expected = {'key': 'value'}
+        self.assertDictEqual(expected, result['auth_token_info'])
+
+    def test_from_dict(self):
+        cdict = {'auth_token_info': 'magicdict'}
+        ctxt = context.RequestContext().from_dict(cdict)
+        self.assertEqual('magicdict', ctxt.auth_token_info)
+
+    def test_from_dict_older_api_server(self):
+        # Validates auth_token_info is None if not included.
+        cdict = {}
+        ctxt = context.RequestContext().from_dict(cdict)
+        self.assertIsNone(ctxt.auth_token_info)

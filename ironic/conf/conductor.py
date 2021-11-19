@@ -348,6 +348,16 @@ opts = [
                         'be specified multiple times to define priorities '
                         'for multiple steps. If set to 0, this specific step '
                         'will not run during verification. ')),
+    cfg.BoolOpt('automatic_lessee',
+                default=False,
+                mutable=True,
+                help=_('If the conductor should record the Project ID '
+                       'indicated by Keystone for a requested deployment. '
+                       'Allows rights to be granted to directly access the '
+                       'deployed node as a lessee within the RBAC security '
+                       'model. The conductor does *not* record this value '
+                       'otherwise, and this information is not backfilled '
+                       'for prior instances which have been deployed.')),
 ]
 
 
