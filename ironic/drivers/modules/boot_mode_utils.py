@@ -110,10 +110,8 @@ def sync_boot_mode(task):
     # the new boot mode may be set in 'driver_internal_info/deploy_boot_mode'
 
     if not ironic_boot_mode and not bm_boot_mode:
-        driver_internal_info = node.driver_internal_info
         default_boot_mode = CONF.deploy.default_boot_mode
-        driver_internal_info['deploy_boot_mode'] = default_boot_mode
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('deploy_boot_mode', default_boot_mode)
         node.save()
 
         LOG.debug("Ironic node %(uuid)s boot mode will be set to default "
@@ -123,9 +121,7 @@ def sync_boot_mode(task):
         _set_boot_mode_on_bm(task, default_boot_mode)
 
     elif not ironic_boot_mode and bm_boot_mode:
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['deploy_boot_mode'] = bm_boot_mode
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('deploy_boot_mode', bm_boot_mode)
         node.save()
 
         LOG.debug("Ironic node %(uuid)s boot mode is set to boot mode "
