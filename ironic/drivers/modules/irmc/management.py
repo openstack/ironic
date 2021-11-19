@@ -139,9 +139,8 @@ def backup_bios_config(task):
                                            error=e)
 
     # Save bios config into the driver_internal_info
-    internal_info = task.node.driver_internal_info
-    internal_info['irmc_bios_config'] = result['bios_config']
-    task.node.driver_internal_info = internal_info
+    task.node.set_driver_internal_info('irmc_bios_config',
+                                       result['bios_config'])
     task.node.save()
 
     LOG.info('BIOS config is backed up successfully for node %s',
@@ -170,14 +169,12 @@ def _restore_bios_config(task):
 
     def _remove_bios_config(task, reboot_flag=False):
         """Remove backup bios config from the node."""
-        internal_info = task.node.driver_internal_info
-        internal_info.pop('irmc_bios_config', None)
+        task.node.del_driver_internal_info('irmc_bios_config')
         # NOTE(tiendc): If reboot flag is raised, then the BM will
         # reboot and cause a bug if the next clean step is in-band.
         # See https://storyboard.openstack.org/#!/story/2002731
         if reboot_flag:
-            internal_info['cleaning_reboot'] = True
-        task.node.driver_internal_info = internal_info
+            task.node.set_driver_internal_info('cleaning_reboot', True)
         task.node.save()
 
     irmc_info = irmc_common.parse_driver_info(task.node)

@@ -145,7 +145,5 @@ class IRMCBIOS(base.BIOSInterface):
                                            delete_names)
 
     def _resume_cleaning(self, task):
-        driver_internal_info = task.node.driver_internal_info
-        driver_internal_info['cleaning_reboot'] = True
-        task.node.driver_internal_info = driver_internal_info
+        task.node.set_driver_internal_info('cleaning_reboot', True)
         task.node.save()

@@ -288,20 +288,20 @@ def _prepare_boot_iso(task, root_uuid):
        for BIOS boot_mode failed.
     """
     deploy_info = _parse_deploy_info(task.node)
-    driver_internal_info = task.node.driver_internal_info
 
     # fetch boot iso
     if deploy_info.get('boot_iso'):
         boot_iso_href = deploy_info['boot_iso']
         if _is_image_href_ordinary_file_name(boot_iso_href):
-            driver_internal_info['boot_iso'] = boot_iso_href
+            task.node.set_driver_internal_info('boot_iso', boot_iso_href)
         else:
             boot_iso_filename = _get_iso_name(task.node, label='boot')
             boot_iso_fullpathname = os.path.join(
                 CONF.irmc.remote_image_share_root, boot_iso_filename)
             images.fetch(task.context, boot_iso_href, boot_iso_fullpathname)
 
-            driver_internal_info['boot_iso'] = boot_iso_filename
+            task.node.set_driver_internal_info('boot_iso',
+                                               boot_iso_filename)
 
     # create boot iso
     else:
@@ -329,10 +329,10 @@ def _prepare_boot_iso(task, root_uuid):
                                kernel_params=kernel_params,
                                boot_mode=boot_mode)
 
-        driver_internal_info['boot_iso'] = boot_iso_filename
+        task.node.set_driver_internal_info('boot_iso',
+                                           boot_iso_filename)
 
     # save driver_internal_info['boot_iso']
-    task.node.driver_internal_info = driver_internal_info
     task.node.save()
 
 
@@ -1047,8 +1047,8 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
             manager_utils.node_set_boot_device(task, boot_devices.DISK,
                                                persistent=True)
         else:
-            driver_internal_info = node.driver_internal_info
-            root_uuid_or_disk_id = driver_internal_info['root_uuid_or_disk_id']
+            root_uuid_or_disk_id = node.driver_internal_info[
+                'root_uuid_or_disk_id']
             self._configure_vmedia_boot(task, root_uuid_or_disk_id)
 
         # Enable secure boot, if being requested
@@ -1073,11 +1073,9 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
         boot_mode_utils.deconfigure_secure_boot_if_needed(task)
 
         _remove_share_file(_get_iso_name(task.node, label='boot'))
-        driver_internal_info = task.node.driver_internal_info
-        driver_internal_info.pop('boot_iso', None)
-        driver_internal_info.pop('irmc_boot_iso', None)
+        task.node.del_driver_internal_info('boot_iso')
+        task.node.del_driver_internal_info('irmc_boot_iso')
 
-        task.node.driver_internal_info = driver_internal_info
         task.node.save()
         _cleanup_vmedia_boot(task)
 

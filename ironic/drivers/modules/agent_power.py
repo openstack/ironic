@@ -140,16 +140,15 @@ class AgentPower(base.PowerInterface):
 
         self._client.reboot(node)
 
-        info = node.driver_internal_info
         # NOTE(dtantsur): wipe the agent token, otherwise the rebooted agent
         # won't be able to heartbeat. This is mostly a precaution since the
         # calling code in conductor is expected to handle it.
-        if not info.get('agent_secret_token_pregenerated'):
-            info.pop('agent_secret_token', None)
+        if not node.driver_internal_info.get(
+                'agent_secret_token_pregenerated'):
+            node.del_driver_internal_info('agent_secret_token')
         # NOTE(dtantsur): the URL may change on reboot, wipe it as well (but
         # only after we call reboot).
-        info.pop('agent_url', None)
-        node.driver_internal_info = info
+        node.del_driver_internal_info('agent_url')
         node.save()
 
         LOG.debug('Requested reboot of node %(node)s via the agent, waiting '
