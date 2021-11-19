@@ -841,9 +841,7 @@ class RedfishRAID(base.RAIDInterface):
                 reboot_required = True
                 raid_configs.append(raid_config)
 
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['raid_configs'] = raid_configs
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('raid_configs', raid_configs)
 
         return_state = None
         deploy_utils.set_async_step_flags(
@@ -914,9 +912,7 @@ class RedfishRAID(base.RAIDInterface):
                 reboot_required = True
                 raid_configs.append(raid_config)
 
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['raid_configs'] = raid_configs
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('raid_configs', raid_configs)
 
         return_state = None
         deploy_utils.set_async_step_flags(
@@ -1007,9 +1003,7 @@ class RedfishRAID(base.RAIDInterface):
 
         :param node: the node to clear the RAID configs from
         """
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info.pop('raid_configs', None)
-        node.driver_internal_info = driver_internal_info
+        node.del_driver_internal_info('raid_configs')
         node.save()
 
     @METRICS.timer('RedfishRAID._query_raid_config_failed')
