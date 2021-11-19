@@ -951,17 +951,13 @@ class IloManagement(base.ManagementInterface):
 class Ilo5Management(IloManagement):
 
     def _set_driver_internal_value(self, task, value, *keys):
-        driver_internal_info = task.node.driver_internal_info
         for key in keys:
-            driver_internal_info[key] = value
-        task.node.driver_internal_info = driver_internal_info
+            task.node.set_driver_internal_info(key, value)
         task.node.save()
 
     def _pop_driver_internal_values(self, task, *keys):
-        driver_internal_info = task.node.driver_internal_info
         for key in keys:
-            driver_internal_info.pop(key, None)
-        task.node.driver_internal_info = driver_internal_info
+            task.node.del_driver_internal_info(key)
         task.node.save()
 
     def _wait_for_disk_erase_status(self, node):
@@ -1041,7 +1037,6 @@ class Ilo5Management(IloManagement):
                                    {'hdd': 'overwrite', 'ssd': 'block'})
         node = task.node
         self._validate_erase_pattern(erase_pattern, node)
-        driver_internal_info = node.driver_internal_info
         LOG.debug("Calling out-of-band sanitize disk erase for node %(node)s",
                   {'node': node.uuid})
         try:
@@ -1056,7 +1051,7 @@ class Ilo5Management(IloManagement):
                 # First disk-erase will execute for HDD's and after reboot only
                 # try for SSD, since both share same redfish api and would be
                 # overwritten.
-                if not driver_internal_info.get(
+                if not node.driver_internal_info.get(
                         'ilo_disk_erase_hdd_check') and ('HDD' in disk_types):
                     ilo_object.do_disk_erase('HDD', erase_pattern.get('hdd'))
                     self._set_driver_internal_value(
@@ -1066,7 +1061,7 @@ class Ilo5Management(IloManagement):
                         task, False, 'skip_current_clean_step')
                     return deploy_utils.reboot_to_finish_step(task)
 
-                if not driver_internal_info.get(
+                if not node.driver_internal_info.get(
                         'ilo_disk_erase_ssd_check') and ('SSD' in disk_types):
                     ilo_object.do_disk_erase('SSD', erase_pattern.get('ssd'))
                     self._set_driver_internal_value(
@@ -1145,14 +1140,12 @@ class Ilo5Management(IloManagement):
         :raises: InstanceDeployFailure, on failure to execute of deploy step.
         """
         node = task.node
-        driver_internal_info = node.driver_internal_info
 
-        if driver_internal_info.get('clear_ca_certs_flag'):
+        if node.driver_internal_info.get('clear_ca_certs_flag'):
             # NOTE(vmud213): Clear the flag and do nothing as this flow
             # is part of the reboot required by the clean step that is
             # already executed.
-            driver_internal_info.pop('clear_ca_certs_flag', None)
-            node.driver_internal_info = driver_internal_info
+            node.del_driver_internal_info('clear_ca_certs_flag')
             node.save()
             return
 
@@ -1167,8 +1160,7 @@ class Ilo5Management(IloManagement):
                 raise exception.NodeCleaningFailure(msg)
             raise exception.InstanceDeployFailure(msg)
 
-        driver_internal_info['clear_ca_certs_flag'] = True
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('clear_ca_certs_flag', True)
         node.save()
 
         deploy_opts = deploy_utils.build_agent_options(task.node)

@@ -100,13 +100,11 @@ class IloBIOS(base.BIOSInterface):
 
         deploy_utils.set_async_step_flags(node, reboot=True,
                                           skip_current_step=False)
-        driver_internal_info = node.driver_internal_info
         if step == 'apply_configuration':
-            driver_internal_info['apply_bios'] = True
+            node.set_driver_internal_info('apply_bios', True)
         else:
-            driver_internal_info['reset_bios'] = True
+            node.set_driver_internal_info('reset_bios', True)
 
-        node.driver_internal_info = driver_internal_info
         node.save()
         return return_state
 
@@ -122,11 +120,9 @@ class IloBIOS(base.BIOSInterface):
         """
         node = task.node
 
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info.pop('apply_bios', None)
-        driver_internal_info.pop('reset_bios', None)
-        task.node.driver_internal_info = driver_internal_info
-        task.node.save()
+        node.del_driver_internal_info('apply_bios')
+        node.del_driver_internal_info('reset_bios')
+        node.save()
 
         if step not in ('apply_configuration', 'factory_reset'):
             errmsg = (_('Could not find the step %(step)s for the '
@@ -174,11 +170,10 @@ class IloBIOS(base.BIOSInterface):
 
         """
         node = task.node
-        driver_internal_info = node.driver_internal_info
         data = {}
         for setting in settings:
             data.update({setting['name']: setting['value']})
-        if not driver_internal_info.get('apply_bios'):
+        if not node.driver_internal_info.get('apply_bios'):
             return self._execute_pre_boot_bios_step(
                 task, 'apply_configuration', data)
         else:
@@ -198,9 +193,8 @@ class IloBIOS(base.BIOSInterface):
 
         """
         node = task.node
-        driver_internal_info = node.driver_internal_info
 
-        if not driver_internal_info.get('reset_bios'):
+        if not node.driver_internal_info.get('reset_bios'):
             return self._execute_pre_boot_bios_step(task, 'factory_reset')
         else:
             return self._execute_post_boot_bios_step(task, 'factory_reset')
