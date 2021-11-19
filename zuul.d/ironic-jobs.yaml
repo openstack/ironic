@@ -1043,3 +1043,27 @@
             EBTABLES_RACE_FIX: True
             LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
             IRONIC_VM_LOG_DIR: '/opt/stack/ironic-bm-logs'
+
+- job:
+    name: ironic-cross-sushy
+    description: Ironic unit tests run with Sushy from source
+    parent: openstack-tox
+    required-projects:
+      - opendev.org/openstack/ironic
+      - opendev.org/openstack/sushy
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^devstack/.*$
+      - ^doc/.*$
+      - ^releasenotes/.*$
+      - ^tools/.*$
+    vars:
+      # NOTE(dtantsur): change this every release cycle if needed.
+      bindep_profile: test py38
+      tox_envlist: py38
+      # This variable ensures that sushy is installed from source.
+      tox_install_siblings: true
+      # NOTE(dtantsur): this job will be run on sushy as well, so it's
+      # important to set the working dir to the Ironic checkout.
+      zuul_work_dir: "{{ ansible_user_dir }}/{{ zuul.projects['opendev.org/openstack/ironic'].src_dir }}"
