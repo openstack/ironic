@@ -1007,19 +1007,14 @@ def _commit_to_controllers(node, controllers, substep="completed"):
     if not controllers:
         LOG.debug('No changes on any of the controllers on node %s',
                   node.uuid)
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['raid_config_substep'] = substep
-        driver_internal_info['raid_config_parameters'] = []
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('raid_config_substep', substep)
+        node.set_driver_internal_info('raid_config_parameters', [])
         node.save()
         return
 
-    driver_internal_info = node.driver_internal_info
-    driver_internal_info['raid_config_substep'] = substep
-    driver_internal_info['raid_config_parameters'] = []
-
-    if 'raid_config_job_ids' not in driver_internal_info:
-        driver_internal_info['raid_config_job_ids'] = []
+    i_raid_config_parameters = []
+    i_raid_config_job_ids = node.driver_internal_info.get(
+        'raid_config_job_ids', [])
 
     optional = drac_constants.RebootRequired.optional
 
@@ -1083,13 +1078,12 @@ def _commit_to_controllers(node, controllers, substep="completed"):
                 raid_config_job_ids=raid_config_job_ids,
                 raid_config_parameters=raid_config_parameters)
 
-    driver_internal_info['raid_config_job_ids'].extend(job_details[
-        'raid_config_job_ids'])
-
-    driver_internal_info['raid_config_parameters'].extend(job_details[
-        'raid_config_parameters'])
-
-    node.driver_internal_info = driver_internal_info
+    i_raid_config_job_ids.extend(job_details['raid_config_job_ids'])
+    i_raid_config_parameters.extend(job_details['raid_config_parameters'])
+    node.set_driver_internal_info('raid_config_substep', substep)
+    node.set_driver_internal_info('raid_config_parameters',
+                                  i_raid_config_parameters)
+    node.set_driver_internal_info('raid_config_job_ids', i_raid_config_job_ids)
 
     # Signal whether the node has been rebooted, that we do not need to execute
     # the step again, and that this completion of this step is triggered
@@ -1472,10 +1466,9 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
                 deploy_utils.prepare_agent_boot(task)
                 # Reboot already done by non real time task
                 task.upgrade_lock()
-                info = task.node.driver_internal_info
-                info['raid_task_monitor_uris'] = [
-                    tm.task_monitor_uri for tm in task_mons]
-                task.node.driver_internal_info = info
+                task.node.set_driver_internal_info(
+                    'raid_task_monitor_uris',
+                    [tm.task_monitor_uri for tm in task_mons])
                 task.node.save()
                 return True
 
@@ -1526,27 +1519,25 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
                                'message': ', '.join(messages)}))
 
         task.upgrade_lock()
-        info = node.driver_internal_info
         if failed_msgs:
             error_msg = (_("Failed RAID configuration tasks: %(messages)s")
                          % {'messages': ', '.join(failed_msgs)})
             log_msg = ("RAID configuration task failed for node "
                        "%(node)s. %(error)s" % {'node': node.uuid,
                                                 'error': error_msg})
-            info.pop('raid_task_monitor_uris', None)
+            node.del_driver_internal_info('raid_task_monitor_uris')
             self._set_failed(task, log_msg, error_msg)
         else:
             running_task_mon_uris = [x for x in task_mon_uris
                                      if x not in completed_task_mon_uris]
             if running_task_mon_uris:
-                info['raid_task_monitor_uris'] = running_task_mon_uris
-                node.driver_internal_info = info
+                node.set_driver_internal_info('raid_task_monitor_uris',
+                                              running_task_mon_uris)
                 # will check remaining jobs in the next period
             else:
                 # all tasks completed and none of them failed
-                info.pop('raid_task_monitor_uris', None)
+                node.del_driver_internal_info('raid_task_monitor_uris')
                 self._set_success(task)
-        node.driver_internal_info = info
         node.save()
 
     def _set_failed(self, task, log_msg, error_msg):
@@ -1671,9 +1662,8 @@ class DracWSManRAID(base.RAIDInterface):
                     physical_disk_name)
 
         # adding logical_disks to driver_internal_info to create virtual disks
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info[
-            "logical_disks_to_create"] = logical_disks_to_create
+        node.set_driver_internal_info('logical_disks_to_create',
+                                      logical_disks_to_create)
 
         commit_results = None
         if logical_disks_to_create:
@@ -1688,8 +1678,8 @@ class DracWSManRAID(base.RAIDInterface):
                 substep="create_virtual_disks")
 
         volume_validation = True if commit_results else False
-        driver_internal_info['volume_validation'] = volume_validation
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('volume_validation',
+                                      volume_validation)
         node.save()
 
         if commit_results:
@@ -1843,33 +1833,27 @@ class DracWSManRAID(base.RAIDInterface):
             self._complete_raid_substep(task, node)
 
     def _clear_raid_substep(self, node):
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info.pop('raid_config_substep', None)
-        driver_internal_info.pop('raid_config_parameters', None)
-        node.driver_internal_info = driver_internal_info
+        node.del_driver_internal_info('raid_config_substep')
+        node.del_driver_internal_info('raid_config_parameters')
         node.save()
 
     def _set_raid_config_job_failure(self, node):
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['raid_config_job_failure'] = True
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('raid_config_job_failure', True)
         node.save()
 
     def _clear_raid_config_job_failure(self, node):
-        driver_internal_info = node.driver_internal_info
-        del driver_internal_info['raid_config_job_failure']
-        node.driver_internal_info = driver_internal_info
+        node.del_driver_internal_info('raid_config_job_failure')
         node.save()
 
     def _delete_cached_config_job_id(self, node, finished_config_job_ids=None):
         if finished_config_job_ids is None:
             finished_config_job_ids = []
-        driver_internal_info = node.driver_internal_info
-        unfinished_job_ids = [job_id for job_id
-                              in driver_internal_info['raid_config_job_ids']
-                              if job_id not in finished_config_job_ids]
-        driver_internal_info['raid_config_job_ids'] = unfinished_job_ids
-        node.driver_internal_info = driver_internal_info
+        unfinished_job_ids = [
+            job_id for job_id
+            in node.driver_internal_info['raid_config_job_ids']
+            if job_id not in finished_config_job_ids]
+        node.set_driver_internal_info('raid_config_job_ids',
+                                      unfinished_job_ids)
         node.save()
 
     def _set_failed(self, task, config_job):

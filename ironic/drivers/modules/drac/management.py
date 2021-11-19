@@ -445,9 +445,8 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
             lambda m: m.import_system_configuration(
                 json.dumps(configuration["oem"]["data"])),)
 
-        info = task.node.driver_internal_info
-        info['import_task_monitor_url'] = task_monitor.task_monitor_uri
-        task.node.driver_internal_info = info
+        task.node.set_driver_internal_info('import_task_monitor_url',
+                                           task_monitor.task_monitor_uri)
 
         deploy_utils.set_async_step_flags(
             task.node,
@@ -476,9 +475,8 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         """
         # Import is async operation, setting sub-step to store export config
         # and indicate that it's being executed as part of composite step
-        info = task.node.driver_internal_info
-        info['export_configuration_location'] = export_configuration_location
-        task.node.driver_internal_info = info
+        task.node.set_driver_internal_info('export_configuration_location',
+                                           export_configuration_location)
         task.node.save()
 
         return self.import_configuration(task, import_configuration_location)
@@ -521,9 +519,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
             log_msg = ("Import configuration task failed for node "
                        "%(node)s. %(error)s" % {'node': task.node.uuid,
                                                 'error': error_msg})
-            info = node.driver_internal_info
-            info.pop('import_task_monitor_url', None)
-            node.driver_internal_info = info
+            node.del_driver_internal_info('import_task_monitor_url')
             node.save()
             self._set_failed(task, log_msg, error_msg)
             return
@@ -532,9 +528,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
             import_task = task_monitor.get_task()
 
             task.upgrade_lock()
-            info = node.driver_internal_info
-            info.pop('import_task_monitor_url', None)
-            node.driver_internal_info = info
+            node.del_driver_internal_info('import_task_monitor_url')
 
             succeeded = False
             if (import_task.task_state == sushy.TASK_STATE_COMPLETED
@@ -557,8 +551,8 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                           'task_monitor_url': task_monitor_url})
 
                 # If import executed as part of import_export_configuration
-                export_configuration_location =\
-                    info.get('export_configuration_location')
+                export_configuration_location = node.driver_internal_info.get(
+                    'export_configuration_location')
                 if export_configuration_location:
                     # then do sync export configuration before finishing
                     self._cleanup_export_substep(node)
@@ -613,9 +607,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
             manager_utils.deploying_error_handler(task, log_msg, error_msg)
 
     def _cleanup_export_substep(self, node):
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info.pop('export_configuration_location', None)
-        node.driver_internal_info = driver_internal_info
+        node.del_driver_internal_info('export_configuration_location')
 
     @METRICS.timer('DracRedfishManagement.clear_job_queue')
     @base.verify_step(priority=0)
@@ -752,10 +744,9 @@ class DracWSManManagement(base.ManagementInterface):
         #                at the next boot. As a workaround, saving it to
         #                driver_internal_info and committing the change during
         #                power state change.
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['drac_boot_device'] = {'boot_device': device,
-                                                    'persistent': persistent}
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('drac_boot_device',
+                                      {'boot_device': device,
+                                       'persistent': persistent})
         node.save()
 
     @METRICS.timer('DracManagement.get_sensors_data')
