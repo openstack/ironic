@@ -2028,12 +2028,10 @@ function create_ovs_taps {
     port_id=$(openstack --os-cloud $OS_CLOUD port create --network ${ironic_net_id} temp_port -c id -f value)
     die_if_not_set $LINENO port_id "Failed to create neutron port"
 
-    # intentional sleep to make sure the tag has been set to port
-    sleep 10
-
     local tapdev
-    tapdev=$(sudo ip netns exec qdhcp-${ironic_net_id} ip link list | grep " tap" | cut -d':' -f2 | cut -d'@' -f1 | cut -b2-)
-    die_if_not_set $LINENO tapdev "Failed to get tap device id"
+    local tapdev_cmd="sudo ip netns exec qdhcp-${ironic_net_id} ip link list | grep ' tap' | cut -d':' -f2 | cut -d'@' -f1 | cut -b2-  | grep '^tap'"
+    # retry tap device discovery to make sure the tag has been set to port
+    tapdev=$(test_with_retry "$tapdev_cmd" "Failed to get tap device id" 20 1)
     local tag_id
     tag_id=$(sudo ovs-vsctl get port ${tapdev} tag)
     die_if_not_set $LINENO tag_id "Failed to get tag id"
