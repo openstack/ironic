@@ -90,12 +90,12 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             mock_drives.append(_mock_drive(
                 identity=i, block_size_bytes=512, capacity_bytes=899527000000,
                 media_type='HDD', name='Drive',
-                protocol='Serial Attached SCSI'))
+                protocol=sushy.PROTOCOL_TYPE_SAS))
         for i in [self.drive_id5, self.drive_id6, self.drive_id7]:
             mock_drives.append(_mock_drive(
                 identity=i, block_size_bytes=512, capacity_bytes=479559942144,
                 media_type='SSD', name='Solid State Drive',
-                protocol='Serial AT Attachment'))
+                protocol=sushy.PROTOCOL_TYPE_SATA))
         self.mock_storage.drives = mock_drives
         mock_controller = mock.Mock()
         mock_controller.raid_types = ['RAID1', 'RAID5', 'RAID10']

@@ -51,6 +51,16 @@ if sushy:
     }
 
     BOOT_DEVICE_MAP_REV = {v: k for k, v in BOOT_DEVICE_MAP.items()}
+    # Previously we used sushy constants in driver_internal_info. This mapping
+    # is provided for backward compatibility, taking into account that sushy
+    # constants will change from strings to enums.
+    BOOT_DEVICE_MAP_REV_COMPAT = dict(
+        BOOT_DEVICE_MAP_REV,
+        pxe=sushy.BOOT_SOURCE_TARGET_PXE,
+        hdd=sushy.BOOT_SOURCE_TARGET_HDD,
+        cd=sushy.BOOT_SOURCE_TARGET_CD,
+        **{'bios setup': sushy.BOOT_SOURCE_TARGET_BIOS_SETUP}
+    )
 
     BOOT_MODE_MAP = {
         sushy.BOOT_SOURCE_MODE_UEFI: boot_modes.UEFI,
@@ -109,7 +119,6 @@ def _set_boot_device(task, system, device, persistent=False):
         # NOTE(etingof): this can be racy, esp if BMC is not RESTful
         enabled = (desired_enabled
                    if desired_enabled != current_enabled else None)
-
     try:
         system.set_system_boot_options(device, enabled=enabled)
     except sushy.exceptions.SushyError as e:
@@ -131,7 +140,7 @@ def _set_boot_device(task, system, device, persistent=False):
                         {'dev': device, 'node': task.node.uuid})
             utils.set_node_nested_field(
                 task.node, 'driver_internal_info',
-                'redfish_boot_device', device)
+                'redfish_boot_device', BOOT_DEVICE_MAP[device])
             task.node.save()
         else:
             raise
@@ -193,10 +202,20 @@ class RedfishManagement(base.ManagementInterface):
         if not device:
             return
 
+        try:
+            # We used to store Redfish constants, now we're storing Ironic
+            # values (which is more appropriate). Provide a compatibility layer
+            # for already deployed nodes.
+            redfish_device = BOOT_DEVICE_MAP_REV_COMPAT[device.lower()]
+        except KeyError:
+            LOG.error('BUG: unexpected redfish_boot_device %(dev)s for node '
+                      '%(node)s', {'dev': device, 'node': task.node.uuid})
+            raise
+
         LOG.debug('Restoring boot device %(dev)s on node %(node)s',
                   {'dev': device, 'node': task.node.uuid})
         try:
-            _set_boot_device(task, system, device)
+            _set_boot_device(task, system, redfish_device)
         except sushy.exceptions.SushyError as e:
             LOG.warning('Unable to recover boot device %(dev)s for node '
                         '%(node)s, relying on the pre-configured boot order. '

@@ -263,7 +263,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
             task.node.refresh()
             self.assertEqual(
-                sushy.BOOT_SOURCE_TARGET_PXE,
+                boot_devices.PXE,
                 task.node.driver_internal_info['redfish_boot_device'])
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -305,7 +305,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_internal_info['redfish_boot_device'] = (
-                sushy.BOOT_SOURCE_TARGET_HDD
+                boot_devices.DISK
             )
 
             task.driver.management.restore_boot_device(task, fake_system)
@@ -315,7 +315,24 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
             # The stored boot device is kept intact
             self.assertEqual(
+                boot_devices.DISK,
+                task.node.driver_internal_info['redfish_boot_device'])
+
+    def test_restore_boot_device_compat(self):
+        fake_system = mock.Mock()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            # Previously we used sushy constants
+            task.node.driver_internal_info['redfish_boot_device'] = "hdd"
+
+            task.driver.management.restore_boot_device(task, fake_system)
+
+            fake_system.set_system_boot_options.assert_called_once_with(
                 sushy.BOOT_SOURCE_TARGET_HDD,
+                enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
+            # The stored boot device is kept intact
+            self.assertEqual(
+                "hdd",
                 task.node.driver_internal_info['redfish_boot_device'])
 
     def test_restore_boot_device_noop(self):
@@ -335,7 +352,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.driver_internal_info['redfish_boot_device'] = (
-                sushy.BOOT_SOURCE_TARGET_HDD
+                boot_devices.DISK
             )
 
             task.driver.management.restore_boot_device(task, fake_system)
@@ -346,7 +363,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             self.assertTrue(mock_log.called)
             # The stored boot device is kept intact
             self.assertEqual(
-                sushy.BOOT_SOURCE_TARGET_HDD,
+                boot_devices.DISK,
                 task.node.driver_internal_info['redfish_boot_device'])
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -394,7 +411,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
                 # Asserts
                 fake_system.set_system_boot_options.assert_called_once_with(
-                    mode=mode)
+                    mode=expected)
                 mock_get_system.assert_called_once_with(task.node)
 
                 # Reset mocks
@@ -419,7 +436,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 exception.RedfishError, 'Setting boot mode',
                 task.driver.management.set_boot_mode, task, boot_modes.UEFI)
             fake_system.set_system_boot_options.assert_called_once_with(
-                mode=boot_modes.UEFI)
+                mode=sushy.BOOT_SOURCE_MODE_UEFI)
             mock_get_system.assert_called_once_with(task.node)
 
     @mock.patch.object(sushy, 'Sushy', autospec=True)
@@ -440,7 +457,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 'does not support set_boot_mode',
                 task.driver.management.set_boot_mode, task, boot_modes.UEFI)
             fake_system.set_system_boot_options.assert_called_once_with(
-                mode=boot_modes.UEFI)
+                mode=sushy.BOOT_SOURCE_MODE_UEFI)
             mock_get_system.assert_called_once_with(task.node)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
