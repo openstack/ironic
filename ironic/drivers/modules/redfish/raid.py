@@ -709,7 +709,7 @@ class RedfishRAID(base.RAIDInterface):
             raise exception.InvalidParameterValue(
                 _("The %(iface)s raid interface is not suitable for node "
                   "%(node)s with vendor %(vendor)s, use idrac-redfish instead")
-                % {'iface': task.node.raid_interface,
+                % {'iface': task.node.get_interface('raid'),
                    'node': task.node.uuid, 'vendor': vendor})
 
     def validate(self, task):

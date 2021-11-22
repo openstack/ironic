@@ -69,9 +69,7 @@ def _attach_interfaces_to_driver(bare_driver, node, hw_type):
              the requested implementation is not compatible with it.
     """
     for iface in _INTERFACE_LOADERS:
-        iface_name = '%s_interface' % iface
-        impl_name = node.instance_info.get(iface_name,
-                                           getattr(node, iface_name))
+        impl_name = node.get_interface(iface)
         impl = get_interface(hw_type, iface, impl_name)
         setattr(bare_driver, iface, impl)
 

@@ -712,7 +712,7 @@ def validate_port_info(node, port):
     # Subnet Manager.
     if port.extra.get('client-id'):
         return True
-    if (node.network_interface == 'neutron'
+    if (node.get_interface('network') == 'neutron'
             and not port.local_link_connection):
         LOG.warning("The local_link_connection is required for "
                     "'neutron' network interface and is not present "

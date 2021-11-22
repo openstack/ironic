@@ -309,7 +309,7 @@ def configure_secure_boot_if_needed(task):
                     'management interface %(driver)s does not support it. '
                     'This warning will become an error in a future release.',
                     {'node': task.node.uuid,
-                     'driver': task.node.management_interface})
+                     'driver': task.node.get_interface('management')})
     except Exception as exc:
         with excutils.save_and_reraise_exception():
             LOG.error('Failed to configure secure boot for node %(node)s: '
@@ -335,7 +335,7 @@ def deconfigure_secure_boot_if_needed(task):
         LOG.debug('Secure boot was requested for node %(node)s but its '
                   'management interface %(driver)s does not support it.',
                   {'node': task.node.uuid,
-                   'driver': task.node.management_interface})
+                   'driver': task.node.get_interface('management')})
     except Exception as exc:
         with excutils.save_and_reraise_exception():
             LOG.error('Failed to deconfigure secure boot for node %(node)s: '

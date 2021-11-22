@@ -628,7 +628,7 @@ def get_boot_option(node):
 # option it supports.
 
 def is_ramdisk_deploy(node):
-    return node.deploy_interface == 'ramdisk'
+    return node.get_interface('deploy') == 'ramdisk'
 
 
 def is_anaconda_deploy(node):
@@ -638,7 +638,7 @@ def is_anaconda_deploy(node):
     :returns: A boolean value of True when Anaconda deploy interface is in use
               otherwise False
     """
-    if node.deploy_interface == 'anaconda':
+    if node.get_interface('deploy') == 'anaconda':
         return True
     return False
 

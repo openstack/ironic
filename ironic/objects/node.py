@@ -544,6 +544,12 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         node = cls._from_db_object(context, cls(), db_node)
         return node
 
+    def get_interface(self, iface):
+        iface_name = '%s_interface' % iface
+        impl_name = self.instance_info.get(iface_name,
+                                           getattr(self, iface_name))
+        return impl_name
+
     def _convert_deploy_step_field(self, target_version,
                                    remove_unavailable_fields=True):
         # NOTE(rloo): Typically we set the value to None. However,
