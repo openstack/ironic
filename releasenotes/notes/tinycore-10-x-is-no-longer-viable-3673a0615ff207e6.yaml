@@ -1,0 +1,8 @@
+---
+issues:
+  - |
+    TinyCore Linux 10.x, which powers the TinyIPA ramdisk in the Ussuri and
+    Train releases of OpenStack, is no longer able to be built due to
+    certificate verification issues as time moves forward. We have embedded
+    a fix for use by Ironic's CI only. As a general reminder, TinyIPA
+    should not be used in production deployments.
