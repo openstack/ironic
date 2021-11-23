@@ -239,7 +239,7 @@ def create_isolinux_image_for_bios(
 
         try:
             utils.execute('mkisofs', '-r', '-V', _label(files_info),
-                          '-cache-inodes', '-J', '-l', '-no-emul-boot',
+                          '-J', '-l', '-no-emul-boot',
                           '-boot-load-size', '4', '-boot-info-table',
                           '-b', ISOLINUX_BIN, '-o', output_file, tmpdir)
         except processutils.ProcessExecutionError as e:
