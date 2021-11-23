@@ -27,6 +27,7 @@ from ironic_lib import disk_utils
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import fileutils
+import pycdlib
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
@@ -70,14 +71,6 @@ def _create_root_fs(root_directory, files_info):
                 fp.write(src_file)
         else:
             shutil.copyfile(src_file, target_file)
-
-
-def _umount_without_raise(mount_dir):
-    """Helper method to umount without raise."""
-    try:
-        utils.umount(mount_dir)
-    except processutils.ProcessExecutionError:
-        pass
 
 
 def create_vfat_image(output_file, files_info=None, parameters=None,
@@ -299,7 +292,7 @@ def create_esp_image_for_uefi(
             # directory.
             if deploy_iso and not esp_image:
                 uefi_path_info, e_img_rel_path, grub_rel_path = (
-                    _mount_deploy_iso(deploy_iso, mountdir))
+                    _get_deploy_iso_files(deploy_iso, mountdir))
 
                 grub_cfg = os.path.join(tmpdir, grub_rel_path)
 
@@ -336,7 +329,7 @@ def create_esp_image_for_uefi(
 
             finally:
                 if deploy_iso:
-                    _umount_without_raise(mountdir)
+                    shutil.rmtree(mountdir)
 
         # Generate and copy grub config file.
         grub_conf = _generate_cfg(kernel_params,
@@ -622,7 +615,27 @@ def is_whole_disk_image(ctx, instance_info):
     return is_whole_disk_image
 
 
-def _mount_deploy_iso(deploy_iso, mountdir):
+def _extract_iso(extract_iso, extract_dir):
+    # NOTE(rpittau): we could probably just extract the files we need
+    # if we find them. Also we probably need to detect the correct iso
+    # type (UDF, RR, JOLIET).
+    iso = pycdlib.PyCdlib()
+    iso.open(extract_iso)
+
+    for dirname, dirlist, filelist in iso.walk(iso_path='/'):
+        dir_path = dirname.lstrip('/')
+        for dir_iso in dirlist:
+            os.makedirs(os.path.join(extract_dir, dir_path, dir_iso))
+        for file in filelist:
+            file_path = os.path.join(extract_dir, dirname, file)
+            iso.get_file_from_iso(
+                os.path.join(extract_dir, dir_path, file),
+                iso_path=file_path)
+
+    iso.close()
+
+
+def _get_deploy_iso_files(deploy_iso, mountdir):
     """This function opens up the deploy iso used for deploy.
 
     :param deploy_iso: path to the deploy iso where its
@@ -641,9 +654,9 @@ def _mount_deploy_iso(deploy_iso, mountdir):
     grub_path = None
 
     try:
-        utils.mount(deploy_iso, mountdir, '-o', 'loop')
-    except processutils.ProcessExecutionError as e:
-        LOG.exception("mounting the deploy iso failed.")
+        _extract_iso(deploy_iso, mountdir)
+    except Exception as e:
+        LOG.exception("extracting the deploy iso failed.")
         raise exception.ImageCreationFailed(image_type='iso', error=e)
 
     try:
@@ -658,14 +671,14 @@ def _mount_deploy_iso(deploy_iso, mountdir):
                                                 mountdir)
     except (OSError, IOError) as e:
         LOG.exception("examining the deploy iso failed.")
-        _umount_without_raise(mountdir)
+        shutil.rmtree(mountdir)
         raise exception.ImageCreationFailed(image_type='iso', error=e)
 
     # check if the variables are assigned some values or not during
     # walk of the mountdir.
     if not (e_img_path and e_img_rel_path and grub_path and grub_rel_path):
         error = (_("Deploy iso didn't contain efiboot.img or grub.cfg"))
-        _umount_without_raise(mountdir)
+        shutil.rmtree(mountdir)
         raise exception.ImageCreationFailed(image_type='iso', error=error)
 
     uefi_path_info = {e_img_path: e_img_rel_path,
