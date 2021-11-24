@@ -245,7 +245,8 @@ class NoValidDefaultForInterface(InvalidParameterValue):
     #             because node_info could be an empty string. If node_info
     #             is not empty, it should start with a space.
     _msg_fmt = _("For%(node_info)s hardware type '%(driver)s', no default "
-                 "value found for %(interface_type)s interface.")
+                 "value found for %(interface_type)s interface could be "
+                 "determined. Please ensure the interfaces are enabled.")
 
 
 class ImageNotFound(NotFound):
