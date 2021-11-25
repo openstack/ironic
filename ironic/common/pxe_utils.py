@@ -1266,13 +1266,6 @@ def place_loaders_for_boot(base_path):
                     raise exception.IncorrectConfiguration(msg)
 
         full_dest = os.path.join(base_path, dest)
-        if not os.path.isfile(src):
-            msg = ('Was not able to find source path %(src)s '
-                   'to copy to %(dest)s.' %
-                   {'src': src, 'dest': full_dest})
-            LOG.error(msg)
-            raise exception.IncorrectConfiguration(error=msg)
-
         LOG.debug('Copying bootloader %(dest)s from %(src)s.',
                   {'src': src, 'dest': full_dest})
         try:
