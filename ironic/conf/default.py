@@ -101,7 +101,7 @@ driver_opts = [
     cfg.StrOpt('default_bios_interface',
                help=_DEFAULT_IFACE_HELP.format('bios')),
     cfg.ListOpt('enabled_boot_interfaces',
-                default=['pxe', 'redfish-virtual-media'],
+                default=['ipxe', 'pxe', 'redfish-virtual-media'],
                 help=_ENABLED_IFACE_HELP.format('boot')),
     cfg.StrOpt('default_boot_interface',
                help=_DEFAULT_IFACE_HELP.format('boot')),
