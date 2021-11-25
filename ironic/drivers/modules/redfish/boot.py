@@ -278,7 +278,7 @@ def _has_vmedia_device(managers, boot_device, inserted=None):
         inserted status.
     :return: The device that could be found or False.
     """
-    if isinstance(boot_device, str):
+    if not isinstance(boot_device, list):
         boot_device = [boot_device]
 
     for dev in boot_device:
