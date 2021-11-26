@@ -395,7 +395,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
             'foo')
         render_mock.assert_called_once_with(
             CONF.pxe.ipxe_boot_script,
-            {'ipxe_for_mac_uri': 'pxelinux.cfg/'})
+            {'ipxe_for_mac_uri': 'pxelinux.cfg/',
+             'ipxe_fallback_script': None})
 
     @mock.patch.object(os.path, 'isfile', lambda path: False)
     @mock.patch('ironic.common.utils.file_has_content', autospec=True)
@@ -415,7 +416,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
             'foo')
         render_mock.assert_called_once_with(
             CONF.pxe.ipxe_boot_script,
-            {'ipxe_for_mac_uri': 'pxelinux.cfg/'})
+            {'ipxe_for_mac_uri': 'pxelinux.cfg/',
+             'ipxe_fallback_script': None})
 
     @mock.patch.object(os.path, 'isfile', lambda path: True)
     @mock.patch.object(common_utils, 'file_has_content', lambda *args: True)

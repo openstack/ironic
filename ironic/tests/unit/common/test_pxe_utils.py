@@ -154,6 +154,17 @@ class TestPXEUtils(db_base.DbTestCase):
 
         self.assertEqual(str(expected_template), rendered_template)
 
+    def test_fallback_ipxe_boot_script(self):
+        rendered_template = utils.render_template(
+            CONF.pxe.ipxe_boot_script,
+            {'ipxe_for_mac_uri': 'pxelinux.cfg/',
+             'ipxe_fallback_script': 'inspector.ipxe'})
+
+        with open('ironic/tests/unit/drivers/boot-fallback.ipxe') as f:
+            expected_template = f.read().rstrip()
+
+        self.assertEqual(str(expected_template), rendered_template)
+
     def test_default_ipxe_config(self):
         # NOTE(lucasagomes): iPXE is just an extension of the PXE driver,
         # it doesn't have it's own configuration option for template.
@@ -714,7 +725,8 @@ class TestPXEUtils(db_base.DbTestCase):
             'foo')
         render_mock.assert_called_once_with(
             CONF.pxe.ipxe_boot_script,
-            {'ipxe_for_mac_uri': 'pxelinux.cfg/'})
+            {'ipxe_for_mac_uri': 'pxelinux.cfg/',
+             'ipxe_fallback_script': None})
 
     @mock.patch.object(os.path, 'isfile', lambda path: True)
     @mock.patch('ironic.common.utils.file_has_content', autospec=True)
@@ -735,7 +747,27 @@ class TestPXEUtils(db_base.DbTestCase):
             'foo')
         render_mock.assert_called_once_with(
             CONF.pxe.ipxe_boot_script,
-            {'ipxe_for_mac_uri': 'pxelinux.cfg/'})
+            {'ipxe_for_mac_uri': 'pxelinux.cfg/',
+             'ipxe_fallback_script': None})
+
+    @mock.patch.object(os.path, 'isfile', lambda path: False)
+    @mock.patch('ironic.common.utils.file_has_content', autospec=True)
+    @mock.patch('ironic.common.utils.write_to_file', autospec=True)
+    @mock.patch('ironic.common.utils.render_template', autospec=True)
+    def test_create_ipxe_boot_script_fallback(self, render_mock, write_mock,
+                                              file_has_content_mock):
+        self.config(ipxe_fallback_script='inspector.ipxe', group='pxe')
+        render_mock.return_value = 'foo'
+        pxe_utils.create_ipxe_boot_script()
+        self.assertFalse(file_has_content_mock.called)
+        write_mock.assert_called_once_with(
+            os.path.join(CONF.deploy.http_root,
+                         os.path.basename(CONF.pxe.ipxe_boot_script)),
+            'foo')
+        render_mock.assert_called_once_with(
+            CONF.pxe.ipxe_boot_script,
+            {'ipxe_for_mac_uri': 'pxelinux.cfg/',
+             'ipxe_fallback_script': 'inspector.ipxe'})
 
     @mock.patch.object(os.path, 'isfile', lambda path: True)
     @mock.patch('ironic.common.utils.file_has_content', autospec=True)
