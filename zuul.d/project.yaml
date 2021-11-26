@@ -11,6 +11,8 @@
     check:
       jobs:
         - ironic-tox-unit-with-driver-libs
+        - ironic-cross-sushy:
+            voting: false
         - ironic-tempest-functional-python3
         - ironic-tempest-functional-rbac-scope-enforced
         - ironic-grenade
