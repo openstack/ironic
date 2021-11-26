@@ -638,7 +638,7 @@ class FsImageTestCase(base.TestCase):
         write_to_file_mock.assert_called_once_with(cfg_file, cfg)
         execute_mock.assert_called_once_with(
             'mkisofs', '-r', '-V',
-            "VMEDIA_BOOT_ISO", '-cache-inodes', '-J', '-l',
+            "VMEDIA_BOOT_ISO", '-J', '-l',
             '-no-emul-boot', '-boot-load-size',
             '4', '-boot-info-table', '-b', 'isolinux/isolinux.bin',
             '-o', 'tgt_file', 'tmpdir')
