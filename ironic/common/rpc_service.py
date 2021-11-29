@@ -53,19 +53,22 @@ class RPCService(service.Service):
         if CONF.rpc_transport == 'json-rpc':
             self.rpcserver = json_rpc.WSGIService(
                 self.manager, serializer, context.RequestContext.from_dict)
-        else:
+        elif CONF.rpc_transport != 'none':
             target = messaging.Target(topic=self.topic, server=self.host)
             endpoints = [self.manager]
             self.rpcserver = rpc.get_server(target, endpoints, serializer)
-        self.rpcserver.start()
+
+        if self.rpcserver is not None:
+            self.rpcserver.start()
 
         self.handle_signal()
         self.manager.init_host(admin_context)
         rpc.set_global_manager(self.manager)
 
-        LOG.info('Created RPC server for service %(service)s on host '
-                 '%(host)s.',
-                 {'service': self.topic, 'host': self.host})
+        LOG.info('Created RPC server with %(transport)s transport for service '
+                 '%(service)s on host %(host)s.',
+                 {'service': self.topic, 'host': self.host,
+                  'transport': CONF.rpc_transport})
 
     def stop(self):
         try:

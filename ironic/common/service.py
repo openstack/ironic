@@ -69,3 +69,11 @@ def prepare_service(name, argv=None, conf=CONF):
 
 def process_launcher():
     return service.ProcessLauncher(CONF, restart_method='mutate')
+
+
+def ensure_rpc_transport(conf=CONF):
+    # Only the combined ironic executable can use rpc_transport = none
+    if conf.rpc_transport == 'none':
+        raise RuntimeError("This service is not designed to work with "
+                           "rpc_transport = none. Please use the combined "
+                           "ironic executable or another RPC transport.")

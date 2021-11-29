@@ -33,6 +33,7 @@ LOG = log.getLogger(__name__)
 def main():
     # Parse config file and command line options, then start logging
     ironic_service.prepare_service('ironic_api', sys.argv)
+    ironic_service.ensure_rpc_transport()
 
     # Build and start the WSGI app
     launcher = ironic_service.process_launcher()

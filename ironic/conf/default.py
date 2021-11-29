@@ -362,7 +362,8 @@ service_opts = [
     cfg.StrOpt('rpc_transport',
                default='oslo',
                choices=[('oslo', _('use oslo.messaging transport')),
-                        ('json-rpc', _('use JSON RPC transport'))],
+                        ('json-rpc', _('use JSON RPC transport')),
+                        ('none', _('No RPC, only use local conductor'))],
                help=_('Which RPC transport implementation to use between '
                       'conductor and API services')),
     cfg.BoolOpt('minimum_memory_warning_only',

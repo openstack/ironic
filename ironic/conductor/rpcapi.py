@@ -174,10 +174,12 @@ class ConductorAPI(object):
             self.client = json_rpc.Client(serializer=serializer,
                                           version_cap=version_cap)
             self.topic = ''
-        else:
+        elif CONF.rpc_transport != 'none':
             target = messaging.Target(topic=self.topic, version='1.0')
             self.client = rpc.get_client(target, version_cap=version_cap,
                                          serializer=serializer)
+        else:
+            self.client = None
 
         # NOTE(tenbrae): this is going to be buggy
         self.ring_manager = hash_ring.HashRingManager()
@@ -202,6 +204,13 @@ class ConductorAPI(object):
             # Short-cut to a local function call if there is a built-in
             # conductor.
             return _LOCAL_CONTEXT
+
+        # A safeguard for the case someone uses rpc_transport=None with no
+        # built-in conductor.
+        if self.client is None:
+            raise exception.ServiceUnavailable(
+                _("Cannot use 'none' RPC to connect to remote conductor %s")
+                % host)
 
         # Normal RPC path
         return self.client.prepare(topic=topic, version=version)
@@ -276,13 +285,17 @@ class ConductorAPI(object):
         """Get RPC topic name for the current conductor."""
         return self.topic + "." + CONF.host
 
+    def _can_send_version(self, version):
+        return (self.client.can_send_version(version)
+                if self.client is not None else True)
+
     def can_send_create_port(self):
         """Return whether the RPCAPI supports the create_port method."""
-        return self.client.can_send_version("1.41")
+        return self._can_send_version("1.41")
 
     def can_send_rescue(self):
         """Return whether the RPCAPI supports node rescue methods."""
-        return self.client.can_send_version("1.43")
+        return self._can_send_version("1.43")
 
     def create_node(self, context, node_obj, topic=None):
         """Synchronously, have a conductor validate and create a node.
@@ -1047,16 +1060,16 @@ class ConductorAPI(object):
         """
         new_kws = {}
         version = '1.34'
-        if self.client.can_send_version('1.42'):
+        if self._can_send_version('1.42'):
             version = '1.42'
             new_kws['agent_version'] = agent_version
-        if self.client.can_send_version('1.49'):
+        if self._can_send_version('1.49'):
             version = '1.49'
             new_kws['agent_token'] = agent_token
-        if self.client.can_send_version('1.51'):
+        if self._can_send_version('1.51'):
             version = '1.51'
             new_kws['agent_verify_ca'] = agent_verify_ca
-        if self.client.can_send_version('1.54'):
+        if self._can_send_version('1.54'):
             version = '1.54'
             new_kws['agent_status'] = agent_status
             new_kws['agent_status_message'] = agent_status_message
@@ -1082,7 +1095,7 @@ class ConductorAPI(object):
         :returns: The result of the action method, which may (or may not)
             be an instance of the implementing VersionedObject class.
         """
-        if not self.client.can_send_version('1.31'):
+        if not self._can_send_version('1.31'):
             raise NotImplementedError(_('Incompatible conductor version - '
                                         'please upgrade ironic-conductor '
                                         'first'))
@@ -1108,7 +1121,7 @@ class ConductorAPI(object):
         :returns: A tuple with the updates made to the object and
             the result of the action method
         """
-        if not self.client.can_send_version('1.31'):
+        if not self._can_send_version('1.31'):
             raise NotImplementedError(_('Incompatible conductor version - '
                                         'please upgrade ironic-conductor '
                                         'first'))
@@ -1133,7 +1146,7 @@ class ConductorAPI(object):
             upgrade
         :returns: The downgraded instance of objinst
         """
-        if not self.client.can_send_version('1.31'):
+        if not self._can_send_version('1.31'):
             raise NotImplementedError(_('Incompatible conductor version - '
                                         'please upgrade ironic-conductor '
                                         'first'))
