@@ -1035,6 +1035,53 @@ class TestPXEUtils(db_base.DbTestCase):
                          next(actual))
         self.assertEqual('/tftpboot-path/' + address + '.conf', next(actual))
 
+    @mock.patch.object(os, 'makedirs', autospec=True)
+    @mock.patch.object(os.path, 'isdir', autospec=True)
+    @mock.patch.object(os, 'chmod', autospec=True)
+    def test_place_common_config(self, mock_chmod, mock_isdir,
+                                 mock_makedirs):
+        self.config(initial_grub_template=os.path.join(
+                    '$pybasedir',
+                    'drivers/modules/initial_grub_cfg.template'),
+                    group='pxe')
+        mock_isdir.return_value = False
+        self.config(group='pxe', dir_permission=0o777)
+
+        def write_to_file(path, contents):
+            self.assertEqual('/tftpboot/grub/grub.cfg', path)
+            self.assertIn(
+                'configfile /tftpboot/$net_default_mac.conf',
+                contents
+            )
+
+        with mock.patch('ironic.common.utils.write_to_file',
+                        wraps=write_to_file):
+            pxe_utils.place_common_config()
+
+        mock_isdir.assert_called_once_with('/tftpboot/grub')
+        mock_makedirs.assert_called_once_with('/tftpboot/grub', 511)
+        mock_chmod.assert_called_once_with('/tftpboot/grub', 0o777)
+
+    @mock.patch.object(os, 'makedirs', autospec=True)
+    @mock.patch.object(os.path, 'isdir', autospec=True)
+    @mock.patch.object(os, 'chmod', autospec=True)
+    def test_place_common_config_existing_dirs(self, mock_chmod, mock_isdir,
+                                               mock_makedirs):
+        self.config(initial_grub_template=os.path.join(
+                    '$pybasedir',
+                    'drivers/modules/initial_grub_cfg.template'),
+                    group='pxe')
+        mock_isdir.return_value = True
+
+        with mock.patch('ironic.common.utils.write_to_file',
+                        autospec=True) as mock_write:
+            pxe_utils.place_common_config()
+            mock_write.assert_called_once()
+
+        mock_isdir.assert_called_once_with('/tftpboot/grub')
+        mock_makedirs.assert_not_called()
+        mock_chmod.assert_not_called()
+
 
 @mock.patch.object(ipxe.iPXEBoot, '__init__', lambda self: None)
 @mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)

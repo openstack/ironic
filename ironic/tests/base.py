@@ -152,6 +152,7 @@ class TestCase(oslo_test_base.BaseTestCase):
                     group='neutron')
         self.config(enabled_hardware_types=['fake-hardware',
                                             'manual-management'])
+        self.config(initial_grub_template=None, group='pxe')
         for iface in drivers_base.ALL_INTERFACES:
             default = None
 

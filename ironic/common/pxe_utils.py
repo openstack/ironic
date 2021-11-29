@@ -24,6 +24,7 @@ import jinja2
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
+from oslo_utils import fileutils
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -1286,3 +1287,25 @@ def place_loaders_for_boot(base_path):
                    'the requested destination. %s' % e)
             LOG.error(msg)
             raise exception.IncorrectConfiguration(error=msg)
+
+
+def place_common_config():
+    """Place template generated config which is not node specific.
+
+    Currently places the initial grub config for grub network boot.
+    """
+    if not CONF.pxe.initial_grub_template:
+        return
+
+    grub_dir_path = os.path.join(_get_root_dir(False), 'grub')
+    if not os.path.isdir(grub_dir_path):
+        fileutils.ensure_tree(grub_dir_path)
+        if CONF.pxe.dir_permission:
+            os.chmod(grub_dir_path, CONF.pxe.dir_permission)
+
+    initial_grub = utils.render_template(
+        CONF.pxe.initial_grub_template,
+        {'tftp_root': _get_root_dir(False)})
+    initial_grub_path = os.path.join(grub_dir_path, 'grub.cfg')
+
+    utils.write_to_file(initial_grub_path, initial_grub)

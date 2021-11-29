@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Manually copying the initial grub config for grub network boot is no longer
+    necessary, as this file is now written to the TFTP root directory on
+    conductor startup. A custom template can be used to generate this file with
+    config option ``[pxe]initial_grub_template``.

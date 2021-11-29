@@ -2745,20 +2745,6 @@ function configure_tftpd {
         echo "re ^(^/) $IRONIC_TFTPBOOT_DIR/\1"  >>$IRONIC_TFTPBOOT_DIR/map-file
         echo "re ^([^/]) $IRONIC_TFTPBOOT_DIR/\1" >>$IRONIC_TFTPBOOT_DIR/map-file
 
-        # Write a grub.cfg redirect for the ubuntu grub. The fedora grub
-        # will fetch the generated grub.cfg-01-<mac> directly
-        grub_dir=$IRONIC_TFTPBOOT_DIR/grub
-        mkdir -p $grub_dir
-        cat << EOF > $grub_dir/grub.cfg
-set default=master
-set timeout=1
-set hidden_timeout_quiet=false
-
-menuentry "master"  {
-configfile $IRONIC_TFTPBOOT_DIR/\$net_default_mac.conf
-}
-EOF
-        chmod 644 $grub_dir/grub.cfg
     else
         echo "r ^([^/]) $IRONIC_TFTPBOOT_DIR/\1" >$IRONIC_TFTPBOOT_DIR/map-file
         echo "r ^(/tftpboot/) $IRONIC_TFTPBOOT_DIR/\2" >>$IRONIC_TFTPBOOT_DIR/map-file

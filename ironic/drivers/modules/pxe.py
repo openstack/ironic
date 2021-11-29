@@ -39,6 +39,7 @@ class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
     capabilities = ['ramdisk_boot', 'pxe_boot']
 
     def __init__(self):
+        pxe_utils.place_common_config()
         pxe_utils.place_loaders_for_boot(CONF.deploy.http_root)
         pxe_utils.place_loaders_for_boot(CONF.pxe.tftp_root)
 

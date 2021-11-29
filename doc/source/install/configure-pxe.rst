@@ -157,38 +157,6 @@ the PXE UEFI environment.
        sudo cp /usr/lib64/efi/shim.efi /tftpboot/bootx64.efi
        sudo cp /usr/lib/grub2/x86_64-efi/grub.efi /tftpboot/grubx64.efi
 
-#. Create master grub.cfg:
-
-   Ubuntu: Create grub.cfg under ``/tftpboot/grub`` directory::
-
-       GRUB_DIR=/tftpboot/grub
-
-   Fedora: Create grub.cfg under ``/tftpboot/EFI/fedora`` directory::
-
-        GRUB_DIR=/tftpboot/EFI/fedora
-
-   RHEL8/CentOS8: Create grub.cfg under ``/tftpboot/EFI/centos`` directory::
-
-       GRUB_DIR=/tftpboot/EFI/centos
-
-   SUSE: Create grub.cfg under ``/tftpboot/boot/grub`` directory::
-
-       GRUB_DIR=/tftpboot/boot/grub
-
-   Create directory ``GRUB_DIR``::
-
-     sudo mkdir -p $GRUB_DIR
-
-   This file is used to redirect grub to baremetal node specific config file.
-   It redirects it to specific grub config file based on DHCP IP assigned to
-   baremetal node.
-
-   .. literalinclude:: ../../../ironic/drivers/modules/master_grub_cfg.txt
-
-   Change the permission of grub.cfg::
-
-    sudo chmod 644 $GRUB_DIR/grub.cfg
-
 #. Update the bare metal node with ``boot_mode:uefi`` capability in
    node's properties field. See :ref:`boot_mode_support` for details.
 

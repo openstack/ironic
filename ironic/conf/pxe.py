@@ -204,6 +204,11 @@ opts = [
                    'for bootloaders. Use example: '
                    'ipxe.efi:/usr/share/ipxe/ipxe-snponly-x86_64.efi,'
                    'undionly.kpxe:/usr/share/ipxe/undionly.kpxe')),
+    cfg.StrOpt('initial_grub_template',
+               default=os.path.join(
+                   '$pybasedir', 'drivers/modules/initial_grub_cfg.template'),
+               help=_('On ironic-conductor node, the path to the initial grub'
+                      'configuration template for grub network boot.')),
 ]
 
 

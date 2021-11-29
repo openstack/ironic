@@ -24,6 +24,7 @@ from oslo_utils import strutils
 from oslo_utils import uuidutils
 
 from ironic.common import exception
+from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.conductor import manager
 from ironic import objects
@@ -143,8 +144,10 @@ class ServiceSetUpMixin(object):
             self.service.init_host()
         else:
             with mock.patch.object(periodics, 'PeriodicWorker', autospec=True):
-                self.service.prepare_host()
-                self.service.init_host()
+                with mock.patch.object(pxe_utils, 'place_common_config',
+                                       autospec=True):
+                    self.service.prepare_host()
+                    self.service.init_host()
         self.addCleanup(self._stop_service)
 
 

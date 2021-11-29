@@ -1,0 +1,7 @@
+set default=initial
+set timeout=5
+set hidden_timeout_quiet=false
+
+menuentry "initial"  {
+configfile {{ tftp_root }}/$net_default_mac.conf
+}
