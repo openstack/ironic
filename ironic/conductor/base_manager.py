@@ -31,7 +31,6 @@ from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import hash_ring
 from ironic.common.i18n import _
-from ironic.common import pxe_utils
 from ironic.common import release_mappings as versions
 from ironic.common import rpc
 from ironic.common import states
@@ -88,11 +87,9 @@ class BaseConductorManager(object):
     def prepare_host(self):
         """Prepares host for initialization
 
-        Prepares the conductor for basic operation by removing any
-        existing transitory node power states and reservations which
-        were previously held by this host. Once that has been completed,
-        bootloader assets, if configured, are staged for network (PXE) boot
-        operations.
+        Prepares the conductor for basic operation by removing any existing
+        transitory node power states and reservations which were previously
+        held by this host.
 
         Under normal operation, this is also when the initial database
         connectivity is established for the conductor's normal operation.
@@ -112,8 +109,6 @@ class BaseConductorManager(object):
         self.dbapi.clear_node_target_power_state(self.host)
         # clear all locks held by this conductor before registering
         self.dbapi.clear_node_reservations_for_conductor(self.host)
-        pxe_utils.place_loaders_for_boot(CONF.pxe.tftp_root)
-        pxe_utils.place_loaders_for_boot(CONF.deploy.http_root)
 
     def init_host(self, admin_context=None):
         """Initialize the conductor host.

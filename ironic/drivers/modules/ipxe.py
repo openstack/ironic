@@ -16,6 +16,7 @@ iPXE Boot Interface
 """
 
 from ironic.common import pxe_utils
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import pxe_base
 
@@ -28,3 +29,6 @@ class iPXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
 
     def __init__(self):
         pxe_utils.create_ipxe_boot_script()
+        pxe_utils.place_loaders_for_boot(CONF.deploy.http_root)
+        # This is required to serve the iPXE binary via tftp
+        pxe_utils.place_loaders_for_boot(CONF.pxe.tftp_root)

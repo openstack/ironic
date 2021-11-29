@@ -20,9 +20,11 @@ from oslo_log import log as logging
 
 from ironic.common import boot_devices
 from ironic.common.i18n import _
+from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import deploy_utils
@@ -35,6 +37,10 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 class PXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
 
     capabilities = ['ramdisk_boot', 'pxe_boot']
+
+    def __init__(self):
+        pxe_utils.place_loaders_for_boot(CONF.deploy.http_root)
+        pxe_utils.place_loaders_for_boot(CONF.pxe.tftp_root)
 
 
 class PXEAnacondaDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
