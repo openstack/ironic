@@ -38,7 +38,7 @@ class RPCService(service.Service):
         self.host = host
         manager_module = importutils.try_import(manager_module)
         manager_class = getattr(manager_module, manager_class)
-        self.manager = manager_class(host, manager_module.MANAGER_TOPIC)
+        self.manager = manager_class(host, rpc.MANAGER_TOPIC)
         self.topic = self.manager.topic
         self.rpcserver = None
         self.deregister = True
@@ -61,6 +61,7 @@ class RPCService(service.Service):
 
         self.handle_signal()
         self.manager.init_host(admin_context)
+        rpc.set_global_manager(self.manager)
 
         LOG.info('Created RPC server for service %(service)s on host '
                  '%(host)s.',
@@ -84,6 +85,7 @@ class RPCService(service.Service):
         LOG.info('Stopped RPC server for service %(service)s on host '
                  '%(host)s.',
                  {'service': self.topic, 'host': self.host})
+        rpc.set_global_manager(None)
 
     def _handle_signal(self, signo, frame):
         LOG.info('Got signal SIGUSR1. Not deregistering on next shutdown '

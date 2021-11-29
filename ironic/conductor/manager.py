@@ -77,8 +77,6 @@ from ironic import objects
 from ironic.objects import base as objects_base
 from ironic.objects import fields
 
-MANAGER_TOPIC = 'ironic.conductor_manager'
-
 LOG = log.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)

@@ -21,6 +21,7 @@ Unit Tests for :py:class:`ironic.conductor.rpcapi.ConductorAPI`.
 import copy
 from unittest import mock
 
+from ironic_lib.json_rpc import client as json_rpc
 from oslo_config import cfg
 import oslo_messaging as messaging
 from oslo_messaging import _utils as messaging_utils
@@ -31,6 +32,7 @@ from ironic.common import components
 from ironic.common import exception
 from ironic.common import indicator_states
 from ironic.common import release_mappings
+from ironic.common import rpc
 from ironic.common import states
 from ironic.conductor import manager as conductor_manager
 from ironic.conductor import rpcapi as conductor_rpcapi
@@ -242,9 +244,7 @@ class RPCAPITestCase(db_base.DbTestCase):
 
         expected_retval = 'hello world' if rpc_method == 'call' else None
 
-        expected_topic = 'fake-topic'
-        if 'host' in kwargs:
-            expected_topic += ".%s" % kwargs['host']
+        expected_topic = kwargs.get('topic', 'fake-topic')
 
         target = {
             "topic": expected_topic,
@@ -715,3 +715,67 @@ class RPCAPITestCase(db_base.DbTestCase):
                           'call',
                           allocation='fake-allocation',
                           version='1.48')
+
+    @mock.patch.object(rpc, 'GLOBAL_MANAGER',
+                       spec_set=conductor_manager.ConductorManager)
+    def test_local_call(self, mock_manager):
+        CONF.set_override('host', 'fake.host')
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
+        rpcapi.create_node(mock.sentinel.context, mock.sentinel.node,
+                           topic='fake.topic.fake.host')
+        mock_manager.create_node.assert_called_once_with(
+            mock.sentinel.context, node_obj=mock.sentinel.node)
+
+    @mock.patch.object(rpc, 'GLOBAL_MANAGER',
+                       spec_set=conductor_manager.ConductorManager)
+    def test_local_call_host_mismatch(self, mock_manager):
+        CONF.set_override('host', 'fake.host')
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
+        rpcapi.client = mock.Mock(spec_set=json_rpc.Client)
+        rpcapi.create_node(mock.sentinel.context, mock.sentinel.node,
+                           topic='fake.topic.not-fake.host')
+        mock_manager.create_node.assert_not_called()
+        rpcapi.client.prepare.assert_called_once_with(
+            topic='fake.topic.not-fake.host', version=mock.ANY)
+
+    @mock.patch.object(rpc, 'GLOBAL_MANAGER',
+                       spec_set=conductor_manager.ConductorManager)
+    def test_local_cast(self, mock_manager):
+        CONF.set_override('host', 'fake.host')
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
+        cctxt = rpcapi._prepare_call(topic='fake.topic.fake.host')
+        cctxt.cast(mock.sentinel.context, 'create_node',
+                   node_obj=mock.sentinel.node)
+        mock_manager.create_node.assert_called_once_with(
+            mock.sentinel.context, node_obj=mock.sentinel.node)
+
+    @mock.patch.object(conductor_rpcapi.LOG, 'exception', autospec=True)
+    @mock.patch.object(rpc, 'GLOBAL_MANAGER',
+                       spec_set=conductor_manager.ConductorManager)
+    def test_local_cast_error(self, mock_manager, mock_log):
+        CONF.set_override('host', 'fake.host')
+        mock_manager.create_node.side_effect = RuntimeError('boom')
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
+        cctxt = rpcapi._prepare_call(topic='fake.topic.fake.host')
+        cctxt.cast(mock.sentinel.context, 'create_node',
+                   node_obj=mock.sentinel.node)
+        mock_manager.create_node.assert_called_once_with(
+            mock.sentinel.context, node_obj=mock.sentinel.node)
+        self.assertTrue(mock_log.called)
+
+    @mock.patch.object(rpc, 'GLOBAL_MANAGER',
+                       spec_set=conductor_manager.ConductorManager)
+    def test_local_call_expected_exception(self, mock_manager):
+        @messaging.expected_exceptions(exception.InvalidParameterValue)
+        def fake_create(context, node_obj):
+            raise exception.InvalidParameterValue('sorry')
+
+        CONF.set_override('host', 'fake.host')
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
+        mock_manager.create_node.side_effect = fake_create
+        self.assertRaisesRegex(exception.InvalidParameterValue, 'sorry',
+                               rpcapi.create_node,
+                               mock.sentinel.context, mock.sentinel.node,
+                               topic='fake.topic.fake.host')
+        mock_manager.create_node.assert_called_once_with(
+            mock.sentinel.context, node_obj=mock.sentinel.node)
