@@ -183,7 +183,7 @@ def _report_conductors():
 
 
 def main():
-    service.prepare_service()
+    service.prepare_command()
     CONF.set_override('debug', False)
     _assess_db_performance()
     _assess_db_and_object_performance()

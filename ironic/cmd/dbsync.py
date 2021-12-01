@@ -338,5 +338,5 @@ def main():
     if not set(sys.argv) & valid_commands:
         sys.argv.append('upgrade')
 
-    service.prepare_service(sys.argv)
+    service.prepare_command(sys.argv)
     CONF.command.func()
