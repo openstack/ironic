@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixes connection caching issues with Redfish BMCs where AccessErrors were
+    previously not disqualifying the cached connection from being re-used.
+    Ironic will now explicitly open a new connection instead of using the
+    previous connection in the cache. Under normal circumstances, the
+    ``sushy`` redfish library would detect and refresh sessions,
+    however a prior case exists where it may not detect a failure and contain
+    cached session credential data which is ultimately invalid, blocking
+    future access to the BMC via Redfish until the cache entry expired or
+    the ``ironic-conductor`` service was restarted. For more information
+    please see `story 2009719 <https://storyboard.openstack.org/#!/story/2009719>`_.

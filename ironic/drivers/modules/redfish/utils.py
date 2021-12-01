@@ -234,6 +234,16 @@ class SessionCache(object):
         # NOTE(etingof): perhaps this session token is no good
         if isinstance(exc_val, sushy.exceptions.ConnectionError):
             self.__class__._sessions.pop(self._session_key, None)
+        # NOTE(TheJulia): A hard access error has surfaced, we
+        # likely need to eliminate the session.
+        if isinstance(exc_val, sushy.exceptions.AccessError):
+            self.__class__._sessions.pop(self._session_key, None)
+        # NOTE(TheJulia): Something very bad has happened, such
+        # as the session is out of date, and refresh of the SessionService
+        # failed resulting in an AttributeError surfacing.
+        # https://storyboard.openstack.org/#!/story/2009719
+        if isinstance(exc_val, AttributeError):
+            self.__class__._sessions.pop(self._session_key, None)
 
     @classmethod
     def _expire_oldest_session(cls):
@@ -358,6 +368,23 @@ def _get_connection(node, lambda_fun, *args):
                          'auth_type': driver_info['auth_type'],
                          'node': node.uuid, 'error': e})
             raise exception.RedfishConnectionError(node=node.uuid, error=e)
+        except sushy.exceptions.AccessError as e:
+            LOG.warning('For node %(node)s, we received an authentication '
+                        'access error from address %(address)s with auth_type '
+                        '%(auth_type)s. The client will not be re-used upon '
+                        'the next re-attempt. Please ensure your using the '
+                        'correct credentials. Error: %(error)s',
+                        {'address': driver_info['address'],
+                         'auth_type': driver_info['auth_type'],
+                         'node': node.uuid, 'error': e})
+            raise exception.RedfishError(node=node.uuid, error=e)
+        except AttributeError as e:
+            LOG.warning('For node %(node)s, we received at AttributeError '
+                        'when attempting to utilize the client. A new '
+                        'client session shall be used upon the next attempt.'
+                        'Attribute Error: %(error)s',
+                        {'node': node.uuid, 'error': e})
+            raise exception.RedfishError(node=node.uuid, error=e)
 
     try:
         return _get_cached_connection(lambda_fun, *args)
