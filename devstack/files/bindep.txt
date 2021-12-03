@@ -16,17 +16,12 @@ tftp-server [platform:rpm]
 # Starting with Debian Jessie (and thus in Ubuntu Xenial too),
 # pxelinux package provides the pxelinux.0 boot loader,
 # but such package is absent from Debian Wheezy / Ubuntu Trusty.
-# Also, in Debian Wheezy / Ubuntu Trusty 'syslinux' depends on syslinux-common,
-# but only recommends it in Jessie/Xenial.
 # Make sure syslinux-common is installed for those distros as it provides
 # *.c32 modules for syslinux
-# TODO remove distro pinning when Wheezy / Trusty are EOLed (May 2019)
-# or DevStack stops supporting those.
-# In the mean time, new Debian-based release codenames will have to be added
-# as distros can not be pinned with 'if-later-than' specified.
 pxelinux [platform:dpkg]
-syslinux [platform:rpm platform:ubuntu-trusty platform:debian-wheezy]
+syslinux
 syslinux-common [platform:dpkg]
+isolinux [platform:dpkg]
 socat [default]
 # Grub2 files for boot loadingusing PXE/GRUB2
 shim-signed [platform:dpkg]
