@@ -853,7 +853,7 @@ the Ironic power state poll interval to 70 seconds. See
 PXE reset with "factory_reset" BIOS clean step
 ----------------------------------------------
 
-When using the ``UEFI boot mode``` with non-default PXE interface, the factory
+When using the ``UEFI boot mode`` with non-default PXE interface, the factory
 reset can cause the PXE interface to be reset to default, which doesn't allow
 the server to PXE boot for any further operations. This can cause a
 ``clean_failed`` state on the node or ``deploy_failed`` if you attempt to
