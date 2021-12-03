@@ -29,3 +29,5 @@ Install and configure components
 .. include:: include/configure-ironic-api-mod_wsgi.inc
 
 .. include:: include/configure-ironic-conductor.inc
+
+.. include:: include/configure-ironic-singleprocess.inc
