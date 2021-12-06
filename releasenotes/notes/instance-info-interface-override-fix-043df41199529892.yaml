@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Fixes issue with a node's instance_info interface override caused when
+    Fixes an issue with a node's instance_info interface override caused when
     Ironic uses the interface attribute directly. Does so by adding a
-    `get_interface` method to a node, and updating the Ironic code to use it
-    where needed.
+    ``get_interface`` method to a node, and updating the Ironic code to use
+    it where needed.

@@ -1,5 +1,5 @@
 ---
 fixes:
   - |
-    Fix the bug caused by not converting the port value to int type
-    when the node managed by the `irmc` hardware type.
+    Fixes an issue where the port value is not converted to int type
+    when nodes are managed by the ``irmc`` hardware type.
