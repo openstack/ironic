@@ -154,9 +154,9 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
         disable_ramdisk = node.driver_internal_info.get(
             'cleaning_disable_ramdisk', False)
 
-    LOG.info('Executing %(state)s on node %(node)s, remaining steps: '
+    LOG.info('Executing %(kind)s cleaning on node %(node)s, remaining steps: '
              '%(steps)s', {'node': node.uuid, 'steps': steps,
-                           'state': node.provision_state})
+                           'kind': 'manual' if manual_clean else 'automated'})
 
     # Execute each step until we hit an async step or run out of steps
     for ind, step in enumerate(steps):
