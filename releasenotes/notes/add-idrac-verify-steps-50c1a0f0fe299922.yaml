@@ -1,9 +1,9 @@
 ---
 features:
   - |
-    Adding support for running ``management.clear_job_queue``,
+    Adds support for running ``management.clear_job_queue``,
     ``management.reset_idrac`` and ``management.known_good_state`` methods as
     verify steps on iDRAC hardware type, for both ``idrac-wsman`` and
     ``idrac-redfish`` interfaces. In order to use this feature,
     ``[conductor]verify_step_priority_override`` needs to be used to set
-    non-zero step priorties for the desired verify steps.
+    non-zero step priorities for the desired verify steps.

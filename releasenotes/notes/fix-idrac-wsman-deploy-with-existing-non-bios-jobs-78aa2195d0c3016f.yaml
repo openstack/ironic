@@ -2,11 +2,15 @@
 fixes:
   - |
     Fixes ``idrac-wsman`` management interface ``set_boot_device`` method that
-    would fail deployment when there are existing jobs present with error
-    "Failed to change power state to ''power on'' by ''rebooting''. Error: DRAC
-    operation failed. Reason: Unfinished config jobs found: <list of existing
-    jobs>. Make sure they are completed before retrying.". Now there can be
-    non-BIOS jobs present during deployment. This will still fail for cases
-    when there are BIOS jobs present. In such cases should consider moving to
-    ``idrac-redfish`` that does not have this limitation when setting boot
-    device.
+    would fail deployment when there are existing jobs present with
+    the error::
+
+      "Failed to change power state to ''power on'' by ''rebooting''.
+      Error: DRAC operation failed. Reason: Unfinished config jobs
+      found: <list of existing jobs>. Make sure they are completed
+      before retrying."
+
+    Now there can be non-BIOS jobs present during deployment.
+    This will still fail for cases when there are BIOS jobs present.
+    In such cases it's advised to use the ``idrac-redfish`` interface
+    that does not have this limitation when setting boot device.

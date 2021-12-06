@@ -6,7 +6,7 @@ features:
     set their nodes, or deployment, appropriately.
 upgrade:
   - |
-    The default boot mode has been changed and now UEFI. Operators who
+    The default boot mode has been changed and is *now* UEFI. Operators who
     were explicitly relying upon BIOS based deployments in the past,
     may wish to consider setting an explicit node level override for
     the node to only utilize BIOS mode. This can be configured at a
