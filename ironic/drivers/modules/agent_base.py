@@ -568,8 +568,11 @@ class HeartbeatMixin(object):
         try:
             node.touch_provisioning()
             if not node.clean_step:
-                LOG.debug('Node %s just booted to start cleaning.',
-                          node.uuid)
+                kind = ('manual'
+                        if node.target_provision_state == states.MANAGEABLE
+                        else 'automated')
+                LOG.debug('Node %s just booted to start %s cleaning',
+                          node.uuid, kind)
                 msg = _('Node failed to start the first cleaning step')
                 # First, cache the clean steps
                 self.refresh_clean_steps(task)
@@ -638,7 +641,8 @@ class HeartbeatMixin(object):
             return
 
         node = task.node
-        LOG.debug('Heartbeat from node %s', node.uuid)
+        LOG.debug('Heartbeat from node %s in state %s (target state %s)',
+                  node.uuid, node.provision_state, node.target_provision_state)
         driver_internal_info = node.driver_internal_info
         driver_internal_info['agent_url'] = callback_url
         driver_internal_info['agent_version'] = agent_version
