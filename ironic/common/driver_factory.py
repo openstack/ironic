@@ -341,16 +341,31 @@ class BaseDriverFactory(object):
     def get_driver(self, name):
         return self[name].obj
 
-    # NOTE(tenbrae): Use lockutils to avoid a potential race in eventlet
-    #             that might try to create two driver factories.
+    # NOTE(tenbrae): Drivers raise "DriverLoadError" if they are unable to
+    #             be loaded, eg. due to missing external dependencies.
+    #             We capture that exception, and, only if it is for an
+    #             enabled driver, raise it from here. If enabled driver
+    #             raises other exception type, it is wrapped in
+    #             "DriverLoadError", providing the name of the driver that
+    #             caused it, and raised. If the exception is for a
+    #             non-enabled driver, we suppress it.
     @classmethod
-    @lockutils.synchronized(EM_SEMAPHORE)
-    def _init_extension_manager(cls):
-        # NOTE(tenbrae): In case multiple greenthreads queue up on this lock
-        #             before _extension_manager is initialized, prevent
-        #             creation of multiple NameDispatchExtensionManagers.
-        if cls._extension_manager:
-            return
+    def _catch_driver_not_found(cls, mgr, ep, exc):
+        # NOTE(tenbrae): stevedore loads plugins *before* evaluating
+        #             _check_func, so we need to check here, too.
+        if ep.name in cls._enabled_driver_list:
+            if not isinstance(exc, exception.DriverLoadError):
+                raise exception.DriverLoadError(driver=ep.name, reason=exc)
+            raise exc
+
+    @classmethod
+    def _missing_callback(cls, names):
+        names = ', '.join(names)
+        raise exception.DriverNotFoundInEntrypoint(
+            names=names, entrypoint=cls._entrypoint_name)
+
+    @classmethod
+    def _set_enabled_drivers(cls):
         enabled_drivers = getattr(CONF, cls._enabled_driver_list_config_option,
                                   [])
 
@@ -375,39 +390,32 @@ class BaseDriverFactory(object):
                         'configuration file.',
                         ', '.join(duplicated_drivers))
 
-        # NOTE(tenbrae): Drivers raise "DriverLoadError" if they are unable to
-        #             be loaded, eg. due to missing external dependencies.
-        #             We capture that exception, and, only if it is for an
-        #             enabled driver, raise it from here. If enabled driver
-        #             raises other exception type, it is wrapped in
-        #             "DriverLoadError", providing the name of the driver that
-        #             caused it, and raised. If the exception is for a
-        #             non-enabled driver, we suppress it.
-        def _catch_driver_not_found(mgr, ep, exc):
-            # NOTE(tenbrae): stevedore loads plugins *before* evaluating
-            #             _check_func, so we need to check here, too.
-            if ep.name in cls._enabled_driver_list:
-                if not isinstance(exc, exception.DriverLoadError):
-                    raise exception.DriverLoadError(driver=ep.name, reason=exc)
-                raise exc
+    @classmethod
+    def _init_extension_manager(cls):
+        # NOTE(tenbrae): Use lockutils to avoid a potential race in eventlet
+        #             that might try to create two driver factories.
+        with lockutils.lock(cls._entrypoint_name, do_log=False):
+            # NOTE(tenbrae): In case multiple greenthreads queue up on this
+            # lock before _extension_manager is initialized, prevent
+            # creation of multiple NameDispatchExtensionManagers.
+            if cls._extension_manager:
+                return
 
-        def missing_callback(names):
-            names = ', '.join(names)
-            raise exception.DriverNotFoundInEntrypoint(
-                names=names, entrypoint=cls._entrypoint_name)
+            cls._set_enabled_drivers()
 
-        cls._extension_manager = (
-            named.NamedExtensionManager(
-                cls._entrypoint_name,
-                cls._enabled_driver_list,
-                invoke_on_load=True,
-                on_load_failure_callback=_catch_driver_not_found,
-                propagate_map_exceptions=True,
-                on_missing_entrypoints_callback=missing_callback))
+            cls._extension_manager = (
+                named.NamedExtensionManager(
+                    cls._entrypoint_name,
+                    cls._enabled_driver_list,
+                    invoke_on_load=True,
+                    on_load_failure_callback=cls._catch_driver_not_found,
+                    propagate_map_exceptions=True,
+                    on_missing_entrypoints_callback=cls._missing_callback))
 
-        # warn for any untested/unsupported/deprecated drivers or interfaces
-        if cls._enabled_driver_list:
-            cls._extension_manager.map(_warn_if_unsupported)
+            # warn for any untested/unsupported/deprecated drivers or
+            # interfaces
+            if cls._enabled_driver_list:
+                cls._extension_manager.map(_warn_if_unsupported)
 
         LOG.info(cls._logging_template, cls._extension_manager.names())
 
