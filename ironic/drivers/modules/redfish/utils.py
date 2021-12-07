@@ -375,7 +375,7 @@ def _get_connection(node, lambda_fun, *args):
                          'node': node.uuid, 'error': e})
             raise exception.RedfishConnectionError(node=node.uuid, error=e)
         except sushy.exceptions.AccessError as e:
-            LOG.warning('For node %(node)s, we receieved an authentication '
+            LOG.warning('For node %(node)s, we received an authentication '
                         'access error from address %(address)s with auth_type '
                         '%(auth_type)s. The client will not be re-used upon '
                         'the next re-attempt. Please ensure your using the '
@@ -385,10 +385,10 @@ def _get_connection(node, lambda_fun, *args):
                          'node': node.uuid, 'error': e})
             raise exception.RedfishError(node=node.uuid, error=e)
         except AttributeError as e:
-            LOG.warning('For node %(node)s, we receieved at AttributeError '
+            LOG.warning('For node %(node)s, we received at AttributeError '
                         'when attempting to utilize the client. A new '
                         'client session shall be used upon the next attempt.'
-                        'Error: %(error)s',
+                        'Attribute Error: %(error)s',
                         {'node': node.uuid, 'error': e})
             raise exception.RedfishError(node=node.uuid, error=e)
 
