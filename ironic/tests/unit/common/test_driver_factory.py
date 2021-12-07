@@ -319,39 +319,31 @@ class DefaultInterfaceTestCase(db_base.DbTestCase):
         iface = driver_factory.default_interface(self.driver, 'deploy')
         self.assertEqual('ansible', iface)
 
-    def test_calculated_no_answer(self):
-        # manual-management supports no power interfaces
+    def test_calculated_fallback(self):
         self.config(default_power_interface=None)
         self.config(enabled_power_interfaces=[])
-        self.assertRaisesRegex(
-            exception.NoValidDefaultForInterface,
-            "For hardware type 'ManualManagementHardware', no default "
-            "value found for power interface.",
-            driver_factory.default_interface, self.driver, 'power')
+        iface = driver_factory.default_interface(self.driver, 'power')
+        self.assertEqual('agent', iface)
 
     def test_calculated_no_answer_drivername(self):
         # manual-management instance (of entry-point driver named 'foo')
         # supports no power interfaces
         self.config(default_power_interface=None)
         self.config(enabled_power_interfaces=[])
-        self.assertRaisesRegex(
-            exception.NoValidDefaultForInterface,
-            "For hardware type 'foo', no default value found for power "
-            "interface.",
-            driver_factory.default_interface, self.driver, 'power',
-            driver_name='foo')
+        self.assertEqual(
+            "agent",
+            driver_factory.default_interface(self.driver, 'power',
+                                             driver_name='foo'))
 
     def test_calculated_no_answer_drivername_node(self):
         # for a node with manual-management instance (of entry-point driver
         # named 'foo'), no default power interface is supported
         self.config(default_power_interface=None)
         self.config(enabled_power_interfaces=[])
-        self.assertRaisesRegex(
-            exception.NoValidDefaultForInterface,
-            "For node bar with hardware type 'foo', no default "
-            "value found for power interface.",
-            driver_factory.default_interface, self.driver, 'power',
-            driver_name='foo', node='bar')
+        self.assertEqual(
+            "agent",
+            driver_factory.default_interface(self.driver, 'power',
+                                             driver_name='foo', node='bar'))
 
     @mock.patch.object(driver_factory, 'get_interface', autospec=True)
     def test_check_exception_IncompatibleInterface(self, mock_get_interface):
@@ -490,15 +482,18 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
                           task_manager.acquire, self.context, node.id)
         mock_get_hw_type.assert_called_once_with('fake-2')
 
-    def test_build_driver_for_task_no_defaults(self):
+    def test_build_driver_for_task_fallback_defaults(self):
         self.config(dhcp_provider=None, group='dhcp')
+        self.config(enabled_hardware_types=['fake-hardware'])
         for iface in drivers_base.ALL_INTERFACES:
             if iface not in ['network', 'storage']:
                 self.config(**{'enabled_%s_interfaces' % iface: []})
                 self.config(**{'default_%s_interface' % iface: None})
         node = obj_utils.create_test_node(self.context, driver='fake-hardware')
-        self.assertRaises(exception.NoValidDefaultForInterface,
-                          task_manager.acquire, self.context, node.id)
+        with task_manager.acquire(self.context, node.id) as task:
+            for iface in drivers_base.ALL_INTERFACES:
+                impl = getattr(task.driver, iface)
+                self.assertIsNotNone(impl)
 
     def test_build_driver_for_task_calculated_defaults(self):
         self.config(dhcp_provider=None, group='dhcp')
@@ -581,10 +576,8 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
         #             for storage, so we'll test this case with raid.
         self.config(enabled_raid_interfaces=[])
         node = obj_utils.get_test_node(self.context, driver='fake-hardware')
-        self.assertRaisesRegex(
-            exception.NoValidDefaultForInterface,
-            "raid interface",
-            driver_factory.check_and_update_node_interfaces, node)
+        self.assertTrue(driver_factory.check_and_update_node_interfaces(node))
+        self.assertEqual('fake', node.raid_interface)
 
     def _test_enabled_supported_interfaces(self, enable_storage):
         ht = fake_hardware.FakeHardware()

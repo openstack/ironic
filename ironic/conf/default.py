@@ -121,7 +121,7 @@ driver_opts = [
     cfg.StrOpt('default_inspect_interface',
                help=_DEFAULT_IFACE_HELP.format('inspect')),
     cfg.ListOpt('enabled_management_interfaces',
-                default=['ipmitool', 'redfish'],
+                default=None,  # automatically calculate
                 help=_ENABLED_IFACE_HELP.format('management')),
     cfg.StrOpt('default_management_interface',
                help=_DEFAULT_IFACE_HELP.format('management')),
@@ -131,7 +131,7 @@ driver_opts = [
     cfg.StrOpt('default_network_interface',
                help=_DEFAULT_IFACE_HELP.format('network')),
     cfg.ListOpt('enabled_power_interfaces',
-                default=['ipmitool', 'redfish'],
+                default=None,  # automatically calculate
                 help=_ENABLED_IFACE_HELP.format('power')),
     cfg.StrOpt('default_power_interface',
                help=_DEFAULT_IFACE_HELP.format('power')),

@@ -217,9 +217,9 @@ IRONIC_ENABLED_BOOT_INTERFACES=${IRONIC_ENABLED_BOOT_INTERFACES:-"fake,ipxe"}
 IRONIC_ENABLED_CONSOLE_INTERFACES=${IRONIC_ENABLED_CONSOLE_INTERFACES:-"fake,no-console"}
 IRONIC_ENABLED_DEPLOY_INTERFACES=${IRONIC_ENABLED_DEPLOY_INTERFACES:-"fake,direct,ramdisk"}
 IRONIC_ENABLED_INSPECT_INTERFACES=${IRONIC_ENABLED_INSPECT_INTERFACES:-"fake,no-inspect"}
-IRONIC_ENABLED_MANAGEMENT_INTERFACES=${IRONIC_ENABLED_MANAGEMENT_INTERFACES:-"fake,ipmitool,noop"}
+IRONIC_ENABLED_MANAGEMENT_INTERFACES=${IRONIC_ENABLED_MANAGEMENT_INTERFACES:-""}
 IRONIC_ENABLED_NETWORK_INTERFACES=${IRONIC_ENABLED_NETWORK_INTERFACES:-"flat,noop"}
-IRONIC_ENABLED_POWER_INTERFACES=${IRONIC_ENABLED_POWER_INTERFACES:-"fake,ipmitool"}
+IRONIC_ENABLED_POWER_INTERFACES=${IRONIC_ENABLED_POWER_INTERFACES:-""}
 IRONIC_ENABLED_RAID_INTERFACES=${IRONIC_ENABLED_RAID_INTERFACES:-"fake,agent,no-raid"}
 IRONIC_ENABLED_RESCUE_INTERFACES=${IRONIC_ENABLED_RESCUE_INTERFACES:-"fake,no-rescue"}
 IRONIC_ENABLED_STORAGE_INTERFACES=${IRONIC_ENABLED_STORAGE_INTERFACES:-"fake,cinder,noop"}
@@ -1712,18 +1712,7 @@ function configure_ironic_conductor {
         fi
     done
 
-    if is_deployed_by_redfish; then
-        # TODO(lucasagomes): We need to make it easier to configure
-        # specific driver interfaces in DevStack
-        iniset $IRONIC_CONF_FILE DEFAULT enabled_power_interfaces "redfish"
-        iniset $IRONIC_CONF_FILE DEFAULT enabled_management_interfaces "redfish"
-    fi
-
     if is_deployed_by_snmp; then
-        # TODO(lucasagomes): We need to make it easier to configure
-        # specific driver interfaces in DevStack
-        iniset $IRONIC_CONF_FILE DEFAULT enabled_power_interfaces "snmp"
-        iniset $IRONIC_CONF_FILE DEFAULT enabled_management_interfaces "noop"
         iniset $IRONIC_CONF_FILE pxe enable_netboot_fallback True
     fi
 
