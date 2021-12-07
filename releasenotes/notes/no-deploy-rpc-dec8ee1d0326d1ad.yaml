@@ -1,0 +1,5 @@
+---
+other:
+  - |
+    The agent deploy and cleaning code no longer uses an RPC call to the same
+    conductor when proceeding to the next deploy or clean step.

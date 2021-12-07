@@ -604,6 +604,14 @@ class TaskManager(object):
             # emitted at __exit__().
             self._saved_node = self.node
 
+    def resume_cleaning(self):
+        """A helper to resume cleaning with the right target state."""
+        if self.node.target_provision_state == states.MANAGEABLE:
+            target_state = states.MANAGEABLE
+        else:
+            target_state = None
+        self.process_event('resume', target_state=target_state)
+
     def __enter__(self):
         return self
 

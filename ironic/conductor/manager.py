@@ -1206,10 +1206,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id, shared=False, patient=True,
                                   purpose='continue node cleaning') as task:
             node = task.node
-            if node.target_provision_state == states.MANAGEABLE:
-                target_state = states.MANAGEABLE
-            else:
-                target_state = None
 
             if node.provision_state != states.CLEANWAIT:
                 raise exception.InvalidStateRequested(_(
@@ -1219,7 +1215,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                      'state': node.provision_state,
                      'clean_state': states.CLEANWAIT})
 
-            task.process_event('resume', target_state=target_state)
+            task.resume_cleaning()
 
             task.set_spawn_error_hook(utils.spawn_cleaning_error_handler,
                                       task.node)
