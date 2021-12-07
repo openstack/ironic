@@ -323,9 +323,11 @@ class AllocationsController(pecan.rest.RestController):
         except exception.HTTPForbidden:
             cdict = api.request.context.to_policy_values()
             project = cdict.get('project_id')
-            if project and project != allocation.get('owner'):
+            if (project and allocation.get('owner')
+                and project != allocation.get('owner')):
                 raise
-            if project and not CONF.oslo_policy.enforce_new_defaults:
+            if (allocation.get('owner')
+                and not CONF.oslo_policy.enforce_new_defaults):
                 api_utils.check_policy('baremetal:allocation:create_pre_rbac')
             api_utils.check_policy('baremetal:allocation:create_restricted')
             self._check_allowed_allocation_fields(allocation)

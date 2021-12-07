@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes restricted allocation creation for old policy defaults. This involves
+    a check that ensures that the user is not trying to create an allocation with
+    an owner other than themselves. This check is updated to also see if the
+    user is actually trying to set an allocation owner.
