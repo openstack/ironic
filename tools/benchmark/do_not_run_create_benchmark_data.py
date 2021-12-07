@@ -90,7 +90,7 @@ def _mix_up_nodes_data():
 
 
 def main():
-    service.prepare_service()
+    service.prepare_command()
     CONF.set_override('debug', False)
     _create_test_nodes()
 

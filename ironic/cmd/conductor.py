@@ -23,17 +23,10 @@ import sys
 
 from oslo_config import cfg
 from oslo_log import log
-try:
-    from oslo_reports import guru_meditation_report as gmr
-    from oslo_reports import opts as gmr_opts
-except ImportError:
-    gmr = None
 from oslo_service import service
 
-from ironic.common import profiler
 from ironic.common import rpc_service
 from ironic.common import service as ironic_service
-from ironic import version
 
 CONF = cfg.CONF
 
@@ -64,22 +57,13 @@ def main():
     assert 'ironic.conductor.manager' not in sys.modules
 
     # Parse config file and command line options, then start logging
-    ironic_service.prepare_service(sys.argv)
-
-    if gmr is not None:
-        gmr_opts.set_defaults(CONF)
-        gmr.TextGuruMeditation.setup_autorun(version, conf=CONF)
-    else:
-        LOG.debug('Guru meditation reporting is disabled '
-                  'because oslo.reports is not installed')
+    ironic_service.prepare_service('ironic_conductor', sys.argv)
 
     mgr = rpc_service.RPCService(CONF.host,
                                  'ironic.conductor.manager',
                                  'ConductorManager')
 
     issue_startup_warnings(CONF)
-
-    profiler.setup('ironic_conductor', CONF.host)
 
     launcher = service.launch(CONF, mgr, restart_method='mutate')
     launcher.wait()
