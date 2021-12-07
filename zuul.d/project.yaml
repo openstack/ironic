@@ -11,24 +11,11 @@
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
-        - ironic-tempest-functional-rbac-scope-enforced
-        - ironic-grenade
         - ironic-standalone
         - ironic-standalone-redfish
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
-        - ironic-tempest-wholedisk-bios-snmp-pxe
-        - ironic-tempest-ipa-partition-pxe_ipmitool
-        - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
-        # NOTE(TheJulia) Marking multinode non-voting on 20210311
-        # Due to a high failure rate on limestone where the compute1
-        # machine never appears to be able to communicate across the
-        # vxlan tunnel, possible mtu issue, but non-voting until we
-        # understand it in mind for the upcoming release.
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
-            voting: false
         - ironic-tempest-bios-ipmi-direct-tinyipa
-        - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-localboot-centos8-uefi
         # Non-voting jobs
@@ -41,8 +28,6 @@
         - ironic-inspector-tempest-partition-bios-redfish-vmedia:
             voting: false
         - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
-            voting: false
-        - ironic-inspector-tempest-rbac-scope-enforced:
             voting: false
         - bifrost-integration-tinyipa-ubuntu-focal:
             voting: false
@@ -59,20 +44,11 @@
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
-        - ironic-tempest-functional-rbac-scope-enforced
-        - ironic-grenade
         - ironic-standalone
         - ironic-standalone-redfish
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
-        - ironic-tempest-wholedisk-bios-snmp-pxe
-        - ironic-tempest-ipa-partition-pxe_ipmitool
-        - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
-        # NOTE(TheJulia): Disabled multinode on 20210311 due to Limestone
-        # seeming to be 
-        # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-bios-ipmi-direct-tinyipa
-        - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-localboot-centos8-uefi
     experimental:

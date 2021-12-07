@@ -50,7 +50,7 @@ GITBRANCH["virtualpdu"]=${VIRTUALPDU_BRANCH:-master}
 GITDIR["virtualpdu"]=$DEST/virtualpdu
 
 GITREPO["sushy"]=${SUSHY_REPO:-${GIT_BASE}/openstack/sushy.git}
-GITBRANCH["sushy"]=${SUSHY_BRANCH:-master}
+GITBRANCH["sushy"]=${SUSHY_BRANCH:-stable/xena}
 GITDIR["sushy"]=$DEST/sushy
 
 GITREPO["sushy-tools"]=${SUSHY_TOOLS_REPO:-${GIT_BASE}/openstack/sushy-tools.git}
