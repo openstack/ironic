@@ -3059,8 +3059,12 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
             err_handler=conductor_utils.spawn_rescue_error_handler)
         self.assertIn('rescue_password', task.node.instance_info)
         self.assertIn('hashed_rescue_password', task.node.instance_info)
-        self.assertEqual({'other field': 'value'},
-                         task.node.driver_internal_info)
+        task.node.del_driver_internal_info.assert_has_calls([
+            mock.call('agent_secret_token'),
+            mock.call('agent_secret_token_pregenerated'),
+            mock.call('agent_url'),
+            mock.call('agent_verify_ca')
+        ])
 
     def test_do_node_rescue_invalid_state(self):
         self._start_service()
@@ -3212,7 +3216,9 @@ class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,
         mock_acquire.side_effect = self._get_acquire_side_effect(task)
         self.service.do_node_unrescue(self.context, task.node.uuid)
         task.node.refresh()
-        self.assertNotIn('agent_url', task.node.driver_internal_info)
+        task.node.del_driver_internal_info.assert_has_calls([
+            mock.call('agent_url')
+        ])
         task.process_event.assert_called_once_with(
             'unrescue',
             callback=self.service._spawn_worker,

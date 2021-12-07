@@ -303,10 +303,7 @@ def node_power_action(task, new_state, timeout=None):
     # and clients that work is in progress.
     node['target_power_state'] = target_state
     node['last_error'] = None
-    driver_internal_info = node.driver_internal_info
-    driver_internal_info['last_power_state_change'] = str(
-        timeutils.utcnow().isoformat())
-    node.driver_internal_info = driver_internal_info
+    node.timestamp_driver_internal_info('last_power_state_change')
     # NOTE(dtantsur): wipe token on shutting down, otherwise a reboot in
     # fast-track (or an accidentally booted agent) will cause subsequent
     # actions to fail.
@@ -475,16 +472,14 @@ def cleaning_error_handler(task, logmsg, errmsg=None, traceback=False,
             states.CLEANFAIL):
         # Clear clean step, msg should already include current step
         node.clean_step = {}
-        info = node.driver_internal_info
         # Clear any leftover metadata about cleaning
-        info.pop('clean_step_index', None)
-        info.pop('cleaning_reboot', None)
-        info.pop('cleaning_polling', None)
-        info.pop('skip_current_clean_step', None)
+        node.del_driver_internal_info('clean_step_index')
+        node.del_driver_internal_info('cleaning_reboot')
+        node.del_driver_internal_info('cleaning_polling')
+        node.del_driver_internal_info('skip_current_clean_step')
         # We don't need to keep the old agent URL
         # as it should change upon the next cleaning attempt.
-        info.pop('agent_url', None)
-        node.driver_internal_info = info
+        node.del_driver_internal_info('agent_url')
     # For manual cleaning, the target provision state is MANAGEABLE, whereas
     # for automated cleaning, it is AVAILABLE.
     manual_clean = node.target_provision_state == states.MANAGEABLE
@@ -502,32 +497,29 @@ def cleaning_error_handler(task, logmsg, errmsg=None, traceback=False,
 
 def wipe_internal_info_on_power_off(node):
     """Wipe information that should not survive reboot/power off."""
-    driver_internal_info = node.driver_internal_info
     # DHCP may result in a new IP next time.
-    driver_internal_info.pop('agent_url', None)
+    node.del_driver_internal_info('agent_url')
     if not is_agent_token_pregenerated(node):
         # Wipe the token if it's not pre-generated, otherwise we'll refuse to
         # generate it again for the newly booted agent.
-        driver_internal_info.pop('agent_secret_token', False)
+        node.del_driver_internal_info('agent_secret_token')
     # Wipe cached steps since they may change after reboot.
-    driver_internal_info.pop('agent_cached_deploy_steps', None)
-    driver_internal_info.pop('agent_cached_clean_steps', None)
+    node.del_driver_internal_info('agent_cached_deploy_steps')
+    node.del_driver_internal_info('agent_cached_clean_steps')
     # Remove TLS certificate since it's regenerated on each run.
-    driver_internal_info.pop('agent_verify_ca', None)
-    node.driver_internal_info = driver_internal_info
+    node.del_driver_internal_info('agent_verify_ca')
 
 
 def wipe_token_and_url(task):
     """Remove agent URL and token from the task."""
-    info = task.node.driver_internal_info
-    info.pop('agent_secret_token', None)
-    info.pop('agent_secret_token_pregenerated', None)
+    node = task.node
+    node.del_driver_internal_info('agent_secret_token')
+    node.del_driver_internal_info('agent_secret_token_pregenerated')
     # Remove agent_url since it will be re-asserted
     # upon the next deployment attempt.
-    info.pop('agent_url', None)
+    node.del_driver_internal_info('agent_url')
     # Remove TLS certificate since it's regenerated on each run.
-    info.pop('agent_verify_ca', None)
-    task.node.driver_internal_info = info
+    node.del_driver_internal_info('agent_verify_ca')
 
 
 def wipe_deploy_internal_info(task):
@@ -535,32 +527,30 @@ def wipe_deploy_internal_info(task):
     if not fast_track_able(task):
         wipe_token_and_url(task)
     # Clear any leftover metadata about deployment.
-    info = task.node.driver_internal_info
-    info['deploy_steps'] = None
-    info.pop('user_deploy_steps', None)
-    info.pop('agent_cached_deploy_steps', None)
-    info.pop('deploy_step_index', None)
-    info.pop('deployment_reboot', None)
-    info.pop('deployment_polling', None)
-    info.pop('skip_current_deploy_step', None)
-    info.pop('steps_validated', None)
-    task.node.driver_internal_info = info
+    node = task.node
+    node.set_driver_internal_info('deploy_steps', None)
+    node.del_driver_internal_info('user_deploy_steps')
+    node.del_driver_internal_info('agent_cached_deploy_steps')
+    node.del_driver_internal_info('deploy_step_index')
+    node.del_driver_internal_info('deployment_reboot')
+    node.del_driver_internal_info('deployment_polling')
+    node.del_driver_internal_info('skip_current_deploy_step')
+    node.del_driver_internal_info('steps_validated')
 
 
 def wipe_cleaning_internal_info(task):
     """Remove temporary cleaning fields from driver_internal_info."""
     if not fast_track_able(task):
         wipe_token_and_url(task)
-    info = task.node.driver_internal_info
-    info['clean_steps'] = None
-    info.pop('agent_cached_clean_steps', None)
-    info.pop('clean_step_index', None)
-    info.pop('cleaning_reboot', None)
-    info.pop('cleaning_polling', None)
-    info.pop('cleaning_disable_ramdisk', None)
-    info.pop('skip_current_clean_step', None)
-    info.pop('steps_validated', None)
-    task.node.driver_internal_info = info
+    node = task.node
+    node.set_driver_internal_info('clean_steps', None)
+    node.del_driver_internal_info('agent_cached_clean_steps')
+    node.del_driver_internal_info('clean_step_index')
+    node.del_driver_internal_info('cleaning_reboot')
+    node.del_driver_internal_info('cleaning_polling')
+    node.del_driver_internal_info('cleaning_disable_ramdisk')
+    node.del_driver_internal_info('skip_current_clean_step')
+    node.del_driver_internal_info('steps_validated')
 
 
 def deploying_error_handler(task, logmsg, errmsg=None, traceback=False,
@@ -1172,9 +1162,7 @@ def is_fast_track(task):
 
 def remove_agent_url(node):
     """Helper to remove the agent_url record."""
-    info = node.driver_internal_info
-    info.pop('agent_url', None)
-    node.driver_internal_info = info
+    node.del_driver_internal_info('agent_url')
 
 
 def _get_node_next_steps(task, step_type, skip_current_step=True):
@@ -1246,24 +1234,13 @@ def update_next_step_index(task, step_type):
     :param step_type: The type of steps to process: 'clean' or 'deploy'.
     :returns: Index of the next step.
     """
-    info = task.node.driver_internal_info
-    save_required = False
-
-    try:
-        skip_current_step = info.pop('skip_current_%s_step' % step_type)
-    except KeyError:
-        skip_current_step = True
+    skip_current_step = task.node.del_driver_internal_info(
+        'skip_current_%s_step' % step_type, True)
+    if step_type == 'clean':
+        task.node.del_driver_internal_info('cleaning_polling')
     else:
-        save_required = True
-
-    field = ('cleaning_polling' if step_type == 'clean'
-             else 'deployment_polling')
-    if info.pop(field, None) is not None:
-        save_required = True
-
-    if save_required:
-        task.node.driver_internal_info = info
-        task.node.save()
+        task.node.del_driver_internal_info('deployment_polling')
+    task.node.save()
 
     return _get_node_next_steps(task, step_type,
                                 skip_current_step=skip_current_step)
@@ -1279,13 +1256,11 @@ def add_secret_token(node, pregenerated=False):
                          the token is embedded into the configuration.
     """
     token = secrets.token_urlsafe()
-    i_info = node.driver_internal_info
-    i_info['agent_secret_token'] = token
+    node.set_driver_internal_info('agent_secret_token', token)
     if pregenerated:
-        i_info['agent_secret_token_pregenerated'] = True
+        node.set_driver_internal_info('agent_secret_token_pregenerated', True)
     else:
-        i_info.pop('agent_secret_token_pregenerated', None)
-    node.driver_internal_info = i_info
+        node.del_driver_internal_info('agent_secret_token_pregenerated')
 
 
 def is_agent_token_present(node):

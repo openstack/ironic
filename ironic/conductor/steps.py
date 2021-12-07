@@ -268,7 +268,6 @@ def set_node_cleaning_steps(task, disable_ramdisk=False):
              clean steps.
     """
     node = task.node
-    driver_internal_info = node.driver_internal_info
 
     # For manual cleaning, the target provision state is MANAGEABLE, whereas
     # for automated cleaning, it is AVAILABLE.
@@ -276,25 +275,24 @@ def set_node_cleaning_steps(task, disable_ramdisk=False):
 
     if not manual_clean:
         # Get the prioritized steps for automated cleaning
-        driver_internal_info['clean_steps'] = _get_cleaning_steps(task,
-                                                                  enabled=True)
+        steps = _get_cleaning_steps(task, enabled=True)
     else:
         # For manual cleaning, the list of cleaning steps was specified by the
         # user and already saved in node.driver_internal_info['clean_steps'].
         # Now that we know what the driver's available clean steps are, we can
         # do further checks to validate the user's clean steps.
-        steps = node.driver_internal_info['clean_steps']
-        driver_internal_info['clean_steps'] = _validate_user_clean_steps(
-            task, steps, disable_ramdisk=disable_ramdisk)
+        steps = _validate_user_clean_steps(
+            task, node.driver_internal_info['clean_steps'],
+            disable_ramdisk=disable_ramdisk)
 
     LOG.debug('List of the steps for %(type)s cleaning of node %(node)s: '
               '%(steps)s', {'type': 'manual' if manual_clean else 'automated',
                             'node': node.uuid,
-                            'steps': driver_internal_info['clean_steps']})
+                            'steps': steps})
 
     node.clean_step = {}
-    driver_internal_info['clean_step_index'] = None
-    node.driver_internal_info = driver_internal_info
+    node.set_driver_internal_info('clean_steps', steps)
+    node.set_driver_internal_info('clean_step_index', None)
     node.save()
 
 
@@ -426,17 +424,16 @@ def set_node_deployment_steps(task, reset_current=True, skip_missing=False):
              deployment steps.
     """
     node = task.node
-    driver_internal_info = node.driver_internal_info
-    driver_internal_info['deploy_steps'] = _get_all_deployment_steps(
-        task, skip_missing=skip_missing)
+    node.set_driver_internal_info('deploy_steps', _get_all_deployment_steps(
+        task, skip_missing=skip_missing))
 
-    LOG.debug('List of the deploy steps for node %(node)s: '
-              '%(steps)s', {'node': node.uuid,
-                            'steps': driver_internal_info['deploy_steps']})
+    LOG.debug('List of the deploy steps for node %(node)s: %(steps)s', {
+        'node': node.uuid,
+        'steps': node.driver_internal_info['deploy_steps']
+    })
     if reset_current:
         node.deploy_step = {}
-        driver_internal_info['deploy_step_index'] = None
-    node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('deploy_step_index', None)
     node.save()
 
 
