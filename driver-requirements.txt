@@ -11,7 +11,7 @@ python-dracclient>=5.1.0,<8.0.0
 python-xclarityclient>=0.1.6
 
 # The Redfish hardware type uses the Sushy library
-sushy>=3.10.0
+sushy>=3.10.0,<4.0.0
 
 # Ansible-deploy interface
 ansible>=2.7

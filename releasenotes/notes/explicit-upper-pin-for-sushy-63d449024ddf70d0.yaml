@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes installation and unit testing of ironic when using the
+    sushy library by setting an appropriate upper constraint.
+    This version of Ironic is not compatible with Sushy 4.0.0.
