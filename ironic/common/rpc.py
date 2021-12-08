@@ -31,6 +31,9 @@ ALLOWED_EXMODS = [
     exception.__name__,
 ]
 EXTRA_EXMODS = []
+GLOBAL_MANAGER = None
+
+MANAGER_TOPIC = 'ironic.conductor_manager'
 
 
 def init(conf):
@@ -148,3 +151,10 @@ def get_versioned_notifier(publisher_id=None):
     assert VERSIONED_NOTIFIER is not None
     assert publisher_id is not None
     return VERSIONED_NOTIFIER.prepare(publisher_id=publisher_id)
+
+
+def set_global_manager(manager):
+    global GLOBAL_MANAGER
+    if GLOBAL_MANAGER is not None and manager is not None:
+        raise RuntimeError("An attempt to set a global manager twice")
+    GLOBAL_MANAGER = manager

@@ -54,3 +54,4 @@ class TestRPCService(base.TestCase):
         mock_prepare_method.assert_called_once_with(self.rpc_svc.manager)
         mock_init_method.assert_called_once_with(self.rpc_svc.manager,
                                                  mock_ctx.return_value)
+        self.assertIs(rpc.GLOBAL_MANAGER, self.rpc_svc.manager)

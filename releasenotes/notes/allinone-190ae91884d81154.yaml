@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds a new executable ``ironic`` that starts both API and conductor in the
+    same process. Calls between the API and conductor instances in the same
+    process are not routed through the RPC.
