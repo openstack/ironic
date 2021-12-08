@@ -193,6 +193,13 @@ if [[ "$IRONIC_ENFORCE_SCOPE" == "True" ]]; then
 else
     IRONIC_OS_CLOUD=devstack-admin
 fi
+# NOTE(TheJulia): Project scoped admin as of Yoga cycle
+# the core devstack code doesn't assert any environment variables
+# upfront except for OS_CLOUD, which is defaulted to devstack-admin
+# in the last keystone step which executes after ironic's base setup
+# occurs. We navigate this just fine for yoga with fixes, however
+# we need this variable for Xena and possibly Wallaby grenade.
+OS_CLOUD=${OS_CLOUD:-devstack-admin}
 
 # Versions and command line for API client
 IRONIC_DEFAULT_API_VERSION=${IRONIC_DEFAULT_API_VERSION:-}
