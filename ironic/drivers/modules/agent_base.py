@@ -440,12 +440,11 @@ class HeartbeatMixin(object):
         """
         return self.process_next_step(task, 'clean')
 
-    @property
-    def heartbeat_allowed_states(self):
-        """Define node states where heartbeating is allowed"""
-        if CONF.deploy.fast_track:
-            return FASTTRACK_HEARTBEAT_ALLOWED
-        return HEARTBEAT_ALLOWED
+    def heartbeat_allowed(self, node):
+        if utils.fast_track_enabled(node):
+            return node.provision_state in FASTTRACK_HEARTBEAT_ALLOWED
+        else:
+            return node.provision_state in HEARTBEAT_ALLOWED
 
     def _heartbeat_in_maintenance(self, task):
         node = task.node
@@ -560,8 +559,8 @@ class HeartbeatMixin(object):
             agent_status
         """
         # NOTE(pas-ha) immediately skip the rest if nothing to do
-        if (task.node.provision_state not in self.heartbeat_allowed_states
-            and not manager_utils.fast_track_able(task)):
+        if (not self.heartbeat_allowed(task.node)
+                and not manager_utils.fast_track_able(task)):
             LOG.error('Heartbeat from node %(node)s in unsupported '
                       'provision state %(state)s, not taking any action.',
                       {'node': task.node.uuid,

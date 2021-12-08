@@ -61,6 +61,11 @@ class AgentPowerTest(db_base.DbTestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           self.power.validate, self.task)
 
+    def test_validate_no_fast_track(self):
+        self.node.driver_info['fast_track'] = False
+        self.assertRaises(exception.InvalidParameterValue,
+                          self.power.validate, self.task)
+
     def test_get_power_state(self):
         self.assertEqual(states.POWER_ON,
                          self.power.get_power_state(self.task))

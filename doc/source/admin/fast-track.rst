@@ -25,6 +25,13 @@ Fast track is off by default and should be enabled in the configuration:
    [deploy]
    fast_track = true
 
+Starting with the Yoga release series, it can also be enabled or disabled per
+node:
+
+.. code-block:: console
+
+   baremetal node set <node> --driver-info fast_track=true
+
 Inspection
 ----------
 

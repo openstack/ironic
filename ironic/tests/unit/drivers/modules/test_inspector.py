@@ -290,6 +290,44 @@ class InspectHardwareTestCase(BaseTestCase):
         self.assertFalse(self.driver.network.remove_inspection_network.called)
         self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
 
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_ironic_api_url',
+                autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
+                       autospec=True)
+    def test_managed_fast_track_via_driver_info(
+            self, mock_create_ports_if_not_exist, mock_get_system,
+            mock_ironic_url, mock_client):
+        CONF.set_override('extra_kernel_params',
+                          'ipa-inspection-collectors=default,logs '
+                          'ipa-collect-dhcp=1',
+                          group='inspector')
+        endpoint = 'http://192.169.0.42:5050/v1'
+        mock_ironic_url.return_value = 'http://192.169.0.42:6385'
+        mock_client.return_value.get_endpoint.return_value = endpoint
+        mock_introspect = mock_client.return_value.start_introspection
+        self.task.node.driver_info = {'fast_track': True}
+        self.iface.validate(self.task)
+        self.assertEqual(states.INSPECTWAIT,
+                         self.iface.inspect_hardware(self.task))
+        mock_introspect.assert_called_once_with(self.node.uuid,
+                                                manage_boot=False)
+        self.driver.boot.prepare_ramdisk.assert_called_once_with(
+            self.task, ramdisk_params={
+                'ipa-inspection-callback-url': endpoint + '/continue',
+                'ipa-inspection-collectors': 'default,logs',
+                'ipa-collect-dhcp': '1',
+                'ipa-api-url': 'http://192.169.0.42:6385',
+            })
+        self.driver.network.add_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.power.set_power_state.assert_has_calls([
+            mock.call(self.task, states.POWER_OFF, timeout=None),
+            mock.call(self.task, states.POWER_ON, timeout=None),
+        ])
+        self.assertFalse(self.driver.network.remove_inspection_network.called)
+        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
@@ -391,6 +429,23 @@ class CheckStatusTestCase(BaseTestCase):
 
     def test_status_ok_managed_no_power_off(self, mock_client):
         CONF.set_override('power_off', False, group='inspector')
+        utils.set_node_nested_field(self.node, 'driver_internal_info',
+                                    'inspector_manage_boot', True)
+        self.node.save()
+        mock_get = mock_client.return_value.get_introspection
+        mock_get.return_value = mock.Mock(is_finished=True,
+                                          error=None,
+                                          spec=['is_finished', 'error'])
+        inspector._check_status(self.task)
+        mock_get.assert_called_once_with(self.node.uuid)
+        self.task.process_event.assert_called_once_with('done')
+        self.driver.network.remove_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+        self.assertFalse(self.driver.power.set_power_state.called)
+
+    def test_status_ok_managed_no_power_off_on_fast_track(self, mock_client):
+        CONF.set_override('fast_track', True, group='deploy')
         utils.set_node_nested_field(self.node, 'driver_internal_info',
                                     'inspector_manage_boot', True)
         self.node.save()

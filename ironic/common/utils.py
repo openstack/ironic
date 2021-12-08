@@ -36,6 +36,7 @@ from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import fileutils
 from oslo_utils import netutils
+from oslo_utils import strutils
 from oslo_utils import timeutils
 import psutil
 import pytz
@@ -654,3 +655,15 @@ def remove_large_keys(var):
         return var.__class__(map(remove_large_keys, var))
     else:
         return var
+
+
+def fast_track_enabled(node):
+    is_enabled = node.driver_info.get('fast_track')
+    if is_enabled is None:
+        return CONF.deploy.fast_track
+    else:
+        try:
+            return strutils.bool_from_string(is_enabled, strict=True)
+        except ValueError as exc:
+            raise exception.InvalidParameterValue(
+                _("Invalid value of fast_track: %s") % exc)

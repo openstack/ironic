@@ -28,7 +28,8 @@ opts = [
                       'spaces.')),
     cfg.BoolOpt('power_off', default=True,
                 help=_('whether to power off a node after inspection '
-                       'finishes')),
+                       'finishes. Ignored for nodes that have fast '
+                       'track mode enabled.')),
     cfg.StrOpt('callback_endpoint_override',
                help=_('endpoint to use as a callback for posting back '
                       'introspection data when boot is managed by ironic. '

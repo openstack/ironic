@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Fast track mode can now be enabled or disabled per node::
+
+      baremetal node set <node> --driver-info fast_track=true
+upgrade:
+  - |
+    The configuration option ``[inspector]power_off`` is now ignored for nodes
+    that have fast-track enabled. These nodes are never powered off.
