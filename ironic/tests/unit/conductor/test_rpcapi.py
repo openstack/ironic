@@ -77,6 +77,12 @@ class RPCAPITestCase(db_base.DbTestCase):
             self.context, objects.Node(), self.fake_node)
         self.fake_portgroup = db_utils.get_test_portgroup()
 
+    def test_rpc_disabled(self):
+        CONF.set_override('rpc_transport', 'none')
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake-topic')
+        self.assertIsNone(rpcapi.client)
+        self.assertTrue(rpcapi._can_send_version('9.99'))
+
     def test_serialized_instance_has_uuid(self):
         self.assertIn('uuid', self.fake_node)
 
@@ -728,6 +734,17 @@ class RPCAPITestCase(db_base.DbTestCase):
 
     @mock.patch.object(rpc, 'GLOBAL_MANAGER',
                        spec_set=conductor_manager.ConductorManager)
+    def test_local_call_with_rpc_disabled(self, mock_manager):
+        CONF.set_override('host', 'fake.host')
+        CONF.set_override('rpc_transport', 'none')
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
+        rpcapi.create_node(mock.sentinel.context, mock.sentinel.node,
+                           topic='fake.topic.fake.host')
+        mock_manager.create_node.assert_called_once_with(
+            mock.sentinel.context, node_obj=mock.sentinel.node)
+
+    @mock.patch.object(rpc, 'GLOBAL_MANAGER',
+                       spec_set=conductor_manager.ConductorManager)
     def test_local_call_host_mismatch(self, mock_manager):
         CONF.set_override('host', 'fake.host')
         rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
@@ -737,6 +754,27 @@ class RPCAPITestCase(db_base.DbTestCase):
         mock_manager.create_node.assert_not_called()
         rpcapi.client.prepare.assert_called_once_with(
             topic='fake.topic.not-fake.host', version=mock.ANY)
+
+    @mock.patch.object(rpc, 'GLOBAL_MANAGER',
+                       spec_set=conductor_manager.ConductorManager)
+    def test_local_call_host_mismatch_with_rpc_disabled(self, mock_manager):
+        CONF.set_override('host', 'fake.host')
+        CONF.set_override('rpc_transport', 'none')
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
+        self.assertRaises(exception.ServiceUnavailable,
+                          rpcapi.create_node,
+                          mock.sentinel.context, mock.sentinel.node,
+                          topic='fake.topic.not-fake.host')
+
+    @mock.patch.object(rpc, 'GLOBAL_MANAGER', None)
+    def test_local_call_no_conductor_with_rpc_disabled(self):
+        CONF.set_override('host', 'fake.host')
+        CONF.set_override('rpc_transport', 'none')
+        rpcapi = conductor_rpcapi.ConductorAPI(topic='fake.topic')
+        self.assertRaises(exception.ServiceUnavailable,
+                          rpcapi.create_node,
+                          mock.sentinel.context, mock.sentinel.node,
+                          topic='fake.topic.fake.host')
 
     @mock.patch.object(rpc, 'GLOBAL_MANAGER',
                        spec_set=conductor_manager.ConductorManager)

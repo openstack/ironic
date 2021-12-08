@@ -92,6 +92,20 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
     username = myName
     password = myPassword
 
+#. Starting with the Yoga release series, you can use a combined API+conductor
+   service and completely disable the RPC. Set
+
+   .. code-block:: ini
+
+    [DEFAULT]
+    rpc_transport = none
+
+   and use the ``ironic`` executable to start the combined service.
+
+   .. note::
+      The combined service also works with RPC enabled, which can be useful for
+      some deployments, but may not be advisable for all security models.
+
 Using CLI
 ---------
 

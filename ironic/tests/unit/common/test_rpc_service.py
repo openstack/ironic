@@ -55,3 +55,25 @@ class TestRPCService(base.TestCase):
         mock_init_method.assert_called_once_with(self.rpc_svc.manager,
                                                  mock_ctx.return_value)
         self.assertIs(rpc.GLOBAL_MANAGER, self.rpc_svc.manager)
+
+    @mock.patch.object(manager.ConductorManager, 'prepare_host', autospec=True)
+    @mock.patch.object(oslo_messaging, 'Target', autospec=True)
+    @mock.patch.object(objects_base, 'IronicObjectSerializer', autospec=True)
+    @mock.patch.object(rpc, 'get_server', autospec=True)
+    @mock.patch.object(manager.ConductorManager, 'init_host', autospec=True)
+    @mock.patch.object(context, 'get_admin_context', autospec=True)
+    def test_start_no_rpc(self, mock_ctx, mock_init_method,
+                          mock_rpc, mock_ios, mock_target,
+                          mock_prepare_method):
+        CONF.set_override('rpc_transport', 'none')
+        self.rpc_svc.start()
+
+        self.assertIsNone(self.rpc_svc.rpcserver)
+        mock_ctx.assert_called_once_with()
+        mock_target.assert_not_called()
+        mock_rpc.assert_not_called()
+        mock_ios.assert_called_once_with(is_server=True)
+        mock_prepare_method.assert_called_once_with(self.rpc_svc.manager)
+        mock_init_method.assert_called_once_with(self.rpc_svc.manager,
+                                                 mock_ctx.return_value)
+        self.assertIs(rpc.GLOBAL_MANAGER, self.rpc_svc.manager)

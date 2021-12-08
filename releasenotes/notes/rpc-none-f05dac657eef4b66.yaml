@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds a new ``none`` RPC transport that can be used together with the
+    combined ``ironic`` executable to completely disable the RPC bus.

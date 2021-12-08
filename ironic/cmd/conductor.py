@@ -58,6 +58,7 @@ def main():
 
     # Parse config file and command line options, then start logging
     ironic_service.prepare_service('ironic_conductor', sys.argv)
+    ironic_service.ensure_rpc_transport(CONF)
 
     mgr = rpc_service.RPCService(CONF.host,
                                  'ironic.conductor.manager',
