@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    For ``redfish`` and ``idrac-redfish`` management interface
+    ``firmware_update`` clean step adds Swift, HTTP service and file system
+    support to serve and Ironic's HTTP and Swift service to stage files. Also
+    adds mandatory parameter ``checksum`` for file checksum verification.
+
+upgrade:
+  - |
+    For ``redfish`` and ``idrac-redfish`` management interface
+    ``firmware_update`` clean step there is now mandatory ``checksum``
+    parameter necessary. Update existing clean steps to include it, otherwise
+    clean step will fail with error "'checksum' is a required property".

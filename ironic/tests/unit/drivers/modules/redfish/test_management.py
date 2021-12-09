@@ -27,8 +27,10 @@ from ironic.common import indicator_states
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
+from ironic.conf import CONF
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.redfish import boot as redfish_boot
+from ironic.drivers.modules.redfish import firmware_utils
 from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.tests.unit.db import base as db_base
@@ -834,22 +836,145 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         mock_update_service = mock.Mock()
         mock_update_service.simple_update.return_value = mock_task_monitor
         mock_get_update_service.return_value = mock_update_service
+        CONF.redfish.firmware_source = 'http'
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.save = mock.Mock()
 
-            task.driver.management.update_firmware(task,
-                                                   [{'url': 'test1'},
-                                                    {'url': 'test2'}])
+            task.driver.management.update_firmware(
+                task,
+                [{'url': 'http://test1',
+                  'checksum': 'aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d'},
+                 {'url': 'http://test2',
+                  'checksum': '9f6227549221920e312fed2cfc6586ee832cc546'}])
 
             mock_get_update_service.assert_called_once_with(task.node)
-            mock_update_service.simple_update.assert_called_once_with('test1')
+            mock_update_service.simple_update.assert_called_once_with(
+                'http://test1')
             self.assertIsNotNone(task.node
                                  .driver_internal_info['firmware_updates'])
             self.assertEqual(
-                [{'task_monitor': '/task/123', 'url': 'test1'},
-                 {'url': 'test2'}],
+                [{'task_monitor': '/task/123', 'url': 'http://test1',
+                  'checksum': 'aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d'},
+                 {'url': 'http://test2',
+                  'checksum': '9f6227549221920e312fed2cfc6586ee832cc546'}],
                 task.node.driver_internal_info['firmware_updates'])
+            self.assertIsNone(
+                task.node.driver_internal_info.get('firmware_cleanup'))
+            mock_set_async_step_flags.assert_called_once_with(
+                task.node, reboot=True, skip_current_step=True, polling=True)
+            mock_get_async_step_return_state.assert_called_once_with(
+                task.node)
+            mock_node_power_action.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(redfish_mgmt.RedfishManagement, '_stage_firmware_file',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    def test_update_firmware_stage(
+            self, mock_get_update_service, mock_set_async_step_flags,
+            mock_get_async_step_return_state, mock_node_power_action,
+            mock_prepare, build_mock, mock_stage):
+        build_mock.return_value = {'a': 'b'}
+        mock_task_monitor = mock.Mock()
+        mock_task_monitor.task_monitor_uri = '/task/123'
+        mock_update_service = mock.Mock()
+        mock_update_service.simple_update.return_value = mock_task_monitor
+        mock_get_update_service.return_value = mock_update_service
+        mock_stage.return_value = ('http://staged/test1', 'http')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.save = mock.Mock()
+
+            task.driver.management.update_firmware(
+                task,
+                [{'url': 'http://test1',
+                  'checksum': 'aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d'},
+                 {'url': 'http://test2',
+                  'checksum': '9f6227549221920e312fed2cfc6586ee832cc546'}])
+
+            mock_get_update_service.assert_called_once_with(task.node)
+            mock_update_service.simple_update.assert_called_once_with(
+                'http://staged/test1')
+            self.assertIsNotNone(task.node
+                                 .driver_internal_info['firmware_updates'])
+            self.assertEqual(
+                [{'task_monitor': '/task/123', 'url': 'http://test1',
+                  'checksum': 'aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d'},
+                 {'url': 'http://test2',
+                  'checksum': '9f6227549221920e312fed2cfc6586ee832cc546'}],
+                task.node.driver_internal_info['firmware_updates'])
+            self.assertIsNotNone(
+                task.node.driver_internal_info['firmware_cleanup'])
+            self.assertEqual(
+                ['http'], task.node.driver_internal_info['firmware_cleanup'])
+            mock_set_async_step_flags.assert_called_once_with(
+                task.node, reboot=True, skip_current_step=True, polling=True)
+            mock_get_async_step_return_state.assert_called_once_with(
+                task.node)
+            mock_node_power_action.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(redfish_mgmt.RedfishManagement, '_stage_firmware_file',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    def test_update_firmware_stage_both(
+            self, mock_get_update_service, mock_set_async_step_flags,
+            mock_get_async_step_return_state, mock_node_power_action,
+            mock_prepare, build_mock, mock_stage):
+        build_mock.return_value = {'a': 'b'}
+        mock_task_monitor = mock.Mock()
+        mock_task_monitor.task_monitor_uri = '/task/123'
+        mock_update_service = mock.Mock()
+        mock_update_service.simple_update.return_value = mock_task_monitor
+        mock_get_update_service.return_value = mock_update_service
+        mock_stage.return_value = ('http://staged/test1', 'http')
+        info = self.node.driver_internal_info
+        info['firmware_cleanup'] = ['swift']
+        self.node.driver_internal_info = info
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.save = mock.Mock()
+
+            task.driver.management.update_firmware(
+                task,
+                [{'url': 'http://test1',
+                  'checksum': 'aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d'},
+                 {'url': 'http://test2',
+                  'checksum': '9f6227549221920e312fed2cfc6586ee832cc546'}])
+
+            mock_get_update_service.assert_called_once_with(task.node)
+            mock_update_service.simple_update.assert_called_once_with(
+                'http://staged/test1')
+            self.assertIsNotNone(task.node
+                                 .driver_internal_info['firmware_updates'])
+            self.assertEqual(
+                [{'task_monitor': '/task/123', 'url': 'http://test1',
+                  'checksum': 'aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d'},
+                 {'url': 'http://test2',
+                  'checksum': '9f6227549221920e312fed2cfc6586ee832cc546'}],
+                task.node.driver_internal_info['firmware_updates'])
+            self.assertIsNotNone(
+                task.node.driver_internal_info['firmware_cleanup'])
+            self.assertEqual(
+                ['swift', 'http'],
+                task.node.driver_internal_info['firmware_cleanup'])
             mock_set_async_step_flags.assert_called_once_with(
                 task.node, reboot=True, skip_current_step=True, polling=True)
             mock_get_async_step_return_state.assert_called_once_with(
@@ -1218,9 +1343,10 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         driver_internal_info = {
             'something': 'else',
             'firmware_updates': [
-                {'task_monitor': '/task/123', 'url': 'test1'},
-                {'url': 'test2'}]}
+                {'task_monitor': '/task/123', 'url': 'http://test1'},
+                {'url': 'http://test2'}]}
         self.node.driver_internal_info = driver_internal_info
+        CONF.redfish.firmware_source = 'http'
 
         management = redfish_mgmt.RedfishManagement()
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1230,18 +1356,87 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             management._continue_firmware_updates(
                 task,
                 mock_update_service,
-                [{'task_monitor': '/task/123', 'url': 'test1'},
-                 {'url': 'test2'}])
+                [{'task_monitor': '/task/123', 'url': 'http://test1'},
+                 {'url': 'http://test2'}])
 
             self.assertTrue(mock_log.called)
-            mock_update_service.simple_update.assert_called_once_with('test2')
+            mock_update_service.simple_update.assert_called_once_with(
+                'http://test2')
             self.assertIsNotNone(
                 task.node.driver_internal_info['firmware_updates'])
             self.assertEqual(
-                [{'url': 'test2', 'task_monitor': '/task/987'}],
+                [{'url': 'http://test2', 'task_monitor': '/task/987'}],
                 task.node.driver_internal_info['firmware_updates'])
             task.node.save.assert_called_once_with()
             mock_node_power_action.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(firmware_utils, 'download_to_temp', autospec=True)
+    @mock.patch.object(firmware_utils, 'verify_checksum', autospec=True)
+    @mock.patch.object(firmware_utils, 'stage', autospec=True)
+    def test__stage_firmware_file_https(self, mock_stage, mock_verify_checksum,
+                                        mock_download_to_temp):
+        CONF.redfish.firmware_source = 'local'
+        firmware_update = {'url': 'https://test1', 'checksum': 'abc'}
+        node = mock.Mock()
+        mock_download_to_temp.return_value = '/tmp/test1'
+        mock_stage.return_value = ('http://staged/test1', 'http')
+
+        management = redfish_mgmt.RedfishManagement()
+
+        staged_url, needs_cleanup = management._stage_firmware_file(
+            node, firmware_update)
+
+        self.assertEqual(staged_url, 'http://staged/test1')
+        self.assertEqual(needs_cleanup, 'http')
+        mock_download_to_temp.assert_called_with(node, 'https://test1')
+        mock_verify_checksum.assert_called_with(node, 'abc', '/tmp/test1')
+        mock_stage.assert_called_with(node, 'local', '/tmp/test1')
+
+    @mock.patch.object(firmware_utils, 'download_to_temp', autospec=True)
+    @mock.patch.object(firmware_utils, 'verify_checksum', autospec=True)
+    @mock.patch.object(firmware_utils, 'stage', autospec=True)
+    @mock.patch.object(firmware_utils, 'get_swift_temp_url', autospec=True)
+    def test__stage_firmware_file_swift(
+            self, mock_get_swift_temp_url, mock_stage, mock_verify_checksum,
+            mock_download_to_temp):
+        CONF.redfish.firmware_source = 'swift'
+        firmware_update = {'url': 'swift://container/bios.exe'}
+        node = mock.Mock()
+        mock_get_swift_temp_url.return_value = 'http://temp'
+
+        management = redfish_mgmt.RedfishManagement()
+
+        staged_url, needs_cleanup = management._stage_firmware_file(
+            node, firmware_update)
+
+        self.assertEqual(staged_url, 'http://temp')
+        self.assertIsNone(needs_cleanup)
+        mock_download_to_temp.assert_not_called()
+        mock_verify_checksum.assert_not_called()
+        mock_stage.assert_not_called()
+
+    @mock.patch.object(firmware_utils, 'cleanup', autospec=True)
+    @mock.patch.object(firmware_utils, 'download_to_temp', autospec=True)
+    @mock.patch.object(firmware_utils, 'verify_checksum', autospec=True)
+    @mock.patch.object(firmware_utils, 'stage', autospec=True)
+    def test__stage_firmware_file_error(self, mock_stage, mock_verify_checksum,
+                                        mock_download_to_temp, mock_cleanup):
+        node = mock.Mock()
+        firmware_update = {'url': 'https://test1'}
+        CONF.redfish.firmware_source = 'local'
+        firmware_update = {'url': 'https://test1'}
+        node = mock.Mock()
+        mock_download_to_temp.return_value = '/tmp/test1'
+        mock_stage.side_effect = exception.IronicException
+
+        management = redfish_mgmt.RedfishManagement()
+        self.assertRaises(exception.IronicException,
+                          management._stage_firmware_file, node,
+                          firmware_update)
+        mock_download_to_temp.assert_called_with(node, 'https://test1')
+        mock_verify_checksum.assert_called_with(node, None, '/tmp/test1')
+        mock_stage.assert_called_with(node, 'local', '/tmp/test1')
+        mock_cleanup.assert_called_with(node)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_get_secure_boot_state(self, mock_get_system):

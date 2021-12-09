@@ -385,6 +385,8 @@ The ``update_firmware`` cleaning step accepts JSON in the following format::
             "firmware_images":[
                 {
                     "url": "<url_to_firmware_image1>",
+                    "checksum": "<checksum for image, uses SHA1>",
+                    "source": "<optional override source setting for image>",
                     "wait": <number_of_seconds_to_wait>
                 },
                 {
@@ -410,16 +412,21 @@ Each firmware image dictionary, is of the form::
 
     {
       "url": "<URL of firmware image file>",
+      "checksum": "<checksum for image, uses SHA1>",
+      "source": "<Optional override source setting for image>",
       "wait": <Optional time in seconds to wait after applying update>
     }
 
-The ``url`` argument in the firmware image dictionary is mandatory, while the
-``wait`` argument is optional.
+The ``url``and ``checksum`` arguments in the firmware image dictionary are
+mandatory, while the ``source`` and ``wait`` arguments are optional.
 
+For ``url`` currently ``http``, ``https``, ``swift`` and ``file`` schemes are
+supported.
 
-.. note::
-   Only ``http`` and ``https`` URLs are currently supported in the ``url``
-   argument.
+``source`` corresponds to ``[redfish]firmware_source`` and by setting it here,
+it is possible to override global setting per firmware image in clean step
+arguments.
+
 
 .. note::
    At the present time, targets for the firmware update cannot be specified.
@@ -427,19 +434,20 @@ The ``url`` argument in the firmware image dictionary is mandatory, while the
    node. It is assumed that the BMC knows what components a given firmware
    image is applicable to.
 
-To perform a firmware update, first download the firmware to a web server that
-the BMC has network access to. This could be the ironic conductor web server
-or another web server on the BMC network. Using a web browser, curl, or similar
-tool on a server that has network access to the BMC, try downloading
-the firmware to verify that the URLs are correct and that the web server is
-configured properly.
+To perform a firmware update, first download the firmware to a web server,
+Swift or filesystem that the Ironic conductor or BMC has network access to.
+This could be the ironic conductor web server or another web server on the BMC
+network. Using a web browser, curl, or similar tool on a server that has
+network access to the BMC or Ironic conductor, try downloading the firmware to
+verify that the URLs are correct and that the web server is configured
+properly.
 
 Next, construct the JSON for the firmware update cleaning step to be executed.
 When launching the firmware update, the JSON may be specified on the command
-line directly or in a file. The following
-example shows one cleaning step that installs two firmware updates. The first
-updates the BMC firmware followed by a five minute wait to allow the BMC time
-to start back up. The second updates the firmware on all applicable NICs.::
+line directly or in a file. The following example shows one cleaning step that
+installs four firmware updates. All except 3rd entry that has explicit
+``source`` added, uses setting from ``[redfish]firmware_source`` to determine
+if and where to stage the files::
 
     [{
         "interface": "management",
@@ -448,10 +456,21 @@ to start back up. The second updates the firmware on all applicable NICs.::
             "firmware_images":[
                 {
                     "url": "http://192.0.2.10/BMC_4_22_00_00.EXE",
+                    "checksum": "<sha1-checksum-of-the-file>",
                     "wait": 300
                 },
                 {
-                    "url": "https://192.0.2.10/NIC_19.0.12_A00.EXE"
+                    "url": "https://192.0.2.10/NIC_19.0.12_A00.EXE",
+                    "checksum": "<sha1-checksum-of-the-file>"
+                },
+                {
+                    "url": "file:///firmware_images/idrac/9/PERC_WN64_6.65.65.65_A00.EXE",
+                    "checksum": "<sha1-checksum-of-the-file>",
+                    "source": "http"
+                },
+                {
+                    "url": "swift://firmware_container/BIOS_W8Y0W_WN64_2.1.7.EXE",
+                    "checksum": "<sha1-checksum-of-the-file>"
                 }
             ]
         }
