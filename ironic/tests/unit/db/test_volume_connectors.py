@@ -68,6 +68,7 @@ class DbVolumeConnectorTestCase(base.DbTestCase):
         for i in range(1, 6):
             volume_connector = db_utils.create_test_volume_connector(
                 uuid=uuidutils.generate_uuid(),
+                node_id=self.node.id,
                 type='iqn',
                 connector_id='iqn.test-%s' % i)
             uuids.append(str(volume_connector.uuid))

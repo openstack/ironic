@@ -39,7 +39,8 @@ class NoopInterfaceTestCase(db_base.DbTestCase):
             self.interface.port_changed(task, self.port)
 
     def test_portgroup_changed(self):
-        portgroup = utils.create_test_portgroup(self.context)
+        portgroup = utils.create_test_portgroup(self.context,
+                                                node_id=self.node.id)
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.portgroup_changed(task, portgroup)
 

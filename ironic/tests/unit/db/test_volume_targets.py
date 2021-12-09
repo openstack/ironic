@@ -82,6 +82,7 @@ class DbVolumeTargetTestCase(base.DbTestCase):
         for i in range(1, num):
             volume_target = db_utils.create_test_volume_target(
                 uuid=uuidutils.generate_uuid(),
+                node_id=self.node.id,
                 properties={"target_iqn": "iqn.test-%s" % i},
                 boot_index=i)
             uuids.append(str(volume_target.uuid))
@@ -150,7 +151,8 @@ class DbVolumeTargetTestCase(base.DbTestCase):
 
     def test_update_volume_target_duplicated_nodeid_and_bootindex(self):
         t = db_utils.create_test_volume_target(uuid=uuidutils.generate_uuid(),
-                                               boot_index=1)
+                                               boot_index=1,
+                                               node_id=self.node.id)
         self.assertRaises(exception.VolumeTargetBootIndexAlreadyExists,
                           self.dbapi.update_volume_target,
                           t.uuid,

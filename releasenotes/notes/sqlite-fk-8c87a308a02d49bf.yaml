@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    Foreign keys are now enabled when SQLite is used as a database.

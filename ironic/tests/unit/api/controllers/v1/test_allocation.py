@@ -420,6 +420,8 @@ class TestListAllocations(test_api_base.BaseApiTest):
                 node_id = self.node.id
             else:
                 node_id = 100000 + i
+                obj_utils.create_test_node(self.context, id=node_id,
+                                           uuid=uuidutils.generate_uuid())
             obj_utils.create_test_allocation(
                 self.context,
                 node_id=node_id,

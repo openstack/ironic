@@ -6502,6 +6502,8 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertTrue(mock_inspect.called)
 
 
+@mock.patch.object(conductor_utils, 'node_history_record',
+                   mock.Mock(spec=conductor_utils.node_history_record))
 @mock.patch.object(task_manager, 'acquire', autospec=True)
 @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor',
                    autospec=True)
@@ -8207,30 +8209,33 @@ class NodeHistoryRecordCleanupTestCase(mgr_utils.ServiceSetUpMixin,
 
     def setUp(self):
         super(NodeHistoryRecordCleanupTestCase, self).setUp()
-        self.node1 = obj_utils.get_test_node(self.context,
-                                             driver='fake-hardware',
-                                             id=10,
-                                             uuid=uuidutils.generate_uuid(),
-                                             conductor_affinity=1)
-        self.node2 = obj_utils.get_test_node(self.context,
-                                             driver='fake-hardware',
-                                             id=11,
-                                             uuid=uuidutils.generate_uuid(),
-                                             conductor_affinity=1)
-        self.node3 = obj_utils.get_test_node(self.context,
-                                             driver='fake-hardware',
-                                             id=12,
-                                             uuid=uuidutils.generate_uuid(),
-                                             conductor_affinity=1)
+        CONF.set_override('node_history_max_entries', 2, group='conductor')
+        CONF.set_override('node_history_cleanup_batch_count', 2,
+                          group='conductor')
+        self._start_service()
+        self.node1 = obj_utils.get_test_node(
+            self.context,
+            driver='fake-hardware',
+            id=10,
+            uuid=uuidutils.generate_uuid(),
+            conductor_affinity=self.service.conductor.id)
+        self.node2 = obj_utils.get_test_node(
+            self.context,
+            driver='fake-hardware',
+            id=11,
+            uuid=uuidutils.generate_uuid(),
+            conductor_affinity=self.service.conductor.id)
+        self.node3 = obj_utils.get_test_node(
+            self.context,
+            driver='fake-hardware',
+            id=12,
+            uuid=uuidutils.generate_uuid(),
+            conductor_affinity=self.service.conductor.id)
         self.nodes = [self.node1, self.node2, self.node3]
         # Create the nodes, as the tasks need to operate across tables.
         self.node1.create()
         self.node2.create()
         self.node3.create()
-        CONF.set_override('node_history_max_entries', 2, group='conductor')
-        CONF.set_override('node_history_cleanup_batch_count', 2,
-                          group='conductor')
-        self._start_service()
 
     def test_history_is_pruned_to_config(self):
         for node in self.nodes:
@@ -8305,11 +8310,12 @@ class NodeHistoryRecordCleanupTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(1, len(events))
 
     def test_history_pruning_not_other_conductor(self):
+        another_conductor = obj_utils.create_test_conductor(self.context)
         node = obj_utils.get_test_node(self.context,
                                        driver='fake-hardware',
                                        id=33,
                                        uuid=uuidutils.generate_uuid(),
-                                       conductor_affinity=2)
+                                       conductor_affinity=another_conductor.id)
         # create node so it can be queried
         node.create()
         for i in range(0, 3):
