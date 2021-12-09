@@ -3656,7 +3656,8 @@ def do_sync_power_state(task, count):
     # Also make sure to cache the current boot_mode and secure_boot states
     utils.node_cache_boot_mode(task)
 
-    if node.power_state and node.power_state == power_state:
+    if ((node.power_state and node.power_state == power_state)
+            or (node.power_state is None and power_state is None)):
         # No action is needed
         return 0
 
@@ -3666,7 +3667,8 @@ def do_sync_power_state(task, count):
     node = task.node
 
     # Repeat all checks with exclusive lock to avoid races
-    if node.power_state and node.power_state == power_state:
+    if ((node.power_state and node.power_state == power_state)
+            or (node.power_state is None and power_state is None)):
         # Node power state was updated to the correct value
         return 0
     elif node.provision_state in SYNC_EXCLUDED_STATES or node.maintenance:

@@ -4985,6 +4985,15 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self.assertFalse(node_power_action.called)
         self.assertFalse(self.task.upgrade_lock.called)
 
+    def test_state_unchanged_for_fake_node(self, node_power_action):
+        self._do_sync_power_state(None, None)
+
+        self.power.validate.assert_called_once_with(self.task)
+        self.power.get_power_state.assert_called_once_with(self.task)
+        self.assertIsNone(self.node.power_state)
+        self.assertFalse(node_power_action.called)
+        self.assertFalse(self.task.upgrade_lock.called)
+
     @mock.patch.object(nova, 'power_update', autospec=True)
     def test_state_not_set(self, mock_power_update, node_power_action):
         self._do_sync_power_state(None, states.POWER_ON)
