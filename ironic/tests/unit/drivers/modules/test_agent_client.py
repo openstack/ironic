@@ -555,19 +555,21 @@ class TestAgentClient(base.TestCase):
                                                    verify=True)
 
     def test_get_commands_status(self):
-        with mock.patch.object(self.client.session, 'get',
-                               autospec=True) as mock_get:
-            res = mock.MagicMock(spec_set=['json'])
-            res.json.return_value = {'commands': []}
-            mock_get.return_value = res
-            self.assertEqual([], self.client.get_commands_status(self.node))
-            agent_url = self.node.driver_internal_info.get('agent_url')
-            mock_get.assert_called_once_with(
-                '%(agent_url)s/%(api_version)s/commands' % {
-                    'agent_url': agent_url,
-                    'api_version': CONF.agent.agent_api_version},
-                timeout=CONF.agent.command_timeout,
-                verify=True)
+        if not mock._is_instance_mock(self.client.session):
+            mock.patch.object(self.client.session, 'get',
+                              autospec=True).start()
+        mock_get = self.client.session.get
+
+        res = mock.MagicMock(spec_set=['json'])
+        res.json.return_value = {'commands': []}
+        mock_get.return_value = res
+        self.assertEqual([], self.client.get_commands_status(self.node))
+        agent_url = self.node.driver_internal_info.get('agent_url')
+        mock_get.assert_called_once_with(
+            '%(agent_url)s/%(api_version)s/commands/' % {
+                'agent_url': agent_url,
+                'api_version': CONF.agent.agent_api_version},
+            verify=True, timeout=CONF.agent.command_timeout)
 
     def test_get_commands_status_retries(self):
         res = mock.MagicMock(spec_set=['json'])
@@ -590,19 +592,22 @@ class TestAgentClient(base.TestCase):
     def test_get_commands_status_verify(self, mock_exists):
         self.node.driver_info['agent_verify_ca'] = '/path/to/agent.crt'
 
-        with mock.patch.object(self.client.session, 'get',
-                               autospec=True) as mock_get:
-            res = mock.MagicMock(spec_set=['json'])
-            res.json.return_value = {'commands': []}
-            mock_get.return_value = res
-            self.assertEqual([], self.client.get_commands_status(self.node))
-            agent_url = self.node.driver_internal_info.get('agent_url')
-            mock_get.assert_called_once_with(
-                '%(agent_url)s/%(api_version)s/commands' % {
-                    'agent_url': agent_url,
-                    'api_version': CONF.agent.agent_api_version},
-                timeout=CONF.agent.command_timeout,
-                verify='/path/to/agent.crt')
+        if not mock._is_instance_mock(self.client.session):
+            mock.patch.object(self.client.session, 'get',
+                              autospec=True).start()
+        mock_get = self.client.session.get
+
+        res = mock.MagicMock(spec_set=['json'])
+        res.json.return_value = {'commands': []}
+        mock_get.return_value = res
+        self.assertEqual([], self.client.get_commands_status(self.node))
+        agent_url = self.node.driver_internal_info.get('agent_url')
+        mock_get.assert_called_once_with(
+            '%(agent_url)s/%(api_version)s/commands/' % {
+                'agent_url': agent_url,
+                'api_version': CONF.agent.agent_api_version},
+            verify='/path/to/agent.crt',
+            timeout=CONF.agent.command_timeout)
 
     def _test_install_bootloader(self, root_uuid, efi_system_part_uuid=None,
                                  prep_boot_part_uuid=None):

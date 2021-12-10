@@ -46,7 +46,7 @@ class IBMCPowerTestCase(base.IBMCTestCase):
             task.driver.power.validate(task)
             mock_parse_driver_info.assert_called_once_with(task.node)
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_get_power_state(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
         with task_manager.acquire(self.context, self.node.uuid,
@@ -69,7 +69,7 @@ class IBMCPowerTestCase(base.IBMCTestCase):
                 conn.system.get.reset_mock()
                 connect_ibmc.reset_mock()
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_set_power_state(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
         with task_manager.acquire(self.context, self.node.uuid,
@@ -102,7 +102,7 @@ class IBMCPowerTestCase(base.IBMCTestCase):
                 conn.system.get.reset_mock()
                 conn.system.reset.reset_mock()
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_set_power_state_not_reached(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
         with task_manager.acquire(self.context, self.node.uuid,
@@ -137,7 +137,7 @@ class IBMCPowerTestCase(base.IBMCTestCase):
                 conn.system.get.reset_mock()
                 conn.system.reset.reset_mock()
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_set_power_state_fail(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
 
@@ -155,7 +155,7 @@ class IBMCPowerTestCase(base.IBMCTestCase):
             connect_ibmc.assert_called_with(**self.ibmc)
             conn.system.reset.assert_called_once_with(constants.RESET_ON)
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_set_power_state_timeout(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
         with task_manager.acquire(self.context, self.node.uuid,
@@ -189,7 +189,7 @@ class IBMCPowerTestCase(base.IBMCTestCase):
             lambda *args, **kwargs: None)
 class IBMCPowerRebootTestCase(base.IBMCTestCase):
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_reboot(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
         expected_values = [
@@ -222,7 +222,7 @@ class IBMCPowerRebootTestCase(base.IBMCTestCase):
             conn.system.get.reset_mock()
             conn.system.reset.reset_mock()
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_reboot_not_reached(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
         with task_manager.acquire(self.context, self.node.uuid,
@@ -240,7 +240,7 @@ class IBMCPowerRebootTestCase(base.IBMCTestCase):
             connect_ibmc.assert_called_with(**self.ibmc)
             conn.system.reset.assert_called_once_with(constants.RESET_ON)
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_reboot_fail(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
 
@@ -263,7 +263,7 @@ class IBMCPowerRebootTestCase(base.IBMCTestCase):
             conn.system.reset.assert_called_once_with(
                 constants.RESET_FORCE_RESTART)
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_reboot_timeout(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
 

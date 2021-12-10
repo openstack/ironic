@@ -95,8 +95,10 @@ class XClarityCommonTestCase(db_base.DbTestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           common.parse_driver_info, self.node)
 
-    @mock.patch.object(xclarity_client, 'Client', autospec=True)
-    def test_get_xclarity_client(self, mock_xclarityclient):
+    def test_get_xclarity_client(self):
+        if not mock._is_instance_mock(xclarity_client):
+            mock.patch.object(xclarity_client, 'Client', autospec=True).start()
+        mock_xclarityclient = xclarity_client.Client
         expected_call = mock.call(ip='1.2.3.4', password='fake', port=443,
                                   username='USERID')
         common.get_xclarity_client(self.node)

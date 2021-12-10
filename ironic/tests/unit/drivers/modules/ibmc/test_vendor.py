@@ -44,7 +44,7 @@ class IBMCVendorTestCase(base.IBMCTestCase):
             task.driver.power.validate(task)
             mock_parse_driver_info.assert_called_once_with(task.node)
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_list_boot_type_order(self, connect_ibmc):
         # Mocks
         conn = self.mock_ibmc_conn(connect_ibmc)
@@ -61,7 +61,7 @@ class IBMCVendorTestCase(base.IBMCTestCase):
             connect_ibmc.assert_called_once_with(**self.ibmc)
             self.assertEqual(expected, seq)
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_list_raid_controller(self, connect_ibmc):
         # Mocks
         conn = self.mock_ibmc_conn(connect_ibmc)

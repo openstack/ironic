@@ -50,7 +50,7 @@ class IbmcRAIDTestCase(base.IBMCTestCase):
         self.node.target_raid_config = self.target_raid_config
         self.node.save()
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_sync_create_configuration_without_delete(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
         conn.system.storage.apply_raid_configuration.return_value = None
@@ -66,7 +66,7 @@ class IbmcRAIDTestCase(base.IBMCTestCase):
             self.node.target_raid_config.get('logical_disks')
         )
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_sync_create_configuration_with_delete(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
         conn.system.storage.delete_all_raid_configuration.return_value = None
@@ -84,7 +84,7 @@ class IbmcRAIDTestCase(base.IBMCTestCase):
             self.node.target_raid_config.get('logical_disks')
         )
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_sync_create_configuration_without_nonroot(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
         conn.system.storage.delete_all_raid_configuration.return_value = None
@@ -102,7 +102,7 @@ class IbmcRAIDTestCase(base.IBMCTestCase):
             [{'size_gb': 200, 'raid_level': 0, 'is_root_volume': True}]
         )
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_sync_create_configuration_without_root(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
         conn.system.storage.delete_all_raid_configuration.return_value = None
@@ -120,7 +120,7 @@ class IbmcRAIDTestCase(base.IBMCTestCase):
             [{'size_gb': 'MAX', 'raid_level': 5}]
         )
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_sync_create_configuration_failed(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
         conn.system.storage.delete_all_raid_configuration.return_value = None
@@ -140,7 +140,7 @@ class IbmcRAIDTestCase(base.IBMCTestCase):
             self.node.target_raid_config.get('logical_disks')
         )
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_sync_delete_configuration_success(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
         conn.system.storage.delete_all_raid_configuration.return_value = None
@@ -152,7 +152,7 @@ class IbmcRAIDTestCase(base.IBMCTestCase):
 
         conn.system.storage.delete_all_raid_configuration.assert_called_once()
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_sync_delete_configuration_failed(self, connect_ibmc):
         conn = self.mock_ibmc_conn(connect_ibmc)
         conn.system.storage.delete_all_raid_configuration.side_effect = (

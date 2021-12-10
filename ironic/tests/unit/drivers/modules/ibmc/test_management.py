@@ -46,8 +46,10 @@ class IBMCManagementTestCase(base.IBMCTestCase):
             task.driver.management.validate(task)
             mock_parse_driver_info.assert_called_once_with(task.node)
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
-    def test_get_supported_boot_devices(self, connect_ibmc):
+    def test_get_supported_boot_devices(self):
+        if not mock._is_instance_mock(ibmc_client):
+            mock.patch.object(ibmc_client, 'connect', autospec=True).start()
+        connect_ibmc = ibmc_client.connect
         conn = self.mock_ibmc_conn(connect_ibmc)
         # mock return value
         _supported_boot_devices = list(mappings.GET_BOOT_DEVICE_MAP)
@@ -60,12 +62,14 @@ class IBMCManagementTestCase(base.IBMCTestCase):
                                   shared=True) as task:
             supported_boot_devices = (
                 task.driver.management.get_supported_boot_devices(task))
-            connect_ibmc.assert_called_once_with(**self.ibmc)
+            connect_ibmc.assert_called_with(**self.ibmc)
             expect = sorted(list(mappings.GET_BOOT_DEVICE_MAP.values()))
             self.assertEqual(expect, sorted(supported_boot_devices))
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
-    def test_set_boot_device(self, connect_ibmc):
+    def test_set_boot_device(self):
+        if not mock._is_instance_mock(ibmc_client):
+            mock.patch.object(ibmc_client, 'connect', autospec=True).start()
+        connect_ibmc = ibmc_client.connect
         conn = self.mock_ibmc_conn(connect_ibmc)
         # mock return value
         conn.system.set_boot_source.return_value = None
@@ -90,7 +94,7 @@ class IBMCManagementTestCase(base.IBMCTestCase):
             for (device, persistent) in data_source:
                 task.driver.management.set_boot_device(
                     task, device[0], persistent=persistent[0])
-                connect_ibmc.assert_called_once_with(**self.ibmc)
+                connect_ibmc.assert_called_with(**self.ibmc)
                 conn.system.set_boot_source.assert_called_once_with(
                     device[1],
                     enabled=persistent[1])
@@ -98,8 +102,10 @@ class IBMCManagementTestCase(base.IBMCTestCase):
                 connect_ibmc.reset_mock()
                 conn.system.set_boot_source.reset_mock()
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
-    def test_set_boot_device_fail(self, connect_ibmc):
+    def test_set_boot_device_fail(self):
+        if not mock._is_instance_mock(ibmc_client):
+            mock.patch.object(ibmc_client, 'connect', autospec=True).start()
+        connect_ibmc = ibmc_client.connect
         conn = self.mock_ibmc_conn(connect_ibmc)
         # mock return value
         conn.system.set_boot_source.side_effect = (
@@ -112,13 +118,15 @@ class IBMCManagementTestCase(base.IBMCTestCase):
                 exception.IBMCError, 'set iBMC boot device',
                 task.driver.management.set_boot_device, task,
                 boot_devices.PXE)
-            connect_ibmc.assert_called_once_with(**self.ibmc)
+            connect_ibmc.assert_called_with(**self.ibmc)
             conn.system.set_boot_source.assert_called_once_with(
                 constants.BOOT_SOURCE_TARGET_PXE,
                 enabled=constants.BOOT_SOURCE_ENABLED_ONCE)
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
-    def test_get_boot_device(self, connect_ibmc):
+    def test_get_boot_device(self):
+        if not mock._is_instance_mock(ibmc_client):
+            mock.patch.object(ibmc_client, 'connect', autospec=True).start()
+        connect_ibmc = ibmc_client.connect
         conn = self.mock_ibmc_conn(connect_ibmc)
         # mock return value
         conn.system.get.return_value = mock.Mock(
@@ -144,8 +152,10 @@ class IBMCManagementTestCase(base.IBMCTestCase):
             self.assertEqual(list(mappings.SET_BOOT_MODE_MAP),
                              supported_boot_modes)
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
-    def test_set_boot_mode(self, connect_ibmc):
+    def test_set_boot_mode(self):
+        if not mock._is_instance_mock(ibmc_client):
+            mock.patch.object(ibmc_client, 'connect', autospec=True).start()
+        connect_ibmc = ibmc_client.connect
         conn = self.mock_ibmc_conn(connect_ibmc)
         # mock system boot source override return value
         conn.system.get.return_value = mock.Mock(
@@ -168,7 +178,7 @@ class IBMCManagementTestCase(base.IBMCTestCase):
                                                      mode=ironic_boot_mode)
 
                 conn.system.get.assert_called_once()
-                connect_ibmc.assert_called_once_with(**self.ibmc)
+                connect_ibmc.assert_called_with(**self.ibmc)
 
                 conn.system.set_boot_source.assert_called_once_with(
                     constants.BOOT_SOURCE_TARGET_PXE,
@@ -180,8 +190,10 @@ class IBMCManagementTestCase(base.IBMCTestCase):
                 conn.system.set_boot_source.reset_mock()
                 conn.system.get.reset_mock()
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
-    def test_set_boot_mode_fail(self, connect_ibmc):
+    def test_set_boot_mode_fail(self):
+        if not mock._is_instance_mock(ibmc_client):
+            mock.patch.object(ibmc_client, 'connect', autospec=True).start()
+        connect_ibmc = ibmc_client.connect
         conn = self.mock_ibmc_conn(connect_ibmc)
         # mock system boot source override return value
         conn.system.get.return_value = mock.Mock(
@@ -213,15 +225,17 @@ class IBMCManagementTestCase(base.IBMCTestCase):
                     mode=ibmc_boot_mode)
 
                 conn.system.get.assert_called_once()
-                connect_ibmc.assert_called_once_with(**self.ibmc)
+                connect_ibmc.assert_called_with(**self.ibmc)
 
                 # Reset
                 connect_ibmc.reset_mock()
                 conn.system.set_boot_source.reset_mock()
                 conn.system.get.reset_mock()
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
-    def test_get_boot_mode(self, connect_ibmc):
+    def test_get_boot_mode(self):
+        if not mock._is_instance_mock(ibmc_client):
+            mock.patch.object(ibmc_client, 'connect', autospec=True).start()
+        connect_ibmc = ibmc_client.connect
         conn = self.mock_ibmc_conn(connect_ibmc)
         # mock system boot source override return value
         conn.system.get.return_value = mock.Mock(
@@ -236,7 +250,7 @@ class IBMCManagementTestCase(base.IBMCTestCase):
             response = task.driver.management.get_boot_mode(task)
 
             conn.system.get.assert_called_once()
-            connect_ibmc.assert_called_once_with(**self.ibmc)
+            connect_ibmc.assert_called_with(**self.ibmc)
 
             expected = boot_modes.LEGACY_BIOS
             self.assertEqual(expected, response)
@@ -247,8 +261,10 @@ class IBMCManagementTestCase(base.IBMCTestCase):
             self.assertRaises(NotImplementedError,
                               task.driver.management.get_sensors_data, task)
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
-    def test_inject_nmi(self, connect_ibmc):
+    def test_inject_nmi(self):
+        if not mock._is_instance_mock(ibmc_client):
+            mock.patch.object(ibmc_client, 'connect', autospec=True).start()
+        connect_ibmc = ibmc_client.connect
         conn = self.mock_ibmc_conn(connect_ibmc)
         # mock system boot source override return value
         conn.system.reset.return_value = None
@@ -256,11 +272,13 @@ class IBMCManagementTestCase(base.IBMCTestCase):
                                   shared=False) as task:
             task.driver.management.inject_nmi(task)
 
-            connect_ibmc.assert_called_once_with(**self.ibmc)
+            connect_ibmc.assert_called_with(**self.ibmc)
             conn.system.reset.assert_called_once_with(constants.RESET_NMI)
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
-    def test_inject_nmi_fail(self, connect_ibmc):
+    def test_inject_nmi_fail(self):
+        if not mock._is_instance_mock(ibmc_client):
+            mock.patch.object(ibmc_client, 'connect', autospec=True).start()
+        connect_ibmc = ibmc_client.connect
         conn = self.mock_ibmc_conn(connect_ibmc)
         # mock system boot source override return value
         conn.system.reset.side_effect = (
@@ -272,5 +290,5 @@ class IBMCManagementTestCase(base.IBMCTestCase):
                 exception.IBMCError, 'inject iBMC NMI',
                 task.driver.management.inject_nmi, task)
 
-            connect_ibmc.assert_called_once_with(**self.ibmc)
+            connect_ibmc.assert_called_with(**self.ibmc)
             conn.system.reset.assert_called_once_with(constants.RESET_NMI)
