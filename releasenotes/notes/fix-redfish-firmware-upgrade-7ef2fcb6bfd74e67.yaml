@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes ``redfish`` hardware type ``update_firmware`` cleaning step to work
+    with Sushy version 4.0.0 or greater.
