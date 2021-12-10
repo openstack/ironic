@@ -807,7 +807,7 @@ class RedfishManagement(base.ManagementInterface):
         task_monitor = update_service.simple_update(firmware_url)
 
         driver_internal_info = node.driver_internal_info
-        firmware_update['task_monitor'] = task_monitor.task_monitor
+        firmware_update['task_monitor'] = task_monitor.task_monitor_uri
         driver_internal_info['firmware_updates'] = firmware_updates
         node.driver_internal_info = driver_internal_info
 
