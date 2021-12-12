@@ -64,6 +64,10 @@
         # causes us an abnormally high job failure rate due to the ports
         # not being found (as neutron crashed on initailization).
         Q_USE_SECGROUP: False
+        # Default API workers is 2, however only 1 is needed,
+        # which cuts API memory utilziation in half reducing the risk of
+        # oom-killer events in CI.
+        API_WORKERS: 1
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
       tempest_plugins:
