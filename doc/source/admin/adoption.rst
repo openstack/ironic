@@ -22,6 +22,12 @@ where a node in ``manageable`` can be moved to ``active`` state
 via the provision_state verb ``adopt``.  To view the state
 transition capabilities, please see :ref:`states`.
 
+.. NOTE::
+    For deployments using Ironic in conjunction with Nova, Ironic's
+    node adoption feature is not suitable. If you need to adopt production
+    nodes into Ironic **and** Nova, you can find a high-level recipe in
+    :ref:`adoption_with_nova`.
+
 How it works
 ============
 
@@ -195,3 +201,38 @@ the provision state to ``deleted``, can be used while the node is in
 occurring to preserve the node's current state. Example::
 
   baremetal node delete <node name or uuid>
+
+.. _adoption_with_nova:
+
+Adoption with Nova
+==================
+
+Since there is no mechanism to create bare metal instances in Nova when nodes
+are adopted into Ironic, the node adoption feature described above cannot be
+used to add in production nodes to deployments which use Ironic together with
+Nova.
+
+One option to add in production nodes to an Ironic/Nova deployment is to use
+the fake drivers. The overall idea is that for Nova the nodes are instantiated
+normally to ensure the instances are properly created in the compute project
+while Ironic does not touch them.
+
+Here are some high level steps to be used as a guideline:
+
+* create a bare metal flavor and a hosting project for the instances
+* enroll the nodes into Ironic, create the ports, move them to manageable
+* change the hardware type and the interfaces to fake drivers
+* provide the nodes to make them available
+* one by one, add the nodes to the placement aggregate and create instances
+* change the hardware type and the interfaces back to the real ones
+
+Make sure you change the drivers to the fake ones **before** providing the
+nodes as cleaning will otherwise wipe your production servers!
+
+The reason to make all nodes available and manage access via the aggregate is
+that this is much faster than providing nodes one by one and relying on the
+resource tracker to find them. Enabling them one by one is required to make
+sure the instance name and the (pre-adoption) name of the server match.
+
+The above recipe does not cover Neutron which, depending on your deployment,
+may need to be handled in addition.
