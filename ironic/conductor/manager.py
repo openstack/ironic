@@ -72,6 +72,7 @@ from ironic.conductor import utils
 from ironic.conductor import verify
 from ironic.conf import CONF
 from ironic.drivers import base as drivers_base
+from ironic.drivers.modules import deploy_utils
 from ironic import objects
 from ironic.objects import base as objects_base
 from ironic.objects import fields
@@ -1735,13 +1736,15 @@ class ConductorManager(base_manager.BaseConductorManager):
             # supplied.
             iwdi = images.is_whole_disk_image(task.context,
                                               task.node.instance_info)
-            driver_internal_info = node.driver_internal_info
-            driver_internal_info['is_whole_disk_image'] = iwdi
-            node.driver_internal_info = driver_internal_info
-            # Calling boot validate to ensure that sufficient information
-            # is supplied to allow the node to be able to boot if takeover
-            # writes items such as kernel/ramdisk data to disk.
-            task.driver.boot.validate(task)
+            if iwdi is not None:
+                driver_internal_info = node.driver_internal_info
+                driver_internal_info['is_whole_disk_image'] = iwdi
+                node.driver_internal_info = driver_internal_info
+            if deploy_utils.get_boot_option(node) != 'local':
+                # Calling boot validate to ensure that sufficient information
+                # is supplied to allow the node to be able to boot if takeover
+                # writes items such as kernel/ramdisk data to disk.
+                task.driver.boot.validate(task)
             # NOTE(TheJulia): While task.driver.boot.validate() is called
             # above, and task.driver.power.validate() could be called, it
             # is called as part of the transition from ENROLL to MANAGEABLE
