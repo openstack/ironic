@@ -389,16 +389,35 @@ There are certain limitations to be aware of:
       "step": "create_configuration"
     }]
 
-* If local boot is going to be used, the final instance image must have the
-  ``mdadm`` utility installed and needs to be able to detect software RAID
-  devices at boot time (which is usually done by having the RAID drivers
-  embedded in the image's initrd).
+* The final instance image must have the ``mdadm`` utility installed
+  and needs to be able to detect software RAID devices at boot time
+  (which is usually done by having the RAID drivers embedded in the
+  image's initrd).
 
 * Regular cleaning will not remove RAID configuration (similarly to hardware
   RAID). To destroy RAID run the ``delete_configuration`` manual clean step.
 
 * There is no support for partition images, only whole-disk images are
   supported with Software RAID. See :doc:`/install/configure-glance-images`.
+  This includes flavors requesting dynamic creation of swap filesystems.
+  Swap should be pre-allocated inside of a disk image partition layout.
+
+* Images utilizing LVM for their root filesystem are not supported. Patches
+  are welcome to explicitly support such functionality.
+
+* If the root filesystem UUID is not known to Ironic via metadata, then the
+  disk image layout **MUST** have the first partition consist of the root
+  filesystem. Ironic is agnostic if the partition table is a DOS MBR or a
+  GPT partition.
+
+  Starting in Ironic 14.0.0 (Ussuri), the root filesystem UUID can be set
+  and passed through to Ironic through the Glance Image Service ``properties``
+  sub-field ``rootfs_uuid`` for the image to be deployed.
+
+  Starting in Ironic 16.1.0 (Wallaby), similar functionality is available
+  via the baremetal node ``instance_info`` field value ``image_rootfs_uuid``.
+  See :doc:`/install/standalone` for more details on standalone usage
+  including an example command.
 
 * In UEFI mode, the Ironic Python Agent creates EFI system partitions (ESPs)
   for the bootloader and the boot configuration (grub.cfg or grubenv) on all
@@ -419,6 +438,24 @@ There are certain limitations to be aware of:
   (i.e. stage1/boot.img in the MBR and stage1.5/core.img in the MBR gap) with
   the ones stored in /boot (stage2). This incompatibility can render the node
   unbootable if the wrong disk is selected for booting.
+
+* Linux kernel device naming is not consistent across reboots for RAID devices
+  and may be numbered in a distribution specific pattern. Operators will need
+  to be mindful of this if a root device hint is utilized.
+  A particular example of this is that the first "md0" device on a Ubuntu
+  based ramdisk may start as device "md0", whereas on a Centos or Red Hat
+  Enterprise Linux based ramdisk may start at device "md127". After a reboot,
+  these device names may change entirely.
+
+  .. NOTE::
+     :ref:`Root device hints <root-device-hints>` should not be explicitly
+     required to utilize software RAID. Candidate devices are chosen by
+     sorting the usable device list looking for the smallest usable
+     device which is then sorted by name. The secondary sort by name
+     improves the odds for matching the first initialized block device.
+     In the case of software RAID, they are always a little smaller than
+     the primary block devices due to metadata overhead, which helps make
+     them the most likely candidate devices.
 
 Image requirements
 ------------------
