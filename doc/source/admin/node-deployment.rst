@@ -220,7 +220,7 @@ A default deploy step may be overridden in a deploy template. If the step's
 priority is a positive integer it will be executed with the specified priority
 and arguments. If the step's priority is zero, the step will not be executed.
 
-If a `core deploy step <node-deployment-core-steps>`_ is included in a
+If the :ref:`deploy.deploy step <node-deployment-core-steps>` is included in a
 deploy template, it can only be assigned a priority of zero to disable it.
 
 Creating a deploy template via API
