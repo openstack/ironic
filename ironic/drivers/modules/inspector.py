@@ -122,7 +122,7 @@ def _tear_down_managed_boot(task):
         LOG.exception('Unable to remove inspection network for node %s',
                       task.node.uuid)
 
-    if CONF.inspector.power_off:
+    if CONF.inspector.power_off and not utils.fast_track_enabled(task.node):
         try:
             cond_utils.node_power_action(task, states.POWER_OFF)
         except Exception as exc:
@@ -195,7 +195,7 @@ def _start_managed_inspection(task):
         endpoint = _get_callback_endpoint(client)
         params = dict(_parse_kernel_params(),
                       **{'ipa-inspection-callback-url': endpoint})
-        if CONF.deploy.fast_track:
+        if utils.fast_track_enabled(task.node):
             params['ipa-api-url'] = deploy_utils.get_ironic_api_url()
 
         cond_utils.node_power_action(task, states.POWER_OFF)

@@ -36,6 +36,7 @@ from ironic.common.i18n import _
 from ironic.common import network
 from ironic.common import nova
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
 from ironic.objects import fields
@@ -1075,7 +1076,7 @@ def fast_track_able(task):
               configuration is present, and no last_error is present for
               the node indicating that there was a recent failure.
     """
-    return (CONF.deploy.fast_track
+    return (utils.fast_track_enabled(task.node)
             # TODO(TheJulia): Network model aside, we should be able to
             # fast-track through initial sequence to complete deployment.
             # This needs to be validated.

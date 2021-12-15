@@ -69,11 +69,13 @@ def convert_with_links(node):
 class LookupController(rest.RestController):
     """Controller handling node lookup for a deploy ramdisk."""
 
-    @property
-    def lookup_allowed_states(self):
-        if CONF.deploy.fast_track:
-            return states.FASTTRACK_LOOKUP_ALLOWED_STATES
-        return states.LOOKUP_ALLOWED_STATES
+    def lookup_allowed(self, node):
+        if utils.fast_track_enabled(node):
+            return (
+                node.provision_state in states.FASTTRACK_LOOKUP_ALLOWED_STATES
+            )
+        else:
+            return node.provision_state in states.LOOKUP_ALLOWED_STATES
 
     @method.expose()
     @args.validate(addresses=args.string_list, node_uuid=args.uuid)
@@ -135,8 +137,7 @@ class LookupController(rest.RestController):
             # at all and nodes in a wrong state by different error messages.
             raise exception.NotFound()
 
-        if (CONF.api.restrict_lookup
-                and node.provision_state not in self.lookup_allowed_states):
+        if CONF.api.restrict_lookup and not self.lookup_allowed(node):
             raise exception.NotFound()
 
         if api_utils.allow_agent_token():

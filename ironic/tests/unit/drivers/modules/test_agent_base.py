@@ -501,6 +501,25 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                     task.node.driver_internal_info['agent_last_heartbeat'])
                 self.assertEqual(provision_state, task.node.provision_state)
 
+    def test_heartbeat_records_fast_track_via_driver_info(self):
+        for provision_state in [states.ENROLL, states.MANAGEABLE,
+                                states.AVAILABLE]:
+            self.node.driver_internal_info = {}
+            self.node.driver_info = {'fast_track': True}
+            self.node.provision_state = provision_state
+            self.node.save()
+            with task_manager.acquire(
+                    self.context, self.node.uuid, shared=False) as task:
+                self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '3.2.0')
+                self.assertEqual('http://127.0.0.1:8080',
+                                 task.node.driver_internal_info['agent_url'])
+                self.assertEqual('3.2.0',
+                                 task.node.driver_internal_info[
+                                     'agent_version'])
+                self.assertIsNotNone(
+                    task.node.driver_internal_info['agent_last_heartbeat'])
+                self.assertEqual(provision_state, task.node.provision_state)
+
 
 class AgentRescueTests(AgentDeployMixinBaseTest):
 

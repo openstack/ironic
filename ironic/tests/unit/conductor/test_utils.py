@@ -971,6 +971,7 @@ class DeployingErrorHandlerTestCase(db_base.DbTestCase):
         self.node.provision_state = states.DEPLOYING
         self.node.last_error = None
         self.node.deploy_step = None
+        self.node.driver_info = {}
         self.node.driver_internal_info = {}
         self.node.id = obj_utils.create_test_node(self.context,
                                                   driver='fake-hardware').id
@@ -1980,6 +1981,37 @@ class FastTrackTestCase(db_base.DbTestCase):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             self.assertTrue(conductor_utils.is_fast_track(task))
+
+    def test_is_fast_track_via_driver_info(self, mock_get_power):
+        self.config(fast_track=False, group='deploy')
+        mock_get_power.return_value = states.POWER_ON
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            task.node.driver_info['fast_track'] = True
+            self.assertTrue(conductor_utils.is_fast_track(task))
+
+    def test_is_fast_track_via_driver_info_string(self, mock_get_power):
+        self.config(fast_track=False, group='deploy')
+        mock_get_power.return_value = states.POWER_ON
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            task.node.driver_info['fast_track'] = 'yes'
+            self.assertTrue(conductor_utils.is_fast_track(task))
+
+    def test_is_fast_track_disabled_in_driver_info(self, mock_get_power):
+        mock_get_power.return_value = states.POWER_ON
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            task.node.driver_info['fast_track'] = False
+            self.assertFalse(conductor_utils.is_fast_track(task))
+
+    def test_is_fast_track_disabled_in_driver_info_string(self,
+                                                          mock_get_power):
+        mock_get_power.return_value = states.POWER_ON
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            task.node.driver_info['fast_track'] = 'false'
+            self.assertFalse(conductor_utils.is_fast_track(task))
 
     def test_is_fast_track_config_false(self, mock_get_power):
         self.config(fast_track=False, group='deploy')

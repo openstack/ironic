@@ -23,6 +23,7 @@ import tenacity
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import utils as cond_utils
 from ironic.drivers import base
 from ironic.drivers.modules import agent_client
@@ -40,10 +41,6 @@ class AgentPower(base.PowerInterface):
 
     def __init__(self):
         super(AgentPower, self).__init__()
-        if not CONF.deploy.fast_track:
-            raise exception.InvalidParameterValue(
-                _('[deploy]fast_track must be True to enable the agent '
-                  'power interface'))
         self._client = agent_client.AgentClient()
 
     def get_properties(self):
@@ -61,9 +58,9 @@ class AgentPower(base.PowerInterface):
         """
         # NOTE(dtantsur): the fast_track option is mutable, so we have to check
         # it again on validation.
-        if not CONF.deploy.fast_track:
+        if not utils.fast_track_enabled(task.node):
             raise exception.InvalidParameterValue(
-                _('[deploy]fast_track must be True to enable the agent '
+                _('Fast track mode must be enabled to use the agent '
                   'power interface'))
         # TODO(dtantsur): support ACTIVE nodes
         if not cond_utils.agent_is_alive(task.node):
