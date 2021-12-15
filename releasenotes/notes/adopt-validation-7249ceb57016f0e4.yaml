@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    No longer validates boot interface parameters when adopting a node that
+    uses local boot.
