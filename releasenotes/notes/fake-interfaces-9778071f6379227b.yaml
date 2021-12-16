@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    The ``fake-hardware`` hardware types now explicitly declares support
+    for all generic interface implementations, so that they can be used
+    in the defaults calculation.

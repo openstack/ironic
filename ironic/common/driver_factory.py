@@ -23,7 +23,6 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.conf import CONF
 from ironic.drivers import base as driver_base
-from ironic.drivers import fake_hardware
 
 
 LOG = log.getLogger(__name__)
@@ -98,6 +97,7 @@ def get_interface(hw_type, interface_type, interface_name):
             entrypoint=factory._entrypoint_name,
             valid=factory.names)
 
+    from ironic.drivers import fake_hardware  # avoid circular import
     if isinstance(hw_type, fake_hardware.FakeHardware):
         # NOTE(dtantsur): special-case fake hardware type to allow testing with
         # any combinations of interface implementations.
