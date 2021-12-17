@@ -830,7 +830,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                              build_mock):
         build_mock.return_value = {'a': 'b'}
         mock_task_monitor = mock.Mock()
-        mock_task_monitor.task_monitor = '/task/123'
+        mock_task_monitor.task_monitor_uri = '/task/123'
         mock_update_service = mock.Mock()
         mock_update_service.simple_update.return_value = mock_task_monitor
         mock_get_update_service.return_value = mock_update_service
@@ -1204,7 +1204,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                                                      mock_node_power_action,
                                                      mock_log):
         mock_task_monitor = mock.Mock()
-        mock_task_monitor.task_monitor = '/task/987'
+        mock_task_monitor.task_monitor_uri = '/task/987'
         mock_update_service = mock.Mock()
         mock_update_service.simple_update.return_value = mock_task_monitor
         driver_internal_info = {
