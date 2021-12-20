@@ -205,7 +205,7 @@ class HttpImageServiceTestCase(base.TestCase):
         head_mock.assert_called_once_with(self.href, verify=True,
                                           timeout=60)
         self.assertEqual({'size': 100, 'updated_at': mtime_date,
-                          'properties': {}}, result)
+                          'properties': {}, 'no_cache': False}, result)
 
     def test_show_rfc_822(self):
         self._test_show(mtime='Tue, 15 Nov 2014 08:12:31 GMT',
@@ -218,6 +218,33 @@ class HttpImageServiceTestCase(base.TestCase):
     def test_show_ansi_c(self):
         self._test_show(mtime='Tue Nov 15 08:12:31 2014',
                         mtime_date=datetime.datetime(2014, 11, 15, 8, 12, 31))
+
+    @mock.patch.object(requests, 'head', autospec=True)
+    def _test_show_with_cache(self, head_mock, cache_control, no_cache):
+        head_mock.return_value.status_code = http_client.OK
+        head_mock.return_value.headers = {
+            'Content-Length': 100,
+            'Last-Modified': 'Tue, 15 Nov 2014 08:12:31 GMT',
+            'Cache-Control': cache_control,
+        }
+        result = self.service.show(self.href)
+        head_mock.assert_called_once_with(self.href, verify=True,
+                                          timeout=60)
+        self.assertEqual({
+            'size': 100,
+            'updated_at': datetime.datetime(2014, 11, 15, 8, 12, 31),
+            'properties': {},
+            'no_cache': no_cache}, result)
+
+    def test_show_cache_allowed(self):
+        self._test_show_with_cache(
+            # Just because we cannot have nice things, "no-cache" actually
+            # means "cache, but always re-validate".
+            cache_control='no-cache, private', no_cache=False)
+
+    def test_show_cache_disabled(self):
+        self._test_show_with_cache(
+            cache_control='no-store', no_cache=True)
 
     @mock.patch.object(requests, 'head', autospec=True)
     def test_show_no_content_length(self, head_mock):
@@ -425,7 +452,8 @@ class FileImageServiceTestCase(base.TestCase):
         self.assertEqual({'size': 42,
                           'updated_at': datetime.datetime(2015, 5, 8,
                                                           12, 25, 9, 164191),
-                          'properties': {}}, result)
+                          'properties': {},
+                          'no_cache': True}, result)
 
     @mock.patch.object(os, 'link', autospec=True)
     @mock.patch.object(os, 'remove', autospec=True)

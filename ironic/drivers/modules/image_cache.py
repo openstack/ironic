@@ -112,11 +112,13 @@ class ImageCache(object):
 
         # TODO(dtantsur): lock expiration time
         with lockutils.lock(img_download_lock_name):
+            img_service = image_service.get_image_service(href, context=ctx)
+            img_info = img_service.show(href)
             # NOTE(vdrok): After rebuild requested image can change, so we
             # should ensure that dest_path and master_path (if exists) are
             # pointing to the same file and their content is up to date
             cache_up_to_date = _delete_master_path_if_stale(master_path, href,
-                                                            ctx)
+                                                            img_info)
             dest_up_to_date = _delete_dest_path_if_stale(master_path,
                                                          dest_path)
 
@@ -137,13 +139,14 @@ class ImageCache(object):
             LOG.info("Master cache miss for image %(href)s, will download",
                      {'href': href})
             self._download_image(
-                href, master_path, dest_path, ctx=ctx, force_raw=force_raw)
+                href, master_path, dest_path, img_info,
+                ctx=ctx, force_raw=force_raw)
 
         # NOTE(dtantsur): we increased cache size - time to clean up
         self.clean_up()
 
-    def _download_image(self, href, master_path, dest_path, ctx=None,
-                        force_raw=True):
+    def _download_image(self, href, master_path, dest_path, img_info,
+                        ctx=None, force_raw=True):
         """Download image by href and store at a given path.
 
         This method should be called with uuid-specific lock taken.
@@ -151,6 +154,7 @@ class ImageCache(object):
         :param href: image UUID or href to fetch
         :param master_path: destination master path
         :param dest_path: destination file path
+        :param img_info: image information from the image service
         :param ctx: context
         :param force_raw: boolean value, whether to convert the image to raw
                           format
@@ -166,10 +170,16 @@ class ImageCache(object):
         try:
             with _concurrency_semaphore:
                 _fetch(ctx, href, tmp_path, force_raw)
-            # NOTE(dtantsur): no need for global lock here - master_path
-            # will have link count >1 at any moment, so won't be cleaned up
-            os.link(tmp_path, master_path)
-            os.link(master_path, dest_path)
+
+            if img_info.get('no_cache'):
+                LOG.debug("Caching is disabled for image %s", href)
+                # Cache disabled, link directly to destination
+                os.link(tmp_path, dest_path)
+            else:
+                # NOTE(dtantsur): no need for global lock here - master_path
+                # will have link count >1 at any moment, so won't be cleaned up
+                os.link(tmp_path, master_path)
+                os.link(master_path, dest_path)
         except OSError as exc:
             msg = (_("Could not link image %(img_href)s from %(src_path)s "
                      "to %(dst_path)s, error: %(exc)s") %
@@ -410,12 +420,12 @@ def cleanup(priority):
     return _add_property_to_class_func
 
 
-def _delete_master_path_if_stale(master_path, href, ctx):
+def _delete_master_path_if_stale(master_path, href, img_info):
     """Delete image from cache if it is not up to date with href contents.
 
     :param master_path: path to an image in master cache
     :param href: image href
-    :param ctx: context to use
+    :param img_info: image information from the service
     :returns: True if master_path is up to date with href contents,
         False if master_path was stale and was deleted or it didn't exist
     """
@@ -423,8 +433,7 @@ def _delete_master_path_if_stale(master_path, href, ctx):
         # Glance image contents cannot be updated without changing image's UUID
         return os.path.exists(master_path)
     if os.path.exists(master_path):
-        img_service = image_service.get_image_service(href, context=ctx)
-        img_mtime = img_service.show(href).get('updated_at')
+        img_mtime = img_info.get('updated_at')
         if not img_mtime:
             # This means that href is not a glance image and doesn't have an
             # updated_at attribute. To play on the safe side, redownload the
