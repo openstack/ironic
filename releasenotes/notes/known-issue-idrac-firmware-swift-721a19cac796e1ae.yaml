@@ -1,0 +1,8 @@
+---
+issues:
+  - |
+    When using iDRAC with Swift to stage firmware update files in Management
+    interface ``firmware_update`` clean step of ``redfish`` or ``idrac``
+    hardware type, the cleaning fails with error "An internal error occurred.
+    Unable to complete the specified operation." in iDRAC job. Until this is
+    fixed, use HTTP service to stage firmware files for iDRAC.
