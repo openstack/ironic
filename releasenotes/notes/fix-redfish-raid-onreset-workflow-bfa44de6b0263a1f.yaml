@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes the ``redfish`` hardware type RAID device creation and deletion when
+    creating or deleting more than 1 logical disk on RAID controllers that
+    require rebooting and do not allow more than 1 running task per RAID
+    controller. Before this fix 2nd logical disk would fail to be created or
+    deleted. With this change it is now possible to use ``redfish`` ``raid``
+    interface on iDRAC systems.
