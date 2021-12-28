@@ -1560,6 +1560,13 @@ class IPMIShellinaboxConsole(IPMIConsole):
         if not driver_info['port']:
             driver_info['port'] = _allocate_port(task)
 
+        try:
+            self._exec_stop_console(driver_info)
+        except OSError:
+            # We need to drop any existing sol sessions with sol deactivate.
+            # OSError is raised when sol session is already deactivated,
+            # so we can ignore it.
+            pass
         self._start_console(driver_info,
                             console_utils.start_shellinabox_console)
 
@@ -1576,6 +1583,10 @@ class IPMIShellinaboxConsole(IPMIConsole):
             ironic_utils.unlink_without_raise(
                 _console_pwfile_path(task.node.uuid))
         _release_allocated_port(task)
+
+    def _exec_stop_console(self, driver_info):
+        cmd = "sol deactivate"
+        _exec_ipmitool(driver_info, cmd, check_exit_code=[0, 1])
 
     @METRICS.timer('IPMIShellinaboxConsole.get_console')
     def get_console(self, task):

@@ -1464,8 +1464,8 @@ class IPMIToolPrivateMethodTestCase(
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_cipher_suite_error_noconfig(
             self, mock_exec, mock_check_cs, mock_support):
-        no_matching_error = 'Error in open session response message : '\
-            'no matching cipher suite\n\nError: '\
+        no_matching_error = 'Error in open session response message : ' \
+            'no matching cipher suite\n\nError: ' \
             'Unable to establish IPMI v2 / RMCP+ session\n'
         self.config(min_command_interval=1, group='ipmi')
         self.config(command_retry_timeout=2, group='ipmi')
@@ -1511,8 +1511,8 @@ class IPMIToolPrivateMethodTestCase(
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_cipher_suite_set_with_error_noconfig(
             self, mock_exec, mock_check_cs, mock_support):
-        no_matching_error = 'Error in open session response message : '\
-            'no matching cipher suite\n\nError: '\
+        no_matching_error = 'Error in open session response message : ' \
+            'no matching cipher suite\n\nError: ' \
             'Unable to establish IPMI v2 / RMCP+ session\n'
         self.config(min_command_interval=1, group='ipmi')
         self.config(command_retry_timeout=2, group='ipmi')
@@ -1560,8 +1560,8 @@ class IPMIToolPrivateMethodTestCase(
     @mock.patch.object(utils, 'execute', autospec=True)
     def test__exec_ipmitool_cipher_suite_set_with_error_config(
             self, mock_exec, mock_check_cs, mock_support):
-        no_matching_error = 'Error in open session response message : '\
-            'no matching cipher suite\n\nError: '\
+        no_matching_error = 'Error in open session response message : ' \
+            'no matching cipher suite\n\nError: ' \
             'Unable to establish IPMI v2 / RMCP+ session\n'
         self.config(min_command_interval=1, group='ipmi')
         self.config(command_retry_timeout=2, group='ipmi')
@@ -1615,10 +1615,10 @@ class IPMIToolPrivateMethodTestCase(
         self.config(use_ipmitool_retries=False, group='ipmi')
         cs_list = ['0', '1', '2', '3', '17']
         self.config(cipher_suite_versions=cs_list, group='ipmi')
-        no_matching_error = 'Error in open session response message : '\
-            'no matching cipher suite\n\nError: '\
+        no_matching_error = 'Error in open session response message : ' \
+            'no matching cipher suite\n\nError: ' \
             'Unable to establish IPMI v2 / RMCP+ session\n'
-        unsupported_error = 'Unsupported cipher suite ID : 17\n\n'\
+        unsupported_error = 'Unsupported cipher suite ID : 17\n\n' \
             'Error: Unable to establish IPMI v2 / RMCP+ session\n'
         ipmi.LAST_CMD_TIME = {}
         args = [
@@ -1736,10 +1736,10 @@ class IPMIToolPrivateMethodTestCase(
             'Problem\n\nError: Unable to establish IPMI v2 / RMCP+ session\n',
             'UnsupportedciphersuiteID:17\n\n'
         ]
-        no_matching_error = 'Error in open session response message : '\
-            'no matching cipher suite\n\nError: '\
+        no_matching_error = 'Error in open session response message : ' \
+            'no matching cipher suite\n\nError: ' \
             'Unable to establish IPMI v2 / RMCP+ session\n'
-        unsupported_error = 'Unsupported cipher suite ID : 17\n\n'\
+        unsupported_error = 'Unsupported cipher suite ID : 17\n\n' \
             'Error: Unable to establish IPMI v2 / RMCP+ session\n'
         valid_errors_stderr = [no_matching_error, unsupported_error]
         for invalid_err in invalid_errors_stderr:
@@ -3209,7 +3209,9 @@ class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
 
     @mock.patch.object(ipmi, '_allocate_port', autospec=True)
     @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
-    def test_start_console(self, mock_start, mock_alloc):
+    @mock.patch.object(ipmi.IPMIShellinaboxConsole, "_exec_stop_console",
+                       autospec=True)
+    def test_start_console(self, mock_exec_stop, mock_start, mock_alloc):
         mock_start.return_value = None
         mock_alloc.return_value = 10000
 
@@ -3218,29 +3220,38 @@ class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
             self.console.start_console(task)
             driver_info = ipmi._parse_driver_info(task.node)
             driver_info.update(port=10000)
+        mock_exec_stop.assert_called_once_with(self.console, driver_info)
         mock_start.assert_called_once_with(
             self.console, driver_info,
             console_utils.start_shellinabox_console)
 
     @mock.patch.object(ipmi, '_allocate_port', autospec=True)
     @mock.patch.object(ipmi, '_parse_driver_info', autospec=True)
+    @mock.patch.object(ipmi.IPMIShellinaboxConsole, "_exec_stop_console",
+                       autospec=True)
     @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
-    def test_start_console_with_port(self, mock_start, mock_info, mock_alloc):
+    def test_start_console_with_port(self, mock_start, mock_exec_stop,
+                                     mock_info, mock_alloc):
         mock_start.return_value = None
         mock_info.return_value = {'port': 10000}
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             self.console.start_console(task)
+            driver_info = ipmi._parse_driver_info(task.node)
         mock_start.assert_called_once_with(
             self.console, {'port': 10000},
             console_utils.start_shellinabox_console)
+        mock_exec_stop.assert_called_once_with(self.console, driver_info)
         mock_alloc.assert_not_called()
 
     @mock.patch.object(ipmi, '_allocate_port', autospec=True)
     @mock.patch.object(ipmi, '_parse_driver_info', autospec=True)
+    @mock.patch.object(ipmi.IPMIShellinaboxConsole, "_exec_stop_console",
+                       autospec=True)
     @mock.patch.object(ipmi.IPMIConsole, '_start_console', autospec=True)
-    def test_start_console_alloc_port(self, mock_start, mock_info, mock_alloc):
+    def test_start_console_alloc_port(self, mock_start, mock_exec_stop,
+                                      mock_info, mock_alloc):
         mock_start.return_value = None
         mock_info.return_value = {'port': None}
         mock_alloc.return_value = 1234
@@ -3248,10 +3259,22 @@ class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             self.console.start_console(task)
+            driver_info = ipmi._parse_driver_info(task.node)
         mock_start.assert_called_once_with(
             self.console, {'port': 1234},
             console_utils.start_shellinabox_console)
+        mock_exec_stop.assert_called_once_with(self.console, driver_info)
         mock_alloc.assert_called_once_with(mock.ANY)
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test__exec_stop_console(self, mock_exec):
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            driver_info = ipmi._parse_driver_info(task.node)
+            self.console._exec_stop_console(driver_info)
+
+        mock_exec.assert_called_once_with(
+            driver_info, 'sol deactivate', check_exit_code=[0, 1])
 
     @mock.patch.object(ipmi.IPMIConsole, '_get_ipmi_cmd', autospec=True)
     @mock.patch.object(console_utils, 'start_shellinabox_console',
@@ -3568,7 +3591,6 @@ class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
     def test__exec_stop_console(self, mock_exec):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
-
             driver_info = ipmi._parse_driver_info(task.node)
             self.console._exec_stop_console(driver_info)
 
