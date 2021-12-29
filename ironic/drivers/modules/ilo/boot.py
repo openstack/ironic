@@ -420,14 +420,7 @@ class IloVirtualMediaBoot(base.BootInterface):
         """
 
         node = task.node
-        # NOTE(TheJulia): If this method is being called by something
-        # aside from deployment, clean and rescue, such as conductor takeover,
-        # we should treat this as a no-op and move on otherwise we would
-        # modify the state of the node due to virtual media operations.
-        if node.provision_state not in (states.DEPLOYING,
-                                        states.CLEANING,
-                                        states.RESCUING,
-                                        states.INSPECTING):
+        if not driver_utils.need_prepare_ramdisk(node):
             return
 
         prepare_node_for_deploy(task)
@@ -1066,14 +1059,7 @@ class IloUefiHttpsBoot(base.BootInterface):
         :raises: IloOperationError, if some operation on iLO failed.
         """
         node = task.node
-        # NOTE(TheJulia): If this method is being called by something
-        # aside from deployment, clean and rescue, such as conductor takeover,
-        # we should treat this as a no-op and move on otherwise we would
-        # modify the state of the node due to virtual media operations.
-        if node.provision_state not in (states.DEPLOYING,
-                                        states.CLEANING,
-                                        states.RESCUING,
-                                        states.INSPECTING):
+        if not driver_utils.need_prepare_ramdisk(node):
             return
 
         prepare_node_for_deploy(task)
