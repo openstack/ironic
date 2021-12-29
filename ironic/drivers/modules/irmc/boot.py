@@ -971,13 +971,7 @@ class IRMCVirtualMediaBoot(base.BootInterface, IRMCVolumeBootMixIn):
         :raises: IRMCOperationError, if some operation on iRMC fails.
         """
 
-        # NOTE(TheJulia): If this method is being called by something
-        # aside from deployment, clean and rescue, such as conductor takeover,
-        # we should treat this as a no-op and move on otherwise we would
-        # modify the state of the node due to virtual media operations.
-        if task.node.provision_state not in (states.DEPLOYING,
-                                             states.CLEANING,
-                                             states.RESCUING):
+        if not driver_utils.need_prepare_ramdisk(task.node):
             return
 
         # NOTE(tiendc): Before deploying, we need to backup BIOS config
