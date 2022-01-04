@@ -241,6 +241,7 @@ if not sushy:
         TASK_STATE_COMPLETED='completed',
         HEALTH_OK='ok',
         HEALTH_WARNING='warning',
+        HEALTH_CRITICAL='critical',
         SECURE_BOOT_RESET_KEYS_TO_DEFAULT="ResetAllKeysToDefault",
         SECURE_BOOT_RESET_KEYS_DELETE_ALL="DeleteAllKeys",
         VOLUME_TYPE_RAW_DEVICE='rawdevice',
