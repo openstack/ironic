@@ -1058,3 +1058,87 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
 
             self.assertEqual(storage, self.mock_storage)
             nonraid_storage.drives.assert_not_called()
+
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    @mock.patch.object(redfish_raid.LOG, 'info', autospec=True)
+    def test__raid_config_in_progress_success(
+            self, mock_info, mock_get_task_monitor, mock_get_system):
+        mock_task = mock.Mock()
+        mock_task.task_state = sushy.TASK_STATE_COMPLETED
+        mock_task.task_status = sushy.HEALTH_OK
+        mock_task.messages = []
+        mock_task_monitor = mock.Mock()
+        mock_task_monitor.is_processing = False
+        mock_task_monitor.get_task.return_value = mock_task
+        mock_get_task_monitor.return_value = mock_task_monitor
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            raid = redfish_raid.RedfishRAID()
+            result = raid._raid_config_in_progress(
+                task, {'task_monitor_uri': '/TaskService/123',
+                       'operation': 'create'})
+            self.assertEqual(False, result)
+            mock_info.assert_called_once()
+
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    @mock.patch.object(redfish_raid.LOG, 'info', autospec=True)
+    def test__raid_config_in_progress_task_mon_error(
+            self, mock_info, mock_get_task_monitor, mock_get_system):
+        mock_get_task_monitor.side_effect = exception.RedfishError(
+            error='Task not found')
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            raid = redfish_raid.RedfishRAID()
+            result = raid._raid_config_in_progress(
+                task, {'task_monitor_uri': '/TaskService/123',
+                       'operation': 'create'})
+            self.assertEqual(False, result)
+            mock_info.assert_called_once()
+
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    @mock.patch.object(redfish_raid.LOG, 'debug', autospec=True)
+    def test__raid_config_in_progress_still_processing(
+            self, mock_debug, mock_get_task_monitor, mock_get_system):
+        mock_task_monitor = mock.Mock()
+        mock_task_monitor.is_processing = True
+        mock_get_task_monitor.return_value = mock_task_monitor
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            raid = redfish_raid.RedfishRAID()
+            result = raid._raid_config_in_progress(
+                task, {'task_monitor_uri': '/TaskService/123',
+                       'operation': 'create'})
+            self.assertEqual(True, result)
+            mock_debug.assert_called_once()
+
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    @mock.patch.object(redfish_raid.LOG, 'error', autospec=True)
+    def test__raid_config_in_progress_failed(
+            self, mock_error, mock_get_task_monitor, mock_get_system):
+        mock_message = mock.Mock()
+        mock_message.message = 'RAID configuration failed'
+        mock_message.severity = sushy.SEVERITY_CRITICAL
+        mock_task = mock.Mock()
+        mock_task.task_state = sushy.TASK_STATE_COMPLETED
+        mock_task.task_status = sushy.HEALTH_CRITICAL
+        mock_task.messages = [mock_message]
+        mock_task_monitor = mock.Mock()
+        mock_task_monitor.is_processing = False
+        mock_task_monitor.get_task.return_value = mock_task
+        mock_get_task_monitor.return_value = mock_task_monitor
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            raid = redfish_raid.RedfishRAID()
+            result = raid._raid_config_in_progress(
+                task, {'task_monitor_uri': '/TaskService/123',
+                       'operation': 'create'})
+            self.assertEqual(False, result)
+            mock_error.assert_called_once()
