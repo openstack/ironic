@@ -16,13 +16,11 @@
 Fake hardware type.
 """
 
-from ironic.drivers import hardware_type
+from ironic.drivers import generic
 from ironic.drivers.modules import fake
-from ironic.drivers.modules import noop
-from ironic.drivers.modules.storage import noop as noop_storage
 
 
-class FakeHardware(hardware_type.AbstractHardwareType):
+class FakeHardware(generic.GenericHardware):
     """Fake hardware type.
 
     This hardware type is special-cased in the driver factory to bypass
@@ -35,27 +33,27 @@ class FakeHardware(hardware_type.AbstractHardwareType):
     @property
     def supported_bios_interfaces(self):
         """List of classes of supported bios interfaces."""
-        return [fake.FakeBIOS, noop.NoBIOS]
+        return [fake.FakeBIOS] + super().supported_bios_interfaces
 
     @property
     def supported_boot_interfaces(self):
         """List of classes of supported boot interfaces."""
-        return [fake.FakeBoot]
+        return [fake.FakeBoot] + super().supported_boot_interfaces
 
     @property
     def supported_console_interfaces(self):
         """List of classes of supported console interfaces."""
-        return [fake.FakeConsole, noop.NoConsole]
+        return [fake.FakeConsole] + super().supported_console_interfaces
 
     @property
     def supported_deploy_interfaces(self):
         """List of classes of supported deploy interfaces."""
-        return [fake.FakeDeploy]
+        return [fake.FakeDeploy] + super().supported_deploy_interfaces
 
     @property
     def supported_inspect_interfaces(self):
         """List of classes of supported inspect interfaces."""
-        return [fake.FakeInspect, noop.NoInspect]
+        return [fake.FakeInspect] + super().supported_inspect_interfaces
 
     @property
     def supported_management_interfaces(self):
@@ -70,26 +68,21 @@ class FakeHardware(hardware_type.AbstractHardwareType):
     @property
     def supported_raid_interfaces(self):
         """List of classes of supported raid interfaces."""
-        return [fake.FakeRAID, noop.NoRAID]
+        return [fake.FakeRAID] + super().supported_raid_interfaces
 
     @property
     def supported_rescue_interfaces(self):
         """List of classes of supported rescue interfaces."""
-        return [fake.FakeRescue, noop.NoRescue]
+        return [fake.FakeRescue] + super().supported_rescue_interfaces
 
     @property
     def supported_storage_interfaces(self):
         """List of classes of supported storage interfaces."""
-        return [fake.FakeStorage, noop_storage.NoopStorage]
+        return [fake.FakeStorage] + super().supported_storage_interfaces
 
     @property
     def supported_vendor_interfaces(self):
         """List of classes of supported rescue interfaces."""
-        return [fake.FakeVendorB, fake.FakeVendorA, noop.NoVendor]
-
-    @property
-    def supported_network_interfaces(self):
-        # import late to avoid circular imports
-        from ironic.drivers.modules.network import flat
-        from ironic.drivers.modules.network import noop
-        return [flat.FlatNetwork, noop.NoopNetwork]
+        return [
+            fake.FakeVendorB, fake.FakeVendorA
+        ] + super().supported_vendor_interfaces
