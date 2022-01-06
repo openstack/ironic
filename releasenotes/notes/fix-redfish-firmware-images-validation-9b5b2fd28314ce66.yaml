@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes validation of input argument ``firmware_images`` of ``redfish``
+    hardware type clean step ``update_firmware``. Now it validates the argument
+    at the beginning of clean step. Prior to this fix issues were determined
+    at the time of executing firmware update or not at all (for example,
+    mistyping optional field 'wait').

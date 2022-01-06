@@ -856,6 +856,14 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.node)
             mock_node_power_action.assert_called_once_with(task, states.REBOOT)
 
+    def test_update_firmware_invalid_args(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                task.driver.management.update_firmware,
+                task, [{'urlX': 'test1'}, {'url': 'test2'}])
+
     @mock.patch.object(task_manager, 'acquire', autospec=True)
     def test__query_firmware_update_failed(self, mock_acquire):
         driver_internal_info = {
