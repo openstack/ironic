@@ -35,6 +35,7 @@ from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules.redfish import firmware_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
 
 LOG = log.getLogger(__name__)
@@ -759,6 +760,7 @@ class RedfishManagement(base.ManagementInterface):
         :returns: None if it is completed.
         :raises: RedfishError on an error from the Sushy library.
         """
+        firmware_utils.validate_update_firmware_args(firmware_images)
         node = task.node
 
         LOG.debug('Updating firmware on node %(node_uuid)s with firmware '
