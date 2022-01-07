@@ -151,6 +151,17 @@ The web console can be configured in Bare Metal service in the following way:
   ``false``, ``console_info`` is ``None``, web console is disabled. If you want to launch web
   console, see the ``Configure node web console`` part.
 
+  .. note::
+
+     An error message you may encounter when enabling the console can read
+     ``Console subprocess failed to start. Timeout or error while waiting for
+     console subprocess to start for node`` along with
+     ``[server] Failed to find any available port!``. This error is coming from
+     shellinabox itself, not from the communication with the BMC. One potential
+     cause for this issue is that there are already shellinabox daemons running
+     which block the configured port (remove them if appropriate and retry to
+     enable the console).
+
 .. _`shellinabox page`: https://code.google.com/archive/p/shellinabox/
 .. _`openssl page`: https://www.openssl.org/
 .. _`FedoraProject page`: https://fedoraproject.org/wiki/Infrastructure/Mirroring
