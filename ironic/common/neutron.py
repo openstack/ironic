@@ -344,7 +344,8 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
                 wait_for_host_agent(
                     client, update_port_attrs['binding:host_id'])
             port = client.create_port(**port_attrs)
-            update_neutron_port(task.context, port.id, update_port_attrs)
+            port = update_neutron_port(task.context, port.id,
+                                       update_port_attrs)
             if CONF.neutron.dhcpv6_stateful_address_count > 1:
                 _add_ip_addresses_for_ipv6_stateful(task.context, port, client)
             if is_smart_nic:

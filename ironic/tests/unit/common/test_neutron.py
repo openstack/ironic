@@ -289,11 +289,13 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
                 fixed_ips=[])
             self.client_mock.create_port.side_effect = [self.neutron_port,
                                                         neutron_port2]
+            update_mock.side_effect = [self.neutron_port, neutron_port2]
             expected = {port.uuid: self.neutron_port.id,
                         port2.uuid: neutron_port2.id}
 
         else:
             self.client_mock.create_port.return_value = self.neutron_port
+            update_mock.return_value = self.neutron_port
             expected = {port.uuid: self.neutron_port['id']}
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -457,6 +459,7 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         vpi_mock.return_value = True
         # Ensure we can create ports
         self.client_mock.create_port.return_value = self.neutron_port
+        update_mock.return_value = self.neutron_port
         expected = {port.uuid: self.neutron_port.id}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             ports = neutron.add_ports_to_network(task, self.network_uuid)
@@ -491,6 +494,7 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         )
         self.client_mock.create_port.side_effect = [
             self.neutron_port, openstack_exc.OpenStackCloudException]
+        update_mock.return_value = self.neutron_port
         with task_manager.acquire(self.context, self.node.uuid) as task:
             neutron.add_ports_to_network(task, self.network_uuid)
             self.assertIn("Could not create neutron port for node's",
@@ -988,6 +992,7 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
 
         # Ensure we can create ports
         self.client_mock.create_port.return_value = self.neutron_port
+        update_mock.return_value = self.neutron_port
         expected = {port.uuid: self.neutron_port.id}
         with task_manager.acquire(self.context, self.node.uuid) as task:
             ports = neutron.add_ports_to_network(task, self.network_uuid)
