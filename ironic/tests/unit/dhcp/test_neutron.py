@@ -166,7 +166,13 @@ class TestNeutron(db_base.DbTestCase):
                     "ip_address": "192.168.1.3",
                 },
                 {
+                    "ip_address": "192.168.1.4",
+                },
+                {
                     "ip_address": "2001:db8::201",
+                },
+                {
+                    "ip_address": "2001:db8::202",
                 }
             ],
         }
