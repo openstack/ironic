@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixed an issue where duplicate extra DHCP options was passed in the port
+    update request to the Networking service. The duplicate DHCP options
+    caused an error in the Networking service and node provisioning would
+    fail. See bug:
+    `2009774 <https://storyboard.openstack.org/#!/story/2009774>`_.
