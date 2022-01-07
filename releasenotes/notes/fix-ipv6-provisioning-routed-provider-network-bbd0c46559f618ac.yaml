@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixed an issue where provisioning/cleaning would fail on IPv6 routed provider
+    networks. See bug:
+    `2009773 <https://storyboard.openstack.org/#!/story/2009773>`_.
