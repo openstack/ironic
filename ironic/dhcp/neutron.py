@@ -80,9 +80,9 @@ class NeutronDHCPApi(base.BaseDHCP):
 
             update_opts = []
             if len(fips) != 0:
-                for fip in fips:
-                    ip_version = \
-                        ipaddress.ip_address(fip['ip_address']).version
+                ip_versions = {ipaddress.ip_address(fip['ip_address']).version
+                               for fip in fips}
+                for ip_version in ip_versions:
                     for option in dhcp_options:
                         if option.get('ip_version', 4) == ip_version:
                             update_opts.append(option)
