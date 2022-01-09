@@ -91,6 +91,11 @@ opts = [
                'section). Swift temporary URL format: '
                '"endpoint_url/api_version/account/container/object_id"')),
     cfg.StrOpt(
+        'swift_account_prefix',
+        default='AUTH',
+        help=_('The prefix added to the project uuid to determine the swift '
+               'account.')),
+    cfg.StrOpt(
         'swift_container',
         default='glance',
         help=_('The Swift container Glance is configured to store its '

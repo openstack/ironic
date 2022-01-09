@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The new ``[glance] swift_account_prefix`` parameter has been added. This
+    parameter be set according to the ``reseller_prefix`` parameter in
+    ``proxy-server.conf`` of Swift.

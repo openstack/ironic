@@ -303,15 +303,20 @@ class GlanceImageService(object):
                     'but it was not found in the service catalog. You must '
                     'provide "swift_endpoint_url" as a config option.'))
 
+        swift_account_prefix = CONF.glance.swift_account_prefix
+        if swift_account_prefix and not swift_account_prefix.endswith('_'):
+            swift_account_prefix = '%s_' % swift_account_prefix
+
         # Strip /v1/AUTH_%(tenant_id)s, if present
-        endpoint_url = re.sub('/v1/AUTH_[^/]+/?$', '', endpoint_url)
+        endpoint_url = re.sub('/v1/%s[^/]+/?$' % swift_account_prefix, '',
+                              endpoint_url)
 
         key = CONF.glance.swift_temp_url_key
         account = CONF.glance.swift_account
         if not account:
             swift_session = swift.get_swift_session()
             auth_ref = swift_session.auth.get_auth_ref(swift_session)
-            account = 'AUTH_%s' % auth_ref.project_id
+            account = '%s%s' % (swift_account_prefix, auth_ref.project_id)
 
         if not key:
             swift_api = swift.SwiftAPI()
