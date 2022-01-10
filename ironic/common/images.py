@@ -24,7 +24,6 @@ import shutil
 import time
 
 from ironic_lib import disk_utils
-from ironic_lib import utils as ironic_utils
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import fileutils
@@ -107,8 +106,9 @@ def create_vfat_image(output_file, files_info=None, parameters=None,
              mounting, creating filesystem, copying files, etc.
     """
     try:
-        ironic_utils.dd('/dev/zero', output_file, 'count=1',
-                        "bs=%dKiB" % fs_size_kib)
+        # TODO(sbaker): use ironic_lib.utils.dd when rootwrap has been removed
+        utils.execute('dd', 'if=/dev/zero', 'of=%s' % output_file, 'count=1',
+                      'bs=%dKiB' % fs_size_kib)
     except processutils.ProcessExecutionError as e:
         raise exception.ImageCreationFailed(image_type='vfat', error=e)
 
@@ -118,8 +118,9 @@ def create_vfat_image(output_file, files_info=None, parameters=None,
             # The label helps ramdisks to find the partition containing
             # the parameters (by using /dev/disk/by-label/ir-vfd-dev).
             # NOTE: FAT filesystem label can be up to 11 characters long.
-            ironic_utils.mkfs('vfat', output_file, label="ir-vfd-dev")
-            utils.mount(output_file, tmpdir, '-o', 'umask=0')
+            # TODO(sbaker): use ironic_lib.utils.mkfs when rootwrap has been
+            #              removed
+            utils.execute('mkfs', '-t', 'vfat', '-n', 'ir-vfd-de', output_file)
         except processutils.ProcessExecutionError as e:
             raise exception.ImageCreationFailed(image_type='vfat', error=e)
 
@@ -134,15 +135,14 @@ def create_vfat_image(output_file, files_info=None, parameters=None,
                 file_contents = '\n'.join(params_list)
                 utils.write_to_file(parameters_file, file_contents)
 
+            # use mtools to copy the files into the image in a single
+            # operation
+            utils.execute('mcopy', '-s', '%s/*' % tmpdir,
+                          '-i', output_file, '::')
+
         except Exception as e:
             LOG.exception("vfat image creation failed. Error: %s", e)
             raise exception.ImageCreationFailed(image_type='vfat', error=e)
-
-        finally:
-            try:
-                utils.umount(tmpdir)
-            except processutils.ProcessExecutionError as e:
-                raise exception.ImageCreationFailed(image_type='vfat', error=e)
 
 
 def _generate_cfg(kernel_params, template, options):
