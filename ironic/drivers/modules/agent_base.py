@@ -21,7 +21,6 @@ import collections
 from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import strutils
-from oslo_utils import timeutils
 import tenacity
 
 from ironic.common import boot_devices
@@ -209,15 +208,15 @@ def _post_step_reboot(task, step_type):
         return
 
     # Signify that we've rebooted
-    driver_internal_info = task.node.driver_internal_info
-    field = ('cleaning_reboot' if step_type == 'clean'
-             else 'deployment_reboot')
-    driver_internal_info[field] = True
-    if not driver_internal_info.get('agent_secret_token_pregenerated', False):
+    if step_type == 'clean':
+        task.node.set_driver_internal_info('cleaning_reboot', True)
+    else:
+        task.node.set_driver_internal_info('deployment_reboot', True)
+    if not task.node.driver_internal_info.get(
+            'agent_secret_token_pregenerated', False):
         # Wipes out the existing recorded token because the machine will
         # need to re-establish the token.
-        driver_internal_info.pop('agent_secret_token', None)
-    task.node.driver_internal_info = driver_internal_info
+        task.node.del_driver_internal_info('agent_secret_token')
     task.node.save()
 
 
@@ -591,22 +590,17 @@ class HeartbeatMixin(object):
         node = task.node
         LOG.debug('Heartbeat from node %s in state %s (target state %s)',
                   node.uuid, node.provision_state, node.target_provision_state)
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['agent_url'] = callback_url
-        driver_internal_info['agent_version'] = agent_version
-        # Record the last heartbeat event time in UTC, so we can make
-        # decisions about it later. Can be decoded to datetime object with:
-        # datetime.datetime.strptime(var, "%Y-%m-%d %H:%M:%S.%f")
-        driver_internal_info['agent_last_heartbeat'] = str(
-            timeutils.utcnow().isoformat())
+        node.set_driver_internal_info('agent_url', callback_url)
+        node.set_driver_internal_info('agent_version', agent_version)
+        # Record the last heartbeat event time
+        node.timestamp_driver_internal_info('agent_last_heartbeat')
         if agent_verify_ca:
-            driver_internal_info['agent_verify_ca'] = agent_verify_ca
+            node.set_driver_internal_info('agent_verify_ca', agent_verify_ca)
         if agent_status:
-            driver_internal_info['agent_status'] = agent_status
+            node.set_driver_internal_info('agent_status', agent_status)
         if agent_status_message:
-            driver_internal_info['agent_status_message'] = \
-                agent_status_message
-        node.driver_internal_info = driver_internal_info
+            node.set_driver_internal_info('agent_status_message',
+                                          agent_status_message)
         node.save()
 
         if node.provision_state in _HEARTBEAT_RECORD_ONLY:
@@ -840,13 +834,12 @@ class AgentBaseMixin(object):
                 steps[step['interface']].append(step)
 
         # Save hardware manager version, steps, and date
-        info = node.driver_internal_info
-        info['hardware_manager_version'] = agent_result[
-            'hardware_manager_version']
-        info['agent_cached_%s_steps' % step_type] = dict(steps)
-        info['agent_cached_%s_steps_refreshed' % step_type] = str(
-            timeutils.utcnow())
-        node.driver_internal_info = info
+        node.set_driver_internal_info('hardware_manager_version',
+                                      agent_result['hardware_manager_version'])
+        node.set_driver_internal_info('agent_cached_%s_steps' % step_type,
+                                      dict(steps))
+        node.timestamp_driver_internal_info(
+            'agent_cached_%s_steps_refreshed' % step_type)
         node.save()
         LOG.debug('Refreshed agent %(type)s step cache for node %(node)s: '
                   '%(steps)s', {'node': node.uuid, 'steps': steps,
@@ -896,9 +889,7 @@ class AgentBaseMixin(object):
                      'continuing from current step %(step)s.',
                      {'node': node.uuid, 'step': node.clean_step})
 
-            driver_internal_info = node.driver_internal_info
-            driver_internal_info['skip_current_clean_step'] = False
-            node.driver_internal_info = driver_internal_info
+            node.set_driver_internal_info('skip_current_clean_step', False)
             node.save()
         else:
             # Restart the process, agent must have rebooted to new version
