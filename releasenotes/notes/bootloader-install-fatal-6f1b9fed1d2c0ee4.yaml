@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    Bootloader installation failures are now fatal for whole disk images.
+    Previously these failures were ignored to facilitate backwards
+    compatibility with older Ironic Python Agents, however we can now rely on
+    having a sufficiently modern IPA.

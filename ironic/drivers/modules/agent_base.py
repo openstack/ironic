@@ -1335,20 +1335,11 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                 software_raid=software_raid
             )
             if result['command_status'] == 'FAILED':
-                if not whole_disk_image:
-                    msg = (_("Failed to install a bootloader when "
-                             "deploying node %(node)s. Error: %(error)s") %
-                           {'node': node.uuid,
-                            'error': agent_client.get_command_error(result)})
-                    log_and_raise_deployment_error(task, msg)
-                else:
-                    # Its possible the install will fail if the IPA image
-                    # has not been updated, log this and continue
-                    LOG.info('Could not install bootloader for whole disk '
-                             'image for node %(node)s, Error: %(error)s"',
-                             {'node': node.uuid,
-                              'error': agent_client.get_command_error(result)})
-                    return
+                msg = (_("Failed to install a bootloader when "
+                         "deploying node %(node)s. Error: %(error)s") %
+                       {'node': node.uuid,
+                        'error': agent_client.get_command_error(result)})
+                log_and_raise_deployment_error(task, msg)
 
         try:
             persistent = True
