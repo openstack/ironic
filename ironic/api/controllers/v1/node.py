@@ -2070,6 +2070,7 @@ class NodesController(rest.RestController):
 
         fields = api_utils.get_request_return_fields(fields, detail,
                                                      _DEFAULT_RETURN_FIELDS)
+        resource_url = 'nodes'
         extra_args = {'description_contains': description_contains}
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
                                           associated, maintenance, retired,
@@ -2077,6 +2078,7 @@ class NodesController(rest.RestController):
                                           limit, sort_key, sort_dir,
                                           driver=driver,
                                           resource_class=resource_class,
+                                          resource_url=resource_url,
                                           fields=fields, fault=fault,
                                           conductor_group=conductor_group,
                                           detail=detail,
