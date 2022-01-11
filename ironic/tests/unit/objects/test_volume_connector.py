@@ -188,8 +188,10 @@ class TestVolumeConnectorObject(db_base.DbTestCase,
             self.assertEqual(self.context, c._context)
 
     def test_save_after_refresh(self):
+        node = db_utils.create_test_node()
         # Ensure that it's possible to do object.save() after object.refresh()
-        db_volume_connector = db_utils.create_test_volume_connector()
+        db_volume_connector = db_utils.create_test_volume_connector(
+            node_id=node['id'])
 
         vc = objects.VolumeConnector.get_by_uuid(self.context,
                                                  db_volume_connector.uuid)

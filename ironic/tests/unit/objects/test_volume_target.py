@@ -198,8 +198,10 @@ class TestVolumeTargetObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             self.assertEqual(self.context, target._context)
 
     def test_save_after_refresh(self):
+        node = db_utils.create_test_node()
         # Ensure that it's possible to do object.save() after object.refresh()
-        db_volume_target = db_utils.create_test_volume_target()
+        db_volume_target = db_utils.create_test_volume_target(
+            node_id=node.id)
 
         vt = objects.VolumeTarget.get_by_uuid(self.context,
                                               db_volume_target.uuid)

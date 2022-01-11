@@ -59,6 +59,7 @@ class DBNodeHistoryTestCase(base.DbTestCase):
         for i in range(1, 6):
             history = db_utils.create_test_history(
                 id=i, uuid=uuidutils.generate_uuid(),
+                node_id=self.node.id,
                 conductor='test-conductor', user='fake-user',
                 event='Something bad happened but fear not %s' % i,
                 severity='ERROR', event_type='test')

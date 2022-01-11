@@ -77,6 +77,7 @@ class DbPortTestCase(base.DbTestCase):
         uuids = []
         for i in range(1, 6):
             port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                                             node_id=self.node.id,
                                              address='52:54:00:cf:2d:4%s' % i)
             uuids.append(str(port.uuid))
         # Also add the uuid for the port created in setUp()
@@ -89,6 +90,7 @@ class DbPortTestCase(base.DbTestCase):
         uuids = []
         for i in range(1, 6):
             port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                                             node_id=self.node.id,
                                              address='52:54:00:cf:2d:4%s' % i)
             uuids.append(str(port.uuid))
         # Also add the uuid for the port created in setUp()
@@ -101,9 +103,12 @@ class DbPortTestCase(base.DbTestCase):
                           self.dbapi.get_port_list, sort_key='foo')
 
     def test_get_port_list_filter_by_node_owner(self):
+        another_node = db_utils.create_test_node(
+            uuid=uuidutils.generate_uuid())
         uuids = []
         for i in range(1, 3):
             port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                                             node_id=another_node.id,
                                              address='52:54:00:cf:2d:4%s' % i)
         for i in range(4, 6):
             port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
@@ -117,6 +122,8 @@ class DbPortTestCase(base.DbTestCase):
         self.assertCountEqual(uuids, res_uuids)
 
     def test_get_port_list_filter_by_node_project(self):
+        another_node = db_utils.create_test_node(
+            uuid=uuidutils.generate_uuid())
         lessee_node = db_utils.create_test_node(uuid=uuidutils.generate_uuid(),
                                                 lessee=self.node.owner)
 
@@ -128,6 +135,7 @@ class DbPortTestCase(base.DbTestCase):
             uuids.append(str(port.uuid))
         for i in range(4, 6):
             port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                                             node_id=another_node.id,
                                              address='52:54:00:cf:2d:4%s' % i)
         for i in range(7, 9):
             port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),

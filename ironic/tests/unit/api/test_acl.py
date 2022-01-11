@@ -26,6 +26,7 @@ from oslo_config import cfg
 from ironic.api.controllers.v1 import versions as api_versions
 from ironic.common import exception
 from ironic.conductor import rpcapi
+from ironic.db import api as db_api
 from ironic.tests.unit.api import base
 from ironic.tests.unit.db import utils as db_utils
 
@@ -238,7 +239,6 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
     def _create_test_data(self):
         allocated_node_id = 31
         fake_db_allocation = db_utils.create_test_allocation(
-            node_id=allocated_node_id,
             resource_class="CUSTOM_TEST")
         fake_db_node = db_utils.create_test_node(
             chassis_id=None,
@@ -247,10 +247,12 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
         fake_db_node_alloced = db_utils.create_test_node(
             id=allocated_node_id,
             chassis_id=None,
-            allocation_id=fake_db_allocation['id'],
             uuid='22e26c0b-03f2-4d2e-ae87-c02d7f33c000',
             driver='fake-driverz',
             owner='z')
+        dbapi = db_api.get_instance()
+        dbapi.update_allocation(fake_db_allocation['id'],
+                                dict(node_id=allocated_node_id))
         fake_vif_port_id = "ee21d58f-5de2-4956-85ff-33935ea1ca00"
         fake_db_port = db_utils.create_test_port(
             node_id=fake_db_node['id'],
@@ -263,9 +265,9 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
         fake_db_deploy_template = db_utils.create_test_deploy_template()
         fake_db_conductor = db_utils.create_test_conductor()
         fake_db_volume_target = db_utils.create_test_volume_target(
-            node_id=fake_db_allocation['id'])
+            node_id=fake_db_node['id'])
         fake_db_volume_connector = db_utils.create_test_volume_connector(
-            node_id=fake_db_allocation['id'])
+            node_id=fake_db_node['id'])
         # Trait name aligns with create_test_node_trait.
         fake_trait = 'trait'
         fake_setting = 'FAKE_SETTING'
@@ -407,9 +409,7 @@ class TestRBACProjectScoped(TestACLBase):
             node_id=owned_node.id)
 
         # Leased nodes
-        fake_allocation_id = 61
         leased_node = db_utils.create_test_node(
-            allocation_id=fake_allocation_id,
             uuid=lessee_node_ident,
             owner=owner_project_id,
             lessee=lessee_project_id,
@@ -425,22 +425,26 @@ class TestRBACProjectScoped(TestACLBase):
             node_id=leased_node['id'])
         fake_trait = 'CUSTOM_MEOW'
         fake_vif_port_id = "0e21d58f-5de2-4956-85ff-33935ea1ca01"
+        fake_allocation_id = 61
         fake_leased_allocation = db_utils.create_test_allocation(
             id=fake_allocation_id,
-            node_id=leased_node['id'],
             owner=lessee_project_id,
             resource_class="CUSTOM_LEASED")
+
+        dbapi = db_api.get_instance()
+        dbapi.update_allocation(fake_allocation_id,
+                                dict(node_id=leased_node['id']))
 
         leased_node_history = db_utils.create_test_history(
             node_id=leased_node.id)
 
         # Random objects that shouldn't be project visible
-        other_port = db_utils.create_test_port(
-            uuid='abfd8dbb-1732-449a-b760-2224035c6b99',
-            address='00:00:00:00:00:ff')
-
         other_node = db_utils.create_test_node(
             uuid='573208e5-cd41-4e26-8f06-ef44022b3793')
+        other_port = db_utils.create_test_port(
+            node_id=other_node['id'],
+            uuid='abfd8dbb-1732-449a-b760-2224035c6b99',
+            address='00:00:00:00:00:ff')
         other_pgroup = db_utils.create_test_portgroup(
             uuid='5810f41c-6585-41fc-b9c9-a94f50d421b5',
             node_id=other_node['id'],

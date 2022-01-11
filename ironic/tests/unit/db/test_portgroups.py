@@ -42,6 +42,7 @@ class DbportgroupTestCase(base.DbTestCase):
         for i in range(1, count):
             portgroup = db_utils.create_test_portgroup(
                 uuid=uuidutils.generate_uuid(),
+                node_id=self.node.id,
                 name='portgroup' + str(i),
                 address='52:54:00:cf:2d:4%s' % i)
             uuids.append(str(portgroup.uuid))
