@@ -338,9 +338,8 @@ class RedfishBIOS(base.BIOSInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         """
-        info = task.node.driver_internal_info
-        info['post_factory_reset_reboot_requested'] = True
-        task.node.driver_internal_info = info
+        task.node.set_driver_internal_info(
+            'post_factory_reset_reboot_requested', True)
         task.node.save()
         deploy_utils.set_async_step_flags(task.node, reboot=True,
                                           skip_current_step=False)
@@ -351,10 +350,9 @@ class RedfishBIOS(base.BIOSInterface):
         :param task: a TaskManager instance containing the node to act on.
         :param attributes: the requested BIOS attributes to update.
         """
-        info = task.node.driver_internal_info
-        info['post_config_reboot_requested'] = True
-        info['requested_bios_attrs'] = attributes
-        task.node.driver_internal_info = info
+        task.node.set_driver_internal_info('post_config_reboot_requested',
+                                           True)
+        task.node.set_driver_internal_info('requested_bios_attrs', attributes)
         task.node.save()
         deploy_utils.set_async_step_flags(task.node, reboot=True,
                                           skip_current_step=False)
@@ -364,12 +362,11 @@ class RedfishBIOS(base.BIOSInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         """
-        info = task.node.driver_internal_info
-        info.pop('post_config_reboot_requested', None)
-        info.pop('post_factory_reset_reboot_requested', None)
-        info.pop('requested_bios_attrs', None)
-        task.node.driver_internal_info = info
-        task.node.save()
+        node = task.node
+        node.del_driver_internal_info('post_config_reboot_requested')
+        node.del_driver_internal_info('post_factory_reset_reboot_requested')
+        node.del_driver_internal_info('requested_bios_attrs')
+        node.save()
 
     def _set_step_failed(self, task, attrs_not_updated):
         """Fail the cleaning or deployment step and log the error.

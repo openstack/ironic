@@ -806,10 +806,9 @@ class RedfishManagement(base.ManagementInterface):
 
         task_monitor = update_service.simple_update(firmware_url)
 
-        driver_internal_info = node.driver_internal_info
         firmware_update['task_monitor'] = task_monitor.task_monitor_uri
-        driver_internal_info['firmware_updates'] = firmware_updates
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('firmware_updates',
+                                      firmware_updates)
 
     def _continue_firmware_updates(self, task, update_service,
                                    firmware_updates):
@@ -838,9 +837,8 @@ class RedfishManagement(base.ManagementInterface):
                        'firmware_image': firmware_update['url'],
                        'node': node.uuid})
 
-            driver_internal_info = node.driver_internal_info
-            driver_internal_info['firmware_updates'] = firmware_updates
-            node.driver_internal_info = driver_internal_info
+            node.set_driver_internal_info('firmware_updates',
+                                          firmware_updates)
             node.save()
             return
 
@@ -866,9 +864,7 @@ class RedfishManagement(base.ManagementInterface):
 
         :param node: the node to clear the firmware updates from
         """
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info.pop('firmware_updates', None)
-        node.driver_internal_info = driver_internal_info
+        node.del_driver_internal_info('firmware_updates')
         node.save()
 
     @METRICS.timer('RedfishManagement._query_firmware_update_failed')
