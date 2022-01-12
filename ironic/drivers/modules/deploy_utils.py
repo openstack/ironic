@@ -573,7 +573,7 @@ def validate_image_properties(task, deploy_info):
         properties = ['kernel_id', 'ramdisk_id']
         boot_option = get_boot_option(task.node)
         if boot_option == 'kickstart':
-            properties.append('squashfs_id')
+            properties.append('stage2_id')
     else:
         properties = ['kernel', 'ramdisk']
 
@@ -1122,6 +1122,24 @@ def _cache_and_convert_image(task, instance_info, image_info=None):
     symlink_dir = _get_http_image_symlink_dir_path()
     fileutils.ensure_tree(symlink_dir)
     symlink_path = _get_http_image_symlink_file_path(task.node.uuid)
+    file_extension = None
+    if get_boot_option(task.node) == 'kickstart':
+        # 'liveimg --url' kickstart command uses the file extension to
+        # identify the OS image type. Without a valid file extension it will
+        # assume the disk image is a partition image and try to 'mount' it on
+        # the ramdisk. See 'liveimg' command for more details
+        # https://pykickstart.readthedocs.io/en/latest/kickstart-docs.html
+        valid_file_extensions = ['.img', '.tar', '.tbz', '.tgz', '.txz',
+                                 '.tar.gz', '.tar.bz2', '.tar.xz']
+        if image_info and 'disk_file_extension' in image_info['properties']:
+            ext = image_info['properties']['disk_file_extension']
+            file_extension = ext if ext in valid_file_extensions else None
+        if file_extension:
+            symlink_path = symlink_path + file_extension
+        else:
+            LOG.warning("The 'disk_file_extension' property was not set on "
+                        "the glance image or not a valid extension so the "
+                        "anaconda installer will try to 'mount' the OS image.")
     utils.create_link_without_raise(image_path, symlink_path)
 
     base_url = CONF.deploy.http_url
@@ -1130,6 +1148,8 @@ def _cache_and_convert_image(task, instance_info, image_info=None):
     http_image_url = '/'.join(
         [base_url, CONF.deploy.http_image_subdir,
          task.node.uuid])
+    if file_extension:
+        http_image_url = http_image_url + file_extension
     _validate_image_url(task.node, http_image_url, secret=False)
     instance_info['image_url'] = http_image_url
 
