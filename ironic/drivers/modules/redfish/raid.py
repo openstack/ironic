@@ -1010,8 +1010,8 @@ class RedfishRAID(base.RAIDInterface):
     @periodics.node_periodic(
         purpose='checking async RAID config failed',
         spacing=CONF.redfish.raid_config_fail_interval,
-        filters={'reserved': False, 'provision_state': states.CLEANFAIL,
-                 'maintenance': True},
+        filters={'reserved': False, 'provision_state_in': {
+            states.CLEANFAIL, states.DEPLOYFAIL}, 'maintenance': True},
         predicate_extra_fields=['driver_internal_info'],
         predicate=lambda n: n.driver_internal_info.get('raid_configs'),
     )
@@ -1032,7 +1032,8 @@ class RedfishRAID(base.RAIDInterface):
     @periodics.node_periodic(
         purpose='checking async RAID config tasks',
         spacing=CONF.redfish.raid_config_status_interval,
-        filters={'reserved': False, 'provision_state': states.CLEANWAIT},
+        filters={'reserved': False, 'provision_state_in': {
+            states.CLEANWAIT, states.DEPLOYWAIT}},
         predicate_extra_fields=['driver_internal_info'],
         predicate=lambda n: n.driver_internal_info.get('raid_configs'),
     )
@@ -1110,4 +1111,7 @@ class RedfishRAID(base.RAIDInterface):
             self._clear_raid_configs(node)
             LOG.info('RAID configuration completed for node %(node)s',
                      {'node': node.uuid})
-            manager_utils.notify_conductor_resume_clean(task)
+            if task.node.clean_step:
+                manager_utils.notify_conductor_resume_clean(task)
+            else:
+                manager_utils.notify_conductor_resume_deploy(task)
