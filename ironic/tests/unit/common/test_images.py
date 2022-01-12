@@ -22,7 +22,6 @@ import shutil
 from unittest import mock
 
 from ironic_lib import disk_utils
-from ironic_lib import utils as ironic_utils
 from oslo_concurrency import processutils
 from oslo_config import cfg
 
@@ -299,12 +298,9 @@ class FsImageTestCase(base.TestCase):
     @mock.patch.object(images, '_create_root_fs', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
     @mock.patch.object(utils, 'write_to_file', autospec=True)
-    @mock.patch.object(ironic_utils, 'dd', autospec=True)
-    @mock.patch.object(utils, 'umount', autospec=True)
-    @mock.patch.object(utils, 'mount', autospec=True)
-    @mock.patch.object(ironic_utils, 'mkfs', autospec=True)
+    @mock.patch.object(utils, 'execute', autospec=True)
     def test_create_vfat_image(
-            self, mkfs_mock, mount_mock, umount_mock, dd_mock, write_mock,
+            self, execute_mock, write_mock,
             tempdir_mock, create_root_fs_mock):
 
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
@@ -317,78 +313,34 @@ class FsImageTestCase(base.TestCase):
                                  files_info=files_info, parameters_file='qwe',
                                  fs_size_kib=1000)
 
-        dd_mock.assert_called_once_with('/dev/zero',
-                                        'tgt_file',
-                                        'count=1',
-                                        'bs=1000KiB')
-
-        mkfs_mock.assert_called_once_with('vfat', 'tgt_file',
-                                          label="ir-vfd-dev")
-        mount_mock.assert_called_once_with('tgt_file', 'tempdir',
-                                           '-o', 'umask=0')
+        execute_mock.assert_has_calls([
+            mock.call('dd', 'if=/dev/zero', 'of=tgt_file', 'count=1',
+                      'bs=1000KiB'),
+            mock.call('mkfs', '-t', 'vfat', '-n', 'ir-vfd-de', 'tgt_file'),
+            mock.call('mcopy', '-s', 'tempdir/*', '-i', 'tgt_file', '::')
+        ])
 
         parameters_file_path = os.path.join('tempdir', 'qwe')
         write_mock.assert_called_once_with(parameters_file_path, 'p1=v1')
         create_root_fs_mock.assert_called_once_with('tempdir', files_info)
-        umount_mock.assert_called_once_with('tempdir')
 
-    @mock.patch.object(images, '_create_root_fs', autospec=True)
-    @mock.patch.object(utils, 'tempdir', autospec=True)
-    @mock.patch.object(ironic_utils, 'dd', autospec=True)
-    @mock.patch.object(utils, 'umount', autospec=True)
-    @mock.patch.object(utils, 'mount', autospec=True)
-    @mock.patch.object(ironic_utils, 'mkfs', autospec=True)
-    def test_create_vfat_image_always_umount(
-            self, mkfs_mock, mount_mock, umount_mock, dd_mock,
-            tempdir_mock, create_root_fs_mock):
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_create_vfat_image_dd_fails(self, execute_mock):
 
-        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
-        mock_file_handle.__enter__.return_value = 'tempdir'
-        tempdir_mock.return_value = mock_file_handle
-        files_info = {'a': 'b'}
-        create_root_fs_mock.side_effect = OSError()
-        self.assertRaises(exception.ImageCreationFailed,
-                          images.create_vfat_image, 'tgt_file',
-                          files_info=files_info)
-
-        umount_mock.assert_called_once_with('tempdir')
-
-    @mock.patch.object(ironic_utils, 'dd', autospec=True)
-    def test_create_vfat_image_dd_fails(self, dd_mock):
-
-        dd_mock.side_effect = processutils.ProcessExecutionError
+        execute_mock.side_effect = processutils.ProcessExecutionError
         self.assertRaises(exception.ImageCreationFailed,
                           images.create_vfat_image, 'tgt_file')
 
     @mock.patch.object(utils, 'tempdir', autospec=True)
-    @mock.patch.object(ironic_utils, 'dd', autospec=True)
-    @mock.patch.object(ironic_utils, 'mkfs', autospec=True)
-    def test_create_vfat_image_mkfs_fails(self, mkfs_mock, dd_mock,
+    @mock.patch.object(utils, 'execute', autospec=True)
+    def test_create_vfat_image_mkfs_fails(self, execute_mock,
                                           tempdir_mock):
 
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tempdir'
         tempdir_mock.return_value = mock_file_handle
 
-        mkfs_mock.side_effect = processutils.ProcessExecutionError
-        self.assertRaises(exception.ImageCreationFailed,
-                          images.create_vfat_image, 'tgt_file')
-
-    @mock.patch.object(images, '_create_root_fs', autospec=True)
-    @mock.patch.object(utils, 'tempdir', autospec=True)
-    @mock.patch.object(ironic_utils, 'dd', autospec=True)
-    @mock.patch.object(utils, 'umount', autospec=True)
-    @mock.patch.object(utils, 'mount', autospec=True)
-    @mock.patch.object(ironic_utils, 'mkfs', autospec=True)
-    def test_create_vfat_image_umount_fails(
-            self, mkfs_mock, mount_mock, umount_mock, dd_mock,
-            tempdir_mock, create_root_fs_mock):
-
-        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
-        mock_file_handle.__enter__.return_value = 'tempdir'
-        tempdir_mock.return_value = mock_file_handle
-        umount_mock.side_effect = processutils.ProcessExecutionError
-
+        execute_mock.side_effect = [None, processutils.ProcessExecutionError]
         self.assertRaises(exception.ImageCreationFailed,
                           images.create_vfat_image, 'tgt_file')
 
