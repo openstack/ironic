@@ -78,24 +78,18 @@ class Ilo5RAID(base.RAIDInterface):
             manager_utils.cleaning_error_handler(task, log_msg, errmsg=msg)
 
     def _set_driver_internal_true_value(self, task, *keys):
-        driver_internal_info = task.node.driver_internal_info
         for key in keys:
-            driver_internal_info[key] = True
-        task.node.driver_internal_info = driver_internal_info
+            task.node.set_driver_internal_info(key, True)
         task.node.save()
 
     def _set_driver_internal_false_value(self, task, *keys):
-        driver_internal_info = task.node.driver_internal_info
         for key in keys:
-            driver_internal_info[key] = False
-        task.node.driver_internal_info = driver_internal_info
+            task.node.set_driver_internal_info(key, False)
         task.node.save()
 
     def _pop_driver_internal_values(self, task, *keys):
-        driver_internal_info = task.node.driver_internal_info
         for key in keys:
-            driver_internal_info.pop(key, None)
-        task.node.driver_internal_info = driver_internal_info
+            task.node.del_driver_internal_info(key)
         task.node.save()
 
     def _prepare_for_read_raid(self, task, raid_step):
@@ -157,9 +151,8 @@ class Ilo5RAID(base.RAIDInterface):
         target_raid_config = raid.filter_target_raid_config(
             node, create_root_volume=create_root_volume,
             create_nonroot_volumes=create_nonroot_volumes)
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['target_raid_config'] = target_raid_config
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('target_raid_config',
+                                      target_raid_config)
         node.save()
         LOG.debug("Calling OOB RAID create_configuration for node %(node)s "
                   "with the following target RAID configuration: %(target)s",
@@ -168,7 +161,8 @@ class Ilo5RAID(base.RAIDInterface):
 
         try:
             # Raid configuration in progress, checking status
-            if not driver_internal_info.get('ilo_raid_create_in_progress'):
+            if not node.driver_internal_info.get(
+                    'ilo_raid_create_in_progress'):
                 ilo_object.create_raid_configuration(target_raid_config)
                 self._prepare_for_read_raid(task, 'create_raid')
                 return deploy_utils.get_async_step_return_state(node)
@@ -221,12 +215,12 @@ class Ilo5RAID(base.RAIDInterface):
         node = task.node
         LOG.debug("OOB RAID delete_configuration invoked for node %s.",
                   node.uuid)
-        driver_internal_info = node.driver_internal_info
         ilo_object = ilo_common.get_ilo_object(node)
 
         try:
             # Raid configuration in progress, checking status
-            if not driver_internal_info.get('ilo_raid_delete_in_progress'):
+            if not node.driver_internal_info.get(
+                    'ilo_raid_delete_in_progress'):
                 ilo_object.delete_raid_configuration()
                 self._prepare_for_read_raid(task, 'delete_raid')
                 return deploy_utils.get_async_step_return_state(node)

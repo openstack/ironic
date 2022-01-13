@@ -288,9 +288,7 @@ def prepare_node_for_deploy(task):
         # not provided.
         # Since secure boot was disabled, we are in 'uefi' boot mode.
         if boot_mode_utils.get_boot_mode_for_deploy(task.node) is None:
-            driver_internal_info = task.node.driver_internal_info
-            driver_internal_info['deploy_boot_mode'] = 'uefi'
-            task.node.driver_internal_info = driver_internal_info
+            task.node.set_driver_internal_info('deploy_boot_mode', 'uefi')
             task.node.save()
 
 
@@ -458,9 +456,7 @@ class IloVirtualMediaBoot(base.BootInterface):
             # It will set iSCSI info onto iLO
             if boot_mode == 'uefi':
                 # Need to set 'ilo_uefi_iscsi_boot' param for clean up
-                driver_internal_info = task.node.driver_internal_info
-                driver_internal_info['ilo_uefi_iscsi_boot'] = True
-                task.node.driver_internal_info = driver_internal_info
+                task.node.set_driver_internal_info('ilo_uefi_iscsi_boot', True)
                 task.node.save()
                 task.driver.management.set_iscsi_boot_target(task)
                 manager_utils.node_set_boot_device(
@@ -516,9 +512,7 @@ class IloVirtualMediaBoot(base.BootInterface):
             and task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
             # It will clear iSCSI info from iLO
             task.driver.management.clear_iscsi_boot_target(task)
-            driver_internal_info = task.node.driver_internal_info
-            driver_internal_info.pop('ilo_uefi_iscsi_boot', None)
-            task.node.driver_internal_info = driver_internal_info
+            task.node.del_driver_internal_info('ilo_uefi_iscsi_boot')
             task.node.save()
         else:
             image_utils.cleanup_iso_image(task)
@@ -626,9 +620,7 @@ class IloPXEBoot(pxe.PXEBoot):
             # Need to enable secure boot, if being requested
             boot_mode_utils.configure_secure_boot_if_needed(task)
             # Need to set 'ilo_uefi_iscsi_boot' param for clean up
-            driver_internal_info = task.node.driver_internal_info
-            driver_internal_info['ilo_uefi_iscsi_boot'] = True
-            task.node.driver_internal_info = driver_internal_info
+            task.node.set_driver_internal_info('ilo_uefi_iscsi_boot', True)
             task.node.save()
             # It will set iSCSI info onto iLO
             task.driver.management.set_iscsi_boot_target(task)
@@ -654,7 +646,6 @@ class IloPXEBoot(pxe.PXEBoot):
         :raises: IloOperationError, if some operation on iLO failed.
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
-        driver_internal_info = task.node.driver_internal_info
 
         if (deploy_utils.is_iscsi_boot(task)
                 and task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
@@ -662,8 +653,7 @@ class IloPXEBoot(pxe.PXEBoot):
             # It will clear iSCSI info from iLO in case of booting from
             # volume in UEFI boot mode
             task.driver.management.clear_iscsi_boot_target(task)
-            driver_internal_info.pop('ilo_uefi_iscsi_boot', None)
-            task.node.driver_internal_info = driver_internal_info
+            task.node.del_driver_internal_info('ilo_uefi_iscsi_boot')
             task.node.save()
         else:
             # Volume boot in BIOS boot mode is handled using
@@ -723,9 +713,7 @@ class IloiPXEBoot(ipxe.iPXEBoot):
             # Need to enable secure boot, if being requested
             boot_mode_utils.configure_secure_boot_if_needed(task)
             # Need to set 'ilo_uefi_iscsi_boot' param for clean up
-            driver_internal_info = task.node.driver_internal_info
-            driver_internal_info['ilo_uefi_iscsi_boot'] = True
-            task.node.driver_internal_info = driver_internal_info
+            task.node.set_driver_internal_info('ilo_uefi_iscsi_boot', True)
             task.node.save()
             # It will set iSCSI info onto iLO
             task.driver.management.set_iscsi_boot_target(task)
@@ -751,7 +739,6 @@ class IloiPXEBoot(ipxe.iPXEBoot):
         :raises: IloOperationError, if some operation on iLO failed.
         """
         manager_utils.node_power_action(task, states.POWER_OFF)
-        driver_internal_info = task.node.driver_internal_info
 
         if (deploy_utils.is_iscsi_boot(task)
                 and task.node.driver_internal_info.get('ilo_uefi_iscsi_boot')):
@@ -759,8 +746,7 @@ class IloiPXEBoot(ipxe.iPXEBoot):
             # It will clear iSCSI info from iLO in case of booting from
             # volume in UEFI boot mode
             task.driver.management.clear_iscsi_boot_target(task)
-            driver_internal_info.pop('ilo_uefi_iscsi_boot', None)
-            task.node.driver_internal_info = driver_internal_info
+            task.node.del_driver_internal_info('ilo_uefi_iscsi_boot')
             task.node.save()
         else:
             # Volume boot in BIOS boot mode is handled using

@@ -637,9 +637,7 @@ def update_boot_mode(task):
     # No boot mode found. Check if default_boot_mode is defined
     if not boot_mode and (CONF.ilo.default_boot_mode in ['bios', 'uefi']):
         boot_mode = CONF.ilo.default_boot_mode
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['deploy_boot_mode'] = boot_mode
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('deploy_boot_mode', boot_mode)
         node.save()
 
     # Boot mode is computed, setting it for the deploy
@@ -679,9 +677,7 @@ def update_boot_mode(task):
                   "as pending boot mode is unknown.",
                   {'uuid': node.uuid, 'boot_mode': boot_mode})
 
-    driver_internal_info = node.driver_internal_info
-    driver_internal_info['deploy_boot_mode'] = boot_mode
-    node.driver_internal_info = driver_internal_info
+    node.set_driver_internal_info('deploy_boot_mode', boot_mode)
     node.save()
 
 
