@@ -128,13 +128,14 @@ class DracWSManBIOS(base.BIOSInterface):
                 raise exception.DracOperationError(error=exc)
 
             # Store JobID for the async job handler _check_node_bios_jobs
-            driver_internal_info = node.driver_internal_info
-            driver_internal_info.setdefault(
-                'bios_config_job_ids', []).append(commit_result)
-            node.driver_internal_info = driver_internal_info
+            bios_config_job_ids = node.driver_internal_info.get(
+                'bios_config_job_ids', [])
+            bios_config_job_ids.append(commit_result)
+            node.set_driver_internal_info('bios_config_job_ids',
+                                          bios_config_job_ids)
 
-            # This method calls node.save(), bios_config_job_ids will be saved
-            # automatically
+            # This method calls node.save(), bios_config_job_ids will then be
+            # saved.
             # These flags are for the conductor to manage the asynchronous
             # jobs that have been initiated by this method
             deploy_utils.set_async_step_flags(
@@ -300,15 +301,15 @@ class DracWSManBIOS(base.BIOSInterface):
         """
         if finished_job_ids is None:
             finished_job_ids = []
-        driver_internal_info = node.driver_internal_info
         # take out the unfinished job ids from all the jobs
-        unfinished_job_ids = [job_id for job_id
-                              in driver_internal_info['bios_config_job_ids']
-                              if job_id not in finished_job_ids]
+        unfinished_job_ids = [
+            job_id for job_id
+            in node.driver_internal_info['bios_config_job_ids']
+            if job_id not in finished_job_ids]
         # assign the unfinished job ids back to the total list
         # this will clear the finished jobs from the list
-        driver_internal_info['bios_config_job_ids'] = unfinished_job_ids
-        node.driver_internal_info = driver_internal_info
+        node.set_driver_internal_info('bios_config_job_ids',
+                                      unfinished_job_ids)
         node.save()
 
     def _delete_cached_reboot_time(self, node):
@@ -316,12 +317,9 @@ class DracWSManBIOS(base.BIOSInterface):
 
          :param node: an ironic node object
          """
-        driver_internal_info = node.driver_internal_info
         # Remove the last reboot time and factory reset time
-        driver_internal_info.pop(
-            'factory_reset_time_before_reboot')
-        driver_internal_info.pop('factory_reset_time')
-        node.driver_internal_info = driver_internal_info
+        node.del_driver_internal_info('factory_reset_time_before_reboot')
+        node.del_driver_internal_info('factory_reset_time')
         node.save()
 
     def _set_failed(self, task, error_message):
@@ -414,14 +412,11 @@ class DracWSManBIOS(base.BIOSInterface):
                 raise exception.DracOperationError(error=exc)
             # Store the last inventory time on reboot for async job handler
             # _check_last_system_inventory_changed
-            driver_internal_info = node.driver_internal_info
-            driver_internal_info['factory_reset_time_before_reboot'] = \
-                factory_reset_time_before_reboot
+            node.set_driver_internal_info('factory_reset_time_before_reboot',
+                                          factory_reset_time_before_reboot)
             # Store the current time to later check if factory reset times out
-            driver_internal_info['factory_reset_time'] = str(
-                timeutils.utcnow(with_timezone=True))
+            node.timestamp_driver_internal_info('factory_reset_time')
 
-            node.driver_internal_info = driver_internal_info
             # rebooting the server to apply factory reset value
             client.set_power_state('REBOOT')
 

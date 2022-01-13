@@ -74,7 +74,6 @@ def _get_power_state(node):
 
 
 def _commit_boot_list_change(node):
-    driver_internal_info = node.driver_internal_info
 
     boot_device = node.driver_internal_info.get('drac_boot_device')
     if boot_device is None:
@@ -83,8 +82,7 @@ def _commit_boot_list_change(node):
     drac_management.set_boot_device(node, boot_device['boot_device'],
                                     boot_device['persistent'])
 
-    driver_internal_info['drac_boot_device'] = None
-    node.driver_internal_info = driver_internal_info
+    node.set_driver_internal_info('drac_boot_device', None)
     node.save()
 
 
