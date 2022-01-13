@@ -14,6 +14,7 @@
 #    under the License.
 
 from oslo_log import log as logging
+from oslo_utils import netutils
 
 from ironic.common import exception
 from ironic import objects
@@ -39,6 +40,12 @@ def create_ports_if_not_exist(
     node = task.node
     for k_v_pair in macs.items():
         mac = get_mac_address(k_v_pair)
+        if not netutils.is_valid_mac(mac):
+            LOG.warning("Ignoring NIC address %(address)s for node %(node)s "
+                        "because it is not a valid MAC",
+                        {'address': mac, 'node': node.uuid})
+            continue
+
         port_dict = {'address': mac, 'node_id': node.id}
         port = objects.Port(task.context, **port_dict)
 

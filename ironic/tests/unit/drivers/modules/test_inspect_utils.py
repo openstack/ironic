@@ -55,18 +55,19 @@ class InspectFunctionTestCase(db_base.DbTestCase):
             port_obj1.create.assert_called_once_with()
             port_obj2.create.assert_called_once_with()
 
-    @mock.patch.object(utils.LOG, 'warning',
-                       spec_set=True, autospec=True)
+    @mock.patch.object(utils.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(objects.Port, 'create', spec_set=True, autospec=True)
     def test_create_ports_if_not_exist_mac_exception(self,
                                                      create_mock,
                                                      log_mock):
         create_mock.side_effect = exception.MACAlreadyExists('f')
-        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb'}
+        macs = {'Port 1': 'aa:aa:aa:aa:aa:aa', 'Port 2': 'bb:bb:bb:bb:bb:bb',
+                'Port 3': 'aa:aa:aa:aa:aa:aa:bb:bb'}  # WWN
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             utils.create_ports_if_not_exist(task, macs)
-        self.assertEqual(2, log_mock.call_count)
+        self.assertEqual(3, log_mock.call_count)
+        self.assertEqual(2, create_mock.call_count)
 
     @mock.patch.object(utils.LOG, 'info', spec_set=True, autospec=True)
     @mock.patch.object(objects, 'Port', spec_set=True, autospec=True)
