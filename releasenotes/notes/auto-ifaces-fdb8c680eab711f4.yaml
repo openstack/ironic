@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    The configuration options ``enabled_power_interfaces`` and
+    ``enabled_management_interfaces`` are now empty by default. If left empty,
+    their values will be calculated based on ``enabled_hardware_types``.
+  - |
+    The Bare Metal service is now capable of calculating the default value
+    for any ``enabled_***_interfaces`` based on ``enabled_hardware_types``.

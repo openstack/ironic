@@ -193,11 +193,11 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.assertTrue(mock_df.called)
             self.assertFalse(mock_reg.called)
 
-    def test_start_fails_on_no_enabled_interfaces(self):
-        self.config(enabled_boot_interfaces=[])
-        self.assertRaisesRegex(exception.ConfigInvalid,
-                               'options enabled_boot_interfaces',
-                               self.service.init_host)
+    def test_start_with_no_enabled_interfaces(self):
+        self.config(enabled_boot_interfaces=[],
+                    enabled_deploy_interfaces=[],
+                    enabled_hardware_types=['fake-hardware'])
+        self._start_service()
 
     @mock.patch.object(base_manager, 'LOG', autospec=True)
     @mock.patch.object(driver_factory, 'HardwareTypesFactory', autospec=True)
@@ -309,17 +309,6 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # instance, which is likely a good thing, thus this is 2 instead of
         # 3 without reuse of the database connection.
         self.assertEqual(2, mock_dbapi.call_count)
-
-
-class CheckInterfacesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
-    def test__check_enabled_interfaces_success(self):
-        base_manager._check_enabled_interfaces()
-
-    def test__check_enabled_interfaces_failure(self):
-        self.config(enabled_boot_interfaces=[])
-        self.assertRaisesRegex(exception.ConfigInvalid,
-                               'options enabled_boot_interfaces',
-                               base_manager._check_enabled_interfaces)
 
 
 class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
