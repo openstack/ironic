@@ -4,11 +4,10 @@
     description: Base job for devstack/tempest based ironic jobs.
     parent: devstack-tempest
     nodeset: openstack-single-node-focal
+    override-checkout: stable/xena
     post-run: playbooks/ci-workarounds/get_extra_logging.yaml
     timeout: 10800
     required-projects:
-      - name: opendev.org/openstack/devstack
-        override-checkout: master
       - opendev.org/openstack/ironic
       - name: opendev.org/openstack/ironic-python-agent
         override-checkout: bugfix/8.1
@@ -160,7 +159,6 @@
     description:
       Test ironic standalone configured with redfish hardware type, ansible and
       direct and ansible deploy interfaces, rescue it's not enabled.
-    override-checkout: stable/xena
     required-projects:
       - opendev.org/openstack/sushy-tools
     irrelevant-files:
