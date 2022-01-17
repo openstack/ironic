@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Inspection no longer fails when one of the NICs reports NIC address that
+    is not a valid MAC (e.g. a WWN).
