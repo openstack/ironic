@@ -283,10 +283,12 @@ class PortgroupsController(pecan.rest.RestController):
         fields = api_utils.get_request_return_fields(fields, detail,
                                                      _DEFAULT_RETURN_FIELDS)
 
+        resource_url = 'portgroups'
         return self._get_portgroups_collection(node, address,
                                                marker, limit,
                                                sort_key, sort_dir,
                                                fields=fields,
+                                               resource_url=resource_url,
                                                detail=detail,
                                                project=project)
 
