@@ -1494,6 +1494,7 @@ class TestListNodes(test_api_base.BaseApiTest):
                              headers=headers)
         self.assertEqual(1, len(data['portgroups']))
         self.assertIn('next', data)
+        self.assertIn('portgroups', data['next'])
 
     def test_portgroups_subresource_link(self):
         node = obj_utils.create_test_node(self.context)
@@ -1532,6 +1533,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         data = self.get_json('/nodes/%s/ports?limit=1' % node.uuid)
         self.assertEqual(1, len(data['ports']))
         self.assertIn('next', data)
+        self.assertIn('ports', data['next'])
 
     def test_ports_subresource_noid(self):
         node = obj_utils.create_test_node(self.context)
