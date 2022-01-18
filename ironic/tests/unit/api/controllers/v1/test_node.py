@@ -1347,6 +1347,7 @@ class TestListNodes(test_api_base.BaseApiTest):
 
         next_marker = data['nodes'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
+        self.assertIn('nodes', data['next'])
 
     def test_collection_links_default_limit(self):
         cfg.CONF.set_override('max_limit', 3, 'api')
@@ -1360,6 +1361,7 @@ class TestListNodes(test_api_base.BaseApiTest):
 
         next_marker = data['nodes'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
+        self.assertIn('nodes', data['next'])
 
     def test_collection_links_custom_fields(self):
         fields = 'driver_info,uuid'
@@ -1379,6 +1381,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         next_marker = data['nodes'][-1]['uuid']
         self.assertIn(next_marker, data['next'])
         self.assertIn('fields', data['next'])
+        self.assertIn('nodes', data['next'])
 
     def test_get_collection_pagination_no_uuid(self):
         fields = 'name'
@@ -1396,6 +1399,7 @@ class TestListNodes(test_api_base.BaseApiTest):
 
         self.assertEqual(limit, len(data['nodes']))
         self.assertIn('marker=%s' % nodes[limit - 1].uuid, data['next'])
+        self.assertIn('nodes', data['next'])
 
     def test_collection_links_instance_uuid_param(self):
         cfg.CONF.set_override('max_limit', 1, 'api')
@@ -1615,6 +1619,7 @@ class TestListNodes(test_api_base.BaseApiTest):
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(1, len(data['connectors']))
         self.assertIn('next', data)
+        self.assertIn('volume/connectors', data['next'])
 
     def test_volume_connectors_subresource_noid(self):
         node = obj_utils.create_test_node(self.context)
@@ -1654,6 +1659,7 @@ class TestListNodes(test_api_base.BaseApiTest):
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(1, len(data['targets']))
         self.assertIn('next', data)
+        self.assertIn('volume/target', data['next'])
 
     def test_volume_targets_subresource_noid(self):
         node = obj_utils.create_test_node(self.context)
@@ -1858,6 +1864,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         data = self.get_json('/nodes/?limit=3&associated=True')
         self.assertThat(data['nodes'], matchers.HasLength(3))
         self.assertIn('associated=True', data['next'])
+        self.assertIn('nodes', data['next'])
 
     def test_detail_with_association_filter(self):
         associated_nodes = (self
@@ -1872,6 +1879,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertThat(data['nodes'], matchers.HasLength(3))
         self.assertIn('driver', data['nodes'][0])
         self.assertIn('associated=True', data['next'])
+        self.assertIn('nodes', data['next'])
 
     def test_detail_with_instance_uuid(self):
         node = obj_utils.create_test_node(
