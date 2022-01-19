@@ -33,6 +33,7 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import faults
 from ironic.common.i18n import _
+from ironic.common import images
 from ironic.common import network
 from ironic.common import nova
 from ironic.common import states
@@ -1649,3 +1650,24 @@ def node_history_record(node, conductor=None, event=None,
             severity=error and "ERROR" or "INFO",
             event=event,
             event_type=event_type or "UNKNOWN").create()
+
+
+def update_image_type(context, node):
+    """Updates is_whole_disk_image and image_type based on the node data.
+
+    :param context: Request context.
+    :param node: Node object.
+    :return: True if any changes have been done, else False.
+    """
+    iwdi = images.is_whole_disk_image(context, node.instance_info)
+    if iwdi is None:
+        return False
+
+    node.set_driver_internal_info('is_whole_disk_image', iwdi)
+    # We need to gradually phase out is_whole_disk_image in favour of
+    # image_type, so make sure to set it as well. The primary use case is to
+    # cache information detected from Glance or the presence of kernel/ramdisk.
+    node.set_instance_info(
+        'image_type',
+        images.IMAGE_TYPE_WHOLE_DISK if iwdi else images.IMAGE_TYPE_PARTITION)
+    return True

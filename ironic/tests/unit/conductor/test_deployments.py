@@ -353,7 +353,10 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         deployments.start_deploy(task, self.service, configdrive=None,
                                  event='deploy', deploy_steps=deploy_steps)
         node.refresh()
-        self.assertTrue(mock_iwdi.called)
+        mock_iwdi.assert_called_once_with(task.context,
+                                          task.node.instance_info)
+        self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
+        self.assertEqual('partition', node.instance_info['image_type'])
         mock_power_validate.assert_called_once_with(task.driver.power, task)
         mock_deploy_validate.assert_called_once_with(task.driver.deploy, task)
         mock_validate_traits.assert_called_once_with(task.node)

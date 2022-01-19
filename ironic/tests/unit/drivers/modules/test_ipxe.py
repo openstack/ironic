@@ -136,7 +136,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
                 autospec=True)
     def test_validate_with_boot_iso(self, mock_boot_option, mock_glance):
         self.node.instance_info = {
-            'boot_iso': "http://localhost:1234/boot.iso"
+            'boot_iso': "glance://image"
         }
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,

@@ -570,6 +570,11 @@ def create_boot_iso(context, output_filename, kernel_href,
                 kernel_params=params, inject_files=inject_files)
 
 
+IMAGE_TYPE_PARTITION = 'partition'
+IMAGE_TYPE_WHOLE_DISK = 'whole-disk'
+VALID_IMAGE_TYPES = frozenset((IMAGE_TYPE_PARTITION, IMAGE_TYPE_WHOLE_DISK))
+
+
 def is_whole_disk_image(ctx, instance_info):
     """Find out if the image is a partition image or a whole disk image.
 
@@ -583,12 +588,18 @@ def is_whole_disk_image(ctx, instance_info):
     if not image_source:
         return
 
+    image_type = instance_info.get('image_type')
+    if image_type:
+        # This logic reflects the fact that whole disk images are the default
+        return image_type != IMAGE_TYPE_PARTITION
+
     is_whole_disk_image = False
     if glance_utils.is_glance_image(image_source):
         try:
             iproperties = get_image_properties(ctx, image_source)
         except Exception:
             return
+
         is_whole_disk_image = (not iproperties.get('kernel_id')
                                and not iproperties.get('ramdisk_id'))
     else:

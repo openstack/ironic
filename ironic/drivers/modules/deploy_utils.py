@@ -570,14 +570,21 @@ def validate_image_properties(task, deploy_info):
     if not image_href:
         image_href = boot_iso
 
-    properties = []
-    if boot_iso or task.node.driver_internal_info.get('is_whole_disk_image'):
-        # No image properties are required in this case
+    boot_option = get_boot_option(task.node)
+
+    if (boot_iso
+            or task.node.driver_internal_info.get('is_whole_disk_image')
+            or boot_option == 'local'):
+        # No image properties are required in this case, but validate that the
+        # image at least looks reasonable.
+        try:
+            image_service.get_image_service(image_href, context=task.context)
+        except exception.ImageRefValidationFailed as e:
+            raise exception.InvalidParameterValue(err=e)
         return
 
     if service_utils.is_glance_image(image_href):
         properties = ['kernel_id', 'ramdisk_id']
-        boot_option = get_boot_option(task.node)
         if boot_option == 'kickstart':
             properties.append('stage2_id')
         image_props = get_image_properties(task.context, image_href)
@@ -799,7 +806,8 @@ def get_image_instance_info(node):
                 "specified at the same time."))
         info['boot_iso'] = boot_iso
     else:
-        if get_boot_option(node) == 'ramdisk':
+        boot_option = get_boot_option(node)
+        if boot_option == 'ramdisk':
             # Ramdisk deploy does not require an image
             info['kernel'] = node.instance_info.get('kernel')
             info['ramdisk'] = node.instance_info.get('ramdisk')
@@ -809,6 +817,7 @@ def get_image_instance_info(node):
             is_whole_disk_image = node.driver_internal_info.get(
                 'is_whole_disk_image')
             if (not is_whole_disk_image
+                    and boot_option != 'local'
                     and not service_utils.is_glance_image(image_source)):
                 info['kernel'] = node.instance_info.get('kernel')
                 info['ramdisk'] = node.instance_info.get('ramdisk')
@@ -846,8 +855,10 @@ def parse_instance_info(node):
     i_info = {}
     i_info['image_source'] = info.get('image_source')
     iwdi = node.driver_internal_info.get('is_whole_disk_image')
+    boot_option = get_boot_option(node)
     if not iwdi:
         if (i_info['image_source']
+                and boot_option != 'local'
                 and not service_utils.is_glance_image(
                     i_info['image_source'])):
             i_info['kernel'] = info.get('kernel')
@@ -1176,6 +1187,7 @@ def build_instance_info_for_deploy(task):
     iwdi = node.driver_internal_info.get('is_whole_disk_image')
     image_source = instance_info['image_source']
     image_download_source = get_image_download_source(node)
+    boot_option = get_boot_option(task.node)
 
     if service_utils.is_glance_image(image_source):
         glance = image_service.GlanceImageService(context=task.context)
@@ -1198,7 +1210,7 @@ def build_instance_info_for_deploy(task):
         instance_info['image_tags'] = image_info.get('tags', [])
         instance_info['image_properties'] = image_info['properties']
 
-        if not iwdi:
+        if not iwdi and boot_option != 'local':
             instance_info['kernel'] = image_info['properties']['kernel_id']
             instance_info['ramdisk'] = image_info['properties']['ramdisk_id']
     elif (image_source.startswith('file://')
@@ -1209,11 +1221,11 @@ def build_instance_info_for_deploy(task):
         instance_info['image_url'] = image_source
 
     if not iwdi:
-        instance_info['image_type'] = 'partition'
+        instance_info['image_type'] = images.IMAGE_TYPE_PARTITION
         i_info = parse_instance_info(node)
         instance_info.update(i_info)
     else:
-        instance_info['image_type'] = 'whole-disk-image'
+        instance_info['image_type'] = images.IMAGE_TYPE_WHOLE_DISK
     return instance_info
 
 

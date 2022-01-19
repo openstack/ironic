@@ -1362,8 +1362,15 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
         self.task = mock.Mock(context=self.context, node=self.node,
                               spec=['context', 'node'])
 
+    def test_validate_image_properties_local_boot(self):
+        inst_info = utils.get_image_instance_info(self.node)
+        utils.validate_image_properties(self.task, inst_info)
+
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='netboot')
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
-    def test_validate_image_properties_glance_image(self, image_service_mock):
+    def test_validate_image_properties_glance_image(self, image_service_mock,
+                                                    boot_options_mock):
         inst_info = utils.get_image_instance_info(self.node)
         image_service_mock.return_value.show.return_value = {
             'properties': {'kernel_id': '1111', 'ramdisk_id': '2222'},
@@ -1374,9 +1381,11 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
             self.node.instance_info['image_source'], context=self.context
         )
 
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='netboot')
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image_missing_prop(
-            self, image_service_mock):
+            self, image_service_mock, boot_options_mock):
         inst_info = utils.get_image_instance_info(self.node)
         image_service_mock.return_value.show.return_value = {
             'properties': {'kernel_id': '1111'},
@@ -1406,9 +1415,11 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
             self.node.instance_info['image_source'], context=self.context
         )
 
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='netboot')
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image_not_authorized(
-            self, image_service_mock):
+            self, image_service_mock, boot_options_mock):
         inst_info = {'image_source': 'uuid'}
         show_mock = image_service_mock.return_value.show
         show_mock.side_effect = exception.ImageNotAuthorized(image_id='uuid')
@@ -1416,9 +1427,11 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
                           utils.validate_image_properties, self.task,
                           inst_info)
 
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='netboot')
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image_not_found(
-            self, image_service_mock):
+            self, image_service_mock, boot_options_mock):
         inst_info = {'image_source': 'uuid'}
         show_mock = image_service_mock.return_value.show
         show_mock.side_effect = exception.ImageNotFound(image_id='uuid')
@@ -1432,7 +1445,10 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
                           utils.validate_image_properties, self.task,
                           inst_info)
 
-    def test_validate_image_properties_nonglance_image(self):
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='netboot')
+    def test_validate_image_properties_nonglance_image(
+            self, boot_options_mock):
         instance_info = {
             'image_source': 'http://ubuntu',
             'kernel': 'kernel_uuid',
@@ -1496,6 +1512,19 @@ class ValidateParametersTestCase(db_base.DbTestCase):
     def test__get_img_instance_info_good_non_glance_image(self):
         instance_info = INST_INFO_DICT.copy()
         instance_info['image_source'] = 'http://image'
+
+        info = self._test__get_img_instance_info(instance_info=instance_info)
+
+        self.assertIsNotNone(info['image_source'])
+        self.assertNotIn('kernel', info)
+        self.assertNotIn('ramdisk', info)
+
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='netboot')
+    def test__get_img_instance_info_good_non_glance_image_netboot(
+            self, mock_boot_opt):
+        instance_info = INST_INFO_DICT.copy()
+        instance_info['image_source'] = 'http://image'
         instance_info['kernel'] = 'http://kernel'
         instance_info['ramdisk'] = 'http://ramdisk'
 
@@ -1505,7 +1534,10 @@ class ValidateParametersTestCase(db_base.DbTestCase):
         self.assertIsNotNone(info['ramdisk'])
         self.assertIsNotNone(info['kernel'])
 
-    def test__get_img_instance_info_non_glance_image_missing_kernel(self):
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='netboot')
+    def test__get_img_instance_info_non_glance_image_missing_kernel(
+            self, mock_boot_opt):
         instance_info = INST_INFO_DICT.copy()
         instance_info['image_source'] = 'http://image'
         instance_info['ramdisk'] = 'http://ramdisk'
@@ -1515,7 +1547,10 @@ class ValidateParametersTestCase(db_base.DbTestCase):
             self._test__get_img_instance_info,
             instance_info=instance_info)
 
-    def test__get_img_instance_info_non_glance_image_missing_ramdisk(self):
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='netboot')
+    def test__get_img_instance_info_non_glance_image_missing_ramdisk(
+            self, mock_boot_opt):
         instance_info = INST_INFO_DICT.copy()
         instance_info['image_source'] = 'http://image'
         instance_info['kernel'] = 'http://kernel'
@@ -1774,8 +1809,18 @@ class InstanceInfoTestCase(db_base.DbTestCase):
     def test_parse_instance_info_nonglance_image(self):
         info = INST_INFO_DICT.copy()
         info['image_source'] = 'file:///image.qcow2'
+        node = obj_utils.create_test_node(
+            self.context, instance_info=info,
+            driver_internal_info=DRV_INTERNAL_INFO_DICT,
+        )
+        utils.parse_instance_info(node)
+
+    def test_parse_instance_info_nonglance_image_netboot(self):
+        info = INST_INFO_DICT.copy()
+        info['image_source'] = 'file:///image.qcow2'
         info['kernel'] = 'file:///image.vmlinuz'
         info['ramdisk'] = 'file:///image.initrd'
+        info['capabilities'] = {'boot_option': 'netboot'}
         node = obj_utils.create_test_node(
             self.context, instance_info=info,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
@@ -1786,6 +1831,7 @@ class InstanceInfoTestCase(db_base.DbTestCase):
         info = INST_INFO_DICT.copy()
         info['image_source'] = 'file:///image.qcow2'
         info['ramdisk'] = 'file:///image.initrd'
+        info['capabilities'] = {'boot_option': 'netboot'}
         node = obj_utils.create_test_node(
             self.context, instance_info=info,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
@@ -1873,8 +1919,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
             self, glance_mock, parse_instance_info_mock, validate_mock):
         i_info = {}
         i_info['image_source'] = '733d1c44-a2ea-414b-aca7-69decf20d810'
-        i_info['kernel'] = '13ce5a56-1de3-4916-b8b2-be778645d003'
-        i_info['ramdisk'] = 'a5a370a8-1b39-433f-be63-2c7d708e4b4e'
+        i_info['image_type'] = 'partition'
         i_info['root_gb'] = 5
         i_info['swap_mb'] = 4
         i_info['ephemeral_gb'] = 0
@@ -1898,6 +1943,73 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         parse_instance_info_mock.return_value = {'swap_mb': 4}
         image_source = '733d1c44-a2ea-414b-aca7-69decf20d810'
         expected_i_info = {'root_gb': 5,
+                           'swap_mb': 4,
+                           'ephemeral_gb': 0,
+                           'ephemeral_format': None,
+                           'configdrive': 'configdrive',
+                           'image_source': image_source,
+                           'image_url': 'http://temp-url',
+                           'image_type': 'partition',
+                           'image_tags': [],
+                           'image_properties': {'kernel_id': 'kernel',
+                                                'ramdisk_id': 'ramdisk'},
+                           'image_checksum': 'aa',
+                           'image_os_hash_algo': 'sha512',
+                           'image_os_hash_value': 'fake-sha512',
+                           'image_container_format': 'bare',
+                           'image_disk_format': 'qcow2'}
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            info = utils.build_instance_info_for_deploy(task)
+
+            glance_mock.assert_called_once_with(context=task.context)
+            glance_mock.return_value.show.assert_called_once_with(
+                self.node.instance_info['image_source'])
+            glance_mock.return_value.swift_temp_url.assert_called_once_with(
+                image_info)
+            validate_mock.assert_called_once_with(
+                mock.ANY, 'http://temp-url', secret=True)
+            image_type = task.node.instance_info['image_type']
+            self.assertEqual('partition', image_type)
+            self.assertEqual(expected_i_info, info)
+            parse_instance_info_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    @mock.patch.object(utils, 'parse_instance_info', autospec=True)
+    @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
+    def test_build_instance_info_for_deploy_glance_partition_image_netboot(
+            self, glance_mock, parse_instance_info_mock, validate_mock):
+        i_info = {}
+        i_info['image_source'] = '733d1c44-a2ea-414b-aca7-69decf20d810'
+        i_info['kernel'] = '13ce5a56-1de3-4916-b8b2-be778645d003'
+        i_info['ramdisk'] = 'a5a370a8-1b39-433f-be63-2c7d708e4b4e'
+        i_info['root_gb'] = 5
+        i_info['swap_mb'] = 4
+        i_info['ephemeral_gb'] = 0
+        i_info['ephemeral_format'] = None
+        i_info['configdrive'] = 'configdrive'
+        i_info['capabilities'] = {'boot_option': 'netboot'}
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['is_whole_disk_image'] = False
+        self.node.driver_internal_info = driver_internal_info
+        self.node.instance_info = i_info
+        self.node.save()
+
+        image_info = {'checksum': 'aa', 'disk_format': 'qcow2',
+                      'os_hash_algo': 'sha512', 'os_hash_value': 'fake-sha512',
+                      'container_format': 'bare',
+                      'properties': {'kernel_id': 'kernel',
+                                     'ramdisk_id': 'ramdisk'}}
+        glance_mock.return_value.show = mock.MagicMock(spec_set=[],
+                                                       return_value=image_info)
+        glance_obj_mock = glance_mock.return_value
+        glance_obj_mock.swift_temp_url.return_value = 'http://temp-url'
+        parse_instance_info_mock.return_value = {'swap_mb': 4}
+        image_source = '733d1c44-a2ea-414b-aca7-69decf20d810'
+        expected_i_info = {'capabilities': {'boot_option': 'netboot'},
+                           'root_gb': 5,
                            'swap_mb': 4,
                            'ephemeral_gb': 0,
                            'ephemeral_format': None,

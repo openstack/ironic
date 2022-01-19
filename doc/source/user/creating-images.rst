@@ -9,8 +9,8 @@ the end user. There are two types of user images:
 
 *partition images*
     contain only the contents of the root partition. Additionally, two more
-    images are used together with them: an image with a kernel and with
-    an initramfs.
+    images are used together with them when booting from network: an image with
+    a kernel and with an initramfs.
 
     .. warning::
         To use partition images with local boot, Grub2 must be installed on

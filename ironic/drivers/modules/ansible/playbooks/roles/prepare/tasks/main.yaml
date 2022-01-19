@@ -1,2 +1,2 @@
 - import_tasks: parted.yaml
-  when: ironic.image.type | default('whole-disk-image') == 'partition'
+  when: ironic.image.type | default('whole-disk') == 'partition'

@@ -22,7 +22,6 @@ from oslo_utils import excutils
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
-from ironic.common import images
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import notification_utils as notify_utils
@@ -88,11 +87,8 @@ def start_deploy(task, manager, configdrive=None, event='deploy',
     # Infer the image type to make sure the deploy driver
     # validates only the necessary variables for different
     # image types.
-    # NOTE(sirushtim): The iwdi variable can be None. It's up to
-    # the deploy driver to validate this.
-    iwdi = images.is_whole_disk_image(task.context, node.instance_info)
-    node.set_driver_internal_info('is_whole_disk_image', iwdi)
-    node.save()
+    if utils.update_image_type(task.context, task.node):
+        node.save()
 
     try:
         task.driver.power.validate(task)

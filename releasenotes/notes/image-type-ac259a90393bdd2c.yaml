@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Introduces a new explicit ``instance_info`` parameter ``image_type``,
+    which can be used to distinguish between partition and whole disk images
+    instead of a ``kernel``/``ramdisk`` pair.
+
+    Adding ``kernel`` and ``ramdisk`` is no longer necessary for partition
+    images if ``image_type`` is set to ``partition`` and local boot is used.

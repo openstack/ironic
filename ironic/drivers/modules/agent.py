@@ -471,6 +471,13 @@ class AgentDeploy(CustomAgentDeploy):
 
         deploy_utils.check_for_missing_params(params, error_msg)
 
+        image_type = node.instance_info.get('image_type')
+        if image_type and image_type not in images.VALID_IMAGE_TYPES:
+            raise exception.InvalidParameterValue(
+                _('Invalid image_type "%(value)s", valid are %(valid)s')
+                % {'value': image_type,
+                   'valid': ', '.join(images.VALID_IMAGE_TYPES)})
+
         # NOTE(dtantsur): glance images contain a checksum; for file images we
         # will recalculate the checksum anyway.
         if (not service_utils.is_glance_image(image_source)
