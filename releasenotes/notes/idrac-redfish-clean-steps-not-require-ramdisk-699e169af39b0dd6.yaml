@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds support for ``idrac-redfish`` RAID and management clean steps to be
+    run without IPA when disabling ramdisk during cleaning.

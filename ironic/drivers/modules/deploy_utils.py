@@ -1422,7 +1422,10 @@ def reboot_to_finish_step(task):
     :returns: states.CLEANWAIT if cleaning operation in progress
               or states.DEPLOYWAIT if deploy operation in progress.
     """
-    prepare_agent_boot(task)
+    disable_ramdisk = task.node.driver_internal_info.get(
+        'cleaning_disable_ramdisk')
+    if not disable_ramdisk:
+        prepare_agent_boot(task)
     manager_utils.node_power_action(task, states.REBOOT)
     return get_async_step_return_state(task.node)
 
