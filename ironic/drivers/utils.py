@@ -320,7 +320,15 @@ def store_ramdisk_logs(node, logs, label=None):
             # convert days to seconds
             timeout = CONF.agent.deploy_logs_swift_days_to_expire * 86400
             object_headers = {'X-Delete-After': str(timeout)}
-            swift_api = swift.SwiftAPI()
+            
+            scope = {}
+            if CONF.agent.deploy_logs_swift_project_id:
+                scope['project_id'] = CONF.agent.deploy_logs_swift_project_id
+            elif CONF.agent.deploy_logs_swift_project_name and CONF.agent.deploy_logs_swift_project_domain_name:
+                scope['project_name'] = CONF.agent.deploy_logs_swift_project_name
+                scope['project_domain_name'] = CONF.agent.deploy_logs_swift_project_domain_name
+
+            swift_api = swift.SwiftAPI(**scope)
             swift_api.create_object(
                 CONF.agent.deploy_logs_swift_container, logs_file_name,
                 f.name, object_headers=object_headers)

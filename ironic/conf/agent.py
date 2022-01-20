@@ -82,6 +82,21 @@ opts = [
                help=_('The path to the directory where the logs should be '
                       'stored, used when the deploy_logs_storage_backend '
                       'is configured to "local".')),
+    cfg.StrOpt('deploy_logs_swift_project_id',
+                default=None,
+                help=_('The project id the log container is stored in.'
+                       'Used when the deploy_logs_storage_backend is '
+                       'configured to "swift".')),
+     cfg.StrOpt('deploy_logs_swift_project_domain_name',
+                default=None,
+                help=_('The project domain name the log container is stored in.'
+                       'Used when the deploy_logs_storage_backend is '
+                       'configured to "swift".')),
+     cfg.StrOpt('deploy_logs_swift_project_name',
+                default=None,
+                help=_('The project name the log container is stored in.'
+                       'Used when the deploy_logs_storage_backend is '
+                       'configured to "swift".')),
     cfg.StrOpt('deploy_logs_swift_container',
                default='ironic_deploy_logs_container',
                mutable=True,
