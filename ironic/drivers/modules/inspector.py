@@ -21,6 +21,7 @@ from urllib import parse as urlparse
 
 import eventlet
 from futurist import periodics
+from keystoneauth1 import exceptions as ks_exception
 import openstack
 from oslo_log import log as logging
 
@@ -66,9 +67,14 @@ def _get_client(context):
     conf['ironic-inspector'] = conf.pop('inspector')
     # TODO(pas-ha) investigate possibility of passing user context here,
     # similar to what neutron/glance-related code does
-    return openstack.connection.Connection(
-        session=session,
-        oslo_conf=conf).baremetal_introspection
+    try:
+        return openstack.connection.Connection(
+            session=session,
+            oslo_conf=conf).baremetal_introspection
+    except ks_exception.DiscoveryFailure as exc:
+        raise exception.ConfigInvalid(
+            _("Could not contact ironic-inspector for version discovery: %s")
+            % exc)
 
 
 def _get_callback_endpoint(client):
