@@ -71,7 +71,7 @@ class DracWSManBIOS(base.BIOSInterface):
                 reason=_("Unable to import dracclient.exceptions library"))
 
     @METRICS.timer('DracWSManBIOS.apply_configuration')
-    @base.clean_step(priority=0, argsinfo=_args_info)
+    @base.clean_step(priority=0, argsinfo=_args_info, requires_ramdisk=False)
     @base.deploy_step(priority=0, argsinfo=_args_info)
     def apply_configuration(self, task, settings):
         """Apply the BIOS configuration to the node
@@ -352,7 +352,7 @@ class DracWSManBIOS(base.BIOSInterface):
             manager_utils.notify_conductor_resume_deploy(task)
 
     @METRICS.timer('DracWSManBIOS.factory_reset')
-    @base.clean_step(priority=0)
+    @base.clean_step(priority=0, requires_ramdisk=False)
     @base.deploy_step(priority=0)
     def factory_reset(self, task):
         """Reset the BIOS settings of the node to the factory default.
@@ -418,7 +418,7 @@ class DracWSManBIOS(base.BIOSInterface):
             node.timestamp_driver_internal_info('factory_reset_time')
 
             # rebooting the server to apply factory reset value
-            client.set_power_state('REBOOT')
+            task.driver.power.reboot(task)
 
             # This method calls node.save(), bios_config_job_id will be
             # saved automatically

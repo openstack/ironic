@@ -1593,7 +1593,7 @@ class DracWSManRAID(base.RAIDInterface):
             ),
             "required": False,
         }
-    })
+    }, requires_ramdisk=False)
     def create_configuration(self, task,
                              create_root_volume=True,
                              create_nonroot_volumes=True,
@@ -1690,7 +1690,7 @@ class DracWSManRAID(base.RAIDInterface):
             return _create_virtual_disks(task, node)
 
     @METRICS.timer('DracRAID.delete_configuration')
-    @base.clean_step(priority=0)
+    @base.clean_step(priority=0, requires_ramdisk=False)
     @base.deploy_step(priority=0)
     def delete_configuration(self, task):
         """Delete the RAID configuration.

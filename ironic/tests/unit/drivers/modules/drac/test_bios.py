@@ -22,6 +22,7 @@ Test class for DRAC BIOS configuration specific methods
 from unittest import mock
 
 from dracclient import exceptions as drac_exceptions
+from oslo_utils import importutils
 from oslo_utils import timeutils
 
 from ironic.common import exception
@@ -35,6 +36,8 @@ from ironic.drivers.modules.drac import job as drac_job
 from ironic import objects
 from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
+
+drac_constants = importutils.try_import('dracclient.constants')
 
 INFO_DICT = test_utils.INFO_DICT
 
@@ -73,6 +76,7 @@ class DracWSManBIOSConfigurationTestCase(test_utils.BaseDracTest):
         }
         self.mock_client.commit_pending_bios_changes.return_value = \
             "JID_5678"
+        self.mock_client.get_power_state.return_value = drac_constants.POWER_ON
 
     @mock.patch.object(drac_common, 'parse_driver_info',
                        autospec=True)

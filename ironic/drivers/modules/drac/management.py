@@ -763,7 +763,7 @@ class DracWSManManagement(base.ManagementInterface):
 
     @METRICS.timer('DracManagement.reset_idrac')
     @base.verify_step(priority=0)
-    @base.clean_step(priority=0)
+    @base.clean_step(priority=0, requires_ramdisk=False)
     def reset_idrac(self, task):
         """Reset the iDRAC.
 
@@ -778,7 +778,7 @@ class DracWSManManagement(base.ManagementInterface):
 
     @METRICS.timer('DracManagement.known_good_state')
     @base.verify_step(priority=0)
-    @base.clean_step(priority=0)
+    @base.clean_step(priority=0, requires_ramdisk=False)
     def known_good_state(self, task):
         """Reset the iDRAC, Clear the job queue.
 
@@ -794,7 +794,7 @@ class DracWSManManagement(base.ManagementInterface):
 
     @METRICS.timer('DracManagement.clear_job_queue')
     @base.verify_step(priority=0)
-    @base.clean_step(priority=0)
+    @base.clean_step(priority=0, requires_ramdisk=False)
     def clear_job_queue(self, task):
         """Clear the job queue.
 
