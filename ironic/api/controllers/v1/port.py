@@ -407,10 +407,12 @@ class PortsController(rest.RestController):
                 and not uuidutils.is_uuid_like(node)):
                 raise exception.NotAcceptable()
 
+        resource_url = 'ports'
         return self._get_ports_collection(node_uuid or node, address,
                                           portgroup, marker, limit, sort_key,
-                                          sort_dir, fields=fields,
-                                          detail=detail, project=project)
+                                          sort_dir, resource_url=resource_url,
+                                          fields=fields, detail=detail,
+                                          project=project)
 
     @METRICS.timer('PortsController.detail')
     @method.expose()
