@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Updates ``idrac-redfish`` management interface export configuration step
+    to not export iDRAC BMC connection settings to avoid overwriting those
+    in another system when using unmodified configuration mold in import step.
+    For import step it is still possible to add these settings back manually.

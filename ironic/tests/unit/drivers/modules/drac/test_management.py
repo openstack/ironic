@@ -890,6 +890,8 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
         mock_get_system.return_value.managers = [fake_manager1, fake_manager2]
         self.management.export_configuration(task, 'edge')
 
+        fake_manager_oem2.export_system_configuration.assert_called_once_with(
+            include_destructive_fields=False)
         mock_save_configuration.assert_called_once_with(
             task,
             'edge',
