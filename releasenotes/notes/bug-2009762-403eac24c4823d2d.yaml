@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix Node Console Duplicate Sol Session.
+    This patch adds "sol deactivate" action before start node console, to make
+    sure the current console connection always a success.
+    See `story 2009762 <https://storyboard.openstack.org/#!/story/2009762>`_.
