@@ -249,6 +249,8 @@ if not sushy:
         type('SushyError', (MockKwargsException,), {}))
     sushy.exceptions.ConnectionError = (
         type('ConnectionError', (sushy.exceptions.SushyError,), {}))
+    sushy.exceptions.AccessError = (
+        type('AccessError', (sushy.exceptions.SushyError,), {}))
     sushy.exceptions.ResourceNotFoundError = (
         type('ResourceNotFoundError', (sushy.exceptions.SushyError,), {}))
     sushy.exceptions.MissingAttributeError = (
