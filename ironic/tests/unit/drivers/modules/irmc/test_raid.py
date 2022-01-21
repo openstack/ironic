@@ -20,6 +20,7 @@ from unittest import mock
 
 from ironic.common import exception
 from ironic.conductor import task_manager
+from ironic import drivers as ironic_drivers
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.irmc import raid
 from ironic.tests.unit.drivers.modules.irmc import test_common
@@ -603,12 +604,15 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                           disk, self.valid_disk_slots)
 
     @mock.patch('ironic.common.raid.update_raid_info', autospec=True)
-    @mock.patch('ironic.drivers.modules.irmc.raid.client.elcm.'
-                'get_raid_adapter', autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test__commit_raid_config_with_logical_drives(
-            self, set_async_step_flags_mock,
-            get_raid_adapter_mock, update_raid_info_mock):
+            self, set_async_step_flags_mock, update_raid_info_mock):
+        if not mock._is_instance_mock(
+                ironic_drivers.modules.irmc.raid.client.elcm):
+            mock.patch.object(ironic_drivers.modules.irmc.raid.client,
+                              'elcm', autospec=True).start()
+        get_raid_adapter_mock = (
+            ironic_drivers.modules.irmc.raid.client.elcm.get_raid_adapter)
         get_raid_adapter_mock.return_value = {
             "Server": {
                 "HWConfigurationIrmc": {

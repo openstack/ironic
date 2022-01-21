@@ -299,9 +299,10 @@ class IloValidateParametersTestCase(BaseIloTest):
 class IloCommonMethodsTestCase(BaseIloTest):
 
     @mock.patch.object(os.path, 'isfile', return_value=True, autospec=True)
-    @mock.patch.object(ilo_client, 'IloClient', spec_set=True,
-                       autospec=True)
-    def _test_get_ilo_object(self, ilo_client_mock, isFile_mock, ca_file=None):
+    def _test_get_ilo_object(self, isFile_mock, ca_file=None):
+        if not mock._is_instance_mock(ilo_client):
+            mock.patch.object(ilo_client, 'IloClient', autospec=True).start()
+        ilo_client_mock = ilo_client.IloClient
         self.info['client_timeout'] = 600
         self.info['client_port'] = 4433
         self.info['ilo_verify_ca'] = ca_file
@@ -319,9 +320,10 @@ class IloCommonMethodsTestCase(BaseIloTest):
         self.assertEqual('ilo_object', returned_ilo_object)
 
     @mock.patch.object(os.path, 'isfile', return_value=True, autospec=True)
-    @mock.patch.object(ilo_client, 'IloClient', spec_set=True,
-                       autospec=True)
-    def test_get_ilo_object_snmp(self, ilo_client_mock, isFile_mock):
+    def test_get_ilo_object_snmp(self, isFile_mock):
+        if not mock._is_instance_mock(ilo_client):
+            mock.patch.object(ilo_client, 'IloClient', autospec=True).start()
+        ilo_client_mock = ilo_client.IloClient
         info = {'auth_user': 'user',
                 'auth_prot_pp': '1234',
                 'auth_priv_pp': '4321',

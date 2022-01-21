@@ -73,19 +73,18 @@ class NovaApiTestCase(base.TestCase):
                           mock_adapter, mock_log):
         server_ids = ['server-id-1', 'server-id-2']
         nova_adapter = mock.Mock()
-        with mock.patch.object(nova_adapter, 'post',
-                               autospec=True) as mock_post_event:
-            post_resp_mock = requests.Response()
+        mock_post_event = nova_adapter.post
+        post_resp_mock = requests.Response()
 
-            def json_func():
-                return nova_result
-            post_resp_mock.json = json_func
-            post_resp_mock.status_code = resp_status
-            mock_adapter.return_value = nova_adapter
-            mock_post_event.return_value = post_resp_mock
-            for server in server_ids:
-                result = self.api.power_update(self.ctx, server, 'power on')
-                self.assertEqual(exp_ret, result)
+        def json_func():
+            return nova_result
+        post_resp_mock.json = json_func
+        post_resp_mock.status_code = resp_status
+        mock_adapter.return_value = nova_adapter
+        mock_post_event.return_value = post_resp_mock
+        for server in server_ids:
+            result = self.api.power_update(self.ctx, server, 'power on')
+            self.assertEqual(exp_ret, result)
 
         mock_adapter.assert_has_calls([mock.call(), mock.call()])
         req_url = '/os-server-external-events'
@@ -116,12 +115,11 @@ class NovaApiTestCase(base.TestCase):
     @mock.patch.object(nova, '_get_nova_adapter', autospec=True)
     def test_invalid_power_update(self, mock_adapter, mock_log):
         nova_adapter = mock.Mock()
-        with mock.patch.object(nova_adapter, 'post',
-                               autospec=True) as mock_post_event:
-            result = self.api.power_update(self.ctx, 'server', None)
-            self.assertFalse(result)
-            expected = ('Invalid Power State %s.', None)
-            mock_log.error.assert_called_once_with(*expected)
+        mock_post_event = nova_adapter.post
+        result = self.api.power_update(self.ctx, 'server', None)
+        self.assertFalse(result)
+        expected = ('Invalid Power State %s.', None)
+        mock_log.error.assert_called_once_with(*expected)
 
         mock_adapter.assert_not_called()
         mock_post_event.assert_not_called()
@@ -162,19 +160,18 @@ class NovaApiTestCase(base.TestCase):
     def test_power_update_invalid_reponse_format(self, nova_result,
                                                  mock_adapter, mock_log):
         nova_adapter = mock.Mock()
-        with mock.patch.object(nova_adapter, 'post',
-                               autospec=True) as mock_post_event:
-            post_resp_mock = requests.Response()
+        mock_post_event = nova_adapter.post
+        post_resp_mock = requests.Response()
 
-            def json_func():
-                return nova_result
+        def json_func():
+            return nova_result
 
-            post_resp_mock.json = json_func
-            post_resp_mock.status_code = 207
-            mock_adapter.return_value = nova_adapter
-            mock_post_event.return_value = post_resp_mock
-            result = self.api.power_update(self.ctx, 'server-id-1', 'power on')
-            self.assertFalse(result)
+        post_resp_mock.json = json_func
+        post_resp_mock.status_code = 207
+        mock_adapter.return_value = nova_adapter
+        mock_post_event.return_value = post_resp_mock
+        result = self.api.power_update(self.ctx, 'server-id-1', 'power on')
+        self.assertFalse(result)
 
         mock_adapter.assert_has_calls([mock.call()])
         req_url = '/os-server-external-events'

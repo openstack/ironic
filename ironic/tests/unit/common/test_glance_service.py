@@ -147,10 +147,11 @@ class TestGlanceImageService(base.TestCase):
             'os_hash_algo': None,
             'os_hash_value': None,
         }
-        with mock.patch.object(self.service, 'call', return_value=image,
-                               autospec=True):
-            image_meta = self.service.show(image_id)
-            self.service.call.assert_called_once_with('get', image_id)
+        if not mock._is_instance_mock(self.service.call):
+            mock.patch.object(self.service, 'call', autospec=True).start()
+        self.service.call.return_value = image
+        image_meta = self.service.show(image_id)
+        self.service.call.assert_called_with('get', image_id)
         self.assertEqual(expected, image_meta)
 
     def test_show_makes_datetimes(self):
@@ -175,13 +176,13 @@ class TestGlanceImageService(base.TestCase):
     def test_show_raises_when_image_not_active(self):
         image_id = uuidutils.generate_uuid()
         image = self._make_fixture(name='image1', id=image_id, status="queued")
-        with mock.patch.object(self.service, 'call', return_value=image,
-                               autospec=True):
-            self.assertRaises(exception.ImageUnacceptable,
-                              self.service.show, image_id)
+        if not mock._is_instance_mock(self.service.call):
+            mock.patch.object(self.service, 'call', autospec=True).start()
+        self.service.call.return_value = image
+        self.assertRaises(exception.ImageUnacceptable,
+                          self.service.show, image_id)
 
-    @mock.patch.object(tenacity, 'retry', autospec=True)
-    def test_download_with_retries(self, mock_retry):
+    def test_download_with_retries(self):
         tries = [0]
 
         class MyGlanceStubClient(stubs.StubGlanceClient):
@@ -203,19 +204,20 @@ class TestGlanceImageService(base.TestCase):
         image_id = uuidutils.generate_uuid()
         writer = NullWriter()
 
-        # When retries are disabled, we should get an exception
-        self.config(num_retries=0, group='glance')
-        self.assertRaises(exception.GlanceConnectionFailed,
-                          stub_service.download, image_id, writer)
+        with mock.patch.object(tenacity, 'retry', autospec=True) as mock_retry:
+            # When retries are disabled, we should get an exception
+            self.config(num_retries=0, group='glance')
+            self.assertRaises(exception.GlanceConnectionFailed,
+                              stub_service.download, image_id, writer)
 
-        # Now lets enable retries. No exception should happen now.
-        self.config(num_retries=1, group='glance')
-        importlib.reload(image_service)
-        stub_service = image_service.GlanceImageService(stub_client,
-                                                        stub_context)
-        tries = [0]
-        stub_service.download(image_id, writer)
-        mock_retry.assert_called_once()
+            # Now lets enable retries. No exception should happen now.
+            self.config(num_retries=1, group='glance')
+            importlib.reload(image_service)
+            stub_service = image_service.GlanceImageService(stub_client,
+                                                            stub_context)
+            tries = [0]
+            stub_service.download(image_id, writer)
+            mock_retry.assert_called_once()
 
     def test_download_no_data(self):
         self.client.fake_wrapped = None

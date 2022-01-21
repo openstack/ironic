@@ -132,7 +132,7 @@ class IBMCUtilsTestCase(base.IBMCTestCase):
             "value2": "key2"
         }, revert)
 
-    @mock.patch.object(ibmc_client, 'connect', autospec=True)
+    @mock.patch.object(ibmc_client, 'connect', spec=object)
     def test_handle_ibmc_exception_retry(self, connect_ibmc):
 
         @utils.handle_ibmc_exception('get IBMC system')

@@ -109,8 +109,11 @@ class DracCommonMethodsTestCase(test_utils.BaseDracTest):
         self.assertRaises(exception.InvalidParameterValue,
                           drac_common.parse_driver_info, node)
 
-    @mock.patch.object(dracclient.client, 'DRACClient', autospec=True)
-    def test_get_drac_client(self, mock_dracclient):
+    def test_get_drac_client(self):
+        if not mock._is_instance_mock(dracclient.client):
+            mock.patch.object(dracclient.client, 'DRACClient',
+                              autospec=True).start()
+        mock_dracclient = dracclient.client.DRACClient
         expected_call = mock.call('1.2.3.4', 'admin', 'fake', 443, '/wsman',
                                   'https')
         node = obj_utils.create_test_node(self.context,

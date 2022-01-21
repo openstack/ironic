@@ -38,12 +38,12 @@ class IRMCBIOSTestCase(test_common.BaseIRMCTest):
             task.driver.bios.validate(task)
             parse_driver_info_mock.assert_called_once_with(task.node)
 
-    @mock.patch.object(irmc_bios.irmc.elcm, 'set_bios_configuration',
-                       autospec=True)
-    @mock.patch.object(irmc_bios.irmc.elcm, 'get_bios_settings',
-                       autospec=True)
-    def test_apply_configuration(self, get_bios_settings_mock,
-                                 set_bios_configuration_mock):
+    def test_apply_configuration(self):
+        if not mock._is_instance_mock(irmc_bios.irmc.elcm):
+            mock.patch.object(irmc_bios.irmc, 'elcm', autospec=True).start()
+        set_bios_configuration_mock = (
+            irmc_bios.irmc.elcm.set_bios_configuration)
+        get_bios_settings_mock = irmc_bios.irmc.elcm.get_bios_settings
         settings = [{
             "name": "launch_csm_enabled",
             "value": True
@@ -62,9 +62,11 @@ class IRMCBIOSTestCase(test_common.BaseIRMCTest):
             set_bios_configuration_mock.assert_called_once_with(irmc_info,
                                                                 settings)
 
-    @mock.patch.object(irmc_bios.irmc.elcm, 'set_bios_configuration',
-                       autospec=True)
-    def test_apply_configuration_failed(self, set_bios_configuration_mock):
+    def test_apply_configuration_failed(self):
+        if not mock._is_instance_mock(irmc_bios.irmc.elcm):
+            mock.patch.object(irmc_bios.irmc, 'elcm', autospec=True).start()
+        set_bios_configuration_mock = (
+            irmc_bios.irmc.elcm.set_bios_configuration)
         settings = [{
             "name": "launch_csm_enabled",
             "value": True
@@ -95,11 +97,11 @@ class IRMCBIOSTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     @mock.patch.object(objects.BIOSSettingList, 'delete',
                        autospec=True)
-    @mock.patch.object(irmc_bios.irmc.elcm, 'get_bios_settings',
-                       autospec=True)
-    def test_cache_bios_settings(self, get_bios_settings_mock,
-                                 delete_mock, save_mock, create_mock,
+    def test_cache_bios_settings(self, delete_mock, save_mock, create_mock,
                                  sync_node_setting_mock):
+        if not mock._is_instance_mock(irmc_bios.irmc.elcm):
+            mock.patch.object(irmc_bios.irmc, 'elcm', autospec=True).start()
+        get_bios_settings_mock = irmc_bios.irmc.elcm.get_bios_settings
         settings = [{
             "name": "launch_csm_enabled",
             "value": True
@@ -133,7 +135,7 @@ class IRMCBIOSTestCase(test_common.BaseIRMCTest):
                     []
                 )
             task.driver.bios.cache_bios_settings(task)
-            get_bios_settings_mock.assert_called_once_with(irmc_info)
+            get_bios_settings_mock.assert_called_with(irmc_info)
             sync_node_setting_mock.assert_called_once_with(task.context,
                                                            task.node.id,
                                                            settings)
@@ -149,9 +151,10 @@ class IRMCBIOSTestCase(test_common.BaseIRMCTest):
             delete_mock.assert_called_once_with(task.context, task.node.id,
                                                 delete_names)
 
-    @mock.patch.object(irmc_bios.irmc.elcm, 'get_bios_settings',
-                       autospec=True)
-    def test_cache_bios_settings_failed(self, get_bios_settings_mock):
+    def test_cache_bios_settings_failed(self):
+        if not mock._is_instance_mock(irmc_bios.irmc.elcm):
+            mock.patch.object(irmc_bios.irmc, 'elcm', autospec=True).start()
+        get_bios_settings_mock = irmc_bios.irmc.elcm.get_bios_settings
         irmc_bios.irmc.scci.SCCIError = Exception
         get_bios_settings_mock.side_effect = Exception
         with task_manager.acquire(self.context, self.node.uuid) as task:
