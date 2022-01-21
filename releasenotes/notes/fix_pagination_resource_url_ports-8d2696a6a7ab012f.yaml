@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue where clients would get a 404 due to the port and
+    portgroups pagination breaking at max_limit due to an uninitialised
+    resource_url.
