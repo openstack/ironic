@@ -16,6 +16,7 @@
 import collections
 import copy
 import os
+import time
 from unittest import mock
 
 from oslo_config import cfg
@@ -211,8 +212,9 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         # Redfish specific configurations
         self.config(connection_attempts=3, group='redfish')
 
-        fake_conn = mock_sushy.return_value
+        fake_conn = mock.Mock()
         fake_conn.get_system.side_effect = sushy.exceptions.ConnectionError()
+        mock_sushy.return_value = fake_conn
 
         self.assertRaises(exception.RedfishConnectionError,
                           redfish_utils.get_system, self.node)
@@ -225,6 +227,75 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         fake_conn.get_system.assert_has_calls(expected_get_system_calls)
         mock_sleep.assert_called_with(
             redfish_utils.CONF.redfish.connection_retry_interval)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_get_system_resource_access_error_retry(self, mock_sushy):
+
+        # Sushy access errors HTTP Errors
+        class fake_response(object):
+            status_code = 401
+            body = None
+
+            def json():
+                return {}
+
+        fake_conn = mock_sushy.return_value
+        fake_system = mock.Mock()
+        fake_conn.get_system.side_effect = iter(
+            [
+                sushy.exceptions.AccessError(
+                    method='GET',
+                    url='http://path/to/url',
+                    response=fake_response),
+                fake_system,
+            ])
+
+        self.assertRaises(exception.RedfishError,
+                          redfish_utils.get_system, self.node)
+        # Retry, as in next power sync perhaps
+        client = redfish_utils.get_system(self.node)
+        client('foo')
+
+        expected_get_system_calls = [
+            mock.call(self.parsed_driver_info['system_id']),
+            mock.call(self.parsed_driver_info['system_id']),
+        ]
+        fake_conn.get_system.assert_has_calls(expected_get_system_calls)
+        fake_system.assert_called_with('foo')
+        self.assertEqual(fake_conn.get_system.call_count, 2)
+
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    @mock.patch('ironic.drivers.modules.redfish.utils.'
+                'SessionCache._sessions', {})
+    def test_get_system_resource_attribute_error(self, mock_sushy):
+
+        fake_conn = mock_sushy.return_value
+        fake_system = mock.Mock()
+        fake_conn.get_system.side_effect = iter(
+            [
+                AttributeError,
+                fake_system,
+            ])
+        # We need to check for AttributeError explicitly as
+        # otherwise we break existing tests if we try to catch
+        # it explicitly.
+        self.assertRaises(exception.RedfishError,
+                          redfish_utils.get_system, self.node)
+        # Retry, as in next power sync perhaps
+        client = redfish_utils.get_system(self.node)
+        client('bar')
+        expected_get_system_calls = [
+            mock.call(self.parsed_driver_info['system_id']),
+            mock.call(self.parsed_driver_info['system_id']),
+        ]
+
+        fake_conn.get_system.assert_has_calls(expected_get_system_calls)
+        fake_system.assert_called_once_with('bar')
+        self.assertEqual(fake_conn.get_system.call_count, 2)
 
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
