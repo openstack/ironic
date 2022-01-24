@@ -83,7 +83,7 @@ def convert_with_links(rpc_connector, fields=None, sanitize=True):
     return connector
 
 
-def list_convert_with_links(rpc_connectors, limit, url=None, fields=None,
+def list_convert_with_links(rpc_connectors, limit, url, fields=None,
                             detail=None, **kwargs):
     if detail:
         kwargs['detail'] = detail
