@@ -188,7 +188,9 @@ class TestListConductors(test_api_base.BaseApiTest):
         self.assertEqual(3, len(data['conductors']))
 
         next_marker = data['conductors'][-1]['hostname']
-        self.assertIn(next_marker, data['next'])
+        self.assertIn('/conductors', data['next'])
+        self.assertIn('limit=3', data['next'])
+        self.assertIn(f'marker={next_marker}', data['next'])
 
     def test_collection_links_default_limit(self):
         cfg.CONF.set_override('max_limit', 3, 'api')
@@ -204,7 +206,8 @@ class TestListConductors(test_api_base.BaseApiTest):
         self.assertEqual(3, len(data['conductors']))
 
         next_marker = data['conductors'][-1]['hostname']
-        self.assertIn(next_marker, data['next'])
+        self.assertIn('/conductors', data['next'])
+        self.assertIn(f'marker={next_marker}', data['next'])
 
     def test_collection_links_custom_fields(self):
         cfg.CONF.set_override('max_limit', 3, 'api')
@@ -221,8 +224,9 @@ class TestListConductors(test_api_base.BaseApiTest):
         self.assertEqual(3, len(data['conductors']))
 
         next_marker = data['conductors'][-1]['hostname']
-        self.assertIn(next_marker, data['next'])
-        self.assertIn('fields', data['next'])
+        self.assertIn('/conductors', data['next'])
+        self.assertIn(f'marker={next_marker}', data['next'])
+        self.assertIn(f'fields={fields}', data['next'])
 
     def test_sort_key(self):
         conductors = []

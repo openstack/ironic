@@ -210,7 +210,9 @@ class TestListDeployTemplates(BaseDeployTemplatesAPITest):
         self.assertEqual(3, len(data['deploy_templates']))
 
         next_marker = data['deploy_templates'][-1]['uuid']
-        self.assertIn(next_marker, data['next'])
+        self.assertIn('/deploy_templates', data['next'])
+        self.assertIn('limit=3', data['next'])
+        self.assertIn(f'marker={next_marker}', data['next'])
 
     def test_collection_links_default_limit(self):
         cfg.CONF.set_override('max_limit', 3, 'api')
@@ -224,7 +226,8 @@ class TestListDeployTemplates(BaseDeployTemplatesAPITest):
         self.assertEqual(3, len(data['deploy_templates']))
 
         next_marker = data['deploy_templates'][-1]['uuid']
-        self.assertIn(next_marker, data['next'])
+        self.assertIn('/deploy_templates', data['next'])
+        self.assertIn(f'marker={next_marker}', data['next'])
 
     def test_collection_links_custom_fields(self):
         cfg.CONF.set_override('max_limit', 3, 'api')
@@ -240,8 +243,9 @@ class TestListDeployTemplates(BaseDeployTemplatesAPITest):
                              headers=self.headers)
         self.assertEqual(3, len(data['deploy_templates']))
         next_marker = data['deploy_templates'][-1]['uuid']
-        self.assertIn(next_marker, data['next'])
-        self.assertIn('fields', data['next'])
+        self.assertIn('/deploy_templates', data['next'])
+        self.assertIn(f'marker={next_marker}', data['next'])
+        self.assertIn(f'fields={fields}', data['next'])
 
     def test_get_collection_pagination_no_uuid(self):
         fields = 'name'
@@ -259,6 +263,7 @@ class TestListDeployTemplates(BaseDeployTemplatesAPITest):
             headers=self.headers)
 
         self.assertEqual(limit, len(data['deploy_templates']))
+        self.assertIn('/deploy_templates', data['next'])
         self.assertIn('marker=%s' % templates[limit - 1].uuid, data['next'])
 
     def test_sort_key(self):

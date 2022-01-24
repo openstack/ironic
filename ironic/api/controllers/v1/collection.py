@@ -22,7 +22,7 @@ def has_next(collection, limit):
     return len(collection) and len(collection) == limit
 
 
-def list_convert_with_links(items, item_name, limit, url=None, fields=None,
+def list_convert_with_links(items, item_name, limit, url, fields=None,
                             sanitize_func=None, key_field='uuid',
                             sanitizer_args=None, **kwargs):
     """Build a collection dict including the next link for paging support.
@@ -49,6 +49,10 @@ def list_convert_with_links(items, item_name, limit, url=None, fields=None,
     :returns:
         A dict containing ``item_name`` and ``next`` values
     """
+    assert url, "BUG: collections require a base URL"
+    assert limit is None or isinstance(limit, int), \
+        f"BUG: limit must be None or int, got {type(limit)}"
+
     items_dict = {
         item_name: items
     }
@@ -68,7 +72,7 @@ def list_convert_with_links(items, item_name, limit, url=None, fields=None,
     return items_dict
 
 
-def get_next(collection, limit, url=None, key_field='uuid', **kwargs):
+def get_next(collection, limit, url, key_field='uuid', **kwargs):
     """Return a link to the next subset of the collection."""
     if not has_next(collection, limit):
         return None

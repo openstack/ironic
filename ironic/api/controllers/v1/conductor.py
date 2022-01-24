@@ -71,7 +71,7 @@ class ConductorsController(rest.RestController):
     invalid_sort_key_list = ['alive', 'drivers']
 
     def _get_conductors_collection(self, marker, limit, sort_key, sort_dir,
-                                   resource_url=None, fields=None,
+                                   resource_url='conductors', fields=None,
                                    detail=None):
 
         limit = api_utils.validate_limit(limit)

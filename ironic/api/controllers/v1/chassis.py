@@ -78,7 +78,7 @@ def convert_with_links(rpc_chassis, fields=None, sanitize=True):
     return chassis
 
 
-def list_convert_with_links(rpc_chassis_list, limit, url=None, fields=None,
+def list_convert_with_links(rpc_chassis_list, limit, url, fields=None,
                             **kwargs):
     return collection.list_convert_with_links(
         items=[convert_with_links(ch, fields=fields,
@@ -164,7 +164,8 @@ class ChassisController(rest.RestController):
                                                      DEFAULT_RETURN_FIELDS)
 
         return self._get_chassis_collection(marker, limit, sort_key, sort_dir,
-                                            fields=fields, detail=detail)
+                                            fields=fields, detail=detail,
+                                            resource_url='chassis')
 
     @METRICS.timer('ChassisController.detail')
     @method.expose()
@@ -188,9 +189,8 @@ class ChassisController(rest.RestController):
         if parent != "chassis":
             raise exception.HTTPNotFound()
 
-        resource_url = '/'.join(['chassis', 'detail'])
         return self._get_chassis_collection(marker, limit, sort_key, sort_dir,
-                                            resource_url)
+                                            resource_url='chassis/detail')
 
     @METRICS.timer('ChassisController.get_one')
     @method.expose()

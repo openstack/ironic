@@ -104,7 +104,7 @@ def allocation_sanitize(allocation, fields):
     api_utils.sanitize_dict(allocation, fields)
 
 
-def list_convert_with_links(rpc_allocations, limit, url=None, fields=None,
+def list_convert_with_links(rpc_allocations, limit, url, fields=None,
                             **kwargs):
     return collection.list_convert_with_links(
         items=[convert_with_links(p, fields=fields,
@@ -136,7 +136,7 @@ class AllocationsController(pecan.rest.RestController):
     def _get_allocations_collection(self, node_ident=None, resource_class=None,
                                     state=None, owner=None, marker=None,
                                     limit=None, sort_key='id', sort_dir='asc',
-                                    resource_url=None, fields=None,
+                                    resource_url='allocations', fields=None,
                                     parent_node=None):
         """Return allocations collection.
 
