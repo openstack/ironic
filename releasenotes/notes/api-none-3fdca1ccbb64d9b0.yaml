@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixes pagination for the following collections::
+
+      /v1/allocations
+      /v1/chassis
+      /v1/conductors
+      /v1/deploy_templates
+      /v1/nodes/{node}/history
+
+    The ``next`` link now contains a valid URL.

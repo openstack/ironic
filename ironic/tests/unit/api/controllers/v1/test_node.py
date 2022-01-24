@@ -7841,6 +7841,10 @@ class TestNodeHistory(test_api_base.BaseApiTest):
         self.assertEqual(1, len(entries))
         result_uuid = entries[0]['uuid']
         self.assertEqual(self.event1.uuid, result_uuid)
+        self.assertIn('next', ret)
+        self.assertIn('nodes/%s/history' % self.node.uuid, ret['next'])
+        self.assertIn('limit=1', ret['next'])
+        self.assertIn('marker=%s' % result_uuid, ret['next'])
         # Second request
         ret = self.get_json('/nodes/%s/history?limit=1&marker=%s' %
                             (self.node.uuid, result_uuid),
@@ -7850,6 +7854,9 @@ class TestNodeHistory(test_api_base.BaseApiTest):
         self.assertEqual(1, len(entries))
         result_uuid = entries[0]['uuid']
         self.assertEqual(self.event2.uuid, result_uuid)
+        self.assertIn('nodes/%s/history' % self.node.uuid, ret['next'])
+        self.assertIn('limit=1', ret['next'])
+        self.assertIn('marker=%s' % result_uuid, ret['next'])
         # Third request
         ret = self.get_json('/nodes/%s/history?limit=1&marker=%s' %
                             (self.node.uuid, result_uuid),
@@ -7859,3 +7866,6 @@ class TestNodeHistory(test_api_base.BaseApiTest):
         self.assertEqual(1, len(entries))
         result_uuid = entries[0]['uuid']
         self.assertEqual(self.event3.uuid, result_uuid)
+        self.assertIn('nodes/%s/history' % self.node.uuid, ret['next'])
+        self.assertIn('limit=1', ret['next'])
+        self.assertIn('marker=%s' % result_uuid, ret['next'])

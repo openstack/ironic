@@ -140,6 +140,7 @@ def list_convert_with_links(rpc_templates, limit, fields=None, **kwargs):
         items=[convert_with_links(t, fields=fields, sanitize=False)
                for t in rpc_templates],
         item_name='deploy_templates',
+        url='deploy_templates',
         limit=limit,
         fields=fields,
         sanitize_func=template_sanitize,

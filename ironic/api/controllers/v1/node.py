@@ -1650,8 +1650,7 @@ def _node_sanitize_extended(node, node_keys, target_dict, cdict):
                        'driver_internal_info permission. **'}
 
 
-def node_list_convert_with_links(nodes, limit, url=None, fields=None,
-                                 **kwargs):
+def node_list_convert_with_links(nodes, limit, url, fields=None, **kwargs):
     cdict = api.request.context.to_policy_values()
     target_dict = dict(cdict)
     sanitizer_args = {
@@ -1890,25 +1889,19 @@ class NodeHistoryController(rest.RestController):
 
     @METRICS.timer('NodeHistoryController.get_all')
     @method.expose()
-    @args.validate(details=args.boolean, marker=args.uuid, limit=args.integer)
-    def get_all(self, **kwargs):
+    @args.validate(detail=args.boolean, marker=args.uuid, limit=args.integer)
+    def get_all(self, detail=False, marker=None, limit=None):
         """List node history."""
         node = api_utils.check_node_policy_and_retrieve(
             'baremetal:node:history:get', self.node_ident)
 
-        if kwargs.get('detail'):
-            detail = True
-            fields = self.detail_fields
-        else:
-            detail = False
-            fields = self.standard_fields
+        fields = self.detail_fields if detail else self.standard_fields
 
         marker_obj = None
-        marker = kwargs.get('marker')
         if marker:
             marker_obj = objects.NodeHistory.get_by_uuid(api.request.context,
                                                          marker)
-        limit = kwargs.get('limit')
+        limit = api_utils.validate_limit(limit)
 
         events = objects.NodeHistory.list_by_node_id(api.request.context,
                                                      node.id,
@@ -1921,6 +1914,7 @@ class NodeHistoryController(rest.RestController):
                     node.uuid, event, detail=detail) for event in events
             ],
             item_name='history',
+            url=f'nodes/{self.node_ident}/history',
             fields=fields,
             marker=marker_obj,
             limit=limit,
@@ -2288,7 +2282,6 @@ class NodesController(rest.RestController):
 
         fields = api_utils.get_request_return_fields(fields, detail,
                                                      _DEFAULT_RETURN_FIELDS)
-        resource_url = 'nodes'
         extra_args = {'description_contains': description_contains}
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
                                           associated, maintenance, retired,
@@ -2296,7 +2289,7 @@ class NodesController(rest.RestController):
                                           limit, sort_key, sort_dir,
                                           driver=driver,
                                           resource_class=resource_class,
-                                          resource_url=resource_url,
+                                          resource_url='nodes',
                                           fields=fields, fault=fault,
                                           conductor_group=conductor_group,
                                           detail=detail,
@@ -2379,7 +2372,6 @@ class NodesController(rest.RestController):
 
         api_utils.check_allow_filter_by_conductor(conductor)
 
-        resource_url = '/'.join(['nodes', 'detail'])
         extra_args = {'description_contains': description_contains}
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
                                           associated, maintenance, retired,
@@ -2387,7 +2379,7 @@ class NodesController(rest.RestController):
                                           limit, sort_key, sort_dir,
                                           driver=driver,
                                           resource_class=resource_class,
-                                          resource_url=resource_url,
+                                          resource_url='nodes/detail',
                                           fault=fault,
                                           conductor_group=conductor_group,
                                           conductor=conductor,
