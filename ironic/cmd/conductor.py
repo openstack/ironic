@@ -67,6 +67,12 @@ def main():
     issue_startup_warnings(CONF)
 
     launcher = service.launch(CONF, mgr, restart_method='mutate')
+
+    # NOTE(dtantsur): handling start-up failures before launcher.wait() helps
+    # notify systemd about them. Otherwise the launcher will report successful
+    # service start-up before checking the threads.
+    mgr.wait_for_start()
+
     sys.exit(launcher.wait())
 
 

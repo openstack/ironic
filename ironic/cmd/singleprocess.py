@@ -49,4 +49,9 @@ def main():
     wsgi = wsgi_service.WSGIService('ironic_api', CONF.api.enable_ssl_api)
     launcher.launch_service(wsgi)
 
+    # NOTE(dtantsur): handling start-up failures before launcher.wait() helps
+    # notify systemd about them. Otherwise the launcher will report successful
+    # service start-up before checking the threads.
+    mgr.wait_for_start()
+
     sys.exit(launcher.wait())

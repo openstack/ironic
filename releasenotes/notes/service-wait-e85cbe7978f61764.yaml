@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The ``ironic`` and ``ironic-conductor`` services now wait for the conductor
+    manager to start before notifying systemd about the successful start-up.
