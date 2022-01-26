@@ -49,4 +49,4 @@ def main():
     wsgi = wsgi_service.WSGIService('ironic_api', CONF.api.enable_ssl_api)
     launcher.launch_service(wsgi)
 
-    launcher.wait()
+    sys.exit(launcher.wait())
