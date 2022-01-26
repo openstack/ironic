@@ -840,6 +840,64 @@ class iPXEBootTestCase(db_base.DbTestCase):
                                                          boot_devices.PXE,
                                                          persistent=True)
 
+    @mock.patch('os.path.isfile', lambda filename: False)
+    @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
+    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
+    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
+    def test_prepare_instance_netboot_ramdisk_with_kernel_arg(
+            self, get_image_info_mock, cache_mock,
+            dhcp_factory_mock, switch_pxe_config_mock,
+            set_boot_device_mock, create_pxe_config_mock):
+        http_url = 'http://192.1.2.3:1234'
+        self.config(http_url=http_url, group='deploy')
+        self.config(enabled_deploy_interfaces='ramdisk')
+        provider_mock = mock.MagicMock()
+        dhcp_factory_mock.return_value = provider_mock
+        self.node.instance_info = {'ramdisk_kernel_arguments': 'cat meow'}
+        image_info = {'kernel': ('', '/path/to/kernel'),
+                      'deploy_kernel': ('', '/path/to/kernel'),
+                      'ramdisk': ('', '/path/to/ramdisk'),
+                      'deploy_ramdisk': ('', '/path/to/ramdisk')}
+        get_image_info_mock.return_value = image_info
+        self.node.provision_state = states.DEPLOYING
+        self.node.deploy_interface = 'ramdisk'
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(task,
+                                                            ipxe_enabled=True)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=True, ip_version=6)
+            pxe_config_path = pxe_utils.get_pxe_config_file_path(
+                task.node.uuid, ipxe_enabled=True)
+            task.driver.boot.prepare_instance(task)
+            self.assertTrue(get_image_info_mock.called)
+            self.assertTrue(cache_mock.called)
+            uuid = self.node.uuid
+            expected_params = {
+                'aki_path': 'http://192.1.2.3:1234/' + uuid + '/kernel',
+                'ari_path': 'http://192.1.2.3:1234/' + uuid + '/ramdisk',
+                'ramdisk_opts': 'cat meow',
+                'pxe_append_params': 'nofb nomodeset vga=normal ipa-debug=1 '
+                                     'ipa-global-request-'
+                                     'id=' + task.context.request_id,
+                'tftp_server': mock.ANY,
+                'ipxe_timeout': 0
+            }
+            provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
+            create_pxe_config_mock.assert_called_once_with(
+                task, expected_params, CONF.pxe.ipxe_config_template,
+                ipxe_enabled=True)
+            switch_pxe_config_mock.assert_called_once_with(
+                pxe_config_path, None, boot_modes.LEGACY_BIOS, False,
+                ipxe_enabled=True, iscsi_boot=False, ramdisk_boot=True,
+                anaconda_boot=False)
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.PXE,
+                                                         persistent=True)
+
     @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
                        autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
