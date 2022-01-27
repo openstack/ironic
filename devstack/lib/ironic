@@ -1282,7 +1282,7 @@ function configure_ironic_dirs {
                 if [ -f /usr/share/ipxe/ipxe-snponly-x86_64.efi ]; then
                     # NOTE(TheJulia): I think this file got renamed at some
                     # point during it's centos8 run, but this is current.
-                    update_loader_copy_paths snponly.efi:/usr/share/ipxe/ipxe_snponly-x86_64.efi
+                    update_loader_copy_paths snponly.efi:/usr/share/ipxe/ipxe-snponly-x86_64.efi
                 fi
             fi
             if [ -f $IRONIC_GRUB2_SHIM_FILE ]; then
