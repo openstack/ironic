@@ -120,7 +120,8 @@ def create_vfat_image(output_file, files_info=None, parameters=None,
             # NOTE: FAT filesystem label can be up to 11 characters long.
             # TODO(sbaker): use ironic_lib.utils.mkfs when rootwrap has been
             #              removed
-            utils.execute('mkfs', '-t', 'vfat', '-n', 'ir-vfd-de', output_file)
+            utils.execute('mkfs', '-t', 'vfat', '-n',
+                          'ir-vfd-dev', output_file)
         except processutils.ProcessExecutionError as e:
             raise exception.ImageCreationFailed(image_type='vfat', error=e)
 
@@ -135,10 +136,16 @@ def create_vfat_image(output_file, files_info=None, parameters=None,
                 file_contents = '\n'.join(params_list)
                 utils.write_to_file(parameters_file, file_contents)
 
+            file_list = os.listdir(tmpdir)
+
+            if not file_list:
+                return
+
+            file_list = [os.path.join(tmpdir, item) for item in file_list]
+
             # use mtools to copy the files into the image in a single
             # operation
-            utils.execute('mcopy', '-s', '%s/*' % tmpdir,
-                          '-i', output_file, '::')
+            utils.execute('mcopy', '-s', *file_list, '-i', output_file, '::')
 
         except Exception as e:
             LOG.exception("vfat image creation failed. Error: %s", e)

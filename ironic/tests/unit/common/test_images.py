@@ -307,20 +307,22 @@ class FsImageTestCase(base.TestCase):
         mkdir_mock.assert_any_call('root_dir', exist_ok=True)
         mkdir_mock.assert_any_call('root_dir/sub_dir', exist_ok=True)
 
+    @mock.patch.object(os, 'listdir', autospec=True)
     @mock.patch.object(images, '_create_root_fs', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
     @mock.patch.object(utils, 'write_to_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     def test_create_vfat_image(
             self, execute_mock, write_mock,
-            tempdir_mock, create_root_fs_mock):
+            tempdir_mock, create_root_fs_mock, os_listdir_mock):
 
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
-        mock_file_handle.__enter__.return_value = 'tempdir'
+        mock_file_handle.__enter__.return_value = '/tempdir'
         tempdir_mock.return_value = mock_file_handle
 
         parameters = {'p1': 'v1'}
         files_info = {'a': 'b'}
+        os_listdir_mock.return_value = ['b', 'qwe']
         images.create_vfat_image('tgt_file', parameters=parameters,
                                  files_info=files_info, parameters_file='qwe',
                                  fs_size_kib=1000)
@@ -328,13 +330,15 @@ class FsImageTestCase(base.TestCase):
         execute_mock.assert_has_calls([
             mock.call('dd', 'if=/dev/zero', 'of=tgt_file', 'count=1',
                       'bs=1000KiB'),
-            mock.call('mkfs', '-t', 'vfat', '-n', 'ir-vfd-de', 'tgt_file'),
-            mock.call('mcopy', '-s', 'tempdir/*', '-i', 'tgt_file', '::')
+            mock.call('mkfs', '-t', 'vfat', '-n', 'ir-vfd-dev', 'tgt_file'),
+            mock.call('mcopy', '-s', '/tempdir/b', '/tempdir/qwe', '-i',
+                      'tgt_file', '::')
         ])
 
-        parameters_file_path = os.path.join('tempdir', 'qwe')
+        parameters_file_path = os.path.join('/tempdir', 'qwe')
         write_mock.assert_called_once_with(parameters_file_path, 'p1=v1')
-        create_root_fs_mock.assert_called_once_with('tempdir', files_info)
+        create_root_fs_mock.assert_called_once_with('/tempdir', files_info)
+        os_listdir_mock.assert_called_once_with('/tempdir')
 
     @mock.patch.object(utils, 'execute', autospec=True)
     def test_create_vfat_image_dd_fails(self, execute_mock):
