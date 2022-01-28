@@ -1432,41 +1432,16 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
                           utils.validate_image_properties, self.task,
                           inst_info)
 
-    @mock.patch.object(image_service.HttpImageService, 'show', autospec=True)
-    def test_validate_image_properties_nonglance_image(
-            self, image_service_show_mock):
+    def test_validate_image_properties_nonglance_image(self):
         instance_info = {
             'image_source': 'http://ubuntu',
             'kernel': 'kernel_uuid',
             'ramdisk': 'file://initrd',
             'root_gb': 100,
         }
-        image_service_show_mock.return_value = {'size': 1, 'properties': {}}
         self.node.instance_info = instance_info
         inst_info = utils.get_image_instance_info(self.node)
         utils.validate_image_properties(self.task, inst_info)
-        image_service_show_mock.assert_called_once_with(
-            mock.ANY, instance_info['image_source'])
-
-    @mock.patch.object(image_service.HttpImageService, 'show', autospec=True)
-    def test_validate_image_properties_nonglance_image_validation_fail(
-            self, img_service_show_mock):
-        instance_info = {
-            'image_source': 'http://ubuntu',
-            'kernel': 'kernel_uuid',
-            'ramdisk': 'file://initrd',
-            'root_gb': 100,
-        }
-        img_service_show_mock.side_effect = exception.ImageRefValidationFailed(
-            image_href='http://ubuntu', reason='HTTPError')
-        self.node.instance_info = instance_info
-        inst_info = utils.get_image_instance_info(self.node)
-        expected_error = ('Validation of image href http://ubuntu '
-                          'failed, reason: HTTPError')
-        error = self.assertRaises(exception.InvalidParameterValue,
-                                  utils.validate_image_properties,
-                                  self.task, inst_info)
-        self.assertEqual(expected_error, str(error))
 
     def test_validate_image_properties_boot_iso_conflict(self):
         instance_info = {

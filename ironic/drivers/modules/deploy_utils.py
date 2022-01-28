@@ -580,14 +580,10 @@ def validate_image_properties(task, deploy_info):
         boot_option = get_boot_option(task.node)
         if boot_option == 'kickstart':
             properties.append('stage2_id')
-    else:
-        properties = ['kernel', 'ramdisk']
-
-    if image_href:
         image_props = get_image_properties(task.context, image_href)
     else:
-        # Ramdisk deploy, no image_source is present
-        image_props = []
+        properties = ['kernel', 'ramdisk']
+        image_props = {}
 
     missing_props = []
     for prop in properties:
