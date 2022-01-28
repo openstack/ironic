@@ -7,3 +7,5 @@ features:
 
     Adding ``kernel`` and ``ramdisk`` is no longer necessary for partition
     images if ``image_type`` is set to ``partition`` and local boot is used.
+
+    The corresponding Image service property is called ``img_type``.
