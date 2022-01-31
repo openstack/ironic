@@ -12,7 +12,6 @@
         - ironic-standalone
         - ironic-standalone-redfish
         - ironic-tempest-functional-python3
-        - ironic-grenade
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
@@ -45,7 +44,6 @@
         - ironic-standalone
         - ironic-standalone-redfish
         - ironic-tempest-functional-python3
-        - ironic-grenade
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
