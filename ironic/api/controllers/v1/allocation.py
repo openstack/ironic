@@ -259,20 +259,17 @@ class AllocationsController(pecan.rest.RestController):
                 owner=None):
         """Retrieve a list of allocations.
 
-        :param node: UUID or name of a node, to get only allocations for that
-                     node.
-        :param resource_class: Filter by requested resource class.
-        :param state: Filter by allocation state.
-        :param marker: pagination marker for large data sets.
-        :param limit: maximum number of resources to return in a single result.
-                      This value cannot be larger than the value of max_limit
-                      in the [api] section of the ironic configuration, or only
-                      max_limit resources will be returned.
-        :param sort_key: column to sort results by. Default: id.
-        :param sort_dir: direction to sort. "asc" or "desc". Default: asc.
-        :param fields: Optional, a list with a specified set of fields
-                       of the resource to be returned.
-        :param owner: Filter by owner.
+        .. parameters:: ../../api-ref/source/parameters.yaml
+
+           :node: r_allocation_node
+           :resource_class: req_allocation_resource_class
+           :state: r_allocation_state
+           :marker: marker
+           :limit: limit
+           :sort_key: sort_key
+           :sort_dir: sort_dir
+           :fields: fields
+           :owner: r_owner
         """
         owner = api_utils.check_list_policy('allocation', owner)
 
@@ -291,9 +288,10 @@ class AllocationsController(pecan.rest.RestController):
     def get_one(self, allocation_ident, fields=None):
         """Retrieve information about the given allocation.
 
-        :param allocation_ident: UUID or logical name of an allocation.
-        :param fields: Optional, a list with a specified set of fields
-                       of the resource to be returned.
+        .. parameters:: ../../api-ref/source/parameters.yaml
+
+           :allocation_ident: allocation_ident
+           :fields: fields
         """
         rpc_allocation = api_utils.check_allocation_policy_and_retrieve(
             'baremetal:allocation:get', allocation_ident)
@@ -341,7 +339,9 @@ class AllocationsController(pecan.rest.RestController):
     def post(self, allocation):
         """Create a new allocation.
 
-        :param allocation: an allocation within the request body.
+        .. parameters:: ../../api-ref/source/parameters.yaml
+
+           :allocation: req_allocation_name
         """
         context = api.request.context
         cdict = context.to_policy_values()
@@ -472,8 +472,10 @@ class AllocationsController(pecan.rest.RestController):
     def patch(self, allocation_ident, patch):
         """Update an existing allocation.
 
-        :param allocation_ident: UUID or logical name of an allocation.
-        :param patch: a json PATCH document to apply to this allocation.
+        .. parameters:: ../../api-ref/source/parameters.yaml
+
+           :allocation_ident: allocation_ident
+           :patch: allocation_patch
         """
         if not api_utils.allow_allocation_update():
             raise webob_exc.HTTPMethodNotAllowed(_(
@@ -513,7 +515,9 @@ class AllocationsController(pecan.rest.RestController):
     def delete(self, allocation_ident):
         """Delete an allocation.
 
-        :param allocation_ident: UUID or logical name of an allocation.
+        .. parameters:: ../../api-ref/source/parameters.yaml
+
+           :allocation_ident: allocation_ident
         """
         context = api.request.context
         rpc_allocation = api_utils.check_allocation_policy_and_retrieve(
@@ -556,6 +560,12 @@ class NodeAllocationController(pecan.rest.RestController):
     @method.expose()
     @args.validate(fields=args.string_list)
     def get_all(self, fields=None):
+        """Get all allocations.
+
+        .. parameters:: ../../api-ref/source/parameters.yaml
+
+           :fields: fields
+        """
         parent_node = self.parent_node_ident
         result = self.inner._get_allocations_collection(
             parent_node,
@@ -572,6 +582,7 @@ class NodeAllocationController(pecan.rest.RestController):
     @METRICS.timer('NodeAllocationController.delete')
     @method.expose(status_code=http_client.NO_CONTENT)
     def delete(self):
+        """Delete an allocation."""
         context = api.request.context
 
         rpc_node = api_utils.get_rpc_node_with_suffix(self.parent_node_ident)

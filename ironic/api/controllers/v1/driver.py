@@ -225,7 +225,7 @@ class DriverPassthruController(rest.RestController):
         :param driver_name: name of the driver.
         :returns: dictionary with <vendor method name>:<method metadata>
                   entries.
-        :raises: DriverNotFound if the driver name is invalid or the
+        :raises DriverNotFound: if the driver name is invalid or the
                  driver cannot be loaded.
         """
         api_utils.check_policy('baremetal:driver:vendor_passthru')
@@ -272,15 +272,20 @@ class DriverRaidController(rest.RestController):
     def logical_disk_properties(self, driver_name):
         """Returns the logical disk properties for the driver.
 
-        :param driver_name: Name of the driver.
-        :returns: A dictionary containing the properties that can be mentioned
-            for logical disks and a textual description for them.
-        :raises: UnsupportedDriverExtension if the driver doesn't
-            support RAID configuration.
-        :raises: NotAcceptable, if requested version of the API is less than
-            1.12.
-        :raises: DriverNotFound, if driver is not loaded on any of the
-            conductors.
+        .. parameters:: ../../api-ref/source/parameters.yaml
+
+           :driver_name: Name of the driver.
+
+        .. return::
+
+           Success:
+           A dictionary containing the properties that can be mentioned
+
+           Failure:
+           :UnsupportedDriverExtension: If the driver doesn't support RAID
+                                        configuration.
+           :NotAcceptable: If requested version of the API is less than 1.12.
+           :DriverNotFound: If driver is not loaded on any of the conductors.
         """
         api_utils.check_policy(
             'baremetal:driver:get_raid_logical_disk_properties')
@@ -377,7 +382,7 @@ class DriversController(rest.RestController):
         :param driver_name: name of the driver.
         :returns: dictionary with <property name>:<property description>
                   entries.
-        :raises: DriverNotFound (HTTP 404) if the driver name is invalid or
+        :raises DriverNotFound (HTTP 404): if the driver name is invalid or
                  the driver cannot be loaded.
         """
         api_utils.check_policy('baremetal:driver:get_properties')
