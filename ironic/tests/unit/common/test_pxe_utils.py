@@ -128,6 +128,10 @@ class TestPXEUtils(db_base.DbTestCase):
             'boot_from_iso': True,
             'boot_iso_url': 'http://1.2.3.4:1234/uuid/iso'
         })
+        self.ipxe_options_boot_from_ramdisk = self.ipxe_options.copy()
+        self.ipxe_options_boot_from_ramdisk.update({
+            'ramdisk_kernel_arguments': 'ramdisk_params'
+        })
 
         self.node = object_utils.create_test_node(self.context)
 
@@ -286,6 +290,27 @@ class TestPXEUtils(db_base.DbTestCase):
 
         templ_file = 'ironic/tests/unit/drivers/' \
                      'ipxe_config_boot_from_iso.template'
+        with open(templ_file) as f:
+            expected_template = f.read().rstrip()
+        self.assertEqual(str(expected_template), rendered_template)
+
+    def test_default_ipxe_boot_from_ramdisk(self):
+        self.config(
+            pxe_config_template='ironic/drivers/modules/ipxe_config.template',
+            group='pxe'
+        )
+        self.config(http_url='http://1.2.3.4:1234', group='deploy')
+
+        pxe_options = self.ipxe_options_boot_from_ramdisk
+
+        rendered_template = utils.render_template(
+            CONF.pxe.pxe_config_template,
+            {'pxe_options': pxe_options,
+             'ROOT': '{{ ROOT }}'},
+        )
+
+        templ_file = 'ironic/tests/unit/drivers/' \
+                     'ipxe_config_boot_from_ramdisk.template'
         with open(templ_file) as f:
             expected_template = f.read().rstrip()
         self.assertEqual(str(expected_template), rendered_template)
@@ -1571,7 +1596,8 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                                            whle_dsk_img=False,
                                            debug=False, mode='deploy',
                                            ramdisk_params=None,
-                                           expected_pxe_params=None):
+                                           expected_pxe_params=None,
+                                           ramdisk_kernel_opt=None):
         self.config(debug=debug)
         self.config(kernel_append_params='test_param', group='pxe')
 
@@ -1633,6 +1659,8 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
             'ari_path': ramdisk,
             'aki_path': kernel,
         }
+        if ramdisk_kernel_opt:
+            expected_options.update({'ramdisk_opts': ramdisk_kernel_opt})
 
         if mode == 'rescue':
             self.node.provision_state = states.RESCUING
@@ -1657,6 +1685,10 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
     def test_build_pxe_config_options_ipa_debug_rescue(self):
         del self.node.driver_internal_info['is_whole_disk_image']
         self._test_build_pxe_config_options_pxe(debug=True, mode='rescue')
+
+    def test_build_pxe_config_options_pxe_opts_ramdisk_opt(self):
+        self.node.instance_info = {'ramdisk_kernel_arguments': 'cat meow'}
+        self._test_build_pxe_config_options_pxe(ramdisk_kernel_opt='cat meow')
 
     def test_build_pxe_config_options_pxe_local_boot(self):
         del self.node.driver_internal_info['is_whole_disk_image']
