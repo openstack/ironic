@@ -16,9 +16,7 @@
         - ironic-tempest-functional-python3
         - ironic-tempest-functional-rbac-scope-enforced
         - ironic-grenade
-        # Disabled to un-break the CI, revert ASAP
-        - ironic-standalone:
-            voting: false
+        - ironic-standalone
         - ironic-standalone-redfish
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
@@ -64,8 +62,7 @@
         - ironic-tempest-functional-python3
         - ironic-tempest-functional-rbac-scope-enforced
         - ironic-grenade
-        # Disabled to un-break the CI, revert ASAP
-        # - ironic-standalone
+        - ironic-standalone
         - ironic-standalone-redfish
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
