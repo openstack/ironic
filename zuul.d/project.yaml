@@ -39,8 +39,6 @@
     experimental:
       jobs:
         - ironic-dsvm-functional
-        - ironic-tempest-dsvm-parallel
-        - ironic-tempest-dsvm-pxe_ipa-full
     post:
       jobs:
         - openstack-tox-cover

@@ -126,26 +126,6 @@
       - openstack/ironic-python-agent
 
 - job:
-    name: ironic-tempest-dsvm-parallel
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-parallel/run.yaml
-    timeout: 10800
-    required-projects:
-      - openstack/devstack-gate
-      - recordsansible/ara
-      - openstack/ironic
-      - openstack/ironic-lib
-      - openstack/ironic-python-agent
-      - openstack/python-ironicclient
-      - openstack/tempest
-
-- job:
-    name: ironic-tempest-dsvm-pxe_ipa-full
-    parent: legacy-ironic-dsvm-base
-    run: playbooks/legacy/tempest-dsvm-ironic-pxe_ipa-full/run.yaml
-    timeout: 9600
-
-- job:
     name: ironic-tempest-dsvm-functional-python2
     parent: legacy-ironic-dsvm-base
     run: playbooks/legacy/tempest-dsvm-ironic-functional-python2/run.yaml
