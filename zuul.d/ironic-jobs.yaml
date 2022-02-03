@@ -337,21 +337,21 @@
         IRONIC_BOOT_MODE: bios
 
 - job:
-    name: ironic-tempest-ipa-partition-uefi-pxe_ipmitool
-    description: ironic-tempest-ipa-partition-uefi-pxe_ipmitool
+    name: ironic-tempest-partition-uefi-ipmi-pxe
+    description: IPMI power, UEFI, netboot, partition image.
     parent: ironic-base
     vars:
       devstack_localrc:
-        IRONIC_VM_SPECS_RAM: 4096
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEFAULT_BOOT_OPTION: netboot
 
 - job:
-    name: ironic-tempest-ipa-partition-pxe_ipmitool
-    description: ironic-tempest-ipa-partition-pxe_ipmitool that also tests cleaning.
+    name: ironic-tempest-partition-bios-ipmi-pxe
+    description: IPMI power, legacy BIOS, netboot, partition image and cleaning.
     parent: ironic-base
     vars:
       devstack_localrc:
+        IRONIC_BOOT_MODE: bios
         IRONIC_DEFAULT_BOOT_OPTION: netboot
         IRONIC_AUTOMATED_CLEAN_ENABLED: True
 
