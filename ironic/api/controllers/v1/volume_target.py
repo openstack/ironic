@@ -95,7 +95,7 @@ def convert_with_links(rpc_target, fields=None, sanitize=True):
     return target
 
 
-def list_convert_with_links(rpc_targets, limit, url=None, fields=None,
+def list_convert_with_links(rpc_targets, limit, url, fields=None,
                             detail=None, **kwargs):
     if detail:
         kwargs['detail'] = detail

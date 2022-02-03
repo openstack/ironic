@@ -194,7 +194,8 @@ class TestPortsController__GetPortsCollection(base.TestCase):
         mock_request.context = 'fake-context'
         mock_list.return_value = []
         self.controller._get_ports_collection(None, None, None, None, None,
-                                              None, 'asc')
+                                              None, 'asc',
+                                              resource_url='ports')
         mock_list.assert_called_once_with('fake-context', 1000, None,
                                           project=None, sort_dir='asc',
                                           sort_key=None)
@@ -1104,7 +1105,7 @@ class TestListPorts(test_api_base.BaseApiTest):
                        autospec=True)
     def test_detail_with_incorrect_api_usage(self, mock_gpc):
         mock_gpc.return_value = api_port.list_convert_with_links(
-            [], 0)
+            [], 0, 'port')
         # GET /v1/ports/detail specifying node and node_uuid.  In this case
         # we expect the node_uuid interface to be used.
         self.get_json('/ports/detail?node=%s&node_uuid=%s' %
