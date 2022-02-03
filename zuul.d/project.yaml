@@ -2,13 +2,11 @@
     templates:
       - openstack-python-jobs
       - openstack-python35-jobs
-      - publish-openstack-sphinx-docs
       - periodic-stable-jobs
       - check-requirements
       - release-notes-jobs
     check:
       jobs:
-        - ironic-dsvm-standalone
         - ironic-tempest-dsvm-bfv
         - ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
@@ -27,7 +25,6 @@
     gate:
       queue: ironic
       jobs:
-        - ironic-dsvm-standalone
         - ironic-tempest-dsvm-bfv
         - ironic-tempest-dsvm-ipa-partition-pxe_ipmitool-tinyipa-python3
         - ironic-tempest-dsvm-ipa-partition-redfish-tinyipa
@@ -39,8 +36,6 @@
       jobs:
         - ironic-dsvm-functional
         - ironic-tempest-dsvm-ipa-resourceclasses-partition-pxe_ipmitool-tinyipa
-        - ironic-tempest-dsvm-parallel
-        - ironic-tempest-dsvm-pxe_ipa-full
     post:
       jobs:
         - openstack-tox-cover
