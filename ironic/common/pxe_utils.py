@@ -954,6 +954,7 @@ def build_kickstart_config_options(task):
         node.uuid
     )
     params['heartbeat_url'] = heartbeat_url
+    params['config_drive'] = ks_utils.prepare_config_drive(task)
     return {'ks_options': params}
 
 
@@ -1064,6 +1065,7 @@ def validate_kickstart_template(ks_template):
     """
     ks_options = {'liveimg_url': 'fake_image_url',
                   'agent_token': 'fake_token',
+                  'config_drive': '',
                   'heartbeat_url': 'fake_heartbeat_url'}
     params = {'ks_options': ks_options}
     try:
@@ -1182,9 +1184,6 @@ def prepare_instance_kickstart_config(task, image_info, anaconda_boot=False):
     ks_options = build_kickstart_config_options(task)
     kickstart_template = image_info['ks_template'][1]
     ks_cfg = utils.render_template(kickstart_template, ks_options)
-    ks_config_drive = ks_utils.prepare_config_drive(task)
-    if ks_config_drive:
-        ks_cfg = ks_cfg + ks_config_drive
     utils.write_to_file(image_info['ks_cfg'][1], ks_cfg)
 
 
