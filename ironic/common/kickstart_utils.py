@@ -55,7 +55,7 @@ def _get_config_drive_dict_from_iso(
                 iso_path=iso_file_path, outfp=b_buf
             )
             b_buf.seek(0)
-            content = b"\n".join(b_buf.readlines()).decode('utf-8')
+            content = b"".join(b_buf.readlines()).decode('utf-8')
             drive_dict[target_file_path] = content
 
 
@@ -113,8 +113,7 @@ def _fetch_config_drive_from_url(url):
             "Can't download the configdrive content from '%(url)s'. "
             "Reason: %(reason)s" %
             {'url': url, 'reason': e})
-    config_drive_iso = decode_and_extract_config_drive_iso(config_drive)
-    return read_iso9600_config_drive(config_drive_iso)
+    return config_drive
 
 
 def _write_config_drive_content(content, file_path):
@@ -152,9 +151,14 @@ def prepare_config_drive(task,
     if not config_drive:
         return ks_config_drive
 
-    if not isinstance(config_drive, dict) and \
-            ironic_utils.is_http_url(config_drive):
+    if ironic_utils.is_http_url(config_drive):
         config_drive = _fetch_config_drive_from_url(config_drive)
+
+    if not isinstance(config_drive, dict):
+        # The config drive is in iso6600 format, gzipped and base-64-encoded.
+        # Convert it to a dict.
+        config_drive_iso = decode_and_extract_config_drive_iso(config_drive)
+        config_drive = read_iso9600_config_drive(config_drive_iso)
 
     for key in sorted(config_drive.keys()):
         target_path = os.path.join(config_drive_path, key)
