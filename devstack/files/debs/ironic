@@ -17,6 +17,7 @@ ipxe
 ipxe-qemu
 isolinux
 jq
+kpartx
 libguestfs-tools
 libguestfs0
 libvirt-bin # dist:bionic

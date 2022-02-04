@@ -8,7 +8,8 @@
     post-run: playbooks/ci-workarounds/get_extra_logging.yaml
     timeout: 10800
     required-projects:
-      - opendev.org/openstack/ironic
+      - name: opendev.org/openstack/ironic
+        override-checkout: bugfix/18.1
       - name: opendev.org/openstack/ironic-python-agent
         override-checkout: bugfix/8.1
       - opendev.org/openstack/ironic-python-agent-builder
@@ -235,6 +236,7 @@
     vars:
       devstack_localrc:
         IRONIC_BOOT_MODE: uefi
+        IRONIC_DEFAULT_BOOT_OPTION: local
         IRONIC_ENABLED_BOOT_INTERFACES: redfish-virtual-media
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
@@ -261,6 +263,7 @@
       tempest_test_regex: test_baremetal_introspection
       devstack_localrc:
         IRONIC_BOOT_MODE: bios
+        IRONIC_DEFAULT_BOOT_OPTION: netboot
         IRONIC_INSPECTOR_MANAGED_BOOT: True
         IRONIC_INSPECTOR_NODE_NOT_FOUND_HOOK: ''
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
@@ -328,7 +331,6 @@
         IRONIC_BOOT_MODE: uefi
         IRONIC_VM_SPECS_RAM: 4096
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
-        IRONIC_DEFAULT_BOOT_OPTION: netboot
 
 - job:
     name: ironic-tempest-ipa-partition-pxe_ipmitool
@@ -336,6 +338,7 @@
     parent: ironic-base
     vars:
       devstack_localrc:
+        IRONIC_BOOT_MODE: bios
         IRONIC_DEFAULT_BOOT_OPTION: netboot
         IRONIC_AUTOMATED_CLEAN_ENABLED: True
 
@@ -668,7 +671,6 @@
         IRONIC_BOOT_MODE: uefi
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
-        IRONIC_DEFAULT_BOOT_OPTION: netboot
         IRONIC_VM_SPECS_RAM: 4096
 
 - job:
