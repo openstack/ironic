@@ -2877,6 +2877,44 @@ function build_ipa_dib_ramdisk {
     rm -rf $tempdir
 }
 
+function upload_image_if_needed {
+    if [[ "$IRONIC_PARTITIONED_IMAGE_NAME" =~ cirros ]] \
+            && [[ "$IRONIC_DEFAULT_BOOT_OPTION" == local ]] \
+            && is_service_enabled glance; then
+        echo Building a Cirros image suitable for local boot
+
+        local dest
+        IRONIC_PARTITIONED_IMAGE_NAME=cirros-${CIRROS_VERSION}-x86_64-partition
+        dest="$IRONIC_DATA_DIR/$IRONIC_PARTITIONED_IMAGE_NAME.img"
+
+        # Export some variables that the script is using.
+        CIRROS_ARCH=$CIRROS_ARCH CIRROS_VERSION=$CIRROS_VERSION \
+            IRONIC_TTY_DEV=$IRONIC_TTY_DEV VERBOSE=$VERBOSE \
+            $IRONIC_SCRIPTS_DIR/cirros-partition.sh "$dest"
+
+        # TODO(dtantsur): stop uploading kernel/ramdisk when image_type support
+        # lands.
+        local kernel_id
+        kernel_id=$(openstack image list -f value -c ID -c Name \
+            | awk '/cirros.*kernel/ { print $1; exit 0; }')
+        die_if_not_set $LINENO kernel_id "Cannot find cirros kernel"
+
+        local ramdisk_id
+        ramdisk_id=$(openstack image list -f value -c ID -c Name \
+            | awk '/cirros.*ramdisk/ { print $1; exit 0; }')
+        die_if_not_set $LINENO ramdisk_id "Cannot find cirros ramdisk"
+
+        openstack image create $IRONIC_PARTITIONED_IMAGE_NAME \
+            --public --disk-format raw --container-format bare \
+            --property kernel_id=$kernel_id --property ramdisk_id=$ramdisk_id \
+            --file "$dest"
+
+        if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" != True ]]; then
+            IRONIC_IMAGE_NAME=$IRONIC_PARTITIONED_IMAGE_NAME
+        fi
+    fi
+}
+
 # download EFI boot loader image and upload it to glance
 # this function sets ``IRONIC_EFIBOOT_ID``
 function upload_baremetal_ironic_efiboot {
@@ -3055,6 +3093,8 @@ function prepare_baremetal_basic_ops {
         upload_baremetal_ironic_efiboot
     fi
 
+    upload_image_if_needed
+
     configure_tftpd
     configure_iptables
 }
@@ -3177,6 +3217,13 @@ function ironic_configure_tempest {
         iniset $TEMPEST_CONFIG baremetal partition_image_ref $image_uuid
     fi
 
+    # Our cirros images cannot do local boot in legacy mode.
+    if [[ "${IRONIC_PARTITIONED_IMAGE_NAME}" =~ cirros && "${IRONIC_BOOT_MODE}" == "bios" ]]; then
+        iniset $TEMPEST_CONFIG baremetal partition_netboot True
+    else
+        iniset $TEMPEST_CONFIG baremetal partition_netboot False
+    fi
+
     if [[ "$IRONIC_IP_VERSION" == "6" ]]; then
         iniset $TEMPEST_CONFIG baremetal whole_disk_image_url "http://$IRONIC_HOST_IPV6:$IRONIC_HTTP_PORT/${IRONIC_WHOLEDISK_IMAGE_NAME}.img"
     else
@@ -3198,6 +3245,8 @@ function ironic_configure_tempest {
     iniset $TEMPEST_CONFIG baremetal default_rescue_interface $IRONIC_DEFAULT_RESCUE_INTERFACE
     # Driver for API tests
     iniset $TEMPEST_CONFIG baremetal driver fake-hardware
+
+    iniset $TEMPEST_CONFIG baremetal default_boot_option $IRONIC_DEFAULT_BOOT_OPTION
 
     local adjusted_root_disk_size_gb
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then
