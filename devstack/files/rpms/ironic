@@ -3,6 +3,7 @@ ipmitool
 iptables
 ipxe-bootimgs
 gnupg
+kpartx
 libguestfs
 libguestfs-tools
 libvirt
