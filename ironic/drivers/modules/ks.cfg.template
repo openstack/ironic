@@ -27,7 +27,16 @@ liveimg --url {{ ks_options.liveimg_url }}
 /usr/bin/curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -H 'X-OpenStack-Ironic-API-Version: 1.72' -d '{"callback_url": "", "agent_token": "{{ ks_options.agent_token }}", "agent_status": "error", "agent_status_message": "Error: Deploying using anaconda. Check console for more information."}' {{ ks_options.heartbeat_url }}
 %end
 
-# Sending callback after the installation is mandatory
+# Config-drive information, if any.
+{{ ks_options.config_drive }}
+
+# Sending callback after the installation is mandatory.
+# This ought to be the last thing done; otherwise the
+# ironic-conductor could reboot the node before anaconda
+# finishes executing everything in this file.
+# The sync makes sure that the data is flushed out to disk,
+# before rebooting.
 %post
+sync
 /usr/bin/curl -X POST -H 'Content-Type: application/json' -H 'Accept: application/json' -H 'X-OpenStack-Ironic-API-Version: 1.72' -d '{"callback_url": "", "agent_token": "{{ ks_options.agent_token }}", "agent_status": "end", "agent_status_message": "Deployment completed successfully."}' {{ ks_options.heartbeat_url }}
 %end

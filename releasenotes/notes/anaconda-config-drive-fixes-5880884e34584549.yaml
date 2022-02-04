@@ -1,0 +1,19 @@
+---
+fixes:
+  - |
+    The anaconda deploy interface was treating the config drive
+    as a dict, whereas it could be a dict or in iso6600 format,
+    gzipped and base64-encoded. This has been fixed.
+  - |
+    The anaconda deploy interface was adding commands that deal with the
+    config drive, to the end of the kickstart config file. Which means
+    that they are handled after an ironic API request is sent (to the
+    conductor) to indicate that the node has been provisioned and is
+    ready to be rebooted. Which means that there is a possible race condition
+    wrt these commands being completed before the node is powered off.
+    A sync is added to ensure that all modifications have been written
+    to disk, before the API request is sent -- as the last thing.
+  - |
+    Extra newlines ('\n') were incorrectly added to the user data content.
+    This broke the content-type decoding and cloud-init was unable to
+    proces them. The extra newlines have been removed.
