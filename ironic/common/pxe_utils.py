@@ -665,42 +665,52 @@ def get_instance_image_info(task, ipxe_enabled=False):
         return image_info
 
     labels = ('kernel', 'ramdisk')
+    image_properties = None
     d_info = deploy_utils.get_image_instance_info(node)
     if not (i_info.get('kernel') and i_info.get('ramdisk')):
+        # NOTE(rloo): If both are not specified in instance_info
+        # we won't use any of them. We'll use the values specified
+        # with the image, which we assume have been set.
         glance_service = service.GlanceImageService(context=ctx)
-        iproperties = glance_service.show(d_info['image_source'])['properties']
+        image_properties = glance_service.show(
+            d_info['image_source'])['properties']
         for label in labels:
-            i_info[label] = str(iproperties[label + '_id'])
+            i_info[label] = str(image_properties[label + '_id'])
         node.instance_info = i_info
         node.save()
 
     anaconda_labels = ()
     if deploy_utils.get_boot_option(node) == 'kickstart':
-        # stage2  - Installer stage2 squashfs image
-        # ks_template - Anaconda kickstart template
+        # stage2: installer stage2 squashfs image
+        # ks_template: anaconda kickstart template
         # ks_cfg - rendered ks_template
         anaconda_labels = ('stage2', 'ks_template', 'ks_cfg')
-        if not (i_info.get('stage2') and i_info.get('ks_template')):
-            iproperties = glance_service.show(
-                d_info['image_source']
-            )['properties']
-            for label in anaconda_labels:
+        if not i_info.get('stage2') or not i_info.get('ks_template'):
+            if not image_properties:
+                glance_service = service.GlanceImageService(context=ctx)
+                image_properties = glance_service.show(
+                    d_info['image_source'])['properties']
+            if not i_info.get('ks_template'):
                 # ks_template is an optional property on the image
-                if (label == 'ks_template'
-                        and not iproperties.get('ks_template')):
-                    i_info[label] = CONF.anaconda.default_ks_template
-                elif label == 'ks_cfg':
-                    i_info[label] = ''
-                elif label == 'stage2' and 'stage2_id' not in iproperties:
-                    msg = ("stage2_id property missing on the image. "
-                           "The anaconda deploy interface requires stage2_id "
-                           "property to be associated with the os image. ")
+                if 'ks_template' not in image_properties:
+                    i_info['ks_template'] = CONF.anaconda.default_ks_template
+                else:
+                    i_info['ks_template'] = str(
+                        image_properties['ks_template'])
+            if not i_info.get('stage2'):
+                if 'stage2_id' not in image_properties:
+                    msg = ("'stage2_id' property is missing from the OS image "
+                           "%s. The anaconda deploy interface requires this "
+                           "to be set with the OS image or in instance_info. "
+                           % d_info['image_source'])
                     raise exception.ImageUnacceptable(msg)
                 else:
-                    i_info[label] = str(iproperties['stage2_id'])
+                    i_info['stage2'] = str(image_properties['stage2_id'])
+        # NOTE(rloo): This is internally generated; cannot be specified.
+        i_info['ks_cfg'] = ''
 
-            node.instance_info = i_info
-            node.save()
+        node.instance_info = i_info
+        node.save()
 
     for label in labels + anaconda_labels:
         image_info[label] = (
@@ -1087,16 +1097,17 @@ def validate_kickstart_file(ks_cfg):
         return
 
     with tempfile.NamedTemporaryFile(
-            dir=CONF.tempdir, suffix='.cfg') as ks_file:
-        ks_file.writelines(ks_cfg)
+            dir=CONF.tempdir, suffix='.cfg', mode='wt') as ks_file:
+        ks_file.write(ks_cfg)
+        ks_file.flush()
         try:
-            result = utils.execute(
+            utils.execute(
                 'ksvalidator', ks_file.name, check_on_exit=[0], attempts=1
             )
-        except processutils.ProcessExecutionError:
+        except processutils.ProcessExecutionError as e:
             msg = _(("The kickstart file generated does not pass validation. "
-                     "The ksvalidator tool returned following error(s): %s") %
-                    (result))
+                     "The ksvalidator tool returned the following error: %s") %
+                    (e))
             raise exception.InvalidKickstartFile(msg)
 
 
@@ -1193,17 +1204,14 @@ def cache_ramdisk_kernel(task, pxe_info, ipxe_enabled=False):
     else:
         path = os.path.join(CONF.pxe.tftp_root, node.uuid)
     ensure_tree(path)
-    # anconda deploy will have 'stage2' as one of the labels in pxe_info dict
+    # anaconda deploy will have 'stage2' as one of the labels in pxe_info dict
     if 'stage2' in pxe_info.keys():
-        # stage2  will be stored in ipxe http directory. So make sure they
-        # exist.
-        ensure_tree(
-            get_file_path_from_label(
-                node.uuid,
-                CONF.deploy.http_root,
-                'stage2'
-            )
-        )
+        # stage2 will be stored in ipxe http directory so make sure the
+        # directory exists.
+        file_path = get_file_path_from_label(node.uuid,
+                                             CONF.deploy.http_root,
+                                             'stage2')
+        ensure_tree(os.path.dirname(file_path))
         # ks_cfg is rendered later by the driver using ks_template. It cannot
         # be fetched and cached.
         t_pxe_info.pop('ks_cfg')

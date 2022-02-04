@@ -1022,15 +1022,23 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
             mock_prepare_ks_config.assert_called_once_with(task, image_info,
                                                            anaconda_boot=True)
 
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
-    def test_prepare(self, mock_prepare_instance):
+    def test_prepare(self, mock_prepare_instance, mock_build_instance):
+
         node = self.node
         node.provision_state = states.DEPLOYING
         node.instance_info = {}
         node.save()
+        updated_instance_info = {'image_url': 'foo'}
+        mock_build_instance.return_value = updated_instance_info
         with task_manager.acquire(self.context, node.uuid) as task:
             task.driver.deploy.prepare(task)
             self.assertFalse(mock_prepare_instance.called)
+            mock_build_instance.assert_called_once_with(task)
+            node.refresh()
+            self.assertEqual(updated_instance_info, node.instance_info)
 
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
     def test_prepare_active(self, mock_prepare_instance):
