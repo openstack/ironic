@@ -67,7 +67,7 @@ def main():
     issue_startup_warnings(CONF)
 
     launcher = service.launch(CONF, mgr, restart_method='mutate')
-    launcher.wait()
+    sys.exit(launcher.wait())
 
 
 if __name__ == '__main__':
