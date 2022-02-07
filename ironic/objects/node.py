@@ -729,6 +729,18 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         self.set_driver_internal_info(key, timeutils.utcnow().isoformat())
 
+    def set_instance_info(self, key, value):
+        """Set an `instance_info` value.
+
+        Setting a `instance_info` dict value via this method ensures that this
+        field will be flagged for saving.
+
+        :param key: Key of item to set
+        :param value: Value of item to set
+        """
+        self.instance_info[key] = value
+        self._changed_fields.add('instance_info')
+
 
 @base.IronicObjectRegistry.register
 class NodePayload(notification.NotificationPayloadBase):

@@ -100,19 +100,18 @@ You need to specify image information in the node's ``instance_info``
      $ cd /path/to/http/root
      $ md5sum *.img > checksums
 
-* ``kernel``, ``ramdisk`` - HTTP(s) or file URLs of the kernel and
-  initramfs of the target OS. Must be added **only** for partition images.
-  Supports the same schemes as ``image_source``.
+* ``kernel``, ``ramdisk`` - HTTP(s) or file URLs of the kernel and initramfs of
+  the target OS. Must be added **only** for partition images and only if
+  network boot is required.  Supports the same schemes as ``image_source``.
 
-An example for a partition image:
+An example for a partition image with local boot:
 
 .. code-block:: shell
 
  baremetal node set $NODE_UUID \
      --instance-info image_source=http://image.server/my-image.qcow2 \
      --instance-info image_checksum=1f9c0e1bad977a954ba40928c1e11f33 \
-     --instance-info kernel=http://image.server/my-image.kernel \
-     --instance-info ramdisk=http://image.server/my-image.initramfs \
+     --instance-info image_type=partition \
      --instance-info root_gb=10
 
 With a SHA256 hash:
@@ -123,6 +122,17 @@ With a SHA256 hash:
      --instance-info image_source=http://image.server/my-image.qcow2 \
      --instance-info image_os_hash_algo=sha256 \
      --instance-info image_os_hash_value=a64dd95e0c48e61ed741ff026d8c89ca38a51f3799955097c5123b1705ef13d4 \
+     --instance-info image_type=partition \
+     --instance-info root_gb=10
+
+If you use network boot (or Ironic before Yoga), two more fields must be set:
+
+.. code-block:: shell
+
+ baremetal node set $NODE_UUID \
+     --instance-info image_source=http://image.server/my-image.qcow2 \
+     --instance-info image_checksum=1f9c0e1bad977a954ba40928c1e11f33 \
+     --instance-info image_type=partition \
      --instance-info kernel=http://image.server/my-image.kernel \
      --instance-info ramdisk=http://image.server/my-image.initramfs \
      --instance-info root_gb=10

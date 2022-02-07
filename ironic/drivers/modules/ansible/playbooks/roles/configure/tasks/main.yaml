@@ -1,4 +1,4 @@
 - import_tasks: mounts.yaml
-  when: ironic.image.type | default('whole-disk-image') == 'partition'
+  when: ironic.image.type | default('whole-disk') == 'partition'
 - import_tasks: grub.yaml
-  when: ironic.image.type | default('whole-disk-image') == 'partition'
+  when: ironic.image.type | default('whole-disk') == 'partition'

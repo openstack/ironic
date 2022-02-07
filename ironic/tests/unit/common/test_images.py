@@ -218,6 +218,18 @@ class IronicImagesTestCase(base.TestCase):
 
     @mock.patch.object(images, 'get_image_properties', autospec=True)
     @mock.patch.object(glance_utils, 'is_glance_image', autospec=True)
+    def test_is_whole_disk_image_explicit(self, mock_igi, mock_gip):
+        for value, result in [(images.IMAGE_TYPE_PARTITION, False),
+                              (images.IMAGE_TYPE_WHOLE_DISK, True)]:
+            instance_info = {'image_source': 'glance://partition_image',
+                             'image_type': value}
+            iwdi = images.is_whole_disk_image('context', instance_info)
+            self.assertIs(iwdi, result)
+            self.assertFalse(mock_igi.called)
+            self.assertFalse(mock_gip.called)
+
+    @mock.patch.object(images, 'get_image_properties', autospec=True)
+    @mock.patch.object(glance_utils, 'is_glance_image', autospec=True)
     def test_is_whole_disk_image_partition_image(self, mock_igi, mock_gip):
         mock_igi.return_value = True
         mock_gip.return_value = {'kernel_id': 'kernel',

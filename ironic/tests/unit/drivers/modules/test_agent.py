@@ -692,6 +692,15 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                 task.driver.boot, task)
             validate_http_mock.assert_called_once_with(task.node)
 
+    def test_validate_invalid_image_type(self):
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.instance_info['image_source'] = 'http://image-ref'
+            task.node.instance_info['image_type'] = 'passport photo'
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   'passport photo',
+                                   self.driver.validate, task)
+
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
     @mock.patch.object(deploy_utils, 'check_for_missing_params',
                        autospec=True)

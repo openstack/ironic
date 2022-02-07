@@ -56,7 +56,6 @@ from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import faults
 from ironic.common.i18n import _
-from ironic.common import images
 from ironic.common import network
 from ironic.common import nova
 from ironic.common import states
@@ -1711,10 +1710,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # being triggered, as such we need to populate the
             # internal info based on the configuration the user has
             # supplied.
-            iwdi = images.is_whole_disk_image(task.context,
-                                              task.node.instance_info)
-            if iwdi is not None:
-                node.set_driver_internal_info('is_whole_disk_image', iwdi)
+            utils.update_image_type(task.context, task.node)
             if deploy_utils.get_boot_option(node) != 'local':
                 # Calling boot validate to ensure that sufficient information
                 # is supplied to allow the node to be able to boot if takeover
@@ -1894,9 +1890,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             # the meantime, we don't know if the is_whole_disk_image value will
             # change or not. It isn't saved to the DB, but only used with this
             # node instance for the current validations.
-            iwdi = images.is_whole_disk_image(context,
-                                              task.node.instance_info)
-            task.node.set_driver_internal_info('is_whole_disk_image', iwdi)
+            utils.update_image_type(context, task.node)
             for iface_name in task.driver.non_vendor_interfaces:
                 iface = getattr(task.driver, iface_name)
                 result = reason = None
