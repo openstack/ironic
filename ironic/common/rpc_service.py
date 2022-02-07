@@ -15,6 +15,8 @@
 # under the License.
 
 import signal
+import sys
+import time
 
 from ironic_lib.json_rpc import server as json_rpc
 from oslo_config import cfg
@@ -42,9 +44,29 @@ class RPCService(service.Service):
         self.topic = self.manager.topic
         self.rpcserver = None
         self.deregister = True
+        self._failure = None
+        self._started = False
+
+    def wait_for_start(self):
+        while not self._started and not self._failure:
+            time.sleep(0.1)
+        if self._failure:
+            LOG.critical(self._failure)
+            sys.exit(self._failure)
 
     def start(self):
+        self._failure = None
+        self._started = False
         super(RPCService, self).start()
+        try:
+            self._real_start()
+        except Exception as exc:
+            self._failure = f"{exc.__class__.__name__}: {exc}"
+            raise
+        else:
+            self._started = True
+
+    def _real_start(self):
         admin_context = context.get_admin_context()
 
         serializer = objects_base.IronicObjectSerializer(is_server=True)
