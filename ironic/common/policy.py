@@ -1862,7 +1862,7 @@ def authorize(rule, target, creds, *args, **kwargs):
         return enforcer.authorize(rule, target, creds, do_raise=True,
                                   *args, **kwargs)
     except policy.PolicyNotAuthorized as e:
-        LOG.error('Rejecting authorzation: %(error)s',
+        LOG.error('Rejecting authorization: %(error)s',
                   {'error': e})
         raise exception.HTTPForbidden(resource=rule)
 
