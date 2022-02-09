@@ -116,6 +116,7 @@ def _assess_db_object_and_api_performance(mock_log, mock_request):
     total_nodes = 0
 
     res = node_api_controller._get_nodes_collection(
+        resource_url='nodes',
         chassis_uuid=None,
         instance_uuid=None,
         associated=None,
@@ -132,6 +133,7 @@ def _assess_db_object_and_api_performance(mock_log, mock_request):
         print(" ** Getting nodes ** %s Elapsed: %s seconds." %
               (total_nodes, _calculate_delta(start, time.time())))
         res = node_api_controller._get_nodes_collection(
+            resource_url='nodes',
             chassis_uuid=None,
             instance_uuid=None,
             associated=None,
