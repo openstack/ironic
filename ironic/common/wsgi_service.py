@@ -10,6 +10,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import socket
+
+from ironic_lib import utils as il_utils
 from oslo_concurrency import processutils
 from oslo_service import service
 from oslo_service import wsgi
@@ -46,10 +49,18 @@ class WSGIService(service.ServiceBase):
                 _("api_workers value of %d is invalid, "
                   "must be greater than 0.") % self.workers)
 
-        self.server = wsgi.Server(CONF, name, self.app,
-                                  host=CONF.api.host_ip,
-                                  port=CONF.api.port,
-                                  use_ssl=use_ssl)
+        if CONF.api.unix_socket:
+            il_utils.unlink_without_raise(CONF.api.unix_socket)
+            self.server = wsgi.Server(CONF, name, self.app,
+                                      socket_family=socket.AF_UNIX,
+                                      socket_file=CONF.api.unix_socket,
+                                      socket_mode=CONF.api.unix_socket_mode,
+                                      use_ssl=use_ssl)
+        else:
+            self.server = wsgi.Server(CONF, name, self.app,
+                                      host=CONF.api.host_ip,
+                                      port=CONF.api.port,
+                                      use_ssl=use_ssl)
 
     def start(self):
         """Start serving this service using loaded configuration.
@@ -64,6 +75,8 @@ class WSGIService(service.ServiceBase):
         :returns: None
         """
         self.server.stop()
+        if CONF.api.unix_socket:
+            il_utils.unlink_without_raise(CONF.unix_socket)
 
     def wait(self):
         """Wait for the service to stop serving this API.
