@@ -604,12 +604,6 @@ def validate_image_properties(task, deploy_info):
             "%(properties)s") % {'image': image_href, 'properties': props})
 
 
-def get_default_boot_option():
-    """Gets the default boot option."""
-    # TODO(TheJulia): Deprecated: Remove after Ussuri.
-    return CONF.deploy.default_boot_option
-
-
 def get_boot_option(node):
     """Gets the boot option.
 

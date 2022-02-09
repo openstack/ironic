@@ -505,6 +505,11 @@ class AgentDeploy(CustomAgentDeploy):
         validate_http_provisioning_configuration(node)
         validate_image_proxies(node)
 
+        capabilities = utils.parse_instance_info_capabilities(node)
+        if 'boot_option' in capabilities:
+            LOG.warning("The boot_option capability has been deprecated, "
+                        "please unset it for node %s", node.uuid)
+
     @METRICS.timer('AgentDeployMixin.write_image')
     @base.deploy_step(priority=80)
     @task_manager.require_exclusive_lock

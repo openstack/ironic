@@ -1,0 +1,14 @@
+---
+deprecations:
+  - |
+    Booting final instances via network (as opposed to via a local bootloader)
+    is now deprecated, except for the cases of booting from volume or the
+    ramdisk deploy interface.
+
+    Network boot for whole disk images only works reliable for legacy (BIOS)
+    boot. In case of partition images, there is no way to update the kernel,
+    which makes this approach insecure.
+
+    Users of partition images must ensure that they either contain the
+    ``grub-install`` binary, enough EFI artifacts to boot the operating
+    system or a legacy boot partition.
