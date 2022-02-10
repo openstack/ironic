@@ -17,6 +17,7 @@
 import copy
 import os
 import tempfile
+from urllib import parse as urlparse
 
 from ironic_lib import utils as ironic_utils
 import jinja2
@@ -767,6 +768,7 @@ def build_deploy_pxe_options(task, pxe_info, mode='deploy',
     node = task.node
     kernel_label = '%s_kernel' % mode
     ramdisk_label = '%s_ramdisk' % mode
+    initrd_filename = ramdisk_label
     for label, option in ((kernel_label, 'deployment_aki_path'),
                           (ramdisk_label, 'deployment_ari_path')):
         if ipxe_enabled:
@@ -775,6 +777,10 @@ def build_deploy_pxe_options(task, pxe_info, mode='deploy',
                     and service_utils.is_glance_image(image_href)):
                 pxe_opts[option] = images.get_temp_url_for_glance_image(
                     task.context, image_href)
+                if label == ramdisk_label:
+                    path = urlparse.urlparse(pxe_opts[option]).path.strip('/')
+                    if path:
+                        initrd_filename = path.split('/')[-1]
             else:
                 pxe_opts[option] = '/'.join([CONF.deploy.http_url, node.uuid,
                                             label])
@@ -782,7 +788,7 @@ def build_deploy_pxe_options(task, pxe_info, mode='deploy',
             pxe_opts[option] = get_path_relative_to_tftp_root(
                 pxe_info[label][1])
     if ipxe_enabled:
-        pxe_opts['initrd_filename'] = ramdisk_label
+        pxe_opts['initrd_filename'] = initrd_filename
     return pxe_opts
 
 

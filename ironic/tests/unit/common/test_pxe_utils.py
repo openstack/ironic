@@ -1774,9 +1774,10 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
             self.config(ipxe_use_swift=True, group='pxe')
             glance = mock.Mock()
             glance_mock.return_value = glance
-            glance.swift_temp_url.side_effect = [
-                pxe_kernel, pxe_ramdisk] = [
-                'swift_kernel', 'swift_ramdisk']
+            glance.swift_temp_url.side_effect = [pxe_kernel, pxe_ramdisk] = [
+                'http://example.com/account/swift_kernel',
+                'http://example.com/account/swift_ramdisk'
+            ]
             image_info = {
                 kernel_label: (uuidutils.generate_uuid(),
                                os.path.join(root_dir,
@@ -1787,6 +1788,7 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                                              self.node.uuid,
                                              ramdisk_label))
             }
+            expected_initrd_filename = 'swift_ramdisk'
         else:
             pxe_kernel = os.path.join(http_url, self.node.uuid,
                                       kernel_label)
@@ -1802,6 +1804,7 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                                              self.node.uuid,
                                              ramdisk_label))
             }
+            expected_initrd_filename = ramdisk_label
 
         kernel = os.path.join(http_url, self.node.uuid, 'kernel')
         ramdisk = os.path.join(http_url, self.node.uuid, 'ramdisk')
@@ -1836,7 +1839,7 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
             'ipxe_timeout': ipxe_timeout_in_ms,
             'ari_path': ramdisk,
             'aki_path': kernel,
-            'initrd_filename': ramdisk_label,
+            'initrd_filename': expected_initrd_filename,
         }
 
         if mode == 'rescue':
