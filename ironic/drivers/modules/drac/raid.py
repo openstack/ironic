@@ -27,6 +27,7 @@ import tenacity
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import raid as raid_common
+from ironic.common import states
 from ironic.conductor import periodics
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
@@ -1171,6 +1172,13 @@ def _wait_till_realtime_ready(task):
     :raises RedfishError: If can't find OEM extension or it fails to
         execute
     """
+    # If running without IPA, check that system is ON, if not, turn it on
+    disable_ramdisk = task.node.driver_internal_info.get(
+        'cleaning_disable_ramdisk')
+    power_state = task.driver.power.get_power_state(task)
+    if disable_ramdisk and power_state == states.POWER_OFF:
+        task.driver.power.set_power_state(task, states.POWER_ON)
+
     try:
         _retry_till_realtime_ready(task)
     except tenacity.RetryError:
@@ -1238,7 +1246,7 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
             ),
             'required': False,
         }
-    })
+    }, requires_ramdisk=False)
     def create_configuration(self, task, create_root_volume=True,
                              create_nonroot_volumes=True,
                              delete_existing=False):
@@ -1267,7 +1275,7 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
             task, create_root_volume, create_nonroot_volumes,
             delete_existing)
 
-    @base.clean_step(priority=0)
+    @base.clean_step(priority=0, requires_ramdisk=False)
     @base.deploy_step(priority=0)
     def delete_configuration(self, task):
         """Delete RAID configuration on the node.

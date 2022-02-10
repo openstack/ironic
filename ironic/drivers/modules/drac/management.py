@@ -362,7 +362,8 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                                             **IMPORT_CONFIGURATION_ARGSINFO}
 
     @base.deploy_step(priority=0, argsinfo=EXPORT_CONFIGURATION_ARGSINFO)
-    @base.clean_step(priority=0, argsinfo=EXPORT_CONFIGURATION_ARGSINFO)
+    @base.clean_step(priority=0, argsinfo=EXPORT_CONFIGURATION_ARGSINFO,
+                     requires_ramdisk=False)
     def export_configuration(self, task, export_configuration_location):
         """Export the configuration of the server.
 
@@ -411,7 +412,8 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                        {'node': task.node.uuid}))
 
     @base.deploy_step(priority=0, argsinfo=IMPORT_CONFIGURATION_ARGSINFO)
-    @base.clean_step(priority=0, argsinfo=IMPORT_CONFIGURATION_ARGSINFO)
+    @base.clean_step(priority=0, argsinfo=IMPORT_CONFIGURATION_ARGSINFO,
+                     requires_ramdisk=False)
     def import_configuration(self, task, import_configuration_location):
         """Import and apply the configuration to the server.
 
@@ -457,7 +459,8 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
         return deploy_utils.reboot_to_finish_step(task)
 
     @base.clean_step(priority=0,
-                     argsinfo=IMPORT_EXPORT_CONFIGURATION_ARGSINFO)
+                     argsinfo=IMPORT_EXPORT_CONFIGURATION_ARGSINFO,
+                     requires_ramdisk=False)
     @base.deploy_step(priority=0,
                       argsinfo=IMPORT_EXPORT_CONFIGURATION_ARGSINFO)
     def import_export_configuration(self, task, import_configuration_location,
@@ -612,7 +615,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
 
     @METRICS.timer('DracRedfishManagement.clear_job_queue')
     @base.verify_step(priority=0)
-    @base.clean_step(priority=0)
+    @base.clean_step(priority=0, requires_ramdisk=False)
     def clear_job_queue(self, task):
         """Clear iDRAC job queue.
 
@@ -626,7 +629,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
 
     @METRICS.timer('DracRedfishManagement.reset_idrac')
     @base.verify_step(priority=0)
-    @base.clean_step(priority=0)
+    @base.clean_step(priority=0, requires_ramdisk=False)
     def reset_idrac(self, task):
         """Reset the iDRAC.
 
@@ -642,7 +645,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
 
     @METRICS.timer('DracRedfishManagement.known_good_state')
     @base.verify_step(priority=0)
-    @base.clean_step(priority=0)
+    @base.clean_step(priority=0, requires_ramdisk=False)
     def known_good_state(self, task):
         """Reset iDRAC to known good state.
 
