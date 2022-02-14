@@ -183,10 +183,13 @@ class HttpImageService(BaseImageService):
                 except ValueError:
                     continue
 
+        no_cache = 'no-store' in response.headers.get('Cache-Control', '')
+
         return {
             'size': int(image_size),
             'updated_at': date,
-            'properties': {}
+            'properties': {},
+            'no_cache': no_cache,
         }
 
 
@@ -259,7 +262,9 @@ class FileImageService(BaseImageService):
             'size': os.path.getsize(source_image_path),
             'updated_at': utils.unix_file_modification_datetime(
                 source_image_path),
-            'properties': {}
+            'properties': {},
+            # No point in caching local file images
+            'no_cache': True,
         }
 
 

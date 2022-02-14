@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    The image cache now respects the ``Cache-Control: no-store`` header
+    for HTTP(s) images.
+  - |
+    File images are no longer cached in the image cache to avoid unnecessary
+    consumption of the disk space.
