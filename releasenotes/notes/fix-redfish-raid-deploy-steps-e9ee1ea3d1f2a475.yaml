@@ -3,5 +3,5 @@ fixes:
   - |
     Fixes hardware type ``redfish`` RAID interface deploy steps when completion
     requires rebooting system for non-immediate configuration application.
-    Prior to this fix such nodes would remain in ``wait call-back`` state
+    Prior to this fix, such nodes would remain in ``wait call-back`` state
     indefinitely.
