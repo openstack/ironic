@@ -47,14 +47,14 @@ The description of each jobs that runs in the CI when you submit a patch for
       `pxe` boot and `snmp` driver.
       Runs tempest tests that match the regex
       `ironic_tempest_plugin.tests.scenario` and deploys 1 virtual baremetal.
-  * - ironic-tempest-ipa-partition-pxe_ipmitool
-    - Deploys Ironic in DevStack under Python3, configured to use dib
-      ramdisk partition image with `pxe` boot and `ipmi` driver.
+  * - ironic-tempest-partition-bios-ipmi-pxe
+    - Deploys Ironic in DevStack, configured to use dib ramdisk, a partition
+      image, `pxe` boot in legacy mode and `ipmi` hardware type.
       Runs tempest tests that match the regex
       `ironic_tempest_plugin.tests.scenario` and deploy 1 virtual baremetal.
-  * - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
-    - Deploys Ironic in DevStack, configured to use dib ramdisk partition
-      image with `uefi` boot and `ipmi` driver.
+  * - ironic-tempest-partition-uefi-ipmi-pxe
+    - Deploys Ironic in DevStack, configured to use dib ramdisk, a partition
+      image, `pxe` boot in UEFI mode and `ipmi` hardware type.
       Runs tempest tests that match the regex
       `ironic_tempest_plugin.tests.scenario`, also deploys 1 virtual
       baremetal.

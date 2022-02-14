@@ -21,8 +21,8 @@
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
-        - ironic-tempest-ipa-partition-pxe_ipmitool
-        - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
+        - ironic-tempest-partition-bios-ipmi-pxe
+        - ironic-tempest-partition-uefi-ipmi-pxe
         # NOTE(TheJulia) Marking multinode non-voting on 20210311
         # Due to a high failure rate on limestone where the compute1
         # machine never appears to be able to communicate across the
@@ -67,8 +67,8 @@
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
-        - ironic-tempest-ipa-partition-pxe_ipmitool
-        - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
+        - ironic-tempest-partition-bios-ipmi-pxe
+        - ironic-tempest-partition-uefi-ipmi-pxe
         # NOTE(TheJulia): Disabled multinode on 20210311 due to Limestone
         # seeming to be 
         # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
