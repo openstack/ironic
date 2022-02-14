@@ -235,14 +235,14 @@ For more information on node automated cleaning, see :ref:`automated_cleaning`
 
 Boot from Remote Volume
 ^^^^^^^^^^^^^^^^^^^^^^^
-The ``irmc`` hardware type supports the generic iPXE-based remote volume
+The ``irmc`` hardware type supports the generic PXE-based remote volume
 booting when using the following boot interfaces:
 
 * ``irmc-pxe``
 * ``pxe``
 
 In addition, the ``irmc`` hardware type supports remote volume booting without
-iPXE. This is available when using the ``irmc-virtual-media`` boot interface.
+PXE. This is available when using the ``irmc-virtual-media`` boot interface.
 This feature configures a node to boot from a remote volume by using the API
 of iRMC. It supports iSCSI and FibreChannel.
 
