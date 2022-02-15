@@ -32,7 +32,7 @@ stored in these fields.
 System Scoped
 =============
 
-System scoped authentication is intended for "administrative" activites such
+System scoped authentication is intended for "administrative" activities such
 as those crossing tenants/projects, as all tenants/projects should be visible
 to ``system`` scoped users in Ironic.
 
@@ -44,8 +44,8 @@ policy enforcement framework the information necessary to make decisions.
 
 System scoped requests very much align with the access controls of Ironic
 before the Secure RBAC effort. The original custom role ``baremetal_admin``
-privilges are identical to a system scoped ``admin``'s privilges.
-Similarlly ``baremetal_reader`` is identical to a system scoped ``reader``.
+privileges are identical to a system scoped ``admin``'s privileges.
+Similarly ``baremetal_reader`` is identical to a system scoped ``reader``.
 In these concepts, the ``admin`` is allowed to create/delete objects/items.
 The ``reader`` is allowed to read details about items and is intended for
 users who may need an account with read-only access for or front-line support
@@ -100,7 +100,7 @@ Supported Endpoints
 How Project Scoped Works
 ------------------------
 
-Ironic has two project use models where access is generally more delagative
+Ironic has two project use models where access is generally more delegative
 to an ``owner`` where access to a ``lessee`` is generally more utilitarian.
 
 The purpose of an owner, is more to enable the System Operator to delegate
@@ -113,7 +113,7 @@ applicable.
 The purpose of a lessee is more for a *tenant* in their *project* to
 be able to have access to perform basic actions with the API. In some cases
 that may be to reprovision or rebuild a node. Ultimately that is the lessee's
-progative, but by default there are actions and field updates that cannot
+prerogative, but by default there are actions and field updates that cannot
 be performed by default. This is also governed by access level within
 a project.
 
@@ -137,7 +137,7 @@ and against additional policies. This threshold is controlled with the
 
 By default, the following fields are masked on Nodes and are controlled by the
 associated policies. By default, owner's are able to see insight into the
-infrastucture, where as lessee users *CANNOT* view these fields by default.
+infrastructure, where as lessee users *CANNOT* view these fields by default.
 
 * ``last_error`` - ``baremetal:node:get:last_error``
 * ``reservation`` - ``baremetal:node:get:reservation``
@@ -178,7 +178,7 @@ The ``allocations`` endpoint of the API is somewhat different than other
 other endpoints as it allows for the allocation of physical machines to
 an admin. In this context, there is not already an ``owner`` or ``project_id``
 to leverage to control access for the creation process, any project member
-does have the inherent prilege of requesting an allocation. That being said,
+does have the inherent privilege of requesting an allocation. That being said,
 their allocation request will require physical nodes to be owned or leased
 to the ``project_id`` through the ``node`` fields ``owner`` or ``lessee``.
 
@@ -203,8 +203,8 @@ for project-scoped users with the ``admin`` role.
    and operators may change the default restriction via the
    ``baremetal:allocation:create_restricted`` policy.
 
-Pratical differences
---------------------
+Practical differences
+---------------------
 
 Most users, upon implementing the use of ``system`` scoped authentication
 should not notice a difference as long as their authentication token is
@@ -212,7 +212,7 @@ properly scoped to ``system`` and with the appropriate role for their
 access level. For most users who used a ``baremetal`` project,
 or other custom project via a custom policy file, along with a custom
 role name such as ``baremetal_admin``, this will require changing
-the user to be a ``system`` scoped user with ``admin`` privilges.
+the user to be a ``system`` scoped user with ``admin`` privileges.
 
 The most noticeable difference for API consumers is the HTTP 403 access
 code is now mainly a HTTP 404 access code. The access concept has changed
