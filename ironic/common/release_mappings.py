@@ -410,7 +410,7 @@ RELEASE_MAPPING = {
             'VolumeTarget': ['1.0'],
         }
     },
-    '19.1': {
+    '20.0': {
         'api': '1.78',
         'rpc': '1.55',
         'objects': {
