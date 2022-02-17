@@ -8188,7 +8188,7 @@ class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
                           "abort")
         node.refresh()
         self.assertTrue(mock_log.exception.called)
-        self.assertIn('Failed to abort inspection.', node.last_error)
+        self.assertIn('Failed to abort inspection', node.last_error)
 
     @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort', autospec=True)
     @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)

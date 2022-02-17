@@ -832,8 +832,7 @@ def get_image_instance_info(node):
     return info
 
 
-_ERR_MSG_INVALID_DEPLOY = _("Cannot validate parameter for driver deploy. "
-                            "Invalid parameter %(param)s. Reason: %(reason)s")
+_ERR_MSG_INVALID_DEPLOY = _("Invalid parameter %(param)s: %(reason)s")
 
 
 def parse_instance_info(node):
@@ -865,8 +864,7 @@ def parse_instance_info(node):
             i_info['ramdisk'] = info.get('ramdisk')
         i_info['root_gb'] = info.get('root_gb')
 
-    error_msg = _("Cannot validate driver deploy. Some parameters were missing"
-                  " in node's instance_info")
+    error_msg = _("Some parameters were missing in node's instance_info")
     check_for_missing_params(i_info, error_msg)
 
     # This is used in many places, so keep it even for whole-disk images.
@@ -1078,7 +1076,7 @@ def _validate_image_url(node, url, secret=False):
     except exception.ImageRefValidationFailed as e:
         with excutils.save_and_reraise_exception():
             LOG.error("The specified URL is not a valid HTTP(S) URL or is "
-                      "not reachable for node %(node)s. Error: %(msg)s",
+                      "not reachable for node %(node)s: %(msg)s",
                       {'node': node.uuid, 'msg': e})
 
 
@@ -1458,5 +1456,5 @@ def get_root_device_for_deploy(node):
     except ValueError as e:
         raise exception.InvalidParameterValue(
             _('Failed to validate the root device hints %(hints)s (from the '
-              'node\'s %(source)s) for node %(node)s. Error: %(error)s') %
+              'node\'s %(source)s) for node %(node)s: %(error)s') %
             {'node': node.uuid, 'hints': hints, 'source': source, 'error': e})

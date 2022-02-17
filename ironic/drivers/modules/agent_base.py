@@ -502,7 +502,7 @@ class HeartbeatMixin(object):
                 msg = _('Failed to process the next deploy step')
                 self.process_next_step(task, 'deploy')
         except Exception as e:
-            last_error = _('%(msg)s. Error: %(exc)s') % {'msg': msg, 'exc': e}
+            last_error = _('%(msg)s: %(exc)s') % {'msg': msg, 'exc': e}
             LOG.exception('Asynchronous exception for node %(node)s: %(err)s',
                           {'node': task.node.uuid, 'err': last_error})
             # Do not call the error handler is the node is already DEPLOYFAIL
@@ -537,7 +537,7 @@ class HeartbeatMixin(object):
                 if not polling:
                     self.continue_cleaning(task)
         except Exception as e:
-            last_error = _('%(msg)s. Error: %(exc)s') % {'msg': msg, 'exc': e}
+            last_error = _('%(msg)s: %(exc)s') % {'msg': msg, 'exc': e}
             log_msg = ('Asynchronous exception for node %(node)s: %(err)s' %
                        {'node': task.node.uuid, 'err': last_error})
             if node.provision_state in (states.CLEANING, states.CLEANWAIT):
@@ -549,7 +549,7 @@ class HeartbeatMixin(object):
         try:
             self._finalize_rescue(task)
         except Exception as e:
-            last_error = _('%(msg)s. Error: %(exc)s') % {'msg': msg, 'exc': e}
+            last_error = _('%(msg)s: %(exc)s') % {'msg': msg, 'exc': e}
             LOG.exception('Asynchronous exception for node %(node)s: %(err)s',
                           {'node': task.node.uuid, 'err': last_error})
             if task.node.provision_state in (states.RESCUING,
@@ -1194,7 +1194,7 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                                   'command "sync"')
                     LOG.warning(
                         'Failed to flush the file system prior to hard '
-                        'rebooting the node %(node)s. Error: %(error)s',
+                        'rebooting the node %(node)s: %(error)s',
                         {'node': node.uuid, 'error': error})
 
                 manager_utils.node_power_action(task, states.POWER_OFF)
@@ -1327,7 +1327,7 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
             )
             if result['command_status'] == 'FAILED':
                 msg = (_("Failed to install a bootloader when "
-                         "deploying node %(node)s. Error: %(error)s") %
+                         "deploying node %(node)s: %(error)s") %
                        {'node': node.uuid,
                         'error': agent_client.get_command_error(result)})
                 log_and_raise_deployment_error(task, msg)
@@ -1341,7 +1341,7 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
                                              persistent=persistent)
         except Exception as e:
             msg = (_("Failed to change the boot device to %(boot_dev)s "
-                     "when deploying node %(node)s. Error: %(error)s") %
+                     "when deploying node %(node)s: %(error)s") %
                    {'boot_dev': boot_devices.DISK, 'node': node.uuid,
                     'error': e})
             log_and_raise_deployment_error(task, msg, exc=e)
