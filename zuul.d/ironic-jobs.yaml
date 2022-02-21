@@ -594,6 +594,7 @@
         devstack_localrc:
           ENABLE_TENANT_TUNNELS: False
           ENABLE_TENANT_VLANS: True
+          FORCE_CONFIG_DRIVE: True
           HOST_TOPOLOGY: multinode
           HOST_TOPOLOGY_ROLE: subnode
           IRONIC_AUTOMATED_CLEAN_ENABLED: False
