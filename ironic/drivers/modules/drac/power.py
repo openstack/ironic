@@ -171,9 +171,9 @@ def _set_power_state(task, power_state, timeout=None):
                 raise exception.DracOperationError(error=exc)
 
     if tries <= 0:
-        error_msg = (_('DRAC driver timed out while trying to set the power '
-                       'state for node %(node_uuid)s to '
-                       '%(calc_power_state)s.') %
+        error_msg = ('DRAC driver timed out while trying to set the power '
+                     'state for node %(node_uuid)s to '
+                     '%(calc_power_state)s.' %
                      {'node_uuid': node.uuid,
                       'calc_power_state': calc_power_state})
         LOG.error(error_msg)
