@@ -15,8 +15,19 @@
 #    under the License.
 
 from oslo_config import cfg
+from oslo_config import types as cfg_types
 
 from ironic.common.i18n import _
+
+
+class Octal(cfg_types.Integer):
+
+    def __call__(self, value):
+        if isinstance(value, int):
+            return value
+        else:
+            return int(str(value), 8)
+
 
 opts = [
     cfg.HostAddressOpt('host_ip',
@@ -26,6 +37,11 @@ opts = [
     cfg.PortOpt('port',
                 default=6385,
                 help=_('The TCP port on which ironic-api listens.')),
+    cfg.StrOpt('unix_socket',
+               help=_('Unix socket to listen on. Disables host_ip and port.')),
+    cfg.Opt('unix_socket_mode', type=Octal(),
+            help=_('File mode (an octal number) of the unix socket to '
+                   'listen on. Ignored if unix_socket is not set.')),
     cfg.IntOpt('max_limit',
                default=1000,
                mutable=True,

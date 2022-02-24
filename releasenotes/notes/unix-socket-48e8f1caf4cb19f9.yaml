@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Supports listening on a Unix socket instead of a normal TCP socket.
+    This is useful with an HTTP server such as nginx in proxy mode.
