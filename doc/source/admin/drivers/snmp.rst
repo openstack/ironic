@@ -77,30 +77,20 @@ Enabling the SNMP Hardware Type
     enabled_management_interfaces = noop
     enabled_power_interfaces = snmp
 
-#. To set the default boot option, update ``default_boot_option`` in
+#. To enable the network boot fallback, update ``enable_netboot_fallback`` in
    ``ironic.conf``:
 
    .. code-block:: ini
 
-    [DEFAULT]
-    default_boot_option = netboot
+    [pxe]
+    enable_netboot_fallback = True
 
    .. note::
-      Currently the default value of ``default_boot_option`` is ``netboot``
-      but it will be changed to ``local`` in the future. It is recommended
-      to set an explicit value for this option.
-
-   .. note::
-      It is important to set ``boot_option`` to ``netboot`` as SNMP hardware
-      type does not support setting of boot devices. One can also configure
-      a node to boot using ``netboot`` by setting its ``capabilities`` and
-      updating Nova flavor as described below:
-
-      .. code-block:: console
-
-          baremetal node set --property capabilities="boot_option:netboot" <node>
-          openstack flavor set --property "capabilities:boot_option"="netboot" ironic-flavor
-
+      It is important to enable the fallback as SNMP hardware type does not
+      support setting of boot devices. When booting in legacy (BIOS) mode,
+      the generated network booting artifact will force booting from local
+      disk. In UEFI mode, Ironic will configure the boot order using UEFI
+      variables.
 
 #. Restart the Ironic conductor service.
 
@@ -165,5 +155,4 @@ type:
     --driver snmp --driver-info snmp_driver=<pdu_manufacturer> \
     --driver-info snmp_address=<ip_address> \
     --driver-info snmp_outlet=<outlet_index> \
-    --driver-info snmp_community=<community_string> \
-    --properties capabilities=boot_option:netboot
+    --driver-info snmp_community=<community_string>

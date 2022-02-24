@@ -51,10 +51,7 @@ The adoption process makes no changes to the physical node, with the
 exception of operator supplied configurations where virtual media is
 used to boot the node under normal circumstances. An operator should
 ensure that any supplied configuration defining the node is sufficient
-for the continued operation of the node moving forward. Such as, if the
-node is configured to network boot via instance_info/boot_option="netboot",
-then appropriate driver specific node configuration should be set to
-support this capability.
+for the continued operation of the node moving forward.
 
 Possible Risk
 =============

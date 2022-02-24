@@ -322,7 +322,7 @@
 
 - job:
     name: ironic-tempest-wholedisk-bios-snmp-pxe
-    description: SNMP power, no-op management, netboot and whole disk images.
+    description: SNMP power, no-op management and whole disk images.
     parent: ironic-base
     vars:
       devstack_localrc:

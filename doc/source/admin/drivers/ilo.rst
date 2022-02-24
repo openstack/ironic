@@ -1084,6 +1084,11 @@ intermediate images on conductor as described in
 Deploy Process
 ==============
 
+.. note::
+   Network boot is deprecated and will be removed in the Zed release.
+
+.. TODO(dtantsur): review these diagrams to exclude netboot.
+
 Netboot with glance and swift
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

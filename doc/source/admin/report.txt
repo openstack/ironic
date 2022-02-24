@@ -321,7 +321,7 @@ default:
 
 deploy:
   continue_if_disk_secure_erase_fails = False
-  default_boot_option = netboot
+  default_boot_option = local
   erase_devices_metadata_priority = None
   erase_devices_priority = 0
   http_root = /opt/stack/data/ironic/httpboot
