@@ -90,6 +90,21 @@ opts = [
                default=60,
                help=_('Number of seconds to wait between checking for '
                       'failed firmware update tasks')),
+    cfg.StrOpt('firmware_source',
+               choices=[('http', _('If firmware source URL is also HTTP, then '
+                                   'serve from original location, otherwise '
+                                   'copy to ironic\'s HTTP server. Default.')),
+                        ('local', _('Download from original location and '
+                                    'server from ironic\'s HTTP server.')),
+                        ('swift', _('If firmware source URL is also Swift, '
+                                    'serve from original location, otherwise '
+                                    'copy to ironic\'s Swift server.'))],
+               default='http',
+               mutable=True,
+               help=_('Specifies how firmware image should be served. Whether '
+                      'from its original location using the firmware source '
+                      'URL directly, or should serve it from ironic\'s Swift '
+                      'or HTTP server.')),
     cfg.IntOpt('raid_config_status_interval',
                min=0,
                default=60,

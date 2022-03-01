@@ -14,6 +14,7 @@
 #    under the License.
 
 import collections
+from urllib.parse import urlparse
 
 from ironic_lib import metrics_utils
 from oslo_log import log
@@ -799,7 +800,8 @@ class RedfishManagement(base.ManagementInterface):
         """
 
         firmware_update = firmware_updates[0]
-        firmware_url = firmware_update['url']
+        firmware_url, need_cleanup = self._stage_firmware_file(
+            node, firmware_update)
 
         LOG.debug('Applying firmware %(firmware_image)s to node '
                   '%(node_uuid)s',
@@ -809,8 +811,15 @@ class RedfishManagement(base.ManagementInterface):
         task_monitor = update_service.simple_update(firmware_url)
 
         firmware_update['task_monitor'] = task_monitor.task_monitor_uri
-        node.set_driver_internal_info('firmware_updates',
-                                      firmware_updates)
+        node.set_driver_internal_info('firmware_updates', firmware_updates)
+
+        if need_cleanup:
+            fw_cleanup = node.driver_internal_info.get('firmware_cleanup')
+            if not fw_cleanup:
+                fw_cleanup = [need_cleanup]
+            elif need_cleanup not in fw_cleanup:
+                fw_cleanup.append(need_cleanup)
+            node.set_driver_internal_info('firmware_cleanup', fw_cleanup)
 
     def _continue_firmware_updates(self, task, update_service,
                                    firmware_updates):
@@ -860,13 +869,18 @@ class RedfishManagement(base.ManagementInterface):
             manager_utils.node_power_action(task, states.REBOOT)
 
     def _clear_firmware_updates(self, node):
-        """Clears firmware updates from driver_internal_info
+        """Clears firmware updates artifacts
+
+        Clears firmware updates from driver_internal_info and any files
+        that were staged.
 
         Note that the caller must have an exclusive lock on the node.
 
         :param node: the node to clear the firmware updates from
         """
+        firmware_utils.cleanup(node)
         node.del_driver_internal_info('firmware_updates')
+        node.del_driver_internal_info('firmware_cleanup')
         node.save()
 
     @METRICS.timer('RedfishManagement._query_firmware_update_failed')
@@ -1011,6 +1025,56 @@ class RedfishManagement(base.ManagementInterface):
                       'firmware %(firmware_image)s.',
                       {'node': node.uuid,
                        'firmware_image': current_update['url']})
+
+    def _stage_firmware_file(self, node, firmware_update):
+        """Stage firmware update according to configuration.
+
+        :param node: Node for which to stage the firmware file
+        :param firmware_update: Firmware update to stage
+        :returns: Tuple of staged URL and source that needs cleanup of
+            staged files afterwards. If not staging, then return
+            original URL and None for source that needs cleanup.
+        :raises IronicException: If something goes wrong with staging.
+        """
+        try:
+            url = firmware_update['url']
+            parsed_url = urlparse(url)
+            scheme = parsed_url.scheme.lower()
+            source = (firmware_update.get('source')
+                      or CONF.redfish.firmware_source).lower()
+
+            # Keep it simple, in further processing TLS does not matter
+            if scheme == 'https':
+                scheme = 'http'
+
+            # If source and scheme is HTTP, then no staging,
+            # returning original location
+            if scheme == 'http' and source == scheme:
+                LOG.debug('For node %(node)s serving firmware from original '
+                          'location %(url)s', {'node': node.uuid, 'url': url})
+                return url, None
+
+            # If source and scheme is Swift, then not moving, but
+            # returning Swift temp URL
+            if scheme == 'swift' and source == scheme:
+                temp_url = firmware_utils.get_swift_temp_url(parsed_url)
+                LOG.debug('For node %(node)s serving original firmware at '
+                          '%(url)s via Swift temporary url %(temp_url)s',
+                          {'node': node.uuid, 'url': url,
+                           'temp_url': temp_url})
+                return temp_url, None
+
+            # For remaining, download the image to temporary location
+            temp_file = firmware_utils.download_to_temp(node, url)
+
+            firmware_utils.verify_checksum(
+                node, firmware_update.get('checksum'), temp_file)
+
+            return firmware_utils.stage(node, source, temp_file)
+
+        except exception.IronicException as error:
+            firmware_utils.cleanup(node)
+            raise error
 
     def get_secure_boot_state(self, task):
         """Get the current secure boot state for the node.
