@@ -677,12 +677,16 @@ How do I resolve this?
 Generally, you need to identify the port with the offending MAC address.
 Example:
 
-  openstack port list --mac-address 52:54:00:7c:c4:56
+.. code-block:: console
+
+  $ openstack port list --mac-address 52:54:00:7c:c4:56
 
 From the command's output, you should be able to identify the ``id`` field.
 Using that, you can delete the port. Example:
 
-  openstack port delete <id>
+.. code-block:: console
+
+  $ openstack port delete <id>
 
 .. warning::
    Before deleting a port, you should always verify that it is no longer in
@@ -810,7 +814,9 @@ Example failure
 
 A node in this state, when the ``network_interface`` was saved as ``neutron``,
 yet the ``neutron`` interface is no longer enabled will fail basic state
-transition requests.:
+transition requests:
+
+.. code-block:: console
 
   $ baremetal node manage 7164efca-37ab-1213-1112-b731cf795a5a
   Could not find the following interface in the 'ironic.hardware.interfaces.network' entrypoint: neutron. Valid interfaces are ['flat']. (HTTP 400)
@@ -826,7 +832,9 @@ order of interfaces in the for the ``enabled_*_interfaces`` options.
 Once the conductor has been restarted with the updated configuration, you
 should now be able to update the interface using the ``baremetal node set``
 command. In this example we use the ``network_interface`` as this is most
-commonly where it is encountered.:
+commonly where it is encountered:
+
+.. code-block:: console
 
   $ baremetal node set $NAME_OR_UUID --network-interface flat
 
@@ -869,14 +877,14 @@ How do I resolve this?
 
 This can be addressed a few different ways:
 
-  * Use raw images, however these images can be substantially larger
-    and require more data to be transmitted "over the wire".
-  * Add more physical memory.
-  * Add swap space.
-  * Reduce concurrency, possibly via another conductor or changing the
-    nova-compute.conf ``max_concurrent_builds`` parameter.
-  * Or finally, adjust the ``[DEFAULT]minimum_required_memory`` parameter
-    in your ironic.conf file. The default should be considered a "default
-    of last resort" and you may need to reserve additional memory. You may
-    also wish to adjust the ``[DEFAULT]minimum_memory_wait_retries`` and
-    ``[DEFAULT]minimum_memory_wait_time`` parameters.
+* Use raw images, however these images can be substantially larger
+  and require more data to be transmitted "over the wire".
+* Add more physical memory.
+* Add swap space.
+* Reduce concurrency, possibly via another conductor or changing the
+  nova-compute.conf ``max_concurrent_builds`` parameter.
+* Or finally, adjust the ``[DEFAULT]minimum_required_memory`` parameter
+  in your ironic.conf file. The default should be considered a "default
+  of last resort" and you may need to reserve additional memory. You may
+  also wish to adjust the ``[DEFAULT]minimum_memory_wait_retries`` and
+  ``[DEFAULT]minimum_memory_wait_time`` parameters.
