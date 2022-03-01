@@ -925,4 +925,13 @@ selected if default plug-in type has been used and never changed. Systems that
 have plug-in type changed will keep selected plug-in type after iDRAC firmware
 upgrade.
 
+Firmware update from Swift fails
+--------------------------------
+
+When using Swift to stage firmware update files in Management interface
+``firmware_update`` clean step of ``redfish`` or ``idrac`` hardware type, the
+cleaning fails with error "An internal error occurred. Unable to complete the
+specified operation." in iDRAC job. Until this is fixed, use HTTP service to
+stage firmware files for iDRAC.
+
 .. _SCP_Reference_Guide: http://downloads.dell.com/manuals/common/dellemc-server-config-profile-refguide.pdf
