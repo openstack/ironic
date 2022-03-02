@@ -469,7 +469,8 @@ the conductor is actively working on something related to the node.
 
 Often, this means there is an internal lock or ``reservation`` set on the node
 and the conductor is downloading, uploading, or attempting to perform some
-sort of Input/Output operation.
+sort of Input/Output operation - see `Why does API return "Node is locked by
+host"?`_ for details.
 
 In the case the conductor gets stuck, these operations should timeout,
 but there are cases in operating systems where operations are blocked until
@@ -888,3 +889,87 @@ This can be addressed a few different ways:
   of last resort" and you may need to reserve additional memory. You may
   also wish to adjust the ``[DEFAULT]minimum_memory_wait_retries`` and
   ``[DEFAULT]minimum_memory_wait_time`` parameters.
+
+Why does API return "Node is locked by host"?
+=============================================
+
+This error usually manifests as HTTP error 409 on the client side:
+
+    Node d7e2aed8-50a9-4427-baaa-f8f595e2ceb3 is locked by host 192.168.122.1,
+    please retry after the current operation is completed.
+
+It happens, because an operation that modifies a node is requested, while
+another such operation is running. The conflicting operation may be user
+requested (e.g. a provisioning action) or related to the internal processes
+(e.g. changing power state during :doc:`power-sync`). The reported host name
+corresponds to the conductor instance that holds the lock.
+
+Normally, these errors are transient and safe to retry after a few seconds. If
+the lock is held for significant time, these are the steps you can take.
+
+First of all, check the current ``provision_state`` of the node:
+
+``verifying``
+    means that the conductor is trying to access the node's BMC.
+    If it happens for minutes, it means that the BMC is either unreachable or
+    misbehaving. Double-check the information in ``driver_info``, especially
+    the BMC address and credentials.
+
+    If the access details seem correct, try resetting the BMC using, for
+    example, its web UI.
+
+``deploying``/``inspecting``/``cleaning``
+    means that the conductor is doing some active work. It may include
+    downloading or converting images, executing synchronous out-of-band deploy
+    or clean steps, etc. A node can stay in this state for minutes, depending
+    on various factors. Consult the conductor logs.
+
+``available``/``manageable``/``wait call-back``/``clean wait``
+    means that some background process is holding the lock. Most commonly it's
+    the power synchronization loop. Similarly to the ``verifying`` state,
+    it may mean that the BMC access is broken or too slow. The conductor logs
+    will provide you insights on what is happening.
+
+To trace the process using conductor logs:
+
+#. Isolate the relevant log parts. Lock messages come from the
+   ``ironic.conductor.task_manager`` module. You can also check the
+   ``ironic.common.states`` module for any state transitions:
+
+   .. code-block:: console
+
+    $ grep -E '(ironic.conductor.task_manager|ironic.common.states|NodeLocked)' \
+        conductor.log > state.log
+
+#. Find the first instance of ``NodeLocked``. It may look like this (stripping
+   timestamps and request IDs here and below for readability)::
+
+    DEBUG ironic.conductor.task_manager [-] Attempting to get exclusive lock on node d7e2aed8-50a9-4427-baaa-f8f595e2ceb3 (for node update) __init__ /usr/lib/python3.6/site-packages/ironic/conductor/task_manager.py:233
+    DEBUG ironic_lib.json_rpc.server [-] RPC error NodeLocked: Node d7e2aed8-50a9-4427-baaa-f8f595e2ceb3 is locked by host 192.168.57.53, please retry after the current operation is completed. _handle_error /usr/lib/python3.6/site-packages/ironic_lib/json_rpc/server.py:179
+
+   The events right before this failure will provide you a clue on why the lock
+   is held.
+
+#. Find the last successful **exclusive** locking event before the failure, for
+   example::
+
+    DEBUG ironic.conductor.task_manager [-] Attempting to get exclusive lock on node d7e2aed8-50a9-4427-baaa-f8f595e2ceb3 (for provision action manage) __init__ /usr/lib/python3.6/site-packages/ironic/conductor/task_manager.py:233
+    DEBUG ironic.conductor.task_manager [-] Node d7e2aed8-50a9-4427-baaa-f8f595e2ceb3 successfully reserved for provision action manage (took 0.01 seconds) reserve_node /usr/lib/python3.6/site-packages/ironic/conductor/task_manager.py:350
+    DEBUG ironic.common.states [-] Exiting old state 'enroll' in response to event 'manage' on_exit /usr/lib/python3.6/site-packages/ironic/common/states.py:307
+    DEBUG ironic.common.states [-] Entering new state 'verifying' in response to event 'manage' on_enter /usr/lib/python3.6/site-packages/ironic/common/states.py:313
+
+   This is your root cause, the lock is held because of the BMC credentials
+   verification.
+
+#. Find when the lock is released (if at all). The messages look like this::
+
+    DEBUG ironic.conductor.task_manager [-] Successfully released exclusive lock for provision action manage on node d7e2aed8-50a9-4427-baaa-f8f595e2ceb3 (lock was held 60.02 sec) release_resources /usr/lib/python3.6/site-packages/ironic/conductor/task_manager.py:447
+
+   The message tells you the reason the lock was held (``for provision action
+   manage``) and the amount of time it was held (60.02 seconds, which is way
+   too much for accessing a BMC).
+
+Unfortunately, due to the way the conductor is designed, it is not possible to
+gracefully break a stuck lock held in ``*-ing`` states. As the last resort, you
+may need to restart the affected conductor. See `Why are my nodes stuck in a
+"-ing" state?`_.
