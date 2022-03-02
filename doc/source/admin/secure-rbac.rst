@@ -16,7 +16,7 @@ customization of these policies to consult some reference material
 in hopes of understanding the context.
 
 * `Keystone Adminstrator Guide - Service API Protection <https://docs.openstack.org/keystone/latest/admin/service-api-protection.html>`_
-* `Ironic Scoped Role Based Access Control Specification <https://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/secure-rbac.html>`_
+* `Ironic Scoped Role Based Access Control Specification <https://specs.openstack.org/openstack/ironic-specs/specs/17.0/secure-rbac.html>`_
 
 Historical Context - How we reached our access model
 ----------------------------------------------------
@@ -45,7 +45,7 @@ policy enforcement framework the information necessary to make decisions.
 System scoped requests very much align with the access controls of Ironic
 before the Secure RBAC effort. The original custom role ``baremetal_admin``
 privileges are identical to a system scoped ``admin``'s privileges.
-Similarly ``baremetal_reader`` is identical to a system scoped ``reader``.
+Similarly ``baremetal_observer`` is identical to a system scoped ``reader``.
 In these concepts, the ``admin`` is allowed to create/delete objects/items.
 The ``reader`` is allowed to read details about items and is intended for
 users who may need an account with read-only access for or front-line support
@@ -101,7 +101,7 @@ How Project Scoped Works
 ------------------------
 
 Ironic has two project use models where access is generally more delegative
-to an ``owner`` where access to a ``lessee`` is generally more utilitarian.
+to an ``owner`` and access to a ``lessee`` is generally more utilitarian.
 
 The purpose of an owner, is more to enable the System Operator to delegate
 much of the administrative activity of a Node to the owner.
@@ -131,13 +131,13 @@ Field value visibility restrictions
 
 Ironic's API, by default has a concept of filtering node values to prevent
 sensitive data from being leaked. System scoped users are subjected to basic
-restrictions, where as project scoped users are, by default, examined further
+restrictions, whereas project scoped users are, by default, examined further
 and against additional policies. This threshold is controlled with the
 ``baremetal:node:get:filter_threshold``.
 
 By default, the following fields are masked on Nodes and are controlled by the
-associated policies. By default, owner's are able to see insight into the
-infrastructure, where as lessee users *CANNOT* view these fields by default.
+associated policies. By default, owners are able to see insight into the
+infrastructure, whereas lessee users *CANNOT* view these fields by default.
 
 * ``last_error`` - ``baremetal:node:get:last_error``
 * ``reservation`` - ``baremetal:node:get:reservation``
@@ -175,7 +175,7 @@ Allocations
 ~~~~~~~~~~~
 
 The ``allocations`` endpoint of the API is somewhat different than other
-other endpoints as it allows for the allocation of physical machines to
+endpoints as it allows for the allocation of physical machines to
 an admin. In this context, there is not already an ``owner`` or ``project_id``
 to leverage to control access for the creation process, any project member
 does have the inherent privilege of requesting an allocation. That being said,
@@ -188,7 +188,7 @@ and any new allocation being requested with a specific owner, if made in
 the allocation.
 
 Ultimately, an operational behavior difference exists between the ``owner``
-and ``lessee`` rights in terms of allocations exists. With the standard
+and ``lessee`` rights in terms of allocations. With the standard
 access rights, ``lessee`` users are able to create allocations if they
 own nodes which are not allocated or deployed, but they cannot reprovision
 nodes when using only a ``member`` role. This limitation is not the case
@@ -216,7 +216,7 @@ the user to be a ``system`` scoped user with ``admin`` privileges.
 
 The most noticeable difference for API consumers is the HTTP 403 access
 code is now mainly a HTTP 404 access code. The access concept has changed
-from "Does the user user broadly has access to the API?" to
+from "Does the user broadly have access to the API?" to
 "Does user have access to the node, and then do they have access
 to the specific resource?".
 
