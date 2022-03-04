@@ -127,8 +127,8 @@ class PXEAnacondaDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
             manager_utils.node_power_action(task, states.POWER_ON)
             task.process_event('done')
         except Exception as e:
-            msg = (_('Error rebooting node %(node)s after deploy. '
-                     'Error: %(error)s') %
+            msg = (_('An error occurred after deployment, while preparing to '
+                     'reboot the node %(node)s: %(error)s') %
                    {'node': node.uuid, 'error': e})
             agent_base.log_and_raise_deployment_error(task, msg)
 
@@ -157,3 +157,14 @@ class PXEAnacondaDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
                       '%(agent_status_message)s', msg)
             deploy_utils.set_failed_state(task, agent_status_message,
                                           collect_logs=False)
+
+    @METRICS.timer('AnacondaDeploy.clean_up')
+    @task_manager.require_exclusive_lock
+    def clean_up(self, task):
+        super(PXEAnacondaDeploy, self).clean_up(task)
+        node = task.node
+        # NOTE(rloo): These were added during deployment, as a side-effect of
+        # pxe_utils.get_instance_image_info().
+        node.del_driver_internal_info('stage2')
+        node.del_driver_internal_info('ks_template')
+        node.save()
