@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The anaconda deploy interface was saving internal information in
+    the node's instance_info, in the user-facing 'stage2' and
+    'ks_template' fields. This broke rebuilds using a different image
+    with different stage2 or template specified in the image properties.
+    This has been fixed by saving the information in the node's
+    driver_internal_info instead.
