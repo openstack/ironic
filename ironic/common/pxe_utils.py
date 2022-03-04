@@ -694,16 +694,22 @@ def get_instance_image_info(task, ipxe_enabled=False):
 
         return image_info
 
-    labels = ('kernel', 'ramdisk')
     image_properties = None
     d_info = deploy_utils.get_image_instance_info(node)
+
+    def _get_image_properties():
+        nonlocal image_properties
+        if not image_properties:
+            glance_service = service.GlanceImageService(context=ctx)
+            image_properties = glance_service.show(
+                d_info['image_source'])['properties']
+
+    labels = ('kernel', 'ramdisk')
     if not (i_info.get('kernel') and i_info.get('ramdisk')):
         # NOTE(rloo): If both are not specified in instance_info
         # we won't use any of them. We'll use the values specified
         # with the image, which we assume have been set.
-        glance_service = service.GlanceImageService(context=ctx)
-        image_properties = glance_service.show(
-            d_info['image_source'])['properties']
+        _get_image_properties()
         for label in labels:
             i_info[label] = str(image_properties[label + '_id'])
         node.instance_info = i_info
@@ -715,36 +721,39 @@ def get_instance_image_info(task, ipxe_enabled=False):
         # ks_template: anaconda kickstart template
         # ks_cfg - rendered ks_template
         anaconda_labels = ('stage2', 'ks_template', 'ks_cfg')
-        if not i_info.get('stage2') or not i_info.get('ks_template'):
-            if not image_properties:
-                glance_service = service.GlanceImageService(context=ctx)
-                image_properties = glance_service.show(
-                    d_info['image_source'])['properties']
-            if not i_info.get('ks_template'):
-                # ks_template is an optional property on the image
-                if 'ks_template' not in image_properties:
-                    i_info['ks_template'] = CONF.anaconda.default_ks_template
-                else:
-                    i_info['ks_template'] = str(
-                        image_properties['ks_template'])
-            if not i_info.get('stage2'):
+        # NOTE(rloo): We save stage2 & ks_template values in case they
+        # are changed by the user after we start using them and to
+        # prevent re-computing them again.
+        if not node.driver_internal_info.get('stage2'):
+            dii = node.driver_internal_info
+            if i_info.get('stage2'):
+                dii['stage2'] = i_info['stage2']
+            else:
+                _get_image_properties()
                 if 'stage2_id' not in image_properties:
-                    msg = ("'stage2_id' property is missing from the OS image "
-                           "%s. The anaconda deploy interface requires this "
-                           "to be set with the OS image or in instance_info. "
-                           % d_info['image_source'])
+                    msg = (_("'stage2_id' is missing from the properties of "
+                             "the OS image %s. The anaconda deploy interface "
+                             "requires this to be set with the OS image or "
+                             "in instance_info['stage2']. ") %
+                           d_info['image_source'])
                     raise exception.ImageUnacceptable(msg)
                 else:
-                    i_info['stage2'] = str(image_properties['stage2_id'])
-        # NOTE(rloo): This is internally generated; cannot be specified.
-        i_info['ks_cfg'] = ''
-
-        node.instance_info = i_info
-        node.save()
+                    dii['stage2'] = str(image_properties['stage2_id'])
+            if i_info.get('ks_template'):
+                dii['ks_template'] = i_info['ks_template']
+            else:
+                _get_image_properties()
+                # ks_template is an optional property on the image
+                if 'ks_template' not in image_properties:
+                    dii['ks_template'] = CONF.anaconda.default_ks_template
+                else:
+                    dii['ks_template'] = str(image_properties['ks_template'])
+            node.driver_internal_info = dii
+            node.save()
 
     for label in labels + anaconda_labels:
         image_info[label] = (
-            i_info[label],
+            i_info.get(label) or node.driver_internal_info.get(label, ''),
             get_file_path_from_label(node.uuid, root_dir, label)
         )
 
@@ -1143,9 +1152,9 @@ def validate_kickstart_file(ks_cfg):
                 'ksvalidator', ks_file.name, check_on_exit=[0], attempts=1
             )
         except processutils.ProcessExecutionError as e:
-            msg = _(("The kickstart file generated does not pass validation. "
+            msg = (_("The kickstart file generated does not pass validation. "
                      "The ksvalidator tool returned the following error: %s") %
-                    (e))
+                   e)
             raise exception.InvalidKickstartFile(msg)
 
 
@@ -1243,7 +1252,7 @@ def cache_ramdisk_kernel(task, pxe_info, ipxe_enabled=False):
         path = os.path.join(get_root_dir(), node.uuid)
     fileutils.ensure_tree(path)
     # anaconda deploy will have 'stage2' as one of the labels in pxe_info dict
-    if 'stage2' in pxe_info.keys():
+    if 'stage2' in pxe_info:
         # stage2 will be stored in ipxe http directory so make sure the
         # directory exists.
         file_path = get_file_path_from_label(node.uuid,
