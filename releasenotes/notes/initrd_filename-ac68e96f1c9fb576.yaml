@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes the ``initrd`` kernel parameter when booting ramdisk directly from
+    Swift/RadosGW using iPXE. Previously it was always ``deploy_ramdisk``,
+    even when the actual file name is different.
