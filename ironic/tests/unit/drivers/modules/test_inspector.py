@@ -13,6 +13,7 @@
 from unittest import mock
 
 import eventlet
+from keystoneauth1 import exceptions as ks_exception
 import openstack
 
 from ironic.common import context
@@ -55,6 +56,17 @@ class GetClientTestCase(db_base.DbTestCase):
         self.config(auth_strategy='noauth')
         inspector._get_client(self.context)
         self.assertEqual('none', inspector.CONF.inspector.auth_type)
+        mock_conn.assert_called_once_with(
+            session=mock.sentinel.session,
+            oslo_conf=mock.ANY)
+        self.assertEqual(1, mock_auth.call_count)
+        self.assertEqual(1, mock_session.call_count)
+
+    def test__get_client_connection_problem(
+            self, mock_conn, mock_session, mock_auth):
+        mock_conn.side_effect = ks_exception.DiscoveryFailure("")
+        self.assertRaises(exception.ConfigInvalid,
+                          inspector._get_client, self.context)
         mock_conn.assert_called_once_with(
             session=mock.sentinel.session,
             oslo_conf=mock.ANY)
