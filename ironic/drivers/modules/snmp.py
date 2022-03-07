@@ -230,7 +230,10 @@ class SNMPClient(object):
             object depending on SNMP version being used.
         """
         if self.version == SNMP_V3:
-            return snmp.UsmUserData(
+            # NOTE(TheJulia): Ignore Bandit error B509 argument parsing as
+            # the check is for a count of <3 arguments, however our line
+            # wrapping causes the check to trigger.
+            return snmp.UsmUserData(  # nosec B509
                 self.user,
                 authKey=self.auth_key,
                 authProtocol=self.auth_proto,
