@@ -12,9 +12,30 @@ Add images to the Image service
    and note the image UUIDs in the Image service for each one as it is
    generated.
 
-   For *partition images*:
+   - For *whole disk images* just upload the image:
 
-   - Add the kernel and ramdisk images to the Image service:
+     .. code-block:: console
+
+        $ openstack image create my-whole-disk-image --public \
+          --disk-format qcow2 --container-format bare \
+          --file my-whole-disk-image.qcow2
+
+     .. warning::
+         The kernel/ramdisk pair must not be set for whole disk images,
+         otherwise they'll be mistaken for partition images.
+
+   - For *partition images* to be used only with *local boot* (the default)
+     the ``img_type`` property must be set:
+
+     .. code-block:: console
+
+        $ openstack image create my-image --public \
+          --disk-format qcow2 --container-format bare \
+          --property img_type=partition --file my-image.qcow2
+
+   - For *partition images* to be used with both *local* and *network* boot:
+
+     Add the kernel and ramdisk images to the Image service:
 
      .. code-block:: console
 
@@ -30,7 +51,7 @@ Add images to the Image service
 
      Store the image UUID obtained from the above step as ``MY_INITRD_UUID``.
 
-   - Add the *my-image* to the Image service which is going to be the OS
+     Add the *my-image* to the Image service which is going to be the OS
      that the user is going to run. Also associate the above created
      images with this OS image. These two operations can be done by
      executing the following command:
@@ -41,19 +62,6 @@ Add images to the Image service
           --disk-format qcow2 --container-format bare --property \
           kernel_id=$MY_VMLINUZ_UUID --property \
           ramdisk_id=$MY_INITRD_UUID --file my-image.qcow2
-
-   For *whole disk images*, skip uploading and configuring kernel and ramdisk
-   images completely, proceed directly to uploading the main image:
-
-   .. code-block:: console
-
-      $ openstack image create my-whole-disk-image --public \
-        --disk-format qcow2 --container-format bare \
-        --file my-whole-disk-image.qcow2
-
-   .. warning::
-       The kernel/initramfs pair must not be set for whole disk images,
-       otherwise they'll be mistaken for partition images.
 
 #. Build or download the deploy images
 
