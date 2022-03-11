@@ -1,0 +1,33 @@
+---
+fixes:
+  - |
+    Fixes the logic for the anaconda deploy interface. If the
+    ironic node's instance_info doesn't have both 'stage2' and
+    'ks_template' specified, we weren't using the instance_info
+    at all. This has been fixed to use the instance_info if it
+    was specified. Otherwise, 'stage2' is taken from the
+    image's properties (assumed that it is set there).
+    'ks_template' value is from the image properties if specified
+    there (since it is optional); else we use the config setting
+    '[anaconda] default_ks_template'.
+  - |
+    For the anaconda deploy interface, the 'stage2' directory was
+    incorrectly being created using the full path of the stage2 file;
+    this has been fixed.
+  - |
+    The anaconda deploy interface expects the node's instance_info
+    to be populated with the 'image_url'; this is now populated
+    (via PXEAnacondaDeploy's prepare() method).
+  - |
+    For the anaconda deploy interface, when the deploy was finished
+    and the bm node was being rebooted, the node's provision state was
+    incorrectly being set to 'active' -- the provisioning state-machine
+    mechanism now handles that.
+  - |
+    For the anaconda deploy interface, the code that was doing the
+    validation of the kickstart file was incorrect and resulted in
+    errors; this has been addressed.
+  - |
+    For the anaconda deploy interface, the '%traceback' section in the
+    packaged 'ks.cfg.template' file is deprecated and fails validation,
+    so it has been removed.
