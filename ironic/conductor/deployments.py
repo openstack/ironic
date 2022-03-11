@@ -99,7 +99,7 @@ def start_deploy(task, manager, configdrive=None, event='deploy',
     except exception.InvalidParameterValue as e:
         raise exception.InstanceDeployFailure(
             _("Failed to validate deploy or power info for node "
-              "%(node_uuid)s. Error: %(msg)s") %
+              "%(node_uuid)s: %(msg)s") %
             {'node_uuid': node.uuid, 'msg': e}, code=e.code)
 
     try:
@@ -131,8 +131,7 @@ def do_node_deploy(task, conductor_id=None, configdrive=None,
                 task,
                 ('Error while uploading the configdrive for %(node)s '
                  'to Swift') % {'node': node.uuid},
-                _('Failed to upload the configdrive to Swift. '
-                  'Error: %s') % e,
+                _('Failed to upload the configdrive to Swift: %s') % e,
                 clean_up=False)
     except db_exception.DBDataError as e:
         with excutils.save_and_reraise_exception():
@@ -193,7 +192,7 @@ def do_node_deploy(task, conductor_id=None, configdrive=None,
             utils.deploying_error_handler(
                 task,
                 'Error while getting deploy steps; cannot deploy to node '
-                '%(node)s. Error: %(err)s' % {'node': node.uuid, 'err': e},
+                '%(node)s: %(err)s' % {'node': node.uuid, 'err': e},
                 _("Cannot get deploy steps; failed to deploy: %s") % e)
 
     if not node.driver_internal_info.get('deploy_steps'):
@@ -280,7 +279,7 @@ def do_next_deploy_step(task, step_index):
             # Avoid double handling of failures. For example, set_failed_state
             # from deploy_utils already calls deploying_error_handler.
             if task.node.provision_state != states.DEPLOYFAIL:
-                log_msg = ('Node %(node)s failed deploy step %(step)s. Error: '
+                log_msg = ('Node %(node)s failed deploy step %(step)s: '
                            '%(err)s' % {'node': node.uuid,
                                         'step': node.deploy_step, 'err': e})
                 utils.deploying_error_handler(

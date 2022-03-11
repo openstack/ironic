@@ -249,8 +249,8 @@ def _can_skip_state_change(task, new_state):
     except Exception as e:
         with excutils.save_and_reraise_exception():
             error = _(
-                "Failed to change power state to '%(target)s'. "
-                "Error: %(error)s") % {'target': new_state, 'error': e}
+                "Failed to change power state to '%(target)s': %(error)s") % {
+                    'target': new_state, 'error': e}
             node_history_record(node, event=error, error=True)
             node['target_power_state'] = states.NOSTATE
             node.save()
@@ -332,7 +332,7 @@ def node_power_action(task, new_state, timeout=None):
             node['target_power_state'] = states.NOSTATE
             error = _(
                 "Failed to change power state to '%(target_state)s' "
-                "by '%(new_state)s'. Error: %(error)s") % {
+                "by '%(new_state)s': %(error)s") % {
                     'target_state': target_state,
                     'new_state': new_state,
                     'error': e}
@@ -365,7 +365,7 @@ def node_power_action(task, new_state, timeout=None):
                 task.driver.storage.detach_volumes(task)
             except exception.StorageError as e:
                 LOG.warning("Volume detachment for node %(node)s "
-                            "failed. Error: %(error)s",
+                            "failed: %(error)s",
                             {'node': node.uuid, 'error': e})
 
 
@@ -1539,8 +1539,8 @@ def node_change_boot_mode(task, target_boot_mode):
                    'class': type(exc).__name__, 'exc': exc},
                   exc_info=not isinstance(exc, exception.IronicException))
         task.node.last_error = (
-            "Failed to change boot mode to '%(target)s'. "
-            "Error: %(err)s" % {'target': target_boot_mode, 'err': exc})
+            "Failed to change boot mode to '%(target)s: %(err)s" % {
+                'target': target_boot_mode, 'err': exc})
         task.node.save()
     else:
         LOG.info("Changed boot_mode to %(mode)s for node %(node)s",
@@ -1587,8 +1587,8 @@ def node_change_secure_boot(task, secure_boot_target):
                    'class': type(exc).__name__, 'exc': exc},
                   exc_info=not isinstance(exc, exception.IronicException))
         task.node.last_error = (
-            "Failed to change secure_boot state to '%(target)s'. "
-            "Error: %(err)s" % {'target': secure_boot_target, 'err': exc})
+            "Failed to change secure_boot state to '%(target)s': %(err)s" % {
+                'target': secure_boot_target, 'err': exc})
         task.node.save()
     else:
         LOG.info("Changed secure_boot state to %(state)s for node %(node)s",

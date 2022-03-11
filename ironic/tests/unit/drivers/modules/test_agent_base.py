@@ -278,8 +278,8 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                 task, mock.ANY, collect_logs=True)
             log_mock.assert_called_once_with(
                 'Asynchronous exception for node %(node)s: %(err)s',
-                {'err': 'Failed to process the next deploy step. '
-                 'Error: LlamaException',
+                {'err': 'Failed to process the next deploy step: '
+                 'LlamaException',
                  'node': task.node.uuid})
 
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
@@ -307,8 +307,8 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             self.assertFalse(failed_mock.called)
             log_mock.assert_called_once_with(
                 'Asynchronous exception for node %(node)s: %(err)s',
-                {'err': 'Failed to process the next deploy step. '
-                 'Error: LlamaException',
+                {'err': 'Failed to process the next deploy step: '
+                 'LlamaException',
                  'node': task.node.uuid})
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
@@ -460,8 +460,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
 
         mock_finalize.assert_called_once_with(mock.ANY, task)
         mock_rescue_err_handler.assert_called_once_with(
-            task, 'Node failed to perform '
-            'rescue operation. Error: some failure')
+            task, 'Node failed to perform rescue operation: some failure')
 
     @mock.patch.object(agent_base.LOG, 'error', autospec=True)
     def test_heartbeat_records_cleaning_deploying(self, log_mock):
@@ -827,7 +826,7 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                          'deployment do not support the command "sync"')
             log_mock.assert_called_once_with(
                 'Failed to flush the file system prior to hard rebooting the '
-                'node %(node)s. Error: %(error)s',
+                'node %(node)s: %(error)s',
                 {'node': task.node.uuid, 'error': log_error})
             self.assertFalse(mock_collect.called)
 

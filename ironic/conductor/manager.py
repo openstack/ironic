@@ -698,7 +698,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise exception.InstanceRescueFailure(
                     instance=node.instance_uuid,
                     node=node.uuid,
-                    reason=_("Validation failed. Error: %s") % e)
+                    reason=_("Validation failed: %s") % e)
             try:
                 task.process_event(
                     'rescue',
@@ -792,7 +792,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise exception.InstanceUnrescueFailure(
                     instance=node.instance_uuid,
                     node=node.uuid,
-                    reason=_("Validation failed. Error: %s") % e)
+                    reason=_("Validation failed: %s") % e)
 
             try:
                 task.process_event(
@@ -853,7 +853,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             task.driver.rescue.clean_up(task)
         except Exception as e:
             LOG.exception('Failed to clean up rescue for node %(node)s '
-                          'after aborting the operation. Error: %(err)s',
+                          'after aborting the operation: %(err)s',
                           {'node': node.uuid, 'err': e})
             error_msg = _('Failed to clean up rescue after aborting '
                           'the operation')
@@ -1073,7 +1073,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             with excutils.save_and_reraise_exception():
                 LOG.exception('Error in tear_down of node %(node)s: %(err)s',
                               {'node': node.uuid, 'err': e})
-                error = _("Failed to tear down. Error: %s") % e
+                error = _("Failed to tear down: %s") % e
                 utils.node_history_record(task.node, event=error,
                                           event_type=states.UNPROVISION,
                                           error=True,
@@ -1162,8 +1162,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                 task.driver.power.validate(task)
                 task.driver.network.validate(task)
             except exception.InvalidParameterValue as e:
-                msg = (_('Validation failed. Cannot clean node %(node)s. '
-                         'Error: %(msg)s') %
+                msg = (_('Validation of node %(node)s for cleaning '
+                         'failed: %(msg)s') %
                        {'node': node.uuid, 'msg': e})
                 raise exception.InvalidParameterValue(msg)
 
@@ -1357,8 +1357,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 with excutils.save_and_reraise_exception():
                     LOG.exception('Error in aborting the inspection of '
                                   'node %(node)s', {'node': node.uuid})
-                    error = _('Failed to abort inspection. '
-                              'Error: %s') % e
+                    error = _('Failed to abort inspection: %s') % e
                     utils.node_history_record(task.node, event=error,
                                               event_type=states.INTROSPECTION,
                                               error=True,
@@ -1553,8 +1552,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                       "while trying to get power state."))
         except Exception as e:
             LOG.debug("During power_failure_recovery, could "
-                      "not get power state for node %(node)s, "
-                      "Error: %(err)s.",
+                      "not get power state for node %(node)s: %(err)s",
                       {'node': task.node.uuid, 'err': e})
         else:
             handle_recovery(task, power_state)
