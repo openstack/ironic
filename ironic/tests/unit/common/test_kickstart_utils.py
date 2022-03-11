@@ -114,7 +114,7 @@ echo $CONTENT | /usr/bin/base64 --decode > {file_path}\n\
         expected = self._get_expected_ks_config_drive(self.config_drive_dict)
         with task_manager.acquire(self.context, self.node.uuid) as task:
             i_info = task.node.instance_info
-            i_info['configdrive'] = self.config_drive_dict
+            i_info['configdrive'] = CONFIG_DRIVE
             task.node.instance_info = i_info
             task.node.save()
             self.assertEqual(expected, ks_utils.prepare_config_drive(task))
