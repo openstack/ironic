@@ -78,6 +78,9 @@ class PXEAnacondaDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
             # NOTE(TheJulia): If this was any other interface, we would
             # unconfigure tenant networks, add provisioning networks, etc.
             task.driver.storage.attach_volumes(task)
+            node.instance_info = deploy_utils.build_instance_info_for_deploy(
+                task)
+            node.save()
         if node.provision_state in (states.ACTIVE, states.UNRESCUING):
             # In the event of takeover or unrescue.
             task.driver.boot.prepare_instance(task)
@@ -116,13 +119,13 @@ class PXEAnacondaDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
             agent_base.log_and_raise_deployment_error(task, msg)
 
         try:
+            task.process_event('resume')
             self.clean_up(task)
             manager_utils.node_power_action(task, states.POWER_OFF)
             task.driver.network.remove_provisioning_network(task)
             task.driver.network.configure_tenant_networks(task)
             manager_utils.node_power_action(task, states.POWER_ON)
-            node.provision_state = states.ACTIVE
-            node.save()
+            task.process_event('done')
         except Exception as e:
             msg = (_('Error rebooting node %(node)s after deploy. '
                      'Error: %(error)s') %
