@@ -2822,9 +2822,7 @@ function build_ipa_dib_ramdisk {
 }
 
 function upload_image_if_needed {
-    if [[ "$IRONIC_PARTITIONED_IMAGE_NAME" =~ cirros ]] \
-            && [[ "$IRONIC_DEFAULT_BOOT_OPTION" == local ]] \
-            && is_service_enabled glance; then
+    if [[ "$IRONIC_PARTITIONED_IMAGE_NAME" =~ cirros ]] && is_service_enabled glance; then
         echo Building a Cirros image suitable for local boot
 
         local dest
@@ -2853,8 +2851,12 @@ function upload_image_if_needed {
             --property kernel_id=$kernel_id --property ramdisk_id=$ramdisk_id \
             --file "$dest"
 
-        if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" != True ]]; then
+        # Change the default image only if the provided settings prevent the
+        # default cirros image from working.
+        if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" != True \
+                && "$IRONIC_DEFAULT_BOOT_OPTION" == local ]]; then
             IRONIC_IMAGE_NAME=$IRONIC_PARTITIONED_IMAGE_NAME
+            DEFAULT_IMAGE_NAME=$IRONIC_IMAGE_NAME
         fi
     fi
 }
