@@ -73,6 +73,60 @@ cleaning steps.
 
 See `How do I change the priority of a cleaning step?`_ for more information.
 
+Storage cleaning options
+------------------------
+
+Clean steps specific to storage are ``erase_devices``,
+``erase_devices_metadata`` and (added in Yoga) ``erase_devices_express``.
+
+``erase_devices`` aims to ensure that the data is removed in the most secure
+way available. On devices that support hardware assisted secure erasure
+(many NVMe and some ATA drives) this is the preferred option. If
+hardware-assisted secure erasure is not available and if
+``[deploy]/continue_if_disk_secure_erase_fails`` is set to ``True``, cleaning
+will fall back to using ``shred`` to overwrite the contents of the device.
+Otherwise cleaning will fail. It is important to note that ``erase_devices``
+may take a very long time (hours or even days) to complete, unless fast,
+hardware assisted data erasure is supported by all the devices in a system.
+Generally, it is very difficult (if possible at all) to recover data after
+performing cleaning with ``erase_devices``.
+
+``erase_devices_metadata`` clean step doesn't provide as strong assurance
+of irreversible destruction of data as ``erase_devices``. However, it has the
+advantage of a reasonably quick runtime (seconds to minutes). It operates by
+destroying metadata of the storage device without erasing every bit of the
+data itself. Attempts of restoring data after running
+``erase_devices_metadata`` may be successful but would certainly require
+relevant expertise and specialized tools.
+
+Lastly, ``erase_devices_express`` combines some of the perks of both
+``erase_devices`` and ``erase_devices_metadata``. It attempts to utilize
+hardware assisted data erasure features if available (currently only NVMe
+devices are supported). In case hardware-asssisted data erasure is not
+available, it falls back to metadata erasure for the device (which is
+identical to ``erase_devices_metadata``). It can be considered a
+time optimized mode of storage cleaning, aiming to perform as thorough
+data erasure as it is possible within a short period of time.
+This clean step is particularly well suited for environments with hybrid
+NVMe-HDD storage configuration as it allows fast and secure erasure of data
+stored on NVMes combined with equally fast but more basic metadata-based
+erasure of data on HDDs.
+``erase_devices_express`` is disabled by default. In order to use it, the
+following configuration is recommended.
+
+.. code-block:: ini
+
+    [deploy]/erase_devices_priority=0
+    [deploy]/erase_devices_metadata_priority=0
+    [conductor]/clean_step_priority_override=deploy.erase_devices_express:5
+
+This ensures that ``erase_devices`` and ``erase_devices_metadata`` are
+disabled so that storage is not cleaned twice and then assigns a non-zero
+priority to ``erase_devices_express``, hence enabling it. Any non-zero
+priority specified in the priority override will work.
+
+Also `[deploy]/enable_nvme_secure_erase` should not be disabled (it is on by default).
+
 .. show-steps::
    :phase: cleaning
 
