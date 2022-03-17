@@ -153,11 +153,6 @@ Request
 .. literalinclude:: samples/node-create-request-dynamic.json
    :language: javascript
 
-**Example Node creation request with a classic driver:**
-
-.. literalinclude:: samples/node-create-request-classic.json
-   :language: javascript
-
 Response
 --------
 

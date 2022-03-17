@@ -2442,6 +2442,12 @@ class NodesController(rest.RestController):
         """Create a new node.
 
         :param node: a node within the request body.
+
+        **Example Node creation request:**
+
+        .. literalinclude::
+           ../../../../api-ref/source/samples/node-create-request-dynamic.json
+           :language: javascript
         """
         if self.from_chassis:
             raise exception.OperationNotPermitted()

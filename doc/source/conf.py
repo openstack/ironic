@@ -42,7 +42,8 @@ extensions = ['sphinx.ext.viewcode',
               'oslo_policy.sphinxext',
               'oslo_policy.sphinxpolicygen',
               'automated_steps',
-              'openstackdocstheme'
+              'openstackdocstheme',
+              'web_api_docstring'
               ]
 
 # sphinxcontrib.apidoc options
