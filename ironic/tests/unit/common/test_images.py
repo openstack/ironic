@@ -374,13 +374,6 @@ class FsImageTestCase(base.TestCase):
         self.assertRaises(exception.ImageCreationFailed,
                           images.create_vfat_image, 'tgt_file')
 
-    @mock.patch.object(utils, 'umount', autospec=True)
-    def test__umount_without_raise(self, umount_mock):
-
-        umount_mock.side_effect = processutils.ProcessExecutionError
-        images._umount_without_raise('mountdir')
-        umount_mock.assert_called_once_with('mountdir')
-
     def test__generate_isolinux_cfg(self):
 
         kernel_params = ['key1=value1', 'key2']
@@ -414,9 +407,9 @@ class FsImageTestCase(base.TestCase):
 
     @mock.patch.object(os.path, 'relpath', autospec=True)
     @mock.patch.object(os, 'walk', autospec=True)
-    @mock.patch.object(utils, 'mount', autospec=True)
-    def test__mount_deploy_iso(self, mount_mock,
-                               walk_mock, relpath_mock):
+    @mock.patch.object(images, '_extract_iso', autospec=True)
+    def test__get_deploy_iso_files(self, extract_mock,
+                                   walk_mock, relpath_mock):
         walk_mock.return_value = [('/tmpdir1/EFI/ubuntu', [], ['grub.cfg']),
                                   ('/tmpdir1/isolinux', [],
                                    ['efiboot.img', 'isolinux.bin',
@@ -424,38 +417,34 @@ class FsImageTestCase(base.TestCase):
         relpath_mock.side_effect = ['EFI/ubuntu/grub.cfg',
                                     'isolinux/efiboot.img']
 
-        images._mount_deploy_iso('path/to/deployiso', 'tmpdir1')
-        mount_mock.assert_called_once_with('path/to/deployiso',
-                                           'tmpdir1', '-o', 'loop')
+        images._get_deploy_iso_files('path/to/deployiso', 'tmpdir1')
+        extract_mock.assert_called_once_with('path/to/deployiso', 'tmpdir1')
         walk_mock.assert_called_once_with('tmpdir1')
 
-    @mock.patch.object(images, '_umount_without_raise', autospec=True)
+    @mock.patch.object(shutil, 'rmtree', autospec=True)
     @mock.patch.object(os.path, 'relpath', autospec=True)
     @mock.patch.object(os, 'walk', autospec=True)
-    @mock.patch.object(utils, 'mount', autospec=True)
-    def test__mount_deploy_iso_fail_no_esp_imageimg(self, mount_mock,
-                                                    walk_mock, relpath_mock,
-                                                    umount_mock):
+    @mock.patch.object(images, '_extract_iso', autospec=True)
+    def test__get_deploy_iso_files_fail_no_esp_imageimg(
+            self, extract_mock, walk_mock, relpath_mock, rmtree_mock):
         walk_mock.return_value = [('/tmpdir1/EFI/ubuntu', [], ['grub.cfg']),
                                   ('/tmpdir1/isolinux', [],
                                    ['isolinux.bin', 'isolinux.cfg'])]
         relpath_mock.side_effect = 'EFI/ubuntu/grub.cfg'
 
         self.assertRaises(exception.ImageCreationFailed,
-                          images._mount_deploy_iso,
+                          images._get_deploy_iso_files,
                           'path/to/deployiso', 'tmpdir1')
-        mount_mock.assert_called_once_with('path/to/deployiso',
-                                           'tmpdir1', '-o', 'loop')
+        extract_mock.assert_called_once_with('path/to/deployiso', 'tmpdir1')
         walk_mock.assert_called_once_with('tmpdir1')
-        umount_mock.assert_called_once_with('tmpdir1')
+        rmtree_mock.assert_called_once_with('tmpdir1')
 
-    @mock.patch.object(images, '_umount_without_raise', autospec=True)
+    @mock.patch.object(shutil, 'rmtree', autospec=True)
     @mock.patch.object(os.path, 'relpath', autospec=True)
     @mock.patch.object(os, 'walk', autospec=True)
-    @mock.patch.object(utils, 'mount', autospec=True)
-    def test__mount_deploy_iso_fails_no_grub_cfg(self, mount_mock,
-                                                 walk_mock, relpath_mock,
-                                                 umount_mock):
+    @mock.patch.object(images, '_extract_iso', autospec=True)
+    def test__get_deploy_iso_files_fails_no_grub_cfg(
+            self, extract_mock, walk_mock, relpath_mock, rmtree_mock):
         walk_mock.return_value = [('/tmpdir1/EFI/ubuntu', '', []),
                                   ('/tmpdir1/isolinux', '',
                                    ['efiboot.img', 'isolinux.bin',
@@ -463,30 +452,30 @@ class FsImageTestCase(base.TestCase):
         relpath_mock.side_effect = 'isolinux/efiboot.img'
 
         self.assertRaises(exception.ImageCreationFailed,
-                          images._mount_deploy_iso,
+                          images._get_deploy_iso_files,
                           'path/to/deployiso', 'tmpdir1')
-        mount_mock.assert_called_once_with('path/to/deployiso',
-                                           'tmpdir1', '-o', 'loop')
+        extract_mock.assert_called_once_with('path/to/deployiso', 'tmpdir1')
         walk_mock.assert_called_once_with('tmpdir1')
-        umount_mock.assert_called_once_with('tmpdir1')
+        rmtree_mock.assert_called_once_with('tmpdir1')
 
     @mock.patch.object(utils, 'mount', autospec=True)
-    def test__mount_deploy_iso_fail_with_ExecutionError(self, mount_mock):
-        mount_mock.side_effect = processutils.ProcessExecutionError
+    def test__get_deploy_iso_files_fail_with_ExecutionError(
+            self, get_iso_files_mock):
+        get_iso_files_mock.side_effect = processutils.ProcessExecutionError
         self.assertRaises(exception.ImageCreationFailed,
-                          images._mount_deploy_iso,
+                          images._get_deploy_iso_files,
                           'path/to/deployiso', 'tmpdir1')
 
-    @mock.patch.object(images, '_umount_without_raise', autospec=True)
+    @mock.patch.object(shutil, 'rmtree', autospec=True)
     @mock.patch.object(images, '_create_root_fs', autospec=True)
     @mock.patch.object(utils, 'write_to_file', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
-    @mock.patch.object(images, '_mount_deploy_iso', autospec=True)
+    @mock.patch.object(images, '_get_deploy_iso_files', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
     @mock.patch.object(images, '_generate_cfg', autospec=True)
     def test_create_esp_image_for_uefi_with_deploy_iso(
-            self, gen_cfg_mock, tempdir_mock, mount_mock, execute_mock,
-            write_to_file_mock, create_root_fs_mock, umount_mock):
+            self, gen_cfg_mock, tempdir_mock, get_iso_files_mock, execute_mock,
+            write_to_file_mock, create_root_fs_mock, rmtree_mock):
 
         files_info = {
             'path/to/kernel': 'vmlinuz',
@@ -513,15 +502,16 @@ class FsImageTestCase(base.TestCase):
         mock_file_handle1 = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle1.__enter__.return_value = 'mountdir'
         tempdir_mock.side_effect = mock_file_handle, mock_file_handle1
-        mount_mock.return_value = (uefi_path_info,
-                                   e_img_rel_path, grub_rel_path)
+        get_iso_files_mock.return_value = (uefi_path_info,
+                                           e_img_rel_path, grub_rel_path)
 
         images.create_esp_image_for_uefi('tgt_file',
                                          'path/to/kernel',
                                          'path/to/ramdisk',
                                          deploy_iso='path/to/deploy_iso',
                                          kernel_params=params)
-        mount_mock.assert_called_once_with('path/to/deploy_iso', 'mountdir')
+        get_iso_files_mock.assert_called_once_with('path/to/deploy_iso',
+                                                   'mountdir')
         create_root_fs_mock.assert_called_once_with('tmpdir', files_info)
         gen_cfg_mock.assert_any_call(params, CONF.grub_config_template,
                                      grub_options)
@@ -529,7 +519,7 @@ class FsImageTestCase(base.TestCase):
         execute_mock.assert_called_once_with(
             'mkisofs', '-r', '-V', 'VMEDIA_BOOT_ISO', '-l', '-e',
             'path/to/efiboot.img', '-no-emul-boot', '-o', 'tgt_file', 'tmpdir')
-        umount_mock.assert_called_once_with('mountdir')
+        rmtree_mock.assert_called_once_with('mountdir')
 
     @mock.patch.object(utils, 'write_to_file', autospec=True)
     @mock.patch.object(images, '_create_root_fs', autospec=True)
@@ -647,14 +637,15 @@ class FsImageTestCase(base.TestCase):
         self._test_create_isolinux_image_for_bios(
             inject_files={'/source': 'target'})
 
-    @mock.patch.object(images, '_umount_without_raise', autospec=True)
+    @mock.patch.object(images, '_extract_iso', autospec=True)
+    @mock.patch.object(shutil, 'rmtree', autospec=True)
     @mock.patch.object(images, '_create_root_fs', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
     @mock.patch.object(os, 'walk', autospec=True)
     def test_create_esp_image_uefi_rootfs_fails(
             self, walk_mock, utils_mock, tempdir_mock,
-            create_root_fs_mock, umount_mock):
+            create_root_fs_mock, rmtree_mock, extract_mock):
 
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
@@ -669,7 +660,7 @@ class FsImageTestCase(base.TestCase):
                           'path/to/kernel',
                           'path/to/ramdisk',
                           deploy_iso='path/to/deployiso')
-        umount_mock.assert_called_once_with('mountdir')
+        rmtree_mock.assert_called_once_with('mountdir')
 
     @mock.patch.object(images, '_create_root_fs', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
@@ -686,22 +677,22 @@ class FsImageTestCase(base.TestCase):
                           'tgt_file', 'path/to/kernel',
                           'path/to/ramdisk')
 
-    @mock.patch.object(images, '_umount_without_raise', autospec=True)
+    @mock.patch.object(shutil, 'rmtree', autospec=True)
     @mock.patch.object(images, '_create_root_fs', autospec=True)
     @mock.patch.object(utils, 'write_to_file', autospec=True)
     @mock.patch.object(utils, 'tempdir', autospec=True)
     @mock.patch.object(utils, 'execute', autospec=True)
-    @mock.patch.object(images, '_mount_deploy_iso', autospec=True)
+    @mock.patch.object(images, '_get_deploy_iso_files', autospec=True)
     @mock.patch.object(images, '_generate_cfg', autospec=True)
     def test_create_esp_image_mkisofs_fails(
-            self, gen_cfg_mock, mount_mock, utils_mock, tempdir_mock,
-            write_to_file_mock, create_root_fs_mock, umount_mock):
+            self, gen_cfg_mock, get_iso_files_mock, utils_mock, tempdir_mock,
+            write_to_file_mock, create_root_fs_mock, rmtree_mock):
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'tmpdir'
         mock_file_handle1 = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle1.__enter__.return_value = 'mountdir'
         tempdir_mock.side_effect = mock_file_handle, mock_file_handle1
-        mount_mock.return_value = ({'a': 'a'}, 'b', 'c')
+        get_iso_files_mock.return_value = ({'a': 'a'}, 'b', 'c')
         utils_mock.side_effect = processutils.ProcessExecutionError
 
         self.assertRaises(exception.ImageCreationFailed,
@@ -710,7 +701,7 @@ class FsImageTestCase(base.TestCase):
                           'path/to/kernel',
                           'path/to/ramdisk',
                           deploy_iso='path/to/deployiso')
-        umount_mock.assert_called_once_with('mountdir')
+        rmtree_mock.assert_called_once_with('mountdir')
 
     @mock.patch.object(images, '_create_root_fs', autospec=True)
     @mock.patch.object(utils, 'write_to_file', autospec=True)
