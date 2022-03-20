@@ -1399,6 +1399,7 @@ class PXEBuildKickstartConfigOptionsTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected = {}
             expected['liveimg_url'] = task.node.instance_info['image_url']
+            expected['config_drive'] = ''
             expected['heartbeat_url'] = (
                 'http://ironic-api/v1/heartbeat/%s' % task.node.uuid
             )
