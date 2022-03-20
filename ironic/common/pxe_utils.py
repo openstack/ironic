@@ -599,8 +599,7 @@ def is_ipxe_enabled(task):
     """Return true if ipxe is set.
 
     :param task: A TaskManager object
-    :returns: boolean true if ``[pxe]ipxe_enabled`` is configured
-              or if the task driver instance is the iPXE driver.
+    :returns: boolean true if the task driver instance is the iPXE driver.
     """
     return 'ipxe_boot' in task.driver.boot.capabilities
 
