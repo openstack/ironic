@@ -430,6 +430,26 @@ RELEASE_MAPPING = {
             'VolumeTarget': ['1.0'],
         }
     },
+    '20.1': {
+        'api': '1.78',
+        'rpc': '1.55',
+        'objects': {
+            'Allocation': ['1.1'],
+            'BIOSSetting': ['1.1'],
+            'Node': ['1.36'],
+            'NodeHistory': ['1.0'],
+            'Conductor': ['1.3'],
+            'Chassis': ['1.3'],
+            'Deployment': ['1.0'],
+            'DeployTemplate': ['1.1'],
+            'Port': ['1.10'],
+            'Portgroup': ['1.4'],
+            'Trait': ['1.0'],
+            'TraitList': ['1.0'],
+            'VolumeConnector': ['1.0'],
+            'VolumeTarget': ['1.0'],
+        }
+    },
     'master': {
         'api': '1.78',
         'rpc': '1.55',
@@ -465,9 +485,9 @@ RELEASE_MAPPING = {
 #
 #            There should be at most two named mappings here.
 
-# NOTE(mgoddard): remove wallaby prior to the yoga release.
-RELEASE_MAPPING['wallaby'] = RELEASE_MAPPING['17.0']
+# NOTE(mgoddard): remove xena prior to the zed release.
 RELEASE_MAPPING['xena'] = RELEASE_MAPPING['18.2']
+RELEASE_MAPPING['yoga'] = RELEASE_MAPPING['20.1']
 
 # List of available versions with named versions first; 'master' is excluded.
 RELEASE_VERSIONS = sorted(set(RELEASE_MAPPING) - {'master'}, reverse=True)
