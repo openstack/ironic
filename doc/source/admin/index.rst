@@ -30,7 +30,6 @@ the services.
    Node Multi-Tenancy <node-multitenancy>
    Fast-Track Deployment <fast-track>
    Booting a Ramdisk or an ISO <ramdisk-boot>
-   Deploying with anaconda deploy interface <anaconda-deploy-interface>
    Hardware Burn-in <hardware-burn-in>
    Vendor Passthru <vendor-passthru>
 
@@ -58,6 +57,7 @@ Advanced Topics
    Layer 3 or DHCP-less Ramdisk Booting <dhcp-less>
    Tuning Ironic <tuning>
    Role Based Access Control <secure-rbac>
+   Deploying with Anaconda <anaconda-deploy-interface>
 
 .. toctree::
   :hidden:
