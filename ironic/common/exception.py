@@ -835,3 +835,19 @@ class IncorrectConfiguration(IronicException):
 
 class NodeVerifyFailure(IronicException):
     _msg_fmt = _("Failed to verify node %(node)s: %(reason)s")
+
+
+class ImageRefIsARedirect(IronicException):
+    _msg_fmt = _("Received a URL redirect when attempting to evaluate "
+                 "image reference %(image_ref)s pointing to "
+                 "%(redirect_url)s. This may, or may not be recoverable.")
+    redirect_url = None
+
+    def __init__(self, image_ref=None, redirect_url=None, msg=None):
+        self.redirect_url = redirect_url
+        # Kwargs are expected by ironic_lib's IronicException to convert
+        # the message.
+        super(ImageRefIsARedirect, self).__init__(
+            message=msg,
+            image_ref=image_ref,
+            redirect_url=redirect_url)

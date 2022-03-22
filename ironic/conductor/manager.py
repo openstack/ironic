@@ -1096,6 +1096,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.del_driver_internal_info('instance')
             node.del_driver_internal_info('root_uuid_or_disk_id')
             node.del_driver_internal_info('is_whole_disk_image')
+            node.del_driver_internal_info('is_source_a_path')
             node.del_driver_internal_info('deploy_boot_mode')
             if node.driver_internal_info.get('automatic_lessee'):
                 # Remove lessee, as it was automatically added

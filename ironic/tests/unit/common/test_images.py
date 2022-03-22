@@ -274,26 +274,86 @@ class IronicImagesTestCase(base.TestCase):
     def test_is_whole_disk_image_partition_non_glance(self, mock_igi,
                                                       mock_gip):
         mock_igi.return_value = False
-        instance_info = {'image_source': 'partition_image',
-                         'kernel': 'kernel',
-                         'ramdisk': 'ramdisk'}
+        instance_info = {
+            'image_source': 'fcf5a777-d9d2-4b86-b3da-bb0b61d5a291',
+            'kernel': 'kernel',
+            'ramdisk': 'ramdisk'}
         is_whole_disk_image = images.is_whole_disk_image('context',
                                                          instance_info)
         self.assertFalse(is_whole_disk_image)
         self.assertFalse(mock_gip.called)
         mock_igi.assert_called_once_with(instance_info['image_source'])
 
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
     @mock.patch.object(images, 'get_image_properties', autospec=True)
     @mock.patch.object(glance_utils, 'is_glance_image', autospec=True)
     def test_is_whole_disk_image_whole_disk_non_glance(self, mock_igi,
-                                                       mock_gip):
+                                                       mock_gip,
+                                                       mock_validate):
         mock_igi.return_value = False
-        instance_info = {'image_source': 'whole_disk_image'}
+        instance_info = {
+            'image_source': 'http://whole-disk-image'}
         is_whole_disk_image = images.is_whole_disk_image('context',
                                                          instance_info)
         self.assertTrue(is_whole_disk_image)
         self.assertFalse(mock_gip.called)
         mock_igi.assert_called_once_with(instance_info['image_source'])
+        mock_validate.assert_called_once_with(mock.ANY,
+                                              'http://whole-disk-image')
+
+    def test_is_source_a_path_returns_none(self):
+        self.assertIsNone(images.is_source_a_path('context', {}))
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    def test_is_source_a_path_simple(self, validate_mock):
+        mock_response = mock.Mock()
+        mock_response.headers = {}
+        validate_mock.return_value = mock_response
+        self.assertTrue(images.is_source_a_path('context', 'http://foo/bar/'))
+        validate_mock.assert_called_once_with(mock.ANY, 'http://foo/bar/')
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    def test_is_source_a_path_content_length(self, validate_mock):
+        mock_response = mock.Mock()
+        mock_response.headers = {'Content-Length': 1}
+        validate_mock.return_value = mock_response
+        self.assertFalse(images.is_source_a_path('context', 'http://foo/bar/'))
+        validate_mock.assert_called_once_with(mock.ANY, 'http://foo/bar/')
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    def test_is_source_a_path_content_type(self, validate_mock):
+        mock_response = mock.Mock()
+        mock_response.headers = {'Content-Type': 'text/html'}
+        validate_mock.return_value = mock_response
+        self.assertTrue(images.is_source_a_path('context', 'http://foo/bar'))
+        validate_mock.assert_called_once_with(mock.ANY, 'http://foo/bar')
+
+    @mock.patch.object(images, 'LOG', autospec=True)
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    def test_is_source_a_path_redirect(self, validate_mock, log_mock):
+        url = 'http://foo/bar'
+        redirect_url = url + '/'
+        validate_mock.side_effect = exception.ImageRefIsARedirect(
+            url, redirect_url)
+        self.assertTrue(images.is_source_a_path('context', url))
+        log_mock.debug.assert_called_once_with('Received a URL redirect when '
+                                               'attempting to evaluate image '
+                                               'reference http://foo/bar '
+                                               'pointing to http://foo/bar/. '
+                                               'This may, or may not be '
+                                               'recoverable.')
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    def test_is_source_a_path_other_error(self, validate_mock):
+        url = 'http://foo/bar'
+        validate_mock.side_effect = OSError
+        self.assertIsNone(images.is_source_a_path('context', url))
 
 
 class FsImageTestCase(base.TestCase):

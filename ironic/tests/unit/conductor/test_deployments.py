@@ -385,6 +385,104 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_start_deploy_records_lessee(self):
         self._test_start_deploy(automatic_lessee=True)
 
+    @mock.patch.object(images, 'is_source_a_path', autospec=True)
+    @mock.patch.object(task_manager.TaskManager, 'process_event',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate',
+                autospec=True)
+    @mock.patch.object(conductor_steps,
+                       'validate_user_deploy_steps_and_templates',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'validate_instance_info_traits',
+                       autospec=True)
+    @mock.patch.object(images, 'is_whole_disk_image', autospec=True)
+    def test_start_deploy_source_path(
+            self, mock_iwdi, mock_validate_traits,
+            mock_validate_deploy_user_steps_and_templates,
+            mock_deploy_validate, mock_power_validate,
+            mock_process_event, mock_is_source_a_path):
+        self._start_service()
+        mock_iwdi.return_value = None
+        mock_is_source_a_path.return_value = True
+        deploy_steps = [{"interface": "bios", "step": "factory_reset",
+                         "priority": 95}]
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.AVAILABLE,
+                                          target_provision_state=states.ACTIVE)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        deployments.start_deploy(task, self.service, configdrive=None,
+                                 event='deploy', deploy_steps=deploy_steps)
+        node.refresh()
+        mock_iwdi.assert_called_once_with(task.context,
+                                          task.node.instance_info)
+        mock_is_source_a_path.assert_called_once_with(
+            task.context,
+            task.node.instance_info.get('image_source')
+        )
+        self.assertNotIn('is_whole_disk_iamge', node.driver_internal_info)
+        self.assertTrue(node.driver_internal_info['is_source_a_path'])
+        mock_power_validate.assert_called_once_with(task.driver.power, task)
+        mock_deploy_validate.assert_called_once_with(task.driver.deploy, task)
+        mock_validate_traits.assert_called_once_with(task.node)
+        mock_validate_deploy_user_steps_and_templates.assert_called_once_with(
+            task, deploy_steps, skip_missing=True)
+        mock_process_event.assert_called_with(
+            mock.ANY, 'deploy', call_args=(
+                deployments.do_node_deploy, task, 1, None, deploy_steps),
+            callback=mock.ANY, err_handler=mock.ANY)
+
+    @mock.patch.object(images, 'is_source_a_path', autospec=True)
+    @mock.patch.object(task_manager.TaskManager, 'process_event',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate',
+                autospec=True)
+    @mock.patch.object(conductor_steps,
+                       'validate_user_deploy_steps_and_templates',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'validate_instance_info_traits',
+                       autospec=True)
+    @mock.patch.object(images, 'is_whole_disk_image', autospec=True)
+    def test_start_deploy_source_path_none(
+            self, mock_iwdi, mock_validate_traits,
+            mock_validate_deploy_user_steps_and_templates,
+            mock_deploy_validate, mock_power_validate,
+            mock_process_event, mock_is_source_a_path):
+        self._start_service()
+        mock_iwdi.return_value = None
+        mock_is_source_a_path.return_value = None
+        deploy_steps = [{"interface": "bios", "step": "factory_reset",
+                         "priority": 95}]
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.AVAILABLE,
+                                          target_provision_state=states.ACTIVE)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        deployments.start_deploy(task, self.service, configdrive=None,
+                                 event='deploy', deploy_steps=deploy_steps)
+        node.refresh()
+        mock_iwdi.assert_called_once_with(task.context,
+                                          task.node.instance_info)
+        mock_is_source_a_path.assert_called_once_with(
+            task.context,
+            task.node.instance_info.get('image_source')
+        )
+        self.assertNotIn('is_whole_disk_iamge', node.driver_internal_info)
+        self.assertNotIn('is_source_a_path', node.driver_internal_info)
+        mock_power_validate.assert_called_once_with(task.driver.power, task)
+        mock_deploy_validate.assert_called_once_with(task.driver.deploy, task)
+        mock_validate_traits.assert_called_once_with(task.node)
+        mock_validate_deploy_user_steps_and_templates.assert_called_once_with(
+            task, deploy_steps, skip_missing=True)
+        mock_process_event.assert_called_with(
+            mock.ANY, 'deploy', call_args=(
+                deployments.do_node_deploy, task, 1, None, deploy_steps),
+            callback=mock.ANY, err_handler=mock.ANY)
+
 
 @mgr_utils.mock_record_keepalive
 class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
