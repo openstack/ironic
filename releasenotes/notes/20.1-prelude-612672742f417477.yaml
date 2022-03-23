@@ -2,6 +2,7 @@
 prelude: |
     The Ironic community is pleased to announce the release of Ironic 20.1.
 
-    During the Yoga cycle, we were able to add improvements that will make 
-    it easier to deploy and operate. Our community will be happy to assist
-    if you have any questions!
+    During the Yoga cycle, we had forty-three contributors.
+    They are responsible for more than 35,000 lines of code and more than
+    twenty new features that will improve the experience of our end-users!
+    Please reach out to our community if you have any questions or feedback!
