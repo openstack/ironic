@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The combined ``ironic`` executable now starts the API only after the
+    built-in conductor starts. This avoids error 500 on requests while
+    the conductor is starting.
