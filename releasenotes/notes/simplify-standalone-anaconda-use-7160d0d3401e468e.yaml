@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Anaconda supports the ability to explicitly pass a URL instead
+    of a ``stage2`` ramdisk parameter. This has resulted in confusion
+    in use of the ``anaconda`` deployment interface, as a ``stage2``
+    ramdisk is typically not used, but made sense with Glance images in
+    a fully integrated OpenStack deployment. Now a URL to a path can be
+    supplied to the ``anaconda`` deployment interface to simplify the
+    interaction and use, and a redundant ``stage2`` parameter is no longer
+    required.

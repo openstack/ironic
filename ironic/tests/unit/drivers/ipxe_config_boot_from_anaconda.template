@@ -1,0 +1,47 @@
+#!ipxe
+
+set attempts:int32 10
+set i:int32 0
+
+goto deploy
+
+:deploy
+imgfree
+kernel http://1.2.3.4:1234/deploy_kernel selinux=0 troubleshoot=0 text test_param BOOTIF=${mac} initrd=deploy_ramdisk || goto retry
+
+initrd http://1.2.3.4:1234/deploy_ramdisk || goto retry
+boot
+
+:retry
+iseq ${i} ${attempts} && goto fail ||
+inc i
+echo No response, retrying in ${i} seconds.
+sleep ${i}
+goto deploy
+
+:fail
+echo Failed to get a response after ${attempts} attempts
+echo Powering off in 30 seconds.
+sleep 30
+poweroff
+
+:boot_partition
+imgfree
+kernel http://1.2.3.4:1234/kernel root={{ ROOT }} ro text test_param initrd=ramdisk || goto boot_partition
+initrd http://1.2.3.4:1234/ramdisk || goto boot_partition
+boot
+
+:boot_anaconda
+imgfree
+kernel http://1.2.3.4:1234/kernel text test_param inst.ks=http://fake/ks.cfg inst.repo=http://1.2.3.4/path/to/os/ initrd=ramdisk || goto boot_anaconda
+initrd http://1.2.3.4:1234/ramdisk || goto boot_anaconda
+boot
+
+:boot_ramdisk
+imgfree
+kernel http://1.2.3.4:1234/kernel root=/dev/ram0 text test_param ramdisk_param initrd=ramdisk || goto boot_ramdisk
+initrd http://1.2.3.4:1234/ramdisk || goto boot_ramdisk
+boot
+
+:boot_whole_disk
+sanboot --no-describe
