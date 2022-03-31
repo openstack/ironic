@@ -831,6 +831,10 @@
     vars:
       grenade_devstack_localrc:
         shared:
+          #NOTE: when in UEFI mode, TFTP packets don't get tracked nor
+          #pass between original and upgrade networks. Switch to BIOS
+          #until we can fix this properly.
+          IRONIC_BOOT_MODE: bios
           DEFAULT_INSTANCE_TYPE: baremetal
           FORCE_CONFIG_DRIVE: True
           INSTALL_TEMPEST: False
