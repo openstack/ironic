@@ -46,13 +46,8 @@ OPTIONAL_PROPERTIES = {
                               "driver should use virtual media USB or floppy "
                               "device for passing configuration information "
                               "to the ramdisk. Defaults to False. Optional."),
-    'kernel_append_params': _("Additional kernel parameters to pass down to "
-                              "instance kernel. These parameters can be "
-                              "consumed by the kernel or by the applications "
-                              "by reading /proc/cmdline. Mind severe cmdline "
-                              "size limit. Overrides "
-                              "[redfish]/kernel_append_params ironic "
-                              "option."),
+    'kernel_append_params': driver_utils.KERNEL_APPEND_PARAMS_DESCRIPTION %
+    {'option_group': 'redfish'},
     'bootloader': _("URL or Glance UUID  of the EFI system partition "
                     "image containing EFI boot loader. This image will be "
                     "used by ironic when building UEFI-bootable ISO "

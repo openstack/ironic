@@ -206,8 +206,17 @@ user-specified kernel command line parameters.
 .. note::
    The ``driver_info`` field is supported starting with the Xena release.
 
+Starting with the Zed cycle, you can combine the parameters from the
+configuration and from the node using the special ``%default%`` syntax:
+
+.. code-block:: bash
+
+  baremetal node set node-0 \
+    --driver-info kernel_append_params="%default% console=ttyS0,115200n8"
+
 For ramdisk boot, the ``instance_info[ramdisk_kernel_arguments]`` property
-serves the same purpose.
+serves the same purpose (``%default%`` is not supported since there is no
+default value in the configuration).
 
 Pre-built ISO images
 ~~~~~~~~~~~~~~~~~~~~

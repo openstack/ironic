@@ -80,13 +80,8 @@ OPTIONAL_PROPERTIES = {
           "the IPv4 subnet mask that the storage network is configured to "
           "utilize, in a range between 1 and 31 inclusive. This is necessary "
           "for booting a node from a remote iSCSI volume. Optional."),
-    'kernel_append_params': _("Additional kernel parameters to pass down to "
-                              "instance kernel. These parameters can be "
-                              "consumed by the kernel or by the applications "
-                              "by reading /proc/cmdline. Mind severe cmdline "
-                              "size limit. Overrides "
-                              "[irmc]/kernel_append_params ironic "
-                              "option."),
+    'kernel_append_params': driver_utils.KERNEL_APPEND_PARAMS_DESCRIPTION %
+    {'option_group': 'irmc'},
 }
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()

@@ -384,6 +384,17 @@ OPTIONAL_PROPERTIES = {
 }
 
 
+KERNEL_APPEND_PARAMS_DESCRIPTION = _(
+    "Additional kernel parameters to pass down to instance kernel. "
+    "These parameters can be consumed by the kernel or by the applications "
+    "by reading /proc/cmdline. Mind severe cmdline size limit. "
+    "When used with virtual media, only applies to ISO images that Ironic "
+    "builds, but not to pre-built ISOs provided via e.g. deploy_iso. "
+    "Overrides the [%(option_group)s]/kernel_append_params configuration "
+    "option, use %%default%% to insert its value."
+)
+
+
 def get_kernel_append_params(node, default):
     """Get the applicable kernel params.
 
@@ -399,7 +410,7 @@ def get_kernel_append_params(node, default):
     for location in ('instance_info', 'driver_info'):
         result = getattr(node, location).get('kernel_append_params')
         if result is not None:
-            return result
+            return result.replace('%default%', default or '')
 
     return default
 

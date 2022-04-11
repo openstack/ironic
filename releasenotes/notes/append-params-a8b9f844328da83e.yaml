@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    When using per-node kernel parameters, i.e. ``kernel_append_params`` in the
+    node's ``instance_info`` or ``driver_info``, it is now possible to insert
+    the value of the driver's configuration option (e.g.
+    ``[pxe]kernel_append_params`` via the special ``%default%`` syntax, e.g.::
+
+      baremetal node set node-0 \
+        --driver-info kernel_append_params="%default% foo=bar"

@@ -50,13 +50,8 @@ RESCUE_PROPERTIES = {
                         'required for rescue mode.'),
 }
 OPTIONAL_PROPERTIES = {
-    'kernel_append_params': _("Additional kernel parameters to pass down to "
-                              "instance kernel. These parameters can be "
-                              "consumed by the kernel or by the applications "
-                              "by reading /proc/cmdline. Mind severe cmdline "
-                              "size limit. Overrides "
-                              "[pxe]/kernel_append_params ironic "
-                              "option."),
+    'kernel_append_params': driver_utils.KERNEL_APPEND_PARAMS_DESCRIPTION %
+    {'option_group': 'pxe'},
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(driver_utils.OPTIONAL_PROPERTIES)

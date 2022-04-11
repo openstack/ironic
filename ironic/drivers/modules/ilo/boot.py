@@ -74,12 +74,8 @@ OPTIONAL_PROPERTIES = {
     'ilo_add_certificates': _("Boolean value that indicates whether the "
                               "certificates require to be added to the "
                               "iLO."),
-    'kernel_append_params': _("Additional kernel parameters to pass down "
-                              "to instance kernel. These parameters can "
-                              "be consumed by the kernel or by the "
-                              "applications by reading /proc/cmdline. "
-                              "Mind severe cmdline size limit. Overrides "
-                              "[ilo]/kernel_append_params ironic option.")
+    'kernel_append_params': driver_utils.KERNEL_APPEND_PARAMS_DESCRIPTION %
+    {'option_group': 'ilo'},
 }
 COMMON_PROPERTIES = REQUIRED_PROPERTIES
 

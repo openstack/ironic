@@ -1712,6 +1712,15 @@ class PXEBuildConfigOptionsTestCase(db_base.DbTestCase):
         self._test_build_pxe_config_options_pxe(whle_dsk_img=True,
                                                 expected_pxe_params='params2')
 
+    def test_build_pxe_config_options_kernel_params_with_default(self):
+        info = self.node.driver_info
+        info['kernel_append_params'] = 'param1 %default% params2'
+        self.node.driver_info = info
+        self.node.save()
+        self._test_build_pxe_config_options_pxe(
+            whle_dsk_img=True,
+            expected_pxe_params='param1 test_param params2')
+
     def test_build_pxe_config_options_kernel_params_from_instance_info(self):
         info = self.node.instance_info
         info['kernel_append_params'] = 'params2'

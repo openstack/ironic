@@ -16,15 +16,15 @@ Check your driver documentation at :doc:`../drivers` for details.
 PXE boot
 --------
 
-The ``pxe`` boot interface uses PXE_ or iPXE_ to deliver the target
-kernel/ramdisk pair. PXE uses relatively slow and unreliable TFTP protocol
-for transfer, while iPXE uses HTTP. The downside of iPXE is that it's less
-common, and usually requires bootstrapping using PXE first.
+The ``pxe`` and ``ipxe`` boot interfaces uses PXE_ or iPXE_ accordingly to
+deliver the target kernel/ramdisk pair. PXE uses relatively slow and unreliable
+TFTP protocol for transfer, while iPXE uses HTTP. The downside of iPXE is that
+it's less common, and usually requires bootstrapping using PXE first.
 
-The ``pxe`` boot interface works by preparing a PXE/iPXE environment for a
-node on the file system, then instructing the DHCP provider (for example,
-the Networking service) to boot the node from it. See
-ref:`direct-deploy-example` for a better understanding of the whole deployment
+The ``pxe`` and ``ipxe`` boot interfaces work by preparing a PXE/iPXE
+environment for a node on the file system, then instructing the DHCP provider
+(for example, the Networking service) to boot the node from it. See
+:ref:`direct-deploy-example` for a better understanding of the whole deployment
 process.
 
 .. note::
@@ -32,12 +32,49 @@ process.
     instead of conventional BIOS boot. This is particularly important for CPU
     architectures that do not have BIOS support at all.
 
-The ``pxe`` boot interface is used by default for many hardware types,
-including ``ipmi``. Some hardware types, notably ``ilo`` and ``irmc`` have their
-specific implementations of the PXE boot interface.
+The ``ipxe`` boot interface is used by default for many hardware types,
+including ``ipmi``. Some hardware types, notably ``ilo`` and ``irmc`` have
+their specific implementations of the PXE boot interface.
 
 Additional configuration is required for this boot interface - see
 :doc:`/install/configure-pxe` for details.
+
+Kernel parameters
+~~~~~~~~~~~~~~~~~
+
+If you need to pass additional kernel parameters to the deployment/cleaning
+ramdisk (for example, to configure serial console), use the following
+configuration option:
+
+.. code-block:: ini
+
+    [pxe]
+    kernel_append_params = nofb nomodeset vga=normal
+
+.. note::
+   The option was called ``pxe_append_params`` before the Xena cycle.
+
+Per-node and per-instance overrides are also possible, for example:
+
+.. code-block:: bash
+
+  baremetal node set node-0 \
+    --driver-info kernel_append_params="nofb nomodeset vga=normal"
+  baremetal node set node-0 \
+    --instance-info kernel_append_params="nofb nomodeset vga=normal"
+
+Starting with the Zed cycle, you can combine the parameters from the
+configuration and from the node using the special ``%default%`` syntax:
+
+.. code-block:: bash
+
+  baremetal node set node-0 \
+    --driver-info kernel_append_params="%default% console=ttyS0,115200n8"
+
+Together with the configuration above, the following parameters will be
+appended to the kernel command line::
+
+    nofb nomodeset vga=normal console=ttyS0,115200n8
 
 Common options
 --------------
