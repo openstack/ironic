@@ -76,6 +76,11 @@ appended to the kernel command line::
 
     nofb nomodeset vga=normal console=ttyS0,115200n8
 
+.. note::
+   Ironic does not do any de-duplication of the resulting kernel parameters.
+   Both kernel itself and dracut seem to give priority to the last instance
+   of the same parameter.
+
 Common options
 --------------
 
