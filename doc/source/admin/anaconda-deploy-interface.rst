@@ -127,8 +127,8 @@ glance:
             --disk-format ari --shared anaconda-ramdisk-<version>
         openstack image create --file ./squashfs.img --container-format ari \
             --disk-format ari --shared anaconda-stage-<verison>
-        openstack image create --file ./os-image.tar.gz --container-format \
-            compressed --disk-format raw --shared \
+        openstack image create --file ./os-image.tar.gz \
+            --container-format bare --disk-format raw --shared \
             --property kernel_id=<glance_uuid_vmlinuz> \
             --property ramdisk_id=<glance_uuid_ramdisk> \
             --property stage2_id=<glance_uuid_stage2> disto-name-version \
