@@ -500,7 +500,7 @@ else
     # loopback cannot be used for v6 testing.
         IRONIC_HOST_IPV6='fc00::1'
     else
-        IRONIC_HOST_IPV6=$SERVICE_HOST
+        IRONIC_HOST_IPV6=$HOST_IPV6
     fi
     IRONIC_PROVISION_SUBNET_GATEWAY=${IRONIC_PROVISION_SUBNET_GATEWAY:-'fc01::1'}
     IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'fc01::2'}
@@ -1342,7 +1342,7 @@ function configure_ironic_rescue_network {
 }
 
 function configure_ironic_provision_network {
-    if [[ "$IP_VERSION" == "6" ]]; then
+    if [[ "$IRONIC_IP_VERSION" == "6" ]]; then
         # NOTE(TheJulia): Ideally we should let this happen
         # with our global address, but iPXE seems to have in
         # consistant behavior in this configuration with devstack.
@@ -1402,9 +1402,11 @@ function configure_ironic_provision_network {
                 --gateway $IRONIC_PROVISION_SUBNET_GATEWAY --network $net_id \
                 --subnet-range $IRONIC_PROVISION_SUBNET_PREFIX -f value -c id)"
         else
+            # NOTE(TheJulia): Consider changing this to stateful to support UEFI once we move
+            # CI to Ubuntu Jammy as it will support v6 and v4 UEFI firmware driven boot ops.
             subnet_id="$(openstack --os-cloud $OS_CLOUD subnet create --ip-version 6 \
-                --ipv6-address-mode dhcpv6-stateful \
-                --ipv6-ra-mode dhcpv6-stateful \
+                --ipv6-address-mode dhcpv6-stateless \
+                --ipv6-ra-mode dhcpv6-stateless \
                 --dns-nameserver 2001:4860:4860::8888 \
                 ${net_segment_id:+--network-segment $net_segment_id} \
                 $IRONIC_PROVISION_PROVIDER_SUBNET_NAME \
