@@ -1167,7 +1167,7 @@ class IPMIManagement(base.ManagementInterface):
             LOG.info('For node %(node_uuid)s, '
                      'driver_info[\'ipmi_disable_boot_timeout\'] is set '
                      'to False, so not sending ipmi boot-timeout-disable',
-                     {'node_uuid', task.node.uuid})
+                     {'node_uuid': task.node.uuid})
 
         ifbd = task.node.driver_info.get('ipmi_force_boot_device', False)
         if strutils.bool_from_string(ifbd):
