@@ -3271,7 +3271,11 @@ function get_ironic_node_prefix {
 }
 
 function setup_vxlan_network {
+    sudo ip link add phy-brbm-infra type bridge
+    sudo ip link set dev phy-brbm-infra up
     sudo ovs-vsctl add-port $IRONIC_VM_NETWORK_BRIDGE phy-brbm-infra
+    sudo ip link add phy-infra-brbm type bridge
+    sudo ip link set dev phy-infra-brbm up
     sudo ovs-vsctl add-port $PUBLIC_BRIDGE phy-infra-brbm
     sudo ovs-vsctl set interface phy-brbm-infra type=patch
     sudo ovs-vsctl set interface phy-infra-brbm type=patch
