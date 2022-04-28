@@ -1921,6 +1921,16 @@ class MiscTestCase(db_base.DbTestCase):
             conductor_utils.restore_power_state_if_needed(task, power_state)
             self.assertEqual(0, power_action_mock.call_count)
 
+    @mock.patch.object(conductor_utils.LOG, 'warning', autospec=True)
+    def test_exclude_current_conductor(self, mock_log):
+        current_conductor = 'foo'
+        offline_conductos = ['foo', 'bar']
+        result = conductor_utils.exclude_current_conductor(current_conductor,
+                                                           offline_conductos)
+        self.assertTrue(mock_log.called)
+        self.assertIn('bar', result)
+        self.assertNotIn('foo', result)
+
 
 class ValidateInstanceInfoTraitsTestCase(tests_base.TestCase):
 

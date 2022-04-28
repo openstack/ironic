@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixes an issue where a conductor would attempt local takeover. In case of
+    heartbeat failure due to resource starvation, the current conductor was
+    detected as offline when querying the database. In this scenario the
+    conductor would forcibly remove reservations of it's own and initiate
+    takeover. Current conductor is now excluded from the list of offline
+    conductors, so that local takeover does not occur for this case. A warning
+    is logged to highlight the potential resource starvation issue.
+    See bug: `2010016 <https://storyboard.openstack.org/#!/story/2010016>`_.
+
