@@ -1671,3 +1671,24 @@ def update_image_type(context, node):
         'image_type',
         images.IMAGE_TYPE_WHOLE_DISK if iwdi else images.IMAGE_TYPE_PARTITION)
     return True
+
+
+def exclude_current_conductor(current_conductor, offline_conductors):
+    """Wrapper to exclude current conductor from offline_conductors
+
+    In some cases the current conductor may have failed to update
+    the heartbeat timestamp due to failure or resource starvation.
+    When this occurs the dbapi get_offline_conductors method will
+    include the current conductor in its return value.
+
+    :param current_conductor: id or hostname of the current conductor
+    :param offline_conductors: List of offline conductors.
+    :return: List of offline conductors, excluding current conductor
+    """
+    if current_conductor in offline_conductors:
+        LOG.warning('Current conductor %s will be excluded from offline '
+                    'conductors. Conductor heartbeat has failed to update the '
+                    'database timestamp. This is sign of resource starvation.',
+                    current_conductor)
+
+    return [x for x in offline_conductors if x != current_conductor]
