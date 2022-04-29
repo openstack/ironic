@@ -2388,8 +2388,6 @@ class Connection(api.Connection):
                         # remove the entries at the end of the list
                         # which will be the more recent items as we
                         # ordered ascending originally.
-            print('returning final set')
-            print(final_set)
             return final_set
 
     def bulk_delete_node_history_records(self, entries):
