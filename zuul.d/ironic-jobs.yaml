@@ -1062,3 +1062,53 @@
       # NOTE(dtantsur): this job will be run on sushy as well, so it's
       # important to set the working dir to the Ironic checkout.
       zuul_work_dir: "{{ ansible_user_dir }}/{{ zuul.projects['opendev.org/openstack/ironic'].src_dir }}"
+
+- project-template:
+    name: openstack-python3-yoga-jobs-ironic-bugfix19
+    description: |
+      Runs unit tests for an OpenStack Python project under the CPython
+      version 3 releases designated for testing in the Yoga release.
+    check:
+      jobs:
+        - openstack-tox-pep8:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/yoga
+        - openstack-tox-py36:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/yoga
+        - openstack-tox-py39:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/yoga
+    gate:
+      jobs:
+        - openstack-tox-pep8:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/yoga
+        - openstack-tox-py36:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/yoga
+        - openstack-tox-py39:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/yoga
+
+- project-template:
+    name: openstack-python3-yoga-jobs-ironic-bugfix19-arm64
+    description: |
+      Runs unit tests for an OpenStack Python project under the CPython
+      version 3 releases designated for testing in the Yoga release.
+    check:
+      jobs:
+        - openstack-tox-py38-arm64:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/yoga
+        - openstack-tox-py39-arm64:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/yoga
