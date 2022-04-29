@@ -1416,3 +1416,12 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param entires: A list of node history entriy id's to be
                         queried for deletion.
         """
+
+    @abc.abstractmethod
+    def count_nodes_in_provision_state(self, state):
+        """Count the number of nodes in given provision state.
+
+        :param state: A provision_state value to match for the
+                      count operation. This can be a single provision
+                      state value or a list of values.
+        """

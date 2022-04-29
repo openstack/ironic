@@ -886,7 +886,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.NodeInMaintenance,
                                    exception.InstanceDeployFailure,
                                    exception.InvalidStateRequested,
-                                   exception.NodeProtected)
+                                   exception.NodeProtected,
+                                   exception.ConcurrentActionLimit)
     def do_node_deploy(self, context, node_id, rebuild=False,
                        configdrive=None, deploy_steps=None):
         """RPC method to initiate deployment to a node.
@@ -910,8 +911,11 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: InvalidStateRequested when the requested state is not a valid
                  target from the current state.
         :raises: NodeProtected if the node is protected.
+        :raises: ConcurrentActionLimit if this action would exceed the maximum
+                 number of configured concurrent actions of this type.
         """
         LOG.debug("RPC do_node_deploy called for node %s.", node_id)
+        self._concurrent_action_limit(action='provisioning')
         event = 'rebuild' if rebuild else 'deploy'
 
         # NOTE(comstud): If the _sync_power_states() periodic task happens
@@ -983,7 +987,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.NodeLocked,
                                    exception.InstanceDeployFailure,
                                    exception.InvalidStateRequested,
-                                   exception.NodeProtected)
+                                   exception.NodeProtected,
+                                   exception.ConcurrentActionLimit)
     def do_node_tear_down(self, context, node_id):
         """RPC method to tear down an existing node deployment.
 
@@ -998,8 +1003,11 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: InvalidStateRequested when the requested state is not a valid
                  target from the current state.
         :raises: NodeProtected if the node is protected.
+        :raises: ConcurrentActionLimit if this action would exceed the maximum
+                 number of configured concurrent actions of this type.
         """
         LOG.debug("RPC do_node_tear_down called for node %s.", node_id)
+        self._concurrent_action_limit(action='unprovisioning')
 
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='node tear down') as task:
@@ -1121,7 +1129,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                                    exception.InvalidStateRequested,
                                    exception.NodeInMaintenance,
                                    exception.NodeLocked,
-                                   exception.NoFreeConductorWorker)
+                                   exception.NoFreeConductorWorker,
+                                   exception.ConcurrentActionLimit)
     def do_node_clean(self, context, node_id, clean_steps,
                       disable_ramdisk=False):
         """RPC method to initiate manual cleaning.
@@ -1150,7 +1159,10 @@ class ConductorManager(base_manager.BaseConductorManager):
         :raises: NodeLocked if node is locked by another conductor.
         :raises: NoFreeConductorWorker when there is no free worker to start
                  async task.
+        :raises: ConcurrentActionLimit If this action would exceed the
+                 configured limits of the deployment.
         """
+        self._concurrent_action_limit(action='cleaning')
         with task_manager.acquire(context, node_id, shared=False,
                                   purpose='node manual cleaning') as task:
             node = task.node
@@ -3548,6 +3560,40 @@ class ConductorManager(base_manager.BaseConductorManager):
             # looping tightly deleting rows as that will negatively
             # impact DB access if done in excess.
             eventlet.sleep(0)
+
+    def _concurrent_action_limit(self, action):
+        """Check Concurrency limits and block operations if needed.
+
+        This method is used to serve as a central place for the logic
+        for checks on concurrency limits. If a limit is reached, then
+        an appropriate exception is raised.
+
+        :raises: ConcurrentActionLimit If the system configuration
+                 is exceeded.
+        """
+        # NOTE(TheJulia): Keeping this all in one place for simplicity.
+        if action == 'provisioning':
+            node_count = self.dbapi.count_nodes_in_provision_state([
+                states.DEPLOYING,
+                states.DEPLOYWAIT
+            ])
+            if node_count >= CONF.conductor.max_concurrent_deploy:
+                raise exception.ConcurrentActionLimit(
+                    task_type=action)
+
+        if action == 'unprovisioning' or action == 'cleaning':
+            # NOTE(TheJulia): This also checks for the deleting state
+            # which is super transitory, *but* you can get a node into
+            # the state. So in order to guard against a DoS attack, we
+            # need to check even the super transitory node state.
+            node_count = self.dbapi.count_nodes_in_provision_state([
+                states.DELETING,
+                states.CLEANING,
+                states.CLEANWAIT
+            ])
+            if node_count >= CONF.conductor.max_concurrent_clean:
+                raise exception.ConcurrentActionLimit(
+                    task_type=action)
 
 
 @METRICS.timer('get_vendor_passthru_metadata')

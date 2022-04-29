@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    Adds a concurrency limiter for number of nodes in states related to
+    *Cleaning* and *Provisioning* operations across the ironic deployment.
+    These settings default to a maximum number of concurrent deployments to
+    ``250`` and a maximum number of concurrent deletes and cleaning operations
+    to ``50``. These settings can be tuned using
+    ``[conductor]max_concurrent_deploy`` and
+    ``[conductor]max_concurrent_clean``, respectively.
+    The defaults should generally be good for most operators in most cases.
+    Large scale operators should evaluate the defaults and tune appropriately
+    as this feature cannot be disabled, as it is a security mechanism.
+upgrade:
+  - |
+    Large scale operators should be aware that a new feature, referred to as
+    "Concurrent Action Limit" was introduced as a security mechanism to
+    provide a means to limit attackers, or faulty scripts, from potentially
+    causing irreperable harm to an environment. This feature cannot be
+    disabled, and operators are encouraged to tune the new settings
+    ``[conductor]max_concurrent_deploy`` and
+    ``[conductor]max_concurrent_clean`` to match the needs of their
+    environment.

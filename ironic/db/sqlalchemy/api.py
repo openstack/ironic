@@ -30,6 +30,7 @@ from oslo_utils import timeutils
 from oslo_utils import uuidutils
 from osprofiler import sqlalchemy as osp_sqlalchemy
 import sqlalchemy as sa
+from sqlalchemy import or_
 from sqlalchemy.orm.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm import Load
@@ -2400,3 +2401,26 @@ class Connection(api.Connection):
             ).filter(
                 models.NodeHistory.id.in_(entries)
             ).delete(synchronize_session=False)
+
+    def count_nodes_in_provision_state(self, state):
+        if not isinstance(state, list):
+            state = [state]
+        with _session_for_read() as session:
+            # Intentionally does not use the full ORM model
+            # because that is de-duped by pkey, but we already
+            # have unique constraints on UUID/name, so... shouldn't
+            # be a big deal. #JuliaFamousLastWords.
+            # Anyway, intent here is to be as quick as possible and
+            # literally have the DB do *all* of the world, so no
+            # client side ops occur. The column is also indexed,
+            # which means this will be an index based response.
+            # TODO(TheJulia): This might need to be revised for
+            # SQLAlchemy 2.0 as it should be a scaler select and count
+            # instead.
+            return session.query(
+                models.Node.provision_state
+            ).filter(
+                or_(
+                    models.Node.provision_state == v for v in state
+                )
+            ).count()

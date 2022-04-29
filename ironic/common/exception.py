@@ -851,3 +851,13 @@ class ImageRefIsARedirect(IronicException):
             message=msg,
             image_ref=image_ref,
             redirect_url=redirect_url)
+
+
+class ConcurrentActionLimit(IronicException):
+    # NOTE(TheJulia): We explicitly don't report the concurrent
+    # action limit configuration value as a security guard since
+    # if informed of the limit, an attacker can tailor their attack.
+    _msg_fmt = _("Unable to process request at this time. "
+                 "The concurrent action limit for %(task_type)s "
+                 "has been reached. Please contact your administrator "
+                 "and try again later.")

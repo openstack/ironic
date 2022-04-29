@@ -973,3 +973,40 @@ Unfortunately, due to the way the conductor is designed, it is not possible to
 gracefully break a stuck lock held in ``*-ing`` states. As the last resort, you
 may need to restart the affected conductor. See `Why are my nodes stuck in a
 "-ing" state?`_.
+
+What is ConcurrentActionLimit?
+==============================
+
+ConcurrentActionLimit is an exception which is raised to clients when an
+operation is requested, but cannot be serviced at that moment because the
+overall threshold of nodes in concurrent "Deployment" or "Cleaning"
+operations has been reached.
+
+These limits exist for two distinct reasons.
+
+The first is they allow an operator to tune a deployment such that too many
+concurrent deployments cannot be triggered at any given time, as a single
+conductor has an internal limit to the number of overall concurrent tasks,
+this restricts only the number of running concurrent actions. As such, this
+accounts for the number of nodes in ``deploy`` and ``deploy wait`` states.
+In the case of deployments, the default value is relatively high and should
+be suitable for *most* larger operators.
+
+The second is to help slow down the ability in which an entire population of
+baremetal nodes can be moved into and through cleaning, in order to help
+guard against authenticated malicious users, or accidental script driven
+operations. In this case, the total number of nodes in ``deleting``,
+``cleaning``, and ``clean wait`` are evaluated. The default maximum limit
+for cleaning operations is *50* and should be suitable for the majority of
+baremetal operators.
+
+These settings can be modified by using the
+``[conductor]max_concurrent_deploy`` and ``[conductor]max_concurrent_clean``
+settings from the ironic.conf file supporting the ``ironic-conductor``
+service. Neither setting can be explicity disabled, however there is also no
+upper limit to the setting.
+
+.. note::
+   This was an infrastructure operator requested feature from actual lessons
+   learned in the operation of Ironic in large scale production. The defaults
+   may not be suitable for the largest scale operators.

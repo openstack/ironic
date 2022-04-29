@@ -358,6 +358,32 @@ opts = [
                        'model. The conductor does *not* record this value '
                        'otherwise, and this information is not backfilled '
                        'for prior instances which have been deployed.')),
+    cfg.IntOpt('max_concurrent_deploy',
+               default=250,
+               min=1,
+               mutable=True,
+               help=_('The maximum number of concurrent nodes in deployment '
+                      'which are permitted in this Ironic system. '
+                      'If this limit is reached, new requests will be '
+                      'rejected until the number of deployments in progress '
+                      'is lower than this maximum. As this is a security '
+                      'mechanism requests are not queued, and this setting '
+                      'is a global setting applying to all requests this '
+                      'conductor receives, regardless of access rights. '
+                      'The concurrent deployment limit cannot be disabled.')),
+    cfg.IntOpt('max_concurrent_clean',
+               default=50,
+               min=1,
+               mutable=True,
+               help=_('The maximum number of concurrent nodes in cleaning '
+                      'which are permitted in this Ironic system. '
+                      'If this limit is reached, new requests will be '
+                      'rejected until the number of nodes in cleaning '
+                      'is lower than this maximum. As this is a security '
+                      'mechanism requests are not queued, and this setting '
+                      'is a global setting applying to all requests this '
+                      'conductor receives, regardless of access rights. '
+                      'The concurrent clean limit cannot be disabled.')),
 ]
 
 
