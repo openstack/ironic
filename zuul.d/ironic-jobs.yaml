@@ -1027,3 +1027,43 @@
             EBTABLES_RACE_FIX: True
             LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
             IRONIC_VM_LOG_DIR: '/opt/stack/ironic-bm-logs'
+
+- project-template:
+    name: openstack-python3-xena-jobs-ironic-bugfix181
+    description: |
+      Runs unit tests for an OpenStack Python project under the CPython
+      version 3 releases designated for testing in the Xena release.
+    check:
+      jobs:
+        - openstack-tox-pep8:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/xena
+        - openstack-tox-py36:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/xena
+        - openstack-tox-py38:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/xena
+        - openstack-tox-py39:
+            voting:
+                false
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/xena
+    gate:
+      jobs:
+        - openstack-tox-pep8:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/xena
+        - openstack-tox-py36:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/xena
+        - openstack-tox-py38:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/xena
