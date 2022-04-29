@@ -2744,6 +2744,9 @@ function build_tinyipa_ramdisk {
         export AUTHORIZE_SSH=true
         export SSH_PUBLIC_KEY=$IRONIC_ANSIBLE_SSH_KEY.pub
     fi
+    if [ -e $DEST/ironic-lib ]; then
+        export IRONIC_LIB_SOURCE="$DEST/ironic-lib"
+    fi
     make
     cp tinyipa.gz $ramdisk_path
     cp tinyipa.vmlinuz $kernel_path
@@ -2794,9 +2797,10 @@ function build_ipa_dib_ramdisk {
         install_diskimage_builder
     fi
 
-    if -e $DEST/ironic-lib; then
+    if [ -e $DEST/ironic-lib ]; then
         export IRONIC_LIB_FROM_SOURCE=true
         export DIB_REPOLOCATION_ironic_lib=$DEST/ironic-lib
+        export DIB_REPOREF_ironic_lib=$TARGET_BRANCH
     fi
 
     echo "Building IPA ramdisk with DIB options: $IRONIC_DIB_RAMDISK_OPTIONS"
@@ -2808,7 +2812,9 @@ function build_ipa_dib_ramdisk {
         DIB_DHCP_TIMEOUT=$IRONIC_DIB_DHCP_TIMEOUT \
         DIB_RELEASE=$IRONIC_DIB_RAMDISK_RELEASE \
         DIB_REPOLOCATION_ironic_python_agent="$IRONIC_PYTHON_AGENT_DIR" \
+        DIB_REPOREF_ironic_python_agent=$TARGET_BRANCH \
         DIB_REPOLOCATION_requirements="$DEST/requirements" \
+        DIB_REPOREF_requirements=$TARGET_BRANCH \
         disk-image-create "$IRONIC_DIB_RAMDISK_OPTIONS" \
         -x -o  "$tempdir/ironic-agent" \
         ironic-python-agent-ramdisk
