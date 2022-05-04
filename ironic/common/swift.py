@@ -15,6 +15,7 @@
 #    under the License.
 
 from base64 import urlsafe_b64encode
+from functools import lru_cache
 from os import urandom
 from http import client as http_client
 from urllib import parse as urlparse
@@ -28,15 +29,12 @@ from ironic.common.i18n import _
 from ironic.common import keystone
 from ironic.conf import CONF
 
-_SWIFT_SESSION = None
+@lru_cache(maxsize=32)
 
 
 def get_swift_session(**session_args):
-    global _SWIFT_SESSION
-    if not _SWIFT_SESSION:
-        auth = keystone.get_auth('swift')
-        _SWIFT_SESSION = keystone.get_session('swift', auth=auth, **session_args)
-    return _SWIFT_SESSION
+    auth = keystone.get_auth('swift', **session_args)
+    return keystone.get_session('swift', auth=auth) 
 
 
 class SwiftAPI(object):
