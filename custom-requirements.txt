@@ -5,7 +5,6 @@ redis
 python-openstackclient
 python-ilorest-library>=2.1.0
 hpOneView>=4.4.0
-ucsmsdk>=0.9.1
 ImcSdk>=0.7.2
 pymemcache==1.2.9
 
