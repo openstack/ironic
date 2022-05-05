@@ -744,8 +744,7 @@
       devstack_localrc:
         IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
         IPV6_ENABLED: True
-        IP_VERSION: 6
-        SERVICE_IP_VERSION: 6
+        IRONIC_IP_VERSION: 6
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_ENABLED_BOOT_INTERFACES: ipxe,pxe
         IRONIC_DEFAULT_BOOT_INTERFACE: ipxe
@@ -760,6 +759,7 @@
         IRONIC_USE_LINK_LOCAL: True
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
+        IRONIC_VM_INTERFACE_COUNT: 1
         # This will swap and needs to get to tinycore soon.
         IRONIC_VM_SPECS_CPU: 2
         Q_PLUGIN: ml2
@@ -773,6 +773,14 @@
         BUILD_TIMEOUT: 2000
         IRONIC_TEMPEST_BUILD_TIMEOUT: 2000
         IRONIC_PING_TIMEOUT: 1440
+        # TODO(TheJulia): Change this to UEFI once we have Ubuntu Jammy
+        # as it auto-attempts to UEFI boot PXE v4 and PXE v6. Prior just
+        # does IPv4 and we cannot easily edit the nvram to inject just v6.
+        # TODO(TheJulia): The devstack plugin also needs to be changed to
+        # dhcpv6-stateful instead of stateless when this is changed to UEFI
+        # as OVMF/E2DK does not support stateless.
+        IRONIC_BOOT_MODE: bios
+
 
 # NOTE(rpittau): OLD TINYIPA JOBS
 # Those jobs are used by other projects, we leave them here until

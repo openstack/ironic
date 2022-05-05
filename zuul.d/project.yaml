@@ -44,6 +44,8 @@
             voting: false
         - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
             voting: false
+        - ironic-tempest-ipxe-ipv6:
+            voting: false
         - ironic-inspector-tempest-rbac-scope-enforced:
             voting: false
         - bifrost-integration-tinyipa-ubuntu-focal:
@@ -79,8 +81,6 @@
       jobs:
         # TODO(dtantsur): these jobs are useful but currently hopelessly
         # broken. Fix them and bring back to the gate.
-        - ironic-tempest-ipxe-ipv6:
-            voting: false
         - ironic-grenade-multinode-multitenant:
             voting: false
         - ironic-inspector-tempest-discovery-fast-track:
