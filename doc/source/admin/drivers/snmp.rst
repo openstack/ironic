@@ -22,39 +22,47 @@ this table could possibly work using a similar driver.
 
 Please report any device status.
 
-==============   ==========   ==========    =====================
-Manufacturer     Model        Supported?    Driver name
-==============   ==========   ==========    =====================
-APC              AP7920       Yes           apc_masterswitch
-APC              AP9606       Yes           apc_masterswitch
-APC              AP9225       Yes           apc_masterswitchplus
-APC              AP7155       Yes           apc_rackpdu
-APC              AP7900       Yes           apc_rackpdu
-APC              AP7901       Yes           apc_rackpdu
-APC              AP7902       Yes           apc_rackpdu
-APC              AP7911a      Yes           apc_rackpdu
-APC              AP7921       Yes           apc_rackpdu
-APC              AP7922       Yes           apc_rackpdu
-APC              AP7930       Yes           apc_rackpdu
-APC              AP7931       Yes           apc_rackpdu
-APC              AP7932       Yes           apc_rackpdu
-APC              AP7940       Yes           apc_rackpdu
-APC              AP7941       Yes           apc_rackpdu
-APC              AP7951       Yes           apc_rackpdu
-APC              AP7960       Yes           apc_rackpdu
-APC              AP7990       Yes           apc_rackpdu
-APC              AP7998       Yes           apc_rackpdu
-APC              AP8941       Yes           apc_rackpdu
-APC              AP8953       Yes           apc_rackpdu
-APC              AP8959       Yes           apc_rackpdu
-APC              AP8961       Yes           apc_rackpdu
-APC              AP8965       Yes           apc_rackpdu
-Aten             all?         Yes           aten
-CyberPower       all?         Untested      cyberpower
-EatonPower       all?         Untested      eatonpower
-Teltronix        all?         Yes           teltronix
-BayTech          MRP27        Yes           baytech_mrp27
-==============   ==========   ==========    =====================
+==============   ==============   ==========   =====================
+Manufacturer     Model            Supported?   Driver name
+==============   ==============   ==========   =====================
+APC              AP7920           Yes          apc_masterswitch
+APC              AP9606           Yes          apc_masterswitch
+APC              AP9225           Yes          apc_masterswitchplus
+APC              AP7155           Yes          apc_rackpdu
+APC              AP7900           Yes          apc_rackpdu
+APC              AP7901           Yes          apc_rackpdu
+APC              AP7902           Yes          apc_rackpdu
+APC              AP7911a          Yes          apc_rackpdu
+APC              AP7921           Yes          apc_rackpdu
+APC              AP7922           Yes          apc_rackpdu
+APC              AP7930           Yes          apc_rackpdu
+APC              AP7931           Yes          apc_rackpdu
+APC              AP7932           Yes          apc_rackpdu
+APC              AP7940           Yes          apc_rackpdu
+APC              AP7941           Yes          apc_rackpdu
+APC              AP7951           Yes          apc_rackpdu
+APC              AP7960           Yes          apc_rackpdu
+APC              AP7990           Yes          apc_rackpdu
+APC              AP7998           Yes          apc_rackpdu
+APC              AP8941           Yes          apc_rackpdu
+APC              AP8953           Yes          apc_rackpdu
+APC              AP8959           Yes          apc_rackpdu
+APC              AP8961           Yes          apc_rackpdu
+APC              AP8965           Yes          apc_rackpdu
+Aten             all?             Yes          aten
+CyberPower       all?             Untested     cyberpower
+EatonPower       all?             Untested     eatonpower
+Teltronix        all?             Yes          teltronix
+BayTech          MRP27            Yes          baytech_mrp27
+Raritan          PX3-5547V-V2     Yes          raritan_pdu2
+Raritan          PX3-5726V        Yes          raritan_pdu2
+Raritan          PX3-5776U-N2     Yes          raritan_pdu2
+Raritan          PX3-5969U-V2     Yes          raritan_pdu2
+Raritan          PX3-5961I2U-V2   Yes          raritan_pdu2
+Vertiv           NU30212          Yes          vertivgeist_pdu
+ServerTech       CW-16VE-P32M     Yes          servertech_sentry3
+ServerTech       C2WG24SN         Yes          servertech_sentry4
+==============   ==============   ==========   =====================
 
 
 Software Requirements

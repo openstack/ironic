@@ -799,6 +799,341 @@ class SNMPDriverBaytechMRP27(SNMPDriverSimple):
     value_power_on = 1
 
 
+class SNMPDriverServerTechSentry3(SNMPDriverBase):
+    """SNMP driver class for Server Technology Sentry 3 PDUs.
+
+    ftp://ftp.servertech.com/Pub/SNMP/sentry3/Sentry3.mib
+
+    SNMP objects for Server Technology Power PDU.
+    1.3.6.1.4.1.1718.3.2.3.1.5.1.1.<outlet ID> outletStatus
+    Read 0=off, 1=on, 2=off wait, 3=on wait, [...more options follow]
+    1.3.6.1.4.1.1718.3.2.3.1.11.1.1.<outlet ID> outletControlAction
+    Write 0=no action, 1=on, 2=off, 3=reboot
+    """
+
+    oid_device = (1718, 3, 2, 3, 1)
+    oid_tower_infeed_idx = (1, 1, )
+    oid_power_status = (5,)
+    oid_power_action = (11,)
+
+    status_off = 0
+    status_on = 1
+    status_off_wait = 2
+    status_on_wait = 3
+
+    value_power_on = 1
+    value_power_off = 2
+
+    def __init__(self, *args, **kwargs):
+        super(SNMPDriverServerTechSentry3, self).__init__(*args, **kwargs)
+        # Due to its use of different OIDs for different actions, we only form
+        # an OID that holds the common substring of the OIDs for power
+        # operations.
+        self.oid_base = self.oid_enterprise + self.oid_device
+
+    def _snmp_oid(self, oid):
+        """Return the OID for one of the outlet control objects.
+
+        :param oid: The action-dependent portion of the OID, as a tuple of
+            integers.
+        :returns: The full OID as a tuple of integers.
+        """
+
+        outlet = self.snmp_info['outlet']
+        full_oid = self.oid_base + oid + self.oid_tower_infeed_idx + (outlet,)
+        return full_oid
+
+    def _snmp_power_state(self):
+        oid = self._snmp_oid(self.oid_power_status)
+        state = self.client.get(oid)
+
+        # Translate the state to an Ironic power state.
+        if state in (self.status_on, self.status_off_wait):
+            power_state = states.POWER_ON
+        elif state in (self.status_off, self.status_on_wait):
+            power_state = states.POWER_OFF
+        else:
+            LOG.warning("SeverTech Sentry3 PDU %(addr)s oid %(oid) outlet "
+                        "%(outlet)s: unrecognised power state %(state)s.",
+                        {'addr': self.snmp_info['address'],
+                         'oid': oid,
+                         'outlet': self.snmp_info['outlet'],
+                         'state': state})
+            power_state = states.ERROR
+
+        return power_state
+
+    def _snmp_power_on(self):
+        oid = self._snmp_oid(self.oid_power_action)
+        value = snmp.Integer(self.value_power_on)
+        self.client.set(oid, value)
+
+    def _snmp_power_off(self):
+        oid = self._snmp_oid(self.oid_power_action)
+        value = snmp.Integer(self.value_power_off)
+        self.client.set(oid, value)
+
+
+class SNMPDriverServerTechSentry4(SNMPDriverBase):
+    """SNMP driver class for Server Technology Sentry 4 PDUs.
+
+    https://www.servertech.com/support/sentry-mib-oid-tree-downloads
+
+    SNMP objects for Server Technology Power PDU.
+    1.3.6.1.4.1.1718.4.1.8.5.1.1<outlet ID> outletStatus
+    notSet (0) fixedOn (1) idleOff (2) idleOn (3) [...more options follow]
+    pendOn (8) pendOff (9) off (10) on (11) [...more options follow]
+    eventOff (16) eventOn (17) eventReboot (18) eventShutdown (19)
+    1.3.6.1.4.1.1718.4.1.8.5.1.2.<outlet ID> outletControlAction
+    Write 0=no action, 1=on, 2=off, 3=reboot
+    """
+
+    oid_device = (1718, 4, 1, 8, 5, 1)
+    oid_tower_infeed_idx = (1, 1, )
+    oid_power_status = (1,)
+    oid_power_action = (2,)
+
+    notSet = 0
+    fixedOn = 1
+    idleOff = 2
+    idleOn = 3
+    wakeOff = 4
+    wakeOn = 5
+    ocpOff = 6
+    ocpOn = 7
+    status_pendOn = 8
+    status_pendOff = 9
+    status_off = 10
+    status_on = 11
+    reboot = 12
+    shutdown = 13
+    lockedOff = 14
+    lockedOn = 15
+
+    value_power_on = 1
+    value_power_off = 2
+
+    def __init__(self, *args, **kwargs):
+        super(SNMPDriverServerTechSentry4, self).__init__(*args, **kwargs)
+        # Due to its use of different OIDs for different actions, we only form
+        # an OID that holds the common substring of the OIDs for power
+        # operations.
+        self.oid_base = self.oid_enterprise + self.oid_device
+
+    def _snmp_oid(self, oid):
+        """Return the OID for one of the outlet control objects.
+
+        :param oid: The action-dependent portion of the OID, as a tuple of
+            integers.
+        :returns: The full OID as a tuple of integers.
+        """
+
+        outlet = self.snmp_info['outlet']
+        full_oid = self.oid_base + oid + self.oid_tower_infeed_idx + (outlet,)
+        return full_oid
+
+    def _snmp_power_state(self):
+        oid = self._snmp_oid(self.oid_power_status)
+        state = self.client.get(oid)
+
+        # Translate the state to an Ironic power state.
+        if state in (self.status_on, self.status_pendOn, self.idleOn):
+            power_state = states.POWER_ON
+        elif state in (self.status_off, self.status_pendOff):
+            power_state = states.POWER_OFF
+        else:
+            LOG.warning("ServerTech Sentry4 PDU %(addr)s oid %(oid)s outlet "
+                        "%(outlet)s: unrecognised power state %(state)s.",
+                        {'addr': self.snmp_info['address'],
+                         'oid': oid,
+                         'outlet': self.snmp_info['outlet'],
+                         'state': state})
+            power_state = states.ERROR
+
+        return power_state
+
+    def _snmp_power_on(self):
+        oid = self._snmp_oid(self.oid_power_action)
+        value = snmp.Integer(self.value_power_on)
+        self.client.set(oid, value)
+
+    def _snmp_power_off(self):
+        oid = self._snmp_oid(self.oid_power_action)
+        value = snmp.Integer(self.value_power_off)
+        self.client.set(oid, value)
+
+
+class SNMPDriverRaritanPDU2(SNMPDriverBase):
+    """SNMP driver class for Raritan PDU2 PDUs.
+
+    http://support.raritan.com/px2/version-2.4.1/mibs/pdu2-mib-020400-39592.txt
+    http://cdn.raritan.com/download/PX/v1.5.20/PDU-MIB.txt
+
+    Command:
+        snmpset -v2c -c private -m+PDU2-MIB <pdu IP address> \
+            PDU2-MIB::switchingOperation.1.4 = cycle
+        snmpset -v2c -c private <pdu IP address> \
+            .1.3.6.1.4.1.13742.6.4.1.2.1.2.1.4 i 2
+    Output:
+        PDU2-MIB::switchingOperation.1.4 = INTEGER: cycle(2)
+    """
+
+    oid_device = (13742, 6, 4, 1, 2, 1)
+    oid_power_action = (2, )
+    oid_power_status = (3, )
+    oid_tower_infeed_idx = (1, )
+
+    unavailable = -1
+    status_open = 0
+    status_closed = 1
+    belowLowerCritical = 2
+    belowLowerWarning = 3
+    status_normal = 4
+    aboveUpperWarning = 5
+    aboveUpperCritical = 6
+    status_on = 7
+    status_off = 8
+    detected = 9
+    notDetected = 10
+    alarmed = 11
+    ok = 12
+    marginal = 13
+    fail = 14
+    yes = 15
+    no = 16
+    standby = 17
+    one = 18
+    two = 19
+    inSync = 20
+    outOfSync = 21
+
+    value_power_on = 1
+    value_power_off = 0
+
+    def __init__(self, *args, **kwargs):
+        super(SNMPDriverRaritanPDU2, self).__init__(*args, **kwargs)
+        # Due to its use of different OIDs for different actions, we only form
+        # an OID that holds the common substring of the OIDs for power
+        # operations.
+        self.oid_base = self.oid_enterprise + self.oid_device
+
+    def _snmp_oid(self, oid):
+        """Return the OID for one of the outlet control objects.
+
+        :param oid: The action-dependent portion of the OID, as a tuple of
+            integers.
+        :returns: The full OID as a tuple of integers.
+        """
+
+        outlet = self.snmp_info['outlet']
+        full_oid = self.oid_base + oid + self.oid_tower_infeed_idx + (outlet,)
+        return full_oid
+
+    def _snmp_power_state(self):
+        oid = self._snmp_oid(self.oid_power_status)
+        state = self.client.get(oid)
+
+        # Translate the state to an Ironic power state.
+        if state == self.status_on:
+            power_state = states.POWER_ON
+        elif state == self.status_off:
+            power_state = states.POWER_OFF
+        else:
+            LOG.warning("Raritan PDU2 PDU %(addr)s oid %(oid)s outlet "
+                        "%(outlet)s: unrecognised power state %(state)s.",
+                        {'addr': self.snmp_info['address'],
+                         'oid': oid,
+                         'outlet': self.snmp_info['outlet'],
+                         'state': state})
+            power_state = states.ERROR
+
+        return power_state
+
+    def _snmp_power_on(self):
+        oid = self._snmp_oid(self.oid_power_action)
+        value = snmp.Integer(self.value_power_on)
+        self.client.set(oid, value)
+
+    def _snmp_power_off(self):
+        oid = self._snmp_oid(self.oid_power_action)
+        value = snmp.Integer(self.value_power_off)
+        self.client.set(oid, value)
+
+
+class SNMPDriverVertivGeistPDU(SNMPDriverBase):
+    """SNMP driver class for VertivGeist NU30017L/NU30019L PDU.
+
+    https://mibs.observium.org/mib/GEIST-V5-MIB/
+
+    """
+
+    oid_device = (21239, 5, 2, 3, 5, 1)
+    oid_power_action = (6, )
+    oid_power_status = (4, )
+    oid_tower_infeed_idx = (1, )
+
+    on = 1
+    off = 2
+    on2off = 3
+    off2on = 4
+    rebootOn = 5
+    rebootOff = 5
+    unavailable = 7
+
+    value_power_on = 2
+    value_power_off = 4
+
+    def __init__(self, *args, **kwargs):
+        super(SNMPDriverVertivGeistPDU, self).__init__(*args, **kwargs)
+        # Due to its use of different OIDs for different actions, we only form
+        # an OID that holds the common substring of the OIDs for power
+        # operations.
+        self.oid_base = self.oid_enterprise + self.oid_device
+
+    def _snmp_oid(self, oid):
+        """Return the OID for one of the outlet control objects.
+
+        :param oid: The action-dependent portion of the OID, as a tuple of
+            integers.
+
+        :returns: The full OID as a tuple of integers.
+        """
+
+        outlet = self.snmp_info['outlet']
+        full_oid = self.oid_base + oid + (outlet,)
+        return full_oid
+
+    def _snmp_power_state(self):
+        oid = self._snmp_oid(self.oid_power_status)
+        state = self.client.get(oid)
+
+        # Translate the state to an Ironic power state.
+        if state in (self.on, self.on2off):
+            power_state = states.POWER_ON
+        elif state in (self.off, self.off2on):
+            power_state = states.POWER_OFF
+        else:
+            LOG.warning("Vertiv Geist PDU %(addr)s oid %(oid)s outlet "
+                        "%(outlet)s: unrecognised power state %(state)s.",
+                        {'addr': self.snmp_info['address'],
+                         'oid': oid,
+                         'outlet': self.snmp_info['outlet'],
+                         'state': state})
+            power_state = states.ERROR
+
+        return power_state
+
+    def _snmp_power_on(self):
+        oid = self._snmp_oid(self.oid_power_action)
+        value = snmp.Integer(self.value_power_on)
+        self.client.set(oid, value)
+
+    def _snmp_power_off(self):
+        oid = self._snmp_oid(self.oid_power_action)
+        value = snmp.Integer(self.value_power_off)
+        self.client.set(oid, value)
+
+
 class SNMPDriverAuto(SNMPDriverBase):
 
     SYS_OBJ_OID = (1, 3, 6, 1, 2, 1, 1, 2)
@@ -878,6 +1213,10 @@ DRIVER_CLASSES = {
     'eatonpower': SNMPDriverEatonPower,
     'teltronix': SNMPDriverTeltronix,
     'baytech_mrp27': SNMPDriverBaytechMRP27,
+    'servertech_sentry3': SNMPDriverServerTechSentry3,
+    'servertech_sentry4': SNMPDriverServerTechSentry4,
+    'raritan_pdu2': SNMPDriverRaritanPDU2,
+    'vertivgeist_pdu': SNMPDriverVertivGeistPDU,
     'auto': SNMPDriverAuto,
 }
 

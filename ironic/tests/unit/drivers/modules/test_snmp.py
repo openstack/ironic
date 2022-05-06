@@ -327,6 +327,34 @@ class SNMPValidateParametersTestCase(db_base.DbTestCase):
         info = snmp._parse_driver_info(node)
         self.assertEqual('teltronix', info['driver'])
 
+    def test__parse_driver_info_servertech_sentry3(self):
+        # Make sure the servertech_sentry3 driver type is parsed.
+        info = db_utils.get_test_snmp_info(snmp_driver='servertech_sentry3')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('servertech_sentry3', info['driver'])
+
+    def test__parse_driver_info_servertech_sentry4(self):
+        # Make sure the servertech_sentry4 driver type is parsed.
+        info = db_utils.get_test_snmp_info(snmp_driver='servertech_sentry4')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('servertech_sentry4', info['driver'])
+
+    def test__parse_driver_info_raritan_pdu2(self):
+        # Make sure the raritan_pdu2 driver type is parsed.
+        info = db_utils.get_test_snmp_info(snmp_driver='raritan_pdu2')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('raritan_pdu2', info['driver'])
+
+    def test__parse_driver_info_vertivgeist_pdu(self):
+        # Make sure the vertivgeist_pdu driver type is parsed.
+        info = db_utils.get_test_snmp_info(snmp_driver='vertivgeist_pdu')
+        node = self._get_test_node(info)
+        info = snmp._parse_driver_info(node)
+        self.assertEqual('vertivgeist_pdu', info['driver'])
+
     def test__parse_driver_info_snmp_v1(self):
         # Make sure SNMPv1 is parsed with a community string.
         info = db_utils.get_test_snmp_info(snmp_version='1',
@@ -1259,6 +1287,58 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
 
     def test_apc_rackpdu_power_reset(self, mock_get_client):
         self._test_simple_device_power_reset('apc_rackpdu', mock_get_client)
+
+    def test_raritan_pdu2_snmp_objects(self, mock_get_client):
+        # Ensure the correct SNMP object OIDs and values are used by the
+        # Raritan PDU2  driver
+        self._update_driver_info(snmp_driver="raritan_pdu2",
+                                 snmp_outlet="6")
+        driver = snmp._get_driver(self.node)
+        oid = (1, 3, 6, 1, 4, 1, 13742, 6, 4, 1, 2, 1, 2, 1, 6)
+        action = (2,)
+
+        self.assertEqual(oid, driver._snmp_oid(action))
+        self.assertEqual(1, driver.value_power_on)
+        self.assertEqual(0, driver.value_power_off)
+
+    def test_servertech_sentry3_snmp_objects(self, mock_get_client):
+        # Ensure the correct SNMP object OIDs and values are used by the
+        # ServerTech Sentry3 driver
+        self._update_driver_info(snmp_driver="servertech_sentry3",
+                                 snmp_outlet="6")
+        driver = snmp._get_driver(self.node)
+        oid = (1, 3, 6, 1, 4, 1, 1718, 3, 2, 3, 1, 5, 1, 1, 6)
+        action = (5,)
+
+        self.assertEqual(oid, driver._snmp_oid(action))
+        self.assertEqual(1, driver.value_power_on)
+        self.assertEqual(2, driver.value_power_off)
+
+    def test_servertech_sentry4_snmp_objects(self, mock_get_client):
+        # Ensure the correct SNMP object OIDs and values are used by the
+        # ServerTech Sentry4 driver
+        self._update_driver_info(snmp_driver="servertech_sentry4",
+                                 snmp_outlet="6")
+        driver = snmp._get_driver(self.node)
+        oid = (1, 3, 6, 1, 4, 1, 1718, 4, 1, 8, 5, 1, 2, 1, 1, 6)
+        action = (2,)
+
+        self.assertEqual(oid, driver._snmp_oid(action))
+        self.assertEqual(1, driver.value_power_on)
+        self.assertEqual(2, driver.value_power_off)
+
+    def test_vertivgeist_pdu_snmp_objects(self, mock_get_client):
+        # Ensure the correct SNMP object OIDs and values are used by the
+        # Vertiv Geist PDU driver
+        self._update_driver_info(snmp_driver="vertivgeist_pdu",
+                                 snmp_outlet="6")
+        driver = snmp._get_driver(self.node)
+        oid = (1, 3, 6, 1, 4, 1, 21239, 5, 2, 3, 5, 1, 4, 6)
+        action = (4,)
+
+        self.assertEqual(oid, driver._snmp_oid(action))
+        self.assertEqual(2, driver.value_power_on)
+        self.assertEqual(4, driver.value_power_off)
 
     def test_aten_snmp_objects(self, mock_get_client):
         # Ensure the correct SNMP object OIDs and values are used by the

@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds ``raritan_pdu2``, ``servertech_sentry3``, ``servertech_sentry4``,
+    and ``vertivgest_pdu`` snmp drivers to support additional PDU models.
