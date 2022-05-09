@@ -17,8 +17,8 @@
         - ironic-grenade
         - ironic-standalone
         - ironic-standalone-redfish
-        - ironic-tempest-partition-bios-redfish-pxe
-        - ironic-tempest-partition-uefi-redfish-vmedia
+        - ironic-tempest-bios-redfish-netboot
+        - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
         - ironic-tempest-partition-bios-ipmi-pxe
         - ironic-tempest-partition-uefi-ipmi-pxe
@@ -65,8 +65,8 @@
         - ironic-grenade
         - ironic-standalone
         - ironic-standalone-redfish
-        - ironic-tempest-partition-bios-redfish-pxe
-        - ironic-tempest-partition-uefi-redfish-vmedia
+        - ironic-tempest-bios-redfish-netboot
+        - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
         - ironic-tempest-partition-bios-ipmi-pxe
         - ironic-tempest-partition-uefi-ipmi-pxe

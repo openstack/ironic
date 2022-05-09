@@ -215,9 +215,9 @@
         s-proxy: False
 
 - job:
-    name: ironic-tempest-partition-bios-redfish-pxe
+    name: ironic-tempest-bios-redfish-netboot
     description: "Deploy ironic node over PXE using BIOS boot mode"
-    parent: ironic-tempest-partition-uefi-redfish-vmedia
+    parent: ironic-tempest-uefi-redfish-vmedia
     required-projects:
       - opendev.org/openstack/sushy-tools
     vars:
@@ -238,7 +238,7 @@
         s-proxy: False
 
 - job:
-    name: ironic-tempest-partition-uefi-redfish-vmedia
+    name: ironic-tempest-uefi-redfish-vmedia
     description: "Deploy ironic node over Redfish virtual media using UEFI boot mode"
     parent: ironic-base
     vars:
