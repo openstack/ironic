@@ -1604,7 +1604,8 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         :param context: request context.
         """
-        offline_conductors = self.dbapi.get_offline_conductors()
+        offline_conductors = utils.exclude_current_conductor(
+            self.host, self.dbapi.get_offline_conductors())
         if not offline_conductors:
             return
 
@@ -3436,7 +3437,8 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         :param context: request context.
         """
-        offline_conductors = self.dbapi.get_offline_conductors(field='id')
+        offline_conductors = utils.exclude_current_conductor(
+            self.conductor.id, self.dbapi.get_offline_conductors(field='id'))
         for conductor_id in offline_conductors:
             filters = {'state': states.ALLOCATING,
                        'conductor_affinity': conductor_id}
