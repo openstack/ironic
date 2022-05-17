@@ -81,9 +81,9 @@ The description of each jobs that runs in the CI when you submit a patch for
       and `ipmi` driver.
       Runs tempest tests that match the regex
       `ironic_tempest_plugin.tests.scenario` and deploys 1 virtual baremetal.
-  * - metalsmith-integration-glance-localboot-centos8-uefi
+  * - metalsmith-integration-glance-centos8-legacy
     - Tests the integration between Ironic and Metalsmith using Glance as
-      image source and CentOS8 with local boot and uefi.
+      image source and a CentOS 8 image with legacy (BIOS) local boot.
   * - ironic-tox-bandit
     - Runs bandit security tests in a tox environment to find known issues in
       the Ironic code.
