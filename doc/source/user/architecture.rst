@@ -83,8 +83,8 @@ through the steps involved during the provisioning of a bare metal instance.
 These pre-requisites must be met before the deployment process:
 
 * Dependent packages to be configured on the Bare Metal service node(s)
-  where ironic-conductor is running like tftp-server, ipmi, syslinux etc for
-  bare metal provisioning.
+  where ironic-conductor is running like tftp-server, ipmi, grub/ipxe, etc
+  for bare metal provisioning.
 * Nova must be configured to make use of the bare metal service endpoint
   and compute driver should be configured to use ironic driver on the Nova
   compute node(s).

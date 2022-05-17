@@ -169,71 +169,6 @@ the PXE UEFI environment.
     for them. Please check :doc:`../admin/drivers` for information on whether
     your driver requires manual UEFI configuration.
 
-
-Legacy BIOS - Syslinux setup
-----------------------------
-
-In order to deploy instances with PXE on bare metal using Legacy BIOS boot
-mode, perform these additional steps on the ironic conductor node.
-
-#. Install the syslinux package with the PXE boot images:
-
-   Ubuntu (16.04LTS and later)::
-
-       sudo apt-get install syslinux-common pxelinux
-
-   RHEL8/CentOS8/Fedora::
-
-       sudo dnf install syslinux-tftpboot
-
-   SUSE::
-
-       sudo zypper install syslinux
-
-#. Copy the PXE image to ``/tftpboot``. The PXE image might be found at [1]_:
-
-   Ubuntu (16.04LTS and later)::
-
-       sudo cp /usr/lib/PXELINUX/pxelinux.0 /tftpboot
-
-   RHEL8/CentOS8/SUSE::
-
-       sudo cp /usr/share/syslinux/pxelinux.0 /tftpboot
-
-#. If whole disk images need to be deployed via PXE-netboot, copy the
-   chain.c32 image to ``/tftpboot`` to support it:
-
-   Ubuntu (16.04LTS and later)::
-
-       sudo cp /usr/lib/syslinux/modules/bios/chain.c32 /tftpboot
-
-   Fedora::
-
-       sudo cp /boot/extlinux/chain.c32 /tftpboot
-
-   RHEL8/CentOS8/SUSE::
-
-       sudo cp /usr/share/syslinux/chain.c32 /tftpboot/
-
-#. If the version of syslinux is **greater than** 4 we also need to make sure
-   that we copy the library modules into the ``/tftpboot`` directory [2]_
-   [1]_. For example, for Ubuntu run::
-
-       sudo cp /usr/lib/syslinux/modules/*/ldlinux.* /tftpboot
-
-#. Update the bare metal node with ``boot_mode:bios`` capability in
-   node's properties field. See :ref:`boot_mode_support` for details.
-
-#. Make sure that bare metal node is configured to boot in Legacy BIOS boot mode
-   and boot device is set to network/pxe.
-
-.. [1] On **Fedora/RHEL** the ``syslinux-tftpboot`` package already installs
-       the library modules and PXE image at ``/tftpboot``. If the TFTP server
-       is configured to listen to a different directory you should copy the
-       contents of ``/tftpboot`` to the configured directory
-.. [2] http://www.syslinux.org/wiki/index.php/Library_modules
-
-
 iPXE setup
 ----------
 
@@ -438,18 +373,18 @@ instead.
 
 In the following example, since 'x86' and 'x86_64' keys are not in the
 ``pxe_bootfile_name_by_arch`` or ``pxe_config_template_by_arch`` options, x86
-and x86_64 nodes will be deployed by 'pxelinux.0' or 'bootx64.efi', depending
+and x86_64 nodes will be deployed by 'undionly.kpxe' or 'bootx64.efi', depending
 on the node's ``boot_mode`` capability ('bios' or 'uefi'). However, aarch64
 nodes will be deployed by 'grubaa64.efi', and ppc64 nodes by 'bootppc64'::
 
     [pxe]
 
     # Bootfile DHCP parameter. (string value)
-    pxe_bootfile_name=pxelinux.0
+    pxe_bootfile_name=undionly.kpxe
 
     # On ironic-conductor node, template file for PXE
     # configuration. (string value)
-    pxe_config_template = $pybasedir/drivers/modules/pxe_config.template
+    pxe_config_template = $pybasedir/drivers/modules/ipxe_config.template
 
     # Bootfile DHCP parameter for UEFI boot mode. (string value)
     uefi_pxe_bootfile_name=bootx64.efi
@@ -477,6 +412,12 @@ nodes will be deployed by 'grubaa64.efi', and ppc64 nodes by 'bootppc64'::
    A ``[pxe]ipxe_bootfile_name_by_arch`` setting is available for multi-arch
    iPXE based deployment, and defaults to the same behavior as the comperable
    ``[pxe]pxe_bootfile_by_arch`` setting for standard PXE.
+
+.. note::
+   When booting PowerPC based machines, the firmware loader directly boots
+   a kernel and ramdisk. It explicitly reads a "pxelinux" style template,
+   and then directly retrieves the files defined in the file without a
+   "network boot program".
 
 PXE timeouts tuning
 -------------------
