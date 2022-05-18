@@ -17,7 +17,9 @@
     <bios useserial='yes'/>
   </os>
   {% if engine == 'kvm' %}
-    <cpu mode='host-passthrough'/>
+  <cpu mode='host-passthrough'/>
+  {% else %}
+  <cpu mode='host-model'/>
   {% endif %}
   <features>
     <acpi/>

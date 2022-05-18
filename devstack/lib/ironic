@@ -314,7 +314,7 @@ IPA_DOWNLOAD_BRANCH=${IPA_DOWNLOAD_BRANCH:-master}
 IPA_DOWNLOAD_BRANCH=$(echo $IPA_DOWNLOAD_BRANCH | tr / -)
 
 # OS for using with DIB images
-IRONIC_DIB_RAMDISK_OS=${IRONIC_DIB_RAMDISK_OS:-centos8}
+IRONIC_DIB_RAMDISK_OS=${IRONIC_DIB_RAMDISK_OS:-centos9}
 IRONIC_DIB_RAMDISK_RELEASE=${IRONIC_DIB_RAMDISK_RELEASE:-}
 
 # Configure URLs required to download ramdisk if we're not building it, and
@@ -341,10 +341,14 @@ fi
 # to build the dib based ironic-python-agent ramdisk.
 IRONIC_DIB_RAMDISK_OPTIONS=${IRONIC_DIB_RAMDISK_OPTIONS:-}
 if [[ -z "$IRONIC_DIB_RAMDISK_OPTIONS" ]]; then
+    # Adapt for DIB naming change
     if [[ "$IRONIC_DIB_RAMDISK_OS" == "centos8" ]]; then
-        # Adapt for DIB naming change
         IRONIC_DIB_RAMDISK_OS=centos
         IRONIC_DIB_RAMDISK_RELEASE=8-stream
+    fi
+    if [[ "$IRONIC_DIB_RAMDISK_OS" == "centos9" ]]; then
+        IRONIC_DIB_RAMDISK_OS=centos
+        IRONIC_DIB_RAMDISK_RELEASE=9-stream
     fi
     IRONIC_DIB_RAMDISK_OPTIONS="$IRONIC_DIB_RAMDISK_OS"
 fi

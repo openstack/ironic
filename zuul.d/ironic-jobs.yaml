@@ -708,7 +708,7 @@
         s-object: True
         s-proxy: True
       devstack_localrc:
-        IRONIC_DIB_RAMDISK_OS: centos8
+        IRONIC_DIB_RAMDISK_OS: centos9
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_INTERFACE_COUNT: 1
