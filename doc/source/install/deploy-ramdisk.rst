@@ -14,7 +14,8 @@ Two kinds of images are published on every commit from every branch of
   https://tarballs.openstack.org/ironic-python-agent/dib/files/.
 
   * For Train and older use CentOS 7 images.
-  * For Ussuri and newer use CentOS 8 images.
+  * For Ussuri and up to Yoga use CentOS 8 images.
+  * For Zed and newer use CentOS 9 images.
 
   .. warning:: CentOS 7 master images are no longer updated and must not be
                used.
