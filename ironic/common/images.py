@@ -527,8 +527,8 @@ def create_boot_iso(context, output_filename, kernel_href,
     :raises: ImageCreationFailed, if creating boot ISO failed.
     """
     with utils.tempdir() as tmpdir:
-        kernel_path = os.path.join(tmpdir, kernel_href.split('/')[-1])
-        ramdisk_path = os.path.join(tmpdir, ramdisk_href.split('/')[-1])
+        kernel_path = os.path.join(tmpdir, 'kernel')
+        ramdisk_path = os.path.join(tmpdir, 'ramdisk')
         fetch(context, kernel_href, kernel_path)
         fetch(context, ramdisk_href, ramdisk_path)
 
@@ -543,13 +543,11 @@ def create_boot_iso(context, output_filename, kernel_href,
             deploy_iso_path = esp_image_path = None
 
             if deploy_iso_href:
-                deploy_iso_path = os.path.join(
-                    tmpdir, deploy_iso_href.split('/')[-1])
+                deploy_iso_path = os.path.join(tmpdir, 'iso')
                 fetch(context, deploy_iso_href, deploy_iso_path)
 
             elif esp_image_href:
-                esp_image_path = os.path.join(
-                    tmpdir, esp_image_href.split('/')[-1])
+                esp_image_path = os.path.join(tmpdir, 'esp')
                 fetch(context, esp_image_href, esp_image_path)
 
             elif CONF.esp_image:
