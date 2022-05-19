@@ -11,7 +11,8 @@
       - name: openstack/ironic-python-agent-builder
         override-checkout: 2.2.0
       - openstack/ironic-tempest-plugin
-      - openstack/virtualbmc
+      - name: openstack/virtualbmc
+        override-checkout: 2.2.0
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -170,6 +171,7 @@
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
       devstack_services:
         s-account: True
         s-container: True
@@ -228,6 +230,7 @@
         IRONIC_VM_SPECS_RAM: 3096
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
+      tempest_test_regex: test_baremetal_server_ops_wholedisk_image
       devstack_services:
         s-account: True
         s-container: True
@@ -725,6 +728,7 @@
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+      tempest_test_regex: test_baremetal_server_ops_wholedisk_image
       devstack_services:
         s-account: True
         s-container: True
