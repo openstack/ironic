@@ -38,7 +38,6 @@
         - ironic-tempest-pxe_ipmitool-postgres:
             voting: false
     gate:
-      queue: ironic
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-standalone
