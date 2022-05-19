@@ -32,7 +32,6 @@
         - ironic-inspector-tempest:
             voting: false
     gate:
-      queue: ironic
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-tox-unit-with-driver-libs-python3
