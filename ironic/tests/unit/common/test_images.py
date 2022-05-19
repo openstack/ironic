@@ -740,16 +740,16 @@ class FsImageTestCase(base.TestCase):
             boot_mode='uefi')
 
         fetch_images_mock.assert_any_call(
-            'ctx', 'kernel-uuid', 'tmpdir/kernel-uuid')
+            'ctx', 'kernel-uuid', 'tmpdir/kernel')
         fetch_images_mock.assert_any_call(
-            'ctx', 'ramdisk-uuid', 'tmpdir/ramdisk-uuid')
+            'ctx', 'ramdisk-uuid', 'tmpdir/ramdisk')
         fetch_images_mock.assert_any_call(
-            'ctx', 'deploy_iso-uuid', 'tmpdir/deploy_iso-uuid')
+            'ctx', 'deploy_iso-uuid', 'tmpdir/iso')
 
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
-            'output_file', 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid',
-            deploy_iso='tmpdir/deploy_iso-uuid',
+            'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
+            deploy_iso='tmpdir/iso',
             esp_image=None, kernel_params=params, inject_files=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
@@ -768,16 +768,16 @@ class FsImageTestCase(base.TestCase):
             boot_mode='uefi')
 
         fetch_images_mock.assert_any_call(
-            'ctx', 'kernel-uuid', 'tmpdir/kernel-uuid')
+            'ctx', 'kernel-uuid', 'tmpdir/kernel')
         fetch_images_mock.assert_any_call(
-            'ctx', 'ramdisk-uuid', 'tmpdir/ramdisk-uuid')
+            'ctx', 'ramdisk-uuid', 'tmpdir/ramdisk')
         fetch_images_mock.assert_any_call(
-            'ctx', 'efiboot-uuid', 'tmpdir/efiboot-uuid')
+            'ctx', 'efiboot-uuid', 'tmpdir/esp')
 
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
-            'output_file', 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid',
-            deploy_iso=None, esp_image='tmpdir/efiboot-uuid',
+            'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
+            deploy_iso=None, esp_image='tmpdir/esp',
             kernel_params=params, inject_files=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
@@ -796,16 +796,16 @@ class FsImageTestCase(base.TestCase):
             boot_mode='uefi')
 
         expected_calls = [mock.call('ctx', 'http://kernel-href',
-                                    'tmpdir/kernel-href'),
+                                    'tmpdir/kernel'),
                           mock.call('ctx', 'http://ramdisk-href',
-                                    'tmpdir/ramdisk-href'),
+                                    'tmpdir/ramdisk'),
                           mock.call('ctx', 'http://deploy_iso-href',
-                                    'tmpdir/deploy_iso-href')]
+                                    'tmpdir/iso')]
         fetch_images_mock.assert_has_calls(expected_calls)
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
-            'output_file', 'tmpdir/kernel-href', 'tmpdir/ramdisk-href',
-            deploy_iso='tmpdir/deploy_iso-href',
+            'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
+            deploy_iso='tmpdir/iso',
             esp_image=None, kernel_params=params, inject_files=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
@@ -824,16 +824,16 @@ class FsImageTestCase(base.TestCase):
             boot_mode='uefi')
 
         expected_calls = [mock.call('ctx', 'http://kernel-href',
-                                    'tmpdir/kernel-href'),
+                                    'tmpdir/kernel'),
                           mock.call('ctx', 'http://ramdisk-href',
-                                    'tmpdir/ramdisk-href'),
+                                    'tmpdir/ramdisk'),
                           mock.call('ctx', 'http://efiboot-href',
-                                    'tmpdir/efiboot-href')]
+                                    'tmpdir/esp')]
         fetch_images_mock.assert_has_calls(expected_calls)
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
-            'output_file', 'tmpdir/kernel-href', 'tmpdir/ramdisk-href',
-            deploy_iso=None, esp_image='tmpdir/efiboot-href',
+            'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
+            deploy_iso=None, esp_image='tmpdir/esp',
             kernel_params=params, inject_files=None)
 
     @mock.patch.object(images, 'create_isolinux_image_for_bios', autospec=True)
@@ -851,9 +851,9 @@ class FsImageTestCase(base.TestCase):
                                'kernel-params', 'bios')
 
         fetch_images_mock.assert_any_call(
-            'ctx', 'kernel-uuid', 'tmpdir/kernel-uuid')
+            'ctx', 'kernel-uuid', 'tmpdir/kernel')
         fetch_images_mock.assert_any_call(
-            'ctx', 'ramdisk-uuid', 'tmpdir/ramdisk-uuid')
+            'ctx', 'ramdisk-uuid', 'tmpdir/ramdisk')
 
         # Note (NobodyCam): the original assert asserted that fetch_images
         #                   was not called with parameters, this did not
@@ -864,7 +864,7 @@ class FsImageTestCase(base.TestCase):
 
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
-            'output_file', 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid',
+            'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
             kernel_params=params, inject_files=None)
 
     @mock.patch.object(images, 'create_isolinux_image_for_bios', autospec=True)
@@ -883,13 +883,13 @@ class FsImageTestCase(base.TestCase):
                                'kernel-params', None)
 
         fetch_images_mock.assert_any_call(
-            'ctx', 'kernel-uuid', 'tmpdir/kernel-uuid')
+            'ctx', 'kernel-uuid', 'tmpdir/kernel')
         fetch_images_mock.assert_any_call(
-            'ctx', 'ramdisk-uuid', 'tmpdir/ramdisk-uuid')
+            'ctx', 'ramdisk-uuid', 'tmpdir/ramdisk')
 
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
-            'output_file', 'tmpdir/kernel-uuid', 'tmpdir/ramdisk-uuid',
+            'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
             kernel_params=params, inject_files=None)
 
     @mock.patch.object(image_service, 'get_image_service', autospec=True)

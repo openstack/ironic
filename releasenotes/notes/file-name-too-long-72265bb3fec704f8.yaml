@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes ``OSError: [Errno 36] File name too long`` when building a virtual
+    media ISO from a long kernel, ramdisk or ESP URL.
