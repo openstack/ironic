@@ -23,6 +23,7 @@ from oslo_utils import units
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import raid as raid_common
 from ironic.common import raid
 from ironic.common import states
 from ironic.conductor import periodics
@@ -685,6 +686,30 @@ def create_virtual_disk(task, raid_controller, physical_disks, raid_level,
         raise exception.RedfishError(error=exc)
 
 
+def update_raid_config(node):
+    """Updates node's raid_config field with current logical disks.
+
+    :param node: node for which to update the raid_config field
+    """
+    system = redfish_utils.get_system(node)
+    logical_disks = []
+    for stor in system.storage.get_members():
+        for vol in stor.volumes.get_members():
+            if vol.raid_type:
+                logical_disk = {
+                    'id': vol.identity,
+                    'name': vol.name,
+                    'controller': stor.identity,
+                    'size_gb': int(vol.capacity_bytes / units.Gi),
+                    'raid_level': next(
+                        key for key, value in RAID_LEVELS.items()
+                        if value['raid_type'] == vol.raid_type.value)
+                }
+            logical_disks.append(logical_disk)
+
+    raid_common.update_raid_info(node, {'logical_disks': logical_disks})
+
+
 class RedfishRAID(base.RAIDInterface):
 
     def __init__(self):
@@ -809,6 +834,8 @@ class RedfishRAID(base.RAIDInterface):
             polling=True)
         if reboot_required:
             return_state = deploy_utils.reboot_to_finish_step(task)
+        else:
+            update_raid_config(node)
 
         return self.post_create_configuration(
             task, raid_configs, return_state=return_state)
@@ -835,6 +862,8 @@ class RedfishRAID(base.RAIDInterface):
             polling=True)
         if reboot_required:
             return_state = deploy_utils.reboot_to_finish_step(task)
+        else:
+            update_raid_config(node)
 
         return self.post_delete_configuration(
             task, raid_configs, return_state=return_state)
@@ -940,6 +969,7 @@ class RedfishRAID(base.RAIDInterface):
 
         task.upgrade_lock()
         self._clear_raid_configs(task.node)
+        update_raid_config(task.node)
 
     @METRICS.timer('RedfishRAID._query_raid_config_status')
     @periodics.node_periodic(
@@ -1036,6 +1066,7 @@ class RedfishRAID(base.RAIDInterface):
                 self._clear_raid_configs(node)
                 LOG.info('RAID configuration completed for node %(node)s',
                          {'node': node.uuid})
+                update_raid_config(task.node)
                 if task.node.clean_step:
                     manager_utils.notify_conductor_resume_clean(task)
                 else:
