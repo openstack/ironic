@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes ``redfish`` and ``idrac-redfish`` RAID ``create_configuration``,
+    ``apply_configuration``, ``delete_configuration`` clean and deploy steps to
+    update node's ``raid_config`` field at the end of the steps.
