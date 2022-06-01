@@ -6,7 +6,7 @@
 # These are available on pypi
 proliantutils>=2.11.0
 pysnmp>=4.3.0,<5.0.0
-python-scciclient>=0.8.0
+python-scciclient>=0.8.0,<0.12.0
 python-dracclient>=5.1.0,<8.0.0
 python-xclarityclient>=0.1.6
 
