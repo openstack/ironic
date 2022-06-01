@@ -82,7 +82,7 @@ def _get_raid_adapter(node):
     :returns: RAID adapter dictionary, None otherwise.
     :raises: IRMCOperationError on an error from python-scciclient.
     """
-    irmc_info = node.driver_info
+    irmc_info = irmc_common.parse_driver_info(node)
     LOG.info('iRMC driver is gathering RAID adapter info for node %s',
              node.uuid)
     try:
@@ -138,7 +138,7 @@ def _create_raid_adapter(node):
     :raises: IRMCOperationError on an error from python-scciclient.
     """
 
-    irmc_info = node.driver_info
+    irmc_info = irmc_common.parse_driver_info(node)
     target_raid_config = node.target_raid_config
 
     try:
@@ -165,7 +165,7 @@ def _delete_raid_adapter(node):
     :raises: IRMCOperationError if SCCI failed from python-scciclient.
     """
 
-    irmc_info = node.driver_info
+    irmc_info = irmc_common.parse_driver_info(node)
 
     try:
         client.elcm.delete_raid_configuration(irmc_info)
