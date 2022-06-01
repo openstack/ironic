@@ -1,0 +1,18 @@
+---
+fixes:
+  - |
+    Adds ``driver_info/irmc_verify_ca`` option to specify certification file.
+    Default value of driver_info/irmc_verify_ca is True.
+security:
+  - |
+    Modifies the ``irmc`` hardware type to include a capability to control
+    enforcement of HTTPS certificate verification. By default this is enforced.
+    python-scciclient version must be one of >=0.8.2,<0.9.0, >=0.9.5,<0.10.0,
+    or >=0.10.1,<0.11.0
+    Or certificate verification will not occur.
+upgrade:
+  - |
+    On Wallaby release, to use certification file on HTTPS connection,
+    iRMC driver requires python-scciclient version to be one of >=0.8.2,<0.9.0,
+    >=0.9.5,<0.10.0 or >=0.10.1,<0.11.0
+    and packaging >=16.5

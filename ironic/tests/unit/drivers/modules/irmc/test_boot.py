@@ -63,6 +63,7 @@ PARSED_IFNO = {
     'irmc_snmp_version': 'v2c',
     'irmc_snmp_security': None,
     'irmc_sensor_method': 'ipmitool',
+    'irmc_verify_ca': True,
 }
 
 
