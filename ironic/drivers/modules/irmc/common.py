@@ -15,15 +15,21 @@
 """
 Common functionalities shared between different iRMC modules.
 """
+import os
+
 from oslo_log import log as logging
 from oslo_utils import importutils
+from oslo_utils import strutils
+from packaging import version
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import utils
 from ironic.conf import CONF
 
 scci = importutils.try_import('scciclient.irmc.scci')
 elcm = importutils.try_import('scciclient.irmc.elcm')
+scci_mod = importutils.try_import('scciclient')
 
 LOG = logging.getLogger(__name__)
 REQUIRED_PROPERTIES = {
@@ -52,9 +58,36 @@ OPTIONAL_PROPERTIES = {
     'irmc_snmp_security': _("SNMP security name required for version 'v3'. "
                             "Optional."),
 }
+OPTIONAL_DRIVER_INFO_PROPERTIES = {
+    'irmc_verify_ca': _('Either a Boolean value, a path to a CA_BUNDLE '
+                        'file or directory with certificates of trusted '
+                        'CAs. If set to True the driver will verify the '
+                        'host certificates; if False the driver will '
+                        'ignore verifying the SSL certificate. If it\'s '
+                        'a path the driver will use the specified '
+                        'certificate or one of the certificates in the '
+                        'directory. Defaults to True. Optional'),
+}
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
+COMMON_PROPERTIES.update(OPTIONAL_DRIVER_INFO_PROPERTIES)
+
+SCCI_CERTIFICATION_SUPPORT_VERSION_RANGES = [
+    {'min': '0.8.2', 'upp': '0.9.0'},
+    {'min': '0.9.5', 'upp': '0.10.0'},
+    {'min': '0.10.1', 'upp': '0.11.0'},
+    {'min': '0.11.3', 'upp': '0.12.0'},
+    {'min': '0.12.0', 'upp': '0.13.0'}]
+
+
+def scci_support_certification():
+    scciclient_version = version.parse(scci_mod.__version__)
+    for rangev in SCCI_CERTIFICATION_SUPPORT_VERSION_RANGES:
+        if (version.parse(rangev['min']) <= scciclient_version
+                < version.parse(rangev['upp'])):
+            return True
+    return False
 
 
 def parse_driver_info(node):
@@ -83,7 +116,11 @@ def parse_driver_info(node):
     # corresponding config names don't have 'irmc_' prefix
     opt = {param: info.get(param, CONF.irmc.get(param[len('irmc_'):]))
            for param in OPTIONAL_PROPERTIES}
-    d_info = dict(req, **opt)
+    opt_driver_info = {param: info.get(param)
+                       for param in OPTIONAL_DRIVER_INFO_PROPERTIES}
+    d_info = dict(req, **opt, **opt_driver_info)
+    d_info['irmc_port'] = utils.validate_network_port(
+        d_info['irmc_port'], 'irmc_port')
 
     error_msgs = []
     if (d_info['irmc_auth_method'].lower() not in ('basic', 'digest')):
@@ -125,6 +162,39 @@ def parse_driver_info(node):
         else:
             error_msgs.append(
                 _("'irmc_snmp_security' has to be set for SNMP version 3."))
+
+    # To pass flake8 (C901 & E501), use complicated syntax
+    d_info['irmc_verify_ca'] = verify_ca = \
+        d_info['irmc_verify_ca'] if d_info['irmc_verify_ca'] is not None \
+        else CONF.webserver_verify_ca
+
+    # Check if verify_ca is a Boolean or a file/directory in the file-system
+    if isinstance(verify_ca, str):
+        if ((os.path.isdir(verify_ca) and os.path.isabs(verify_ca))
+            or (os.path.isfile(verify_ca) and os.path.isabs(verify_ca))):
+            # If it's fullpath and dir/file, we don't need to do anything
+            pass
+        else:
+            try:
+                d_info['irmc_verify_ca'] = strutils.bool_from_string(
+                    verify_ca, strict=True)
+            except ValueError:
+                error_msgs.append(
+                    _('Invalid value type set in driver_info/'
+                      'irmc_verify_ca on node %(node)s. '
+                      'The value should be a Boolean or the path '
+                      'to a file/directory, not "%(value)s"'
+                      ) % {'value': verify_ca, 'node': node.uuid})
+    elif isinstance(verify_ca, bool):
+        # If it's a boolean it's grand, we don't need to do anything
+        pass
+    else:
+        error_msgs.append(
+            _('Invalid value type set in driver_info/irmc_verify_ca '
+              'on node %(node)s. The value should be a Boolean or the path '
+              'to a file/directory, not "%(value)s"') % {'value': verify_ca,
+                                                         'node': node.uuid})
+
     if error_msgs:
         msg = (_("The following errors were encountered while parsing "
                  "driver_info:\n%s") % "\n".join(error_msgs))
@@ -144,16 +214,30 @@ def get_irmc_client(node):
     :raises: InvalidParameterValue on invalid inputs.
     :raises: MissingParameterValue if some mandatory information
         is missing on the node
+    :raises: IRMCOperationError if iRMC operation failed
     """
     driver_info = parse_driver_info(node)
 
-    scci_client = scci.get_client(
-        driver_info['irmc_address'],
-        driver_info['irmc_username'],
-        driver_info['irmc_password'],
-        port=driver_info['irmc_port'],
-        auth_method=driver_info['irmc_auth_method'],
-        client_timeout=driver_info['irmc_client_timeout'])
+    if scci_support_certification():
+        scci_client = scci.get_client(
+            driver_info['irmc_address'],
+            driver_info['irmc_username'],
+            driver_info['irmc_password'],
+            port=driver_info['irmc_port'],
+            auth_method=driver_info['irmc_auth_method'],
+            verify=driver_info.get('irmc_verify_ca'),
+            client_timeout=driver_info['irmc_client_timeout'])
+    else:
+        if driver_info['irmc_port'] == 443:
+            LOG.warning("Installed version of python-scciclient doesn't "
+                        "support certification on HTTPS connection.")
+        scci_client = scci.get_client(
+            driver_info['irmc_address'],
+            driver_info['irmc_username'],
+            driver_info['irmc_password'],
+            port=driver_info['irmc_port'],
+            auth_method=driver_info['irmc_auth_method'],
+            client_timeout=driver_info['irmc_client_timeout'])
     return scci_client
 
 
@@ -189,13 +273,27 @@ def get_irmc_report(node):
     """
     driver_info = parse_driver_info(node)
 
-    return scci.get_report(
-        driver_info['irmc_address'],
-        driver_info['irmc_username'],
-        driver_info['irmc_password'],
-        port=driver_info['irmc_port'],
-        auth_method=driver_info['irmc_auth_method'],
-        client_timeout=driver_info['irmc_client_timeout'])
+    if scci_support_certification():
+        report = scci.get_report(
+            driver_info['irmc_address'],
+            driver_info['irmc_username'],
+            driver_info['irmc_password'],
+            port=driver_info['irmc_port'],
+            auth_method=driver_info['irmc_auth_method'],
+            verify=driver_info.get('irmc_verify_ca'),
+            client_timeout=driver_info['irmc_client_timeout'])
+    else:
+        if driver_info['irmc_port'] == 443:
+            LOG.warning("Installed version of python-scciclient doesn't "
+                        "support certification on HTTPS connection.")
+        report = scci.get_report(
+            driver_info['irmc_address'],
+            driver_info['irmc_username'],
+            driver_info['irmc_password'],
+            port=driver_info['irmc_port'],
+            auth_method=driver_info['irmc_auth_method'],
+            client_timeout=driver_info['irmc_client_timeout'])
+    return report
 
 
 def set_secure_boot_mode(node, enable):

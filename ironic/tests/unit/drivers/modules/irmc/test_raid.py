@@ -20,6 +20,7 @@ from unittest import mock
 
 from ironic.common import exception
 from ironic.conductor import task_manager
+from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import raid
 from ironic.tests.unit.drivers.modules.irmc import test_common
 
@@ -694,8 +695,8 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             raid._commit_raid_config(task)
-            get_raid_adapter_mock.assert_called_once_with(
-                task.node.driver_info)
+            irmc_info = irmc_common.parse_driver_info(task.node)
+            get_raid_adapter_mock.assert_called_once_with(irmc_info)
             update_raid_info_mock.assert_called_once_with(
                 task.node, task.node.raid_config)
             self.assertEqual(task.node.raid_config['logical_disks'],
