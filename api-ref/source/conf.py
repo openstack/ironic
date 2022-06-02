@@ -64,8 +64,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Ironic API Reference'
-copyright = u'OpenStack Foundation'
+project = 'Ironic API Reference'
+copyright = 'OpenStack Foundation'
 
 # html_context allows us to pass arbitrary values into the html template
 html_context = {"bug_tag": "api-ref",
@@ -103,7 +103,7 @@ pygments_style = 'native'
 # -- Options for man page output ----------------------------------------------
 
 # Grouping the document tree for man pages.
-# List of tuples 'sourcefile', 'target', u'title', u'Authors name', 'manual'
+# List of tuples 'sourcefile', 'target', 'title', 'Authors name', 'manual'
 
 
 # -- Options for HTML output --------------------------------------------------
@@ -189,8 +189,8 @@ htmlhelp_basename = 'ironicdoc'
 # (source start file, target name, title, author, documentclass
 # [howto/manual]).
 latex_documents = [
-    ('index', 'Ironic.tex', u'OpenStack Bare Metal API Documentation',
-     u'OpenStack Foundation', 'manual'),
+    ('index', 'Ironic.tex', 'OpenStack Bare Metal API Documentation',
+     'OpenStack Foundation', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

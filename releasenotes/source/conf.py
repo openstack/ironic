@@ -64,8 +64,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Ironic Release Notes'
-copyright = u'2015, Ironic Developers'
+project = 'Ironic Release Notes'
+copyright = '2015, Ironic Developers'
 
 # Release notes do not need a version number in the title, they
 # cover multiple releases.
@@ -218,8 +218,8 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    ('index', 'IronicReleaseNotes.tex', u'Ironic Release Notes Documentation',
-     u'Ironic Developers', 'manual'),
+    ('index', 'IronicReleaseNotes.tex', 'Ironic Release Notes Documentation',
+     'Ironic Developers', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -248,8 +248,8 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'ironicreleasenotes', u'Ironic Release Notes Documentation',
-     [u'Ironic Developers'], 1)
+    ('index', 'ironicreleasenotes', 'Ironic Release Notes Documentation',
+     ['Ironic Developers'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -262,8 +262,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    ('index', 'IronicReleaseNotes', u'Ironic Release Notes Documentation',
-     u'Ironic Developers', 'IronicReleaseNotes',
+    ('index', 'IronicReleaseNotes', 'Ironic Release Notes Documentation',
+     'Ironic Developers', 'IronicReleaseNotes',
      'One line description of project.',
      'Miscellaneous'),
 ]
