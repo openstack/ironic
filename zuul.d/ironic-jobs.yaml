@@ -16,6 +16,8 @@
         override-checkout: master
       - opendev.org/openstack/ironic-tempest-plugin
       - opendev.org/openstack/virtualbmc
+      - name: openstack/swift
+        override-checkout: stable/yoga
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
