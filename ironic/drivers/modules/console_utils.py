@@ -244,7 +244,7 @@ def get_shellinabox_console_url(port, uuid=None):
                 'uuid': uuid,
                 'expiry': expiry,
                 'secret': CONF.console.url_auth_digest_secret }
-            h.update(to_sign)
+            h.update(to_sign.encode('utf-8'))
             if digest_algorithm == 'base64':
                 digest = urlsafe_b64encode(h.digest())
             else:
@@ -258,7 +258,7 @@ def get_shellinabox_console_url(port, uuid=None):
                                                'host': console_host,
                                                'port': port,
                                                'uuid': uuid,
-                                               'digest': digest,
+                                               'digest': digest.decode("utf-8"),
                                                'expiry': expiry }
 
 
