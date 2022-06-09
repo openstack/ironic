@@ -1482,10 +1482,6 @@ class IPMIConsole(base.ConsoleInterface):
 
         """
         driver_info = _parse_driver_info(task.node)
-        if not driver_info['port'] and CONF.console.port_range is None:
-            raise exception.MissingParameterValue(_(
-                "Either missing 'ipmi_terminal_port' parameter in node's "
-                "driver_info or [console]port_range is not configured"))
 
         if driver_info['protocol_version'] != '2.0':
             raise exception.InvalidParameterValue(_(
@@ -1581,7 +1577,7 @@ class IPMIShellinaboxConsole(IPMIConsole):
     def get_console(self, task):
         """Get the type and connection information about the console."""
         driver_info = _parse_driver_info(task.node)
-        url = console_utils.get_shellinabox_console_url(driver_info['port'])
+        url = console_utils.get_shellinabox_console_url(port=driver_info['port'], uuid=task.node.uuid)
         return {'type': 'shellinabox', 'url': url}
 
 

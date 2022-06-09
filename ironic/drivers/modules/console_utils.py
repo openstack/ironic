@@ -20,6 +20,7 @@ Ironic console utilities.
 """
 
 import errno
+import hashlib
 import fcntl
 import ipaddress
 import os
@@ -28,6 +29,8 @@ import socket
 import subprocess
 import time
 
+from base64 import urlsafe_b64encode
+from datetime import datetime, timedelta
 from ironic_lib import utils as ironic_utils
 from oslo_concurrency import lockutils
 from oslo_log import log as logging
@@ -71,6 +74,15 @@ def _ensure_console_pid_dir_exists():
                      " Reason: %(reason)s.") % {'path': dir, 'reason': exc})
             LOG.error(msg)
             raise exception.ConsoleError(message=msg)
+
+
+def _get_console_unix_socket(node_uuid):
+    """Generate the unix socket file name."""
+
+    pid_dir = _get_console_pid_dir()
+    name = "%s.sock" % node_uuid
+    path = os.path.join(pid_dir, name)
+    return path
 
 
 def _get_console_pid_file(node_uuid):
@@ -215,17 +227,39 @@ def release_port(port):
     ALLOCATED_PORTS.discard(port)
 
 
-def get_shellinabox_console_url(port):
+def get_shellinabox_console_url(port, uuid=None):
     """Get a url to access the console via shellinaboxd.
 
     :param port: the terminal port for the node.
     """
 
+    digest = None
+    expiry = None
+    if CONF.console.url_auth_digest_secret:
+        try:
+            hash_algorithm, digest_algorithm = CONF.console.url_auth_digest_algorithm.split(':', 1)
+            h = hashlib.new(hash_algorithm)
+            expiry = int((datetime.utcnow() - datetime(1970,1,1) + timedelta(seconds=CONF.console.url_auth_digest_expiry)).total_seconds())
+            to_sign = CONF.console.url_auth_digest_pattern % {
+                'uuid': uuid,
+                'expiry': expiry,
+                'secret': CONF.console.url_auth_digest_secret }
+            h.update(to_sign)
+            if digest_algorithm == 'base64':
+                digest = urlsafe_b64encode(h.digest())
+            else:
+                digest = h.hexdigest()
+        except ValueError as e:
+            LOG.warning("Could not setup authenticated url due to %s", e)
+
     console_host = utils.wrap_ipv6(CONF.my_ip)
     scheme = 'https' if CONF.console.terminal_cert_dir else 'http'
-    return '%(scheme)s://%(host)s:%(port)s' % {'scheme': scheme,
+    return CONF.console.terminal_url_scheme % {'scheme': scheme,
                                                'host': console_host,
-                                               'port': port}
+                                               'port': port,
+                                               'uuid': uuid,
+                                               'digest': digest,
+                                               'expiry': expiry }
 
 
 class _PopenNonblockingPipe(object):
@@ -292,8 +326,17 @@ def start_shellinabox_console(node_uuid, port, console_cmd):
         args.append(CONF.console.terminal_cert_dir)
     else:
         args.append("-t")
-    args.append("-p")
-    args.append(str(port))
+    if port == 'unix' or port is None:
+        args.append('--unixdomain-only')
+        args.append(('%(path)s:%(uid)s:%(gid)s:%(mode)s' % {
+            'path': _get_console_unix_socket(node_uuid),
+            'uid': os.getuid(),
+            'gid': CONF.console.socket_gid,
+            'mode': CONF.console.socket_permission }))
+    else:
+        args.append("-p")
+        args.append(str(port))
+
     args.append("--background=%s" % pid_file)
     args.append("-s")
     args.append(console_cmd)
