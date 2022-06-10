@@ -1,0 +1,30 @@
+---
+features:
+  - |
+    Adds SNMPv3 message authentication and encryption features to iRMC driver.
+    To enable these features, the following parameters should be used in the
+    node's ``driver_info``:
+
+    * ``irmc_snmp_user``
+    * ``irmc_snmp_auth_password``
+    * ``irmc_snmp_priv_password``
+    * ``irmc_snmp_auth_proto`` (Optional, defaults to ``sha``)
+    * ``irmc_snmp_priv_proto`` (Optional, defaults to ``aes``)
+
+    ``irmc_snmp_auth_proto`` and ``irmc_snmp_priv_proto`` can also be set
+    through the following options in the ``[irmc]`` section of
+    ``/etc/ironic/ironic.conf``:
+
+    * ``snmp_auth_proto``
+    * ``snmp_priv_proto``
+
+deprecations:
+  - |
+    Deprecates the ``irmc_snmp_security`` field in ``driver_info`` for iRMC
+    driver, it will be removed in the future. Please use ``irmc_snmp_user``
+    field instead.
+
+other:
+  - |
+    Updates the minimum version of ``python-scciclient`` library to
+    ``0.12.1``.

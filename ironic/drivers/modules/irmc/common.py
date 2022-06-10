@@ -22,6 +22,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
 from ironic.conf import CONF
+from ironic.drivers.modules import snmp
 
 scci = importutils.try_import('scciclient.irmc.scci')
 elcm = importutils.try_import('scciclient.irmc.elcm')
@@ -44,18 +45,49 @@ OPTIONAL_PROPERTIES = {
     'irmc_sensor_method': _("Sensor data retrieval method; either "
                             "'ipmitool' or 'scci'. The default value is "
                             "'ipmitool'. Optional."),
+}
+
+SNMP_PROPERTIES = {
     'irmc_snmp_version': _("SNMP protocol version; either 'v1', 'v2c', or "
                            "'v3'. The default value is 'v2c'. Optional."),
     'irmc_snmp_port': _("SNMP port. The default is 161. Optional."),
     'irmc_snmp_community': _("SNMP community required for versions 'v1' and "
                              "'v2c'. The default value is 'public'. "
                              "Optional."),
-    'irmc_snmp_security': _("SNMP security name required for version 'v3'. "
-                            "Optional."),
 }
+
+SNMP_V3_REQUIRED_PROPERTIES = {
+    'irmc_snmp_user': _("SNMPv3 User-based Security Model (USM) username. "
+                        "Required for version 'v3’. "),
+    'irmc_snmp_auth_password': _("SNMPv3 message authentication key. Must be "
+                                 "8+ characters long. Required when message "
+                                 "authentication is used."),
+    'irmc_snmp_priv_password': _("SNMPv3 message privacy key. Must be 8+ "
+                                 "characters long. Required when message "
+                                 "privacy is used."),
+}
+
+SNMP_V3_OPTIONAL_PROPERTIES = {
+    'irmc_snmp_auth_proto': _("SNMPv3 message authentication protocol ID. "
+                              "Required for version 'v3'. "
+                              "'sha' is supported."),
+    'irmc_snmp_priv_proto': _("SNMPv3 message privacy (encryption) protocol "
+                              "ID. Required for version 'v3'. "
+                              "'aes' is supported."),
+}
+
+SNMP_V3_DEPRECATED_PROPERTIES = {
+    'irmc_snmp_security': _("SNMP security name required for version 'v3'. "
+                            "Optional. Deprecated."),
+}
+
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
+COMMON_PROPERTIES.update(SNMP_PROPERTIES)
+COMMON_PROPERTIES.update(SNMP_V3_REQUIRED_PROPERTIES)
+COMMON_PROPERTIES.update(SNMP_V3_OPTIONAL_PROPERTIES)
+COMMON_PROPERTIES.update(SNMP_V3_DEPRECATED_PROPERTIES)
 
 
 def parse_driver_info(node):
@@ -105,35 +137,143 @@ def parse_driver_info(node):
         error_msgs.append(
             _("Value '%s' is not supported for 'irmc_sensor_method'.") %
             d_info['irmc_sensor_method'])
-    if d_info['irmc_snmp_version'].lower() not in ('v1', 'v2c', 'v3'):
-        error_msgs.append(
-            _("Value '%s' is not supported for 'irmc_snmp_version'.") %
-            d_info['irmc_snmp_version'])
-    if not isinstance(d_info['irmc_snmp_port'], int):
-        error_msgs.append(
-            _("Value '%s' is not an integer for 'irmc_snmp_port'") %
-            d_info['irmc_snmp_port'])
-    if (d_info['irmc_snmp_version'].lower() in ('v1', 'v2c')
-        and d_info['irmc_snmp_community']
-        and not isinstance(d_info['irmc_snmp_community'], str)):
-        error_msgs.append(
-            _("Value '%s' is not a string for 'irmc_snmp_community'") %
-            d_info['irmc_snmp_community'])
-    if d_info['irmc_snmp_version'].lower() == 'v3':
-        if d_info['irmc_snmp_security']:
-            if not isinstance(d_info['irmc_snmp_security'], str):
-                error_msgs.append(
-                    _("Value '%s' is not a string for "
-                      "'irmc_snmp_security'") % d_info['irmc_snmp_security'])
-        else:
-            error_msgs.append(
-                _("'irmc_snmp_security' has to be set for SNMP version 3."))
     if error_msgs:
         msg = (_("The following errors were encountered while parsing "
                  "driver_info:\n%s") % "\n".join(error_msgs))
         raise exception.InvalidParameterValue(msg)
 
+    d_info.update(_parse_snmp_driver_info(node, info))
+
     return d_info
+
+
+def _parse_snmp_driver_info(node, info):
+    """Parses the SNMP related driver_info parameters.
+
+    :param node: An Ironic node object.
+    :param info: driver_info dictionary.
+    :returns: A dictionary containing SNMP information.
+    :raises: MissingParameterValue if any of the mandatory
+        parameter values are not provided.
+    :raises: InvalidParameterValue if there is any invalid
+        value provided.
+    """
+    snmp_info = {param: info.get(param, CONF.irmc.get(param[len('irmc_'):]))
+                 for param in SNMP_PROPERTIES}
+    valid_versions = {"v1": snmp.SNMP_V1,
+                      "v2c": snmp.SNMP_V2C,
+                      "v3": snmp.SNMP_V3}
+
+    if snmp_info['irmc_snmp_version'].lower() not in valid_versions:
+        raise exception.InvalidParameterValue(_(
+            "Value '%s' is not supported for 'irmc_snmp_version'.") %
+            snmp_info['irmc_snmp_version']
+        )
+    snmp_info["irmc_snmp_version"] = \
+        valid_versions[snmp_info["irmc_snmp_version"].lower()]
+
+    snmp_info['irmc_snmp_port'] = utils.validate_network_port(
+        snmp_info['irmc_snmp_port'], 'irmc_snmp_port')
+
+    if snmp_info['irmc_snmp_version'] != snmp.SNMP_V3:
+        if (snmp_info['irmc_snmp_community']
+            and not isinstance(snmp_info['irmc_snmp_community'], str)):
+            raise exception.InvalidParameterValue(_(
+                "Value '%s' is not a string for 'irmc_snmp_community'") %
+                snmp_info['irmc_snmp_community'])
+        if utils.is_fips_enabled():
+            raise exception.InvalidParameterValue(_(
+                "'v3' has to be set for 'irmc_snmp_version' "
+                "when FIPS mode is enabled."))
+
+    else:
+        snmp_info.update(_parse_snmp_v3_info(node, info))
+
+    return snmp_info
+
+
+def _parse_snmp_v3_info(node, info):
+    snmp_info = {}
+    missing_info = []
+    valid_values = {'irmc_snmp_auth_proto': ['sha'],
+                    'irmc_snmp_priv_proto': ['aes']}
+    valid_protocols = {'irmc_snmp_auth_proto': snmp.snmp_auth_protocols,
+                       'irmc_snmp_priv_proto': snmp.snmp_priv_protocols}
+    snmp_keys = {'irmc_snmp_auth_password', 'irmc_snmp_priv_password'}
+
+    security = info.get('irmc_snmp_security', CONF.irmc.get('snmp_security'))
+    for param in SNMP_V3_REQUIRED_PROPERTIES:
+        try:
+            snmp_info[param] = info[param]
+        except KeyError:
+            if param == 'irmc_snmp_user':
+                if not security:
+                    missing_info.append(param)
+                else:
+                    LOG.warning(_("'irmc_snmp_security' parameter is "
+                                  "deprecated in favor of 'irmc_snmp_user' "
+                                  "parameter. Please set 'irmc_snmp_user' "
+                                  "and remove 'irmc_snmp_security' for node "
+                                  "%s."), node.uuid)
+                    # In iRMC, the username must start with a letter, so only
+                    # a string can be a valid username and a string from a
+                    # number is invalid.
+                    if not isinstance(security, str):
+                        raise exception.InvalidParameterValue(_(
+                            "Value '%s' is not a string for "
+                            "'irmc_snmp_security.") %
+                            info['irmc_snmp_security'])
+                    else:
+                        snmp_info['irmc_snmp_user'] = security
+                        security = None
+            else:
+                missing_info.append(param)
+
+    if missing_info:
+        raise exception.MissingParameterValue(_(
+            "The following required SNMP parameters "
+            "are missing: %s") % missing_info)
+
+    if security:
+        LOG.warning(_("'irmc_snmp_security' parameter is ignored in favor of "
+                      "'irmc_snmp_user' parameter. Please remove "
+                      "'irmc_snmp_security' from node %s "
+                      "configuration."), node.uuid)
+    if not isinstance(snmp_info['irmc_snmp_user'], str):
+        raise exception.InvalidParameterValue(_(
+            "Value '%s' is not a string for 'irmc_snmp_user'.") %
+            info['irmc_snmp_user'])
+
+    for param in snmp_keys:
+        if not isinstance(snmp_info[param], str):
+            raise exception.InvalidParameterValue(_(
+                "Value %(value)s is not a string for %(param)s.") %
+                {'param': param, 'value': snmp_info[param]})
+        if len(snmp_info[param]) < 8:
+            raise exception.InvalidParameterValue(_(
+                "%s is too short. (8+ chars required)") % param)
+
+    for param in SNMP_V3_OPTIONAL_PROPERTIES:
+        value = None
+        try:
+            value = info[param]
+            if value not in valid_values[param]:
+                raise exception.InvalidParameterValue(_(
+                    "Invalid value %(value)s given for driver info parameter "
+                    "%(param)s, the valid values are %(valid_values)s.") %
+                    {'param': param,
+                     'value': value,
+                     'valid_values': valid_values[param]})
+        except KeyError:
+            value = CONF.irmc.get(param[len('irmc_'):])
+        snmp_info[param] = valid_protocols[param].get(value)
+        if not snmp_info[param]:
+            raise exception.InvalidParameterValue(_(
+                "Unknown SNMPv3 protocol %(value)s given for "
+                "driver info parameter %(param)s") % {'param': param,
+                                                      'value': value})
+
+    return snmp_info
 
 
 def get_irmc_client(node):
