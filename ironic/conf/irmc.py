@@ -73,10 +73,25 @@ opts = [
                default='public',
                help=_('SNMP community. Required for versions "v1" and "v2c"')),
     cfg.StrOpt('snmp_security',
-               help=_('SNMP security name. Required for version "v3"')),
+               help=_("SNMP security name. Required for version 'v3'. Will be "
+                      "ignored if driver_info/irmc_snmp_user is set.")),
     cfg.IntOpt('snmp_polling_interval',
                default=10,
                help='SNMP polling interval in seconds'),
+    cfg.StrOpt('snmp_auth_proto',
+               default='sha',
+               choices=[('sha', _('Secure Hash Algorithm 1'))],
+               help=_("SNMPv3 message authentication protocol ID. "
+                      "Required for version 'v3'. Will be ignored if the "
+                      "version of python-scciclient is before 0.10.1. 'sha' "
+                      "is supported.")),
+    cfg.StrOpt('snmp_priv_proto',
+               default='aes',
+               choices=[('aes', _('Advanced Encryption Standard'))],
+               help=_("SNMPv3 message privacy (encryption) protocol ID. "
+                      "Required for version 'v3'. Will be ignored if the "
+                      "version of python-scciclient is before 0.10.1. "
+                      "'aes' is supported.")),
     cfg.IntOpt('clean_priority_restore_irmc_bios_config',
                default=0,
                help=_('Priority for restore_irmc_bios_config clean step.')),
