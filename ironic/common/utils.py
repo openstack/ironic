@@ -654,3 +654,15 @@ def remove_large_keys(var):
         return var.__class__(map(remove_large_keys, var))
     else:
         return var
+
+
+def is_fips_enabled():
+    """Check if FIPS mode is enabled in the system."""
+    try:
+        with open('/proc/sys/crypto/fips_enabled', 'r') as f:
+            content = f.read()
+            if content == "1\n":
+                return True
+    except Exception:
+        pass
+    return False
