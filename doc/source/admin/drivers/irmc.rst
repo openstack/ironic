@@ -181,6 +181,25 @@ Configuration via ``driver_info``
      ``irmc_deploy_iso`` and ``irmc_boot_iso`` accordingly before the Xena
      release.
 
+* The following properties are also required if ``irmc`` inspect interface is
+  enabled and SNMPv3 inspection is desired.
+
+  - ``driver_info/irmc_snmp_user`` property to be the SNMPv3 username. SNMPv3
+    functionality should be enabled for this user on iRMC server side.
+  - ``driver_info/irmc_snmp_auth_password`` property to be the auth protocol
+    pass phrase. The length of pass phrase should be at least 8 characters.
+  - ``driver_info/irmc_snmp_priv_password`` property to be the privacy protocol
+    pass phrase. The length of pass phrase should be at least 8 characters.
+
+  .. note::
+     When using SNMPv3, python-scciclient in old version (before 0.11.3) can
+     only interact with iRMC with no authentication protocol setted. This means
+     the passwords and protocol settings of the snmp user in iRMC side should
+     all be blank, otherwise python-scciclient will encounter an communication
+     error. If you are using such old version python-scciclient, the
+     ``irmc_snmp_auth_password`` and ``irmc_snmp_priv_password`` properties
+     will be ignored. If you want to set passwords, please update
+     python-scciclient to some newer version (>= 0.11.3).
 
 Configuration via ``ironic.conf``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -220,6 +239,17 @@ Configuration via ``ironic.conf``
     and ``v2c``. The default value is ``public``. Optional.
   - ``snmp_security``: SNMP security name required for version ``v3``.
     Optional.
+  - ``snmp_auth_proto``: The SNMPv3 auth protocol. The valid value and the
+    default value are both ``sha``. We will add more supported valid values
+    in the future. Optional.
+  - ``snmp_priv_proto``: The SNMPv3 privacy protocol. The valid value and
+    the default value are both ``aes``. We will add more supported valid values
+    in the future. Optional.
+
+  .. note::
+     ``snmp_security`` will be ignored if ``driver_info/irmc_snmp_user`` is
+     set. ``snmp_auth_proto`` and ``snmp_priv_proto`` will be ignored if the
+     version of python-scciclient is before 0.11.3.
 
 
 Override ``ironic.conf`` configuration via ``driver_info``
@@ -237,6 +267,10 @@ Override ``ironic.conf`` configuration via ``driver_info``
   - ``driver_info/irmc_snmp_port`` property overrides ``snmp_port``.
   - ``driver_info/irmc_snmp_community`` property overrides ``snmp_community``.
   - ``driver_info/irmc_snmp_security`` property overrides ``snmp_security``.
+  - ``driver_info/irmc_snmp_auth_proto`` property overrides
+    ``snmp_auth_proto``.
+  - ``driver_info/irmc_snmp_priv_proto`` property overrides
+    ``snmp_priv_proto``.
 
 
 Optional functionalities for the ``irmc`` hardware type
