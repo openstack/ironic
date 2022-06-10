@@ -121,7 +121,6 @@ Bugfix branches
 The following projects have ``bugfix/X.Y`` branches in addition to standard
 openstack ``stable/NAME`` branches:
 
-* bifrost
 * ironic
 * ironic-inspector
 * ironic-python-agent
@@ -139,6 +138,13 @@ version.
 
 Currently releases from bugfix branches cannot be automated and must be done by
 the release team manually.
+
+After the creation of a bugfix branch it is utmost important to update the
+upper-constraints link for the tests in the tox.ini file, plus override the
+branch for the requirements project to be sure to use the correct
+upper-constraints; for example see the following change:
+
+https://review.opendev.org/c/openstack/ironic-python-agent/+/841290
 
 Things to do before releasing
 =============================
