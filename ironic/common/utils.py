@@ -592,7 +592,7 @@ def _get_mb_ram_available():
     return psutil.virtual_memory().available / 1024 / 1024
 
 
-def is_memory_insufficent(raise_if_fail=False):
+def is_memory_insufficient(raise_if_fail=False):
     """Checks available system memory and holds the deployment process.
 
     Evaluates the current system memory available, meaning can be
@@ -601,15 +601,15 @@ def is_memory_insufficent(raise_if_fail=False):
     or until it has timed out.
 
     This method will issue a sleep, if the amount of available memory is
-    insufficent. This is configured using the
+    insufficient. This is configured using the
     ``[DEFAULT]minimum_memory_wait_time`` and the
     ``[DEFAULT]minimum_memory_wait_retries``.
 
     :param raise_if_fail: Default False, but if set to true an
-                          InsufficentMemory exception is raised
-                          upon insufficent memory.
+                          InsufficientMemory exception is raised
+                          upon insufficient memory.
     :returns: True if the check has timed out. Otherwise None is returned.
-    :raises: InsufficentMemory if the raise_if_fail parameter is set to
+    :raises: InsufficientMemory if the raise_if_fail parameter is set to
              True.
     """
     required_memory = CONF.minimum_required_memory
@@ -633,7 +633,7 @@ def is_memory_insufficent(raise_if_fail=False):
                       'exceeded retries.',
                       log_values)
             if raise_if_fail:
-                raise exception.InsufficentMemory(
+                raise exception.InsufficientMemory(
                     free=_get_mb_ram_available(),
                     required=required_memory)
             return True

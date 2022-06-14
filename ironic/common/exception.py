@@ -819,8 +819,8 @@ class AgentInProgress(IronicException):
                  'presently executing a command. Error %(error)s')
 
 
-class InsufficentMemory(IronicException):
-    _msg_fmt = _("Available memory at %(free)s, Insufficent as %(required)s "
+class InsufficientMemory(IronicException):
+    _msg_fmt = _("Available memory at %(free)s, Insufficient as %(required)s "
                  "is required to proceed at this time.")
 
 
