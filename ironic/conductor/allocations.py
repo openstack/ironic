@@ -141,6 +141,15 @@ def _candidate_nodes(context, allocation):
     # in the same order.
     random.shuffle(nodes)
 
+    # NOTE(sbaker): if the allocation name matches a node name, attempt that
+    # node first. This will reduce confusion when nodes have the same naming
+    # scheme as allocations.
+    if allocation.name:
+        for i, node in enumerate(nodes):
+            if node.name == allocation.name:
+                nodes.insert(0, nodes.pop(i))
+                break
+
     LOG.debug('%(count)d nodes are candidates for allocation %(uuid)s',
               {'count': len(nodes), 'uuid': allocation.uuid})
     return nodes

@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    When an allocation is being processed, the randomized candidate list is now
+    modified so that a node with a matching name to the allocation is moved
+    to the beginning of the list. This greatly increases the chance of node name
+    and allocation name matching in environments where the naming schemes align.
