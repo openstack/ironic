@@ -51,7 +51,7 @@ which will request such capability, for example::
 
 As for the flavor::
 
-    nova flavor-key baremetal set capabilities:disk_label="gpt"
+    openstack flavor set baremetal --property capabilities:disk_label="gpt"
 
 When used in standalone mode
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~

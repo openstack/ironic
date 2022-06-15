@@ -568,8 +568,8 @@ of boot mode (Legacy BIOS or UEFI).
   Nodes having ``boot_mode`` set to ``uefi`` may be requested by adding an
   ``extra_spec`` to the nova flavor::
 
-    nova flavor-key ironic-test-3 set capabilities:boot_mode="uefi"
-    nova boot --flavor ironic-test-3 --image test-image instance-1
+    openstack flavor set ironic-test-3 --property capabilities:boot_mode="uefi"
+    openstack server create --flavor ironic-test-3 --image test-image instance-1
 
   If ``capabilities`` is used in ``extra_spec`` as above, nova scheduler
   (``ComputeCapabilitiesFilter``) will match only ironic nodes which have
@@ -1013,13 +1013,13 @@ Inspection can also discover the following extra capabilities for iLO driver:
 The operator can specify these capabilities in nova flavor for node to be selected
 for scheduling::
 
-  nova flavor-key my-baremetal-flavor set capabilities:server_model="<in> Gen8"
+  openstack flavor set my-baremetal-flavor --property capabilities:server_model="<in> Gen8"
 
-  nova flavor-key my-baremetal-flavor set capabilities:nic_capacity="10Gb"
+  openstack flavor set my-baremetal-flavor --property capabilities:nic_capacity="10Gb"
 
-  nova flavor-key my-baremetal-flavor set capabilities:ilo_firmware_version="<in> 2.10"
+  openstack flavor set my-baremetal-flavor --property capabilities:ilo_firmware_version="<in> 2.10"
 
-  nova flavor-key my-baremetal-flavor set capabilities:has_ssd="true"
+  openstack flavor set my-baremetal-flavor --property capabilities:has_ssd="true"
 
 See :ref:`capabilities-discovery` for more details and examples.
 
@@ -1850,8 +1850,8 @@ configuration of RAID:
   operator can specify the ``raid_level`` capability in nova flavor for node
   to be selected for scheduling::
 
-    nova flavor-key ironic-test set capabilities:raid_level="1+0"
-    nova boot --flavor ironic-test --image test-image instance-1
+    openstack flavor set ironic-test --property capabilities:raid_level="1+0"
+    openstack server create --flavor ironic-test --image test-image instance-1
 
 .. _DIB_raid_support:
 

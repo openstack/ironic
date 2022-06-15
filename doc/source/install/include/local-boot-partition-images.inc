@@ -33,7 +33,7 @@ for example::
 Nodes having ``boot_option`` set to ``local`` may be requested by adding
 an ``extra_spec`` to the Compute service flavor, for example::
 
-    nova flavor-key baremetal set capabilities:boot_option="local"
+    openstack flavor set baremetal --property capabilities:boot_option="local"
 
 
 .. note::

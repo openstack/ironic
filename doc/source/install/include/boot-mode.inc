@@ -76,8 +76,8 @@ following way:
   Nodes having ``boot_mode`` set to ``uefi`` may be requested by adding an
   ``extra_spec`` to the Compute service flavor::
 
-    nova flavor-key ironic-test-3 set capabilities:boot_mode="uefi"
-    nova boot --flavor ironic-test-3 --image test-image instance-1
+    openstack flavor set ironic-test-3 --property capabilities:boot_mode="uefi"
+    openstack server create boot --flavor ironic-test-3 --image test-image instance-1
 
   If ``capabilities`` is used in ``extra_spec`` as above, nova scheduler
   (``ComputeCapabilitiesFilter``) will match only bare metal nodes which have

@@ -61,9 +61,9 @@ the most complete list is provided by the iLO :ref:`ilo-inspection`.
 The operator can specify these capabilities in nova flavor for node to be selected
 for scheduling::
 
-  nova flavor-key my-baremetal-flavor set capabilities:pci_gpu_devices="> 0"
+  openstack flavor set my-baremetal-flavor --property capabilities:pci_gpu_devices="> 0"
 
-  nova flavor-key my-baremetal-flavor set capabilities:secure_boot="true"
+  openstack flavor set my-baremetal-flavor --property capabilities:secure_boot="true"
 
 Please see a specific :doc:`hardware type page </admin/drivers>` for
 the exact list of capabilities this hardware type can discover.

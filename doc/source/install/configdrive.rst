@@ -23,7 +23,7 @@ When used with Compute service
 To enable the configuration drive for a specific request, pass
 ``--config-drive true`` parameter to the :command:`nova boot` command, for example::
 
-    nova boot --config-drive true --flavor baremetal --image test-image instance-1
+    openstack server create --use-config-drive --flavor baremetal --image test-image instance-1
 
 It's also possible to enable the configuration drive automatically on
 all instances by configuring the ``OpenStack Compute service`` to always
