@@ -1518,6 +1518,12 @@ function configure_ironic {
     # configuration, not even ipa-insecure.
     if is_service_enabled swift && [[ "$SWIFT_ENABLE_TEMPURLS" == "True" ]] && ! is_service_enabled tls-proxy; then
         iniset $IRONIC_CONF_FILE deploy configdrive_use_object_store True
+        #NOTE(rpittau) workaround for sha1 support removal from Swift
+        # for more info see https://review.opendev.org/c/openstack/devstack/+/844539
+        # REMOVE after swiftclient fix https://github.com/openstack/python-swiftclient/commit/9eee29d2e46e774eb08acb76c3317a58856f3f71
+        # is released.
+        # Add sha1 temporary https://storyboard.openstack.org/#!/story/2010068
+        iniset ${SWIFT_CONFIG_PROXY_SERVER} filter:tempurl allowed_digests "sha1 sha256 sha512"
     fi
 
     # No need to check if RabbitMQ is enabled, this call does it in a smart way
