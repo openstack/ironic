@@ -33,6 +33,7 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import molds
+from ironic.common import states
 from ironic.conductor import periodics
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -623,9 +624,22 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                      on.
         :raises: RedfishError on an error.
         """
-        drac_utils.execute_oem_manager_method(
-            task, 'clear job queue',
-            lambda m: m.job_service.delete_jobs(job_ids=['JID_CLEARALL']))
+        try:
+            drac_utils.execute_oem_manager_method(
+                task, 'clear job queue',
+                lambda m: m.job_service.delete_jobs(job_ids=['JID_CLEARALL']))
+        except exception.RedfishError as exc:
+            if "Oem/Dell/DellJobService is missing" in str(exc):
+                LOG.warning('iDRAC on node %(node)s does not support '
+                            'clearing Lifecycle Controller job queue '
+                            'using the idrac-redfish driver. '
+                            'If using iDRAC9, consider upgrading firmware. '
+                            'If using iDRAC8, consider switching to '
+                            'idrac-wsman for management interface if '
+                            'possible.',
+                            {'node': task.node.uuid})
+            if task.node.provision_state != states.VERIFYING:
+                raise
 
     @METRICS.timer('DracRedfishManagement.reset_idrac')
     @base.verify_step(priority=0)
@@ -637,11 +651,23 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
                      on.
         :raises: RedfishError on an error.
         """
-        drac_utils.execute_oem_manager_method(
-            task, 'reset iDRAC', lambda m: m.reset_idrac())
-        redfish_utils.wait_until_get_system_ready(task.node)
-        LOG.info('Reset iDRAC for node %(node)s done',
-                 {'node': task.node.uuid})
+        try:
+            drac_utils.execute_oem_manager_method(
+                task, 'reset iDRAC', lambda m: m.reset_idrac())
+            redfish_utils.wait_until_get_system_ready(task.node)
+            LOG.info('Reset iDRAC for node %(node)s done',
+                     {'node': task.node.uuid})
+        except exception.RedfishError as exc:
+            if "Oem/Dell/DelliDRACCardService is missing" in str(exc):
+                LOG.warning('iDRAC on node %(node)s does not support '
+                            'iDRAC reset using the idrac-redfish driver. '
+                            'If using iDRAC9, consider upgrading firmware. '
+                            'If using iDRAC8, consider switching to '
+                            'idrac-wsman for management interface if '
+                            'possible.',
+                            {'node': task.node.uuid})
+            if task.node.provision_state != states.VERIFYING:
+                raise
 
     @METRICS.timer('DracRedfishManagement.known_good_state')
     @base.verify_step(priority=0)
