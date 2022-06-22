@@ -3,7 +3,7 @@
   <memory unit='KiB'>{{ memory }}</memory>
   <vcpu>{{ cpus }}</vcpu>
   <os>
-    <type arch='{{ arch }}' machine='pc'>hvm</type>
+    <type arch='{{ arch }}' machine='q35'>hvm</type>
     {% if bootdev == 'network' and not uefi_loader %}
     <boot dev='{{ bootdev }}'/>
     {% endif %}
@@ -36,13 +36,9 @@
     <disk type='file' device='disk'>
       <driver name='qemu' type='{{ disk_format }}' cache='unsafe'/>
       <source file='{{ imagefile }}'/>
-          <target dev='vd{{ letter }}' bus='virtio'/>
-          <address type='pci' domain='0x0000' bus='0x00' slot='0x0{{ letter }}' function='0x0'/>
+      <target dev='vd{{ letter }}'/>
     </disk>
     {% endfor %}
-    <controller type='ide' index='0'>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x1'/>
-    </controller>
     {% for n in range(1, interface_count+1) %}
     <interface type='direct'>
       {% if n == 1 and mac %}
@@ -50,16 +46,11 @@
       {% endif %}
       <source dev='{{ "tap-" + name + "i" + n|string }}'/>
       <model type='{{ nicdriver }}'/>
-      <address type='pci' domain='0x0000' bus='0x01' slot='{{ "0x0" + n|string }}' function='0x0'/>
       {% if uefi_loader and bootdev == 'network' %}
       <boot order='{{ n|string }}'/>
       {% endif %}
     </interface>
     {% endfor %}
-    <input type='mouse' bus='ps2'/>
     {{ console }}
-    <memballoon model='virtio'>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
-    </memballoon>
   </devices>
 </domain>
