@@ -58,6 +58,16 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             'Unable to import the sushy library',
             redfish_boot.RedfishVirtualMediaBoot)
 
+    @mock.patch.object(deploy_utils, 'get_boot_option', lambda node: 'ramdisk')
+    def test_parse_driver_info_ramdisk(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.driver_info = {}
+            task.node.automated_clean = False
+            actual_driver_info = redfish_boot._parse_driver_info(task.node)
+            self.assertEqual({'can_provide_config': False},
+                             actual_driver_info)
+
     def test_parse_driver_info_deploy(self):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
