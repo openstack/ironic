@@ -1452,3 +1452,17 @@ def get_root_device_for_deploy(node):
             _('Failed to validate the root device hints %(hints)s (from the '
               'node\'s %(source)s) for node %(node)s: %(error)s') %
             {'node': node.uuid, 'hints': hints, 'source': source, 'error': e})
+
+
+def needs_agent_ramdisk(node, mode='deploy'):
+    """Checks whether the node requires an agent ramdisk now."""
+    if mode != 'deploy':
+        return True  # Rescue always needs a ramdisk
+
+    if get_boot_option(node) != 'ramdisk':
+        return True  # Normal deploys need an agent
+
+    # Ramdisk deploys don't need an agent, but cleaning will. Since we don't
+    # want nodes to be stuck on deletion, require an agent when cleaning is
+    # enabled.
+    return not manager_utils.skip_automated_cleaning(node, log=False)
