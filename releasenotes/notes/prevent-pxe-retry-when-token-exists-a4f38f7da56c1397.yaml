@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes a race condition in PXE initialization where logic to retry
+    what we suspect as potentially failed PXE boot operations was not
+    consulting if an ``agent token`` had been established, which is the
+    very first step in agent initialization.
