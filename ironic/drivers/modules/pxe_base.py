@@ -506,6 +506,12 @@ class PXEBaseMixin(object):
 def _should_retry_boot(node):
     # NOTE(dtantsur): this assumes IPA, do we need to make it generic?
     for field in ('agent_last_heartbeat', 'last_power_state_change'):
+        if node.driver_internal_info.get('agent_secret_token', False):
+            LOG.debug('Not retrying PXE boot for node %(node)s; an agent '
+                      'token has been identified, meaning the agent '
+                      'has started.',
+                      {'node': node.uuid})
+            return False
         if manager_utils.value_within_timeout(
                 node.driver_internal_info.get(field),
                 CONF.pxe.boot_retry_timeout):

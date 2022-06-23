@@ -1356,6 +1356,18 @@ class PXEBootRetryTestCase(db_base.DbTestCase):
             mock_boot_dev.assert_called_once_with(task, 'pxe',
                                                   persistent=False)
 
+    def test_check_boot_status_not_retry_with_token(self, mock_power,
+                                                    mock_boot_dev):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.driver_internal_info = {
+                'agent_secret_token': 'xyz'
+            }
+            task.driver.boot._check_boot_status(task)
+            self.assertTrue(task.shared)
+            mock_power.assert_not_called()
+            mock_boot_dev.assert_not_called()
+
 
 class iPXEBootRetryTestCase(PXEBootRetryTestCase):
 
