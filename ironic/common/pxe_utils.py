@@ -232,10 +232,13 @@ def get_kernel_ramdisk_info(node_uuid, driver_info, mode='deploy',
     image_info = {}
     labels = KERNEL_RAMDISK_LABELS[mode]
     for label in labels:
-        image_info[label] = (
-            str(driver_info[label]),
-            os.path.join(root_dir, node_uuid, label)
-        )
+        try:
+            image_info[label] = (
+                str(driver_info[label]),
+                os.path.join(root_dir, node_uuid, label)
+            )
+        except KeyError:
+            pass  # may be absent in rare cases, verified in parse_driver_info
     return image_info
 
 
@@ -641,6 +644,11 @@ def parse_driver_info(node, mode='deploy'):
     :returns: A dict with the driver_info values.
     :raises: MissingParameterValue
     """
+    if not deploy_utils.needs_agent_ramdisk(node, mode=mode):
+        # Ramdisk deploy does not need an agent, nor does it support any other,
+        # options. Skipping.
+        return {}
+
     info = node.driver_info
 
     params_to_check = KERNEL_RAMDISK_LABELS[mode]

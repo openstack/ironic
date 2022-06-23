@@ -810,11 +810,7 @@ class TestPXEUtils(db_base.DbTestCase):
     def test_get_kernel_ramdisk_info_bad_driver_info(self):
         self.config(tftp_root='/tftp', group='pxe')
         node_uuid = 'fake-node'
-        driver_info = {}
-        self.assertRaises(KeyError,
-                          pxe_utils.get_kernel_ramdisk_info,
-                          node_uuid,
-                          driver_info)
+        self.assertEqual({}, pxe_utils.get_kernel_ramdisk_info(node_uuid, {}))
 
     def test_get_rescue_kr_info(self):
         expected_dir = '/tftp'
@@ -1052,6 +1048,13 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
                     rescue_ramdisk='file:///image',
                     group='conductor')
         self._test_parse_driver_info_missing_ramdisk(mode='rescue')
+
+    @mock.patch.object(deploy_utils, 'get_boot_option', lambda node: 'ramdisk')
+    def test_parse_driver_info_ramdisk(self):
+        self.node.driver_info = {}
+        self.node.automated_clean = False
+        image_info = pxe_utils.parse_driver_info(self.node, mode='deploy')
+        self.assertEqual({}, image_info)
 
     def test__get_deploy_image_info(self):
         expected_info = {'deploy_ramdisk':
