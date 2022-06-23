@@ -96,9 +96,14 @@ def _parse_driver_info(node):
     :raises: InvalidParameterValue, if any of the parameters have invalid
         value.
     """
+    mode = deploy_utils.rescue_or_deploy_mode(node)
+    if not deploy_utils.needs_agent_ramdisk(node, mode=mode):
+        # Ramdisk deploy does not need an agent, nor does it support any other
+        # options. Skipping.
+        return {'can_provide_config': False}
+
     d_info = node.driver_info
 
-    mode = deploy_utils.rescue_or_deploy_mode(node)
     iso_param = f'{mode}_iso'
     iso_ref = driver_utils.get_agent_iso(node, deprecated_prefix='redfish',
                                          mode=mode)
