@@ -288,7 +288,7 @@ fi
 # NOTE(TheJulia): If we ever run any arm64, we will need to consider doing
 # the same. Nested virt is not a thing there.
 # Prevent a case that will likely result in a failure.
-if [[ "$hostdomain" =~ "rax" ]] || [[ "$hostdomain" =~ "iweb" ]]; then
+if [[ "$hostdomain" =~ "rax" ]] || [[ "$hostdomain" =~ "iweb" ]] || ! $(grep -q vmx /proc/cpuinfo) ; then
     if [[ "$IRONIC_RAMDISK_TYPE" == "dib" ]]; then
         echo "** WARNING ** - DIB based IPA images have been defined, however we are running devstack on an environment which does not support nested VMs. Due to virtualization constraints, we are automatically falling back to TinyIPA to ensure CI job passage."
         IRONIC_RAMDISK_TYPE="tinyipa"
