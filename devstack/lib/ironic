@@ -165,12 +165,13 @@ if [[ -n "$BUILD_TIMEOUT" ]]; then
 fi
 
 hostdomain=$(hostname)
-if [[ "$hostdomain" =~ "rax" ]]; then
+if [[ "$hostdomain" =~ "rax" ]] || [[ "$hostdomain" =~ "iweb" ]]; then
     echo "WARNING: Auto-increasing the requested build timeout by 1.5 as the detected hostname suggests a cloud host where VMs are software emulated."
     # NOTE(TheJulia): Rax hosts are entirely qemu emulated, not CPU enabled
     # virtualization. As such, the ramdisk decompression is known to take an
     # eceptional amount of time and we need to afford a little more time to
     # these hosts for jobs to complete without issues.
+    # NOTE(TheJulia): This is also the case for iweb hosts. And arm64 in general.
     new_timeout=$(echo "$IRONIC_TEMPEST_BUILD_TIMEOUT * 1.5 / 1" | bc)
     IRONIC_TEMPEST_BUILD_TIMEOUT=$new_timeout
 
@@ -284,10 +285,12 @@ if [[ ! "$IRONIC_RAMDISK_TYPE" =~ $IRONIC_SUPPORTED_RAMDISK_TYPES_RE ]]; then
     die $LINENO "Unrecognized IRONIC_RAMDISK_TYPE: $IRONIC_RAMDISK_TYPE. Expected 'tinyipa' or 'dib'"
 fi
 
+# NOTE(TheJulia): If we ever run any arm64, we will need to consider doing
+# the same. Nested virt is not a thing there.
 # Prevent a case that will likely result in a failure.
-if [[ "$hostdomain" =~ "rax" ]]; then
+if [[ "$hostdomain" =~ "rax" ]] || [[ "$hostdomain" =~ "iweb" ]]; then
     if [[ "$IRONIC_RAMDISK_TYPE" == "dib" ]]; then
-        echo "** WARNING ** - DIB based IPA images have been defined, however we are running devstack on RAX VM. Due to virtualization constraints, we are automatically falling back to TinyIPA to ensure CI job passage."
+        echo "** WARNING ** - DIB based IPA images have been defined, however we are running devstack on an environment which does not support nested VMs. Due to virtualization constraints, we are automatically falling back to TinyIPA to ensure CI job passage."
         IRONIC_RAMDISK_TYPE="tinyipa"
     fi
 fi
