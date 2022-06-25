@@ -17,10 +17,9 @@
         - ironic-grenade
         - ironic-standalone
         - ironic-standalone-redfish
-        - ironic-tempest-bios-redfish-netboot
+        - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
-        - ironic-tempest-partition-bios-ipmi-pxe
         - ironic-tempest-partition-uefi-ipmi-pxe
         # NOTE(TheJulia) Marking multinode non-voting on 20210311
         # Due to a high failure rate on limestone where the compute1
@@ -40,7 +39,7 @@
             voting: false
         - ironic-inspector-tempest-managed-non-standalone:
             voting: false
-        - ironic-inspector-tempest-partition-bios-redfish-vmedia:
+        - ironic-inspector-tempest-uefi-redfish-vmedia:
             voting: false
         - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
             voting: false
@@ -64,10 +63,9 @@
         - ironic-grenade
         - ironic-standalone
         - ironic-standalone-redfish
-        - ironic-tempest-bios-redfish-netboot
+        - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
-        - ironic-tempest-partition-bios-ipmi-pxe
         - ironic-tempest-partition-uefi-ipmi-pxe
         # NOTE(TheJulia): Disabled multinode on 20210311 due to Limestone
         # seeming to be 

@@ -215,7 +215,7 @@
         s-proxy: False
 
 - job:
-    name: ironic-tempest-bios-redfish-netboot
+    name: ironic-tempest-bios-redfish-pxe
     description: "Deploy ironic node over PXE using BIOS boot mode"
     parent: ironic-tempest-uefi-redfish-vmedia
     required-projects:
@@ -223,12 +223,13 @@
     vars:
       devstack_localrc:
         IRONIC_ENABLED_BOOT_INTERFACES: ipxe
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
+        IRONIC_VM_EPHEMERAL_DISK: 0
         SWIFT_ENABLE_TEMPURLS: False
         SWIFT_TEMPURL_KEY: ''
         # Parent job has a longer timeout due to vmedia usage,
         # Reset the callback to a normal-ish value.
         IRONIC_CALLBACK_TIMEOUT: 600
-        IRONIC_DEFAULT_BOOT_OPTION: netboot
         IRONIC_BOOT_MODE: bios
       devstack_services:
         # Parent job uses swift, this one does not, thus we can turn it off.
@@ -236,6 +237,17 @@
         s-container: False
         s-object: False
         s-proxy: False
+
+# TODO(dtantsur): remove when sushy-tools no longer uses it.
+- job:
+    name: ironic-tempest-bios-redfish-netboot
+    description: "Deploy ironic node over PXE using BIOS boot mode"
+    parent: ironic-tempest-bios-redfish-pxe
+    vars:
+      devstack_localrc:
+        IRONIC_DEFAULT_BOOT_OPTION: netboot
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
+        IRONIC_VM_EPHEMERAL_DISK: 1
 
 - job:
     name: ironic-tempest-uefi-redfish-vmedia
@@ -262,8 +274,8 @@
         s-proxy: True
 
 - job:
-    name: ironic-inspector-tempest-partition-bios-redfish-vmedia
-    description: "Inspect and deploy ironic node over Redfish virtual media using legacy BIOS boot mode"
+    name: ironic-inspector-tempest-uefi-redfish-vmedia
+    description: "Inspect and deploy ironic node over Redfish virtual media using UEFI"
     parent: ironic-tempest-partition-uefi-redfish-vmedia
     required-projects:
       - opendev.org/openstack/ironic-inspector
@@ -272,8 +284,6 @@
       # Excluding the abort tests since it hits "node locked" too often.
       tempest_test_regex: test_baremetal_introspection
       devstack_localrc:
-        IRONIC_BOOT_MODE: bios
-        IRONIC_DEFAULT_BOOT_OPTION: netboot
         IRONIC_INSPECTOR_MANAGED_BOOT: True
         IRONIC_INSPECTOR_NODE_NOT_FOUND_HOOK: ''
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
@@ -293,7 +303,6 @@
         IRONIC_ENABLED_BOOT_INTERFACES: "fake,pxe"
         IRONIC_IPXE_ENABLED: False
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
-        IRONIC_DEFAULT_BOOT_OPTION: netboot
       devstack_services:
         mysql: False
         postgresql: True
@@ -336,22 +345,11 @@
 
 - job:
     name: ironic-tempest-partition-uefi-ipmi-pxe
-    description: IPMI power, UEFI, netboot, partition image.
+    description: IPMI power, UEFI, partition image.
     parent: ironic-base
     vars:
       devstack_localrc:
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
-
-- job:
-    name: ironic-tempest-partition-bios-ipmi-pxe
-    description: IPMI power, legacy BIOS, netboot, partition image and cleaning.
-    parent: ironic-base
-    vars:
-      devstack_localrc:
-        IRONIC_BOOT_MODE: bios
-        IRONIC_DEFAULT_BOOT_OPTION: netboot
-        IRONIC_AUTOMATED_CLEAN_ENABLED: True
-
 
 - job:
     name: ironic-tempest-bfv
@@ -410,7 +408,6 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         SWIFT_ENABLE_TEMPURLS: True
         SWIFT_TEMPURL_KEY: secretkey
-        IRONIC_DEFAULT_BOOT_OPTION: netboot
       devstack_plugins:
         ironic-inspector: https://opendev.org/openstack/ironic-inspector
       devstack_services:
@@ -855,11 +852,10 @@
           IRONIC_DEPLOY_DRIVER: ipmi
           IRONIC_INSPECTOR_BUILD_RAMDISK: False
           IRONIC_RAMDISK_TYPE: tinyipa
-          IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
+          IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
           IRONIC_VM_COUNT: 4
-          IRONIC_VM_EPHEMERAL_DISK: 1
+          IRONIC_VM_EPHEMERAL_DISK: 0
           IRONIC_VM_SPECS_RAM: 1024
-          IRONIC_DEFAULT_BOOT_OPTION: netboot
           IRONIC_AUTOMATED_CLEAN_ENABLED: False
           Q_AGENT: openvswitch
           Q_ML2_TENANT_NETWORK_TYPE: vxlan
@@ -934,7 +930,6 @@
           IRONIC_BUILD_DEPLOY_RAMDISK: False
           IRONIC_CALLBACK_TIMEOUT: 700
           IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
-          IRONIC_DEFAULT_BOOT_OPTION: netboot
           IRONIC_DEPLOY_DRIVER: ipmi
           IRONIC_VM_COUNT: 4
           IRONIC_VM_EPHEMERAL_DISK: 1
@@ -1018,7 +1013,6 @@
             IRONIC_CALLBACK_TIMEOUT: 700
             IRONIC_TEMPEST_BUILD_TIMEOUT: 1200
             IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
-            IRONIC_DEFAULT_BOOT_OPTION: netboot
             IRONIC_DEPLOY_DRIVER: ipmi
             IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
             IRONIC_NETWORK_INTERFACE: neutron
