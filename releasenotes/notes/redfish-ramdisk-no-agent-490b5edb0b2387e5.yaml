@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    When the ``ramdisk`` deploy interface is used and automated cleaning is
+    disabled, the ``pxe``, ``ipxe`` and ``redfish-virtual-media`` boot
+    interfaces no longer require a deploy kernel/ramdisk to be provided.
