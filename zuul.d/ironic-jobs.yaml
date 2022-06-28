@@ -16,6 +16,8 @@
         override-checkout: master
       - opendev.org/openstack/ironic-tempest-plugin
       - opendev.org/openstack/virtualbmc
+      - name: openstack/neutron
+        override-checkout: stable/yoga
       - name: openstack/swift
         override-checkout: stable/yoga
     irrelevant-files:
