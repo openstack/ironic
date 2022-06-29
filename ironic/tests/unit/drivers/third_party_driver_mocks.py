@@ -231,7 +231,8 @@ if not sushy:
         VOLUME_TYPE_RAW_DEVICE='rawdevice',
         SEVERITY_OK='ok',
         SEVERITY_WARNING='warning',
-        SEVERITY_CRITICAL='critical'
+        SEVERITY_CRITICAL='critical',
+        MANAGER_TYPE_BMC='bmc',
     )
 
     sys.modules['sushy'] = sushy
