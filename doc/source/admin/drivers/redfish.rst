@@ -178,10 +178,13 @@ BIOS boot mode, it suffice to set ironic boot interface to
 
   baremetal node set --boot-interface redfish-virtual-media node-0
 
-.. warning::
-   Dell hardware requires a non-standard Redfish call to boot from virtual
-   media, thus you **must** use the ``idrac`` hardware type and the
-   ``idrac-redfish-virtual-media`` boot interface with it instead. See
+.. note::
+   iDRAC firmware before 4.40.10.00 (on Intel systems) and 6.00.00.00
+   (on AMD systems) requires a non-standard Redfish call to boot from virtual
+   media. Consider upgrading to 6.00.00.00, otherwise you **must** use
+   the ``idrac`` hardware type and the ``idrac-redfish-virtual-media`` boot
+   interface with older iDRAC firmware instead. For simplicity Ironic restricts
+   both AMD and Intel systems before firmware version 6.00.00.00. See
    :doc:`/admin/drivers/idrac` for more details on this hardware type.
 
 If UEFI boot mode is desired, the user should additionally supply EFI
