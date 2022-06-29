@@ -425,18 +425,34 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         deploy_utils.validate_image_properties(task.context, d_info, props)
 
-    def _validate_vendor(self, task):
+    def _validate_vendor(self, task, managers):
+        """Validates vendor specific requirements for the task's node.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :param managers: Redfish managers for Redfish system associated
+            with node.
+        :raises: InvalidParameterValue if vendor not supported
+        """
         vendor = task.node.properties.get('vendor')
         if not vendor:
             return
 
         if 'Dell' in vendor.split():
+            # Check if iDRAC fw >= 6.00.00.00 that supports virtual media boot
+            bmc_manager = [m for m in managers
+                           if m.manager_type == sushy.MANAGER_TYPE_BMC]
+            if bmc_manager:
+                fwv = bmc_manager[0].firmware_version.split('.')
+                if int(fwv[0]) >= 6:
+                    return
             raise exception.InvalidParameterValue(
                 _("The %(iface)s boot interface is not suitable for node "
-                  "%(node)s with vendor %(vendor)s, use "
+                  "%(node)s with vendor %(vendor)s and BMC version %(fwv)s, "
+                  "upgrade to 6.00.00.00 or newer or use "
                   "idrac-redfish-virtual-media instead")
                 % {'iface': task.node.boot_interface,
-                   'node': task.node.uuid, 'vendor': vendor})
+                   'node': task.node.uuid, 'vendor': vendor,
+                   'fwv': bmc_manager[0].firmware_version})
 
     def validate(self, task):
         """Validate the deployment information for the task's node.
@@ -449,7 +465,6 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         :raises: InvalidParameterValue on malformed parameter(s)
         :raises: MissingParameterValue on missing parameter(s)
         """
-        self._validate_vendor(task)
         self._validate_driver_info(task)
         self._validate_instance_info(task)
 
@@ -498,6 +513,8 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
         d_info = _parse_driver_info(node)
         managers = redfish_utils.get_system(task.node).managers
+
+        self._validate_vendor(task, managers)
 
         if manager_utils.is_fast_track(task):
             if _has_vmedia_device(managers, sushy.VIRTUAL_MEDIA_CD,

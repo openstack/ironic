@@ -302,12 +302,9 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             task.driver.boot.validate(task)
 
-    @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
-    @mock.patch.object(deploy_utils, 'validate_image_properties',
-                       autospec=True)
-    def test_validate_incompatible_with_idrac(self,
-                                              mock_validate_image_properties,
-                                              mock_parse_driver_info):
+    def test__validate_vendor_incompatible_with_idrac(self):
+        managers = [mock.Mock(firmware_version='5.10.30.00',
+                              manager_type=sushy.MANAGER_TYPE_BMC)]
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.node.instance_info.update(
@@ -324,9 +321,30 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             task.node.properties['vendor'] = "Dell Inc."
 
-            self.assertRaisesRegex(exception.InvalidParameterValue,
-                                   "with vendor Dell Inc.",
-                                   task.driver.boot.validate, task)
+            self.assertRaisesRegex(
+                exception.InvalidParameterValue, "with vendor Dell Inc.",
+                task.driver.boot._validate_vendor, task, managers)
+
+    def test__validate_vendor_compatible_with_idrac(self):
+        managers = [mock.Mock(firmware_version='6.00.00.00',
+                              manager_type=sushy.MANAGER_TYPE_BMC)]
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.node.instance_info.update(
+                {'kernel': 'kernel',
+                 'ramdisk': 'ramdisk',
+                 'image_source': 'http://image/source'}
+            )
+
+            task.node.driver_info.update(
+                {'deploy_kernel': 'kernel',
+                 'deploy_ramdisk': 'ramdisk',
+                 'bootloader': 'bootloader'}
+            )
+
+            task.node.properties['vendor'] = "Dell Inc."
+
+            task.driver.boot._validate_vendor(task, managers)
 
     @mock.patch.object(redfish_utils, 'parse_driver_info', autospec=True)
     @mock.patch.object(deploy_utils, 'validate_image_properties',
@@ -359,6 +377,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertRaises(exception.UnsupportedDriverExtension,
                               task.driver.boot.validate_inspection, task)
 
+    @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot,
+                       '_validate_vendor', autospec=True)
     @mock.patch.object(redfish_boot.manager_utils, 'node_set_boot_device',
                        autospec=True)
     @mock.patch.object(image_utils, 'prepare_deploy_iso', autospec=True)
@@ -372,7 +392,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
     def test_prepare_ramdisk_with_params(
             self, mock_system, mock_boot_mode_utils, mock_node_power_action,
             mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
-            mock_prepare_deploy_iso, mock_node_set_boot_device):
+            mock_prepare_deploy_iso, mock_node_set_boot_device,
+            mock_validate_vendor):
 
         managers = mock_system.return_value.managers
         with task_manager.acquire(self.context, self.node.uuid,
@@ -383,6 +404,10 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_prepare_deploy_iso.return_value = 'image-url'
 
             task.driver.boot.prepare_ramdisk(task, {})
+
+            mock_validate_vendor.assert_called_once_with(
+                task.driver.boot, task, managers
+            )
 
             mock_node_power_action.assert_called_once_with(
                 task, states.POWER_OFF)
