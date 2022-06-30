@@ -7,6 +7,8 @@
     post-run: playbooks/ci-workarounds/get_extra_logging.yaml
     timeout: 10800
     required-projects:
+      # TODO(TheJulia): Explicitly pull in DIB until we get a release cut.
+      - opendev.org/openstack/diskimage-builder
       - opendev.org/openstack/ironic
       - opendev.org/openstack/ironic-python-agent
       - opendev.org/openstack/ironic-python-agent-builder
