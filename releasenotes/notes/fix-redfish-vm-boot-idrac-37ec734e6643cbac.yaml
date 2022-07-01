@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes ``redfish-virtual-media`` ``boot`` interface to allow it with
+    iDRAC firmware from 6.00.00.00 (released June 2022) as it
+    has virtual media boot issue fixed that prevented iDRAC firmware to
+    work with ``redfish-virtual-media`` before. Consider upgrading iDRAC
+    firmware if not done already, otherwise will still get an error
+    when trying to use ``redfish-virtual-media`` with iDRAC.
