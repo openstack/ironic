@@ -208,10 +208,13 @@ class TestContextHook(base.BaseApiTest):
     @mock.patch.object(policy, 'check', autospec=True)
     def _test_context_hook(self, mock_policy, mock_ctx, is_admin=False,
                            is_public_api=False, auth_strategy='keystone',
-                           request_id=None):
+                           request_id=None, auth_token_info=None):
         cfg.CONF.set_override('auth_strategy', auth_strategy)
         headers = fake_headers(admin=is_admin)
-        environ = headers_to_environ(headers, is_public_api=is_public_api)
+        environ = headers_to_environ(
+            headers,
+            **{'is_public_api': is_public_api,
+               'keystone.token_info': auth_token_info})
         reqstate = FakeRequestState(headers=headers, environ=environ)
         context_hook = hooks.ContextHook(None)
         ctx = mock.Mock()
@@ -223,10 +226,14 @@ class TestContextHook(base.BaseApiTest):
         mock_policy.return_value = False
         context_hook.before(reqstate)
         creds_dict = {'is_public_api': is_public_api}
-        mock_ctx.from_environ.assert_called_once_with(environ, **creds_dict)
+        if auth_token_info:
+            creds_dict['auth_token_info'] = auth_token_info
+            mock_ctx.from_environ.assert_called_once_with(
+                environ, **creds_dict)
         mock_policy.assert_not_called()
         if auth_strategy == 'noauth':
             self.assertIsNone(ctx.auth_token)
+        mock_policy.assert_not_called()
         return context_hook, reqstate
 
     def test_context_hook_not_admin(self):
@@ -249,6 +256,9 @@ class TestContextHook(base.BaseApiTest):
                                  expect_errors=True)
         self.assertNotIn('Openstack-Request-Id',
                          response.headers)
+
+    def test_context_hook_auth_token_info(self):
+        self._test_context_hook(auth_token_info='data-dict')
 
 
 class TestPolicyDeprecation(tests_base.TestCase):

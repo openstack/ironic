@@ -83,6 +83,26 @@ def start_deploy(task, manager, configdrive=None, event='deploy',
             instance_info.pop('kernel', None)
             instance_info.pop('ramdisk', None)
             node.instance_info = instance_info
+    elif CONF.conductor.automatic_lessee:
+        # This should only be on deploy...
+        project = utils.get_token_project_from_request(task.context)
+        if (project and node.lessee is None):
+            LOG.debug('Adding lessee $(project)s to node %(uuid)s.',
+                      {'project': project,
+                       'uuid': node.uuid})
+            node.set_driver_internal_info('automatic_lessee', True)
+            node.lessee = project
+        elif project and node.lessee is not None:
+            # Since the model is a bit of a matrix and we're largely
+            # just empowering operators, lets at least log a warning
+            # since they may need to remedy something here. Or maybe
+            # not.
+            LOG.warning('Could not automatically save lessee '
+                        '$(project)s to node %(uuid)s. Node already '
+                        'has a defined lessee of %(lessee)s.',
+                        {'project': project,
+                         'uuid': node.uuid,
+                         'lessee': node.lessee})
 
     # Infer the image type to make sure the deploy driver
     # validates only the necessary variables for different

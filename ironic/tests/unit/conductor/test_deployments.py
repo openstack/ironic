@@ -337,10 +337,16 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch.object(conductor_utils, 'validate_instance_info_traits',
                        autospec=True)
     @mock.patch.object(images, 'is_whole_disk_image', autospec=True)
-    def test_start_deploy(self, mock_iwdi, mock_validate_traits,
-                          mock_validate_deploy_user_steps_and_templates,
-                          mock_deploy_validate,
-                          mock_power_validate, mock_process_event):
+    def _test_start_deploy(self, mock_iwdi, mock_validate_traits,
+                           mock_validate_deploy_user_steps_and_templates,
+                           mock_deploy_validate,
+                           mock_power_validate, mock_process_event,
+                           automatic_lessee=False):
+        self.context.auth_token_info = {
+            'token': {'project': {'id': 'user-project'}}
+        }
+        if automatic_lessee:
+            self.config(automatic_lessee=True, group='conductor')
         self._start_service()
         mock_iwdi.return_value = False
         deploy_steps = [{"interface": "bios", "step": "factory_reset",
@@ -366,6 +372,18 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             mock.ANY, 'deploy', call_args=(
                 deployments.do_node_deploy, task, 1, None, deploy_steps),
             callback=mock.ANY, err_handler=mock.ANY)
+        if automatic_lessee:
+            self.assertEqual('user-project', node.lessee)
+            self.assertIn('automatic_lessee', node.driver_internal_info)
+        else:
+            self.assertIsNone(node.lessee)
+            self.assertNotIn('automatic_lessee', node.driver_internal_info)
+
+    def test_start_deploy(self):
+        self._test_start_deploy(automatic_lessee=False)
+
+    def test_start_deploy_records_lessee(self):
+        self._test_start_deploy(automatic_lessee=True)
 
 
 @mgr_utils.mock_record_keepalive

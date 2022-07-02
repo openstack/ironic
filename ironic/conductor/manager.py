@@ -1097,6 +1097,10 @@ class ConductorManager(base_manager.BaseConductorManager):
             node.del_driver_internal_info('root_uuid_or_disk_id')
             node.del_driver_internal_info('is_whole_disk_image')
             node.del_driver_internal_info('deploy_boot_mode')
+            if node.driver_internal_info.get('automatic_lessee'):
+                # Remove lessee, as it was automatically added
+                node.lessee = None
+                node.del_driver_internal_info('automatic_lessee')
             network.remove_vifs_from_node(task)
             node.save()
             if node.allocation_id:

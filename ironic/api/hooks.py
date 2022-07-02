@@ -88,14 +88,16 @@ class ContextHook(hooks.PecanHook):
 
     def before(self, state):
         is_public_api = state.request.environ.get('is_public_api', False)
-
+        auth_token_info = state.request.environ.get('keystone.token_info')
         # set the global_request_id if we have an inbound request id
         gr_id = state.request.headers.get(INBOUND_HEADER, "")
         if re.match(ID_FORMAT, gr_id):
             state.request.environ[GLOBAL_REQ_ID] = gr_id
 
-        ctx = context.RequestContext.from_environ(state.request.environ,
-                                                  is_public_api=is_public_api)
+        ctx = context.RequestContext.from_environ(
+            state.request.environ,
+            is_public_api=is_public_api,
+            auth_token_info=auth_token_info)
         # Do not pass any token with context for noauth mode
         if cfg.CONF.auth_strategy != 'keystone':
             ctx.auth_token = None

@@ -2667,3 +2667,20 @@ class NodeHistoryRecordTestCase(db_base.DbTestCase):
         mock_history.create = mock_create
         mock_history.assert_not_called()
         mock_create.assert_not_called()
+
+
+class GetTokenProjectFromRequestTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(GetTokenProjectFromRequestTestCase, self).setUp()
+        self.auth_token_info = {'token': {'project': {'id': 'user-project'}}}
+
+    def test_no_token_info(self):
+        self.assertIsNone(self.context.auth_token_info)
+        res = conductor_utils.get_token_project_from_request(self.context)
+        self.assertIsNone(res)
+
+    def test_returns_project_id_if_present(self):
+        self.context.auth_token_info = self.auth_token_info
+        res = conductor_utils.get_token_project_from_request(self.context)
+        self.assertEqual('user-project', res)

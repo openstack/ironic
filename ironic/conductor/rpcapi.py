@@ -547,7 +547,6 @@ class ConductorAPI(object):
         if deploy_steps:
             version = '1.52'
             new_kws['deploy_steps'] = deploy_steps
-
         cctxt = self._prepare_call(topic=topic, version=version)
         return cctxt.call(context, 'do_node_deploy', node_id=node_id,
                           rebuild=rebuild, configdrive=configdrive, **new_kws)
