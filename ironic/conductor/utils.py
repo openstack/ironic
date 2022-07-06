@@ -938,7 +938,7 @@ def notify_conductor_resume_deploy(task):
     notify_conductor_resume_operation(task, 'deploy')
 
 
-def skip_automated_cleaning(node, log=True):
+def skip_automated_cleaning(node):
     """Checks if node cleaning needs to be skipped for an specific node.
 
     :param node: the node to consider
@@ -948,9 +948,6 @@ def skip_automated_cleaning(node, log=True):
     elif node.automated_clean is None:
         return not CONF.conductor.automated_clean
     else:
-        if log:
-            LOG.info("Automated cleaning is disabled via the API for "
-                     "node %(node)s", {'node': node.uuid})
         return True
 
 

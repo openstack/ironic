@@ -1465,4 +1465,4 @@ def needs_agent_ramdisk(node, mode='deploy'):
     # Ramdisk deploys don't need an agent, but cleaning will. Since we don't
     # want nodes to be stuck on deletion, require an agent when cleaning is
     # enabled.
-    return not manager_utils.skip_automated_cleaning(node, log=False)
+    return not manager_utils.skip_automated_cleaning(node)

@@ -49,8 +49,10 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False):
         node.save()
 
         task.process_event('done')
-        LOG.info('Automated cleaning is disabled, node %s has been '
-                 'successfully moved to AVAILABLE state.', node.uuid)
+        how = ('API' if node.automated_clean is False else 'configuration')
+        LOG.info('Automated cleaning is disabled via %(how)s, node %(node)s '
+                 'has been successfully moved to AVAILABLE state',
+                 {'how': how, 'node': node})
         return
 
     # NOTE(dtantsur): this is only reachable during automated cleaning,
