@@ -28,6 +28,7 @@ from oslo_utils import importutils
 import ironic.common.boot_devices
 from ironic.common import exception
 from ironic.common import molds
+from ironic.common import states
 from ironic.conductor import periodics
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -1438,6 +1439,48 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             mock_manager_oem.job_service.delete_jobs.assert_called_once_with(
                 job_ids=['JID_CLEARALL'])
 
+    @mock.patch.object(drac_mgmt, 'LOG', autospec=True)
+    @mock.patch.object(drac_utils, 'redfish_utils', autospec=True)
+    def test_clear_job_queue_missing_attr_verify_step(self,
+                                                      mock_redfish_utils,
+                                                      mock_log):
+        mock_system = mock_redfish_utils.get_system.return_value
+        mock_manager = mock.MagicMock()
+        mock_system.managers = [mock_manager]
+        mock_manager_oem = mock_manager.get_oem_extension.return_value
+        mock_manager_oem.job_service.delete_jobs.side_effect = (
+            exception.RedfishError("Oem/Dell/DellJobService is missing"))
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.VERIFYING
+            task.driver.management.clear_job_queue(task)
+            mock_log.warning.assert_called_once_with(
+                'iDRAC on node %(node)s does not support '
+                'clearing Lifecycle Controller job queue '
+                'using the idrac-redfish driver. '
+                'If using iDRAC9, consider upgrading firmware. '
+                'If using iDRAC8, consider switching to '
+                'idrac-wsman for management interface if '
+                'possible.',
+                {'node': task.node.uuid})
+
+    @mock.patch.object(drac_mgmt, 'LOG', autospec=True)
+    @mock.patch.object(drac_utils, 'redfish_utils', autospec=True)
+    def test_clear_job_queue_missing_attr_clean_step(self,
+                                                     mock_redfish_utils,
+                                                     mock_log):
+        mock_system = mock_redfish_utils.get_system.return_value
+        mock_manager = mock.MagicMock()
+        mock_system.managers = [mock_manager]
+        mock_manager_oem = mock_manager.get_oem_extension.return_value
+        mock_manager_oem.job_service.delete_jobs.side_effect = (
+            exception.RedfishError("Oem/Dell/DellJobService is missing"))
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.CLEANING
+            self.assertRaises(ironic.common.exception.RedfishError,
+                              task.driver.management.clear_job_queue, task)
+
     @mock.patch.object(redfish_utils, 'wait_until_get_system_ready',
                        autospec=True)
     @mock.patch.object(drac_utils, 'redfish_utils', autospec=True)
@@ -1451,6 +1494,53 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
                                   shared=False) as task:
             task.driver.management.reset_idrac(task)
             mock_manager_oem.reset_idrac.assert_called_once_with()
+
+    @mock.patch.object(redfish_utils, 'wait_until_get_system_ready',
+                       autospec=True)
+    @mock.patch.object(drac_mgmt, 'LOG', autospec=True)
+    @mock.patch.object(drac_utils, 'redfish_utils', autospec=True)
+    def test_reset_idrac_missing_attr_verify_step(self,
+                                                  mock_redfish_utils,
+                                                  mock_log,
+                                                  mock_wait_system_ready):
+        mock_system = mock_redfish_utils.get_system.return_value
+        mock_manager = mock.MagicMock()
+        mock_system.managers = [mock_manager]
+        mock_manager_oem = mock_manager.get_oem_extension.return_value
+        mock_manager_oem.reset_idrac.side_effect = (
+            exception.RedfishError("Oem/Dell/DelliDRACCardService is missing"))
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.VERIFYING
+            task.driver.management.reset_idrac(task)
+            mock_log.warning.assert_called_once_with(
+                'iDRAC on node %(node)s does not support '
+                'iDRAC reset using the idrac-redfish driver. '
+                'If using iDRAC9, consider upgrading firmware. '
+                'If using iDRAC8, consider switching to '
+                'idrac-wsman for management interface if '
+                'possible.',
+                {'node': task.node.uuid})
+
+    @mock.patch.object(redfish_utils, 'wait_until_get_system_ready',
+                       autospec=True)
+    @mock.patch.object(drac_mgmt, 'LOG', autospec=True)
+    @mock.patch.object(drac_utils, 'redfish_utils', autospec=True)
+    def test_reset_idrac_missing_attr_clean_step(self,
+                                                 mock_redfish_utils,
+                                                 mock_log,
+                                                 mock_wait_system_ready):
+        mock_system = mock_redfish_utils.get_system.return_value
+        mock_manager = mock.MagicMock()
+        mock_system.managers = [mock_manager]
+        mock_manager_oem = mock_manager.get_oem_extension.return_value
+        mock_manager_oem.reset_idrac.side_effect = (
+            exception.RedfishError("Oem/Dell/DelliDRACCardService is missing"))
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = states.CLEANING
+            self.assertRaises(ironic.common.exception.RedfishError,
+                              task.driver.management.reset_idrac, task)
 
     @mock.patch.object(redfish_utils, 'wait_until_get_system_ready',
                        autospec=True)
