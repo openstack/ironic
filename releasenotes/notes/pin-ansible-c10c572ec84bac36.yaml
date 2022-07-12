@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue with installation of Ansible in ``driver-requirements.txt``
+    on Python 3.8. Since the release of Ansible 6.0.0, significant backtracking
+    occurred in the Pip resolver.
