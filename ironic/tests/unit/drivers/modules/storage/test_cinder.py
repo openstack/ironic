@@ -55,7 +55,7 @@ class CinderInterfaceTestCase(db_base.DbTestCase):
         mock_log.error.assert_called_with(expected)
 
     @mock.patch.object(cinder, 'LOG', autospec=True)
-    def test__generate_connector_raises_with_insufficent_data(self, mock_log):
+    def test__generate_connector_raises_with_insufficient_data(self, mock_log):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.assertRaises(exception.StorageError,
                               self.interface._generate_connector,

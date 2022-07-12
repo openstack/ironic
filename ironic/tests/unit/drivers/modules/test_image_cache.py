@@ -73,9 +73,9 @@ class TestImageCacheFetch(BaseTest):
                                                   mock_download,
                                                   mock_clean_up,
                                                   mock_image_service):
-        mock_fetch.side_effect = exception.InsufficentMemory
+        mock_fetch.side_effect = exception.InsufficientMemory
         self.cache.master_dir = None
-        self.assertRaises(exception.InsufficentMemory,
+        self.assertRaises(exception.InsufficientMemory,
                           self.cache.fetch_image,
                           self.uuid, self.dest_path)
         self.assertFalse(mock_download.called)
@@ -263,8 +263,8 @@ class TestImageCacheDownload(BaseTest):
         self.assertTrue(mock_log.error.called)
 
     def test__download_image_raises_memory_guard(self, mock_fetch):
-        mock_fetch.side_effect = exception.InsufficentMemory
-        self.assertRaises(exception.InsufficentMemory,
+        mock_fetch.side_effect = exception.InsufficientMemory
+        self.assertRaises(exception.InsufficientMemory,
                           self.cache._download_image,
                           self.uuid, self.master_path,
                           self.dest_path, self.img_info)

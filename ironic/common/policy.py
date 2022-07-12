@@ -474,8 +474,8 @@ node_policies = [
         name='baremetal:node:get:last_error',
         check_str=SYSTEM_OR_OWNER_READER,
         scope_types=['system', 'project'],
-        description='Governs if the node last_error field is masked from API'
-                    'clients with insufficent privileges.',
+        description='Governs if the node last_error field is masked from API '
+                    'clients with insufficient privileges.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
         deprecated_rule=deprecated_node_get
     ),
@@ -483,8 +483,8 @@ node_policies = [
         name='baremetal:node:get:reservation',
         check_str=SYSTEM_OR_OWNER_READER,
         scope_types=['system', 'project'],
-        description='Governs if the node reservation field is masked from API'
-                    'clients with insufficent privileges.',
+        description='Governs if the node reservation field is masked from API '
+                    'clients with insufficient privileges.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
         deprecated_rule=deprecated_node_get
     ),
@@ -493,7 +493,7 @@ node_policies = [
         check_str=SYSTEM_OR_OWNER_READER,
         scope_types=['system', 'project'],
         description='Governs if the node driver_internal_info field is '
-                    'masked from API clients with insufficent privileges.',
+                    'masked from API clients with insufficient privileges.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
         deprecated_rule=deprecated_node_get
     ),
@@ -501,8 +501,8 @@ node_policies = [
         name='baremetal:node:get:driver_info',
         check_str=SYSTEM_OR_OWNER_READER,
         scope_types=['system', 'project'],
-        description='Governs if the driver_info field is masked from API'
-                    'clients with insufficent privileges.',
+        description='Governs if the driver_info field is masked from API '
+                    'clients with insufficient privileges.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'GET'}],
         deprecated_rule=deprecated_node_get
     ),
