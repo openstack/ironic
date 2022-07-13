@@ -1,0 +1,8 @@
+---
+other:
+  - |
+    Known issue when using iDRAC with Swift to stage firmware update files in
+    Management interface ``firmware_update`` clean step of ``redfish`` or
+    ``idrac`` hardware type has been fixed in iDRAC firmware 6.00.00.00.
+    Upgrade when possible or use HTTP service to stage firmware files for
+    iDRAC.
