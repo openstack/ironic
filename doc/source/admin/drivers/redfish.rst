@@ -429,7 +429,7 @@ Each firmware image dictionary, is of the form::
       "wait": <Optional time in seconds to wait after applying update>
     }
 
-The ``url``and ``checksum`` arguments in the firmware image dictionary are
+The ``url`` and ``checksum`` arguments in the firmware image dictionary are
 mandatory, while the ``source`` and ``wait`` arguments are optional.
 
 For ``url`` currently ``http``, ``https``, ``swift`` and ``file`` schemes are
