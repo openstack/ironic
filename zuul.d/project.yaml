@@ -40,7 +40,6 @@
         - bifrost-benchmark-ironic:
             voting: false
     gate:
-      queue: ironic
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
