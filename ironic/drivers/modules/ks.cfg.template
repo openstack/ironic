@@ -16,6 +16,9 @@ clearpart --all --initlabel
 autopart
 
 # Downloading and installing OS image using liveimg section is mandatory
+# in a *default* ironic configuration. Users (infrastructure operators)
+# may choose to customize this pattern, or use release specific kickstart
+# configurations which may already point to a mirror.
 liveimg --url {{ ks_options.liveimg_url }}
 
 # Following %pre and %onerror sections are mandatory

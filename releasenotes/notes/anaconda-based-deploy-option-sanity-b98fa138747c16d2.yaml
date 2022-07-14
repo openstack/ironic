@@ -1,0 +1,21 @@
+---
+fixes:
+  - |
+    Fixes an issue where ``root_gb`` became a required field when using the
+    ``anaconda`` deployment interface, with a recent bug fix as the code path
+    largely expected all deployment operations to utilize images, which is
+    not the case. The case handling for non-image based deployments is now
+    explicitly in internal parameter validation code.
+  - |
+    Fixes handling of ``image_source`` parameters where internal validations
+    would not gracefully handle received redirects and treat it as a failure.
+    We now no longer explicitly fail when a redirect is received.
+  - |
+    Fixes an issue where an ``image_source`` could not be set to a mirror URL
+    to facilitate deployments using a mirror with the ``anaconda`` deployment
+    interface. Ironic still presently has an explicit requirement on a
+    ``stage2`` parameter to be explicitly defined.
+other:
+  - |
+    Adds documentation of standalone deployment use case with the ``anaconda``
+    deployment interface.

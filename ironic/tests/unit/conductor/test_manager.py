@@ -2410,7 +2410,8 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             provision_state=states.DELETING,
             target_provision_state=states.AVAILABLE,
             instance_info={'foo': 'bar'},
-            driver_internal_info={'is_whole_disk_image': False})
+            driver_internal_info={'is_whole_disk_image': False,
+                                  'is_source_a_path': None})
 
         task = task_manager.TaskManager(self.context, node.uuid)
         self._start_service()
@@ -2463,7 +2464,8 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def _test__do_node_tear_down_ok(self, mock_tear_down, mock_clean,
                                     mock_unbind, mock_console,
                                     enabled_console=False,
-                                    with_allocation=False):
+                                    with_allocation=False,
+                                    source_a_path=False):
         # test when driver.deploy.tear_down succeeds
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
@@ -2488,6 +2490,10 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             alloc.node_id = node.id
             alloc.save()
             node.refresh()
+        if source_a_path:
+            d_ii = node.driver_internal_info
+            d_ii['is_source_a_path'] = True
+            node.driver_internal_info = d_ii
 
         task = task_manager.TaskManager(self.context, node.uuid)
         self._start_service()
@@ -2507,6 +2513,7 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertNotIn('root_uuid_or_disk_id', node.driver_internal_info)
         self.assertNotIn('is_whole_disk_image', node.driver_internal_info)
         self.assertNotIn('automatic_lessee', node.driver_internal_info)
+        self.assertNotIn('is_source_a_path', node.driver_internal_info)
         mock_tear_down.assert_called_once_with(task.driver.deploy, task)
         mock_clean.assert_called_once_with(task)
         self.assertEqual({}, port.internal_info)
@@ -2528,6 +2535,9 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test__do_node_tear_down_with_allocation(self):
         self._test__do_node_tear_down_ok(with_allocation=True)
+
+    def test__do_node_tear_down_with_source_path(self):
+        self._test__do_node_tear_down_ok(source_a_path=True)
 
     @mock.patch('ironic.drivers.modules.fake.FakeRescue.clean_up',
                 autospec=True)
@@ -7333,7 +7343,7 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             provision_state=states.ADOPTING,
             instance_info={
                 'capabilities': {'boot_option': 'netboot'},
-                'image_source': 'image',
+                'image_source': 'http://127.0.0.1/image',
             })
         task = task_manager.TaskManager(self.context, node.uuid)
 

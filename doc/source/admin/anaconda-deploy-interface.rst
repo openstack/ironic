@@ -153,6 +153,93 @@ ironic node:
         openstack baremetal node set <node> \
             --instance_info ks_template=glance://uuid
 
+.. warning::
+   In the Ironic Project terminology, the word ``template`` often refers to
+   a file which is supplied to the deployment, which Ironic supplies
+   parameters to render a specific output. One critical example of this in
+   the Ironic workflow, specifically with this driver, is that the generated
+   ``agent token`` is conveyed to the booting ramdisk, facilitating it to call
+   back to Ironic and indicate the state. This token is randomly generated
+   for every deploy, and is required. Specifically this is leveraged in the
+   template's ``pre``, ``onerror``, and ``post`` steps.
+   For more infomation on Agent Token, please see :doc:`/admin/agent-token`.
+
+Standalone deployments
+----------------------
+
+While this deployment interface driver was developed around the use of other
+OpenStack services, it is not explicitly required. For example HTTP(S) URLs
+can be supplied by the API user to explictly set the expected baremetal node
+``instance_info`` fields
+
+.. code-block:: shell
+
+        baremetal node set <node> \
+           --instance_info image_source=<Mirror URL> \
+           --instance_info kernel=<Kernel URL> \
+           --instance_info ramdisk=<Initial Ramdisk URL> \
+           --instance_info stage2=<Installer Stage2 Ramdisk URL>
+
+When doing so, you may wish to also utilize a customized kickstart template,
+which can also be a URL. Please reference the ironic community provided
+template *ks.cfg.template* and use it as a basis of your own kickstart
+as it accounts for the particular stages and appropriate callbacks to
+Ironic.
+
+.. warning::
+   The default template expects a ``instance_info\liveimg_url`` setting to
+   be provided by the user, which serves as a base operating system image.
+   In the context of the anaconda driver, it should be thought of almost
+   like "stage3". If you're using a custom template, it may not be required,
+   but proceed with caution.
+   See `pykickstart documentation <https://pykickstart.readthedocs.io/en/latest/kickstart-docs.html#liveimg>`_
+   for more information on liveimg file format, structure, and use.
+
+.. code-block:: shell
+
+        baremetal node set <node> \
+            --instance_info ks_template=<URL>
+
+If you do choose to use a liveimg with a customized template, or if you wish
+to use the stock template with a liveimg, you will need to provide parameter.
+
+.. code-block:: shell
+
+        baremetal node set <node> \
+            --instance_info liveimg_url=<URL>
+
+.. warning::
+   This is required if you do *not* utilize a customised template. As in use
+   Ironic's stock template.
+
+The pattern of deployment in this case is identical to a deployment case
+where Ironic is integrated with OpenStack, however in this case Ironic
+collects the files, and stages them appropriately.
+
+At this point, you should be able to request the baremetal node to deploy.
+
+Deployment Process
+------------------
+
+At a high level, the mechanics of the anaconda driver works in the following
+flow, where we also note the stages and purpose of each part for informational
+purposes.
+
+#. Network Boot Program (Such as iPXE) downloads the kernel, and initial
+   ramdisk.
+#. Kernel launches, uncompresses initial ramdisk, and executes init inside
+   of the ramdisk.
+#. The initial ramdisk boot scripts, such as Dracut, recognize the kernel
+   command line parameters Ironic supplied with the boot configuration,
+   and downloads the second stage artifacts, in this case called the
+   ``stage2`` image. This image contains Anaconda and base dependencies.
+#. Anaconda downloads and parses the kickstart configuration which was
+   also supplied on the kernel command line, and executes the commands
+   as defined in the kickstart template.
+#. The kickstart template, if specified in its contents, downloads a
+   ``liveimg`` which is used as the base operating system image to
+   start with.
+
 Limitations
 -----------
 

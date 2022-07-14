@@ -195,6 +195,34 @@ class HttpImageServiceTestCase(base.TestCase):
                                           timeout=60)
 
     @mock.patch.object(requests, 'head', autospec=True)
+    def test_validate_href_path_forbidden(self, head_mock):
+        cfg.CONF.set_override('webserver_verify_ca', 'True')
+
+        response = head_mock.return_value
+        response.status_code = http_client.FORBIDDEN
+        url = self.href + '/'
+        resp = self.service.validate_href(url)
+        head_mock.assert_called_once_with(url, verify=True,
+                                          timeout=60)
+        self.assertEqual(http_client.FORBIDDEN, resp.status_code)
+
+    @mock.patch.object(requests, 'head', autospec=True)
+    def test_validate_href_path_redirected(self, head_mock):
+        cfg.CONF.set_override('webserver_verify_ca', 'True')
+
+        response = head_mock.return_value
+        response.status_code = http_client.MOVED_PERMANENTLY
+        url = self.href + '/'
+        new_url = 'http://new-url'
+        response.headers = {'location': new_url}
+        exc = self.assertRaises(exception.ImageRefIsARedirect,
+                                self.service.validate_href,
+                                url)
+        self.assertEqual(new_url, exc.redirect_url)
+        head_mock.assert_called_once_with(url, verify=True,
+                                          timeout=60)
+
+    @mock.patch.object(requests, 'head', autospec=True)
     def _test_show(self, head_mock, mtime, mtime_date):
         head_mock.return_value.status_code = http_client.OK
         head_mock.return_value.headers = {

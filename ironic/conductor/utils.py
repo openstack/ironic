@@ -1658,7 +1658,21 @@ def update_image_type(context, node):
     """
     iwdi = images.is_whole_disk_image(context, node.instance_info)
     if iwdi is None:
-        return False
+        isap = images.is_source_a_path(
+            context,
+            node.instance_info.get('image_source')
+        )
+        if isap is None:
+            return False
+        node.set_driver_internal_info('is_source_a_path', isap)
+        # TBD(TheJulia): should we need to set image_type back?
+        # rloo doesn't believe we should. I'm kind of on board with that
+        # idea since it is also user-settable, but laregely is just geared
+        # to take what is in glance. Line below should we wish to uncomment.
+        # node.set_instance_info('image_type', images.IMAGE_TYPE_DIRECTORY)
+        # An alternative is to explictly allow it to be configured by the
+        # caller/requester.
+        return True
 
     node.set_driver_internal_info('is_whole_disk_image', iwdi)
     # We need to gradually phase out is_whole_disk_image in favour of

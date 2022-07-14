@@ -561,8 +561,10 @@ def validate_image_properties(task, deploy_info):
     :raises: MissingParameterValue if the image doesn't contain
         the mentioned properties.
     """
+    node = task.node
     image_href = deploy_info.get('image_source')
     boot_iso = deploy_info.get('boot_iso')
+    isap = task.node.driver_internal_info.get('is_source_a_path')
     if image_href and boot_iso:
         raise exception.InvalidParameterValue(_(
             "An 'image_source' and 'boot_iso' parameter may not be "
@@ -573,15 +575,22 @@ def validate_image_properties(task, deploy_info):
     boot_option = get_boot_option(task.node)
 
     if (boot_iso
-            or task.node.driver_internal_info.get('is_whole_disk_image')
-            or boot_option == 'local'):
+            or node.driver_internal_info.get('is_whole_disk_image')
+            or boot_option == 'local'
+            or isap):
         # No image properties are required in this case, but validate that the
         # image at least looks reasonable.
         try:
+            # This doesn't actually test *getting* the defined url or file
+            # but actually validates we can parse the data *to* connect.
             image_service.get_image_service(image_href, context=task.context)
         except exception.ImageRefValidationFailed as e:
             raise exception.InvalidParameterValue(err=e)
-        return
+        if not isap:
+            # If the source is not a path, but otherwise matches, we need to
+            # exit validation here. Deployments, such as ramdisk or anaconda
+            # need further parameter validation and this supplies it.
+            return
 
     if service_utils.is_glance_image(image_href):
         properties = ['kernel_id', 'ramdisk_id']
@@ -589,6 +598,7 @@ def validate_image_properties(task, deploy_info):
             properties.append('stage2_id')
         image_props = get_image_properties(task.context, image_href)
     else:
+        # We are likely netbooting in this case...
         properties = ['kernel', 'ramdisk']
         image_props = {}
 
@@ -829,7 +839,7 @@ def get_image_instance_info(node):
 _ERR_MSG_INVALID_DEPLOY = _("Invalid parameter %(param)s: %(reason)s")
 
 
-def parse_instance_info(node):
+def parse_instance_info(node, image_deploy=True):
     """Gets the instance specific Node deployment info.
 
     This method validates whether the 'instance_info' property of the
@@ -837,6 +847,9 @@ def parse_instance_info(node):
     deploy images to the node.
 
     :param node: a single Node.
+    :param image_deploy: If the deployment interface is aware this
+                         is an image based deployment, default
+                         True.
     :returns: A dict with the instance_info values.
     :raises: MissingParameterValue, if any of the required parameters are
         missing.
@@ -856,7 +869,12 @@ def parse_instance_info(node):
                     i_info['image_source'])):
             i_info['kernel'] = info.get('kernel')
             i_info['ramdisk'] = info.get('ramdisk')
-        i_info['root_gb'] = info.get('root_gb')
+        if image_deploy:
+            # root_gb is expected with partition images.
+            i_info['root_gb'] = info.get('root_gb')
+
+    # NOTE(TheJulia): Kernel/ramdisk may be optional and originated
+    # with pure workload network booting.
 
     error_msg = _("Some parameters were missing in node's instance_info")
     check_for_missing_params(i_info, error_msg)
@@ -879,7 +897,8 @@ def parse_instance_info(node):
             err_msg_invalid = _("Cannot deploy whole disk image with "
                                 "swap or ephemeral size set")
             raise exception.InvalidParameterValue(err_msg_invalid)
-    else:
+    elif image_deploy:
+        # NOTE(TheJulia): This only applies to partition image deploys.
         _validate_layout_properties(node, info, i_info)
 
     i_info['configdrive'] = info.get('configdrive')
@@ -1066,6 +1085,10 @@ def _validate_image_url(node, url, secret=False):
         it will not be shown in logs.
     """
     try:
+        # NOTE(TheJulia): This method only validates that an exception
+        # is NOT raised. In other words, that the endpoint does not
+        # return a 200. If we're fed a folder list, this will still
+        # work, which is a good and bad thing at the same time. :/
         image_service.HttpImageService().validate_href(url, secret)
     except exception.ImageRefValidationFailed as e:
         with excutils.save_and_reraise_exception():
@@ -1178,6 +1201,10 @@ def build_instance_info_for_deploy(task):
     instance_info = node.instance_info
     iwdi = node.driver_internal_info.get('is_whole_disk_image')
     image_source = instance_info['image_source']
+    isap = node.driver_internal_info.get('is_source_a_path')
+    # If our url ends with a /, i.e. we have been supplied with a path,
+    # we can only deploy this in limited cases for drivers and tools
+    # which are aware of such. i.e. anaconda.
     image_download_source = get_image_download_source(node)
     boot_option = get_boot_option(task.node)
 
@@ -1207,17 +1234,35 @@ def build_instance_info_for_deploy(task):
             instance_info['ramdisk'] = image_info['properties']['ramdisk_id']
     elif (image_source.startswith('file://')
           or image_download_source == 'local'):
+        # NOTE(TheJulia): Intentionally only supporting file:/// as image
+        # based deploy source since we don't want to, nor should we be in
+        # in the business of copying large numbers of files as it is a
+        # huge performance impact.
         _cache_and_convert_image(task, instance_info)
     else:
-        _validate_image_url(node, image_source)
-        instance_info['image_url'] = image_source
+        try:
+            _validate_image_url(node, image_source)
+            # image_url is internal, and used by IPA and some boot templates.
+            # in most cases, it needs to come from image_source explicitly.
+            instance_info['image_url'] = image_source
+        except exception.ImageRefIsARedirect as e:
+            if e.redirect_url:
+                instance_info['image_url'] = e.redirect_url
+            else:
+                raise
 
-    if not iwdi:
-        instance_info['image_type'] = images.IMAGE_TYPE_PARTITION
-        i_info = parse_instance_info(node)
-        instance_info.update(i_info)
+    if not isap:
+        if not iwdi:
+            instance_info['image_type'] = images.IMAGE_TYPE_PARTITION
+            i_info = parse_instance_info(node)
+            instance_info.update(i_info)
+        else:
+            instance_info['image_type'] = images.IMAGE_TYPE_WHOLE_DISK
     else:
-        instance_info['image_type'] = images.IMAGE_TYPE_WHOLE_DISK
+        # Call central parsing so we retain things like config drives.
+        i_info = parse_instance_info(node, image_deploy=False)
+        instance_info.update(i_info)
+
     return instance_info
 
 

@@ -1487,6 +1487,24 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
         utils.validate_image_properties(self.task, inst_info)
         image_service_show_mock.assert_not_called()
 
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='kickstart')
+    @mock.patch.object(image_service.HttpImageService, 'show', autospec=True)
+    def test_validate_image_properties_anaconda_deploy_image_source(
+            self, image_service_show_mock, boot_options_mock):
+        d_ii = self.node.driver_internal_info
+        d_ii.pop('is_whole_disk_image')
+        d_ii['is_source_a_path'] = True
+        instance_info = {
+            'kernel': 'file://kernel',
+            'ramdisk': 'file://initrd',
+            'image_source': 'http://foo/bar/'
+        }
+        self.node.instance_info = instance_info
+        inst_info = utils.get_image_instance_info(self.node)
+        utils.validate_image_properties(self.task, inst_info)
+        image_service_show_mock.assert_not_called()
+
 
 class ValidateParametersTestCase(db_base.DbTestCase):
 
@@ -1869,6 +1887,25 @@ class InstanceInfoTestCase(db_base.DbTestCase):
         self.assertNotIn('ephemeral_mb', instance_info)
         self.assertNotIn('swap_mb', instance_info)
 
+    def test_parse_instance_info_non_image_deploy(self):
+        driver_internal_info = dict(DRV_INTERNAL_INFO_DICT)
+        driver_internal_info['is_whole_disk_image'] = None
+        instance_info = {'image_source': 'http://cat/meow/',
+                         'kernel': 'corgi',
+                         'ramdisk': 'mushroom'}
+        node = obj_utils.create_test_node(
+            self.context, instance_info=instance_info,
+            driver_internal_info=driver_internal_info,
+            deploy_interface='anaconda'
+        )
+        instance_info = utils.parse_instance_info(node, image_deploy=False)
+        self.assertIsNotNone(instance_info['image_source'])
+        self.assertNotIn('root_mb', instance_info)
+        self.assertNotIn('ephemeral_mb', instance_info)
+        self.assertNotIn('swap_mb', instance_info)
+        self.assertIn('kernel', instance_info)
+        self.assertIn('ramdisk', instance_info)
+
 
 class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
     def setUp(self):
@@ -2132,6 +2169,59 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
 
             self.assertRaises(exception.ImageRefValidationFailed,
                               utils.build_instance_info_for_deploy, task)
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    def test_build_instance_info_for_deploy_source_is_a_path(
+            self, validate_href_mock):
+        i_info = self.node.instance_info
+        driver_internal_info = self.node.driver_internal_info
+        i_info['image_source'] = 'http://image-url/folder/'
+        driver_internal_info.pop('is_whole_disk_image', None)
+        driver_internal_info['is_source_a_path'] = True
+        self.node.instance_info = i_info
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            info = utils.build_instance_info_for_deploy(task)
+
+            self.assertEqual(self.node.instance_info['image_source'],
+                             info['image_url'])
+            self.assertNotIn('root_gb', info)
+            validate_href_mock.assert_called_once_with(
+                mock.ANY, 'http://image-url/folder/', False)
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    def test_build_instance_info_for_deploy_source_redirect(
+            self, validate_href_mock):
+        i_info = self.node.instance_info
+        driver_internal_info = self.node.driver_internal_info
+        url = 'http://image-url/folder'
+        r_url = url + '/'
+        i_info['image_source'] = 'http://image-url/folder'
+        driver_internal_info.pop('is_whole_disk_image', None)
+        driver_internal_info['is_source_a_path'] = True
+        self.node.instance_info = i_info
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        validate_href_mock.side_effect = exception.ImageRefIsARedirect(
+            image_ref=url,
+            redirect_url=r_url)
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            info = utils.build_instance_info_for_deploy(task)
+
+            self.assertNotEqual(self.node.instance_info['image_source'],
+                                info['image_url'])
+            self.assertEqual(r_url, info['image_url'])
+            validate_href_mock.assert_called_once_with(
+                mock.ANY, 'http://image-url/folder', False)
 
 
 class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
