@@ -140,6 +140,7 @@ def network_data_schema():
 def node_schema():
     network_data = network_data_schema()
     return {
+        '$schema': 'http://json-schema.org/draft-07/schema#',
         'type': 'object',
         'properties': {
             'automated_clean': {'type': ['string', 'boolean', 'null']},

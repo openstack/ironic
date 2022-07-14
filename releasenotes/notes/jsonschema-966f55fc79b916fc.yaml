@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes compatibility with ``jsonschema`` package version 4.0.0 or newer
+    by providing a proper schema version (Draft-07 currently).
+issues:
+  - |
+    When using ``jsonschema`` 4.0.0 or newer, make sure to include a proper
+    ``$schema`` field in your custom network data or RAID schemas.
