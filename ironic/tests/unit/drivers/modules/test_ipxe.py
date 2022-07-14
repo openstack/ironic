@@ -169,16 +169,6 @@ class iPXEBootTestCase(db_base.DbTestCase):
             task.driver.boot.validate(task)
             mock_boot_option.assert_called_with(task.node)
 
-    @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
-                return_value='netboot', autospec=True)
-    def test_validate_fail_missing_image_source(self, mock_boot_option):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            del task.node['instance_info']['image_source']
-            self.assertRaises(exception.MissingParameterValue,
-                              task.driver.boot.validate, task)
-            mock_boot_option.assert_called_with(task.node)
-
     def test_validate_fail_no_port(self):
         new_node = obj_utils.create_test_node(
             self.context,
@@ -189,48 +179,6 @@ class iPXEBootTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.boot.validate, task)
-
-    @mock.patch.object(image_service.GlanceImageService, 'show',
-                       autospec=True)
-    def test_validate_fail_no_image_kernel_ramdisk_props(self, mock_glance):
-        instance_info = {"boot_option": "netboot"}
-        mock_glance.return_value = {'properties': {}}
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.node.instance_info['capabilities'] = instance_info
-            self.assertRaises(exception.MissingParameterValue,
-                              task.driver.boot.validate,
-                              task)
-
-    @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
-                return_value='netboot', autospec=True)
-    @mock.patch.object(image_service.GlanceImageService, 'show',
-                       autospec=True)
-    def test_validate_fail_glance_image_doesnt_exists(self, mock_glance,
-                                                      mock_boot_option):
-        mock_glance.side_effect = exception.ImageNotFound('not found')
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.boot.validate, task)
-            mock_boot_option.assert_called_with(task.node)
-
-    @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
-                return_value='netboot', autospec=True)
-    @mock.patch.object(image_service.GlanceImageService, 'show',
-                       autospec=True)
-    def test_validate_fail_glance_conn_problem(self, mock_glance,
-                                               mock_boot_option):
-        exceptions = (exception.GlanceConnectionFailed('connection fail'),
-                      exception.ImageNotAuthorized('not authorized'),
-                      exception.Invalid('invalid'))
-        mock_glance.side_effect = exceptions
-        for exc in exceptions:
-            with task_manager.acquire(self.context, self.node.uuid,
-                                      shared=True) as task:
-                self.assertRaises(exception.InvalidParameterValue,
-                                  task.driver.boot.validate, task)
-                mock_boot_option.assert_called_with(task.node)
 
     def test_validate_inspection(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -563,94 +511,6 @@ class iPXEBootTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_clean_up_ramdisk(mode='rescue')
 
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
-    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
-    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
-    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
-    def test_prepare_instance_netboot(
-            self, get_image_info_mock, cache_mock,
-            dhcp_factory_mock, switch_pxe_config_mock,
-            set_boot_device_mock):
-        provider_mock = mock.MagicMock()
-        dhcp_factory_mock.return_value = provider_mock
-        image_info = {'kernel': ('', '/path/to/kernel'),
-                      'ramdisk': ('', '/path/to/ramdisk')}
-        instance_info = {"boot_option": "netboot"}
-        get_image_info_mock.return_value = image_info
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=True)
-            dhcp_opts += pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=True, ip_version=6)
-            pxe_config_path = pxe_utils.get_pxe_config_file_path(
-                task.node.uuid, ipxe_enabled=True)
-            task.node.properties['capabilities'] = 'boot_mode:uefi'
-            task.node.instance_info['capabilities'] = instance_info
-            task.node.driver_internal_info['root_uuid_or_disk_id'] = (
-                "30212642-09d3-467f-8e09-21685826ab50")
-            task.node.driver_internal_info['is_whole_disk_image'] = False
-
-            task.driver.boot.prepare_instance(task)
-
-            get_image_info_mock.assert_called_once_with(
-                task, ipxe_enabled=True)
-            cache_mock.assert_called_once_with(task, image_info,
-                                               ipxe_enabled=True)
-            provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
-            switch_pxe_config_mock.assert_called_once_with(
-                pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'uefi', False, iscsi_boot=False, ramdisk_boot=False,
-                ipxe_enabled=True, anaconda_boot=False)
-            set_boot_device_mock.assert_called_once_with(task,
-                                                         boot_devices.PXE,
-                                                         persistent=True)
-
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
-    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
-    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
-    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
-    def test_prepare_instance_netboot_bios(
-            self, get_image_info_mock, cache_mock,
-            dhcp_factory_mock, switch_pxe_config_mock,
-            set_boot_device_mock):
-        provider_mock = mock.MagicMock()
-        dhcp_factory_mock.return_value = provider_mock
-        image_info = {'kernel': ('', '/path/to/kernel'),
-                      'ramdisk': ('', '/path/to/ramdisk')}
-        instance_info = {"boot_option": "netboot",
-                         "boot_mode": "bios"}
-        get_image_info_mock.return_value = image_info
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.properties['capabilities'] = 'boot_mode:bios'
-            task.node.instance_info['capabilities'] = instance_info
-            task.node.driver_internal_info['root_uuid_or_disk_id'] = (
-                "30212642-09d3-467f-8e09-21685826ab50")
-            task.node.driver_internal_info['is_whole_disk_image'] = False
-
-            dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=True)
-            dhcp_opts += pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=True, ip_version=6)
-            pxe_config_path = pxe_utils.get_pxe_config_file_path(
-                task.node.uuid, ipxe_enabled=True)
-
-            task.driver.boot.prepare_instance(task)
-
-            get_image_info_mock.assert_called_once_with(
-                task, ipxe_enabled=True)
-            cache_mock.assert_called_once_with(task, image_info,
-                                               ipxe_enabled=True)
-            provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
-            switch_pxe_config_mock.assert_called_once_with(
-                pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'bios', False, iscsi_boot=False, ramdisk_boot=False,
-                ipxe_enabled=True, anaconda_boot=False)
-            set_boot_device_mock.assert_called_once_with(task,
-                                                         boot_devices.PXE,
-                                                         persistent=True)
-
     @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
@@ -665,8 +525,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
         dhcp_factory_mock.return_value = provider_mock
         image_info = {'kernel': ('', '/path/to/kernel'),
                       'ramdisk': ('', '/path/to/ramdisk')}
-        i_info_caps = {"boot_option": "ramdisk",
-                       "boot_mode": "bios"}
+        i_info_caps = {"boot_mode": "bios"}
         kernel_arg = "meow"
         get_image_info_mock.return_value = image_info
 
@@ -676,6 +535,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
             i_info['capabilities'] = i_info_caps
             i_info['kernel_append_params'] = kernel_arg
             task.node.instance_info = i_info
+            task.node.deploy_interface = 'ramdisk'
             task.node.save()
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=True)
@@ -721,15 +581,14 @@ class iPXEBootTestCase(db_base.DbTestCase):
         dhcp_factory_mock.return_value = provider_mock
         image_info = {'kernel': ('', '/path/to/kernel'),
                       'ramdisk': ('', '/path/to/ramdisk')}
-        i_info_caps = {"boot_option": "ramdisk"}
         kernel_arg = "meow"
         get_image_info_mock.return_value = image_info
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             i_info = task.node.instance_info
-            i_info['capabilities'] = i_info_caps
             i_info['kernel_append_params'] = kernel_arg
             task.node.instance_info = i_info
+            task.node.deploy_interface = 'ramdisk'
             task.node.save()
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=True)
@@ -760,160 +619,6 @@ class iPXEBootTestCase(db_base.DbTestCase):
                 'ipxe_timeout': 0}
             mock_create_pxe_config.assert_called_once_with(
                 task, expected_params, mock.ANY, ipxe_enabled=True)
-
-    @mock.patch('os.path.isfile', return_value=False, autospec=True)
-    @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
-    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
-    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
-    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
-    def test_prepare_instance_netboot_active(
-            self, get_image_info_mock, cache_mock,
-            dhcp_factory_mock, switch_pxe_config_mock,
-            set_boot_device_mock, create_pxe_config_mock, isfile_mock):
-        provider_mock = mock.MagicMock()
-        dhcp_factory_mock.return_value = provider_mock
-        image_info = {'kernel': ('', '/path/to/kernel'),
-                      'ramdisk': ('', '/path/to/ramdisk')}
-        instance_info = {"boot_option": "netboot"}
-        get_image_info_mock.return_value = image_info
-        self.node.provision_state = states.ACTIVE
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.properties['capabilities'] = 'boot_mode:bios'
-            task.node.instance_info['capabilities'] = instance_info
-            task.node.driver_internal_info['root_uuid_or_disk_id'] = (
-                "30212642-09d3-467f-8e09-21685826ab50")
-            task.node.driver_internal_info['is_whole_disk_image'] = False
-
-            dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=True)
-            dhcp_opts += pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=True, ip_version=6)
-            pxe_config_path = pxe_utils.get_pxe_config_file_path(
-                task.node.uuid, ipxe_enabled=True)
-
-            task.driver.boot.prepare_instance(task)
-
-            get_image_info_mock.assert_called_once_with(
-                task, ipxe_enabled=True)
-            cache_mock.assert_called_once_with(task, image_info,
-                                               ipxe_enabled=True)
-            provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
-            create_pxe_config_mock.assert_called_once_with(
-                task, mock.ANY, CONF.pxe.ipxe_config_template,
-                ipxe_enabled=True)
-            switch_pxe_config_mock.assert_called_once_with(
-                pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'bios', False, iscsi_boot=False, ramdisk_boot=False,
-                ipxe_enabled=True, anaconda_boot=False)
-            self.assertFalse(set_boot_device_mock.called)
-
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
-    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
-    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
-    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
-    def test_prepare_instance_netboot_missing_root_uuid(
-            self, get_image_info_mock, cache_mock,
-            dhcp_factory_mock, switch_pxe_config_mock,
-            set_boot_device_mock):
-        provider_mock = mock.MagicMock()
-        dhcp_factory_mock.return_value = provider_mock
-        image_info = {'kernel': ('', '/path/to/kernel'),
-                      'ramdisk': ('', '/path/to/ramdisk')}
-        get_image_info_mock.return_value = image_info
-        instance_info = {"boot_option": "netboot"}
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.properties['capabilities'] = 'boot_mode:bios'
-            task.node.instance_info['capabilities'] = instance_info
-            task.node.driver_internal_info['is_whole_disk_image'] = False
-            dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=True, ip_version=4)
-            dhcp_opts += pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=True, ip_version=6)
-
-            task.driver.boot.prepare_instance(task)
-
-            get_image_info_mock.assert_called_once_with(
-                task, ipxe_enabled=True)
-            cache_mock.assert_called_once_with(task, image_info,
-                                               ipxe_enabled=True)
-            provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
-            self.assertFalse(switch_pxe_config_mock.called)
-            self.assertFalse(set_boot_device_mock.called)
-
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
-    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
-    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
-    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
-    def test_prepare_instance_netboot_missing_root_uuid_default(
-            self, get_image_info_mock, cache_mock,
-            dhcp_factory_mock, switch_pxe_config_mock,
-            set_boot_device_mock):
-        provider_mock = mock.MagicMock()
-        dhcp_factory_mock.return_value = provider_mock
-        image_info = {'kernel': ('', '/path/to/kernel'),
-                      'ramdisk': ('', '/path/to/ramdisk')}
-        get_image_info_mock.return_value = image_info
-        instance_info = self.node.instance_info
-        instance_info['capabilities'] = {"boot_option": "netboot"}
-        self.node.instance_info = instance_info
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.driver_internal_info['is_whole_disk_image'] = False
-            dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=True, ip_version=4)
-            dhcp_opts += pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=True, ip_version=6)
-
-            task.driver.boot.prepare_instance(task)
-
-            get_image_info_mock.assert_called_once_with(
-                task, ipxe_enabled=True)
-            cache_mock.assert_called_once_with(task, image_info,
-                                               ipxe_enabled=True)
-            provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
-            self.assertFalse(switch_pxe_config_mock.called)
-            self.assertFalse(set_boot_device_mock.called)
-
-    # NOTE(TheJulia): The log mock below is attached to the iPXE interface
-    # which directly logs the warning that is being checked for.
-    @mock.patch.object(pxe_base.LOG, 'warning', autospec=True)
-    @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
-    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
-    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
-    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
-    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
-    def test_prepare_instance_whole_disk_image_missing_root_uuid(
-            self, get_image_info_mock, cache_mock,
-            dhcp_factory_mock, set_boot_device_mock,
-            clean_up_pxe_mock, log_mock):
-        provider_mock = mock.MagicMock()
-        dhcp_factory_mock.return_value = provider_mock
-        get_image_info_mock.return_value = {}
-        instance_info = {"boot_option": "netboot",
-                         "boot_mode": "bios"}
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.properties['capabilities'] = 'boot_mode:bios'
-            task.node.instance_info['capabilities'] = instance_info
-            task.node.driver_internal_info['is_whole_disk_image'] = True
-            dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=True)
-            dhcp_opts += pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=True, ip_version=6)
-
-            task.driver.boot.prepare_instance(task)
-            get_image_info_mock.assert_called_once_with(
-                task, ipxe_enabled=True)
-            cache_mock.assert_called_once_with(task, {}, ipxe_enabled=True)
-            provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
-            self.assertTrue(log_mock.called)
-            clean_up_pxe_mock.assert_called_once_with(task, ipxe_enabled=True)
-            set_boot_device_mock.assert_called_once_with(
-                task, boot_devices.DISK, persistent=True)
 
     @mock.patch('os.path.isfile', lambda filename: False)
     @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
@@ -1037,8 +742,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
         self.config(http_url=http_url, group='deploy')
         provider_mock = mock.MagicMock()
         dhcp_factory_mock.return_value = provider_mock
-        self.node.instance_info = {'boot_iso': 'http://1.2.3.4:1234/boot.iso',
-                                   'capabilities': {'boot_option': 'ramdisk'}}
+        self.node.deploy_interface = 'ramdisk'
+        self.node.instance_info = {'boot_iso': 'http://1.2.3.4:1234/boot.iso'}
         image_info = {'kernel': ('', '/path/to/kernel'),
                       'deploy_kernel': ('', '/path/to/kernel'),
                       'ramdisk': ('', '/path/to/ramdisk'),
@@ -1075,7 +780,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
     @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
     @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
-    def test_prepare_instance_netboot_ramdisk_with_kernel_arg(
+    def test_prepare_instance_ramdisk_with_kernel_arg(
             self, get_image_info_mock, cache_mock,
             dhcp_factory_mock, switch_pxe_config_mock,
             set_boot_device_mock, create_pxe_config_mock):
@@ -1130,14 +835,9 @@ class iPXEBootTestCase(db_base.DbTestCase):
                        autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
-    def test_prepare_instance_localboot(self, clean_up_pxe_config_mock,
-                                        set_boot_device_mock,
-                                        secure_boot_mock):
+    def test_prepare_instance(self, clean_up_pxe_config_mock,
+                              set_boot_device_mock, secure_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            instance_info = task.node.instance_info
-            instance_info['capabilities'] = {'boot_option': 'local'}
-            task.node.instance_info = instance_info
-            task.node.save()
             task.driver.boot.prepare_instance(task)
             clean_up_pxe_config_mock.assert_called_once_with(
                 task, ipxe_enabled=True)
@@ -1148,15 +848,11 @@ class iPXEBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
-    def test_prepare_instance_localboot_active(self, clean_up_pxe_config_mock,
-                                               set_boot_device_mock):
+    def test_prepare_instance_active(self, clean_up_pxe_config_mock,
+                                     set_boot_device_mock):
         self.node.provision_state = states.ACTIVE
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            instance_info = task.node.instance_info
-            instance_info['capabilities'] = {'boot_option': 'local'}
-            task.node.instance_info = instance_info
-            task.node.save()
             task.driver.boot.prepare_instance(task)
             clean_up_pxe_config_mock.assert_called_once_with(
                 task, ipxe_enabled=True)
@@ -1168,14 +864,12 @@ class iPXEBootTestCase(db_base.DbTestCase):
     @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
     @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
     @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
-    def test_prepare_instance_localboot_with_fallback(
+    def test_prepare_instance_with_fallback(
             self, get_image_info_mock, cache_mock,
             dhcp_factory_mock, switch_pxe_config_mock,
             clean_up_pxe_config_mock, set_boot_device_mock):
         self.config(enable_netboot_fallback=True, group='pxe')
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.instance_info = task.node.instance_info
-            task.node.instance_info['capabilities'] = {'boot_option': 'local'}
             task.node.driver_internal_info['root_uuid_or_disk_id'] = (
                 "30212642-09d3-467f-8e09-21685826ab50")
             task.node.driver_internal_info['is_whole_disk_image'] = False

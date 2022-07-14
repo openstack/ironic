@@ -55,7 +55,6 @@ LOG = logging.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 SUPPORTED_CAPABILITIES = {
-    'boot_option': ('local', 'netboot', 'ramdisk', 'kickstart'),
     'boot_mode': ('bios', 'uefi'),
     'secure_boot': ('true', 'false'),
     'disk_label': ('msdos', 'gpt'),
@@ -159,6 +158,9 @@ def _replace_disk_identifier(path, disk_identifier):
 
 
 # NOTE(TheJulia): This should likely be migrated to pxe_utils.
+# TODO(dtantsur): with the removal of netboot, root_uuid_or_disk_id and
+# the logic of replacing ROOT can be dropped, while is_whole_disk_image can
+# be renamed to something like netboot_fallback.
 def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
                       is_whole_disk_image, iscsi_boot=False,
                       ramdisk_boot=False, ipxe_enabled=False,
@@ -616,17 +618,11 @@ def get_boot_option(node):
     :returns: A string representing the boot option type. Defaults to
         configuration setting [deploy]default_boot_mode.
     """
-
-    # NOTE(TheJulia): Software raid always implies local deployment
-    if is_software_raid(node):
-        return 'local'
     if is_anaconda_deploy(node):
         return 'kickstart'
     if is_ramdisk_deploy(node):
         return 'ramdisk'
-    capabilities = utils.parse_instance_info_capabilities(node)
-    return capabilities.get('boot_option',
-                            CONF.deploy.default_boot_option).lower()
+    return 'local'
 
 
 # FIXME(dtantsur): relying on deploy interface name is an anti-pattern.

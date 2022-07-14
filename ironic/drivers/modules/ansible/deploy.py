@@ -396,12 +396,6 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
         task.driver.boot.validate(task)
 
         node = task.node
-        iwdi = node.driver_internal_info.get('is_whole_disk_image')
-        if not iwdi and deploy_utils.get_boot_option(node) == "netboot":
-            raise exception.InvalidParameterValue(_(
-                "Node %(node)s is configured to use the ansible deploy "
-                "interface, which does not support netboot.") %
-                {'node': node.uuid})
 
         params = {}
         image_source = node.instance_info.get('image_source')

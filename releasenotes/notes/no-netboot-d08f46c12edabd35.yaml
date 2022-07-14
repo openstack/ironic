@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    The deprecated support for instance network booting (not to be confused
+    with the ``ramdisk`` deploy, iSCSI boot or Anaconda deploy) has been
+    removed. The ``boot_option`` capability is no longer supported.

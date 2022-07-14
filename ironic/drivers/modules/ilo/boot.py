@@ -320,7 +320,7 @@ class IloVirtualMediaBoot(base.BootInterface):
                 except exception.ImageRefValidationFailed:
                     with excutils.save_and_reraise_exception():
                         LOG.error("Virtual media deploy with 'ramdisk' "
-                                  "boot_option accepts only Glance images or "
+                                  "deploy accepts only Glance images or "
                                   "HTTP(S) URLs as "
                                   "instance_info['boot_iso']. Either %s "
                                   "is not a valid HTTP(S) URL or is not "
@@ -460,21 +460,8 @@ class IloVirtualMediaBoot(base.BootInterface):
                                                boot_devices.CDROM,
                                                persistent=True)
         else:
-            # Boot from disk every time if the image deployed is
-            # a whole disk image.
-            node = task.node
-            iwdi = node.driver_internal_info.get('is_whole_disk_image')
-            if deploy_utils.get_boot_option(node) == "local" or iwdi:
-                manager_utils.node_set_boot_device(task, boot_devices.DISK,
-                                                   persistent=True)
-            else:
-                drv_int_info = node.driver_internal_info
-                root_uuid_or_disk_id = drv_int_info.get('root_uuid_or_disk_id')
-                if root_uuid_or_disk_id:
-                    self._configure_vmedia_boot(task, root_uuid_or_disk_id)
-                else:
-                    LOG.warning("The UUID for the root partition could not "
-                                "be found for node %s", node.uuid)
+            manager_utils.node_set_boot_device(task, boot_devices.DISK,
+                                               persistent=True)
         # Set boot mode
         ilo_common.update_boot_mode(task)
         # Need to enable secure boot, if being requested
@@ -590,8 +577,7 @@ class IloPXEBoot(pxe.PXEBoot):
         """Prepares the boot of instance.
 
         This method prepares the boot of the instance after reading
-        relevant information from the node's instance_info. In case of netboot,
-        it updates the dhcp entries and switches the PXE config. In case of
+        relevant information from the node's instance_info. In case of
         localboot, it cleans up the PXE config.
         In case of 'boot from volume', it updates the iSCSI info onto iLO and
         sets the node to boot from 'UefiTarget' boot device.
@@ -683,8 +669,7 @@ class IloiPXEBoot(ipxe.iPXEBoot):
         """Prepares the boot of instance.
 
         This method prepares the boot of the instance after reading
-        relevant information from the node's instance_info. In case of netboot,
-        it updates the dhcp entries and switches the PXE config. In case of
+        relevant information from the node's instance_info. In case of
         localboot, it cleans up the PXE config.
         In case of 'boot from volume', it updates the iSCSI info onto iLO and
         sets the node to boot from 'UefiTarget' boot device.
@@ -904,7 +889,7 @@ class IloUefiHttpsBoot(base.BootInterface):
                 except exception.ImageRefValidationFailed:
                     with excutils.save_and_reraise_exception():
                         LOG.error("UEFI-HTTPS boot with 'ramdisk' "
-                                  "boot_option accepts only Glance images or "
+                                  "deploy accepts only Glance images or "
                                   "HTTPS URLs as "
                                   "instance_info['boot_iso']. Either %s "
                                   "is not a valid HTTPS URL or is not "

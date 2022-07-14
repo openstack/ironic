@@ -92,7 +92,6 @@ class RamdiskDeployTestCase(db_base.DbTestCase):
                 task, ipxe_enabled=False, ip_version=6)
             pxe_config_path = pxe_utils.get_pxe_config_file_path(
                 task.node.uuid)
-            task.node.properties['capabilities'] = 'boot_option:netboot'
             task.node.driver_internal_info['is_whole_disk_image'] = False
             task.driver.deploy.prepare(task)
             task.driver.deploy.deploy(task)
@@ -120,20 +119,26 @@ class RamdiskDeployTestCase(db_base.DbTestCase):
         image_info = {'kernel': ('', '/path/to/kernel'),
                       'ramdisk': ('', '/path/to/ramdisk')}
         mock_image_info.return_value = image_info
-        i_info = self.node.instance_info
-        i_info.update({'capabilities': {'boot_option': 'ramdisk'}})
-        self.node.instance_info = i_info
-        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertIsNone(task.driver.deploy.deploy(task))
             mock_image_info.assert_called_once_with(task, ipxe_enabled=False)
             mock_cache.assert_called_once_with(
                 task, image_info, ipxe_enabled=False)
             self.assertFalse(mock_warning.called)
-        i_info['configdrive'] = 'meow'
-        self.node.instance_info = i_info
+
+    @mock.patch.object(ramdisk.LOG, 'warning', autospec=True)
+    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
+    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
+    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
+    def test_deploy_with_configdrive(self, mock_image_info, mock_cache,
+                                     mock_dhcp_factory, mock_switch_config,
+                                     mock_warning):
+        image_info = {'kernel': ('', '/path/to/kernel'),
+                      'ramdisk': ('', '/path/to/ramdisk')}
+        mock_image_info.return_value = image_info
+        self.node.set_instance_info('configdrive', 'meow')
         self.node.save()
-        mock_warning.reset_mock()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertIsNone(task.driver.deploy.deploy(task))
             self.assertTrue(mock_warning.called)

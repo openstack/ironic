@@ -1217,12 +1217,12 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
         """
 
         node = task.node
-        if deploy_utils.get_boot_option(node) == "local":
-            # Install the boot loader
-            self.configure_local_boot(
-                task, root_uuid=root_uuid,
-                efi_system_part_uuid=efi_sys_uuid,
-                prep_boot_part_uuid=prep_boot_part_uuid)
+        # Install the boot loader
+        self.configure_local_boot(
+            task, root_uuid=root_uuid,
+            efi_system_part_uuid=efi_sys_uuid,
+            prep_boot_part_uuid=prep_boot_part_uuid)
+
         try:
             task.driver.boot.prepare_instance(task)
         except Exception as e:

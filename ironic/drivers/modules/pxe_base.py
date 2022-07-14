@@ -261,50 +261,6 @@ class PXEBaseMixin(object):
                 anaconda_boot=(boot_option == "kickstart"))
             boot_device = boot_devices.PXE
 
-        elif boot_option != "local":
-            if task.driver.storage.should_write_image(task):
-                # Make sure that the instance kernel/ramdisk is cached.
-                # This is for the takeover scenario for active nodes.
-                instance_image_info = pxe_utils.get_instance_image_info(
-                    task, ipxe_enabled=self.ipxe_enabled)
-                pxe_utils.cache_ramdisk_kernel(task, instance_image_info,
-                                               ipxe_enabled=self.ipxe_enabled)
-
-            # If it's going to PXE boot we need to update the DHCP server
-            dhcp_opts = pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=self.ipxe_enabled, ip_version=4)
-            dhcp_opts += pxe_utils.dhcp_options_for_instance(
-                task, ipxe_enabled=self.ipxe_enabled, ip_version=6)
-            provider = dhcp_factory.DHCPFactory()
-            provider.update_dhcp(task, dhcp_opts)
-
-            iwdi = task.node.driver_internal_info.get('is_whole_disk_image')
-            try:
-                root_uuid_or_disk_id = task.node.driver_internal_info[
-                    'root_uuid_or_disk_id'
-                ]
-            except KeyError:
-                if not task.driver.storage.should_write_image(task):
-                    pass
-                elif not iwdi:
-                    LOG.warning("The UUID for the root partition can't be "
-                                "found, unable to switch the pxe config from "
-                                "deployment mode to service (boot) mode for "
-                                "node %(node)s", {"node": task.node.uuid})
-                else:
-                    LOG.warning("The disk id for the whole disk image can't "
-                                "be found, unable to switch the pxe config "
-                                "from deployment mode to service (boot) mode "
-                                "for node %(node)s. Booting the instance "
-                                "from disk.", {"node": task.node.uuid})
-                    pxe_utils.clean_up_pxe_config(
-                        task, ipxe_enabled=self.ipxe_enabled)
-                    boot_device = boot_devices.DISK
-            else:
-                pxe_utils.build_service_pxe_config(
-                    task, instance_image_info, root_uuid_or_disk_id,
-                    ipxe_enabled=self.ipxe_enabled)
-                boot_device = boot_devices.PXE
         else:
             # NOTE(dtantsur): create a PXE configuration as a safety net for
             # hardware uncapable of persistent boot. If on a reboot it will try

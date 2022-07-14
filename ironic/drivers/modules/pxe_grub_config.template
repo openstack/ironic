@@ -7,11 +7,6 @@ menuentry "deploy"  {
     initrdefi {{ pxe_options.deployment_ari_path }}
 }
 
-menuentry "boot_partition"  {
-    linuxefi {{ pxe_options.aki_path }} root={{ ROOT }} ro text {{ pxe_options.pxe_append_params|default("", true) }} boot_server={{pxe_options.tftp_server}}
-    initrdefi {{ pxe_options.ari_path }}
-}
-
 menuentry "boot_ramdisk"  {
     linuxefi {{ pxe_options.aki_path }} root=/dev/ram0 text {{ pxe_options.pxe_append_params|default("", true) }} {{ pxe_options.ramdisk_opts|default('', true) }}
     initrdefi {{ pxe_options.ari_path }}

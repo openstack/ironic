@@ -240,17 +240,6 @@
         s-object: False
         s-proxy: False
 
-# TODO(dtantsur): remove when sushy-tools no longer uses it.
-- job:
-    name: ironic-tempest-bios-redfish-netboot
-    description: "Deploy ironic node over PXE using BIOS boot mode"
-    parent: ironic-tempest-bios-redfish-pxe
-    vars:
-      devstack_localrc:
-        IRONIC_DEFAULT_BOOT_OPTION: netboot
-        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: False
-        IRONIC_VM_EPHEMERAL_DISK: 1
-
 - job:
     name: ironic-tempest-uefi-redfish-vmedia
     description: "Deploy ironic node over Redfish virtual media using UEFI boot mode"
@@ -519,7 +508,6 @@
         IRONIC_BAREMETAL_BASIC_OPS: True
         IRONIC_BUILD_DEPLOY_RAMDISK: False
         IRONIC_CALLBACK_TIMEOUT: 600
-        IRONIC_DEFAULT_BOOT_OPTION: local
         IRONIC_DEPLOY_DRIVER: ipmi
         IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
         IRONIC_INSPECTOR_BUILD_RAMDISK: False
@@ -609,7 +597,6 @@
           IRONIC_AUTOMATED_CLEAN_ENABLED: False
           IRONIC_BAREMETAL_BASIC_OPS: True
           IRONIC_DEPLOY_DRIVER: ipmi
-          IRONIC_DEFAULT_BOOT_OPTION: local
           IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
           IRONIC_NETWORK_INTERFACE: neutron
           IRONIC_PROVISION_NETWORK_NAME: ironic-provision

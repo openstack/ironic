@@ -19,7 +19,6 @@ from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common import neutron as neutron_common
-from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base as drivers_base
 from ironic.drivers.modules.network import neutron
@@ -96,65 +95,6 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
 
     @mock.patch.object(neutron_common, 'validate_network', autospec=True)
     def test_validate(self, validate_mock):
-        with task_manager.acquire(self.context, self.node.id) as task:
-            self.interface.validate(task)
-            self.assertEqual([mock.call(CONF.neutron.cleaning_network,
-                                        'cleaning network',
-                                        context=task.context),
-                              mock.call(CONF.neutron.provisioning_network,
-                                        'provisioning network',
-                                        context=task.context)],
-                             validate_mock.call_args_list)
-
-    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
-    def test_validate_boot_option_netboot(self, validate_mock):
-        driver_internal_info = self.node.driver_internal_info
-        driver_internal_info['is_whole_disk_image'] = True
-        self.node.driver_internal_info = driver_internal_info
-        boot_option = {'capabilities': '{"boot_option": "netboot"}'}
-        self.node.instance_info = boot_option
-        self.node.provision_state = states.DEPLOYING
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.id) as task:
-            self.assertRaisesRegex(
-                exception.InvalidParameterValue,
-                'cannot perform "local" boot for whole disk image',
-                self.interface.validate, task)
-            self.assertEqual([mock.call(CONF.neutron.cleaning_network,
-                                        'cleaning network',
-                                        context=task.context),
-                              mock.call(CONF.neutron.provisioning_network,
-                                        'provisioning network',
-                                        context=task.context)],
-                             validate_mock.call_args_list)
-
-    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
-    def test_validate_boot_option_netboot_no_exc(self, validate_mock):
-        CONF.set_override('default_boot_option', 'netboot', 'deploy')
-        driver_internal_info = self.node.driver_internal_info
-        driver_internal_info['is_whole_disk_image'] = True
-        self.node.driver_internal_info = driver_internal_info
-        self.node.provision_state = states.AVAILABLE
-        self.node.save()
-        with task_manager.acquire(self.context, self.node.id) as task:
-            self.interface.validate(task)
-            self.assertEqual([mock.call(CONF.neutron.cleaning_network,
-                                        'cleaning network',
-                                        context=task.context),
-                              mock.call(CONF.neutron.provisioning_network,
-                                        'provisioning network',
-                                        context=task.context)],
-                             validate_mock.call_args_list)
-
-    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
-    def test_validate_boot_option_local(self, validate_mock):
-        driver_internal_info = self.node.driver_internal_info
-        driver_internal_info['is_whole_disk_image'] = True
-        self.node.driver_internal_info = driver_internal_info
-        boot_option = {'capabilities': '{"boot_option": "local"}'}
-        self.node.instance_info = boot_option
-        self.node.provision_state = states.DEPLOYING
-        self.node.save()
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.validate(task)
             self.assertEqual([mock.call(CONF.neutron.cleaning_network,

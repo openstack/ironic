@@ -623,24 +623,6 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
                 {'instance_info.image_source': INSTANCE_INFO['image_source']},
                 mock.ANY)
 
-    @mock.patch.object(deploy_utils, 'get_boot_option',
-                       return_value='netboot', autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
-    def test_validate_not_iwdi_netboot(self, pxe_boot_validate_mock,
-                                       get_boot_mock):
-        driver_internal_info = dict(DRIVER_INTERNAL_INFO)
-        driver_internal_info['is_whole_disk_image'] = False
-        self.node.driver_internal_info = driver_internal_info
-        self.node.save()
-
-        with task_manager.acquire(
-                self.context, self.node['uuid'], shared=False) as task:
-            self.assertRaises(exception.InvalidParameterValue,
-                              self.driver.validate, task)
-            pxe_boot_validate_mock.assert_called_once_with(
-                task.driver.boot, task)
-            get_boot_mock.assert_called_once_with(task.node)
-
     @mock.patch.object(ansible_deploy, '_calculate_memory_req', autospec=True,
                        return_value=2000)
     @mock.patch.object(utils, 'node_power_action', autospec=True)

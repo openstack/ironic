@@ -25,12 +25,6 @@ echo Powering off in 30 seconds.
 sleep 30
 poweroff
 
-:boot_partition
-imgfree
-kernel {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.aki_path }} root={{ ROOT }} ro text {{ pxe_options.pxe_append_params|default("", true) }} initrd=ramdisk || goto boot_partition
-initrd {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.ari_path }} || goto boot_partition
-boot
-
 :boot_anaconda
 imgfree
 kernel {% if pxe_options.ipxe_timeout > 0 %}--timeout {{ pxe_options.ipxe_timeout }} {% endif %}{{ pxe_options.aki_path }} text {{ pxe_options.pxe_append_params|default("", true) }} inst.ks={{ pxe_options.ks_cfg_url }} {% if pxe_options.repo_url %}inst.repo={{ pxe_options.repo_url }}{% else %}inst.stage2={{ pxe_options.stage2_url }}{% endif %} initrd=ramdisk || goto boot_anaconda
