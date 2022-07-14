@@ -2339,13 +2339,15 @@ class ConductorManager(base_manager.BaseConductorManager):
                 action = _("Port %(port)s can not have any connectivity "
                            "attributes (%(connect)s) updated unless "
                            "node %(node)s is in a %(allowed)s state "
-                           "or in maintenance mode.")
+                           "or in maintenance mode. The current state is "
+                           "%(state)s.")
 
                 raise exception.InvalidState(
                     action % {'port': port_uuid,
                               'node': node.uuid,
                               'connect': ', '.join(connectivity_attr),
-                              'allowed': ', '.join(allowed_update_states)})
+                              'allowed': ', '.join(allowed_update_states),
+                              'state': node.provision_state})
 
             utils.validate_port_physnet(task, port_obj)
             task.driver.network.validate(task)
