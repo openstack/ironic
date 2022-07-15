@@ -1113,60 +1113,55 @@ class RedfishRAID(base.RAIDInterface):
                          '%(node)s was already locked by another process. '
                          'Skip.', {'node': node_uuid})
 
-    def _get_error_messages(self, response):
-        try:
-            body = response.json()
-        except ValueError:
-            return []
-        else:
-            error = body.get('error', {})
-            code = error.get('code', '')
-            message = error.get('message', code)
-            ext_info = error.get('@Message.ExtendedInfo', [{}])
-            messages = [m.get('Message') for m in ext_info if 'Message' in m]
-            if not messages and message:
-                messages = [message]
-            return messages
-
     def _raid_config_in_progress(self, task, raid_config):
-        """Check if this RAID configuration operation is still in progress."""
+        """Check if this RAID configuration operation is still in progress.
+
+        :param task: TaskManager object containing the node.
+        :param raid_config: RAID configuration operation details.
+        :returns: True, if still in progress, otherwise False.
+        """
         task_monitor_uri = raid_config['task_monitor_uri']
         try:
             task_monitor = redfish_utils.get_task_monitor(task.node,
                                                           task_monitor_uri)
         except exception.RedfishError:
-            LOG.info('Unable to get status of RAID %(operation)s task to node '
-                     '%(node_uuid)s; assuming task completed successfully',
+            LOG.info('Unable to get status of RAID %(operation)s task '
+                     '%(task_mon_uri)s to node %(node_uuid)s; assuming task '
+                     'completed successfully',
                      {'operation': raid_config['operation'],
+                      'task_mon_uri': task_monitor_uri,
                       'node_uuid': task.node.uuid})
             return False
         if task_monitor.is_processing:
-            LOG.debug('RAID %(operation)s task %(task_mon)s to node '
+            LOG.debug('RAID %(operation)s task %(task_mon_uri)s to node '
                       '%(node_uuid)s still in progress',
                       {'operation': raid_config['operation'],
-                       'task_mon': task_monitor.task_monitor_uri,
+                       'task_mon_uri': task_monitor.task_monitor_uri,
                        'node_uuid': task.node.uuid})
             return True
         else:
-            response = task_monitor.response
-            if response is not None:
-                status_code = response.status_code
-                if status_code >= 400:
-                    messages = self._get_error_messages(response)
-                    LOG.error('RAID %(operation)s task to node '
-                              '%(node_uuid)s failed with status '
-                              '%(status_code)s; messages: %(messages)s',
-                              {'operation': raid_config['operation'],
-                               'node_uuid': task.node.uuid,
-                               'status_code': status_code,
-                               'messages': ", ".join(messages)})
-                else:
-                    LOG.info('RAID %(operation)s task to node '
-                             '%(node_uuid)s completed with status '
-                             '%(status_code)s',
-                             {'operation': raid_config['operation'],
-                              'node_uuid': task.node.uuid,
-                              'status_code': status_code})
+            sushy_task = task_monitor.get_task()
+            messages = []
+            if sushy_task.messages and not sushy_task.messages[0].message:
+                sushy_task.parse_messages()
+
+            messages = [m.message for m in sushy_task.messages]
+
+            if (sushy_task.task_state == sushy.TASK_STATE_COMPLETED
+                    and sushy_task.task_status in
+                    [sushy.HEALTH_OK, sushy.HEALTH_WARNING]):
+                LOG.info('RAID %(operation)s task %(task_mon_uri)s to node '
+                         '%(node_uuid)s completed.',
+                         {'operation': raid_config['operation'],
+                          'task_mon_uri': task_monitor.task_monitor_uri,
+                          'node_uuid': task.node.uuid})
+            else:
+                LOG.error('RAID %(operation)s task %(task_mon_uri)s to node '
+                          '%(node_uuid)s failed; messages: %(messages)s',
+                          {'operation': raid_config['operation'],
+                           'task_mon_uri': task_monitor.task_monitor_uri,
+                           'node_uuid': task.node.uuid,
+                           'messages': ", ".join(messages)})
         return False
 
     @METRICS.timer('RedfishRAID._check_node_raid_config')
