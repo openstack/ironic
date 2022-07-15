@@ -476,6 +476,41 @@ class DoAllocateTestCase(db_base.DbTestCase):
         # All nodes are filtered out on the database level.
         self.assertFalse(mock_acquire.called)
 
+    def test_name_match_first(self):
+        obj_utils.create_test_node(self.context,
+                                   uuid=uuidutils.generate_uuid(),
+                                   name='node-1',
+                                   power_state='power on',
+                                   resource_class='x-large',
+                                   provision_state='available')
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          name='node-2',
+                                          power_state='power on',
+                                          resource_class='x-large',
+                                          provision_state='available')
+        obj_utils.create_test_node(self.context,
+                                   uuid=uuidutils.generate_uuid(),
+                                   name='node-3',
+                                   power_state='power on',
+                                   resource_class='x-large',
+                                   provision_state='available')
+        allocation = obj_utils.create_test_allocation(self.context,
+                                                      name='node-2',
+                                                      resource_class='x-large')
+
+        allocations.do_allocate(self.context, allocation)
+
+        allocation = objects.Allocation.get_by_uuid(self.context,
+                                                    allocation['uuid'])
+        self.assertIsNone(allocation['last_error'])
+        self.assertEqual('active', allocation['state'])
+
+        node = objects.Node.get_by_uuid(self.context, node['uuid'])
+        self.assertEqual(allocation['uuid'], node['instance_uuid'])
+        self.assertEqual(allocation['id'], node['allocation_id'])
+        self.assertEqual('node-2', node['name'])
+
 
 class BackfillAllocationTestCase(db_base.DbTestCase):
     def test_with_associated_node(self):
