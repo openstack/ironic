@@ -136,10 +136,6 @@ class TestCase(oslo_test_base.BaseTestCase):
             # subprocess.Popen is a class
             self.patch(subprocess, 'Popen', DoNotCallPopen)
 
-        if sys.version_info < (3, 7, 4):
-            _patch_mock_callable._old_func = mock._callable
-            mock._callable = _patch_mock_callable
-
     def _set_config(self):
         self.cfg_fixture = self.useFixture(config_fixture.Config(CONF))
         self.config(use_stderr=False,
