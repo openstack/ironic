@@ -61,10 +61,6 @@ append initrd=ramdisk root={{ ROOT }}
 label boot_whole_disk
 COM32 chain.c32
 append mbr:{{ DISK_IDENTIFIER }}
-
-label trusted_boot
-kernel mboot
-append tboot.gz --- kernel root={{ ROOT }} --- ramdisk
 """
 
 _PXECONF_BOOT_PARTITION = """
@@ -82,11 +78,6 @@ append initrd=ramdisk root=UUID=12345678-1234-1234-1234-1234567890abcdef
 label boot_whole_disk
 COM32 chain.c32
 append mbr:{{ DISK_IDENTIFIER }}
-
-label trusted_boot
-kernel mboot
-append tboot.gz --- kernel root=UUID=12345678-1234-1234-1234-1234567890abcdef \
---- ramdisk
 """
 
 _PXECONF_BOOT_WHOLE_DISK = """
@@ -104,32 +95,6 @@ append initrd=ramdisk root={{ ROOT }}
 label boot_whole_disk
 COM32 chain.c32
 append mbr:0x12345678
-
-label trusted_boot
-kernel mboot
-append tboot.gz --- kernel root={{ ROOT }} --- ramdisk
-"""
-
-_PXECONF_TRUSTED_BOOT = """
-default trusted_boot
-
-label deploy
-kernel deploy_kernel
-append initrd=deploy_ramdisk
-ipappend 3
-
-label boot_partition
-kernel kernel
-append initrd=ramdisk root=UUID=12345678-1234-1234-1234-1234567890abcdef
-
-label boot_whole_disk
-COM32 chain.c32
-append mbr:{{ DISK_IDENTIFIER }}
-
-label trusted_boot
-kernel mboot
-append tboot.gz --- kernel root=UUID=12345678-1234-1234-1234-1234567890abcdef \
---- ramdisk
 """
 
 _IPXECONF_DEPLOY = b"""
@@ -379,17 +344,6 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
             pxeconf = f.read()
         self.assertEqual(_PXECONF_BOOT_WHOLE_DISK, pxeconf)
 
-    def test_switch_pxe_config_trusted_boot(self):
-        boot_mode = 'bios'
-        fname = self._create_config()
-        utils.switch_pxe_config(fname,
-                                '12345678-1234-1234-1234-1234567890abcdef',
-                                boot_mode,
-                                False, True)
-        with open(fname, 'r') as f:
-            pxeconf = f.read()
-        self.assertEqual(_PXECONF_TRUSTED_BOOT, pxeconf)
-
     def test_switch_ipxe_config_partition_image(self):
         boot_mode = 'bios'
         fname = self._create_config(ipxe=True)
@@ -492,7 +446,8 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
         utils.switch_pxe_config(fname,
                                 '0x12345678',
                                 boot_mode,
-                                False, False, True,
+                                is_whole_disk_image=False,
+                                iscsi_boot=True,
                                 ipxe_enabled=True)
         with open(fname, 'r') as f:
             pxeconf = f.read()
@@ -988,18 +943,6 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
         self.node.instance_info = {'capabilities': {"secure_boot": "invalid"}}
         self.assertFalse(utils.is_secure_boot_requested(self.node))
 
-    def test_is_trusted_boot_requested_true(self):
-        self.node.instance_info = {'capabilities': {"trusted_boot": "true"}}
-        self.assertTrue(utils.is_trusted_boot_requested(self.node))
-
-    def test_is_trusted_boot_requested_false(self):
-        self.node.instance_info = {'capabilities': {"trusted_boot": "false"}}
-        self.assertFalse(utils.is_trusted_boot_requested(self.node))
-
-    def test_is_trusted_boot_requested_invalid(self):
-        self.node.instance_info = {'capabilities': {"trusted_boot": "invalid"}}
-        self.assertFalse(utils.is_trusted_boot_requested(self.node))
-
     def test_validate_boot_mode_capability(self):
         prop = {'capabilities': 'boot_mode:uefi,cap2:value2'}
         self.node.properties = prop
@@ -1028,12 +971,6 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           utils.validate_capabilities, self.node)
 
-    def test_validate_trusted_boot_capability(self):
-        properties = {'capabilities': 'trusted_boot:value'}
-        self.node.properties = properties
-        self.assertRaises(exception.InvalidParameterValue,
-                          utils.validate_capabilities, self.node)
-
     def test_all_supported_capabilities(self):
         self.assertEqual(('local', 'netboot', 'ramdisk', 'kickstart'),
                          utils.SUPPORTED_CAPABILITIES['boot_option'])
@@ -1041,8 +978,6 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
                          utils.SUPPORTED_CAPABILITIES['boot_mode'])
         self.assertEqual(('true', 'false'),
                          utils.SUPPORTED_CAPABILITIES['secure_boot'])
-        self.assertEqual(('true', 'false'),
-                         utils.SUPPORTED_CAPABILITIES['trusted_boot'])
 
     def test_get_disk_label(self):
         inst_info = {'capabilities': {'disk_label': 'gpt', 'foo': 'bar'}}

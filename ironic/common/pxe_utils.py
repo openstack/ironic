@@ -945,9 +945,10 @@ def build_service_pxe_config(task, instance_image_info,
         pxe_config_path, root_uuid_or_disk_id,
         boot_mode_utils.get_boot_mode(node),
         is_whole_disk_image,
-        deploy_utils.is_trusted_boot_requested(node),
-        deploy_utils.is_iscsi_boot(task), ramdisk_boot,
-        ipxe_enabled=ipxe_enabled, anaconda_boot=anaconda_boot)
+        iscsi_boot=deploy_utils.is_iscsi_boot(task),
+        ramdisk_boot=ramdisk_boot,
+        ipxe_enabled=ipxe_enabled,
+        anaconda_boot=anaconda_boot)
 
 
 def build_kickstart_config_options(task):
@@ -1053,29 +1054,6 @@ def get_volume_pxe_options(task):
     # TODO(TheJulia): FibreChannel boot, i.e. wwpn in volume_type
     # for FCoE, should go here.
     return pxe_options
-
-
-def validate_boot_parameters_for_trusted_boot(node):
-    """Check if boot parameters are valid for trusted boot."""
-    boot_mode = boot_mode_utils.get_boot_mode(node)
-    boot_option = deploy_utils.get_boot_option(node)
-    is_whole_disk_image = node.driver_internal_info.get('is_whole_disk_image')
-    # 'is_whole_disk_image' is not supported by trusted boot, because there is
-    # no Kernel/Ramdisk to measure at all.
-    if (boot_mode != 'bios'
-        or is_whole_disk_image
-        or boot_option != 'netboot'):
-        msg = (_("Trusted boot is only supported in BIOS boot mode with "
-                 "netboot and without whole_disk_image, but Node "
-                 "%(node_uuid)s was configured with boot_mode: %(boot_mode)s, "
-                 "boot_option: %(boot_option)s, is_whole_disk_image: "
-                 "%(is_whole_disk_image)s: at least one of them is wrong, and "
-                 "this can be caused by enable secure boot.") %
-               {'node_uuid': node.uuid, 'boot_mode': boot_mode,
-                'boot_option': boot_option,
-                'is_whole_disk_image': is_whole_disk_image})
-        LOG.error(msg)
-        raise exception.InvalidParameterValue(msg)
 
 
 def validate_kickstart_template(ks_template):

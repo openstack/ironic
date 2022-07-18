@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Support for trusted boot has been removed. This feature requires instance
+    network booting, which is also removed this cycle.

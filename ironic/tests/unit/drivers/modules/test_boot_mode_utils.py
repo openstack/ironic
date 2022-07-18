@@ -96,19 +96,6 @@ class GetBootModeTestCase(tests_base.TestCase):
         result = boot_mode_utils.get_boot_mode_for_deploy(self.node)
         self.assertEqual('uefi', result)
 
-        instance_info = {'capabilities': {'trusted_boot': 'True'}}
-        self.node.instance_info = instance_info
-
-        result = boot_mode_utils.get_boot_mode_for_deploy(self.node)
-        self.assertEqual('bios', result)
-
-        instance_info = {'capabilities': {'trusted_boot': 'True',
-                                          'secure_boot': 'True'}}
-        self.node.instance_info = instance_info
-
-        result = boot_mode_utils.get_boot_mode_for_deploy(self.node)
-        self.assertEqual('uefi', result)
-
     def test_get_boot_mode_for_deploy_using_instance_info_cap(self):
         instance_info = {'capabilities': {'boot_mode': 'uefi'}}
         self.node.instance_info = instance_info

@@ -90,7 +90,7 @@ sc2UnitNodeMacAddress OBJECT-TYPE
 """
 
 MAC_ADDRESS_OID = '1.3.6.1.4.1.231.2.10.2.2.10.3.1.1.9.1'
-CAPABILITIES_PROPERTIES = {'trusted_boot', 'irmc_firmware_version',
+CAPABILITIES_PROPERTIES = {'irmc_firmware_version',
                            'rom_firmware_version', 'server_model',
                            'pci_gpu_devices', 'cpu_fpga'}
 
@@ -175,8 +175,8 @@ def _inspect_hardware(node, existing_traits=None, **kwargs):
             elif cpu_fpga != 0 and 'CUSTOM_CPU_FPGA' not in new_traits:
                 new_traits.append('CUSTOM_CPU_FPGA')
 
-            if capabilities.get('trusted_boot') is False:
-                capabilities.pop('trusted_boot')
+            # Ironic no longer supports trusted boot
+            capabilities.pop('trusted_boot', None)
             capabilities = utils.get_updated_capabilities(
                 node.properties.get('capabilities'), capabilities)
             if capabilities:

@@ -58,7 +58,6 @@ SUPPORTED_CAPABILITIES = {
     'boot_option': ('local', 'netboot', 'ramdisk', 'kickstart'),
     'boot_mode': ('bios', 'uefi'),
     'secure_boot': ('true', 'false'),
-    'trusted_boot': ('true', 'false'),
     'disk_label': ('msdos', 'gpt'),
 }
 
@@ -130,13 +129,10 @@ def _replace_root_uuid(path, root_uuid):
 
 
 def _replace_boot_line(path, boot_mode, is_whole_disk_image,
-                       trusted_boot=False, iscsi_boot=False,
-                       ramdisk_boot=False, ipxe_enabled=False,
-                       anaconda_boot=False):
+                       iscsi_boot=False, ramdisk_boot=False,
+                       ipxe_enabled=False, anaconda_boot=False):
     if is_whole_disk_image:
         boot_disk_type = 'boot_whole_disk'
-    elif trusted_boot:
-        boot_disk_type = 'trusted_boot'
     elif iscsi_boot:
         boot_disk_type = 'boot_iscsi'
     elif ramdisk_boot:
@@ -164,9 +160,9 @@ def _replace_disk_identifier(path, disk_identifier):
 
 # NOTE(TheJulia): This should likely be migrated to pxe_utils.
 def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
-                      is_whole_disk_image, trusted_boot=False,
-                      iscsi_boot=False, ramdisk_boot=False,
-                      ipxe_enabled=False, anaconda_boot=False):
+                      is_whole_disk_image, iscsi_boot=False,
+                      ramdisk_boot=False, ipxe_enabled=False,
+                      anaconda_boot=False):
     """Switch a pxe config from deployment mode to service mode.
 
     :param path: path to the pxe config file in tftpboot.
@@ -174,9 +170,6 @@ def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
                                  disk_id in case of whole disk image.
     :param boot_mode: if boot mode is uefi or bios.
     :param is_whole_disk_image: if the image is a whole disk image or not.
-    :param trusted_boot: if boot with trusted_boot or not. The usage of
-        is_whole_disk_image and trusted_boot are mutually exclusive. You can
-        have one or neither, but not both.
     :param iscsi_boot: if boot is from an iSCSI volume or not.
     :param ramdisk_boot: if the boot is to be to a ramdisk configuration.
     :param ipxe_enabled: A default False boolean value to tell the method
@@ -190,8 +183,8 @@ def switch_pxe_config(path, root_uuid_or_disk_id, boot_mode,
         else:
             _replace_disk_identifier(path, root_uuid_or_disk_id)
 
-    _replace_boot_line(path, boot_mode, is_whole_disk_image, trusted_boot,
-                       iscsi_boot, ramdisk_boot, ipxe_enabled, anaconda_boot)
+    _replace_boot_line(path, boot_mode, is_whole_disk_image, iscsi_boot,
+                       ramdisk_boot, ipxe_enabled, anaconda_boot)
 
 
 def check_for_missing_params(info_dict, error_msg, param_prefix=''):
@@ -1375,7 +1368,6 @@ def is_iscsi_boot(task):
 
 # NOTE(etingof): retain original location of these funcs for compatibility
 is_secure_boot_requested = boot_mode_utils.is_secure_boot_requested
-is_trusted_boot_requested = boot_mode_utils.is_trusted_boot_requested
 get_boot_mode_for_deploy = boot_mode_utils.get_boot_mode_for_deploy
 parse_instance_info_capabilities = (
     utils.parse_instance_info_capabilities

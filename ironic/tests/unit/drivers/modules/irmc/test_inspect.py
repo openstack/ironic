@@ -83,7 +83,6 @@ class IRMCInspectInternalMethodsTestCase(test_common.BaseIRMCTest):
             'cpus': 2,
             'cpu_arch': 'x86_64'}
         inspected_capabilities = {
-            'trusted_boot': False,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
@@ -425,14 +424,12 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
         cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
         existed_capabilities = {
-            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
             'pci_gpu_devices': 1
         }
         inspected_capabilities = {
-            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
@@ -440,7 +437,6 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
             'cpu_fpga': 1
         }
         expected_capabilities = {
-            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
@@ -463,12 +459,10 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
         cpu_fpgas = []
         existed_capabilities = {}
         inspected_capabilities = {
-            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x'}
         expected_capabilities = {
-            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x'}
@@ -489,7 +483,6 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
         cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
         existed_capabilities = {}
         inspected_capabilities = {
-            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
@@ -497,7 +490,6 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
             'cpu_fpga': 0
         }
         expected_capabilities = {
-            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x'}
@@ -519,18 +511,15 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
         gpu_ids = []
         cpu_fpgas = []
         existed_capabilities = {
-            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
             'pci_gpu_devices': 1}
         inspected_capabilities = {
-            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x'}
         expected_capabilities = {
-            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x'}
@@ -552,20 +541,17 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
         cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
         existed_capabilities = {
-            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
             'pci_gpu_devices': 1}
         inspected_capabilities = {
-            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
             'pci_gpu_devices': 0,
             'cpu_fpga': 0}
         expected_capabilities = {
-            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x'}
@@ -581,13 +567,13 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
                                           existed_traits,
                                           expected_traits)
 
-    def test_inspect_hardware_props_trusted_boot_is_false(self):
+    def test_inspect_hardware_props_trusted_boot_removed(self):
         # Set config flags
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
         cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
         existed_capabilities = {}
         inspected_capabilities = {
-            'trusted_boot': False,
+            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
@@ -610,54 +596,17 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
                                           existed_traits,
                                           expected_traits)
 
-    def test_inspect_hardware_props_trusted_boot_is_false_and_existing_cap(
-            self):
-        # Set config flags
-        gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
-        cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
-        existed_capabilities = {
-            'trusted_boot': True,
-            'irmc_firmware_version': 'iRMC S4-7.82F',
-            'server_model': 'TX2540M1F5',
-            'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
-            'pci_gpu_devices': 1}
-        inspected_capabilities = {
-            'trusted_boot': False,
-            'irmc_firmware_version': 'iRMC S4-7.82F',
-            'server_model': 'TX2540M1F5',
-            'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
-            'pci_gpu_devices': 1,
-            'cpu_fpga': 1}
-        expected_capabilities = {
-            'irmc_firmware_version': 'iRMC S4-7.82F',
-            'server_model': 'TX2540M1F5',
-            'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
-            'pci_gpu_devices': 1}
-
-        existed_traits = ['CUSTOM_CPU_FPGA']
-        expected_traits = ['CUSTOM_CPU_FPGA']
-
-        self._test_inspect_hardware_props(gpu_ids,
-                                          cpu_fpgas,
-                                          existed_capabilities,
-                                          inspected_capabilities,
-                                          expected_capabilities,
-                                          existed_traits,
-                                          expected_traits)
-
     def test_inspect_hardware_props_gpu_and_cpu_fpgas_results_are_different(
             self):
         # Set config flags
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
         cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
         existed_capabilities = {
-            'trusted_boot': True,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
             'pci_gpu_devices': 1}
         inspected_capabilities = {
-            'trusted_boot': False,
             'irmc_firmware_version': 'iRMC S4-7.82F',
             'server_model': 'TX2540M1F5',
             'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x',
