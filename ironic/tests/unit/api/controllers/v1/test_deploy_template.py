@@ -883,7 +883,7 @@ class TestPost(BaseDeployTemplatesAPITest):
     def test_create_invalid_step_field_priority(self):
         self._test_create_invalid_step_field(
             'priority', 'not a number',
-            "'not a number' is not of type 'integer'")
+            "'not a number'")  # differs between jsonschema versions
 
     def test_create_invalid_step_field_negative_priority(self):
         self._test_create_invalid_step_field(
