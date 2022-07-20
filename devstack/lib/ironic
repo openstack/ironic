@@ -1354,9 +1354,13 @@ function configure_ironic_provision_network {
         # with our global address, but iPXE seems to have in
         # consistant behavior in this configuration with devstack.
         # so we will setup a dummy interface and use that.
-        sudo ip link add magicv6 type dummy
-        sudo ip link set dev magicv6 up
-        sudo ip -6 addr add $IRONIC_HOST_IPV6/64 dev magicv6
+        if ! $( ping -c1 -w1 $IRONIC_HOST_IPV6 ); then
+            # But before we create an interface, lets make sure it is
+            # not already working.
+            sudo ip link add magicv6 type dummy
+            sudo ip link set dev magicv6 up
+            sudo ip -6 addr add $IRONIC_HOST_IPV6/64 dev magicv6
+        fi
     fi
     if is_service_enabled neutron-api; then
         if [[ "$IRONIC_IP_VERSION" == "6" ]]; then
