@@ -168,30 +168,12 @@ def is_secure_boot_requested(node):
     return sec_boot == 'true'
 
 
-def is_trusted_boot_requested(node):
-    """Returns True if trusted_boot is requested for deploy.
-
-    This method checks instance property for trusted_boot and returns True
-    if it is requested.
-
-    :param node: a single Node.
-    :raises: InvalidParameterValue if the capabilities string is not a
-             dictionary or is malformed.
-    :returns: True if trusted_boot is requested.
-    """
-
-    capabilities = common_utils.parse_instance_info_capabilities(node)
-    trusted_boot = capabilities.get('trusted_boot', 'false').lower()
-
-    return trusted_boot == 'true'
-
-
 def get_boot_mode_for_deploy(node):
     """Returns the boot mode that would be used for deploy.
 
     This method returns boot mode to be used for deploy.
-    It returns 'uefi' if 'secure_boot' is set to 'true' or returns 'bios' if
-    'trusted_boot' is set to 'true' in 'instance_info/capabilities' of node.
+    It returns 'uefi' if 'secure_boot' is set to 'true' in
+    'instance_info/capabilities' of node.
     Otherwise it returns value of 'boot_mode' in 'properties/capabilities'
     of node if set. If that is not set, it returns boot mode in
     'internal_driver_info/deploy_boot_mode' for the node.
@@ -210,12 +192,6 @@ def get_boot_mode_for_deploy(node):
     if is_secure_boot_requested(node):
         LOG.debug('Deploy boot mode is uefi for %s.', node.uuid)
         return 'uefi'
-
-    if is_trusted_boot_requested(node):
-        # TODO(lintan) Trusted boot also supports uefi, but at the moment,
-        # it should only boot with bios.
-        LOG.debug('Deploy boot mode is bios for %s.', node.uuid)
-        return 'bios'
 
     # NOTE(etingof):
     # The search for a boot mode should be in the priority order:

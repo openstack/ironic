@@ -1448,52 +1448,6 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
                                                  list(fake_pxe_info.values()),
                                                  True)
 
-    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
-    def test_validate_boot_parameters_for_trusted_boot_one(self, mock_log):
-        properties = {'capabilities': 'boot_mode:uefi'}
-        instance_info = {"boot_option": "netboot"}
-        self.node.properties = properties
-        self.node.instance_info['capabilities'] = instance_info
-        self.node.driver_internal_info['is_whole_disk_image'] = False
-        self.assertRaises(exception.InvalidParameterValue,
-                          pxe_utils.validate_boot_parameters_for_trusted_boot,
-                          self.node)
-        self.assertTrue(mock_log.called)
-
-    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
-    def test_validate_boot_parameters_for_trusted_boot_two(self, mock_log):
-        properties = {'capabilities': 'boot_mode:bios'}
-        instance_info = {"boot_option": "local"}
-        self.node.properties = properties
-        self.node.instance_info['capabilities'] = instance_info
-        self.node.driver_internal_info['is_whole_disk_image'] = False
-        self.assertRaises(exception.InvalidParameterValue,
-                          pxe_utils.validate_boot_parameters_for_trusted_boot,
-                          self.node)
-        self.assertTrue(mock_log.called)
-
-    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
-    def test_validate_boot_parameters_for_trusted_boot_three(self, mock_log):
-        properties = {'capabilities': 'boot_mode:bios'}
-        instance_info = {"boot_option": "netboot"}
-        self.node.properties = properties
-        self.node.instance_info['capabilities'] = instance_info
-        self.node.driver_internal_info['is_whole_disk_image'] = True
-        self.assertRaises(exception.InvalidParameterValue,
-                          pxe_utils.validate_boot_parameters_for_trusted_boot,
-                          self.node)
-        self.assertTrue(mock_log.called)
-
-    @mock.patch.object(pxe_utils.LOG, 'error', autospec=True)
-    def test_validate_boot_parameters_for_trusted_boot_pass(self, mock_log):
-        properties = {'capabilities': 'boot_mode:bios'}
-        instance_info = {"boot_option": "netboot"}
-        self.node.properties = properties
-        self.node.instance_info['capabilities'] = instance_info
-        self.node.driver_internal_info['is_whole_disk_image'] = False
-        pxe_utils.validate_boot_parameters_for_trusted_boot(self.node)
-        self.assertFalse(mock_log.called)
-
 
 @mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)
 class PXEBuildKickstartConfigOptionsTestCase(db_base.DbTestCase):

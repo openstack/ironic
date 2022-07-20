@@ -359,24 +359,7 @@ class PXEBaseMixin(object):
                     "'kickstart' boot option is set on the node but no "
                     "default kickstart template is specified"))
 
-        # Check the trusted_boot capabilities value.
         deploy_utils.validate_capabilities(node)
-        if deploy_utils.is_trusted_boot_requested(node):
-            # Check if 'boot_option' and boot mode is compatible with
-            # trusted boot.
-            if self.ipxe_enabled:
-                # NOTE(TheJulia): So in theory (huge theory here, not put to
-                # practice or tested), that one can define the kernel as tboot
-                # and define the actual kernel and ramdisk as appended data.
-                # Similar to how one can iPXE load the XEN hypervisor.
-                # tboot mailing list seem to indicate pxe/ipxe support, or
-                # more specifically avoiding breaking the scenarios of use,
-                # but there is also no definitive documentation on the subject.
-                LOG.warning('Trusted boot has been requested for %(node)s in '
-                            'concert with iPXE. This is not a supported '
-                            'configuration for an ironic deployment.',
-                            {'node': node.uuid})
-            pxe_utils.validate_boot_parameters_for_trusted_boot(node)
 
         # Check if we have invalid parameters being passed which will not work
         # for ramdisk configurations.

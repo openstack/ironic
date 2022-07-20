@@ -354,9 +354,6 @@ driver:
 
 * ``rom_firmware_version``: ROM firmware version
 
-* ``trusted_boot``: The flag whether TPM(Trusted Platform Module) is
-  supported by the server. The possible values are 'True' or 'False'.
-
 * ``server_model``: server model
 
 * ``pci_gpu_devices``: number of gpu devices connected to the bare metal.

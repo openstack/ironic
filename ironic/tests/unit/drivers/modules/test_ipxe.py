@@ -190,29 +190,6 @@ class iPXEBootTestCase(db_base.DbTestCase):
             self.assertRaises(exception.MissingParameterValue,
                               task.driver.boot.validate, task)
 
-    def test_validate_fail_trusted_boot_with_secure_boot(self):
-        instance_info = {"boot_option": "netboot",
-                         "secure_boot": "true",
-                         "trusted_boot": "true"}
-        properties = {'capabilities': 'trusted_boot:true'}
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.node.instance_info['capabilities'] = instance_info
-            task.node.properties = properties
-            task.node.driver_internal_info['is_whole_disk_image'] = False
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.boot.validate, task)
-
-    def test_validate_fail_invalid_trusted_boot_value(self):
-        properties = {'capabilities': 'trusted_boot:value'}
-        instance_info = {"trusted_boot": "value"}
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            task.node.properties = properties
-            task.node.instance_info['capabilities'] = instance_info
-            self.assertRaises(exception.InvalidParameterValue,
-                              task.driver.boot.validate, task)
-
     @mock.patch.object(image_service.GlanceImageService, 'show',
                        autospec=True)
     def test_validate_fail_no_image_kernel_ramdisk_props(self, mock_glance):
@@ -623,8 +600,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'uefi', False, False, False, False, ipxe_enabled=True,
-                anaconda_boot=False)
+                'uefi', False, iscsi_boot=False, ramdisk_boot=False,
+                ipxe_enabled=True, anaconda_boot=False)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)
@@ -668,8 +645,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'bios', False, False, False, False, ipxe_enabled=True,
-                anaconda_boot=False)
+                'bios', False, iscsi_boot=False, ramdisk_boot=False,
+                ipxe_enabled=True, anaconda_boot=False)
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)
@@ -829,8 +806,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
                 ipxe_enabled=True)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'bios', False, False, False, False, ipxe_enabled=True,
-                anaconda_boot=False)
+                'bios', False, iscsi_boot=False, ramdisk_boot=False,
+                ipxe_enabled=True, anaconda_boot=False)
             self.assertFalse(set_boot_device_mock.called)
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
@@ -1212,8 +1189,8 @@ class iPXEBootTestCase(db_base.DbTestCase):
                                                          persistent=True)
             switch_pxe_config_mock.assert_called_once_with(
                 pxe_config_path, "30212642-09d3-467f-8e09-21685826ab50",
-                'uefi', True, False, False, False, ipxe_enabled=True,
-                anaconda_boot=False)
+                'uefi', True, iscsi_boot=False, ramdisk_boot=False,
+                ipxe_enabled=True, anaconda_boot=False)
             # No clean up
             self.assertFalse(clean_up_pxe_config_mock.called)
             # No netboot configuration beyond the PXE files
