@@ -175,7 +175,7 @@
         IRONIC_ENABLED_HARDWARE_TYPES: redfish
         IRONIC_ENABLED_POWER_INTERFACES: redfish
         IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
-        IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct,ansible,ramdisk"
+        IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct,ramdisk"
         IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_VM_COUNT: 4

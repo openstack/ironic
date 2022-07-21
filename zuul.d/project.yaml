@@ -17,7 +17,6 @@
         - ironic-tempest-wholedisk-bios-snmp-pxe
         - ironic-tempest-ipa-partition-pxe_ipmitool
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
@@ -37,6 +36,9 @@
             voting: false
         - ironic-tempest-pxe_ipmitool-postgres:
             voting: false
+        # NOTE(TheJulia): Disabled as this is a higher failure rate CI job
+        # which is not really needed on a stable branch at this point.
+        #- ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     gate:
       queue: ironic
       jobs:
@@ -49,13 +51,15 @@
         - ironic-tempest-wholedisk-bios-snmp-pxe
         - ironic-tempest-ipa-partition-pxe_ipmitool
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-localboot-centos7
+        # NOTE(TheJulia): high-ish failure rate due to memory footprint,
+        # Commenting out for now.
+        # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     experimental:
       jobs:
         # TODO(dtantsur): these jobs are useful but currently hopelessly
