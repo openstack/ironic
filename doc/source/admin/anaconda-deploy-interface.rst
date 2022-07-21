@@ -218,6 +218,35 @@ collects the files, and stages them appropriately.
 
 At this point, you should be able to request the baremetal node to deploy.
 
+Standalone using a repository
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Anaconda supports a concept of passing a repository as opposed to a dedicated
+URL path which has a ``.treeinfo`` file, which tells the initial boot scripts
+where to get various dependencies, such as what would be used as the anaconda
+``stage2`` ramdisk. Unfortunately, this functionality is not well documented.
+
+An example ``.treeinfo`` file can be found at
+http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/.treeinfo.
+
+.. note::
+   In the context of the ``.treeinfo`` file and the related folder structure
+   for a deployment utilizing the ``anaconda`` deployment interface,
+   ``images/install.img`` file represents a ``stage2`` ramdisk.
+
+In the context of one wishing to deploy Centos Stream-9, the following may
+be useful.
+
+.. code-block:: shell
+
+       baremetal node set <node> \
+           --instance_info image_source=http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/ \
+           --instance_info kernel=http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/images/pxeboot/vmlinuz \
+           --instance_info ramdisk=http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/images/pxeboot/initrd.img
+
+Once set, a kickstart template can be provided via an ``instance_info``
+parameter, and the node deployed.
+
 Deployment Process
 ------------------
 

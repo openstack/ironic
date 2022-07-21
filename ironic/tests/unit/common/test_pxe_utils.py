@@ -133,6 +133,17 @@ class TestPXEUtils(db_base.DbTestCase):
             'ramdisk_kernel_arguments': 'ramdisk_params'
         })
 
+        self.ipxe_kickstart_deploy = self.pxe_options.copy()
+        self.ipxe_kickstart_deploy.update({
+            'deployment_aki_path': 'http://1.2.3.4:1234/deploy_kernel',
+            'deployment_ari_path': 'http://1.2.3.4:1234/deploy_ramdisk',
+            'aki_path': 'http://1.2.3.4:1234/kernel',
+            'ari_path': 'http://1.2.3.4:1234/ramdisk',
+            'initrd_filename': 'deploy_ramdisk',
+            'repo_url': 'http://1.2.3.4/path/to/os/',
+        })
+        self.ipxe_kickstart_deploy.pop('stage2_url')
+
         self.node = object_utils.create_test_node(self.context)
 
     def test_default_pxe_config(self):
@@ -311,6 +322,27 @@ class TestPXEUtils(db_base.DbTestCase):
 
         templ_file = 'ironic/tests/unit/drivers/' \
                      'ipxe_config_boot_from_ramdisk.template'
+        with open(templ_file) as f:
+            expected_template = f.read().rstrip()
+        self.assertEqual(str(expected_template), rendered_template)
+
+    def test_default_ipxe_boot_from_anaconda(self):
+        self.config(
+            pxe_config_template='ironic/drivers/modules/ipxe_config.template',
+            group='pxe'
+        )
+        self.config(http_url='http://1.2.3.4:1234', group='deploy')
+
+        pxe_options = self.ipxe_kickstart_deploy
+
+        rendered_template = utils.render_template(
+            CONF.pxe.ipxe_config_template,
+            {'pxe_options': pxe_options,
+             'ROOT': '{{ ROOT }}'},
+        )
+
+        templ_file = 'ironic/tests/unit/drivers/' \
+                     'ipxe_config_boot_from_anaconda.template'
         with open(templ_file) as f:
             expected_template = f.read().rstrip()
         self.assertEqual(str(expected_template), rendered_template)
@@ -1356,6 +1388,62 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         self.context.auth_token = 'fake'
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            image_info = pxe_utils.get_instance_image_info(
+                task, ipxe_enabled=False)
+            self.assertEqual(expected_info, image_info)
+            # In the absense of kickstart template in both instance_info and
+            # image default kickstart template is used
+            self.assertEqual(CONF.anaconda.default_ks_template,
+                             image_info['ks_template'][0])
+            calls = [mock.call(task.node), mock.call(task.node)]
+            boot_opt_mock.assert_has_calls(calls)
+            # Instance info gets presedence over kickstart template on the
+            # image
+            properties['properties'] = {'ks_template': 'glance://template_id'}
+            task.node.instance_info['ks_template'] = 'https://server/fake.tmpl'
+            image_show_mock.return_value = properties
+            image_info = pxe_utils.get_instance_image_info(
+                task, ipxe_enabled=False)
+            self.assertEqual('https://server/fake.tmpl',
+                             image_info['ks_template'][0])
+
+    @mock.patch('ironic.drivers.modules.deploy_utils.get_boot_option',
+                return_value='kickstart', autospec=True)
+    @mock.patch.object(image_service.GlanceImageService, 'show', autospec=True)
+    def test_get_instance_image_info_with_kickstart_url(
+            self, image_show_mock, boot_opt_mock):
+        properties = {'properties': {u'kernel_id': u'instance_kernel_uuid',
+                                     u'ramdisk_id': u'instance_ramdisk_uuid',
+                                     u'image_source': u'http://path/to/os/'}}
+
+        expected_info = {'ramdisk':
+                         ('instance_ramdisk_uuid',
+                          os.path.join(CONF.pxe.tftp_root,
+                                       self.node.uuid,
+                                       'ramdisk')),
+                         'kernel':
+                         ('instance_kernel_uuid',
+                          os.path.join(CONF.pxe.tftp_root,
+                                       self.node.uuid,
+                                       'kernel')),
+                         'ks_template':
+                         (CONF.anaconda.default_ks_template,
+                          os.path.join(CONF.deploy.http_root,
+                                       self.node.uuid,
+                                       'ks.cfg.template')),
+                         'ks_cfg':
+                         ('',
+                          os.path.join(CONF.deploy.http_root,
+                                       self.node.uuid,
+                                       'ks.cfg'))}
+        image_show_mock.return_value = properties
+        self.context.auth_token = 'fake'
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            dii = task.node.driver_internal_info
+            dii['is_source_a_path'] = True
+            task.node.driver_internal_info = dii
+            task.node.save()
             image_info = pxe_utils.get_instance_image_info(
                 task, ipxe_enabled=False)
             self.assertEqual(expected_info, image_info)
