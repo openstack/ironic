@@ -7321,6 +7321,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_boot_validate.assert_not_called()
         self.assertNotIn('is_whole_disk_image', task.node.driver_internal_info)
 
+    @mock.patch('ironic.common.image_service.HttpImageService.validate_href',
+                autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
                 autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate', autospec=True)
@@ -7335,7 +7337,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                        mock_take_over,
                                        mock_start_console,
                                        mock_boot_validate,
-                                       mock_power_validate):
+                                       mock_power_validate,
+                                       mock_validate_href):
         """Test a successful node adoption"""
         self._start_service()
         node = obj_utils.create_test_node(
@@ -7359,6 +7362,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_boot_validate.assert_called_once_with(task.driver.boot, task)
         self.assertTrue(task.node.driver_internal_info.get(
             'is_whole_disk_image'))
+        mock_validate_href.assert_called_once_with(mock.ANY,
+                                                   'http://127.0.0.1/image')
 
     @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console',
