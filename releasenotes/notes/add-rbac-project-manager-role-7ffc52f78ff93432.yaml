@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds a default ``project`` scoped ``manager`` role to the RBAC model.
+    In the ironic model, access is generally explicitly delegated, and such
+    the ``manager`` role is presently equivelent to project scoped ``admin``
+    role, however future delineation may occur as the new features and
+    capabilities are added.

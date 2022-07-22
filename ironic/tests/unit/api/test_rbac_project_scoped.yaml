@@ -38,7 +38,11 @@ values:
   # Project scoped admin token
   owner_admin_headers: &owner_admin_headers
     X-Auth-Token: 'owner-admin-token'
-    X-Roles: admin,member,reader
+    X-Roles: admin,manager,member,reader
+    X-Project-Id: 70e5e25a-2ca2-4cb1-8ae8-7d8739cee205
+  owner_manager_headers: &owner_manager_headers
+    X-Auth-Token: 'owner-manager-token'
+    X-Roles: manager,member,reader
     X-Project-Id: 70e5e25a-2ca2-4cb1-8ae8-7d8739cee205
   # Project scoped other member token.
   owner_member_headers: &owner_member_headers
@@ -53,7 +57,11 @@ values:
   lessee_admin_headers: &lessee_admin_headers
     X-Auth-Token: 'lessee-admin-token'
     X-Project-Id: f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
-    X-Roles: admin,member,reader
+    X-Roles: admin,manager,member,reader
+  lessee_manager_headers: &lessee_manager_headers
+    X-Auth-Token: 'lessee-manager-token'
+    X-Project-Id: f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
+    X-Roles: manager,member,reader
   lessee_member_headers: &lessee_member_headers
     X-Auth-Token: 'lessee-member-token'
     X-Project-Id: f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
@@ -65,7 +73,7 @@ values:
   third_party_admin_headers: &third_party_admin_headers
     X-Auth-Token: 'third-party-admin-token'
     X-Project-Id: ae64129e-b188-4662-b014-4127f4366ee6
-    X-Roles: admin,member,reader
+    X-Roles: admin,manager,member,reader
   owner_project_id: &owner_project_id 70e5e25a-2ca2-4cb1-8ae8-7d8739cee205
   lessee_project_id: &lessee_project_id f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
   owned_node_ident: &owned_node_ident f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
@@ -83,10 +91,24 @@ owner_admin_cannot_post_nodes:
     driver: fake-driverz
   assert_status: 500
 
+owner_manager_cannot_post_nodes:
+  path: '/v1/nodes'
+  method: post
+  headers: *owner_manager_headers
+  body: *node_post_body
+  assert_status: 500
+
 lessee_admin_cannot_post_nodes:
   path: '/v1/nodes'
   method: post
   headers: *lessee_admin_headers
+  body: *node_post_body
+  assert_status: 500
+
+lessee_manager_cannot_post_nodes:
+  path: '/v1/nodes'
+  method: post
+  headers: *lessee_manager_headers
   body: *node_post_body
   assert_status: 500
 
@@ -123,6 +145,14 @@ owner_admin_can_get_node:
     nodes: 2
   assert_status: 200
 
+owner_manager_can_get_node:
+  path: '/v1/nodes'
+  method: get
+  headers: *owner_manager_headers
+  assert_list_length:
+    nodes: 2
+  assert_status: 200
+
 owner_member_can_get_node:
   path: '/v1/nodes'
   method: get
@@ -143,6 +173,14 @@ lessee_admin_can_get_node:
   path: '/v1/nodes'
   method: get
   headers: *lessee_admin_headers
+  assert_list_length:
+      nodes: 1
+  assert_status: 200
+
+lessee_manager_can_get_node:
+  path: '/v1/nodes'
+  method: get
+  headers: *lessee_manager_headers
   assert_list_length:
       nodes: 1
   assert_status: 200
@@ -277,6 +315,13 @@ owner_admin_can_patch_node_extra:
       value: {'test': 'testing'}
   assert_status: 503
 
+owner_manager_can_patch_node_extra:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: patch
+  headers: *owner_manager_headers
+  body: *extra_patch
+  assert_status: 503
+
 owner_member_can_patch_node_extra:
   path: '/v1/nodes/{owner_node_ident}'
   method: patch
@@ -295,6 +340,13 @@ lessee_admin_can_patch_node_extra:
   path: '/v1/nodes/{lessee_node_ident}'
   method: patch
   headers: *lessee_admin_headers
+  body: *extra_patch
+  assert_status: 503
+
+lessee_manager_can_patch_node_extra:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *lessee_manager_headers
   body: *extra_patch
   assert_status: 503
 
@@ -323,6 +375,19 @@ owner_admin_can_change_drivers:
   path: '/v1/nodes/{owner_node_ident}'
   method: patch
   headers: *owner_admin_headers
+  body:
+    - op: replace
+      path: /driver
+      value: fake-hardware
+    - op: replace
+      path: /power_interface
+      value: fake
+  assert_status: 503
+
+owner_manager_can_change_drivers:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: patch
+  headers: *owner_manager_headers
   body:
     - op: replace
       path: /driver
@@ -363,6 +428,7 @@ owner_member_can_patch_all_the_things:
       value: "43"
   assert_status: 503
 
+# FIXME(TheJulia): This should be with member privilges below.
 owner_member_can_change_lessee:
   path: '/v1/nodes/{owner_node_ident}'
   method: patch
@@ -383,10 +449,30 @@ lessee_admin_cannot_change_lessee:
       path: /lessee
       value: "1234"
 
+lessee_manager_cannot_change_lessee:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *lessee_manager_headers
+  assert_status: 403
+  body:
+    - op: replace
+      path: /lessee
+      value: "1234"
+
 lessee_admin_cannot_change_owner:
   path: '/v1/nodes/{lessee_node_ident}'
   method: patch
   headers: *lessee_admin_headers
+  body:
+    - op: replace
+      path: /owner
+      value: "1234"
+  assert_status: 403
+
+lessee_manager_cannot_change_owner:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *lessee_manager_headers
   body:
     - op: replace
       path: /owner
@@ -403,10 +489,30 @@ owner_admin_can_change_lessee:
       value: "1234"
   assert_status: 503
 
+owner_manager_can_change_lessee:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: patch
+  headers: *owner_manager_headers
+  body:
+    - op: replace
+      path: /lessee
+      value: "1234"
+  assert_status: 503
+
 owner_admin_cannot_change_owner:
   path: '/v1/nodes/{owner_node_ident}'
   method: patch
   headers: *owner_admin_headers
+  body:
+    - op: replace
+      path: /owner
+      value: "1234"
+  assert_status: 403
+
+owner_manager_cannot_change_owner:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: patch
+  headers: *owner_manager_headers
   body:
     - op: replace
       path: /owner
@@ -504,6 +610,13 @@ owner_admin_can_patch_node_instance_info:
       value: {'test': 'testing'}
   assert_status: 503
 
+owner_manager_can_patch_node_instance_info:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: patch
+  headers: *owner_manager_headers
+  body: *instance_info_patch
+  assert_status: 503
+
 owner_member_can_patch_node_instance_info:
   path: '/v1/nodes/{owner_node_ident}'
   method: patch
@@ -522,6 +635,13 @@ lessee_admin_can_patch_node_instance_info:
   path: '/v1/nodes/{lessee_node_ident}'
   method: patch
   headers: *lessee_admin_headers
+  body: *instance_info_patch
+  assert_status: 503
+
+lessee_manager_can_patch_node_instance_info:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *lessee_manager_headers
   body: *instance_info_patch
   assert_status: 503
 
@@ -552,10 +672,22 @@ owner_admin_cannot_delete_nodes:
   headers: *owner_admin_headers
   assert_status: 403
 
+owner_manager_cannot_delete_nodes:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: delete
+  headers: *owner_manager_headers
+  assert_status: 403
+
 lessee_admin_cannot_delete_nodes:
   path: '/v1/nodes/{lessee_node_ident}'
   method: delete
   headers: *lessee_admin_headers
+  assert_status: 403
+
+lessee_manager_cannot_delete_nodes:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: delete
+  headers: *lessee_manager_headers
   assert_status: 403
 
 third_party_admin_cannot_delete_nodes:
@@ -579,10 +711,22 @@ owner_admin_can_validate_node:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_can_validate_node:
+  path: '/v1/nodes/{owner_node_ident}/validate'
+  method: get
+  headers: *owner_manager_headers
+  assert_status: 503
+
 lessee_admin_can_validate_node:
   path: '/v1/nodes/{lessee_node_ident}/validate'
   method: get
   headers: *lessee_admin_headers
+  assert_status: 503
+
+lessee_manager_can_validate_node:
+  path: '/v1/nodes/{lessee_node_ident}/validate'
+  method: get
+  headers: *lessee_manager_headers
   assert_status: 503
 
 owner_member_can_validate_node:
@@ -609,11 +753,23 @@ owner_admin_can_set_maintenance:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_can_set_maintenance:
+  path: '/v1/nodes/{owner_node_ident}/maintenance'
+  method: put
+  headers: *owner_manager_headers
+  assert_status: 503
+
 # should we really allow this? they could desync with nova if they can do this...
 lessee_admin_can_set_maintenance:
   path: '/v1/nodes/{lessee_node_ident}/maintenance'
   method: put
   headers: *lessee_admin_headers
+  assert_status: 503
+
+lessee_manager_can_set_maintenance:
+  path: '/v1/nodes/{lessee_node_ident}/maintenance'
+  method: put
+  headers: *lessee_manager_headers
   assert_status: 503
 
 owner_member_can_set_maintenance:
@@ -640,10 +796,22 @@ owner_admin_can_unset_maintenance:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_can_unset_maintenance:
+  path: '/v1/nodes/{owner_node_ident}/maintenance'
+  method: delete
+  headers: *owner_manager_headers
+  assert_status: 503
+
 lessee_admin_can_unset_maintenance:
   path: '/v1/nodes/{lessee_node_ident}/maintenance'
   method: delete
   headers: *lessee_admin_headers
+  assert_status: 503
+
+lessee_manager_can_unset_maintenance:
+  path: '/v1/nodes/{lessee_node_ident}/maintenance'
+  method: delete
+  headers: *lessee_manager_headers
   assert_status: 503
 
 owner_member_can_unset_maintnenance:
@@ -674,10 +842,24 @@ owner_admin_can_set_boot_device:
     boot_device: pxe
   assert_status: 503
 
+owner_manager_can_set_boot_device:
+  path: '/v1/nodes/{owner_node_ident}/management/boot_device'
+  method: put
+  headers: *owner_manager_headers
+  body: *boot_device_body
+  assert_status: 503
+
 lessee_admin_cannot_set_boot_device:
   path: '/v1/nodes/{lessee_node_ident}/management/boot_device'
   method: put
   headers: *lessee_admin_headers
+  body: *boot_device_body
+  assert_status: 403
+
+lessee_manager_cannot_set_boot_device:
+  path: '/v1/nodes/{lessee_node_ident}/management/boot_device'
+  method: put
+  headers: *lessee_manager_headers
   body: *boot_device_body
   assert_status: 403
 
@@ -708,6 +890,13 @@ owner_admin_can_get_boot_device:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_can_get_boot_device:
+  path: '/v1/nodes/{owner_node_ident}/management/boot_device'
+  method: get
+  headers: *owner_manager_headers
+  assert_status: 503
+
+# FIXME(TheJulia): This should be lessee admin headers below.
 lessee_admin_cannot_get_boot_device:
   path: '/v1/nodes/{lessee_node_ident}/management/boot_device'
   method: get
@@ -750,6 +939,12 @@ owner_admin_can_get_supported_boot_devices:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_can_get_supported_boot_devices:
+  path: '/v1/nodes/{owner_node_ident}/management/boot_device/supported'
+  method: get
+  headers: *owner_manager_headers
+  assert_status: 503
+
 owner_member_cannot_get_supported_boot_devices:
   path: '/v1/nodes/{owner_node_ident}/management/boot_device/supported'
   method: get
@@ -760,6 +955,12 @@ lessee_admin_cannot_get_supported_boot_devices:
   path: '/v1/nodes/{lessee_node_ident}/management/boot_device/supported'
   method: get
   headers: *lessee_admin_headers
+  assert_status: 403
+
+lessee_manager_cannot_get_supported_boot_devices:
+  path: '/v1/nodes/{lessee_node_ident}/management/boot_device/supported'
+  method: get
+  headers: *lessee_manager_headers
   assert_status: 403
 
 third_party_admin_cannot_get_supported_boot_devices:
@@ -777,10 +978,24 @@ owner_admin_can_send_non_masking_interrupt:
   body: {}
   assert_status: 503
 
+owner_manager_can_send_non_masking_interrupt:
+  path: '/v1/nodes/{owner_node_ident}/management/inject_nmi'
+  method: put
+  headers: *owner_manager_headers
+  body: {}
+  assert_status: 503
+
 lessee_admin_cannot_send_non_masking_interrupt:
   path: '/v1/nodes/{lessee_node_ident}/management/inject_nmi'
   method: put
   headers: *lessee_admin_headers
+  body: {}
+  assert_status: 403
+
+lessee_manager_cannot_send_non_masking_interrupt:
+  path: '/v1/nodes/{lessee_node_ident}/management/inject_nmi'
+  method: put
+  headers: *lessee_manager_headers
   body: {}
   assert_status: 403
 
@@ -821,10 +1036,24 @@ owner_admin_can_put_power_state_change:
     target: "power on"
   assert_status: 503
 
+owner_manager_can_put_power_state_change:
+  path: '/v1/nodes/{owner_node_ident}/states/power'
+  method: put
+  headers: *owner_manager_headers
+  body: *power_body
+  assert_status: 503
+
 lessee_admin_can_put_power_state_change:
   path: '/v1/nodes/{lessee_node_ident}/states/power'
   method: put
   headers: *lessee_admin_headers
+  body: *power_body
+  assert_status: 503
+
+lessee_manager_can_put_power_state_change:
+  path: '/v1/nodes/{lessee_node_ident}/states/power'
+  method: put
+  headers: *lessee_manager_headers
   body: *power_body
   assert_status: 503
 
@@ -873,10 +1102,24 @@ owner_admin_can_put_boot_mode_state_change:
     target: "uefi"
   assert_status: 503
 
+owner_manager_can_put_boot_mode_state_change:
+  path: '/v1/nodes/{owner_node_ident}/states/boot_mode'
+  method: put
+  headers: *owner_manager_headers
+  body: *boot_mode_body
+  assert_status: 503
+
 lessee_admin_can_put_boot_mode_state_change:
   path: '/v1/nodes/{lessee_node_ident}/states/boot_mode'
   method: put
   headers: *lessee_admin_headers
+  body: *boot_mode_body
+  assert_status: 503
+
+lessee_manager_can_put_boot_mode_state_change:
+  path: '/v1/nodes/{lessee_node_ident}/states/boot_mode'
+  method: put
+  headers: *lessee_manager_headers
   body: *boot_mode_body
   assert_status: 503
 
@@ -925,10 +1168,24 @@ owner_admin_can_put_secure_boot_state_change:
     target: "true"
   assert_status: 503
 
+owner_manager_can_put_secure_boot_state_change:
+  path: '/v1/nodes/{owner_node_ident}/states/secure_boot'
+  method: put
+  headers: *owner_manager_headers
+  body: *secure_boot_body
+  assert_status: 503
+
 lessee_admin_can_put_secure_boot_state_change:
   path: '/v1/nodes/{lessee_node_ident}/states/secure_boot'
   method: put
   headers: *lessee_admin_headers
+  body: *secure_boot_body
+  assert_status: 503
+
+lessee_manager_can_put_secure_boot_state_change:
+  path: '/v1/nodes/{lessee_node_ident}/states/secure_boot'
+  method: put
+  headers: *lessee_manager_headers
   body: *secure_boot_body
   assert_status: 503
 
@@ -977,6 +1234,13 @@ owner_admin_can_change_provision_state:
     target: deploy
   assert_status: 503
 
+owner_manager_can_change_provision_state:
+  path: '/v1/nodes/{owner_node_ident}/states/provision'
+  method: put
+  headers: *owner_manager_headers
+  body: *provision_body
+  assert_status: 503
+
 owner_member_can_change_provision_state:
   path: '/v1/nodes/{owner_node_ident}/states/provision'
   method: put
@@ -990,6 +1254,14 @@ lessee_admin_can_change_provision_state:
   headers: *lessee_admin_headers
   body: *provision_body
   assert_status: 503
+
+lessee_manager_can_change_provision_state:
+  path: '/v1/nodes/{lessee_node_ident}/states/provision'
+  method: put
+  headers: *lessee_manager_headers
+  body: *provision_body
+  assert_status: 503
+
 
 lessee_member_cannot_change_provision_state:
   path: '/v1/nodes/{lessee_node_ident}/states/provision'
@@ -1019,10 +1291,24 @@ owner_admin_can_set_raid_config:
           raid_level: 1
   assert_status: 503
 
+owner_manager_can_set_raid_config:
+  path: '/v1/nodes/{owner_node_ident}/states/raid'
+  method: put
+  headers: *owner_manager_headers
+  body: *raid_body
+  assert_status: 503
+
 lessee_admin_cannot_set_raid_config:
   path: '/v1/nodes/{lessee_node_ident}/states/raid'
   method: put
   headers: *lessee_admin_headers
+  body: *raid_body
+  assert_status: 403
+
+lessee_manager_cannot_set_raid_config:
+  path: '/v1/nodes/{lessee_node_ident}/states/raid'
+  method: put
+  headers: *lessee_manager_headers
   body: *raid_body
   assert_status: 403
 
@@ -1055,10 +1341,22 @@ owner_admin_can_get_console:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_can_get_console:
+  path: '/v1/nodes/{owner_node_ident}/states/console'
+  method: get
+  headers: *owner_manager_headers
+  assert_status: 503
+
 lessee_admin_cannot_get_console:
   path: '/v1/nodes/{lessee_node_ident}/states/console'
   method: get
   headers: *lessee_admin_headers
+  assert_status: 403
+
+lessee_manager_cannot_get_console:
+  path: '/v1/nodes/{lessee_node_ident}/states/console'
+  method: get
+  headers: *lessee_manager_headers
   assert_status: 403
 
 owner_member_can_get_console:
@@ -1099,10 +1397,24 @@ owner_admin_can_set_console:
     enabled: true
   assert_status: 503
 
+owner_manager_can_set_console:
+  path: '/v1/nodes/{owner_node_ident}/states/console'
+  method: put
+  headers: *owner_manager_headers
+  body: *console_body_put
+  assert_status: 503
+
 lessee_admin_cannot_set_console:
   path: '/v1/nodes/{lessee_node_ident}/states/console'
   method: put
   headers: *lessee_admin_headers
+  body: *console_body_put
+  assert_status: 403
+
+lessee_manager_cannot_set_console:
+  path: '/v1/nodes/{lessee_node_ident}/states/console'
+  method: put
+  headers: *lessee_manager_headers
   body: *console_body_put
   assert_status: 403
 
@@ -1132,6 +1444,12 @@ owner_admin_cannot_get_vendor_passthru_methods:
   headers: *owner_admin_headers
   assert_status: 403
 
+owner_manager_cannot_get_vendor_passthru_methods:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru/methods'
+  method: get
+  headers: *owner_manager_headers
+  assert_status: 403
+
 owner_member_cannot_get_vendor_passthru_methods:
   path: '/v1/nodes/{owner_node_ident}/vendor_passthru/methods'
   method: get
@@ -1148,6 +1466,12 @@ lessee_admin_cannot_get_vendor_passthru_methods:
   path: '/v1/nodes/{lessee_node_ident}/vendor_passthru/methods'
   method: get
   headers: *lessee_admin_headers
+  assert_status: 403
+
+lessee_manager_cannot_get_vendor_passthru_methods:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru/methods'
+  method: get
+  headers: *lessee_manager_headers
   assert_status: 403
 
 lessee_member_cannot_get_vendor_passthru_methods:
@@ -1169,6 +1493,12 @@ owner_admin_cannot_get_vendor_passthru:
   headers: *owner_admin_headers
   assert_status: 403
 
+owner_manager_cannot_get_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: get
+  headers: *owner_manager_headers
+  assert_status: 403
+
 owner_member_cannot_get_vendor_passthru:
   path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
   method: get
@@ -1185,6 +1515,12 @@ lessee_admin_cannot_get_vendor_passthru:
   path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
   method: get
   headers: *lessee_admin_headers
+  assert_status: 403
+
+lessee_manager_cannot_get_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: get
+  headers: *lessee_manager_headers
   assert_status: 403
 
 lessee_member_cannot_get_vendor_passthru:
@@ -1207,6 +1543,12 @@ owner_admin_cannot_post_vendor_passthru:
   headers: *owner_admin_headers
   assert_status: 403
 
+owner_manager_cannot_post_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: post
+  headers: *owner_manager_headers
+  assert_status: 403
+
 owner_member_cannot_post_vendor_passthru:
   path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
   method: post
@@ -1223,6 +1565,12 @@ lessee_admin_cannot_post_vendor_passthru:
   path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
   method: post
   headers: *lessee_admin_headers
+  assert_status: 403
+
+lessee_manager_cannot_post_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: post
+  headers: *lessee_manager_headers
   assert_status: 403
 
 lessee_member_cannot_post_vendor_passthru:
@@ -1245,6 +1593,12 @@ owner_admin_cannot_put_vendor_passthru:
   headers: *owner_admin_headers
   assert_status: 403
 
+owner_manager_cannot_put_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: put
+  headers: *owner_manager_headers
+  assert_status: 403
+
 owner_member_cannot_put_vendor_passthru:
   path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
   method: put
@@ -1261,6 +1615,12 @@ lessee_admin_cannot_put_vendor_passthru:
   path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
   method: put
   headers: *lessee_admin_headers
+  assert_status: 403
+
+lessee_manager_cannot_put_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: put
+  headers: *lessee_manager_headers
   assert_status: 403
 
 lessee_member_cannot_put_vendor_passthru:
@@ -1283,6 +1643,12 @@ owner_admin_cannot_delete_vendor_passthru:
   headers: *owner_admin_headers
   assert_status: 403
 
+owner_manager_cannot_delete_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: delete
+  headers: *owner_manager_headers
+  assert_status: 403
+
 owner_member_cannot_delete_vendor_passthru:
   path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
   method: delete
@@ -1299,6 +1665,12 @@ lessee_admin_cannot_delete_vendor_passthru:
   path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
   method: delete
   headers: *lessee_admin_headers
+  assert_status: 403
+
+lessee_manager_cannot_delete_vendor_passthru:
+  path: '/v1/nodes/{lessee_node_ident}/vendor_passthru?method=test'
+  method: delete
+  headers: *lessee_manager_headers
   assert_status: 403
 
 lessee_member_cannot_delete_vendor_passthru:
@@ -1343,6 +1715,13 @@ owner_admin_can_put_traits:
       - CUSTOM_TRAIT1
       - HW_CPU_X86_VMX
 
+owner_manager_can_put_traits:
+  path: '/v1/nodes/{owner_node_ident}/traits'
+  method: put
+  headers: *owner_manager_headers
+  assert_status: 503
+  body: *traits_body
+
 owner_member_cannot_put_traits:
   path: '/v1/nodes/{owner_node_ident}/traits'
   method: put
@@ -1354,6 +1733,13 @@ lessee_admin_cannot_put_traits:
   path: '/v1/nodes/{lessee_node_ident}/traits'
   method: put
   headers: *lessee_admin_headers
+  assert_status: 403
+  body: *traits_body
+
+lessee_manager_cannot_put_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits'
+  method: put
+  headers: *lessee_manager_headers
   assert_status: 403
   body: *traits_body
 
@@ -1377,6 +1763,12 @@ owner_admin_can_delete_traits:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_can_delete_traits:
+  path: '/v1/nodes/{owner_node_ident}/traits/{trait}'
+  method: delete
+  headers: *owner_manager_headers
+  assert_status: 503
+
 owner_member_cannot_delete_traits:
   path: '/v1/nodes/{owner_node_ident}/traits/{trait}'
   method: delete
@@ -1387,6 +1779,12 @@ lessee_admin_cannot_delete_traits:
   path: '/v1/nodes/{lessee_node_ident}/traits/{trait}'
   method: delete
   headers: *lessee_admin_headers
+  assert_status: 403
+
+lessee_manager_cannot_delete_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits/{trait}'
+  method: delete
+  headers: *lessee_manager_headers
   assert_status: 403
 
 lessee_member_cannot_delete_traits:
@@ -1407,6 +1805,12 @@ owner_admin_can_put_custom_traits:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_can_put_custom_traits:
+  path: '/v1/nodes/{owner_node_ident}/traits/CUSTOM_TRAIT2'
+  method: put
+  headers: *owner_manager_headers
+  assert_status: 503
+
 owner_member_cannot_put_custom_traits:
   path: '/v1/nodes/{owner_node_ident}/traits/CUSTOM_TRAIT2'
   method: put
@@ -1417,6 +1821,12 @@ lessee_admin_cannot_put_custom_traits:
   path: '/v1/nodes/{lessee_node_ident}/traits/CUSTOM_TRAIT2'
   method: put
   headers: *lessee_admin_headers
+  assert_status: 403
+
+lessee_manager_cannot_put_custom_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits/CUSTOM_TRAIT2'
+  method: put
+  headers: *lessee_manager_headers
   assert_status: 403
 
 lessee_member_cannot_put_custom_traits:
@@ -1463,10 +1873,24 @@ owner_admin_can_post_vifs:
   body: &vif_body
     id: ee21d58f-5de2-4956-85ff-33935ea1ca00
 
+owner_manager_can_post_vifs:
+  path: '/v1/nodes/{owner_node_ident}/vifs'
+  method: post
+  headers: *owner_manager_headers
+  assert_status: 503
+  body: *vif_body
+
 lessee_admin_can_post_vifs:
   path: '/v1/nodes/{lessee_node_ident}/vifs'
   method: post
   headers: *lessee_admin_headers
+  assert_status: 503
+  body: *vif_body
+
+lessee_manager_can_post_vifs:
+  path: '/v1/nodes/{lessee_node_ident}/vifs'
+  method: post
+  headers: *lessee_manager_headers
   assert_status: 503
   body: *vif_body
 
@@ -1511,10 +1935,22 @@ owner_admin_delete_vifs:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_delete_vifs:
+  path: '/v1/nodes/{owner_node_ident}/vifs/{vif_ident}'
+  method: delete
+  headers: *owner_manager_headers
+  assert_status: 503
+
 lessee_admin_can_delete_vifs:
   path: '/v1/nodes/{lessee_node_ident}/vifs/{vif_ident}'
   method: delete
   headers: *lessee_admin_headers
+  assert_status: 503
+
+lessee_manager_can_delete_vifs:
+  path: '/v1/nodes/{lessee_node_ident}/vifs/{vif_ident}'
+  method: delete
+  headers: *lessee_manager_headers
   assert_status: 503
 
 owner_member_can_delete_vifs:
@@ -1642,6 +2078,13 @@ owner_admin_can_add_portgroup:
     node_uuid: 1ab63b9e-66d7-4cd7-8618-dddd0f9f7881
   assert_status: 201
 
+owner_manager_can_add_portgroup:
+  path: '/v1/portgroups'
+  method: post
+  headers: *owner_manager_headers
+  body: *owner_portgroup_body
+  assert_status: 201
+
 owner_member_cannot_add_portgroup:
   path: '/v1/portgroups'
   method: post
@@ -1655,6 +2098,13 @@ lessee_admin_cannot_add_portgroup:
   headers: *lessee_admin_headers
   body: &lessee_portgroup_body
     node_uuid: 38d5abed-c585-4fce-a57e-a2ffc2a2ec6f
+  assert_status: 403
+
+lessee_manager_cannot_add_portgroup:
+  path: '/v1/portgroups'
+  method: post
+  headers: *lessee_manager_headers
+  body: *lessee_portgroup_body
   assert_status: 403
 
 # TODO, likely will need separate port/port groups established for the tests
@@ -1683,6 +2133,13 @@ owner_admin_can_modify_portgroup:
       value: {'test': 'testing'}
   assert_status: 503
 
+owner_manager_can_modify_portgroup:
+  path: '/v1/portgroups/{owner_portgroup_ident}'
+  method: patch
+  headers: *owner_manager_headers
+  body: *portgroup_patch_body
+  assert_status: 503
+
 owner_member_cannot_modify_portgroup:
   path: '/v1/portgroups/{owner_portgroup_ident}'
   method: patch
@@ -1694,6 +2151,13 @@ lessee_admin_cannot_modify_portgroup:
   path: '/v1/portgroups/{lessee_portgroup_ident}'
   method: patch
   headers: *lessee_admin_headers
+  body: *portgroup_patch_body
+  assert_status: 403
+
+lessee_manager_cannot_modify_portgroup:
+  path: '/v1/portgroups/{lessee_portgroup_ident}'
+  method: patch
+  headers: *lessee_manager_headers
   body: *portgroup_patch_body
   assert_status: 403
 
@@ -1717,6 +2181,12 @@ owner_admin_can_delete_portgroup:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_can_delete_portgroup:
+  path: '/v1/portgroups/{owner_portgroup_ident}'
+  method: delete
+  headers: *owner_manager_headers
+  assert_status: 503
+
 owner_member_cannot_delete_portgroup:
   path: '/v1/portgroups/{owner_portgroup_ident}'
   method: delete
@@ -1727,6 +2197,12 @@ lessee_admin_cannot_delete_portgroup:
   path: '/v1/portgroups/{lessee_portgroup_ident}'
   method: delete
   headers: *lessee_admin_headers
+  assert_status: 403
+
+lessee_manager_cannot_delete_portgroup:
+  path: '/v1/portgroups/{lessee_portgroup_ident}'
+  method: delete
+  headers: *lessee_manager_headers
   assert_status: 403
 
 lessee_member_cannot_delete_portgroup:
@@ -1819,13 +2295,27 @@ owner_admin_can_add_ports:
     address: 00:01:02:03:04:05
   assert_status: 503
 
+owner_manager_can_add_ports:
+  path: '/v1/ports'
+  method: post
+  headers: *owner_manager_headers
+  body: *owner_port_body
+  assert_status: 503
+
 owner_admin_cannot_add_ports_to_other_nodes:
   path: '/v1/ports'
   method: post
   headers: *owner_admin_headers
-  body:
+  body: &other_node_add_port_body
     node_uuid: 573208e5-cd41-4e26-8f06-ef44022b3793
     address: 09:01:02:03:04:09
+  assert_status: 403
+
+owner_manager_cannot_add_ports_to_other_nodes:
+  path: '/v1/ports'
+  method: post
+  headers: *owner_manager_headers
+  body: *other_node_add_port_body
   assert_status: 403
 
 owner_member_cannot_add_port:
@@ -1842,6 +2332,13 @@ lessee_admin_cannot_add_port:
   body: &lessee_port_body
     node_uuid: 38d5abed-c585-4fce-a57e-a2ffc2a2ec6f
     address: 00:01:02:03:04:05
+  assert_status: 403
+
+lessee_manager_cannot_add_port:
+  path: '/v1/ports'
+  method: post
+  headers: *lessee_manager_headers
+  body: *lessee_port_body
   assert_status: 403
 
 lessee_member_cannot_add_port:
@@ -1868,6 +2365,13 @@ owner_admin_can_modify_port:
       value: {'test': 'testing'}
   assert_status: 503
 
+owner_manager_can_modify_port:
+  path: '/v1/ports/{owner_port_ident}'
+  method: patch
+  headers: *owner_manager_headers
+  body: *port_patch_body
+  assert_status: 503
+
 owner_member_cannot_modify_port:
   path: '/v1/ports/{owner_port_ident}'
   method: patch
@@ -1879,6 +2383,13 @@ lessee_admin_cannot_modify_port:
   path: '/v1/ports/{lessee_port_ident}'
   method: patch
   headers: *lessee_admin_headers
+  body: *port_patch_body
+  assert_status: 403
+
+lessee_manager_cannot_modify_port:
+  path: '/v1/ports/{lessee_port_ident}'
+  method: patch
+  headers: *lessee_manager_headers
   body: *port_patch_body
   assert_status: 403
 
@@ -1902,6 +2413,12 @@ owner_admin_can_delete_port:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_can_delete_port:
+  path: '/v1/ports/{owner_port_ident}'
+  method: delete
+  headers: *owner_manager_headers
+  assert_status: 503
+
 owner_member_cannot_delete_port:
   path: '/v1/ports/{owner_port_ident}'
   method: delete
@@ -1912,6 +2429,12 @@ lessee_admin_cannot_delete_port:
   path: '/v1/ports/{lessee_port_ident}'
   method: delete
   headers: *lessee_admin_headers
+  assert_status: 403
+
+lessee_manager_cannot_delete_port:
+  path: '/v1/ports/{lessee_port_ident}'
+  method: delete
+  headers: *lessee_manager_headers
   assert_status: 403
 
 lessee_member_cannot_delete_port:
@@ -2013,10 +2536,24 @@ owner_admin_can_post_volume_connector:
     type: ip
     connector_id: 192.168.1.100
 
+owner_manager_can_post_volume_connector:
+  path: '/v1/volume/connectors'
+  method: post
+  headers: *owner_manager_headers
+  assert_status: 201
+  body: *volume_connector_body
+
 lessee_admin_cannot_post_volume_connector:
   path: '/v1/volume/connectors'
   method: post
   headers: *lessee_admin_headers
+  assert_status: 403
+  body: *volume_connector_body
+
+lessee_manager_cannot_post_volume_connector:
+  path: '/v1/volume/connectors'
+  method: post
+  headers: *lessee_manager_headers
   assert_status: 403
   body: *volume_connector_body
 
@@ -2062,10 +2599,25 @@ owner_admin_can_patch_volume_connectors:
   body: *connector_patch_body
   assert_status: 503
 
+owner_manager_can_patch_volume_connectors:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: patch
+  headers: *owner_manager_headers
+  body: *connector_patch_body
+  assert_status: 503
+
+# FIXME This test is wrong, name is updated
 lessee_admin_cannot_patch_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: patch
   headers: *owner_admin_headers
+  body: *connector_patch_body
+  assert_status: 503
+
+lessee_manager_can_patch_volume_connectors:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: patch
+  headers: *owner_manager_headers
   body: *connector_patch_body
   assert_status: 503
 
@@ -2096,10 +2648,22 @@ owner_admin_can_delete_volume_connectors:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_can_delete_volume_connectors:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: delete
+  headers: *owner_manager_headers
+  assert_status: 503
+
 lessee_admin_can_delete_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
   headers: *lessee_admin_headers
+  assert_status: 503
+
+lessee_manager_can_delete_volume_connectors:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: delete
+  headers: *lessee_manager_headers
   assert_status: 503
 
 third_party_admin_cannot_delete_volume_connector:
@@ -2168,6 +2732,17 @@ owner_admin_create_volume_target:
     boot_index: 2
     volume_id: 'test-id'
 
+owner_manager_create_volume_target:
+  path: '/v1/volume/targets'
+  method: post
+  headers: *owner_manager_headers
+  assert_status: 201
+  body:
+    node_uuid: 1ab63b9e-66d7-4cd7-8618-dddd0f9f7881
+    volume_type: iscsi
+    boot_index: 3
+    volume_id: 'test-id'
+
 lessee_admin_create_volume_target:
   path: '/v1/volume/targets'
   method: post
@@ -2178,6 +2753,17 @@ lessee_admin_create_volume_target:
     volume_type: iscsi
     boot_index: 2
     volume_id: 'test-id2'
+
+lessee_manager_create_volume_target:
+  path: '/v1/volume/targets'
+  method: post
+  headers: *owner_manager_headers
+  assert_status: 201
+  body:
+    node_uuid: 38d5abed-c585-4fce-a57e-a2ffc2a2ec6f
+    volume_type: iscsi
+    boot_index: 2
+    volume_id: 'test-id3'
 
 third_party_admin_cannot_create_volume_target:
   path: '/v1/volume/targets'
@@ -2203,6 +2789,13 @@ lessee_admin_can_patch_volume_target:
   headers: *lessee_admin_headers
   assert_status: 503
 
+lessee_manager_can_patch_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: patch
+  body: *volume_target_patch
+  headers: *lessee_manager_headers
+  assert_status: 503
+
 lessee_member_cannot_patch_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: patch
@@ -2223,10 +2816,22 @@ owner_admin_can_delete_volume_target:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_can_delete_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: delete
+  headers: *owner_manager_headers
+  assert_status: 503
+
 lessee_admin_can_delete_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *lessee_admin_headers
+  assert_status: 503
+
+lessee_manager_can_delete_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: delete
+  headers: *lessee_manager_headers
   assert_status: 503
 
 owner_member_cannot_delete_volume_target:
@@ -2413,10 +3018,22 @@ owner_admin_can_delete_their_allocation:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_can_delete_their_allocation:
+  path: '/v1/allocations/{owner_allocation}'
+  method: delete
+  headers: *owner_manager_headers
+  assert_status: 503
+
 lessee_admin_can_delete_their_allocation:
   path: '/v1/allocations/{lessee_allocation}'
   method: delete
   headers: *lessee_admin_headers
+  assert_status: 503
+
+lessee_manager_can_delete_their_allocation:
+  path: '/v1/allocations/{lessee_allocation}'
+  method: delete
+  headers: *lessee_manager_headers
   assert_status: 503
 
 owner_member_can_delete_their_allocation:
@@ -2503,6 +3120,15 @@ owner_admin_can_create_allocation_with_their_uuid:
     node: 1ab63b9e-66d7-4cd7-8618-dddd0f9f7881
   assert_status: 503
 
+owner_manager_can_create_allocation_with_their_uuid:
+  path: '/v1/allocations'
+  method: post
+  headers: *owner_manager_headers
+  body:
+    resource_class: CUSTOM_TEST
+    node: 1ab63b9e-66d7-4cd7-8618-dddd0f9f7881
+  assert_status: 503
+
 third_party_admin_cannot_read_an_allocation:
   path: '/v1/allocations/{lessee_allocation}'
   method: get
@@ -2551,10 +3177,22 @@ owner_admin_can_delete_allocation:
   headers: *owner_admin_headers
   assert_status: 503
 
+owner_manager_can_delete_allocation:
+  path: '/v1/nodes/{owner_node_ident}/allocation'
+  method: delete
+  headers: *owner_manager_headers
+  assert_status: 503
+
 lessee_admin_can_delete_allocation:
   path: '/v1/nodes/{allocated_node_ident}/allocation'
   method: delete
   headers: *lessee_admin_headers
+  assert_status: 503
+
+lessee_manager_not_delete_allocation:
+  path: '/v1/nodes/{allocated_node_ident}/allocation'
+  method: delete
+  headers: *lessee_manager_headers
   assert_status: 503
 
 third_party_admin_cannot_delete_allocation:
