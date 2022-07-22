@@ -22,8 +22,10 @@ from oslo_config import cfg
 from oslo_utils import uuidutils
 
 from ironic.common import exception
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules.irmc import common as irmc_common
+from ironic.drivers.modules import snmp
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers import third_party_driver_mock_specs \
@@ -54,7 +56,9 @@ class BaseIRMCTest(db_base.DbTestCase):
 
 class IRMCValidateParametersTestCase(BaseIRMCTest):
 
-    def test_parse_driver_info(self):
+    @mock.patch.object(utils, 'is_fips_enabled',
+                       return_value=False, autospec=True)
+    def test_parse_driver_info(self, mock_check_fips):
         info = irmc_common.parse_driver_info(self.node)
 
         self.assertEqual('1.2.3.4', info['irmc_address'])
@@ -64,12 +68,38 @@ class IRMCValidateParametersTestCase(BaseIRMCTest):
         self.assertEqual(80, info['irmc_port'])
         self.assertEqual('digest', info['irmc_auth_method'])
         self.assertEqual('ipmitool', info['irmc_sensor_method'])
-        self.assertEqual('v2c', info['irmc_snmp_version'])
+        self.assertEqual(snmp.SNMP_V2C, info['irmc_snmp_version'])
         self.assertEqual(161, info['irmc_snmp_port'])
         self.assertEqual('public', info['irmc_snmp_community'])
-        self.assertFalse(info['irmc_snmp_security'])
 
-    def test_parse_driver_option_default(self):
+    def test_parse_driver_info_snmpv3(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v3'
+        self.node.driver_info['irmc_snmp_user'] = 'admin0'
+        self.node.driver_info['irmc_snmp_auth_password'] = 'valid_key'
+        self.node.driver_info['irmc_snmp_priv_password'] = 'valid_key'
+        info = irmc_common.parse_driver_info(self.node)
+
+        self.assertEqual('1.2.3.4', info['irmc_address'])
+        self.assertEqual('admin0', info['irmc_username'])
+        self.assertEqual('fake0', info['irmc_password'])
+        self.assertEqual(60, info['irmc_client_timeout'])
+        self.assertEqual(80, info['irmc_port'])
+        self.assertEqual('digest', info['irmc_auth_method'])
+        self.assertEqual('ipmitool', info['irmc_sensor_method'])
+        self.assertEqual(snmp.SNMP_V3, info['irmc_snmp_version'])
+        self.assertEqual(161, info['irmc_snmp_port'])
+        self.assertEqual('public', info['irmc_snmp_community'])
+        self.assertEqual('admin0', info['irmc_snmp_user'])
+        self.assertEqual(snmp.snmp_auth_protocols['sha'],
+                         info['irmc_snmp_auth_proto'])
+        self.assertEqual('valid_key', info['irmc_snmp_auth_password'])
+        self.assertEqual(snmp.snmp_priv_protocols['aes'],
+                         info['irmc_snmp_priv_proto'])
+        self.assertEqual('valid_key', info['irmc_snmp_priv_password'])
+
+    @mock.patch.object(utils, 'is_fips_enabled',
+                       return_value=False, autospec=True)
+    def test_parse_driver_option_default(self, mock_check_fips):
         self.node.driver_info = {
             "irmc_address": "1.2.3.4",
             "irmc_username": "admin0",
@@ -130,8 +160,16 @@ class IRMCValidateParametersTestCase(BaseIRMCTest):
         self.assertRaises(exception.InvalidParameterValue,
                           irmc_common.parse_driver_info, self.node)
 
+    @mock.patch.object(utils, 'is_fips_enabled',
+                       return_value=True, autospec=True)
+    def test_parse_driver_info_invalid_snmp_version_fips(self,
+                                                         mock_check_fips):
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+        self.assertEqual(1, mock_check_fips.call_count)
+
     def test_parse_driver_info_invalid_snmp_port(self):
-        self.node.driver_info['irmc_snmp_port'] = '161'
+        self.node.driver_info['irmc_snmp_port'] = '161p'
         self.assertRaises(exception.InvalidParameterValue,
                           irmc_common.parse_driver_info, self.node)
 
@@ -141,15 +179,98 @@ class IRMCValidateParametersTestCase(BaseIRMCTest):
         self.assertRaises(exception.InvalidParameterValue,
                           irmc_common.parse_driver_info, self.node)
 
+    def test_parse_driver_info_missing_snmp_user(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v3'
+        self.node.driver_info['irmc_snmp_auth_password'] = 'valid_key'
+        self.node.driver_info['irmc_snmp_priv_password'] = 'valid_key'
+        self.assertRaises(exception.MissingParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
+    def test_parse_driver_info_missing_snmp_auth_password(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v3'
+        self.node.driver_info['irmc_snmp_user'] = 'admin0'
+        self.node.driver_info['irmc_snmp_priv_password'] = 'valid_key'
+        self.assertRaises(exception.MissingParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
+    def test_parse_driver_info_missing_snmp_priv_password(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v3'
+        self.node.driver_info['irmc_snmp_user'] = 'admin0'
+        self.node.driver_info['irmc_snmp_auth_password'] = 'valid_key'
+        self.assertRaises(exception.MissingParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
+    def test_parse_driver_info_using_snmp_security(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v3'
+        self.node.driver_info['irmc_snmp_security'] = 'admin0'
+        self.node.driver_info['irmc_snmp_auth_password'] = 'valid_key'
+        self.node.driver_info['irmc_snmp_priv_password'] = 'valid_key'
+        info = irmc_common.parse_driver_info(self.node)
+        self.assertEqual('admin0', info['irmc_snmp_user'])
+
     def test_parse_driver_info_invalid_snmp_security(self):
         self.node.driver_info['irmc_snmp_version'] = 'v3'
         self.node.driver_info['irmc_snmp_security'] = 100
+        self.node.driver_info['irmc_snmp_auth_password'] = 'valid_key'
+        self.node.driver_info['irmc_snmp_priv_password'] = 'valid_key'
         self.assertRaises(exception.InvalidParameterValue,
                           irmc_common.parse_driver_info, self.node)
 
-    def test_parse_driver_info_empty_snmp_security(self):
+    def test_parse_driver_info_invalid_snmp_user(self):
         self.node.driver_info['irmc_snmp_version'] = 'v3'
-        self.node.driver_info['irmc_snmp_security'] = ''
+        self.node.driver_info['irmc_snmp_user'] = 100
+        self.node.driver_info['irmc_snmp_auth_password'] = 'valid_key'
+        self.node.driver_info['irmc_snmp_priv_password'] = 'valid_key'
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
+    def test_parse_driver_info_invalid_snmp_auth_password(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v3'
+        self.node.driver_info['irmc_snmp_user'] = 'admin0'
+        self.node.driver_info['irmc_snmp_auth_password'] = 100
+        self.node.driver_info['irmc_snmp_priv_password'] = 'valid_key'
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
+    def test_parse_driver_info_short_snmp_auth_password(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v3'
+        self.node.driver_info['irmc_snmp_user'] = 'admin0'
+        self.node.driver_info['irmc_snmp_auth_password'] = 'short'
+        self.node.driver_info['irmc_snmp_priv_password'] = 'valid_key'
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
+    def test_parse_driver_info_invalid_snmp_priv_password(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v3'
+        self.node.driver_info['irmc_snmp_user'] = 'admin0'
+        self.node.driver_info['irmc_snmp_auth_password'] = 'valid_key'
+        self.node.driver_info['irmc_snmp_priv_password'] = 100
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
+    def test_parse_driver_info_short_snmp_priv_password(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v3'
+        self.node.driver_info['irmc_snmp_user'] = 'admin0'
+        self.node.driver_info['irmc_snmp_auth_password'] = 'valid_key'
+        self.node.driver_info['irmc_snmp_priv_password'] = 'short'
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
+    def test_parse_driver_info_invalid_snmp_auth_proto(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v3'
+        self.node.driver_info['irmc_snmp_user'] = 'admin0'
+        self.node.driver_info['irmc_snmp_auth_password'] = 'valid_key'
+        self.node.driver_info['irmc_snmp_priv_password'] = 'valid_key'
+        self.node.driver_info['irmc_snmp_auth_proto'] = 'invalid'
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
+    def test_parse_driver_info_invalid_snmp_priv_proto(self):
+        self.node.driver_info['irmc_snmp_version'] = 'v3'
+        self.node.driver_info['irmc_snmp_user'] = 'admin0'
+        self.node.driver_info['irmc_snmp_auth_password'] = 'valid_key'
+        self.node.driver_info['irmc_snmp_priv_password'] = 'valid_key'
+        self.node.driver_info['irmc_snmp_priv_proto'] = 'invalid'
         self.assertRaises(exception.InvalidParameterValue,
                           irmc_common.parse_driver_info, self.node)
 

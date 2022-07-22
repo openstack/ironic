@@ -306,6 +306,21 @@ class GenericUtilsTestCase(base.TestCase):
                 utils.is_valid_no_proxy(no_proxy),
                 msg="'no_proxy' value should be invalid: {}".format(no_proxy))
 
+    def test_is_fips_enabled(self):
+        with mock.patch('builtins.open', mock.mock_open(read_data='1\n')) as m:
+            self.assertTrue(utils.is_fips_enabled())
+            m.assert_called_once_with('/proc/sys/crypto/fips_enabled', 'r')
+
+        with mock.patch('builtins.open', mock.mock_open(read_data='0\n')) as m:
+            self.assertFalse(utils.is_fips_enabled())
+            m.assert_called_once_with('/proc/sys/crypto/fips_enabled', 'r')
+
+        mock_open = mock.mock_open()
+        mock_open.side_effect = FileNotFoundError
+        with mock.patch('builtins.open', mock_open) as m:
+            self.assertFalse(utils.is_fips_enabled())
+            m.assert_called_once_with('/proc/sys/crypto/fips_enabled', 'r')
+
 
 class TempFilesTestCase(base.TestCase):
 

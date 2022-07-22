@@ -140,6 +140,16 @@ Node configuration
      ``irmc_deploy_iso`` and ``irmc_boot_iso`` accordingly before the Xena
      release.
 
+* The following properties are also required if ``irmc`` inspect interface is
+  enabled and SNMPv3 inspection is desired.
+
+  - ``driver_info/irmc_snmp_user`` property to be the SNMPv3 username. SNMPv3
+    functionality should be enabled for this user on iRMC server side.
+  - ``driver_info/irmc_snmp_auth_password`` property to be the auth protocol
+    pass phrase. The length of pass phrase should be at least 8 characters.
+  - ``driver_info/irmc_snmp_priv_password`` property to be the privacy protocol
+    pass phrase. The length of pass phrase should be at least 8 characters.
+
 * All of the nodes are configured by setting the following configuration
   options in the ``[irmc]`` section of ``/etc/ironic/ironic.conf``:
 
@@ -175,6 +185,18 @@ Node configuration
     and ``v2c``. The default value is ``public``. Optional.
   - ``snmp_security``: SNMP security name required for version ``v3``.
     Optional.
+  - ``snmp_auth_proto``: The SNMPv3 auth protocol. The valid value and the
+    default value are both ``sha``. We will add more supported valid values
+    in the future. Optional.
+  - ``snmp_priv_proto``: The SNMPv3 privacy protocol. The valid value and
+    the default value are both ``aes``. We will add more supported valid values
+    in the future. Optional.
+
+    .. warning::
+       We deprecated the ``snmp_security`` option when use SNMPv3 inspection.
+       Support for this option will be removed in the future. Instead, set
+       ``driver_info/irmc_snmp_user`` parameter for each node if SNMPv3
+       inspection is needed.
 
 * Each node can be further configured by setting the following ironic
   node object's properties which override the parameter values in
@@ -188,6 +210,10 @@ Node configuration
   - ``driver_info/irmc_snmp_port`` property overrides ``snmp_port``.
   - ``driver_info/irmc_snmp_community`` property overrides ``snmp_community``.
   - ``driver_info/irmc_snmp_security`` property overrides ``snmp_security``.
+  - ``driver_info/irmc_snmp_auth_proto`` property overrides
+    ``snmp_auth_proto``.
+  - ``driver_info/irmc_snmp_priv_proto`` property overrides
+    ``snmp_priv_proto``.
 
 Optional functionalities for the ``irmc`` hardware type
 =======================================================

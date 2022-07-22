@@ -41,6 +41,7 @@ from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import pxe_base
+from ironic.drivers.modules import snmp
 from ironic.tests import base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.irmc import test_common
@@ -60,8 +61,7 @@ PARSED_IFNO = {
     'irmc_client_timeout': 60,
     'irmc_snmp_community': 'public',
     'irmc_snmp_port': 161,
-    'irmc_snmp_version': 'v2c',
-    'irmc_snmp_security': None,
+    'irmc_snmp_version': snmp.SNMP_V2C,
     'irmc_sensor_method': 'ipmitool',
 }
 
