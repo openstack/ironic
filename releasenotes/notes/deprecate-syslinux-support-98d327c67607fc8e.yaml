@@ -1,0 +1,26 @@
+---
+deprecations:
+  - |
+    Support for the `syslinux <https://wiki.syslinux.org/wiki/index.php?title=Syslinux_6_Changelog#Changes_in_6.04>`_
+    and the often separately package `isolinux <https://wiki.syslinux.org/wiki/index.php?title=ISOLINUX>`_
+    and `pxelinux <https://wiki.syslinux.org/wiki/index.php?title=PXELINUX>`_.
+    Legacy BIOS boot loaders, is deprecated and will be removed the future.
+    This is for two reasons. The first is because it is a BIOS mode bootloader,
+    and the shift to UEFI booting has reduced the need for these packages.
+    The second reason is a lack of maintenance, which is ultimately the same
+    reason Linux distributions are discussing dropping support and packaging.
+    Syslinux has not been updated since `2019 <https://repo.or.cz/syslinux.git/shortlog>`_.
+    Incidently, the file format it utilizes *is* supported by Power hardware,
+    and that may result in the configuration template remaining in Ironic for
+    the forseeable future.
+  - Support for use of `pxelinux <https://wiki.syslinux.org/wiki/index.php?title=PXELINUX>`_
+    is deprecated due to the deprecation of support for Syslinux.
+  - Support for virtual media booting with x86 Hardware in Legacy BIOS mode is
+    deprecated due to the dependency upon
+    `isolinux <https://wiki.syslinux.org/wiki/index.php?title=ISOLINUX>`_
+    for use of Legacy BIOS boot mode. ``isolinux`` is from the ``syslinux``
+    package and source tree.
+  - Deprecation of ``pxelinux``, as a result of the deprecation of ``syslinux``,
+    does ultimately mean the default for the ``pxe`` boot_interface to carry
+    defaults for the use of grub based network booting, specifically for
+    for operators who are unable to use iPXE.
