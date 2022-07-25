@@ -6,3 +6,11 @@
     - name: Get network connection information for ironic process
       shell: "netstat -apn  > {{ zuul_output_dir }}/logs/post-job-network-connections.txt"
       become: yes
+    - name: Get routing table, IPv4
+      shell: "ip -4 route > {{ zuul_output_dir }}/logs/post-job-network-routes-v4.txt"
+      ignore_errors: True
+      become: yes
+    - name: Get routing table, IPv6
+      shell: "ip -6 route > {{ zuul_output_dir }}/logs/post-job-network-routes-v6.txt"
+      ignore_errors: True
+      become: yes
