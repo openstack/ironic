@@ -40,6 +40,12 @@ and sections will describe both methods:
 * Only one disk label - either ``msdos`` or ``gpt`` - can be configured
   for the node.
 
+.. warning::
+   If the host is in UEFI boot mode, use of ``disk_label`` is redundant,
+   and may cause deployments to fail unexpectedly if the node is *not*
+   explicitly set to boot in UEFI mode. Use of appropriate boot mode is
+   highly recommended.
+
 When used with Compute service
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
