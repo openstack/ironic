@@ -3,8 +3,6 @@
 Advanced features
 =================
 
-.. include:: include/local-boot-partition-images.inc
-
 .. include:: include/root-device-hints.inc
 
 .. include:: include/kernel-boot-parameters.inc

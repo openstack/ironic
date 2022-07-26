@@ -132,8 +132,8 @@ Node configuration
   - ``driver_info/deploy_iso`` property to be either deploy iso
     file name, Glance UUID, or Image Service URL.
   - ``instance info/boot_iso`` property to be either boot iso
-    file name, Glance UUID, or Image Service URL. This is optional
-    property when ``boot_option`` is set to ``netboot``.
+    file name, Glance UUID, or Image Service URL. This is used
+    with the ``ramdisk`` deploy interface.
 
   .. note::
      The ``deploy_iso`` and ``boot_iso`` properties used to be called

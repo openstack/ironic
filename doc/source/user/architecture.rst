@@ -158,8 +158,9 @@ remain the same.
 #. The ironic node's management interface issues commands to enable network
    boot of a node.
 
-#. The ironic node's deploy interface caches the instance image, kernel and
-   ramdisk if needed (it is needed in case of netboot for example).
+#. The ironic node's deploy interface caches the instance image (normal
+   deployment), kernel and ramdisk (``ramdisk`` deploy) or ISO (``ramdisk``
+   deploy with virtual media).
 
 #. The ironic node's power interface instructs the node to power on.
 

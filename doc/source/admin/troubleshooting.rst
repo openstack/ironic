@@ -138,7 +138,7 @@ A few things should be checked in this case:
         +------------+----------------------------------+
         | Field      | Value                            |
         +------------+----------------------------------+
-        | properties | capabilities:boot_option='local' |
+        | properties | capabilities:boot_mode='uefi'    |
         +------------+----------------------------------+
 
       But in Ironic node::
@@ -147,7 +147,7 @@ A few things should be checked in this case:
         +------------+-----------------------------------------+
         | Property   | Value                                   |
         +------------+-----------------------------------------+
-        | properties | {u'capabilities': u'boot_option:local'} |
+        | properties | {u'capabilities': u'boot_mode:uefi'}    |
         +------------+-----------------------------------------+
 
 #. After making changes to nodes in Ironic, it takes time for those changes
