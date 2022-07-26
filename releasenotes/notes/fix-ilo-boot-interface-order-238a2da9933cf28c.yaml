@@ -1,0 +1,26 @@
+---
+fixes:
+  - |
+    Fixes the default boot interface order for the ``ilo`` hardware type
+    where previously it would prefer ``pxe`` over ``ipxe``. This created
+    inconsistencies for operators using multiple hardware types, where
+    both interfaces were enabled in the deployment.
+upgrade:
+  - |
+    Operators who are upgrading should be aware that a bug was discovered
+    with the automatic selection of ``boot_interface`` for users of the
+    ``ilo`` and ``ilo5`` hardware types. This was an inconsistency,
+    resulting in ``pxe`` being selected instead of ``ipxe`` if both
+    boot interfaces were enabled. Depending on the local configuration,
+    this may, or may not have happened and will remain static on
+    preexisting baremetal nodes. Some users may have been relying
+    upon this incorrect behavior by having misalligned defaults by trying
+    to use the ``pxe`` interface for ``ipxe``. Users wishing to continue
+    this usage as it was previously will need to explicitly set a
+    ``boot_interface`` value to either ``pxe`` or ``ilo-ipxe`` by default,
+    depending on the local configuration. Most operators have leveraged
+    the default examples, and thus did not explicitly encounter this
+    condition. Operators explicitly wishing to use ``pxe`` boot interfaces
+    with the ``ipxe`` templates and defaults set to override the defaults
+    for ``ironic.conf`` will need to either continue to leverage default
+    override configurations in their ``ironic.conf`` file.
