@@ -59,6 +59,7 @@ DHCPV6_BOOTFILE_NAME = '59'  # rfc5970
 DHCP_TFTP_SERVER_ADDRESS = '150'  # rfc5859
 DHCP_IPXE_ENCAP_OPTS = '175'  # Tentatively Assigned
 DHCP_TFTP_PATH_PREFIX = '210'  # rfc5071
+DHCP_SERVER_IP_ADDRESS = '255'  # dnsmasq server-ip-address
 
 DEPLOY_KERNEL_RAMDISK_LABELS = ['deploy_kernel', 'deploy_ramdisk']
 RESCUE_KERNEL_RAMDISK_LABELS = ['rescue_kernel', 'rescue_ramdisk']
@@ -488,7 +489,7 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False,
     else:
         use_ip_version = int(CONF.pxe.ip_version)
     dhcp_opts = []
-    dhcp_provider_name = CONF.dhcp.dhcp_provider
+    api = dhcp_factory.DHCPFactory().provider
     if use_ip_version == 4:
         boot_file_param = DHCP_BOOTFILE_NAME
     else:
@@ -517,7 +518,7 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False,
         ipxe_script_url = '/'.join([CONF.deploy.http_url, script_name])
         # if the request comes from dumb firmware send them the iPXE
         # boot image.
-        if dhcp_provider_name == 'neutron':
+        if api.supports_ipxe_tag():
             # Neutron use dnsmasq as default DHCP agent. Neutron carries the
             # configuration to relate to the tags below. The ipxe6 tag was
             # added in the Stein cycle which identifies the iPXE User-Class
@@ -588,7 +589,7 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False,
     # Related bug was opened on Neutron side:
     # https://bugs.launchpad.net/neutron/+bug/1723354
     if not url_boot:
-        dhcp_opts.append({'opt_name': 'server-ip-address',
+        dhcp_opts.append({'opt_name': DHCP_SERVER_IP_ADDRESS,
                           'opt_value': CONF.pxe.tftp_server})
 
     # Append the IP version for all the configuration options

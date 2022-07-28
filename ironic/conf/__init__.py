@@ -27,6 +27,7 @@ from ironic.conf import database
 from ironic.conf import default
 from ironic.conf import deploy
 from ironic.conf import dhcp
+from ironic.conf import dnsmasq
 from ironic.conf import drac
 from ironic.conf import glance
 from ironic.conf import healthcheck
@@ -62,6 +63,7 @@ default.register_opts(CONF)
 deploy.register_opts(CONF)
 drac.register_opts(CONF)
 dhcp.register_opts(CONF)
+dnsmasq.register_opts(CONF)
 glance.register_opts(CONF)
 healthcheck.register_opts(CONF)
 ibmc.register_opts(CONF)
