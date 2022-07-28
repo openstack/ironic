@@ -40,7 +40,6 @@
         # which is not really needed on a stable branch at this point.
         #- ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     gate:
-      queue: ironic
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-standalone
