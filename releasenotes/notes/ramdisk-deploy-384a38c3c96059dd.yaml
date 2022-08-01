@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The ``ramdisk`` deploy interface is now enabled by default. When the
+    default ``direct`` deploy is also enabled, the ``ramdisk`` deploy must be
+    explicitly requested on the node level.
