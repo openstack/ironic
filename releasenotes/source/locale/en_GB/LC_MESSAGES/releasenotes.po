@@ -2,15 +2,16 @@
 # Andi Chandler <andi@gowling.com>, 2018. #zanata
 # Andi Chandler <andi@gowling.com>, 2019. #zanata
 # Andi Chandler <andi@gowling.com>, 2020. #zanata
+# Andi Chandler <andi@gowling.com>, 2022. #zanata
 msgid ""
 msgstr ""
 "Project-Id-Version: Ironic Release Notes\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-04-04 18:36+0000\n"
+"POT-Creation-Date: 2022-07-06 13:27+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2020-12-19 01:42+0000\n"
+"PO-Revision-Date: 2022-07-24 12:21+0000\n"
 "Last-Translator: Andi Chandler <andi@gowling.com>\n"
 "Language-Team: English (United Kingdom)\n"
 "Language: en_GB\n"
@@ -27,7 +28,7 @@ msgid ""
 msgstr ""
 "\"Choooooo! Choooooo!\" The Train is now departing the station. The "
 "OpenStack Bare Metal as a service team is proud to announce the release of "
-"Ironic 13.0.0. This release brings the long desired feature of software RAID "
+"Ironic 13.0.0. This release brings the long-desired feature of software RAID "
 "configuration, Redfish virtual media boot support, sensor data improvements, "
 "and numerous bug fixes. We hope you enjoy your ride on the OpenStack Ironic "
 "Train."
@@ -74,6 +75,31 @@ msgstr ""
 "hardware type to support new out-of-band inspection capabilities. If an "
 "older version is used, the new capabilities will not be discovered."
 
+msgid "/v1/drivers/<driver name>/properties"
+msgstr "/v1/drivers/<driver name>/properties"
+
+msgid "/v1/nodes/<UUID or logical name>/states"
+msgstr "/v1/nodes/<UUID or logical name>/states"
+
+msgid ""
+"1.12 allows setting RAID properties for a node; however support for putting "
+"this configuration on a node is not yet implemented for in-tree drivers; "
+"this will be added in a future release."
+msgstr ""
+"1.12 allows setting RAID properties for a node; however support for putting "
+"this configuration on a node is not yet implemented for in-tree drivers; "
+"this will be added in a future release."
+
+msgid ""
+"1.13 adds a new 'abort' verb to the provision state API. This may be used to "
+"abort cleaning for nodes in the CLEANWAIT state."
+msgstr ""
+"1.13 adds a new 'abort' verb to the provision state API. This may be used to "
+"abort cleaning for nodes in the CLEANWAIT state."
+
+msgid "1.14 makes the following endpoints discoverable in the API:"
+msgstr "1.14 makes the following endpoints discoverable in the API:"
+
 msgid "10.0.0"
 msgstr "10.0.0"
 
@@ -86,8 +112,8 @@ msgstr "10.1.1"
 msgid "10.1.10"
 msgstr "10.1.10"
 
-msgid "10.1.10-10"
-msgstr "10.1.10-10"
+msgid "10.1.10-11"
+msgstr "10.1.10-11"
 
 msgid "10.1.2"
 msgstr "10.1.2"
@@ -128,6 +154,9 @@ msgstr "11.1.3"
 msgid "11.1.4"
 msgstr "11.1.4"
 
+msgid "11.1.4-12"
+msgstr "11.1.4-12"
+
 msgid "12.0.0"
 msgstr "12.0.0"
 
@@ -151,6 +180,9 @@ msgstr "12.1.5"
 
 msgid "12.1.6"
 msgstr "12.1.6"
+
+msgid "12.1.6-3"
+msgstr "12.1.6-3"
 
 msgid "12.2.0"
 msgstr "12.2.0"
@@ -176,6 +208,12 @@ msgstr "13.0.5"
 msgid "13.0.6"
 msgstr "13.0.6"
 
+msgid "13.0.7"
+msgstr "13.0.7"
+
+msgid "13.0.7-24"
+msgstr "13.0.7-24"
+
 msgid "14.0.0"
 msgstr "14.0.0"
 
@@ -184,6 +222,12 @@ msgstr "15.0.0"
 
 msgid "15.0.1"
 msgstr "15.0.1"
+
+msgid "15.0.2"
+msgstr "15.0.2"
+
+msgid "15.0.2-16"
+msgstr "15.0.2-16"
 
 msgid "15.1.0"
 msgstr "15.1.0"
@@ -199,6 +243,72 @@ msgstr "16.0.1"
 
 msgid "16.0.2"
 msgstr "16.0.2"
+
+msgid "16.0.3"
+msgstr "16.0.3"
+
+msgid "16.0.4"
+msgstr "16.0.4"
+
+msgid "16.0.5"
+msgstr "16.0.5"
+
+msgid "16.1.0"
+msgstr "16.1.0"
+
+msgid "16.2.0"
+msgstr "16.2.0"
+
+msgid "17.0.0"
+msgstr "17.0.0"
+
+msgid "17.0.2"
+msgstr "17.0.2"
+
+msgid "17.0.3"
+msgstr "17.0.3"
+
+msgid "17.0.4"
+msgstr "17.0.4"
+
+msgid "17.0.4-27"
+msgstr "17.0.4-27"
+
+msgid "18.0.0"
+msgstr "18.0.0"
+
+msgid "18.1.0"
+msgstr "18.1.0"
+
+msgid "18.2.0"
+msgstr "18.2.0"
+
+msgid "18.2.1"
+msgstr "18.2.1"
+
+msgid "18.2.1-17"
+msgstr "18.2.1-17"
+
+msgid "19.0.0"
+msgstr "19.0.0"
+
+msgid "20.0.0"
+msgstr "20.0.0"
+
+msgid "20.1.0"
+msgstr "20.1.0"
+
+msgid "20.1.0-12"
+msgstr "20.1.0-12"
+
+msgid "20.2.0"
+msgstr "20.2.0"
+
+msgid "20.2.0-21"
+msgstr "20.2.0-21"
+
+msgid "4.0.0   First semver release"
+msgstr "4.0.0   First semver release"
 
 msgid "4.2.2"
 msgstr "4.2.2"
@@ -477,6 +587,21 @@ msgstr ""
 "``enroll``, ``inspecting``, and ``manageable`` states."
 
 msgid ""
+"A new @passthru decorator was introduced to the driver API in a previous "
+"release. In this release, support for vendor_passthru and "
+"driver_vendor_passthru methods has been removed. All in-tree drivers have "
+"been updated. Any out of tree drivers which did not update to the @passthru "
+"decorator during the previous release will need to do so to be compatible "
+"with this release."
+msgstr ""
+"A new @passthru decorator was introduced to the driver API in a previous "
+"release. In this release, support for vendor_passthru and "
+"driver_vendor_passthru methods has been removed. All in-tree drivers have "
+"been updated. Any out-of-tree drivers which did not update to the @passthru "
+"decorator during the previous release will need to do so to be compatible "
+"with this release."
+
+msgid ""
 "A new WSGI application script ``ironic-api-wsgi`` is now available. It is "
 "auto-generated by ``pbr`` and provides the ability to serve the bare metal "
 "API using a WSGI server (for example Nginx and uWSGI or Apache with "
@@ -730,6 +855,9 @@ msgstr ""
 "Ironic to wait for Neutron port operations until we have a mechanism for "
 "synchronising events with Neutron. Set to 0 by default."
 
+msgid "Add OCS Driver"
+msgstr "Add OCS Driver"
+
 msgid "Add UCS Driver"
 msgstr "Add UCS Driver"
 
@@ -849,6 +977,9 @@ msgstr ""
 "Add timeout when querying agent for commands status. Without it, node can "
 "lock up for a quite long time and ironic will not allow to perform any "
 "operations with it."
+
+msgid "Added CORS support"
+msgstr "Added CORS support"
 
 msgid ""
 "Added configdrive support for whole disk images for iSCSI based deploy. This "
@@ -1735,8 +1866,49 @@ msgid ""
 msgstr ""
 "Adds inspection support for the `agent_ipmitool` and `agent_ssh` drivers."
 
+msgid ""
+"After a deprecation period, the scripts and support for migrating from the "
+"old Nova \"baremetal\" driver to the new Nova \"ironic\" driver have been "
+"removed from Ironic's tree."
+msgstr ""
+"After a deprecation period, the scripts and support for migrating from the "
+"old Nova \"baremetal\" driver to the new Nova \"ironic\" driver have been "
+"removed from Ironic's tree."
+
+msgid ""
+"Beginning with API v1.11, newly created Nodes begin in the ENROLL state, and "
+"must be \"managed\" and \"provided\" before they are made available for "
+"provisioning. API clients must be updated to handle the new workflow when "
+"they begin sending the X-OpenStack-Ironic-API-Version header with a value >= "
+"1.11."
+msgstr ""
+"Beginning with API v1.11, newly created Nodes begin in the ENROLL state and "
+"must be \"managed\" and \"provided\" before they are made available for "
+"provisioning. API clients must be updated to handle the new workflow when "
+"they begin sending the X-OpenStack-Ironic-API-Version header with a value >= "
+"1.11."
+
 msgid "Current Series Release Notes"
 msgstr "Current Series Release Notes"
+
+msgid "Deprecated the 'parallel' option to periodic task decorator"
+msgstr "Deprecated the 'parallel' option to periodic task decorator"
+
+msgid ""
+"Drivers may optionally add a new BootInterface. This is merely a refactoring "
+"of the Driver API to support future improvements."
+msgstr ""
+"Drivers may optionally add a new BootInterface. This is merely a refactoring "
+"of the Driver API to support future improvements."
+
+msgid "Implemented a new Boot interface for drivers"
+msgstr "Implemented a new Boot interface for drivers"
+
+msgid "Introduce new BootInterface to the Driver API"
+msgstr "Introduce new BootInterface to the Driver API"
+
+msgid "Migrations from Nova \"baremetal\" have been removed"
+msgstr "Migrations from Nova \"baremetal\" have been removed"
 
 msgid "Mitaka Series (4.3.0 - 5.1.x) Release Notes"
 msgstr "Mitaka Series (4.3.0 - 5.1.x) Release Notes"
@@ -1767,8 +1939,82 @@ msgstr ""
 msgid "Queens Series (9.2.0 - 10.1.x) Release Notes"
 msgstr "Queens Series (9.2.0 - 10.1.x) Release Notes"
 
+msgid "Raised API version to 1.11"
+msgstr "Raised API version to 1.11"
+
+msgid "Raised API version to 1.14"
+msgstr "Raised API version to 1.14"
+
+msgid "Removal of deprecated vendor driver methods"
+msgstr "Removal of deprecated vendor driver methods"
+
+msgid "Removed deprecated 'admin_api' policy rule"
+msgstr "Removed deprecated 'admin_api' policy rule"
+
+msgid "Rocky Series (11.0.0 - 11.1.x) Release Notes"
+msgstr "Rocky Series (11.0.0 - 11.1.x) Release Notes"
+
+msgid "Several hardware drivers have been added or enhanced"
+msgstr "Several hardware drivers have been added or enhanced"
+
+msgid "Stein Series (12.0.0 - 12.1.x) Release Notes"
+msgstr "Stein Series (12.0.0 - 12.1.x) Release Notes"
+
 msgid "Support for the new ENROLL workflow during Node creation"
 msgstr "Support for the new ENROLL workflow during Node creation"
+
+msgid ""
+"The Ironic API now has support for CORS requests, that may be used by, for "
+"example, web browser-based clients. This is configured in the [cors] section "
+"of ironic.conf."
+msgstr ""
+"The Ironic API now has support for CORS requests, that may be used by, for "
+"example, web browser-based clients. This is configured in the [cors] section "
+"of ironic.conf."
+
+msgid ""
+"This change enhances the driver interface for driver authors, and should not "
+"affect users of Ironic, by splitting control of booting a server from the "
+"DeployInterface. The BootInterface is responsible for booting an image on a "
+"server, while the DeployInterface is responsible for deploying a tenant "
+"image to a server."
+msgstr ""
+"This change enhances the driver interface for driver authors, and should not "
+"affect users of Ironic, by splitting control of booting a server from the "
+"DeployInterface. The BootInterface is responsible for booting an image on a "
+"server, while the DeployInterface is responsible for deploying a tenant "
+"image to a server."
+
+msgid ""
+"This is the first semver-versioned release of Ironic, created during the "
+"OpenStack \"Liberty\" development cycle.  It marks a pivot in our versioning "
+"schema from date-based versioning; the previous released version was 2015.1. "
+"Full release details are available on Launchpad: https://launchpad.net/"
+"ironic/liberty/4.0.0."
+msgstr ""
+"This is the first semver-versioned release of Ironic, created during the "
+"OpenStack \"Liberty\" development cycle.  It marks a pivot in our versioning "
+"schema from date-based versioning; the previously released version was "
+"2015.1. Full release details are available on Launchpad: https://launchpad."
+"net/ironic/liberty/4.0.0."
+
+msgid "Train Series (12.2.0 - 13.0.x) Release Notes"
+msgstr "Train Series (12.2.0 - 13.0.x) Release Notes"
+
+msgid "Ussuri Series (14.0.0 - 15.0.x) Release Notes"
+msgstr "Ussuri Series (14.0.0 - 15.0.x) Release Notes"
+
+msgid "Victoria Series (15.1.0 - 16.0.x) Release Notes"
+msgstr "Victoria Series (15.1.0 - 16.0.x) Release Notes"
+
+msgid "Wallaby Series (16.1.0 - 17.0.x) Release Notes"
+msgstr "Wallaby Series (16.1.0 - 17.0.x) Release Notes"
+
+msgid "Xena Series (18.0.0 - 18.2.x) Release Notes"
+msgstr "Xena Series (18.0.0 - 18.2.x) Release Notes"
+
+msgid "Yoga Series Release Notes"
+msgstr "Yoga Series Release Notes"
 
 msgid "ipmitool driver supports IPMI v1.5"
 msgstr "ipmitool driver supports IPMI v1.5"
@@ -1779,3 +2025,23 @@ msgid ""
 msgstr ""
 "pxe_ilo driver now supports UEFI Secure Boot (previous releases of the iLO "
 "driver only supported this for agent_ilo and iscsi_ilo)"
+
+msgid ""
+"v1.10 fixes Node logical names to support all `RFC 3986`_ unreserved "
+"characters"
+msgstr ""
+"v1.10 fixes Node logical names to support all `RFC 3986`_ unreserved "
+"characters"
+
+msgid ""
+"v1.11 changes the default state of newly created Nodes from AVAILABLE to "
+"ENROLL"
+msgstr ""
+"v1.11 changes the default state of newly created Nodes from AVAILABLE to "
+"ENROLL"
+
+msgid "v1.7 exposes a new 'clean_step' property on the Node resource."
+msgstr "v1.7 exposes a new 'clean_step' property on the Node resource."
+
+msgid "v1.8 and v1.9 improve query and filter support"
+msgstr "v1.8 and v1.9 improve query and filter support"
