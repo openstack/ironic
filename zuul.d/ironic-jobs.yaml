@@ -1067,3 +1067,39 @@
             required-projects:
                 - name: openstack/requirements
                   override-checkout: stable/xena
+
+- project-template:
+    name: openstack-python3-xena-jobs-ironic-bugfix181-arm64
+    description: |
+      Runs unit tests for an OpenStack Python project under the CPython
+      version 3 releases designated for testing in the Yoga release.
+    check:
+      jobs:
+        - openstack-tox-py38-arm64:
+            voting: false
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/xena
+        - openstack-tox-py39-arm64:
+            voting: false
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/xena
+
+- project-template:
+    name: openstack-cover-jobs-ironic-bugfix181
+    description: |
+                Runs openstack-tox-cover in only the check pipeline using
+                yoga upper-constraints.
+    check:
+      jobs:
+        - openstack-tox-cover:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/xena
+    gate:
+      jobs:
+        - openstack-tox-cover:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/xena
