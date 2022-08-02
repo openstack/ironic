@@ -1172,8 +1172,16 @@ def _get_chassis_uuid(node):
     """
     if not node.chassis_id:
         return
-    chassis = objects.Chassis.get_by_id(api.request.context, node.chassis_id)
-    return chassis.uuid
+    try:
+        chassis = objects.Chassis.get_by_id(api.request.context,
+                                            node.chassis_id)
+        return chassis.uuid
+    except exception.ChassisNotFound:
+        # NOTE(TheJulia): This is a case where multiple threads are racing
+        # and the chassis was not found... or somebody edited the database
+        # directly. Regardless, operationally, there is no chassis, and we
+        # return as there is nothing to actually return to the API consumer.
+        return
 
 
 def _replace_chassis_uuid_with_id(node_dict):

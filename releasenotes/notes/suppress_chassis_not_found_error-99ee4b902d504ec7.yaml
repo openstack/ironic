@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes an issue where an API user, when requesting a node list or single
+    node object, could get an error indicating that the request was bad as
+    the chassis was not found. This can occur when in-flight delete
+    operations are in progress on another thread. Instead of surfacing a
+    request breaking error, the API now suppresses the error and just
+    treats it as if there is no Chassis.

@@ -600,6 +600,23 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertCountEqual(['driver_info', 'links'], data)
         self.assertEqual('******', data['driver_info']['fake_password'])
 
+    def test_get_one_with_deleted_chassis(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        with mock.patch.object(self.dbapi,
+                               'get_chassis_by_id',
+                               autospec=True) as mock_gc:
+            # Explicitly return a chassis not found, and make sure the API
+            # hides this from the API consumer as this is likely just an
+            # in-flight deletion across multiple DB sessions or different
+            # API surfaces (or, just slow DB replication.)
+            mock_gc.side_effect = exception.ChassisNotFound(
+                chassis=self.chassis.id)
+            data = self.get_json(
+                '/nodes/%s' % node.uuid,
+                headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertIsNone(data['chassis_uuid'])
+
     def test_get_network_interface_fields_invalid_api_version(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
