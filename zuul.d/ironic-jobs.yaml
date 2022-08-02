@@ -20,6 +20,8 @@
         override-checkout: stable/yoga
       - name: openstack/swift
         override-checkout: stable/yoga
+      - name: openstack/requirements
+        override-checkout: stable/yoga
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -659,6 +661,9 @@
     parent: openstack-tox
     description: |
       Run python 3 unit tests with driver dependencies installed.
+    required-projects:
+      - name: openstack/requirements
+        override-checkout: stable/yoga
     vars:
       tox_envlist: unit-with-driver-libs
 
@@ -1048,8 +1053,12 @@
     description: Ironic unit tests run with Sushy from source
     parent: openstack-tox
     required-projects:
-      - opendev.org/openstack/ironic
-      - opendev.org/openstack/sushy
+      - name: opendev.org/openstack/ironic
+        override-checkout: bugfix/19.0
+      - name: opendev.org/openstack/sushy
+        override-checkout: stable/yoga
+      - name: openstack/requirements
+        override-checkout: stable/yoga
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -1109,10 +1118,30 @@
     check:
       jobs:
         - openstack-tox-py38-arm64:
+            voting: false
             required-projects:
                 - name: openstack/requirements
                   override-checkout: stable/yoga
         - openstack-tox-py39-arm64:
+            voting: false
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/yoga
+
+- project-template:
+    name: openstack-cover-jobs-ironic-bugfix19
+    description: |
+                Runs openstack-tox-cover in only the check pipeline using
+                yoga upper-constraints.
+    check:
+      jobs:
+        - openstack-tox-cover:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/yoga
+    gate:
+      jobs:
+        - openstack-tox-cover:
             required-projects:
                 - name: openstack/requirements
                   override-checkout: stable/yoga
