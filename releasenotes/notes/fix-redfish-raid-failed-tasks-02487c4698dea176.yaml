@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes the determination of a failed RAID configuration task in the
+    ``redfish`` hardware type. Prior to this fix the tasks that have failed
+    were reported as successful.
