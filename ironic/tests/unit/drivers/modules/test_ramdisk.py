@@ -47,8 +47,6 @@ class RamdiskDeployTestCase(db_base.DbTestCase):
         self.config(tftp_root=self.temp_dir, group='pxe')
         self.temp_dir = tempfile.mkdtemp()
         self.config(images_path=self.temp_dir, group='pxe')
-        self.config(enabled_deploy_interfaces=['ramdisk'])
-        self.config(enabled_boot_interfaces=['pxe'])
         for iface in drivers_base.ALL_INTERFACES:
             impl = 'fake'
             if iface == 'network':

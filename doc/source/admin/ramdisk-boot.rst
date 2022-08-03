@@ -11,8 +11,9 @@ It is suported by ``pxe``, ``ipxe``, ``redfish-virtual-media`` and
 Configuration
 -------------
 
-Ramdisk/ISO boot requires using the ``ramdisk`` deploy interface. As with most
-non-default interfaces, it must be enabled and set for a node to be utilized:
+Ramdisk/ISO boot requires using the ``ramdisk`` deploy interface. It is enabled
+by default starting with the Zed release cycle. On an earlier release, it must
+be enabled explicitly:
 
 .. code-block:: ini
 
