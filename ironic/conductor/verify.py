@@ -63,7 +63,7 @@ def do_node_verify(task):
         except Exception as e:
             error = ('Node %(node)s failed verify step %(step)s '
                      'with unexpected error: %(err)s' %
-                     {'node': node.uuid, 'step': node.verify_step,
+                     {'node': node.uuid, 'step': step['step'],
                       'err': e})
             utils.verifying_error_handler(
                 task, error,
