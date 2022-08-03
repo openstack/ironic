@@ -62,4 +62,4 @@ sleep 10
 goto boot_iscsi
 
 :boot_whole_disk
-sanboot --no-describe
+sanboot --no-describe || exit 0

@@ -10,6 +10,12 @@ isset ${net${netid}/mac} || goto loop_done
 echo Attempting to boot from MAC ${net${netid}/mac:hexhyp}
 chain pxelinux.cfg/${net${netid}/mac:hexhyp} || goto loop
 
+# If we've got here the chained config returned success
+# suggesting "sanboot" in boot_whole_disk failed (some UEFI cases)
+# exit 0 so the bios continues to the next device
+echo Exiting pxe config to allow boot to continue on next device
+exit 0
+
 :loop_done
 echo PXE boot failed! No configuration found for any of the present NICs.
 echo Press any key to reboot...

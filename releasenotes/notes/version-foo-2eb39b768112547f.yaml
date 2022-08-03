@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes ``enable_netboot_fallback`` to cause iPXE config to exit 0
+    when "sanboot --no-describe" fails. Allowing the firmware to
+    move onto the next device in the boot order.
