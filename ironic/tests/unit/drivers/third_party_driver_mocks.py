@@ -234,6 +234,9 @@ if not sushy:
         SEVERITY_WARNING='warning',
         SEVERITY_CRITICAL='critical',
         MANAGER_TYPE_BMC='bmc',
+        RAID_TYPE_RAID1='RAID1',
+        RAID_TYPE_RAID5='RAID5',
+        RAID_TYPE_RAID10='RAID10',
     )
 
     sys.modules['sushy'] = sushy
