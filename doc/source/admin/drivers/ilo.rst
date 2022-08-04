@@ -296,13 +296,8 @@ Node configuration
 
   - ``deploy_iso``: The glance UUID of the deploy ramdisk ISO image.
   - ``instance info/boot_iso`` property to be either boot iso
-    Glance UUID or a HTTP(S) URL. This is optional property and is used when
-    ``boot_option`` is set to ``netboot`` or ``ramdisk``.
-
-    .. note::
-       When ``boot_option`` is set to ``ramdisk``, the ironic node must be
-       configured to use ``ramdisk`` deploy interface. See :ref:`ramdisk-deploy`
-       for details.
+    Glance UUID or a HTTP(S) URL. This is optional property and is used with
+    :doc:`/admin/ramdisk-boot`.
 
     .. note::
        The ``boot_iso`` property used to be called ``ilo_boot_iso`` before
@@ -1043,9 +1038,7 @@ to send management information and images in encrypted channel over HTTPS.
 Deploy Process
 ~~~~~~~~~~~~~~
 
-Please refer to `Netboot in swiftless deploy for intermediate images`_ for
-partition image support and `Localboot in swiftless deploy for intermediate images`_
-for whole disk image support.
+Please refer to `Swiftless deploy for intermediate images`_.
 
 HTTP(S) Based Deploy Support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1063,8 +1056,7 @@ must be reachable by the conductor and the bare metal nodes.
 Deploy Process
 ~~~~~~~~~~~~~~
 
-Please refer to `Netboot with HTTP(S) based deploy`_ for partition image boot
-and `Localboot with HTTP(S) based deploy`_ for whole disk image boot.
+Please refer to `HTTP(S) based deploy`_.
 
 
 Support for iLO driver with Standalone Ironic
@@ -1084,58 +1076,8 @@ intermediate images on conductor as described in
 Deploy Process
 ==============
 
-.. note::
-   Network boot is deprecated and will be removed in the Zed release.
-
-.. TODO(dtantsur): review these diagrams to exclude netboot.
-
-Netboot with glance and swift
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. seqdiag::
-   :scale: 80
-
-   diagram {
-      Glance; Conductor; Baremetal; Swift; IPA; iLO;
-      activation = none;
-      span_height = 1;
-      edge_length = 250;
-      default_note_color = white;
-      default_fontsize = 14;
-
-      Conductor -> iLO [label = "Powers off the node"];
-      Conductor -> Glance [label = "Download user image"];
-      Conductor -> Glance [label = "Get the metadata for deploy ISO"];
-      Conductor -> Conductor [label = "Generates swift tempURL for deploy ISO"];
-      Conductor -> Conductor [label = "Creates the FAT32 image containing Ironic API URL and driver name"];
-      Conductor -> Swift [label = "Uploads the FAT32 image"];
-      Conductor -> Conductor [label = "Generates swift tempURL for FAT32 image"];
-      Conductor -> iLO [label = "Attaches the FAT32 image swift tempURL as virtual media floppy"];
-      Conductor -> iLO [label = "Attaches the deploy ISO swift tempURL as virtual media CDROM"];
-      Conductor -> iLO [label = "Sets one time boot to CDROM"];
-      Conductor -> iLO [label = "Reboot the node"];
-      iLO -> Swift [label = "Downloads deploy ISO"];
-      Baremetal -> iLO [label = "Boots deploy kernel/ramdisk from iLO virtual media CDROM"];
-      IPA -> Conductor [label = "Lookup node"];
-      Conductor -> IPA [label = "Provides node UUID"];
-      IPA -> Conductor [label = "Heartbeat"];
-      Conductor -> IPA [label = "Sends the user image HTTP(S) URL"];
-      IPA -> Swift [label = "Retrieves the user image on bare metal"];
-      IPA -> IPA [label = "Writes user image to disk"];
-      Conductor -> Conductor [label = "Generates the boot ISO"];
-      Conductor -> Swift [label = "Uploads the boot ISO"];
-      Conductor -> Conductor [label = "Generates swift tempURL for boot ISO"];
-      Conductor -> iLO [label = "Attaches boot ISO swift tempURL as virtual media CDROM"];
-      Conductor -> iLO [label = "Sets boot device to CDROM"];
-      Conductor -> IPA [label = "Power off the node"];
-      Conductor -> iLO [label = "Power on the node"];
-      iLO -> Swift [label = "Downloads boot ISO"];
-      iLO -> Baremetal [label = "Boots the instance kernel/ramdisk from iLO virtual media CDROM"];
-      Baremetal -> Baremetal [label = "Instance kernel finds root partition and continues booting from disk"];
-   }
-
-Localboot with glance and swift for partition images
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Glance and swift for partition images
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. seqdiag::
    :scale: 80
@@ -1176,8 +1118,8 @@ Localboot with glance and swift for partition images
    }
 
 
-Localboot with glance and swift
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Glance and swift with whole-disk images
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. seqdiag::
    :scale: 80
@@ -1216,52 +1158,8 @@ Localboot with glance and swift
       Baremetal -> Baremetal [label = "Boot user image from disk"];
    }
 
-Netboot in swiftless deploy for intermediate images
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. seqdiag::
-   :scale: 80
-
-   diagram {
-      Glance; Conductor; Baremetal; ConductorWebserver; IPA; iLO;
-      activation = none;
-      span_height = 1;
-      edge_length = 250;
-      default_note_color = white;
-      default_fontsize = 14;
-
-      Conductor -> iLO [label = "Powers off the node"];
-      Conductor -> Glance [label = "Download user image"];
-      Conductor -> Glance [label = "Get the metadata for deploy ISO"];
-      Conductor -> Conductor [label = "Generates swift tempURL for deploy ISO"];
-      Conductor -> Conductor [label = "Creates the FAT32 image containing Ironic API URL and driver name"];
-      Conductor -> ConductorWebserver [label = "Uploads the FAT32 image"];
-      Conductor -> iLO [label = "Attaches the FAT32 image URL as virtual media floppy"];
-      Conductor -> iLO [label = "Attaches the deploy ISO swift tempURL as virtual media CDROM"];
-      Conductor -> iLO [label = "Sets one time boot to CDROM"];
-      Conductor -> iLO [label = "Reboot the node"];
-      iLO -> Swift [label = "Downloads deploy ISO"];
-      Baremetal -> iLO [label = "Boots deploy kernel/ramdisk from iLO virtual media CDROM"];
-      IPA -> Conductor [label = "Lookup node"];
-      Conductor -> IPA [label = "Provides node UUID"];
-      IPA -> Conductor [label = "Heartbeat"];
-      Conductor -> IPA [label = "Sends the user image HTTP(S) URL"];
-      IPA -> ConductorWebserver [label = "Retrieves the user image on bare metal"];
-      IPA -> IPA [label = "Writes user image to root partition"];
-      Conductor -> Conductor [label = "Generates the boot ISO"];
-      Conductor -> ConductorWebserver [label = "Uploads the boot ISO"];
-      Conductor -> iLO [label = "Attaches boot ISO URL as virtual media CDROM"];
-      Conductor -> iLO [label = "Sets boot device to CDROM"];
-      Conductor -> IPA [label = "Power off the node"];
-      Conductor -> iLO [label = "Power on the node"];
-      iLO -> ConductorWebserver [label = "Downloads boot ISO"];
-      iLO -> Baremetal [label = "Boots the instance kernel/ramdisk from iLO virtual media CDROM"];
-      Baremetal -> Baremetal [label = "Instance kernel finds root partition and continues booting from disk"];
-   }
-
-
-Localboot in swiftless deploy for intermediate images
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Swiftless deploy
+^^^^^^^^^^^^^^^^
 
 .. seqdiag::
    :scale: 80
@@ -1299,51 +1197,8 @@ Localboot in swiftless deploy for intermediate images
       Baremetal -> Baremetal [label = "Boot user image from disk"];
    }
 
-Netboot with HTTP(S) based deploy
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. seqdiag::
-   :scale: 80
-
-   diagram {
-      Webserver; Conductor; Baremetal; Swift; IPA; iLO;
-      activation = none;
-      span_height = 1;
-      edge_length = 250;
-      default_note_color = white;
-      default_fontsize = 14;
-
-      Conductor -> iLO [label = "Powers off the node"];
-      Conductor -> Webserver [label = "Download user image"];
-      Conductor -> Conductor [label = "Creates the FAT32 image containing Ironic API URL and driver name"];
-      Conductor -> Swift [label = "Uploads the FAT32 image"];
-      Conductor -> Conductor [label = "Generates swift tempURL for FAT32 image"];
-      Conductor -> iLO [label = "Attaches the FAT32 image swift tempURL as virtual media floppy"];
-      Conductor -> iLO [label = "Attaches the deploy ISO URL as virtual media CDROM"];
-      Conductor -> iLO [label = "Sets one time boot to CDROM"];
-      Conductor -> iLO [label = "Reboot the node"];
-      iLO -> Webserver [label = "Downloads deploy ISO"];
-      Baremetal -> iLO [label = "Boots deploy kernel/ramdisk from iLO virtual media CDROM"];
-      IPA -> Conductor [label = "Lookup node"];
-      Conductor -> IPA [label = "Provides node UUID"];
-      IPA -> Conductor [label = "Heartbeat"];
-      Conductor -> IPA [label = "Sends the user image HTTP(S) URL"];
-      IPA -> Swift [label = "Retrieves the user image on bare metal"];
-      IPA -> IPA [label = "Writes user image to disk"];
-      Conductor -> Conductor [label = "Generates the boot ISO"];
-      Conductor -> Swift [label = "Uploads the boot ISO"];
-      Conductor -> Conductor [label = "Generates swift tempURL for boot ISO"];
-      Conductor -> iLO [label = "Attaches boot ISO swift tempURL as virtual media CDROM"];
-      Conductor -> iLO [label = "Sets boot device to CDROM"];
-      Conductor -> IPA [label = "Power off the node"];
-      Conductor -> iLO [label = "Power on the node"];
-      iLO -> Swift [label = "Downloads boot ISO"];
-      iLO -> Baremetal [label = "Boots the instance kernel/ramdisk from iLO virtual media CDROM"];
-      Baremetal -> Baremetal [label = "Instance kernel finds root partition and continues booting from disk"];
-   }
-
-Localboot with HTTP(S) based deploy
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+HTTP(S) based deploy
+^^^^^^^^^^^^^^^^^^^^
 
 .. seqdiag::
    :scale: 80
@@ -1379,49 +1234,8 @@ Localboot with HTTP(S) based deploy
       Baremetal -> Baremetal [label = "Boot user image from disk"];
    }
 
-Netboot in standalone ironic
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. seqdiag::
-   :scale: 80
-
-   diagram {
-      Webserver; Conductor; Baremetal; ConductorWebserver; IPA; iLO;
-      activation = none;
-      span_height = 1;
-      edge_length = 250;
-      default_note_color = white;
-      default_fontsize = 14;
-
-      Conductor -> iLO [label = "Powers off the node"];
-      Conductor -> Webserver [label = "Download user image"];
-      Conductor -> Conductor [label = "Creates the FAT32 image containing Ironic API URL and driver name"];
-      Conductor -> ConductorWebserver[label = "Uploads the FAT32 image"];
-      Conductor -> iLO [label = "Attaches the FAT32 image URL as virtual media floppy"];
-      Conductor -> iLO [label = "Attaches the deploy ISO URL as virtual media CDROM"];
-      Conductor -> iLO [label = "Sets one time boot to CDROM"];
-      Conductor -> iLO [label = "Reboot the node"];
-      iLO -> Webserver [label = "Downloads deploy ISO"];
-      Baremetal -> iLO [label = "Boots deploy kernel/ramdisk from iLO virtual media CDROM"];
-      IPA -> Conductor [label = "Lookup node"];
-      Conductor -> IPA [label = "Provides node UUID"];
-      IPA -> Conductor [label = "Heartbeat"];
-      Conductor -> IPA [label = "Sends the user image HTTP(S) URL"];
-      IPA -> ConductorWebserver [label = "Retrieves the user image on bare metal"];
-      IPA -> IPA [label = "Writes user image to root partition"];
-      Conductor -> Conductor [label = "Generates the boot ISO"];
-      Conductor -> ConductorWebserver [label = "Uploads the boot ISO"];
-      Conductor -> iLO [label = "Attaches boot ISO URL as virtual media CDROM"];
-      Conductor -> iLO [label = "Sets boot device to CDROM"];
-      Conductor -> IPA [label = "Power off the node"];
-      Conductor -> iLO [label = "Power on the node"];
-      iLO -> ConductorWebserver [label = "Downloads boot ISO"];
-      iLO -> Baremetal [label = "Boots the instance kernel/ramdisk from iLO virtual media CDROM"];
-      Baremetal -> Baremetal [label = "Instance kernel finds root partition and continues booting from disk"];
-   }
-
-Localboot in standalone ironic
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Standalone ironic
+^^^^^^^^^^^^^^^^^
 
 .. seqdiag::
    :scale: 80

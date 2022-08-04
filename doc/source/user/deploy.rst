@@ -186,14 +186,6 @@ Capabilities
      previously ironic used a separate ``instance_info/deploy_boot_mode``
      field instead.
 
-* To override the :ref:`boot option <local-boot-partition-images>` used for
-  this instance, set the ``boot_option`` capability:
-
-  .. code-block:: shell
-
-    baremetal node set $NODE_UUID \
-        --instance-info capabilities='{"boot_option": "local"}'
-
 * Starting with the Ussuri release, you can set :ref:`root device hints
   <root-device-hints>` per instance:
 

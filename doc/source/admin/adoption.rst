@@ -135,8 +135,7 @@ from the ``manageable`` state to ``active`` state::
     baremetal port create <node_mac_address> --node <node_uuid>
 
     baremetal node set testnode \
-        --instance-info image_source="http://localhost:8080/blankimage" \
-        --instance-info capabilities="{\"boot_option\": \"local\"}"
+        --instance-info image_source="http://localhost:8080/blankimage"
 
     baremetal node manage testnode --wait
 

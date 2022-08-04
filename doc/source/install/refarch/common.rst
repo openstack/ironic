@@ -135,44 +135,9 @@ The Bare Metal service can deploy two types of images:
   .. warning::
     Partition images are only supported with GNU/Linux operating systems.
 
-  .. warning::
-    If you plan on using local boot, your partition images must contain GRUB2
-    bootloader tools to enable ironic to set up the bootloader during deploy.
-
-Local vs network boot
----------------------
-
-The Bare Metal service supports booting user instances either using a local
-bootloader or using the driver's boot interface (e.g. via PXE_ or iPXE_
-protocol in case of the ``pxe`` interface).
-
-Network boot cannot be used with certain architectures (for example, when no
-tenant networks have access to the control plane).
-
-Additional considerations are related to the ``pxe`` boot interface, and other
-boot interfaces based on it:
-
-* Local boot makes node's boot process independent of the Bare Metal conductor
-  managing it. Thus, nodes are able to reboot correctly, even if the Bare Metal
-  TFTP or HTTP service is down.
-
-* Network boot (and iPXE) must be used when booting nodes from remote volumes,
-  if the driver does not support attaching volumes out-of-band.
-
-The default boot option for the cloud can be changed via the Bare Metal service
-configuration file, for example:
-
-.. code-block:: ini
-
-    [deploy]
-    default_boot_option = local
-
-This default can be overridden by setting the ``boot_option`` capability on a
-node. See :ref:`local-boot-partition-images` for details.
-
-.. note::
-    Currently, local boot is used by default. It's safer to set
-    the ``default_boot_option`` explicitly.
+    For the Bare Metal service to set up the bootloader during deploy, your
+    partition images must container either GRUB2 bootloader or ready-to-use
+    EFI artifacts.
 
 .. _refarch-common-networking:
 

@@ -131,8 +131,6 @@ Anaconda deploy
 The ``anaconda`` deploy interface is another option for highly customized
 deployments.  See :doc:`/admin/anaconda-deploy-interface` for more details.
 
-.. _ramdisk-deploy:
-
 Ramdisk deploy
 ==============
 
