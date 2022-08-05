@@ -16,7 +16,6 @@ from urllib import parse as urlparse
 
 from ironic_lib import metrics_utils
 from oslo_log import log
-from oslo_utils import excutils
 from oslo_utils import units
 
 from ironic.common import exception
@@ -325,33 +324,7 @@ class CustomAgentDeploy(agent_base.AgentBaseMixin, agent_base.AgentDeployMixin,
         if node.provision_state == states.DEPLOYING:
             # Validate network interface to ensure that it supports boot
             # options configured on the node.
-            try:
-                task.driver.network.validate(task)
-            except exception.InvalidParameterValue:
-                # For 'neutron' network interface validation will fail
-                # if node is using 'netboot' boot option while provisioning
-                # a whole disk image. Updating 'boot_option' in node's
-                # 'instance_info' to 'local for backward compatibility.
-                # TODO(stendulker): Fail here once the default boot
-                # option is local.
-                # NOTE(TheJulia): Fixing the default boot mode only
-                # masks the failure as the lack of a user definition
-                # can be perceived as both an invalid configuration and
-                # reliance upon the default configuration. The reality
-                # being that in most scenarios, users do not want network
-                # booting, so the changed default should be valid.
-                with excutils.save_and_reraise_exception(reraise=False) as ctx:
-                    instance_info = node.instance_info
-                    capabilities = utils.parse_instance_info_capabilities(node)
-                    if 'boot_option' not in capabilities:
-                        capabilities['boot_option'] = 'local'
-                        instance_info['capabilities'] = capabilities
-                        node.instance_info = instance_info
-                        node.save()
-                        # Re-validate the network interface
-                        task.driver.network.validate(task)
-                    else:
-                        ctx.reraise = True
+            task.driver.network.validate(task)
             # Determine if this is a fast track sequence
             fast_track_deploy = manager_utils.is_fast_track(task)
             if fast_track_deploy:
@@ -597,13 +570,6 @@ class AgentDeploy(CustomAgentDeploy):
         iwdi = task.node.driver_internal_info.get('is_whole_disk_image')
         cpu_arch = task.node.properties.get('cpu_arch')
 
-        # If `boot_option` is set to `netboot`, PXEBoot.prepare_instance()
-        # would need root_uuid of the whole disk image to add it into the
-        # pxe config to perform chain boot.
-        # IPA would have returned us the 'root_uuid_or_disk_id' if image
-        # being provisioned is a whole disk image. IPA would also provide us
-        # 'efi_system_partition_uuid' if the image being provisioned is a
-        # partition image.
         # In case of local boot using partition image, we need both
         # 'root_uuid_or_disk_id' and 'efi_system_partition_uuid' to configure
         # bootloader for local boot.

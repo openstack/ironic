@@ -120,18 +120,6 @@ opts = [
                 mutable=True,
                 help=_('Whether to power off a node after deploy failure. '
                        'Defaults to True.')),
-    cfg.StrOpt('default_boot_option',
-               choices=[('netboot', _('boot from a network')),
-                        ('local', _('local boot'))],
-               default='local',
-               mutable=True,
-               help=_('Default boot option to use when no boot option is '
-                      'requested in node\'s driver_info. Defaults to '
-                      '"local". Prior to the Ussuri release, the default '
-                      'was "netboot".'),
-               deprecated_for_removal=True,
-               deprecated_reason=_('Support for network boot will be removed '
-                                   'after the Yoga release.')),
     cfg.StrOpt('default_boot_mode',
                choices=[(boot_modes.UEFI, _('UEFI boot mode')),
                         (boot_modes.LEGACY_BIOS, _('Legacy BIOS boot mode'))],

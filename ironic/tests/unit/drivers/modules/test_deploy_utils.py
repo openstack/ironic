@@ -54,27 +54,6 @@ kernel deploy_kernel
 append initrd=deploy_ramdisk
 ipappend 3
 
-label boot_partition
-kernel kernel
-append initrd=ramdisk root={{ ROOT }}
-
-label boot_whole_disk
-COM32 chain.c32
-append mbr:{{ DISK_IDENTIFIER }}
-"""
-
-_PXECONF_BOOT_PARTITION = """
-default boot_partition
-
-label deploy
-kernel deploy_kernel
-append initrd=deploy_ramdisk
-ipappend 3
-
-label boot_partition
-kernel kernel
-append initrd=ramdisk root=UUID=12345678-1234-1234-1234-1234567890abcdef
-
 label boot_whole_disk
 COM32 chain.c32
 append mbr:{{ DISK_IDENTIFIER }}
@@ -87,10 +66,6 @@ label deploy
 kernel deploy_kernel
 append initrd=deploy_ramdisk
 ipappend 3
-
-label boot_partition
-kernel kernel
-append initrd=ramdisk root={{ ROOT }}
 
 label boot_whole_disk
 COM32 chain.c32
@@ -107,34 +82,6 @@ goto deploy
 :deploy
 kernel deploy_kernel
 initrd deploy_ramdisk
-boot
-
-:boot_partition
-kernel kernel
-append initrd=ramdisk root={{ ROOT }}
-boot
-
-:boot_whole_disk
-kernel chain.c32
-append mbr:{{ DISK_IDENTIFIER }}
-boot
-"""
-
-_IPXECONF_BOOT_PARTITION = """
-#!ipxe
-
-dhcp
-
-goto boot_partition
-
-:deploy
-kernel deploy_kernel
-initrd deploy_ramdisk
-boot
-
-:boot_partition
-kernel kernel
-append initrd=ramdisk root=UUID=12345678-1234-1234-1234-1234567890abcdef
 boot
 
 :boot_whole_disk
@@ -155,11 +102,6 @@ kernel deploy_kernel
 initrd deploy_ramdisk
 boot
 
-:boot_partition
-kernel kernel
-append initrd=ramdisk root={{ ROOT }}
-boot
-
 :boot_whole_disk
 kernel chain.c32
 append mbr:0x12345678
@@ -178,11 +120,6 @@ kernel deploy_kernel
 initrd deploy_ramdisk
 boot
 
-:boot_partition
-kernel kernel
-append initrd=ramdisk root=UUID=0x12345678
-boot
-
 :boot_whole_disk
 kernel chain.c32
 append mbr:{{ DISK_IDENTIFIER }}
@@ -197,29 +134,6 @@ image=deploy_kernel
         initrd=deploy_ramdisk
         append="ro text"
 
-image=kernel
-        label=boot_partition
-        initrd=ramdisk
-        append="root={{ ROOT }}"
-
-image=chain.c32
-        label=boot_whole_disk
-        append="mbr:{{ DISK_IDENTIFIER }}"
-"""
-
-_UEFI_PXECONF_BOOT_PARTITION = """
-default=boot_partition
-
-image=deploy_kernel
-        label=deploy
-        initrd=deploy_ramdisk
-        append="ro text"
-
-image=kernel
-        label=boot_partition
-        initrd=ramdisk
-        append="root=UUID=12345678-1234-1234-1234-1234567890abcdef"
-
 image=chain.c32
         label=boot_whole_disk
         append="mbr:{{ DISK_IDENTIFIER }}"
@@ -232,11 +146,6 @@ image=deploy_kernel
         label=deploy
         initrd=deploy_ramdisk
         append="ro text"
-
-image=kernel
-        label=boot_partition
-        initrd=ramdisk
-        append="root={{ ROOT }}"
 
 image=chain.c32
         label=boot_whole_disk
@@ -253,31 +162,6 @@ menuentry "deploy"  {
     initrdefi deploy_ramdisk
 }
 
-menuentry "boot_partition"  {
-    linuxefi kernel "root=(( ROOT ))"
-    initrdefi ramdisk
-}
-
-menuentry "boot_whole_disk"  {
-    linuxefi chain.c32 mbr:(( DISK_IDENTIFIER ))
-}
-"""
-
-_UEFI_PXECONF_BOOT_PARTITION_GRUB = """
-set default=boot_partition
-set timeout=5
-set hidden_timeout_quiet=false
-
-menuentry "deploy"  {
-    linuxefi deploy_kernel "ro text"
-    initrdefi deploy_ramdisk
-}
-
-menuentry "boot_partition"  {
-    linuxefi kernel "root=UUID=12345678-1234-1234-1234-1234567890abcdef"
-    initrdefi ramdisk
-}
-
 menuentry "boot_whole_disk"  {
     linuxefi chain.c32 mbr:(( DISK_IDENTIFIER ))
 }
@@ -291,11 +175,6 @@ set hidden_timeout_quiet=false
 menuentry "deploy"  {
     linuxefi deploy_kernel "ro text"
     initrdefi deploy_ramdisk
-}
-
-menuentry "boot_partition"  {
-    linuxefi kernel "root=(( ROOT ))"
-    initrdefi ramdisk
 }
 
 menuentry "boot_whole_disk"  {
@@ -322,17 +201,6 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
         self.addCleanup(os.unlink, fname)
         return fname
 
-    def test_switch_pxe_config_partition_image(self):
-        boot_mode = 'bios'
-        fname = self._create_config()
-        utils.switch_pxe_config(fname,
-                                '12345678-1234-1234-1234-1234567890abcdef',
-                                boot_mode,
-                                False)
-        with open(fname, 'r') as f:
-            pxeconf = f.read()
-        self.assertEqual(_PXECONF_BOOT_PARTITION, pxeconf)
-
     def test_switch_pxe_config_whole_disk_image(self):
         boot_mode = 'bios'
         fname = self._create_config()
@@ -343,18 +211,6 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
         with open(fname, 'r') as f:
             pxeconf = f.read()
         self.assertEqual(_PXECONF_BOOT_WHOLE_DISK, pxeconf)
-
-    def test_switch_ipxe_config_partition_image(self):
-        boot_mode = 'bios'
-        fname = self._create_config(ipxe=True)
-        utils.switch_pxe_config(fname,
-                                '12345678-1234-1234-1234-1234567890abcdef',
-                                boot_mode,
-                                False,
-                                ipxe_enabled=True)
-        with open(fname, 'r') as f:
-            pxeconf = f.read()
-        self.assertEqual(_IPXECONF_BOOT_PARTITION, pxeconf)
 
     def test_switch_ipxe_config_whole_disk_image(self):
         boot_mode = 'bios'
@@ -370,19 +226,6 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
 
     # NOTE(TheJulia): Remove elilo support after the deprecation period,
     # in the Queens release.
-    def test_switch_uefi_elilo_pxe_config_partition_image(self):
-        boot_mode = 'uefi'
-        fname = self._create_config(boot_mode=boot_mode)
-        utils.switch_pxe_config(fname,
-                                '12345678-1234-1234-1234-1234567890abcdef',
-                                boot_mode,
-                                False)
-        with open(fname, 'r') as f:
-            pxeconf = f.read()
-        self.assertEqual(_UEFI_PXECONF_BOOT_PARTITION, pxeconf)
-
-    # NOTE(TheJulia): Remove elilo support after the deprecation period,
-    # in the Queens release.
     def test_switch_uefi_elilo_config_whole_disk_image(self):
         boot_mode = 'uefi'
         fname = self._create_config(boot_mode=boot_mode)
@@ -394,17 +237,6 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
             pxeconf = f.read()
         self.assertEqual(_UEFI_PXECONF_BOOT_WHOLE_DISK, pxeconf)
 
-    def test_switch_uefi_grub_pxe_config_partition_image(self):
-        boot_mode = 'uefi'
-        fname = self._create_config(boot_mode=boot_mode, boot_loader='grub')
-        utils.switch_pxe_config(fname,
-                                '12345678-1234-1234-1234-1234567890abcdef',
-                                boot_mode,
-                                False)
-        with open(fname, 'r') as f:
-            pxeconf = f.read()
-        self.assertEqual(_UEFI_PXECONF_BOOT_PARTITION_GRUB, pxeconf)
-
     def test_switch_uefi_grub_config_whole_disk_image(self):
         boot_mode = 'uefi'
         fname = self._create_config(boot_mode=boot_mode, boot_loader='grub')
@@ -415,18 +247,6 @@ class SwitchPxeConfigTestCase(tests_base.TestCase):
         with open(fname, 'r') as f:
             pxeconf = f.read()
         self.assertEqual(_UEFI_PXECONF_BOOT_WHOLE_DISK_GRUB, pxeconf)
-
-    def test_switch_uefi_ipxe_config_partition_image(self):
-        boot_mode = 'uefi'
-        fname = self._create_config(boot_mode=boot_mode, ipxe=True)
-        utils.switch_pxe_config(fname,
-                                '12345678-1234-1234-1234-1234567890abcdef',
-                                boot_mode,
-                                False,
-                                ipxe_enabled=True)
-        with open(fname, 'r') as f:
-            pxeconf = f.read()
-        self.assertEqual(_IPXECONF_BOOT_PARTITION, pxeconf)
 
     def test_switch_uefi_ipxe_config_whole_disk_image(self):
         boot_mode = 'uefi'
@@ -738,33 +558,8 @@ class OtherFunctionTestCase(db_base.DbTestCase):
         self._test_set_failed_state(collect_logs=False)
         self.assertFalse(mock_collect.called)
 
-    def test_get_boot_option(self):
-        self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
-        result = utils.get_boot_option(self.node)
-        self.assertEqual("local", result)
-
     def test_get_boot_option_default_value(self):
         self.node.instance_info = {}
-        result = utils.get_boot_option(self.node)
-        self.assertEqual("local", result)
-
-    def test_get_boot_option_overridden_default_value(self):
-        cfg.CONF.set_override('default_boot_option', 'local', 'deploy')
-        self.node.instance_info = {}
-        result = utils.get_boot_option(self.node)
-        self.assertEqual("local", result)
-
-    def test_get_boot_option_instance_info_priority(self):
-        cfg.CONF.set_override('default_boot_option', 'local', 'deploy')
-        self.node.instance_info = {'capabilities':
-                                   '{"boot_option": "netboot"}'}
-        result = utils.get_boot_option(self.node)
-        self.assertEqual("netboot", result)
-
-    @mock.patch.object(utils, 'is_software_raid', autospec=True)
-    def test_get_boot_option_software_raid(self, mock_is_software_raid):
-        mock_is_software_raid.return_value = True
-        cfg.CONF.set_override('default_boot_option', 'netboot', 'deploy')
         result = utils.get_boot_option(self.node)
         self.assertEqual("local", result)
 
@@ -972,8 +767,6 @@ class ParseInstanceInfoCapabilitiesTestCase(tests_base.TestCase):
                           utils.validate_capabilities, self.node)
 
     def test_all_supported_capabilities(self):
-        self.assertEqual(('local', 'netboot', 'ramdisk', 'kickstart'),
-                         utils.SUPPORTED_CAPABILITIES['boot_option'])
         self.assertEqual(('bios', 'uefi'),
                          utils.SUPPORTED_CAPABILITIES['boot_mode'])
         self.assertEqual(('true', 'false'),
@@ -1302,38 +1095,6 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
         utils.validate_image_properties(self.task, inst_info)
 
     @mock.patch.object(utils, 'get_boot_option', autospec=True,
-                       return_value='netboot')
-    @mock.patch.object(image_service, 'get_image_service', autospec=True)
-    def test_validate_image_properties_glance_image(self, image_service_mock,
-                                                    boot_options_mock):
-        inst_info = utils.get_image_instance_info(self.node)
-        image_service_mock.return_value.show.return_value = {
-            'properties': {'kernel_id': '1111', 'ramdisk_id': '2222'},
-        }
-
-        utils.validate_image_properties(self.task, inst_info)
-        image_service_mock.assert_called_once_with(
-            self.node.instance_info['image_source'], context=self.context
-        )
-
-    @mock.patch.object(utils, 'get_boot_option', autospec=True,
-                       return_value='netboot')
-    @mock.patch.object(image_service, 'get_image_service', autospec=True)
-    def test_validate_image_properties_glance_image_missing_prop(
-            self, image_service_mock, boot_options_mock):
-        inst_info = utils.get_image_instance_info(self.node)
-        image_service_mock.return_value.show.return_value = {
-            'properties': {'kernel_id': '1111'},
-        }
-
-        self.assertRaises(exception.MissingParameterValue,
-                          utils.validate_image_properties,
-                          self.task, inst_info)
-        image_service_mock.assert_called_once_with(
-            self.node.instance_info['image_source'], context=self.context
-        )
-
-    @mock.patch.object(utils, 'get_boot_option', autospec=True,
                        return_value='kickstart')
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image_missing_stage2_id(
@@ -1351,7 +1112,7 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
         )
 
     @mock.patch.object(utils, 'get_boot_option', autospec=True,
-                       return_value='netboot')
+                       return_value='kickstart')
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image_not_authorized(
             self, image_service_mock, boot_options_mock):
@@ -1363,7 +1124,7 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
                           inst_info)
 
     @mock.patch.object(utils, 'get_boot_option', autospec=True,
-                       return_value='netboot')
+                       return_value='kickstart')
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_validate_image_properties_glance_image_not_found(
             self, image_service_mock, boot_options_mock):
@@ -1381,7 +1142,7 @@ class ValidateImagePropertiesTestCase(db_base.DbTestCase):
                           inst_info)
 
     @mock.patch.object(utils, 'get_boot_option', autospec=True,
-                       return_value='netboot')
+                       return_value='kickstart')
     def test_validate_image_properties_nonglance_image(
             self, boot_options_mock):
         instance_info = {
@@ -1473,8 +1234,8 @@ class ValidateParametersTestCase(db_base.DbTestCase):
         self.assertNotIn('ramdisk', info)
 
     @mock.patch.object(utils, 'get_boot_option', autospec=True,
-                       return_value='netboot')
-    def test__get_img_instance_info_good_non_glance_image_netboot(
+                       return_value='kickstart')
+    def test__get_img_instance_info_good_non_glance_image_anaconda(
             self, mock_boot_opt):
         instance_info = INST_INFO_DICT.copy()
         instance_info['image_source'] = 'http://image'
@@ -1488,7 +1249,7 @@ class ValidateParametersTestCase(db_base.DbTestCase):
         self.assertIsNotNone(info['kernel'])
 
     @mock.patch.object(utils, 'get_boot_option', autospec=True,
-                       return_value='netboot')
+                       return_value='kickstart')
     def test__get_img_instance_info_non_glance_image_missing_kernel(
             self, mock_boot_opt):
         instance_info = INST_INFO_DICT.copy()
@@ -1501,7 +1262,7 @@ class ValidateParametersTestCase(db_base.DbTestCase):
             instance_info=instance_info)
 
     @mock.patch.object(utils, 'get_boot_option', autospec=True,
-                       return_value='netboot')
+                       return_value='kickstart')
     def test__get_img_instance_info_non_glance_image_missing_ramdisk(
             self, mock_boot_opt):
         instance_info = INST_INFO_DICT.copy()
@@ -1768,23 +1529,26 @@ class InstanceInfoTestCase(db_base.DbTestCase):
         )
         utils.parse_instance_info(node)
 
-    def test_parse_instance_info_nonglance_image_netboot(self):
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='kickstart')
+    def test_parse_instance_info_nonglance_image_anaconda(self, mock_boot_opt):
         info = INST_INFO_DICT.copy()
         info['image_source'] = 'file:///image.qcow2'
         info['kernel'] = 'file:///image.vmlinuz'
         info['ramdisk'] = 'file:///image.initrd'
-        info['capabilities'] = {'boot_option': 'netboot'}
         node = obj_utils.create_test_node(
             self.context, instance_info=info,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
         )
         utils.parse_instance_info(node)
 
-    def test_parse_instance_info_nonglance_image_no_kernel(self):
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='kickstart')
+    def test_parse_instance_info_nonglance_image_no_kernel(self,
+                                                           mock_boot_opt):
         info = INST_INFO_DICT.copy()
         info['image_source'] = 'file:///image.qcow2'
         info['ramdisk'] = 'file:///image.initrd'
-        info['capabilities'] = {'boot_option': 'netboot'}
         node = obj_utils.create_test_node(
             self.context, instance_info=info,
             driver_internal_info=DRV_INTERNAL_INFO_DICT,
@@ -1947,12 +1711,15 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
             self.assertEqual(expected_i_info, info)
             parse_instance_info_mock.assert_called_once_with(task.node)
 
+    @mock.patch.object(utils, 'get_boot_option', autospec=True,
+                       return_value='kickstart')
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)
     @mock.patch.object(utils, 'parse_instance_info', autospec=True)
     @mock.patch.object(image_service, 'GlanceImageService', autospec=True)
-    def test_build_instance_info_for_deploy_glance_partition_image_netboot(
-            self, glance_mock, parse_instance_info_mock, validate_mock):
+    def test_build_instance_info_for_deploy_glance_partition_image_anaconda(
+            self, glance_mock, parse_instance_info_mock, validate_mock,
+            boot_opt_mock):
         i_info = {}
         i_info['image_source'] = '733d1c44-a2ea-414b-aca7-69decf20d810'
         i_info['kernel'] = '13ce5a56-1de3-4916-b8b2-be778645d003'
@@ -1962,7 +1729,6 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         i_info['ephemeral_gb'] = 0
         i_info['ephemeral_format'] = None
         i_info['configdrive'] = 'configdrive'
-        i_info['capabilities'] = {'boot_option': 'netboot'}
         driver_internal_info = self.node.driver_internal_info
         driver_internal_info['is_whole_disk_image'] = False
         self.node.driver_internal_info = driver_internal_info
@@ -1980,8 +1746,7 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
         glance_obj_mock.swift_temp_url.return_value = 'http://temp-url'
         parse_instance_info_mock.return_value = {'swap_mb': 4}
         image_source = '733d1c44-a2ea-414b-aca7-69decf20d810'
-        expected_i_info = {'capabilities': {'boot_option': 'netboot'},
-                           'root_gb': 5,
+        expected_i_info = {'root_gb': 5,
                            'swap_mb': 4,
                            'ephemeral_gb': 0,
                            'ephemeral_format': None,

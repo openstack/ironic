@@ -681,12 +681,6 @@ if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
     fi
 fi
 
-# TODO(dtantsur): change this when we change the default value.
-IRONIC_DEFAULT_BOOT_OPTION=${IRONIC_DEFAULT_BOOT_OPTION:-local}
-if [ $IRONIC_DEFAULT_BOOT_OPTION != "netboot" ] && [ $IRONIC_DEFAULT_BOOT_OPTION != "local" ]; then
-    die $LINENO "Supported values for IRONIC_DEFAULT_BOOT_OPTION are 'netboot' and 'local' only."
-fi
-
 # TODO(pas-ha) find a way to (cross-)sign the custom CA bundle used by tls-proxy
 # with default iPXE cert - for reference see http://ipxe.org/crypto
 if is_service_enabled tls-proxy && [[ "$IRONIC_IPXE_USE_SWIFT" == "True" ]]; then
@@ -1855,8 +1849,6 @@ function configure_ironic_conductor {
 
     iniset $IRONIC_CONF_FILE dhcp dhcp_provider $IRONIC_DHCP_PROVIDER
 
-    iniset $IRONIC_CONF_FILE deploy default_boot_option $IRONIC_DEFAULT_BOOT_OPTION
-
     isolinux=$(find -L /usr -type f -name "isolinux.bin" | head -1)
     if [[ -n "$isolinux" ]]; then
         iniset $IRONIC_CONF_FILE DEFAULT isolinux_bin "$isolinux"
@@ -2903,8 +2895,7 @@ function upload_image_if_needed {
 
         # Change the default image only if the provided settings prevent the
         # default cirros image from working.
-        if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" != True \
-                && "$IRONIC_DEFAULT_BOOT_OPTION" == local ]]; then
+        if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" != True ]]; then
             IRONIC_IMAGE_NAME=$IRONIC_PARTITIONED_IMAGE_NAME
             DEFAULT_IMAGE_NAME=$IRONIC_IMAGE_NAME
         fi
@@ -3242,7 +3233,9 @@ function ironic_configure_tempest {
     # Driver for API tests
     iniset $TEMPEST_CONFIG baremetal driver fake-hardware
 
-    iniset $TEMPEST_CONFIG baremetal default_boot_option $IRONIC_DEFAULT_BOOT_OPTION
+    # NOTE(dtantsur): remove this when the tempest plugin no longer supports
+    # netboot (i.e. when Zed is the oldest supported branch).
+    iniset $TEMPEST_CONFIG baremetal default_boot_option local
 
     local adjusted_root_disk_size_gb
     if [[ "$IRONIC_IS_HARDWARE" == "False" ]]; then

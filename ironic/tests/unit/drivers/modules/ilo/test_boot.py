@@ -452,14 +452,14 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
                        autospec=True)
-    def test_validate_ramdisk_boot_option_glance(self, is_glance_image_mock,
-                                                 validate_href_mock,
-                                                 val_driver_info_mock):
+    def test_validate_ramdisk_deploy_glance(self, is_glance_image_mock,
+                                            validate_href_mock,
+                                            val_driver_info_mock):
         instance_info = self.node.instance_info
         boot_iso = '6b2f0c0c-79e8-4db6-842e-43c9764204af'
         instance_info['boot_iso'] = boot_iso
-        instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
         self.node.instance_info = instance_info
+        self.node.deploy_interface = 'ramdisk'
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -475,14 +475,14 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
                        autospec=True)
-    def test_validate_ramdisk_boot_option_webserver(self, is_glance_image_mock,
-                                                    validate_href_mock,
-                                                    val_driver_info_mock):
+    def test_validate_ramdisk_deploy_webserver(self, is_glance_image_mock,
+                                               validate_href_mock,
+                                               val_driver_info_mock):
         instance_info = self.node.instance_info
         boot_iso = 'http://myserver/boot.iso'
         instance_info['boot_iso'] = boot_iso
-        instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
         self.node.instance_info = instance_info
+        self.node.deploy_interface = 'ramdisk'
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -499,18 +499,18 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
                        autospec=True)
-    def test_validate_ramdisk_boot_option_webserver_exc(self,
-                                                        is_glance_image_mock,
-                                                        validate_href_mock,
-                                                        val_driver_info_mock,
-                                                        log_mock):
+    def test_validate_ramdisk_deploy_webserver_exc(self,
+                                                   is_glance_image_mock,
+                                                   validate_href_mock,
+                                                   val_driver_info_mock,
+                                                   log_mock):
         instance_info = self.node.instance_info
         validate_href_mock.side_effect = exception.ImageRefValidationFailed(
             image_href='http://myserver/boot.iso', reason='fail')
         boot_iso = 'http://myserver/boot.iso'
         instance_info['boot_iso'] = boot_iso
-        instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
         self.node.instance_info = instance_info
+        self.node.deploy_interface = 'ramdisk'
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -523,7 +523,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             is_glance_image_mock.assert_called_once_with(boot_iso)
             validate_href_mock.assert_called_once_with(mock.ANY, boot_iso)
             self.assertFalse(val_driver_info_mock.called)
-            self.assertIn("Virtual media deploy with 'ramdisk' boot_option "
+            self.assertIn("Virtual media deploy with 'ramdisk' deploy "
                           "accepts only Glance images or HTTP(S) URLs as "
                           "instance_info['boot_iso'].",
                           log_mock.call_args[0][0])
@@ -857,7 +857,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                        autospec=True)
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
-    def _test_prepare_instance_whole_disk_image(
+    def test_prepare_instance_whole_disk_image(
             self, cleanup_vmedia_boot_mock, set_boot_device_mock,
             update_boot_mode_mock, update_secure_boot_mode_mock,
             is_iscsi_boot_mock):
@@ -877,41 +877,31 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
             self.assertIsNone(task.node.driver_internal_info.get(
                               'ilo_uefi_iscsi_boot'))
 
-    def test_prepare_instance_whole_disk_image_local(self):
-        self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
-        self.node.save()
-        self._test_prepare_instance_whole_disk_image()
-
-    def test_prepare_instance_whole_disk_image(self):
-        self._test_prepare_instance_whole_disk_image()
-
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
     @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
                        spec_set=True, autospec=True)
     @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
                        autospec=True)
-    @mock.patch.object(ilo_boot.IloVirtualMediaBoot,
-                       '_configure_vmedia_boot', spec_set=True,
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, 'cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
     def test_prepare_instance_partition_image(
-            self, cleanup_vmedia_boot_mock, configure_vmedia_mock,
+            self, cleanup_vmedia_boot_mock, set_boot_device_mock,
             update_boot_mode_mock, update_secure_boot_mode_mock,
             is_iscsi_boot_mock):
         self.node.driver_internal_info = {'root_uuid_or_disk_id': (
             "12312642-09d3-467f-8e09-12385826a123")}
-        self.node.instance_info = {
-            'capabilities': {'boot_option': 'netboot'}}
         self.node.save()
         is_iscsi_boot_mock.return_value = False
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.boot.prepare_instance(task)
             cleanup_vmedia_boot_mock.assert_called_once_with(task)
-            configure_vmedia_mock.assert_called_once_with(
-                mock.ANY, task, "12312642-09d3-467f-8e09-12385826a123")
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.DISK,
+                                                         persistent=True)
             update_boot_mode_mock.assert_called_once_with(task)
             update_secure_boot_mode_mock.assert_called_once_with(task)
             self.assertIsNone(task.node.driver_internal_info.get(
@@ -998,9 +988,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
                                            cleanup_vmedia_boot_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            instance_info = task.node.instance_info
-            instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
-            task.node.instance_info = instance_info
+            task.node.deploy_interface = 'ramdisk'
             task.node.save()
             is_iscsi_boot_mock.return_value = False
             url = 'http://myserver/boot.iso'
@@ -1377,7 +1365,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
         self.config(enabled_hardware_types=['ilo5'],
                     enabled_boot_interfaces=['ilo-uefi-https'],
                     enabled_console_interfaces=['ilo'],
-                    enabled_deploy_interfaces=['direct'],
+                    enabled_deploy_interfaces=['direct', 'ramdisk'],
                     enabled_inspect_interfaces=['ilo'],
                     enabled_management_interfaces=['ilo5'],
                     enabled_power_interfaces=['ilo'],
@@ -1653,16 +1641,16 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
                        autospec=True)
-    def test_validate_ramdisk_boot_option_glance(self, is_glance_image_mock,
-                                                 validate_href_mock,
-                                                 val_driver_info_mock,
-                                                 get_boot_mock):
+    def test_validate_ramdisk_deploy_glance(self, is_glance_image_mock,
+                                            validate_href_mock,
+                                            val_driver_info_mock,
+                                            get_boot_mock):
         get_boot_mock.return_value = 'UEFI'
         instance_info = self.node.instance_info
         boot_iso = '6b2f0c0c-79e8-4db6-842e-43c9764204af'
         instance_info['boot_iso'] = boot_iso
-        instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
         self.node.instance_info = instance_info
+        self.node.deploy_interface = 'ramdisk'
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -1680,16 +1668,16 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
                        autospec=True)
-    def test_validate_ramdisk_boot_option_webserver(self, is_glance_image_mock,
-                                                    validate_href_mock,
-                                                    val_driver_info_mock,
-                                                    get_boot_mock):
+    def test_validate_ramdisk_deploy_webserver(self, is_glance_image_mock,
+                                               validate_href_mock,
+                                               val_driver_info_mock,
+                                               get_boot_mock):
         get_boot_mock.return_value = 'UEFI'
         instance_info = self.node.instance_info
         boot_iso = 'http://myserver/boot.iso'
         instance_info['boot_iso'] = boot_iso
-        instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
         self.node.instance_info = instance_info
+        self.node.deploy_interface = 'ramdisk'
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -1708,7 +1696,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(service_utils, 'is_glance_image', spec_set=True,
                        autospec=True)
-    def test_validate_ramdisk_boot_option_webserver_exc(
+    def test_validate_ramdisk_deploy_webserver_exc(
             self, is_glance_image_mock, validate_href_mock,
             val_driver_info_mock, log_mock, get_boot_mock):
 
@@ -1718,8 +1706,8 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             image_href='http://myserver/boot.iso', reason='fail')
         boot_iso = 'http://myserver/boot.iso'
         instance_info['boot_iso'] = boot_iso
-        instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
         self.node.instance_info = instance_info
+        self.node.deploy_interface = 'ramdisk'
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -1732,7 +1720,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             is_glance_image_mock.assert_called_once_with(boot_iso)
             validate_href_mock.assert_called_once_with(mock.ANY, boot_iso)
             self.assertFalse(val_driver_info_mock.called)
-            self.assertIn("UEFI-HTTPS boot with 'ramdisk' boot_option "
+            self.assertIn("UEFI-HTTPS boot with 'ramdisk' deploy "
                           "accepts only Glance images or HTTPS URLs as "
                           "instance_info['boot_iso'].",
                           log_mock.call_args[0][0])
@@ -1902,7 +1890,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
                        autospec=True)
-    def _test_prepare_instance_local_or_whole_disk_image(
+    def test_prepare_instance_local_or_whole_disk_image(
             self, set_boot_device_mock,
             parse_deploy_mock, prepare_iso_mock, setup_uefi_https_mock,
             cleanup_iso_mock, update_secureboot_mock):
@@ -1919,16 +1907,6 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             prepare_iso_mock.assert_not_called()
             setup_uefi_https_mock.assert_not_called()
 
-    def test_prepare_instance_image_local(self):
-        self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
-        self.node.save()
-        self._test_prepare_instance_local_or_whole_disk_image()
-
-    def test_prepare_instance_whole_disk_image(self):
-        self.node.driver_internal_info = {'is_whole_disk_image': True}
-        self.node.save()
-        self._test_prepare_instance_local_or_whole_disk_image()
-
     @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
                        spec_set=True, autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', spec_set=True,
@@ -1937,41 +1915,30 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(image_utils, 'prepare_boot_iso',
                        spec_set=True, autospec=True)
-    @mock.patch.object(ilo_boot.IloUefiHttpsBoot, '_parse_deploy_info',
-                       spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
                        autospec=True)
     def test_prepare_instance_partition_image(
             self, set_boot_device_mock,
-            parse_deploy_mock, prepare_iso_mock, setup_uefi_https_mock,
+            prepare_iso_mock, setup_uefi_https_mock,
             cleanup_iso_mock, update_secureboot_mock):
 
-        self.node.instance_info = {
-            'capabilities': '{"boot_option": "netboot"}'
-        }
         self.node.driver_internal_info = {
             'root_uuid_or_disk_id': (
                 "12312642-09d3-467f-8e09-12385826a123")
         }
         self.node.driver_internal_info.update({'is_whole_disk_image': False})
         self.node.save()
-        d_info = {'a': 'x', 'b': 'y'}
-        parse_deploy_mock.return_value = d_info
-        prepare_iso_mock.return_value = "recreated-iso"
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.driver.boot.prepare_instance(task)
 
             cleanup_iso_mock.assert_called_once_with(task)
-            set_boot_device_mock.assert_not_called()
-            parse_deploy_mock.assert_called_once_with(mock.ANY, task.node)
-            prepare_iso_mock.assert_called_once_with(
-                task, d_info, root_uuid='12312642-09d3-467f-8e09-12385826a123')
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.DISK,
+                                                         persistent=True)
+            prepare_iso_mock.assert_not_called()
             update_secureboot_mock.assert_called_once_with(task)
-            setup_uefi_https_mock.assert_called_once_with(
-                task, "recreated-iso", True)
-            self.assertEqual(task.node.instance_info['boot_iso'],
-                             "recreated-iso")
+            setup_uefi_https_mock.assert_not_called()
 
     @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
                        spec_set=True, autospec=True)
@@ -1998,9 +1965,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
-            instance_info = task.node.instance_info
-            instance_info['capabilities'] = '{"boot_option": "ramdisk"}'
-            task.node.instance_info = instance_info
+            task.node.deploy_interface = 'ramdisk'
             task.node.save()
             task.driver.boot.prepare_instance(task)
 

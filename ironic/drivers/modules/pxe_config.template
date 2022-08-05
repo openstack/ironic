@@ -5,12 +5,6 @@ kernel {{ pxe_options.deployment_aki_path }}
 append initrd={{ pxe_options.deployment_ari_path }} selinux=0 troubleshoot=0 text {{ pxe_options.pxe_append_params|default("", true) }}
 ipappend 2
 
-
-label boot_partition
-kernel {{ pxe_options.aki_path }}
-append initrd={{ pxe_options.ari_path }} root={{ ROOT }} ro text {{ pxe_options.pxe_append_params|default("", true) }}
-
-
 label boot_whole_disk
 COM32 chain.c32
 append mbr:{{ DISK_IDENTIFIER }}

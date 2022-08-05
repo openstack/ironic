@@ -1426,40 +1426,11 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
 
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_boot_option', autospec=True)
     @mock.patch.object(agent_base.AgentDeployMixin,
                        'configure_local_boot', autospec=True)
-    def test_prepare_instance_to_boot_netboot(self, configure_mock,
-                                              boot_option_mock,
-                                              prepare_instance_mock,
-                                              failed_state_mock):
-        boot_option_mock.return_value = 'netboot'
-        prepare_instance_mock.return_value = None
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
-        self.node.save()
-        root_uuid = 'root_uuid'
-        efi_system_part_uuid = 'efi_sys_uuid'
-        with task_manager.acquire(self.context, self.node['uuid'],
-                                  shared=False) as task:
-            self.deploy.prepare_instance_to_boot(task, root_uuid,
-                                                 efi_system_part_uuid)
-            self.assertFalse(configure_mock.called)
-            boot_option_mock.assert_called_once_with(task.node)
-            prepare_instance_mock.assert_called_once_with(task.driver.boot,
-                                                          task)
-            self.assertFalse(failed_state_mock.called)
-
-    @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
-    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_boot_option', autospec=True)
-    @mock.patch.object(agent_base.AgentDeployMixin,
-                       'configure_local_boot', autospec=True)
-    def test_prepare_instance_to_boot_localboot(self, configure_mock,
-                                                boot_option_mock,
-                                                prepare_instance_mock,
-                                                failed_state_mock):
-        boot_option_mock.return_value = 'local'
+    def test_prepare_instance_to_boot(self, configure_mock,
+                                      prepare_instance_mock,
+                                      failed_state_mock):
         prepare_instance_mock.return_value = None
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
@@ -1475,20 +1446,16 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                 root_uuid=root_uuid,
                 efi_system_part_uuid=efi_system_part_uuid,
                 prep_boot_part_uuid=None)
-            boot_option_mock.assert_called_once_with(task.node)
             prepare_instance_mock.assert_called_once_with(task.driver.boot,
                                                           task)
             self.assertFalse(failed_state_mock.called)
 
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_boot_option', autospec=True)
     @mock.patch.object(agent_base.AgentDeployMixin,
                        'configure_local_boot', autospec=True)
     def test_prepare_instance_to_boot_localboot_prep_partition(
-            self, configure_mock, boot_option_mock,
-            prepare_instance_mock, failed_state_mock):
-        boot_option_mock.return_value = 'local'
+            self, configure_mock, prepare_instance_mock, failed_state_mock):
         prepare_instance_mock.return_value = None
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
@@ -1506,21 +1473,17 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                 root_uuid=root_uuid,
                 efi_system_part_uuid=efi_system_part_uuid,
                 prep_boot_part_uuid=prep_boot_part_uuid)
-            boot_option_mock.assert_called_once_with(task.node)
             prepare_instance_mock.assert_called_once_with(task.driver.boot,
                                                           task)
             self.assertFalse(failed_state_mock.called)
 
     @mock.patch.object(deploy_utils, 'set_failed_state', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_boot_option', autospec=True)
     @mock.patch.object(agent_base.AgentDeployMixin,
                        'configure_local_boot', autospec=True)
     def test_prepare_instance_to_boot_configure_fails(self, configure_mock,
-                                                      boot_option_mock,
                                                       prepare_mock,
                                                       failed_state_mock):
-        boot_option_mock.return_value = 'local'
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
         self.node.save()
@@ -1542,7 +1505,6 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                 root_uuid=root_uuid,
                 efi_system_part_uuid=efi_system_part_uuid,
                 prep_boot_part_uuid=None)
-            boot_option_mock.assert_called_once_with(task.node)
             self.assertFalse(prepare_mock.called)
             self.assertFalse(failed_state_mock.called)
 

@@ -7319,7 +7319,6 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_take_over.assert_called_once_with(task.driver.deploy, task)
         self.assertFalse(mock_start_console.called)
         mock_boot_validate.assert_not_called()
-        self.assertNotIn('is_whole_disk_image', task.node.driver_internal_info)
 
     @mock.patch('ironic.common.image_service.HttpImageService.validate_href',
                 autospec=True)
@@ -7328,26 +7327,23 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console',
                 autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over',
+    @mock.patch('ironic.drivers.modules.ramdisk.RamdiskDeploy.take_over',
                 autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+    @mock.patch('ironic.drivers.modules.ramdisk.RamdiskDeploy.prepare',
                 autospec=True)
-    def test__do_adoption_with_netboot(self,
-                                       mock_prepare,
-                                       mock_take_over,
-                                       mock_start_console,
-                                       mock_boot_validate,
-                                       mock_power_validate,
-                                       mock_validate_href):
+    def test__do_adoption_ramdisk_deploy(self,
+                                         mock_prepare,
+                                         mock_take_over,
+                                         mock_start_console,
+                                         mock_boot_validate,
+                                         mock_power_validate,
+                                         mock_validate_href):
         """Test a successful node adoption"""
         self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
-            provision_state=states.ADOPTING,
-            instance_info={
-                'capabilities': {'boot_option': 'netboot'},
-                'image_source': 'http://127.0.0.1/image',
-            })
+            deploy_interface='ramdisk',
+            provision_state=states.ADOPTING)
         task = task_manager.TaskManager(self.context, node.uuid)
 
         self.service._do_adoption(task)
@@ -7360,10 +7356,6 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_take_over.assert_called_once_with(task.driver.deploy, task)
         self.assertFalse(mock_start_console.called)
         mock_boot_validate.assert_called_once_with(task.driver.boot, task)
-        self.assertTrue(task.node.driver_internal_info.get(
-            'is_whole_disk_image'))
-        mock_validate_href.assert_called_once_with(mock.ANY,
-                                                   'http://127.0.0.1/image')
 
     @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console',
@@ -7410,9 +7402,9 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakeBoot.validate', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeConsole.start_console',
                 autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.take_over',
+    @mock.patch('ironic.drivers.modules.ramdisk.RamdiskDeploy.take_over',
                 autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
+    @mock.patch('ironic.drivers.modules.ramdisk.RamdiskDeploy.prepare',
                 autospec=True)
     def test__do_adoption_boot_validate_failure(self,
                                                 mock_prepare,
@@ -7428,10 +7420,8 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
-            provision_state=states.ADOPTING,
-            instance_info={
-                'capabilities': {'boot_option': 'netboot'},
-            })
+            deploy_interface='ramdisk',
+            provision_state=states.ADOPTING)
         task = task_manager.TaskManager(self.context, node.uuid)
 
         self.service._do_adoption(task)

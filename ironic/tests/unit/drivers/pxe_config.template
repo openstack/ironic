@@ -5,12 +5,6 @@ kernel /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_kernel
 append initrd=/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/deploy_ramdisk selinux=0 troubleshoot=0 text test_param
 ipappend 2
 
-
-label boot_partition
-kernel /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/kernel
-append initrd=/tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/ramdisk root={{ ROOT }} ro text test_param
-
-
 label boot_whole_disk
 COM32 chain.c32
 append mbr:{{ DISK_IDENTIFIER }}

@@ -376,9 +376,8 @@ def attach_boot_iso_if_needed(task):
 
     This method checks the instance info of the bare metal node for a
     boot ISO. If the instance info has a value of key 'boot_iso',
-    it indicates that 'boot_option' is 'netboot'. Threfore it attaches
-    the boot ISO on the bare metal node and then sets the node to boot from
-    virtual media cdrom.
+    it indicates ramdisk deploy. Therefore it attaches the boot ISO on the bare
+    metal node and then sets the node to boot from virtual media cdrom.
 
     :param task: a TaskManager instance containing the node to act on.
     :raises: IRMCOperationError if attaching virtual media failed.

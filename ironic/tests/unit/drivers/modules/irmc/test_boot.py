@@ -1144,8 +1144,9 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     @mock.patch.object(irmc_boot, '_cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
-    def _test_prepare_instance_whole_disk_image(
-            self, _cleanup_vmedia_boot_mock, set_boot_device_mock):
+    def test_prepare_instance_whole_disk_image(
+            self, _cleanup_vmedia_boot_mock, set_boot_device_mock,
+            check_share_fs_mounted_mock):
         self.node.driver_internal_info = {'is_whole_disk_image': True}
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1157,26 +1158,13 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
                                                          boot_devices.DISK,
                                                          persistent=True)
 
-    def test_prepare_instance_whole_disk_image_local(
-            self, check_share_fs_mounted_mock):
-        self.node.instance_info = {'capabilities': '{"boot_option": "local"}'}
-        self.node.save()
-        self._test_prepare_instance_whole_disk_image()
-
-    def test_prepare_instance_whole_disk_image(self,
-                                               check_share_fs_mounted_mock):
-        self._test_prepare_instance_whole_disk_image()
-
-    @mock.patch.object(irmc_boot.IRMCVirtualMediaBoot,
-                       '_configure_vmedia_boot', spec_set=True,
+    @mock.patch.object(manager_utils, 'node_set_boot_device', spec_set=True,
                        autospec=True)
     @mock.patch.object(irmc_boot, '_cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
     def test_prepare_instance_partition_image(
-            self, _cleanup_vmedia_boot_mock, _configure_vmedia_mock,
+            self, _cleanup_vmedia_boot_mock, set_boot_device_mock,
             check_share_fs_mounted_mock):
-        self.node.instance_info = {
-            'capabilities': {'boot_option': 'netboot'}}
         self.node.driver_internal_info = {'root_uuid_or_disk_id': "some_uuid"}
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1184,8 +1172,9 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
             task.driver.boot.prepare_instance(task)
 
             _cleanup_vmedia_boot_mock.assert_called_once_with(task)
-            _configure_vmedia_mock.assert_called_once_with(mock.ANY, task,
-                                                           "some_uuid")
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.DISK,
+                                                         persistent=True)
 
     @mock.patch.object(irmc_boot, '_cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
@@ -1253,9 +1242,10 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
         self.node.driver_internal_info = {'root_uuid_or_disk_id': "12312642"}
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
+        self.node.deploy_interface = 'ramdisk'
         self.node.instance_info = {
             'capabilities': {
-                "secure_boot": "true", 'boot_option': 'netboot'
+                "secure_boot": "true"
             }
         }
         self.node.save()
@@ -1281,9 +1271,10 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
         self.node.driver_internal_info = {'root_uuid_or_disk_id': "12312642"}
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
+        self.node.deploy_interface = 'ramdisk'
         self.node.instance_info = {
             'capabilities': {
-                "secure_boot": "false", 'boot_option': 'netboot'
+                "secure_boot": "false"
             }
         }
         self.node.save()
@@ -1308,11 +1299,7 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
         self.node.driver_internal_info = {'root_uuid_or_disk_id': "12312642"}
         self.node.provision_state = states.DEPLOYING
         self.node.target_provision_state = states.ACTIVE
-        self.node.instance_info = {
-            'capabilities': {
-                'boot_option': 'netboot'
-            }
-        }
+        self.node.deploy_interface = 'ramdisk'
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
