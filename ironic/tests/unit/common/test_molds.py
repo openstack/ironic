@@ -38,7 +38,7 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
         mock_session = mock.Mock()
         mock_session.get_token.return_value = 'token'
         mock_swift.return_value = mock_session
-        cfg.CONF.molds.storage = 'swift'
+        cfg.CONF.set_override('storage', 'swift', 'molds')
         url = 'https://example.com/file1'
         data = {'key': 'value'}
 
@@ -54,7 +54,7 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
         mock_session = mock.Mock()
         mock_session.get_token.return_value = None
         mock_swift.return_value = mock_session
-        cfg.CONF.molds.storage = 'swift'
+        cfg.CONF.set_override('storage', 'swift', 'molds')
         url = 'https://example.com/file1'
         data = {'key': 'value'}
 
@@ -66,9 +66,9 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
 
     @mock.patch.object(requests, 'put', autospec=True)
     def test_save_configuration_http(self, mock_put):
-        cfg.CONF.molds.storage = 'http'
-        cfg.CONF.molds.user = 'user'
-        cfg.CONF.molds.password = 'password'
+        cfg.CONF.set_override('storage', 'http', 'molds')
+        cfg.CONF.set_override('user', 'user', 'molds')
+        cfg.CONF.set_override('password', 'password', 'molds')
         url = 'https://example.com/file1'
         data = {'key': 'value'}
 
@@ -81,9 +81,9 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
 
     @mock.patch.object(requests, 'put', autospec=True)
     def test_save_configuration_http_noauth(self, mock_put):
-        cfg.CONF.molds.storage = 'http'
-        cfg.CONF.molds.user = None
-        cfg.CONF.molds.password = None
+        cfg.CONF.set_override('storage', 'http', 'molds')
+        cfg.CONF.set_override('user', None, 'molds')
+        cfg.CONF.set_override('password', None, 'molds')
         url = 'https://example.com/file1'
         data = {'key': 'value'}
 
@@ -95,9 +95,9 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
 
     @mock.patch.object(requests, 'put', autospec=True)
     def test_save_configuration_http_error(self, mock_put):
-        cfg.CONF.molds.storage = 'http'
-        cfg.CONF.molds.user = 'user'
-        cfg.CONF.molds.password = 'password'
+        cfg.CONF.set_override('storage', 'http', 'molds')
+        cfg.CONF.set_override('user', 'user', 'molds')
+        cfg.CONF.set_override('password', 'password', 'molds')
         response = mock.MagicMock()
         response.status_code = 404
         response.raise_for_status.side_effect = requests.exceptions.HTTPError
@@ -116,11 +116,11 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
 
     @mock.patch.object(requests, 'put', autospec=True)
     def test_save_configuration_connection_error(self, mock_put):
-        cfg.CONF.molds.storage = 'http'
-        cfg.CONF.molds.user = 'user'
-        cfg.CONF.molds.password = 'password'
-        cfg.CONF.molds.retry_interval = 0
-        cfg.CONF.molds.retry_attempts = 3
+        cfg.CONF.set_override('storage', 'http', 'molds')
+        cfg.CONF.set_override('user', 'user', 'molds')
+        cfg.CONF.set_override('password', 'password', 'molds')
+        cfg.CONF.set_override('retry_interval', 0, 'molds')
+        cfg.CONF.set_override('retry_attempts', 3, 'molds')
         response = mock.MagicMock()
         mock_put.side_effect = [
             requests.exceptions.ConnectTimeout,
@@ -137,11 +137,11 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
 
     @mock.patch.object(requests, 'put', autospec=True)
     def test_save_configuration_connection_error_exceeded(self, mock_put):
-        cfg.CONF.molds.storage = 'http'
-        cfg.CONF.molds.user = 'user'
-        cfg.CONF.molds.password = 'password'
-        cfg.CONF.molds.retry_interval = 0
-        cfg.CONF.molds.retry_attempts = 2
+        cfg.CONF.set_override('storage', 'http', 'molds')
+        cfg.CONF.set_override('user', 'user', 'molds')
+        cfg.CONF.set_override('password', 'password', 'molds')
+        cfg.CONF.set_override('retry_interval', 0, 'molds')
+        cfg.CONF.set_override('retry_attempts', 2, 'molds')
         mock_put.side_effect = [
             requests.exceptions.ConnectTimeout,
             requests.exceptions.ConnectionError]
@@ -164,7 +164,7 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
         mock_session = mock.Mock()
         mock_session.get_token.return_value = 'token'
         mock_swift.return_value = mock_session
-        cfg.CONF.molds.storage = 'swift'
+        cfg.CONF.set_override('storage', 'swift', 'molds')
         response = mock.MagicMock()
         response.status_code = 200
         response.content = "{'key': 'value'}"
@@ -185,7 +185,7 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
         mock_session = mock.Mock()
         mock_session.get_token.return_value = None
         mock_swift.return_value = mock_session
-        cfg.CONF.molds.storage = 'swift'
+        cfg.CONF.set_override('storage', 'swift', 'molds')
         url = 'https://example.com/file1'
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -196,9 +196,9 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
 
     @mock.patch.object(requests, 'get', autospec=True)
     def test_get_configuration_http(self, mock_get):
-        cfg.CONF.molds.storage = 'http'
-        cfg.CONF.molds.user = 'user'
-        cfg.CONF.molds.password = 'password'
+        cfg.CONF.set_override('storage', 'http', 'molds')
+        cfg.CONF.set_override('user', 'user', 'molds')
+        cfg.CONF.set_override('password', 'password', 'molds')
         response = mock.MagicMock()
         response.status_code = 200
         response.content = "{'key': 'value'}"
@@ -215,9 +215,9 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
 
     @mock.patch.object(requests, 'get', autospec=True)
     def test_get_configuration_http_noauth(self, mock_get):
-        cfg.CONF.molds.storage = 'http'
-        cfg.CONF.molds.user = None
-        cfg.CONF.molds.password = None
+        cfg.CONF.set_override('storage', 'http', 'molds')
+        cfg.CONF.set_override('user', None, 'molds')
+        cfg.CONF.set_override('password', None, 'molds')
         response = mock.MagicMock()
         response.status_code = 200
         response.content = "{'key': 'value'}"
@@ -233,9 +233,9 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
 
     @mock.patch.object(requests, 'get', autospec=True)
     def test_get_configuration_http_error(self, mock_get):
-        cfg.CONF.molds.storage = 'http'
-        cfg.CONF.molds.user = 'user'
-        cfg.CONF.molds.password = 'password'
+        cfg.CONF.set_override('storage', 'http', 'molds')
+        cfg.CONF.set_override('user', 'user', 'molds')
+        cfg.CONF.set_override('password', 'password', 'molds')
         response = mock.MagicMock()
         response.status_code = 404
         response.raise_for_status.side_effect = requests.exceptions.HTTPError
@@ -253,11 +253,11 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
 
     @mock.patch.object(requests, 'get', autospec=True)
     def test_get_configuration_connection_error(self, mock_get):
-        cfg.CONF.molds.storage = 'http'
-        cfg.CONF.molds.user = 'user'
-        cfg.CONF.molds.password = 'password'
-        cfg.CONF.molds.retry_interval = 0
-        cfg.CONF.molds.retry_attempts = 3
+        cfg.CONF.set_override('storage', 'http', 'molds')
+        cfg.CONF.set_override('user', 'user', 'molds')
+        cfg.CONF.set_override('password', 'password', 'molds')
+        cfg.CONF.set_override('retry_interval', 0, 'molds')
+        cfg.CONF.set_override('retry_attempts', 3, 'molds')
         response = mock.MagicMock()
         mock_get.side_effect = [
             requests.exceptions.ConnectTimeout,
@@ -274,11 +274,11 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
 
     @mock.patch.object(requests, 'get', autospec=True)
     def test_get_configuration_mold_connection_error_exceeded(self, mock_get):
-        cfg.CONF.molds.storage = 'http'
-        cfg.CONF.molds.user = 'user'
-        cfg.CONF.molds.password = 'password'
-        cfg.CONF.molds.retry_interval = 0
-        cfg.CONF.molds.retry_attempts = 2
+        cfg.CONF.set_override('storage', 'http', 'molds')
+        cfg.CONF.set_override('user', 'user', 'molds')
+        cfg.CONF.set_override('password', 'password', 'molds')
+        cfg.CONF.set_override('retry_interval', 0, 'molds')
+        cfg.CONF.set_override('retry_attempts', 2, 'molds')
         mock_get.side_effect = [
             requests.exceptions.ConnectTimeout,
             requests.exceptions.ConnectionError]
@@ -296,7 +296,7 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
 
     @mock.patch.object(requests, 'get', autospec=True)
     def test_get_configuration_empty(self, mock_get):
-        cfg.CONF.molds.storage = 'http'
+        cfg.CONF.set_override('storage', 'http', 'molds')
         response = mock.MagicMock()
         response.status_code = 200
         response.content = ''
@@ -309,7 +309,7 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
 
     @mock.patch.object(requests, 'get', autospec=True)
     def test_get_configuration_invalid_json(self, mock_get):
-        cfg.CONF.molds.storage = 'http'
+        cfg.CONF.set_override('storage', 'http', 'molds')
         response = mock.MagicMock()
         response.status_code = 200
         response.content = 'not json'

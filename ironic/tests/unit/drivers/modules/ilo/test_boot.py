@@ -97,9 +97,9 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
         self.assertEqual(expected_driver_info, actual_driver_info)
 
     def test_parse_driver_info_deploy_config(self):
-        CONF.conductor.deploy_kernel = 'kernel'
-        CONF.conductor.deploy_ramdisk = 'ramdisk'
-        CONF.conductor.bootloader = 'bootloader'
+        CONF.set_override('deploy_kernel', 'kernel', 'conductor')
+        CONF.set_override('deploy_ramdisk', 'ramdisk', 'conductor')
+        CONF.set_override('bootloader', 'bootloader', 'conductor')
         expected_driver_info = {'ilo_deploy_kernel': 'kernel',
                                 'ilo_deploy_ramdisk': 'ramdisk',
                                 'ilo_bootloader': 'bootloader',
@@ -109,9 +109,9 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
         self.assertEqual(expected_driver_info, actual_driver_info)
 
     def test_parse_driver_info_rescue_config(self):
-        CONF.conductor.rescue_kernel = 'kernel'
-        CONF.conductor.rescue_ramdisk = 'ramdisk'
-        CONF.conductor.bootloader = 'bootloader'
+        CONF.set_override('rescue_kernel', 'kernel', 'conductor')
+        CONF.set_override('rescue_ramdisk', 'ramdisk', 'conductor')
+        CONF.set_override('bootloader', 'bootloader', 'conductor')
 
         expected_driver_info = {'ilo_rescue_kernel': 'kernel',
                                 'ilo_rescue_ramdisk': 'ramdisk',
@@ -122,8 +122,8 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
         self.assertEqual(expected_driver_info, actual_driver_info)
 
     def test_parse_driver_info_bootloader_none(self):
-        CONF.conductor.deploy_kernel = 'kernel'
-        CONF.conductor.deploy_ramdisk = 'ramdisk'
+        CONF.set_override('deploy_kernel', 'kernel', 'conductor')
+        CONF.set_override('deploy_ramdisk', 'ramdisk', 'conductor')
 
         expected_driver_info = {'ilo_deploy_kernel': 'kernel',
                                 'ilo_deploy_ramdisk': 'ramdisk',
