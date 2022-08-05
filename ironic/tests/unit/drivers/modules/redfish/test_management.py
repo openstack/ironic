@@ -836,7 +836,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         mock_update_service = mock.Mock()
         mock_update_service.simple_update.return_value = mock_task_monitor
         mock_get_update_service.return_value = mock_update_service
-        CONF.redfish.firmware_source = 'http'
+        CONF.set_override('firmware_source', 'http', 'redfish')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             task.node.save = mock.Mock()
@@ -1346,7 +1346,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 {'task_monitor': '/task/123', 'url': 'http://test1'},
                 {'url': 'http://test2'}]}
         self.node.driver_internal_info = driver_internal_info
-        CONF.redfish.firmware_source = 'http'
+        CONF.set_override('firmware_source', 'http', 'redfish')
 
         management = redfish_mgmt.RedfishManagement()
         with task_manager.acquire(self.context, self.node.uuid,
@@ -1375,7 +1375,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(firmware_utils, 'stage', autospec=True)
     def test__stage_firmware_file_https(self, mock_stage, mock_verify_checksum,
                                         mock_download_to_temp):
-        CONF.redfish.firmware_source = 'local'
+        CONF.set_override('firmware_source', 'local', 'redfish')
         firmware_update = {'url': 'https://test1', 'checksum': 'abc'}
         node = mock.Mock()
         mock_download_to_temp.return_value = '/tmp/test1'
@@ -1399,7 +1399,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
     def test__stage_firmware_file_swift(
             self, mock_get_swift_temp_url, mock_stage, mock_verify_checksum,
             mock_download_to_temp):
-        CONF.redfish.firmware_source = 'swift'
+        CONF.set_override('firmware_source', 'swift', 'redfish')
         firmware_update = {'url': 'swift://container/bios.exe'}
         node = mock.Mock()
         mock_get_swift_temp_url.return_value = 'http://temp'
@@ -1423,7 +1423,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                                         mock_download_to_temp, mock_cleanup):
         node = mock.Mock()
         firmware_update = {'url': 'https://test1'}
-        CONF.redfish.firmware_source = 'local'
+        CONF.set_override('firmware_source', 'local', 'redfish')
         firmware_update = {'url': 'https://test1'}
         node = mock.Mock()
         mock_download_to_temp.return_value = '/tmp/test1'
