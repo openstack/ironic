@@ -358,8 +358,8 @@ class IloCommonMethodsTestCase(BaseIloTest):
         tempfile_mock.return_value = mock_image_file_handle
         self.config(use_web_server_for_images=True, group='ilo')
         deploy_args = {'arg1': 'val1', 'arg2': 'val2'}
-        CONF.deploy.http_url = "http://abc.com/httpboot"
-        CONF.deploy.http_root = "/httpboot"
+        CONF.set_override('http_url', 'http://abc.com/httpboot', 'deploy')
+        CONF.set_override('http_root', '/httpboot', 'deploy')
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -577,9 +577,9 @@ class IloCommonMethodsTestCase(BaseIloTest):
         swift_obj_mock = swift_api_mock.return_value
         boot_iso = 'swift:object-name'
         swift_obj_mock.get_temp_url.return_value = 'image_url'
-        CONF.keystone_authtoken.auth_uri = 'http://authurl'
-        CONF.ilo.swift_ilo_container = 'ilo_cont'
-        CONF.ilo.swift_object_expiry_timeout = 1
+        CONF.set_override('auth_uri', 'http://authurl', 'keystone_authtoken')
+        CONF.set_override('swift_ilo_container', 'ilo_cont', 'ilo')
+        CONF.set_override('swift_object_expiry_timeout', 1, 'ilo')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             ilo_common.setup_vmedia_for_boot(task, boot_iso)
@@ -606,7 +606,7 @@ class IloCommonMethodsTestCase(BaseIloTest):
     def test_cleanup_vmedia_boot(self, get_name_mock, swift_api_mock,
                                  eject_mock):
         swift_obj_mock = swift_api_mock.return_value
-        CONF.ilo.swift_ilo_container = 'ilo_cont'
+        CONF.set_override('swift_ilo_container', 'ilo_cont', 'ilo')
 
         get_name_mock.return_value = 'image-node-uuid'
 
@@ -629,7 +629,7 @@ class IloCommonMethodsTestCase(BaseIloTest):
         exc = exception.SwiftOperationError('error')
         swift_obj_mock = swift_api_mock.return_value
         swift_obj_mock.delete_object.side_effect = exc
-        CONF.ilo.swift_ilo_container = 'ilo_cont'
+        CONF.set_override('swift_ilo_container', 'ilo_cont', 'ilo')
 
         get_name_mock.return_value = 'image-node-uuid'
 
@@ -654,7 +654,7 @@ class IloCommonMethodsTestCase(BaseIloTest):
         exc = exception.SwiftObjectNotFoundError('error')
         swift_obj_mock = swift_api_mock.return_value
         swift_obj_mock.delete_object.side_effect = exc
-        CONF.ilo.swift_ilo_container = 'ilo_cont'
+        CONF.set_override('swift_ilo_container', 'ilo_cont', 'ilo')
 
         get_name_mock.return_value = 'image-node-uuid'
 
@@ -673,7 +673,7 @@ class IloCommonMethodsTestCase(BaseIloTest):
     def test_cleanup_vmedia_boot_for_webserver(self,
                                                destroy_image_mock,
                                                eject_mock):
-        CONF.ilo.use_web_server_for_images = True
+        CONF.set_override('use_web_server_for_images', True, 'ilo')
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -814,8 +814,8 @@ class IloCommonMethodsTestCase(BaseIloTest):
                        autospec=True)
     def test_copy_image_to_web_server(self, copy_mock,
                                       chmod_mock):
-        CONF.deploy.http_url = "http://x.y.z.a/webserver/"
-        CONF.deploy.http_root = "/webserver"
+        CONF.set_override('http_url', 'http://x.y.z.a/webserver/', 'deploy')
+        CONF.set_override('http_root', '/webserver', 'deploy')
         expected_url = "http://x.y.z.a/webserver/image-UUID"
         source = 'tmp_image_file'
         destination = "image-UUID"
@@ -831,8 +831,8 @@ class IloCommonMethodsTestCase(BaseIloTest):
                        autospec=True)
     def test_copy_image_to_web_server_fails(self, copy_mock,
                                             chmod_mock):
-        CONF.deploy.http_url = "http://x.y.z.a/webserver/"
-        CONF.deploy.http_root = "/webserver"
+        CONF.set_override('http_url', 'http://x.y.z.a/webserver/', 'deploy')
+        CONF.set_override('http_root', '/webserver', 'deploy')
         source = 'tmp_image_file'
         destination = "image-UUID"
         image_path = "/webserver/image-UUID"
@@ -847,8 +847,8 @@ class IloCommonMethodsTestCase(BaseIloTest):
     @mock.patch.object(ilo_common, 'ironic_utils', autospec=True)
     def test_remove_image_from_web_server(self, utils_mock):
         # | GIVEN |
-        CONF.deploy.http_url = "http://x.y.z.a/webserver/"
-        CONF.deploy.http_root = "/webserver"
+        CONF.set_override('http_url', 'http://x.y.z.a/webserver/', 'deploy')
+        CONF.set_override('http_root', '/webserver', 'deploy')
         object_name = 'tmp_image_file'
         # | WHEN |
         ilo_common.remove_image_from_web_server(object_name)
@@ -958,7 +958,7 @@ class IloCommonMethodsTestCase(BaseIloTest):
     def test_destroy_floppy_image_from_web_server(self, get_floppy_name_mock,
                                                   utils_mock):
         get_floppy_name_mock.return_value = 'image-uuid'
-        CONF.deploy.http_root = "/webserver/"
+        CONF.set_override('http_root', '/webserver/', 'deploy')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             ilo_common.destroy_floppy_image_from_web_server(task.node)
