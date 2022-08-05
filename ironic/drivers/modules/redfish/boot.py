@@ -53,7 +53,11 @@ OPTIONAL_PROPERTIES = {
                     "used by ironic when building UEFI-bootable ISO "
                     "out of kernel and ramdisk. Required for UEFI "
                     "when deploy_iso is not provided."),
-
+    'external_http_url': _("External URL that is used when the image could "
+                           "be served outside of the provisioning network. "
+                           "If set it will have priority over the following "
+                           "configs: CONF.deploy.external_http_url and "
+                           "CONF.deploy.http_url. Defaults to None.")
 }
 
 RESCUE_PROPERTIES = {

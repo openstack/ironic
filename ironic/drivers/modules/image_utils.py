@@ -169,7 +169,7 @@ class ImageHandler(object):
 
         return urlparse.urlunparse(parsed_url)
 
-    def publish_image(self, image_file, object_name):
+    def publish_image(self, image_file, object_name, node_http_url=None):
         """Make image file downloadable.
 
         Depending on ironic settings, pushes given file into Swift or copies
@@ -178,6 +178,9 @@ class ImageHandler(object):
 
         :param image_file: path to file to publish
         :param object_name: name of the published file
+        :param node_http_url: a url to be used to publish the image. If set,
+                              the values from external_http_url and http_url
+                              from CONF.deploy won't be used.
         :return: a URL to download published file
         """
 
@@ -220,7 +223,8 @@ class ImageHandler(object):
                 shutil.copyfile(image_file, published_file)
                 os.chmod(published_file, self._file_permission)
 
-            http_url = CONF.deploy.external_http_url or CONF.deploy.http_url
+            http_url = (node_http_url or CONF.deploy.external_http_url
+                        or CONF.deploy.http_url)
             image_url = os.path.join(http_url, self._image_subdir, object_name)
 
         return image_url
@@ -302,8 +306,9 @@ def prepare_floppy_image(task, params=None):
         images.create_vfat_image(vfat_image_tmpfile, parameters=params)
 
         img_handler = ImageHandler(task.node.driver)
-
-        image_url = img_handler.publish_image(vfat_image_tmpfile, object_name)
+        node_http_url = task.node.driver_info.get("external_http_url")
+        image_url = img_handler.publish_image(vfat_image_tmpfile, object_name,
+                                              node_http_url)
 
     LOG.debug("Created floppy image %(name)s in Swift for node %(node)s, "
               "exposed as temporary URL "
