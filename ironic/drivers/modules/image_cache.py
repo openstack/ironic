@@ -237,6 +237,7 @@ class ImageCache(object):
         """
         threshold = time.time() - self._cache_ttl
         survived = []
+        count = 0
         for file_name, last_used, stat in listing:
             if last_used < threshold:
                 try:
@@ -246,6 +247,7 @@ class ImageCache(object):
                                 "master image cache: %(exc)s",
                                 {'name': file_name, 'exc': exc})
                 else:
+                    count += 1
                     if amount is not None:
                         amount -= stat.st_size
                         if amount <= 0:
@@ -253,6 +255,9 @@ class ImageCache(object):
                             break
             else:
                 survived.append((file_name, last_used, stat))
+        if count:
+            LOG.debug('Removed %(count)d expired file(s) from %(dir)s',
+                      {'count': count, 'dir': self.master_dir})
         return survived, amount
 
     def _clean_up_ensure_cache_size(self, listing, amount):
@@ -275,6 +280,7 @@ class ImageCache(object):
                          for f in os.listdir(self.master_dir))
         total_size = sum(os.path.getsize(f)
                          for f in total_listing)
+        count = 0
         while listing and (total_size > self._cache_size
                            or (amount is not None and amount > 0)):
             file_name, last_used, stat = listing.pop()
@@ -286,6 +292,7 @@ class ImageCache(object):
                             {'name': file_name, 'exc': exc})
             else:
                 total_size -= stat.st_size
+                count += 1
                 if amount is not None:
                     amount -= stat.st_size
 
@@ -295,6 +302,10 @@ class ImageCache(object):
                      "threshold %(expected)d",
                      {'dir': self.master_dir, 'actual': total_size,
                       'expected': self._cache_size})
+        elif count:
+            LOG.debug(
+                'Removed %(count)d file(s) from %(dir)s to free up space',
+                {'count': count, 'dir': self.master_dir})
         return max(amount, 0) if amount is not None else 0
 
 
