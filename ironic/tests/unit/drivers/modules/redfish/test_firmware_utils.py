@@ -262,9 +262,9 @@ class FirmwareUtilsTestCase(base.TestCase):
     @mock.patch.object(os, 'chmod', autospec=True)
     def test_stage_http(self, mock_chmod, mock_link, mock_copyfile,
                         mock_makedirs):
-        CONF.deploy.http_url = 'http://10.0.0.2'
-        CONF.deploy.external_http_url = None
-        CONF.deploy.http_root = '/httproot'
+        CONF.set_override('http_url', 'http://10.0.0.2', 'deploy')
+        CONF.set_override('external_http_url', None, 'deploy')
+        CONF.set_override('http_root', '/httproot', 'deploy')
         node = mock.Mock(uuid='55cdaba0-1123-4622-8b37-bb52dd6285d3')
 
         staged_url, need_cleanup = firmware_utils.stage(
@@ -291,9 +291,9 @@ class FirmwareUtilsTestCase(base.TestCase):
     @mock.patch.object(os, 'chmod', autospec=True)
     def test_stage_http_copyfile(self, mock_chmod, mock_link, mock_copyfile,
                                  mock_makedirs):
-        CONF.deploy.http_url = 'http://10.0.0.2'
-        CONF.deploy.external_http_url = None
-        CONF.deploy.http_root = '/httproot'
+        CONF.set_override('http_url', 'http://10.0.0.2', 'deploy')
+        CONF.set_override('external_http_url', None, 'deploy')
+        CONF.set_override('http_root', '/httproot', 'deploy')
         node = mock.Mock(uuid='55cdaba0-1123-4622-8b37-bb52dd6285d3')
         mock_link.side_effect = OSError
 
@@ -323,9 +323,9 @@ class FirmwareUtilsTestCase(base.TestCase):
     @mock.patch.object(os, 'chmod', autospec=True)
     def test_stage_http_copyfile_fails(self, mock_chmod, mock_link,
                                        mock_copyfile, mock_makedirs):
-        CONF.deploy.http_url = 'http://10.0.0.2'
-        CONF.deploy.external_http_url = None
-        CONF.deploy.http_root = '/httproot'
+        CONF.set_override('http_url', 'http://10.0.0.2', 'deploy')
+        CONF.set_override('external_http_url', None, 'deploy')
+        CONF.set_override('http_root', '/httproot', 'deploy')
         node = mock.Mock(uuid='55cdaba0-1123-4622-8b37-bb52dd6285d3')
         mock_link.side_effect = OSError
         mock_copyfile.side_effect = IOError
@@ -352,9 +352,9 @@ class FirmwareUtilsTestCase(base.TestCase):
     @mock.patch.object(os, 'chmod', autospec=True)
     def test_stage_local_external(self, mock_chmod, mock_link, mock_rmtree,
                                   mock_copyfile, mock_makedirs):
-        CONF.deploy.http_url = 'http://10.0.0.2'
-        CONF.deploy.external_http_url = 'http://90.0.0.9'
-        CONF.deploy.http_root = '/httproot'
+        CONF.set_override('http_url', 'http://10.0.0.2', 'deploy')
+        CONF.set_override('external_http_url', 'http://90.0.0.9', 'deploy')
+        CONF.set_override('http_root', '/httproot', 'deploy')
         node = mock.Mock(uuid='55cdaba0-1123-4622-8b37-bb52dd6285d3')
 
         staged_url, need_cleanup = firmware_utils.stage(
@@ -402,7 +402,7 @@ class FirmwareUtilsTestCase(base.TestCase):
     @mock.patch.object(swift, 'SwiftAPI', autospec=True)
     def test_cleanup(self, mock_swift_api, mock_gettempdir, mock_rmtree):
         mock_gettempdir.return_value = '/tmp'
-        CONF.deploy.http_root = '/httproot'
+        CONF.set_override('http_root', '/httproot', 'deploy')
         node = mock.Mock(
             uuid='55cdaba0-1123-4622-8b37-bb52dd6285d3',
             driver_internal_info={'firmware_cleanup': ['http', 'swift']})
