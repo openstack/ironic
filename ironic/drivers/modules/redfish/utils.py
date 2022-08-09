@@ -15,6 +15,7 @@
 #    under the License.
 
 import collections
+import hashlib
 import os
 from urllib import parse as urlparse
 
@@ -198,43 +199,59 @@ class SessionCache(object):
     _sessions = collections.OrderedDict()
 
     def __init__(self, driver_info):
+        # Hash the password in the data structure, so we can
+        # include it in the session key.
+        # NOTE(TheJulia): Multiplying the address by 4, to ensure
+        # we meet a minimum of 16 bytes for salt.
+        pw_hash = hashlib.pbkdf2_hmac(
+            'sha512',
+            driver_info.get('password').encode('utf-8'),
+            str(driver_info.get('address') * 4).encode('utf-8'), 40)
         self._driver_info = driver_info
+        # Assemble the session key and append the hashed password to it,
+        # which forces new sessions to be established when the saved password
+        # is changed, just like the username, or address.
         self._session_key = tuple(
             self._driver_info.get(key)
             for key in ('address', 'username', 'verify_ca')
-        )
+        ) + (pw_hash.hex(),)
 
     def __enter__(self):
         try:
             return self.__class__._sessions[self._session_key]
-
         except KeyError:
-            auth_type = self._driver_info['auth_type']
+            LOG.debug('A cached redfish session for Redfish endpoint '
+                      '%(endpoint)s was not detected, initiating a session.',
+                      {'endpoint': self._driver_info['address']})
 
-            auth_class = self.AUTH_CLASSES[auth_type]
+        auth_type = self._driver_info['auth_type']
 
-            authenticator = auth_class(
-                username=self._driver_info['username'],
-                password=self._driver_info['password']
-            )
+        auth_class = self.AUTH_CLASSES[auth_type]
 
-            sushy_params = {'verify': self._driver_info['verify_ca'],
-                            'auth': authenticator}
-            if 'root_prefix' in self._driver_info:
-                sushy_params['root_prefix'] = self._driver_info['root_prefix']
-            conn = sushy.Sushy(
-                self._driver_info['address'],
-                **sushy_params
-            )
+        authenticator = auth_class(
+            username=self._driver_info['username'],
+            password=self._driver_info['password']
+        )
 
-            if CONF.redfish.connection_cache_size:
-                self.__class__._sessions[self._session_key] = conn
+        sushy_params = {'verify': self._driver_info['verify_ca'],
+                        'auth': authenticator}
+        if 'root_prefix' in self._driver_info:
+            sushy_params['root_prefix'] = self._driver_info['root_prefix']
+        conn = sushy.Sushy(
+            self._driver_info['address'],
+            **sushy_params
+        )
 
-                if (len(self.__class__._sessions)
-                        > CONF.redfish.connection_cache_size):
-                    self._expire_oldest_session()
+        if CONF.redfish.connection_cache_size:
+            self.__class__._sessions[self._session_key] = conn
+            # Save a secure hash of the password into memory, so if we
+            # observe it change, we can detect the session is no longer valid.
 
-            return conn
+            if (len(self.__class__._sessions)
+                    > CONF.redfish.connection_cache_size):
+                self._expire_oldest_session()
+
+        return conn
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # NOTE(etingof): perhaps this session token is no good
