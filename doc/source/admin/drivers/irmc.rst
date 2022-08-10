@@ -111,6 +111,9 @@ Here is a command example to enroll a node with ``irmc`` hardware type.
 Node configuration
 ^^^^^^^^^^^^^^^^^^
 
+Configuration via ``driver_info``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Each node is configured for ``irmc`` hardware type by setting the following
   ironic node object's properties:
 
@@ -125,6 +128,44 @@ Node configuration
   - ``properties/capabilities`` property to be ``secure_boot:true`` if
     UEFI Secure Boot is required. Please refer to `UEFI Secure Boot Support`_
     for more information.
+
+* If ``port`` in ``[irmc]`` section of ``/etc/ironic/ironic.conf`` or
+  ``driver_info/irmc_port`` is set to 443, ``driver_info/irmc_verify_ca``
+  will take effect:
+
+  ``driver_info/irmc_verify_ca`` property takes one of 4 value (default value
+  is ``True``):
+
+  - ``True``: When set to ``True``, which certification file iRMC driver uses
+    is determined by ``requests`` Python module.
+
+    Value of ``driver_info/irmc_verify_ca`` is passed to ``verify`` argument
+    of functions defined in ``requests`` Python module. So which certification
+    will be used is depend on behavior of ``requests`` module.
+    (maybe certification provided by ``certifi`` Python module)
+
+  - ``False``: When set to ``False``, iRMC driver won't verify server
+    certification with certification file during HTTPS connection with iRMC.
+    Just stop to verify server certification, but does HTTPS.
+
+    .. warning::
+       When set to ``False``, user must notice that it can result in
+       vulnerable situation. Stopping verification of server certification
+       during HTTPS connection means it cannot prevent Man-in-the-middle
+       attack. When set to ``False``, Ironic user must take enough care
+       around infrastructure environment in terms of security.
+       (e.g. make sure network between Ironic conductor and iRMC is secure)
+
+  - string representing filesystem path to directory which contains
+    certification file:  In this case, iRMC driver uses certification file
+    stored at specified directory. Ironic conductor must be able to access
+    that directory. For iRMC to recongnize certification file, Ironic user
+    must run ``openssl rehash <path_to_dir>``.
+
+  - string representing filesystem path to certification file: In this case,
+    iRMC driver uses certification file specified. Ironic conductor must have
+    access to that file.
+
 
 * The following properties are also required if ``irmc-virtual-media`` boot
   interface is used:
@@ -149,6 +190,9 @@ Node configuration
     pass phrase. The length of pass phrase should be at least 8 characters.
   - ``driver_info/irmc_snmp_priv_password`` property to be the privacy protocol
     pass phrase. The length of pass phrase should be at least 8 characters.
+
+Configuration via ``ironic.conf``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * All of the nodes are configured by setting the following configuration
   options in the ``[irmc]`` section of ``/etc/ironic/ironic.conf``:
@@ -198,6 +242,10 @@ Node configuration
        ``driver_info/irmc_snmp_user`` parameter for each node if SNMPv3
        inspection is needed.
 
+
+Override ``ironic.conf`` configuration via ``driver_info``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Each node can be further configured by setting the following ironic
   node object's properties which override the parameter values in
   ``[irmc]`` section of ``/etc/ironic/ironic.conf``:
@@ -214,6 +262,7 @@ Node configuration
     ``snmp_auth_proto``.
   - ``driver_info/irmc_snmp_priv_proto`` property overrides
     ``snmp_priv_proto``.
+
 
 Optional functionalities for the ``irmc`` hardware type
 =======================================================

@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds driver_info/irmc_verify_ca option to specify certification file.
+    Default value of driver_info/irmc_verify_ca is True.
+security:
+  - |
+    Modifies the ``irmc`` hardware type to include a capability to control
+    enforcement of HTTPS certificate verification. By default this is enforced.
+    python-scciclient >= 0.12.0 is required.

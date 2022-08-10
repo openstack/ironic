@@ -15,8 +15,11 @@
 """
 Common functionalities shared between different iRMC modules.
 """
+import os
+
 from oslo_log import log as logging
 from oslo_utils import importutils
+from oslo_utils import strutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -45,6 +48,16 @@ OPTIONAL_PROPERTIES = {
     'irmc_sensor_method': _("Sensor data retrieval method; either "
                             "'ipmitool' or 'scci'. The default value is "
                             "'ipmitool'. Optional."),
+}
+OPTIONAL_DRIVER_INFO_PROPERTIES = {
+    'irmc_verify_ca': _('Either a Boolean value, a path to a CA_BUNDLE '
+                        'file or directory with certificates of trusted '
+                        'CAs. If set to True the driver will verify the '
+                        'host certificates; if False the driver will '
+                        'ignore verifying the SSL certificate. If it\'s '
+                        'a path the driver will use the specified '
+                        'certificate or one of the certificates in the '
+                        'directory. Defaults to True. Optional'),
 }
 
 SNMP_PROPERTIES = {
@@ -84,6 +97,7 @@ SNMP_V3_DEPRECATED_PROPERTIES = {
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
+COMMON_PROPERTIES.update(OPTIONAL_DRIVER_INFO_PROPERTIES)
 COMMON_PROPERTIES.update(SNMP_PROPERTIES)
 COMMON_PROPERTIES.update(SNMP_V3_REQUIRED_PROPERTIES)
 COMMON_PROPERTIES.update(SNMP_V3_OPTIONAL_PROPERTIES)
@@ -116,7 +130,9 @@ def parse_driver_info(node):
     # corresponding config names don't have 'irmc_' prefix
     opt = {param: info.get(param, CONF.irmc.get(param[len('irmc_'):]))
            for param in OPTIONAL_PROPERTIES}
-    d_info = dict(req, **opt)
+    opt_driver_info = {param: info.get(param)
+                       for param in OPTIONAL_DRIVER_INFO_PROPERTIES}
+    d_info = dict(req, **opt, **opt_driver_info)
     d_info['irmc_port'] = utils.validate_network_port(
         d_info['irmc_port'], 'irmc_port')
 
@@ -137,6 +153,38 @@ def parse_driver_info(node):
         error_msgs.append(
             _("Value '%s' is not supported for 'irmc_sensor_method'.") %
             d_info['irmc_sensor_method'])
+
+    verify_ca = d_info.get('irmc_verify_ca')
+    if verify_ca is None:
+        d_info['irmc_verify_ca'] = verify_ca = CONF.webserver_verify_ca
+
+    # Check if verify_ca is a Boolean or a file/directory in the file-system
+    if isinstance(verify_ca, str):
+        if ((os.path.isdir(verify_ca) and os.path.isabs(verify_ca))
+            or (os.path.isfile(verify_ca) and os.path.isabs(verify_ca))):
+            # If it's fullpath and dir/file, we don't need to do anything
+            pass
+        else:
+            try:
+                d_info['irmc_verify_ca'] = strutils.bool_from_string(
+                    verify_ca, strict=True)
+            except ValueError:
+                error_msgs.append(
+                    _('Invalid value type set in driver_info/'
+                      'irmc_verify_ca on node %(node)s. '
+                      'The value should be a Boolean or the path '
+                      'to a file/directory, not "%(value)s"'
+                      ) % {'value': verify_ca, 'node': node.uuid})
+    elif isinstance(verify_ca, bool):
+        # If it's a boolean it's grand, we don't need to do anything
+        pass
+    else:
+        error_msgs.append(
+            _('Invalid value type set in driver_info/irmc_verify_ca '
+              'on node %(node)s. The value should be a Boolean or the path '
+              'to a file/directory, not "%(value)s"') % {'value': verify_ca,
+                                                         'node': node.uuid})
+
     if error_msgs:
         msg = (_("The following errors were encountered while parsing "
                  "driver_info:\n%s") % "\n".join(error_msgs))
@@ -287,6 +335,7 @@ def get_irmc_client(node):
     :raises: InvalidParameterValue on invalid inputs.
     :raises: MissingParameterValue if some mandatory information
         is missing on the node
+    :raises: IRMCOperationError if iRMC operation failed
     """
     driver_info = parse_driver_info(node)
 
@@ -296,6 +345,7 @@ def get_irmc_client(node):
         driver_info['irmc_password'],
         port=driver_info['irmc_port'],
         auth_method=driver_info['irmc_auth_method'],
+        verify=driver_info.get('irmc_verify_ca'),
         client_timeout=driver_info['irmc_client_timeout'])
     return scci_client
 
@@ -338,6 +388,7 @@ def get_irmc_report(node):
         driver_info['irmc_password'],
         port=driver_info['irmc_port'],
         auth_method=driver_info['irmc_auth_method'],
+        verify=driver_info.get('irmc_verify_ca'),
         client_timeout=driver_info['irmc_client_timeout'])
 
 
