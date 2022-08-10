@@ -1,0 +1,16 @@
+---
+fixes:
+  - |
+    Fixes an issue where image information retrieval would fail when a
+    path was supplied when using the ``anaconda`` deploy interface,
+    as `HTTP` ``HEAD`` requests on a URL path have no ``Content-Length``.
+    We now consider if a path is used prior to attempting to collect
+    additional configuration data from what is normally expected to
+    be Glance.
+  - |
+    Fixes an issue where the fallback to a default kickstart template
+    value would result in error indicating
+    "Scheme-less image href is not a UUID".
+    This was becaues the handling code falling back to the default
+    did not explicitly indicate it was a file URL before saving the
+    value.
