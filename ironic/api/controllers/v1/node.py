@@ -2462,7 +2462,15 @@ class NodesController(rest.RestController):
             raise exception.OperationNotPermitted()
 
         context = api.request.context
-        api_utils.check_policy('baremetal:node:create')
+        owned_node = False
+        if CONF.api.project_admin_can_manage_own_nodes:
+            owned_node = api_utils.check_policy_true(
+                'baremetal:node:create:self_owned_node')
+        else:
+            owned_node = False
+
+        if not owned_node:
+            api_utils.check_policy('baremetal:node:create')
 
         reject_fields_in_newer_versions(node)
 
@@ -2485,6 +2493,28 @@ class NodesController(rest.RestController):
 
         if not node.get('resource_class'):
             node['resource_class'] = CONF.default_resource_class
+
+        cdict = context.to_policy_values()
+        if cdict.get('system_scope') != 'all' and owned_node:
+            # This only applies when the request is not system
+            # scoped.
+
+            # First identify what was requested, and if there is
+            # a project ID to use.
+            project_id = None
+            requested_owner = node.get('owner', None)
+            if cdict.get('project_id', False):
+                project_id = cdict.get('project_id')
+
+            if requested_owner and requested_owner != project_id:
+                # Translation: If project scoped, and an owner has been
+                # requested, and that owner does not match the requestor's
+                # project ID value.
+                msg = _("Cannot create a node as a project scoped admin "
+                        "with an owner other than your own project.")
+                raise exception.Invalid(msg)
+            # Finally, note the project ID
+            node['owner'] = project_id
 
         chassis = _replace_chassis_uuid_with_id(node)
         chassis_uuid = chassis and chassis.uuid or None
@@ -2739,8 +2769,16 @@ class NodesController(rest.RestController):
             raise exception.OperationNotPermitted()
 
         context = api.request.context
-        rpc_node = api_utils.check_node_policy_and_retrieve(
-            'baremetal:node:delete', node_ident, with_suffix=True)
+        try:
+            rpc_node = api_utils.check_node_policy_and_retrieve(
+                'baremetal:node:delete', node_ident, with_suffix=True)
+        except exception.HTTPForbidden:
+            if not CONF.api.project_admin_can_manage_own_nodes:
+                raise
+            else:
+                rpc_node = api_utils.check_node_policy_and_retrieve(
+                    'baremetal:node:delete:self_owned_node', node_ident,
+                    with_suffix=True)
 
         chassis_uuid = _get_chassis_uuid(rpc_node)
         notify.emit_start_notification(context, rpc_node, 'delete',

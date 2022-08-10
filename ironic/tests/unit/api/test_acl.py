@@ -81,9 +81,17 @@ class TestACLBase(base.BaseApiTest):
                       body=None, assert_status=None,
                       assert_dict_contains=None,
                       assert_list_length=None,
-                      deprecated=None):
+                      deprecated=None,
+                      self_manage_nodes=True):
         path = path.format(**self.format_data)
         self.mock_auth.side_effect = self._fake_process_request
+
+        # Set self management override
+        if not self_manage_nodes:
+            cfg.CONF.set_override(
+                'project_admin_can_manage_own_nodes',
+                False,
+                'api')
 
         # always request the latest api version
         version = api_versions.max_version_string()

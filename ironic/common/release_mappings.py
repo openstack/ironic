@@ -491,7 +491,7 @@ RELEASE_MAPPING = {
         }
     },
     'master': {
-        'api': '1.79',
+        'api': '1.80',
         'rpc': '1.55',
         'objects': {
             'Allocation': ['1.1'],

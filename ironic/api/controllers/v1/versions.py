@@ -117,7 +117,7 @@ BASE_VERSION = 1
 # v1.77: Add fields selector to drivers list and driver detail.
 # v1.78: Add node history endpoint
 # v1.79: Change allocation behaviour to prefer node name match
-
+# v1.80: Marker to represent self service node creation/deletion
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
 MINOR_2_AVAILABLE_STATE = 2
@@ -198,6 +198,7 @@ MINOR_76_NODE_CHANGE_BOOT_MODE = 76
 MINOR_77_DRIVER_FIELDS_SELECTOR = 77
 MINOR_78_NODE_HISTORY = 78
 MINOR_79_ALLOCATION_NODE_NAME = 79
+MINOR_80_PROJECT_CREATE_DELETE_NODE = 80
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -205,7 +206,7 @@ MINOR_79_ALLOCATION_NODE_NAME = 79
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_79_ALLOCATION_NODE_NAME
+MINOR_MAX_VERSION = MINOR_80_PROJECT_CREATE_DELETE_NODE
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

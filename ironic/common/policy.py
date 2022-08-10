@@ -437,10 +437,18 @@ node_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:node:create',
         check_str=SYSTEM_ADMIN,
-        scope_types=['system'],
+        scope_types=['system', 'project'],
         description='Create Node records',
         operations=[{'path': '/nodes', 'method': 'POST'}],
         deprecated_rule=deprecated_node_create
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:create:self_owned_node',
+        check_str=('role:admin'),
+        scope_types=['project'],
+        description='Create node records which will be tracked '
+                    'as owned by the associated user project.',
+        operations=[{'path': '/nodes', 'method': 'POST'}],
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:list',
@@ -663,7 +671,14 @@ node_policies = [
         operations=[{'path': '/nodes/{node_ident}', 'method': 'DELETE'}],
         deprecated_rule=deprecated_node_delete
     ),
-
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:delete:self_owned_node',
+        check_str=PROJECT_ADMIN,
+        scope_types=['project'],
+        description='Delete node records which are associated with '
+                    'the requesting project.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'DELETE'}],
+    ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:validate',
         check_str=SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN,
