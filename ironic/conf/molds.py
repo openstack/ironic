@@ -26,11 +26,11 @@ opts = [
     cfg.StrOpt('password',
                help=_('Password for "http" Basic auth. By default set '
                       'empty.')),
-    cfg.StrOpt('retry_attempts',
+    cfg.IntOpt('retry_attempts',
                default=3,
                help=_('Retry attempts for saving or getting configuration '
                       'molds.')),
-    cfg.StrOpt('retry_interval',
+    cfg.IntOpt('retry_interval',
                default=3,
                help=_('Retry interval for saving or getting configuration '
                       'molds.'))
