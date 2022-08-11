@@ -127,3 +127,14 @@ the service catalog or configured in the ``[service_catalog]`` section:
 
    [deploy]
    external_callback_url = <Bare Metal API URL with a routable IP address>
+
+
+In case you need specific URLs for each node, you can use the
+``driver_info[external_http_url]`` node property. When used it overrides the
+``[deploy]http_url`` and ``[deploy]external_http_url`` settings in the
+configuration file.
+
+.. code-block:: bash
+
+  baremetal node set node-0 \
+    --driver-info external_http_url="<your_node_external_url>"
