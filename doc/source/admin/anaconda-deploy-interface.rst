@@ -187,7 +187,8 @@ as it accounts for the particular stages and appropriate callbacks to
 Ironic.
 
 .. warning::
-   The default template expects a ``instance_info\liveimg_url`` setting to
+   The default template (for the kickstart 'liveimg' command) expects an
+   ``instance_info\image_info`` setting to
    be provided by the user, which serves as a base operating system image.
    In the context of the anaconda driver, it should be thought of almost
    like "stage3". If you're using a custom template, it may not be required,
@@ -201,12 +202,13 @@ Ironic.
             --instance_info ks_template=<URL>
 
 If you do choose to use a liveimg with a customized template, or if you wish
-to use the stock template with a liveimg, you will need to provide parameter.
+to use the stock template with a liveimg, you will need to provide this
+setting.
 
 .. code-block:: shell
 
         baremetal node set <node> \
-            --instance_info liveimg_url=<URL>
+            --instance_info image_info=<URL>
 
 .. warning::
    This is required if you do *not* utilize a customised template. As in use
