@@ -19,7 +19,6 @@ from oslo_utils import importutils
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
-from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
@@ -189,9 +188,8 @@ class RedfishBIOS(base.BIOSInterface):
                 LOG.error(error_msg)
                 raise exception.RedfishError(error=error_msg)
 
-            self.post_reset(task)
             self._set_reboot(task)
-            return deploy_utils.get_async_step_return_state(task.node)
+            return self.post_reset(task)
         else:
             current_attrs = bios.attributes
             LOG.debug('Post factory reset, BIOS configuration for node '
@@ -248,9 +246,8 @@ class RedfishBIOS(base.BIOSInterface):
                 LOG.error(error_msg)
                 raise exception.RedfishError(error=error_msg)
 
-            self.post_configuration(task, settings)
             self._set_reboot_requested(task, attributes)
-            return deploy_utils.get_async_step_return_state(task.node)
+            return self.post_configuration(task, settings)
         else:
             # Step 2: Verify requested BIOS settings applied
             requested_attrs = info.get('requested_bios_attrs')
@@ -271,9 +268,7 @@ class RedfishBIOS(base.BIOSInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         """
-        deploy_opts = deploy_utils.build_agent_options(task.node)
-        task.driver.boot.prepare_ramdisk(task, deploy_opts)
-        self._reboot(task)
+        return deploy_utils.reboot_to_finish_step(task)
 
     def post_configuration(self, task, settings):
         """Perform post configuration action to store the BIOS settings.
@@ -286,9 +281,7 @@ class RedfishBIOS(base.BIOSInterface):
         :param task: a TaskManager instance containing the node to act on.
         :param settings: a list of BIOS settings to be updated.
         """
-        deploy_opts = deploy_utils.build_agent_options(task.node)
-        task.driver.boot.prepare_ramdisk(task, deploy_opts)
-        self._reboot(task)
+        return deploy_utils.reboot_to_finish_step(task)
 
     def get_properties(self):
         """Return the properties of the interface.
@@ -327,17 +320,6 @@ class RedfishBIOS(base.BIOSInterface):
         else:
             LOG.debug('Verification of BIOS settings for node %(node_uuid)s '
                       'successful.', {'node_uuid': task.node.uuid})
-
-    @task_manager.require_exclusive_lock
-    def _reboot(self, task):
-        """Reboot the target Redfish service.
-
-        :param task: a TaskManager instance containing the node to act on.
-        :raises: InvalidParameterValue when the wrong state is specified
-             or the wrong driver info is specified.
-        :raises: RedfishError on an error from the Sushy library
-        """
-        manager_utils.node_power_action(task, states.REBOOT)
 
     def _set_reboot(self, task):
         """Set driver_internal_info flags for deployment or cleaning reboot.
