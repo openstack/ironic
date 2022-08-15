@@ -165,13 +165,16 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             mock_setting_list.delete.assert_called_once_with(
                 task.context, task.node.id, delete_names)
 
+    @mock.patch.object(manager_utils, 'is_fast_track', autospec=True)
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
     def _test_step_pre_reboot(self, mock_power_action, mock_get_system,
-                              mock_build_agent_options, mock_prepare):
+                              mock_build_agent_options, mock_prepare,
+                              mock_fast_track, fast_track=False):
+        mock_fast_track.return_value = fast_track
         if self.node.clean_step:
             step_data = self.node.clean_step
             check_fields = ['cleaning_reboot', 'skip_current_clean_step']
@@ -197,7 +200,13 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                 bios.supported_apply_times = []
                 ret = task.driver.bios.apply_configuration(task, data)
             mock_get_system.assert_called_with(task.node)
-            mock_power_action.assert_called_once_with(task, states.REBOOT)
+            if fast_track:
+                mock_power_action.assert_has_calls([
+                    mock.call(task, states.POWER_OFF),
+                    mock.call(task, states.REBOOT),
+                ])
+            else:
+                mock_power_action.assert_called_once_with(task, states.REBOOT)
             if step == 'factory_reset':
                 bios.reset_bios.assert_called_once()
             if step == 'apply_configuration':
@@ -205,8 +214,8 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                     attributes, apply_time=None)
             mock_build_agent_options.assert_called_once_with(task.node)
             mock_prepare.assert_called_once_with(mock.ANY, task, {'a': 'b'})
-            info = task.node.driver_internal_info
-            self.assertTrue(all(x in info for x in check_fields))
+            for field in check_fields:
+                self.assertIn(field, task.node.driver_internal_info)
             self.assertEqual(expected_ret, ret)
 
     def test_factory_reset_step_pre_reboot_cleaning(self):
@@ -220,6 +229,12 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                                  'step': 'factory_reset', 'argsinfo': {}}
         self.node.save()
         self._test_step_pre_reboot()
+
+    def test_factory_reset_step_pre_reboot_fast_track(self):
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'factory_reset', 'argsinfo': {}}
+        self.node.save()
+        self._test_step_pre_reboot(fast_track=True)
 
     def test_apply_conf_step_pre_reboot_cleaning(self):
         data = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
@@ -238,6 +253,15 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                                  'argsinfo': {'settings': data}}
         self.node.save()
         self._test_step_pre_reboot()
+
+    def test_apply_conf_step_pre_reboot_fast_track(self):
+        data = [{'name': 'ProcTurboMode', 'value': 'Disabled'},
+                {'name': 'NicBoot1', 'value': 'NetworkBoot'}]
+        self.node.clean_step = {'priority': 100, 'interface': 'bios',
+                                'step': 'apply_configuration',
+                                'argsinfo': {'settings': data}}
+        self.node.save()
+        self._test_step_pre_reboot(fast_track=True)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def _test_step_post_reboot(self, mock_get_system,

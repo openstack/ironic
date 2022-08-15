@@ -1458,7 +1458,12 @@ def reboot_to_finish_step(task):
     disable_ramdisk = task.node.driver_internal_info.get(
         'cleaning_disable_ramdisk')
     if not disable_ramdisk:
+        if manager_utils.is_fast_track(task):
+            LOG.debug('Forcing power off on node %s for a clean reboot into '
+                      'the agent image', task.node)
+            manager_utils.node_power_action(task, states.POWER_OFF)
         prepare_agent_boot(task)
+
     manager_utils.node_power_action(task, states.REBOOT)
     return get_async_step_return_state(task.node)
 
