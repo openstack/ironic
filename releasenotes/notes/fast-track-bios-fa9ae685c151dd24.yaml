@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes rebooting into the agent after changing BIOS settings in fast-track
+    mode with the ``redfish-virtual-media`` boot interface. Previously, the ISO
+    would not be configured.
