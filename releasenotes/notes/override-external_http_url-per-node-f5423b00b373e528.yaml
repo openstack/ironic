@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Nodes using virtual media can now specify their own external URL.
+    This setting can be leveraged via the ``driver_info\external_http_url``
+    node setting.
+    When used, this setting overrides the ``[deploy]http_url`` and
+    ``[deploy]external_http_url`` settings in the configuration file.
