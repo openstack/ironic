@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds an automatic switch to ``url`` for the kickstart template when
+    the source is a URL path as opposed to a ``stage2`` ramdisk.

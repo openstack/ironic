@@ -1608,6 +1608,27 @@ class PXEBuildKickstartConfigOptionsTestCase(db_base.DbTestCase):
             self.assertTrue(params['ks_options'].pop('agent_token'))
             self.assertEqual(expected, params['ks_options'])
 
+    @mock.patch.object(deploy_utils, 'get_ironic_api_url', autospec=True)
+    def test_build_kickstart_config_options_pxe_source_path(self,
+                                                            api_url_mock):
+        api_url_mock.return_value = 'http://ironic-api'
+        d_info = self.node.driver_internal_info
+        d_info['is_source_a_path'] = True
+        self.node.driver_internal_info = d_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            expected = {}
+            expected['liveimg_url'] = task.node.instance_info['image_url']
+            expected['config_drive'] = ''
+            expected['heartbeat_url'] = (
+                'http://ironic-api/v1/heartbeat/%s' % task.node.uuid
+            )
+            expected['is_source_a_path'] = 'true'
+            params = pxe_utils.build_kickstart_config_options(task)
+            self.assertTrue(params['ks_options'].pop('agent_token'))
+            self.assertEqual(expected, params['ks_options'])
+
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     def test_prepare_instance_kickstart_config_not_anaconda_boot(self,
                                                                  render_mock):
