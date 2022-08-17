@@ -533,6 +533,8 @@ settings. The following fields will be returned in the BIOS API
     "``unique``", "The setting is specific to this node"
     "``reset_required``", "After changing this setting a node reboot is required"
 
+.. _node-vendor-passthru-methods:
+
 Node Vendor Passthru Methods
 ============================
 

@@ -1,3 +1,4 @@
+# Copyright 2022 Hewlett Packard Enterprise Development LP
 # Copyright 2014 Hewlett-Packard Development Company, L.P.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -491,6 +492,26 @@ def update_ipmi_properties(task):
         info['ipmi_terminal_port'] = info['console_port']
 
     # saving ipmi credentials to task object
+    task.node.driver_info = info
+
+
+def update_redfish_properties(task):
+    """Update redfish properties to node driver_info
+
+    This method updates the node's driver info with redfish driver driver_info.
+    :param task: a task from TaskManager.
+    """
+    node = task.node
+    info = node.driver_info
+
+    # updating redfish credentials
+    info['redfish_address'] = info.get('ilo_address')
+    info['redfish_username'] = info.get('ilo_username')
+    info['redfish_password'] = info.get('ilo_password')
+    info['redfish_verify_ca'] = info.get('ilo_verify_ca')
+    info['redfish_system_id'] = '/redfish/v1/Systems/1'
+
+    # saving redfish credentials to task object
     task.node.driver_info = info
 
 

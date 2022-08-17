@@ -1,3 +1,4 @@
+# Copyright 2022 Hewlett Packard Enterprise Development LP
 # Copyright 2014 Hewlett-Packard Development Company, L.P.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -67,7 +68,7 @@ class IloHardware(generic.GenericHardware):
 
     @property
     def supported_vendor_interfaces(self):
-        """List of supported power interfaces."""
+        """List of supported vendor interfaces."""
         return [vendor.VendorPassthru, noop.NoVendor]
 
 

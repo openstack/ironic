@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Provides vendor passthru methods for ``ilo`` and ``ilo5`` hardware types
+    to create, delete and get subscriptions for BMC events. These methods are
+    supported for ``HPE ProLiant Gen10`` and ``HPE ProLiant Gen10 Plus``
+    servers.
