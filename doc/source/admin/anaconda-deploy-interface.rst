@@ -277,5 +277,10 @@ Limitations
 This deploy interface has only been tested with Red Hat based operating systems
 that use anaconda. Other systems are not supported.
 
+Runtime TLS certifiate injection into ramdisks is not supported. Assets such
+as ``ramdisk`` or a ``stage2`` ramdisk image need to have trusted Certificate
+Authority certificates present within the images *or* the Ironic API endpoint
+utilized should utilize a known trusted Certificate Authority.
+
 .. _`anaconda`: https://fedoraproject.org/wiki/Anaconda
 .. _`ks.cfg.template`: https://opendev.org/openstack/ironic/src/branch/master/ironic/drivers/modules/ks.cfg.template
