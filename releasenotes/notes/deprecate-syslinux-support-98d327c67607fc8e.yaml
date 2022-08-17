@@ -23,4 +23,4 @@ deprecations:
   - Deprecation of ``pxelinux``, as a result of the deprecation of ``syslinux``,
     does ultimately mean the default for the ``pxe`` boot_interface to carry
     defaults for the use of grub based network booting, specifically for
-    for operators who are unable to use iPXE.
+    operators who are unable to use iPXE.

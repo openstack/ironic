@@ -2,5 +2,5 @@
 fixes:
   - |
     Fixes an issue in the ``anaconda`` deployment interface where PXE argument
-    processing and preparation was erroniously directly connecting to Glance,
+    processing and preparation was erroneously directly connecting to Glance,
     potentially leading to an exception in the standalone use case.
