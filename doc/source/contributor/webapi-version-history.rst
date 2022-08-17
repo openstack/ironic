@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+1.79 (Zed, 21.0)
+----------------------
+A node with the same name as the allocation ``name`` is moved to the
+start of the derived candidate list.
+
 1.78 (Xena, 18.2)
 ----------------------
 Add endpoints to allow history events for nodes to be retrieved via
