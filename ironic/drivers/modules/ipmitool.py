@@ -1553,8 +1553,8 @@ class IPMIShellinaboxConsole(IPMIConsole):
         :raises: ConsoleSubprocessFailed when invoking the subprocess failed
         """
         driver_info = _parse_driver_info(task.node)
-        if not driver_info['port']:
-            driver_info['port'] = _allocate_port(task)
+        # if not driver_info['port']:
+        #    driver_info['port'] = _allocate_port(task)
 
         self._start_console(driver_info,
                             console_utils.start_shellinabox_console)
@@ -1577,7 +1577,8 @@ class IPMIShellinaboxConsole(IPMIConsole):
     def get_console(self, task):
         """Get the type and connection information about the console."""
         driver_info = _parse_driver_info(task.node)
-        url = console_utils.get_shellinabox_console_url(port=driver_info['port'], uuid=task.node.uuid)
+        url = console_utils.get_shellinabox_console_url(
+            port=driver_info['port'], uuid=task.node.uuid)
         return {'type': 'shellinabox', 'url': url}
 
 
