@@ -1001,8 +1001,10 @@ def build_kickstart_config_options(task):
     manager_utils.add_secret_token(node, pregenerated=True)
     node.save()
     params['liveimg_url'] = node.instance_info['image_url']
+    if node.driver_internal_info.get('is_source_a_path', False):
+        # Record a value so it matches as the template opts in.
+        params['is_source_a_path'] = 'true'
     params['agent_token'] = node.driver_internal_info['agent_secret_token']
-
     heartbeat_url = '%s/v1/heartbeat/%s' % (
         deploy_utils.get_ironic_api_url().rstrip('/'),
         node.uuid

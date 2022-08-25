@@ -15,11 +15,24 @@ zerombr
 clearpart --all --initlabel
 autopart
 
-# Downloading and installing OS image using liveimg section is mandatory
-# in a *default* ironic configuration. Users (infrastructure operators)
+# Downloading and installing OS image using "liveimg" section is the
+# default mode of operation for an OpenStack-integrated Ironic
+# deployment where Glance is in use. Users (infrastructure operators)
 # may choose to customize this pattern, or use release specific kickstart
 # configurations which may already point to a mirror.
+#
+# An alternative is "url", which points to a repository of files used for
+# the deploy, similar to mounting an ISO media and exposing the files.
+
+{% if 'is_source_a_path' in ks_options -%}
+url --url {{ks_options.liveimg_url }}
+
+# If packages are not selected, a URL based auto-deployment fails.
+%packages --ignoremissing
+%end
+{% else -%}
 liveimg --url {{ ks_options.liveimg_url }}
+{% endif -%}
 
 # Following %pre and %onerror sections are mandatory
 %pre
