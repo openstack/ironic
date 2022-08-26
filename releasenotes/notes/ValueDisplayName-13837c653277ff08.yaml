@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes detecting of allowable values for a BIOS settings enumeration in
+    the ``redfish`` BIOS interface when only ``ValueDisplayName`` is provided.
