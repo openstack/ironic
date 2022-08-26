@@ -54,20 +54,23 @@ class RedfishBIOS(base.BIOSInterface):
                 driver='redfish',
                 reason=_("Unable to import the sushy library"))
 
-    def _parse_allowable_values(self, allowable_values):
+    def _parse_allowable_values(self, node, allowable_values):
         """Convert the BIOS registry allowable_value list to expected strings
 
         :param allowable_values: list of dicts of valid values for enumeration
         :returns: list containing only allowable value names
         """
 
-        # Get name from ValueName if it exists, otherwise use DisplayValueName
+        # Get name from ValueName if it exists, otherwise use ValueDisplayName
         new_list = []
         for dic in allowable_values:
-            for key in dic:
-                if key == 'ValueName' or key == 'DisplayValueName':
-                    new_list.append(dic[key])
-                    break
+            key = dic.get('ValueName') or dic.get('ValueDisplayName')
+            if key:
+                new_list.append(key)
+            else:
+                LOG.warning('Cannot detect the value name for enumeration '
+                            'item %(item)s for node %(node)s',
+                            {'item': dic, 'node': node.uuid})
 
         return new_list
 
@@ -129,7 +132,8 @@ class RedfishBIOS(base.BIOSInterface):
                     setting[k] = getattr(reg, k, None)
                     if k == "allowable_values" and isinstance(setting[k],
                                                               list):
-                        setting[k] = self._parse_allowable_values(setting[k])
+                        setting[k] = self._parse_allowable_values(
+                            task.node, setting[k])
 
         LOG.debug('Cache BIOS settings for node %(node_uuid)s',
                   {'node_uuid': task.node.uuid})
