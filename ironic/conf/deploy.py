@@ -133,9 +133,7 @@ opts = [
                       'to set an explicit value for this option, and if the '
                       'setting or default differs from nodes, to ensure that '
                       'nodes are configured specifically for their desired '
-                      'boot mode. This option '
-                      'only has effect when management interface supports '
-                      'boot mode management') % {
+                      'boot mode.') % {
                           'bios': boot_modes.LEGACY_BIOS,
                           'uefi': boot_modes.UEFI}),
     cfg.BoolOpt('configdrive_use_object_store',
