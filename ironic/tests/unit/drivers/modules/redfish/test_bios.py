@@ -573,7 +573,8 @@ class RedfishBiosRegistryTestCase(db_base.DbTestCase):
         self.registry.registry_entries.attributes[1].read_only = False
         self.registry.registry_entries.attributes[1].allowable_values =\
             [{'ValueName': 'Enabled', 'ValueDisplayName': 'Enabled'},
-             {'ValueName': 'Disabled', 'ValueDisplayName': 'Disabled'}]
+             {'ValueDisplayName': 'Disabled'},
+             {'Invalid': 'banana'}]
         self.registry.registry_entries.attributes[2].name = "BootDelay"
         self.registry.registry_entries.attributes[2].attribute_type = "Integer"
         self.registry.registry_entries.attributes[2].lower_bound = 5
