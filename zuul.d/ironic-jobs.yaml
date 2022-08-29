@@ -18,6 +18,8 @@
       - opendev.org/openstack/virtualbmc
       - name: openstack/neutron
         override-checkout: stable/yoga
+      - name: openstack/nova
+        override-checkout: stable/yoga
       - name: openstack/swift
         override-checkout: stable/yoga
       - name: openstack/requirements
