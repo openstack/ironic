@@ -116,9 +116,9 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
         self.assertEqual(expected_driver_info, actual_driver_info)
 
     def test_parse_driver_info_deploy_config(self):
-        CONF.conductor.deploy_kernel = 'kernel'
-        CONF.conductor.deploy_ramdisk = 'ramdisk'
-        CONF.conductor.bootloader = 'bootloader'
+        CONF.set_override('deploy_kernel', 'kernel', 'conductor')
+        CONF.set_override('deploy_ramdisk', 'ramdisk', 'conductor')
+        CONF.set_override('bootloader', 'bootloader', 'conductor')
         expected_driver_info = {'deploy_kernel': 'kernel',
                                 'deploy_ramdisk': 'ramdisk',
                                 'bootloader': 'bootloader',
@@ -128,10 +128,9 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
         self.assertEqual(expected_driver_info, actual_driver_info)
 
     def test_parse_driver_info_rescue_config(self):
-        CONF.conductor.rescue_kernel = 'kernel'
-        CONF.conductor.rescue_ramdisk = 'ramdisk'
-        CONF.conductor.bootloader = 'bootloader'
-
+        CONF.set_override('rescue_kernel', 'kernel', 'conductor')
+        CONF.set_override('rescue_ramdisk', 'ramdisk', 'conductor')
+        CONF.set_override('bootloader', 'bootloader', 'conductor')
         expected_driver_info = {'rescue_kernel': 'kernel',
                                 'rescue_ramdisk': 'ramdisk',
                                 'bootloader': 'bootloader',
@@ -141,9 +140,8 @@ class IloBootCommonMethodsTestCase(test_common.BaseIloTest):
         self.assertEqual(expected_driver_info, actual_driver_info)
 
     def test_parse_driver_info_bootloader_none(self):
-        CONF.conductor.deploy_kernel = 'kernel'
-        CONF.conductor.deploy_ramdisk = 'ramdisk'
-
+        CONF.set_override('deploy_kernel', 'kernel', 'conductor')
+        CONF.set_override('deploy_ramdisk', 'ramdisk', 'conductor')
         self.assertRaisesRegex(exception.MissingParameterValue, 'bootloader',
                                ilo_boot.parse_driver_info, self.node)
 
