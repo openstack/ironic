@@ -211,12 +211,17 @@ def _validate_schema(name, value, schema):
     try:
         jsonschema.validate(value, schema)
     except jsonschema.exceptions.ValidationError as e:
-
-        # The error message includes the whole schema which can be very
-        # large and unhelpful, so truncate it to be brief and useful
-        error_msg = ' '.join(str(e).split("\n")[:3])[:-1]
-        raise exception.InvalidParameterValue(
-            _('Schema error for %s: %s') % (name, error_msg))
+        error_msg = _('Schema error for %s: %s') % (name, e.message)
+        # Sometimes the root message is too generic, try to find a possible
+        # root cause:
+        cause = None
+        current = e
+        while current.context:
+            current = jsonschema.exceptions.best_match(current.context)
+            cause = current.message
+        if cause is not None:
+            error_msg += _('. Possible root cause: %s') % cause
+        raise exception.InvalidParameterValue(error_msg)
     return value
 
 
