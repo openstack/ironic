@@ -86,11 +86,13 @@ STANDARD_TRAITS = os_traits.get_traits()
 CUSTOM_TRAIT_PATTERN = "^%s[A-Z0-9_]+$" % os_traits.CUSTOM_NAMESPACE
 CUSTOM_TRAIT_REGEX = re.compile(CUSTOM_TRAIT_PATTERN)
 
-TRAITS_SCHEMA = {'anyOf': [
-    {'type': 'string', 'minLength': 1, 'maxLength': 255,
-     'pattern': CUSTOM_TRAIT_PATTERN},
-    {'type': 'string', 'enum': STANDARD_TRAITS},
-]}
+TRAITS_SCHEMA = {
+    'type': 'string', 'minLength': 1, 'maxLength': 255,
+    'anyOf': [
+        {'pattern': CUSTOM_TRAIT_PATTERN},
+        {'enum': STANDARD_TRAITS},
+    ]
+}
 
 LOCAL_LINK_BASE_SCHEMA = {
     'type': 'object',

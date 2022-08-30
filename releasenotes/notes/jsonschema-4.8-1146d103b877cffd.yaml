@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes API error messages with jsonschema>=4.8. A possible root cause is
+    now detected for generic schema errors.
