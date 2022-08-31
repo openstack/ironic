@@ -1,0 +1,27 @@
+---
+features:
+  - |
+    Adds the capability for a project scoped ``admin`` user to be able to
+    create nodes in Ironic, which are then manageable by the project scoped
+    ``admin`` user. Effectively, this is self service Bare Metal as a Service,
+    however more advanced fields such as drivers, chassies, are not available
+    to these users. This is controlled through an auto-population of the
+    Node ``owner`` field, and can be controlled through the
+    ``[api]project_admin_can_manage_own_nodes`` setting, which defaults to
+    ``True``, and the new policy ``baremetal:node:create:self_owned_node``.
+  - |
+    Adds the capability for a project scoped ``admin`` user to be able to
+    delete nodes from Ironic which their `project` owns. This can be
+    contolled through the ``[api]project_admin_can_manage_own_nodes``
+    setting, which defaults to ``True``, as well as the
+    ``baremetal:node:delete:self_owned_node`` policy.
+security:
+  - |
+    This release contains an improvement which, by default, allows users to
+    create and delete baremetal nodes inside their own project. This can be
+    disabled using the ``[api]project_admin_can_manage_own_nodes`` setting.
+upgrades:
+  - |
+    The API version has been increased to ``1.80`` in order to signify
+    the addition of additoinal Role Based Access Controls capabilities
+    around node creation and deletion.

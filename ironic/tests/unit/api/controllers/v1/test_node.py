@@ -4898,12 +4898,38 @@ class TestPost(test_api_base.BaseApiTest):
         ndict = test_api_utils.post_get_test_node(owner='cowsay')
         response = self.post_json('/nodes', ndict,
                                   headers={api_base.Version.string:
-                                           str(api_v1.max_version())})
+                                           str(api_v1.max_version()),
+                                           'X-Project-Id': 'cowsay'})
         self.assertEqual(http_client.CREATED, response.status_int)
         result = self.get_json('/nodes/%s' % ndict['uuid'],
                                headers={api_base.Version.string:
                                         str(api_v1.max_version())})
         self.assertEqual('cowsay', result['owner'])
+
+    def test_create_node_owner_system_scope(self):
+        ndict = test_api_utils.post_get_test_node(owner='catsay')
+        response = self.post_json('/nodes', ndict,
+                                  headers={api_base.Version.string:
+                                           str(api_v1.max_version()),
+                                           'OpenStack-System-Scope': 'all',
+                                           'X-Roles': 'admin'})
+        self.assertEqual(http_client.CREATED, response.status_int)
+        result = self.get_json('/nodes/%s' % ndict['uuid'],
+                               headers={api_base.Version.string:
+                                        str(api_v1.max_version())})
+        self.assertEqual('catsay', result['owner'])
+
+    def test_create_node_owner_recorded_project_scope(self):
+        ndict = test_api_utils.post_get_test_node()
+        response = self.post_json('/nodes', ndict,
+                                  headers={api_base.Version.string:
+                                           str(api_v1.max_version()),
+                                           'X-Project-Id': 'ravensay'})
+        self.assertEqual(http_client.CREATED, response.status_int)
+        result = self.get_json('/nodes/%s' % ndict['uuid'],
+                               headers={api_base.Version.string:
+                                        str(api_v1.max_version())})
+        self.assertEqual('ravensay', result['owner'])
 
     def test_create_node_owner_old_api_version(self):
         headers = {api_base.Version.string: '1.32'}

@@ -267,3 +267,16 @@ restrictive and an ``owner`` may revoke access to ``lessee``.
 Access to the underlying baremetal node is not exclusive between the
 ``owner`` and ``lessee``, and this use model expects that some level of
 communication takes place between the appropriate parties.
+
+Can I, a project admin, create a node?
+--------------------------------------
+
+Starting in API version ``1.80``, the capability was added
+to allow users with an ``admin`` role to be able to create and
+delete their own nodes in Ironic.
+
+This functionality is enabled by default, and automatically
+imparts ``owner`` privileges to the created Bare Metal node.
+
+This functionality can be disabled by setting
+``[api]project_admin_can_manage_own_nodes`` to ``False``.

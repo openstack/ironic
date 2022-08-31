@@ -86,6 +86,11 @@ opts = [
         'network_data_schema',
         default='$pybasedir/api/controllers/v1/network-data-schema.json',
         help=_("Schema for network data used by this deployment.")),
+    cfg.BoolOpt('project_admin_can_manage_own_nodes',
+                default=True,
+                mutable=True,
+                help=_('If a project scoped administrative user is permitted '
+                       'to create/delte baremetal nodes in their project.')),
 ]
 
 opt_group = cfg.OptGroup(name='api',

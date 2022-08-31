@@ -89,35 +89,71 @@ owner_admin_cannot_post_nodes:
   body: &node_post_body
     name: node
     driver: fake-driverz
-  assert_status: 500
+  assert_status: 403
+  self_manage_nodes: False
+
+owner_admin_can_post_nodes:
+  path: '/v1/nodes'
+  method: post
+  headers: *owner_admin_headers
+  body: *node_post_body
+  assert_status: 503
+  self_manage_nodes: True
 
 owner_manager_cannot_post_nodes:
   path: '/v1/nodes'
   method: post
   headers: *owner_manager_headers
   body: *node_post_body
-  assert_status: 500
+  assert_status: 403
 
 lessee_admin_cannot_post_nodes:
   path: '/v1/nodes'
   method: post
   headers: *lessee_admin_headers
   body: *node_post_body
-  assert_status: 500
+  assert_status: 403
+  self_manage_nodes: False
+
+lessee_admin_can_post_nodes:
+  path: '/v1/nodes'
+  method: post
+  headers: *lessee_admin_headers
+  body: *node_post_body
+  assert_status: 403
+  self_manage_nodes: False
 
 lessee_manager_cannot_post_nodes:
   path: '/v1/nodes'
   method: post
   headers: *lessee_manager_headers
   body: *node_post_body
-  assert_status: 500
+  assert_status: 403
+  self_manage_nodes: False
+
+lessee_manager_can_post_nodes:
+  path: '/v1/nodes'
+  method: post
+  headers: *lessee_manager_headers
+  body: *node_post_body
+  assert_status: 403
+  self_manage_nodes: True
 
 third_party_admin_cannot_post_nodes:
   path: '/v1/nodes'
   method: post
   headers: *third_party_admin_headers
   body: *node_post_body
-  assert_status: 500
+  assert_status: 403
+  self_manage_nodes: False
+
+third_party_admin_can_post_nodes:
+  path: '/v1/nodes'
+  method: post
+  headers: *third_party_admin_headers
+  body: *node_post_body
+  assert_status: 503
+  self_manage_nodes: True
 
 # Based on nodes_post_member
 owner_member_cannot_post_nodes:
@@ -125,7 +161,7 @@ owner_member_cannot_post_nodes:
   method: post
   headers: *owner_member_headers
   body: *node_post_body
-  assert_status: 500
+  assert_status: 403
 
 # Based on nodes_post_reader
 owner_reader_cannot_post_reader:
@@ -133,7 +169,7 @@ owner_reader_cannot_post_reader:
   method: post
   headers: *owner_reader_headers
   body: *node_post_body
-  assert_status: 500
+  assert_status: 403
 
 # Based on nodes_get_admin
 # TODO: Create 3 nodes, 2 owned, 1 leased where it is also owned.
@@ -671,6 +707,14 @@ owner_admin_cannot_delete_nodes:
   method: delete
   headers: *owner_admin_headers
   assert_status: 403
+  self_manage_nodes: False
+
+owner_admin_can_delete_nodes:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: delete
+  headers: *owner_admin_headers
+  assert_status: 503
+  self_manage_nodes: True
 
 owner_manager_cannot_delete_nodes:
   path: '/v1/nodes/{owner_node_ident}'
