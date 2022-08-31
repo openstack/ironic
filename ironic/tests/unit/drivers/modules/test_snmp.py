@@ -875,7 +875,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
     def test_power_off_timeout(self, mock_sleep, mock_get_client):
         # Ensure that a power off consistency poll timeout causes an error
         mock_client = mock_get_client.return_value
-        CONF.snmp.power_timeout = 5
+        CONF.set_override('power_timeout', 5, 'snmp')
         driver = snmp._get_driver(self.node)
         mock_client.get.return_value = driver.value_power_on
         pstate = driver.power_off()
