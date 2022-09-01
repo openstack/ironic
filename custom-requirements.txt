@@ -1,3 +1,4 @@
+jaeger-client
 raven
 redis
 
