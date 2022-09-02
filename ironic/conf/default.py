@@ -81,6 +81,11 @@ api_opts = [
                mutable=True,
                help=_('Resource class to use for new nodes when no resource '
                       'class is provided in the creation request.')),
+    cfg.StrOpt('default_conductor_group',
+               mutable=True,
+               default="",
+               help=_('The conductor_group to use for new nodes when no '
+                      'conductor_group was defined in the creation request.')),
 ]
 
 driver_opts = [

@@ -4495,6 +4495,27 @@ class TestPost(test_api_base.BaseApiTest):
                                headers={api_base.Version.string: "1.21"})
         self.assertEqual('class2', result['resource_class'])
 
+    def test_create_node_with_default_conductor_group(self):
+        self.config(default_conductor_group='magic')
+
+        ndict = test_api_utils.post_get_test_node()
+        self.post_json('/nodes', ndict)
+
+        # newer version is needed to see the resource_class field
+        result = self.get_json('/nodes/%s' % ndict['uuid'],
+                               headers={api_base.Version.string: "1.46"})
+        self.assertEqual('magic', result['conductor_group'])
+
+    def test_create_node_explicit_default_conductor_group(self):
+        self.config(default_conductor_group='meow')
+        ndict = test_api_utils.post_get_test_node(conductor_group='mouse')
+        self.post_json('/nodes', ndict,
+                       headers={api_base.Version.string: "1.46"})
+
+        result = self.get_json('/nodes/%s' % ndict['uuid'],
+                               headers={api_base.Version.string: "1.46"})
+        self.assertEqual('mouse', result['conductor_group'])
+
     def test_create_node_doesnt_contain_id(self):
         # FIXME(comstud): I'd like to make this test not use the
         # dbapi, however, no matter what I do when trying to mock
