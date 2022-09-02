@@ -1,8 +1,8 @@
 ---
 fixes:
   - |
-    Resolved clear_job_queue and reset_idrac verify step failures which occur
-    when the functionality is not supported by the iDRAC. When this condition
-    is detected, the code in the step handles the exception and logs a warning
-    and completes successfully in case of verification steps but fails in case
-    of cleaning steps.
+    Resolved ``clear_job_queue`` and ``reset_idrac`` verify step failures which
+    occur when the functionality is not supported by the iDRAC. When this
+    condition is detected, the code in the step handles the exception and logs
+    a warning and completes successfully in case of verification steps but
+    fails in case of cleaning steps.
