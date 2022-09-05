@@ -13,4 +13,6 @@
 from oslo_db.sqlalchemy import enginefacade
 
 # NOTE(dtantsur): we want sqlite as close to a real database as possible.
-enginefacade.configure(sqlite_fk=True)
+# FIXME(stephenfin): we need to remove reliance on autocommit semantics ASAP
+# since it's not compatible with SQLAlchemy 2.0
+enginefacade.configure(sqlite_fk=True, __autocommit=True)
