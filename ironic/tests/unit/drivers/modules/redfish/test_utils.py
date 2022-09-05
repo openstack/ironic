@@ -252,6 +252,7 @@ class RedfishUtilsAuthTestCase(db_base.DbTestCase):
         redfish_utils.get_system(self.node)
         redfish_utils.get_system(self.node)
         self.assertEqual(1, mock_sushy.call_count)
+        self.assertEqual(len(redfish_utils.SessionCache._sessions), 1)
 
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     def test_ensure_new_session_address(self, mock_sushy):
@@ -266,6 +267,21 @@ class RedfishUtilsAuthTestCase(db_base.DbTestCase):
         self.node.driver_info['redfish_username'] = 'foo'
         redfish_utils.get_system(self.node)
         self.node.driver_info['redfish_username'] = 'bar'
+        redfish_utils.get_system(self.node)
+        self.assertEqual(2, mock_sushy.call_count)
+
+    @mock.patch.object(sushy, 'Sushy', autospec=True)
+    def test_ensure_new_session_password(self, mock_sushy):
+        d_info = self.node.driver_info
+        d_info['redfish_username'] = 'foo'
+        d_info['redfish_password'] = 'bar'
+        self.node.driver_info = d_info
+        self.node.save()
+        redfish_utils.get_system(self.node)
+        d_info['redfish_password'] = 'foo'
+        self.node.driver_info = d_info
+        self.node.save()
+        redfish_utils.SessionCache._sessions = collections.OrderedDict()
         redfish_utils.get_system(self.node)
         self.assertEqual(2, mock_sushy.call_count)
 
