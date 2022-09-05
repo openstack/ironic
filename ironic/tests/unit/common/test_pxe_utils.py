@@ -1628,6 +1628,26 @@ class PXEBuildKickstartConfigOptionsTestCase(db_base.DbTestCase):
             params = pxe_utils.build_kickstart_config_options(task)
             self.assertTrue(params['ks_options'].pop('agent_token'))
             self.assertEqual(expected, params['ks_options'])
+            self.assertNotIn('insecure_heartbeat', params)
+
+    @mock.patch.object(deploy_utils, 'get_ironic_api_url', autospec=True)
+    def test_build_kickstart_config_options_pxe_insecure_heartbeat(
+            self, api_url_mock):
+        api_url_mock.return_value = 'http://ironic-api'
+        self.assertFalse(CONF.anaconda.insecure_heartbeat)
+        CONF.set_override('insecure_heartbeat', True, 'anaconda')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            expected = {}
+            expected['liveimg_url'] = task.node.instance_info['image_url']
+            expected['config_drive'] = ''
+            expected['heartbeat_url'] = (
+                'http://ironic-api/v1/heartbeat/%s' % task.node.uuid
+            )
+            expected['insecure_heartbeat'] = 'true'
+            params = pxe_utils.build_kickstart_config_options(task)
+            self.assertTrue(params['ks_options'].pop('agent_token'))
+            self.assertEqual(expected, params['ks_options'])
 
     @mock.patch('ironic.common.utils.render_template', autospec=True)
     def test_prepare_instance_kickstart_config_not_anaconda_boot(self,

@@ -28,6 +28,17 @@ opts = [
                help=_('kickstart template to use when no kickstart template '
                       'is specified in the instance_info or the glance OS '
                       'image.')),
+    cfg.BoolOpt('insecure_heartbeat',
+                default=False,
+                mutable=True,
+                help=_('Option to allow the kickstart configuration to be '
+                       'informed if SSL/TLS certificate verificaiton should '
+                       'be enforced, or not. This option exists largely to '
+                       'facilitate easy testing and use of the ``anaconda`` '
+                       'deployment interface. When this option is set, '
+                       'heartbeat operations, depending on the contents of '
+                       'the utilized kickstart template, may not enfore TLS '
+                       'certificate verification.')),
 ]
 
 

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Adds a configuration option, ``[anaconda]insecure_heartbeat`` to allow
+    for TLS certificate validation to be disabled in the ``anaconda``
+    deployment interface, which is needed for continious integration to
+    be able to be performed without substantial substrate image customization.
+    This option is *not* advised for any production usage.
