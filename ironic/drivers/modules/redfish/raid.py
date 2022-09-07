@@ -694,6 +694,7 @@ def update_raid_config(node):
     """
     system = redfish_utils.get_system(node)
     logical_disks = []
+    vol_no_raid_type = []
     for stor in system.storage.get_members():
         for vol in stor.volumes.get_members():
             if vol.raid_type:
@@ -706,7 +707,14 @@ def update_raid_config(node):
                         key for key, value in RAID_LEVELS.items()
                         if value['raid_type'] == vol.raid_type)
                 }
-            logical_disks.append(logical_disk)
+                logical_disks.append(logical_disk)
+            else:
+                vol_no_raid_type.append(vol.identity)
+
+    if vol_no_raid_type:
+        LOG.warning("Unable to update raid_config for volumes missing RAID "
+                    "type: %(vol_no_raid_type)s",
+                    {'vol_no_raid_type': ", ".join(vol_no_raid_type)})
 
     raid_common.update_raid_info(node, {'logical_disks': logical_disks})
 

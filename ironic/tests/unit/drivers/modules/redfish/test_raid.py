@@ -1484,3 +1484,22 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             mock_build_agent_opt.assert_not_called()
             # Not yet updated as in progress
             self.assertEqual({}, task.node.raid_config)
+
+    @mock.patch.object(redfish_raid, 'LOG', autospec=True)
+    def test_update_raid_config_missing_raid_type(
+            self, mock_log, mock_get_system):
+        volumes = [
+            _mock_volume(
+                '1', raid_type=None,
+                capacity_bytes=100 * units.Gi),
+            _mock_volume(
+                '2', raid_type=None,
+                capacity_bytes=500 * units.Gi)]
+        self.mock_storage.volumes.get_members.return_value = volumes
+        mock_get_system.return_value.storage.get_members.return_value = [
+            self.mock_storage]
+
+        redfish_raid.update_raid_config(self.node)
+
+        self.assertEqual([], self.node.raid_config['logical_disks'])
+        mock_log.warning.assert_called_once()
