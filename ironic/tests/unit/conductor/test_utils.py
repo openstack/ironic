@@ -243,11 +243,12 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.config(host='my-host')
         # Required for exception handling
         mock_notif.__name__ = 'NodeSetPowerStateNotification'
-        node = obj_utils.create_test_node(self.context,
-                                          uuid=uuidutils.generate_uuid(),
-                                          driver='fake-hardware',
-                                          instance_uuid=uuidutils.uuid,
-                                          power_state=states.POWER_OFF)
+        node = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            instance_uuid=uuidutils.generate_uuid(),
+            power_state=states.POWER_OFF)
         task = task_manager.TaskManager(self.context, node.uuid)
 
         get_power_mock.return_value = states.POWER_OFF

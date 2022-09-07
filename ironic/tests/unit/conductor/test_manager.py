@@ -5089,7 +5089,8 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         self.power = self.driver.power
         self.node = obj_utils.create_test_node(
             self.context, driver='fake-hardware', maintenance=False,
-            provision_state=states.AVAILABLE, instance_uuid=uuidutils.uuid)
+            provision_state=states.AVAILABLE,
+            instance_uuid=uuidutils.generate_uuid())
         self.task = mock.Mock(spec_set=['context', 'driver', 'node',
                                         'upgrade_lock', 'shared'])
         self.task.context = self.context
