@@ -209,7 +209,7 @@ class AllocationTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             state='allocating',
             conductor_affinity=dead_conductor.id)
 
-        self._start_service()
+        self._start_service(start_allocations=False)
         with mock.patch.object(self.dbapi, 'get_offline_conductors',
                                autospec=True) as mock_conds:
             mock_conds.return_value = [dead_conductor.id]

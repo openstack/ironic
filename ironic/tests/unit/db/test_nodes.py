@@ -367,10 +367,10 @@ class DbNodeTestCase(base.DbTestCase):
         res = self.dbapi.get_node_list(filters={'maintenance': False})
         self.assertEqual([node1.id], [r.id for r in res])
 
-        res = self.dbapi.get_nodeinfo_list(filters={'fault': 'boom'})
+        res = self.dbapi.get_node_list(filters={'fault': 'boom'})
         self.assertEqual([node2.id], [r.id for r in res])
 
-        res = self.dbapi.get_nodeinfo_list(filters={'fault': 'moob'})
+        res = self.dbapi.get_node_list(filters={'fault': 'moob'})
         self.assertEqual([], [r.id for r in res])
 
         res = self.dbapi.get_node_list(filters={'resource_class': 'foo'})
@@ -558,6 +558,9 @@ class DbNodeTestCase(base.DbTestCase):
                                               'cat': 'meow'},
                                           internal_info={'corgi': 'rocks'},
                                           deploy_interface='purring_machine')
+            utils.create_test_node_traits(node_id=node.id,
+                                          traits=['atrait'])
+
             uuids.append(str(node['uuid']))
         req_fields = ['uuid',
                       'provision_state',

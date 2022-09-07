@@ -127,7 +127,12 @@ class ServiceSetUpMixin(object):
     def setUp(self):
         super(ServiceSetUpMixin, self).setUp()
         self.hostname = 'test-host'
-        self.config(node_locked_retry_attempts=1, group='conductor')
+        # Relies upon the default number of "NodeLocked" retries as
+        # in unit testing, sqllite is not operated in a transactional
+        # way and utilizes asynchonous IO. Locking, in particular, can
+        # detect this, and it can cause some false or delayed inpressions
+        # of lock status, causing lock failures.
+        self.config(node_locked_retry_attempts=3, group='conductor')
         self.config(node_locked_retry_interval=0, group='conductor')
 
         self.service = manager.ConductorManager(self.hostname, 'test-topic')
@@ -139,15 +144,18 @@ class ServiceSetUpMixin(object):
             return
         self.service.del_host()
 
-    def _start_service(self, start_periodic_tasks=False):
+    def _start_service(self, start_periodic_tasks=False, start_consoles=True,
+                       start_allocations=True):
         if start_periodic_tasks:
-            self.service.init_host()
+            self.service.init_host(start_consoles=start_consoles,
+                                   start_allocations=start_allocations)
         else:
             with mock.patch.object(periodics, 'PeriodicWorker', autospec=True):
                 with mock.patch.object(pxe_utils, 'place_common_config',
                                        autospec=True):
                     self.service.prepare_host()
-                    self.service.init_host()
+                    self.service.init_host(start_consoles=start_consoles,
+                                           start_allocations=start_allocations)
         self.addCleanup(self._stop_service)
 
 

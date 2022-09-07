@@ -19,6 +19,7 @@ SQLAlchemy models for baremetal data.
 """
 
 from os import path
+from typing import List
 from urllib import parse as urlparse
 
 from oslo_db import options as db_options
@@ -27,8 +28,8 @@ from oslo_db.sqlalchemy import types as db_types
 from sqlalchemy import Boolean, Column, DateTime, false, Index
 from sqlalchemy import ForeignKey, Integer
 from sqlalchemy import schema, String, Text
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import orm
+from sqlalchemy.orm import declarative_base
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -116,8 +117,8 @@ class ConductorHardwareInterfaces(Base):
     default = Column(Boolean, default=False, nullable=False)
 
 
-class Node(Base):
-    """Represents a bare metal node."""
+class NodeBase(Base):
+    """Represents a base bare metal node."""
 
     __tablename__ = 'nodes'
     __table_args__ = (
@@ -213,6 +214,32 @@ class Node(Base):
     secure_boot = Column(Boolean, nullable=True)
 
 
+class Node(NodeBase):
+    """Represents a bare metal node."""
+
+    # NOTE(TheJulia): The purpose of the delineation between NodeBase and Node
+    # is to facilitate a hard delineation for queries where we do not need to
+    # populate additional information needlessly which would normally populate
+    # from the access of the property. In this case, Traits and Tags.
+    # The other reason we do this, is because these are generally "joined"
+    # data structures, we cannot de-duplicate node objects with unhashable dict
+    # data structures.
+
+    # NOTE(TheJulia): The choice of selectin lazy population is intentional
+    # as it causes a subselect to occur, skipping the need for deduplication
+    # in general. This puts a slightly higher query load on the DB server, but
+    # means *far* less gets shipped over the wire in the end.
+    traits: orm.Mapped[List['NodeTrait']] = orm.relationship(  # noqa
+        "NodeTrait",
+        back_populates="node",
+        lazy="selectin")
+
+    tags: orm.Mapped[List['NodeTag']] = orm.relationship(  # noqa
+        "NodeTag",
+        back_populates="node",
+        lazy="selectin")
+
+
 class Port(Base):
     """Represents a network port of a bare metal node."""
 
@@ -270,7 +297,6 @@ class NodeTag(Base):
 
     node = orm.relationship(
         "Node",
-        backref='tags',
         primaryjoin='and_(NodeTag.node_id == Node.id)',
         foreign_keys=node_id
     )
@@ -327,7 +353,6 @@ class NodeTrait(Base):
     trait = Column(String(255), primary_key=True, nullable=False)
     node = orm.relationship(
         "Node",
-        backref='traits',
         primaryjoin='and_(NodeTrait.node_id == Node.id)',
         foreign_keys=node_id
     )

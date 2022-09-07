@@ -494,9 +494,11 @@ class StartConsolesTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         obj_utils.create_test_node(
             self.context,
             uuid=uuidutils.generate_uuid(),
-            driver='fake-hardware'
+            driver='fake-hardware',
         )
-        self._start_service()
+        # Enable consoles *after* service has started, otherwise it races
+        # as the service startup also launches consoles.
+        self._start_service(start_consoles=False)
         self.service._start_consoles(self.context)
         self.assertEqual(2, mock_start_console.call_count)
         mock_notify.assert_has_calls(
