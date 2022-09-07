@@ -1379,12 +1379,14 @@ class Connection(api.Connection):
 
     def list_hardware_type_interfaces(self, hardware_types):
         with _session_for_read() as session:
-            query = (session.query(models.ConductorHardwareInterfaces)
+            query = (session.query(models.ConductorHardwareInterfaces,
+                                   models.Conductor)
+                     .join(models.Conductor)
                      .filter(models.ConductorHardwareInterfaces.hardware_type
                              .in_(hardware_types)))
 
             query = _filter_active_conductors(query)
-            return query.all()
+            return [row[0] for row in query]
 
     @oslo_db_api.retry_on_deadlock
     def register_conductor_hardware_interfaces(self, conductor_id, interfaces):

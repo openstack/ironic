@@ -125,16 +125,6 @@ class WarningsFixture(fixtures.Fixture):
             category=sqla_exc.SAWarning,
         )
 
-        # ...but filter everything out until we get around to fixing them
-        # TODO(stephenfin): Fix all of these
-
-        warnings.filterwarnings(
-            'ignore',
-            module='ironic',
-            message='SELECT statement has a cartesian product ',
-            category=sqla_exc.SAWarning,
-        )
-
         # FIXME(stephenfin): We can remove this once oslo.db is fixed
         # https://review.opendev.org/c/openstack/oslo.db/+/856453
         warnings.filterwarnings(
