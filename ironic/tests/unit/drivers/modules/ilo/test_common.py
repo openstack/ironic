@@ -1,3 +1,4 @@
+# Copyright 2022 Hewlett Packard Enterprise Development LP
 # Copyright 2014 Hewlett-Packard Development Company, L.P.
 # All Rights Reserved.
 #
@@ -372,6 +373,22 @@ class IloCommonMethodsTestCase(BaseIloTest):
             ilo_common.update_ipmi_properties(task)
             actual_info = task.node.driver_info
             expected_info = dict(self.info, **ipmi_info)
+            self.assertEqual(expected_info, actual_info)
+
+    def test_update_redfish_properties(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            redfish_info = {
+                "redfish_address": "1.2.3.4",
+                "redfish_username": "admin",
+                "redfish_password": "fake",
+                "redfish_verify_ca": None,
+                "redfish_system_id": "/redfish/v1/Systems/1"
+            }
+            task.node.driver_info = self.info
+            ilo_common.update_redfish_properties(task)
+            actual_info = task.node.driver_info
+            expected_info = dict(self.info, **redfish_info)
             self.assertEqual(expected_info, actual_info)
 
     def test__get_floppy_image_name(self):

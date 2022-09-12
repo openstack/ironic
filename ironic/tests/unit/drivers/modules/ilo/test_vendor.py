@@ -1,3 +1,4 @@
+# Copyright 2022 Hewlett Packard Enterprise Development LP
 # Copyright 2015 Hewlett-Packard Development Company, L.P.
 # All Rights Reserved.
 #
@@ -30,6 +31,7 @@ from ironic.tests.unit.drivers.modules.ilo import test_common
 class VendorPassthruTestCase(test_common.BaseIloTest):
 
     boot_interface = 'ilo-virtual-media'
+    vendor_interface = 'ilo'
 
     @mock.patch.object(manager_utils, 'node_power_action', spec_set=True,
                        autospec=True)
@@ -95,3 +97,72 @@ class VendorPassthruTestCase(test_common.BaseIloTest):
                 task, info)
             validate_image_prop_mock.assert_called_once_with(
                 task.context, 'foo')
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test__validate_is_it_a_supported_system(
+            self, get_ilo_object_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.maintenance = True
+            ilo_mock_object = get_ilo_object_mock.return_value
+            ilo_mock_object.get_product_name.return_value = (
+                'ProLiant DL380 Gen10')
+            task.driver.vendor._validate_is_it_a_supported_system(task)
+            get_ilo_object_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(ilo_common, 'get_ilo_object', spec_set=True,
+                       autospec=True)
+    def test__validate_is_it_a_supported_system_exception(
+            self, get_ilo_object_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.maintenance = True
+            ilo_mock_object = get_ilo_object_mock.return_value
+            ilo_mock_object.get_product_name.return_value = (
+                'ProLiant DL380 Gen8')
+            self.assertRaises(
+                exception.IloOperationNotSupported,
+                task.driver.vendor._validate_is_it_a_supported_system, task)
+
+    @mock.patch.object(ilo_common, 'parse_driver_info',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_redfish_properties',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_vendor.VendorPassthru,
+                       '_validate_is_it_a_supported_system',
+                       spec_set=True, autospec=True)
+    def test_validate_create_subscription(self, validate_redfish_system_mock,
+                                          redfish_properties_mock,
+                                          driver_info_mock):
+        self.node.vendor_interface = 'ilo'
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            d_info = {'ilo_address': '1.1.1.1',
+                      'ilo_username': 'user',
+                      'ilo_password': 'password',
+                      'ilo_verify_ca': False}
+            driver_info_mock.return_value = d_info
+            redfish_properties = {'redfish_address': '1.1.1.1',
+                                  'redfish_username': 'user',
+                                  'redfish_password': 'password',
+                                  'redfish_system_id': '/redfish/v1/Systems/1',
+                                  'redfish_verify_ca': False}
+            redfish_properties_mock.return_value = redfish_properties
+            kwargs = {'Destination': 'https://someulr',
+                      'Context': 'MyProtocol'}
+            task.driver.vendor.validate(task, 'create_subscription', **kwargs)
+            driver_info_mock.assert_called_once_with(task.node)
+            redfish_properties_mock.assert_called_once_with(task)
+            validate_redfish_system_mock.assert_called_once_with(
+                task.driver.vendor, task)
+
+    def test_validate_operation_exeption(self):
+        self.node.vendor_interface = 'ilo'
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(
+                exception.IloOperationNotSupported,
+                task.driver.vendor.validate, task, 'eject_vmedia')

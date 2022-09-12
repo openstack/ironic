@@ -1,3 +1,4 @@
+# Copyright 2022 Hewlett Packard Enterprise Development LP
 # Copyright 2015 Hewlett-Packard Development Company, L.P.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may
@@ -25,15 +26,13 @@ from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.ilo import common as ilo_common
+from ironic.drivers.modules.redfish import vendor as redfish_vendor
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
-class VendorPassthru(base.VendorInterface):
+class VendorPassthru(redfish_vendor.RedfishVendorPassthru):
     """Vendor-specific interfaces for iLO deploy drivers."""
-
-    def get_properties(self):
-        return {}
 
     @METRICS.timer('IloVendorPassthru.validate')
     def validate(self, task, method, **kwargs):
@@ -50,10 +49,26 @@ class VendorPassthru(base.VendorInterface):
             passed.
         :raises: InvalidParameterValue, if any of the parameters have invalid
             value.
+        :raises: IloOperationNotSupported, if the driver does not support the
+            given operation with ilo vendor interface.
         """
         if method == 'boot_into_iso':
             self._validate_boot_into_iso(task, kwargs)
             return
+        redfish_event_methods = ['create_subscription',
+                                 'delete_subscription',
+                                 'get_all_subscriptions', 'get_subscription']
+        if method in redfish_event_methods:
+            self._validate_is_it_a_supported_system(task)
+            ilo_common.parse_driver_info(task.node)
+            ilo_common.update_redfish_properties(task)
+        if method == 'eject_vmedia':
+            error_message = _(method + (
+                " can not be performed as the driver does not support "
+                "eject_vmedia through ilo vendor interface"))
+            raise exception.IloOperationNotSupported(operation=method,
+                                                     error=error_message)
+
         super(VendorPassthru, self).validate(task, method, **kwargs)
 
     def _validate_boot_into_iso(self, task, kwargs):
@@ -99,3 +114,23 @@ class VendorPassthru(base.VendorInterface):
         ilo_common.setup_vmedia(task, kwargs['boot_iso_href'],
                                 ramdisk_options=None)
         manager_utils.node_power_action(task, states.REBOOT)
+
+    def _validate_is_it_a_supported_system(self, task):
+        """Verify and raise an exception if it is not a supported system.
+
+        :param task: A TaskManager object.
+        :param kwargs: The arguments sent with vendor passthru.
+        :raises: IloOperationNotSupported, if the node is not a Gen10 or
+            Gen10 Plus system.
+        """
+
+        node = task.node
+        ilo_object = ilo_common.get_ilo_object(node)
+        product_name = ilo_object.get_product_name()
+        operation = _("Event methods")
+        error_message = _(operation + (
+            " can not be performed as the driver does not support Event "
+            "methods on the given node"))
+        if 'Gen10' not in product_name:
+            raise exception.IloOperationNotSupported(operation=operation,
+                                                     error=error_message)

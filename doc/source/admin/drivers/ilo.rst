@@ -65,6 +65,7 @@ The hardware type ``ilo`` supports following HPE server features:
 * `BIOS configuration support`_
 * `IPv6 support`_
 * `Layer 3 or DHCP-less ramdisk booting`_
+* `Events subscription`_
 
 Apart from above features hardware type ``ilo5`` also supports following
 features:
@@ -199,6 +200,18 @@ The ``ilo`` hardware type supports following hardware interfaces:
         [DEFAULT]
         enabled_hardware_types = ilo
         enabled_rescue_interfaces = agent,no-rescue
+
+* vendor
+    Supports ``ilo``, ``ilo-redfish`` and ``no-vendor``. The default is
+    ``ilo``. They can be enabled by using the
+    ``[DEFAULT]enabled_vendor_interfaces`` option in ``ironic.conf`` as given
+    below:
+
+    .. code-block:: ini
+
+        [DEFAULT]
+        enabled_hardware_types = ilo
+        enabled_vendor_interfaces = ilo,ilo-redfish,no-vendor
 
 
 The ``ilo5`` hardware type supports all the ``ilo`` interfaces described above,
@@ -2135,6 +2148,12 @@ Layer 3 or DHCP-less ramdisk booting
 DHCP-less deploy is supported by ``ilo`` and ``ilo5`` hardware types.
 However it would work only with ilo-virtual-media boot interface. See
 :doc:`/admin/dhcp-less` for more information.
+
+Events subscription
+^^^^^^^^^^^^^^^^^^^
+Events subscription is supported by ``ilo`` and ``ilo5`` hardware types with
+``ilo`` vendor interface for Gen10 and Gen10 Plus servers. See
+:ref:`node-vendor-passthru-methods` for more information.
 
 .. _`ssacli documentation`: https://support.hpe.com/hpsc/doc/public/display?docId=c03909334
 .. _`proliant-tools`: https://docs.openstack.org/diskimage-builder/latest/elements/proliant-tools/README.html
