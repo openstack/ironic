@@ -80,11 +80,22 @@ opts = [
                help='SNMP polling interval in seconds'),
     cfg.StrOpt('snmp_auth_proto',
                default='sha',
-               choices=[('sha', _('Secure Hash Algorithm 1'))],
+               choices=[('sha', _('Secure Hash Algorithm 1, supported in iRMC '
+                         'S4 and S5.')),
+                        ('sha256', ('Secure Hash Algorithm 2 with 256 bits '
+                                    'digest, only supported in iRMC S6.')),
+                        ('sha384', ('Secure Hash Algorithm 2 with 384 bits '
+                                    'digest, only supported in iRMC S6.')),
+                        ('sha512', ('Secure Hash Algorithm 2 with 512 bits '
+                                    'digest, only supported in iRMC S6.'))],
                help=_("SNMPv3 message authentication protocol ID. "
                       "Required for version 'v3'. Will be ignored if the "
-                      "version of python-scciclient is before 0.11.3. 'sha' "
-                      "is supported.")),
+                      "version of python-scciclient is before 0.11.3. The "
+                      "valid options are 'sha', 'sha256', 'sha384' and "
+                      "'sha512', while 'sha' is the only supported protocol "
+                      "in iRMC S4 and S5, and from iRMC S6, 'sha256', "
+                      "'sha384' and 'sha512' are supported, but 'sha' is not "
+                      "supported any more.")),
     cfg.StrOpt('snmp_priv_proto',
                default='aes',
                choices=[('aes', _('Advanced Encryption Standard'))],

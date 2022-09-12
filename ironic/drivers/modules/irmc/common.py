@@ -93,7 +93,9 @@ SNMP_V3_OPTIONAL_PROPERTIES = {
     'irmc_snmp_auth_proto': _("SNMPv3 message authentication protocol ID. "
                               "Required for version 'v3'. Will be ignored if "
                               "the version of python-scciclient is before "
-                              "0.11.3. 'sha' is supported."),
+                              "0.11.3. If using iRMC S4/S5, only 'sha' is "
+                              "supported. If using iRMC S6, the valid "
+                              "options are 'sha256', 'sha384', 'sha512'."),
     'irmc_snmp_priv_proto': _("SNMPv3 message privacy (encryption) protocol "
                               "ID. Required for version 'v3'. Will be ignored "
                               "if the version of python-scciclient is before "
@@ -309,7 +311,8 @@ def _parse_snmp_driver_info(node, info):
 
 def _parse_snmp_v3_crypto_info(info):
     snmp_info = {}
-    valid_values = {'irmc_snmp_auth_proto': ['sha'],
+    valid_values = {'irmc_snmp_auth_proto': ['sha', 'sha256', 'sha384',
+                                             'sha512'],
                     'irmc_snmp_priv_proto': ['aes']}
     valid_protocols = {'irmc_snmp_auth_proto': snmp.snmp_auth_protocols,
                        'irmc_snmp_priv_proto': snmp.snmp_priv_protocols}
