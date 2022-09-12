@@ -234,9 +234,10 @@ Configuration via ``ironic.conf``
     and ``v2c``. The default value is ``public``. Optional.
   - ``snmp_security``: SNMP security name required for version ``v3``.
     Optional.
-  - ``snmp_auth_proto``: The SNMPv3 auth protocol. The valid value and the
-    default value are both ``sha``. We will add more supported valid values
-    in the future. Optional.
+  - ``snmp_auth_proto``: The SNMPv3 auth protocol. If using iRMC S4 or S5, the
+    valid value of this option is only ``sha``. If using iRMC S6, the valid
+    values are ``sha256``, ``sha384`` and ``sha512``. The default value is
+    ``sha``. Optional.
   - ``snmp_priv_proto``: The SNMPv3 privacy protocol. The valid value and
     the default value are both ``aes``. We will add more supported valid values
     in the future. Optional.
