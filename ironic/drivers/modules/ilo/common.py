@@ -32,6 +32,7 @@ from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
+from ironic.common import image_service
 from ironic.common import images
 from ironic.common import swift
 from ironic.common import utils
@@ -1147,3 +1148,23 @@ def setup_uefi_https(task, iso, persistent=False):
     except ilo_error.IloError as ilo_exception:
         raise exception.IloOperationError(operation=operation,
                                           error=ilo_exception)
+
+
+def download(target_file, file_url):
+    """Downloads file based on the scheme.
+
+    It downloads the file (url) to given location.
+    The supported url schemes are file, http, and https.
+    :param target_file: target file for copying the downloaded file.
+    :param file_url: source file url from where file needs to be downloaded.
+    :raises: ImageDownloadFailed, on failure to download the file.
+    """
+    parsed_url = urlparse.urlparse(file_url)
+    if parsed_url.scheme == "file":
+        src_file = parsed_url.path
+        with open(target_file, 'wb') as fd:
+            image_service.FileImageService().download(src_file, fd)
+    elif parsed_url.scheme in ('http', 'https'):
+        src_file = parsed_url.geturl()
+        with open(target_file, 'wb') as fd:
+            image_service.HttpImageService().download(src_file, fd)

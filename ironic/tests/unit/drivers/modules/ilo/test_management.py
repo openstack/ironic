@@ -14,9 +14,12 @@
 
 """Test class for Management Interface used by iLO modules."""
 
+import os
+import shutil
 from unittest import mock
 
 import ddt
+from oslo_config import cfg
 from oslo_utils import importutils
 from oslo_utils import uuidutils
 
@@ -41,6 +44,8 @@ from ironic.tests.unit.objects import utils as obj_utils
 ilo_error = importutils.try_import('proliantutils.exception')
 
 INFO_DICT = db_utils.get_test_ilo_info()
+
+CONF = cfg.CONF
 
 
 @ddt.ddt
@@ -423,6 +428,116 @@ class IloManagementTestCase(test_common.BaseIloTest):
                 task, **auth_failure_args)
             step_mock.assert_called_once_with(
                 task.node, 'update_authentication_failure_logging', '1', False)
+
+    @mock.patch.object(ilo_management, '_execute_ilo_step',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(os, 'makedirs', spec_set=True, autospec=True)
+    def test_create_csr(self, os_mock, step_mock):
+        csr_params_args = {
+            "City": "Bangalore",
+            "CommonName": "1.1.1.1",
+            "Country": "ABC",
+            "OrgName": "DEF",
+            "State": "IJK"
+        }
+        csr_args = {
+            "csr_params": csr_params_args}
+        CONF.ilo.cert_path = "/var/lib/ironic/ilo"
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.create_csr(task, **csr_args)
+            cert_path = os.path.join(CONF.ilo.cert_path, self.node.uuid)
+            step_mock.assert_called_once_with(task.node, 'create_csr',
+                                              cert_path, csr_params_args)
+            os_mock.assert_called_once_with(cert_path, 0o755)
+
+    @mock.patch.object(ilo_management, '_execute_ilo_step',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(os, 'makedirs', spec_set=True, autospec=True)
+    @mock.patch.object(shutil, 'copy', spec_set=True, autospec=True)
+    def test_add_https_certificate(self, shutil_mock, os_mock,
+                                   step_mock):
+        CONF.ilo.cert_path = "/var/lib/ironic/ilo"
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            cert_file_args = {'cert_file': '/test1/cert'}
+            task.driver.management.add_https_certificate(
+                task, **cert_file_args)
+            cert_path = os.path.join(CONF.ilo.cert_path, self.node.uuid)
+            cert_path_name = os.path.join(cert_path, self.node.uuid)
+            filename = cert_path_name + ".crt"
+            step_mock.assert_called_once_with(
+                task.node, 'add_https_certificate', filename)
+            os_mock.assert_called_once_with(cert_path, 0o755)
+            shutil_mock.assert_called_once_with('/test1/cert', filename)
+
+    @mock.patch.object(ilo_management, '_execute_ilo_step',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(os, 'makedirs', spec_set=True, autospec=True)
+    @mock.patch.object(shutil, 'copy', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'download', spec_set=True, autospec=True)
+    def test_add_https_certificate_fileurl(self, download_mock, shutil_mock,
+                                           os_mock, step_mock):
+        CONF.ilo.cert_path = "/var/lib/ironic/ilo"
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            cert_file_args = {'cert_file': 'file:///test1/cert'}
+            task.driver.management.add_https_certificate(
+                task, **cert_file_args)
+            cert_path = os.path.join(CONF.ilo.cert_path, self.node.uuid)
+            cert_path_name = os.path.join(cert_path, self.node.uuid)
+            fname = cert_path_name + ".crt"
+            step_mock.assert_called_once_with(
+                task.node, 'add_https_certificate', fname)
+            os_mock.assert_called_once_with(cert_path, 0o755)
+            shutil_mock.assert_not_called()
+            download_mock.assert_called_once_with(fname, 'file:///test1/cert')
+
+    @mock.patch.object(ilo_management, '_execute_ilo_step',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(os, 'makedirs', spec_set=True, autospec=True)
+    @mock.patch.object(shutil, 'copy', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'download', spec_set=True, autospec=True)
+    def test_add_https_certificate_httpurl(self, download_mock, shutil_mock,
+                                           os_mock, step_mock):
+        CONF.ilo.cert_path = "/var/lib/ironic/ilo"
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            cert_file_args = {'cert_file': 'http://1.1.1.1/cert'}
+            task.driver.management.add_https_certificate(
+                task, **cert_file_args)
+            cert_path = os.path.join(CONF.ilo.cert_path, self.node.uuid)
+            cert_path_name = os.path.join(cert_path, self.node.uuid)
+            fname = cert_path_name + ".crt"
+            step_mock.assert_called_once_with(
+                task.node, 'add_https_certificate', fname)
+            os_mock.assert_called_once_with(cert_path, 0o755)
+            shutil_mock.assert_not_called()
+            download_mock.assert_called_once_with(fname, 'http://1.1.1.1/cert')
+
+    @mock.patch.object(ilo_management, '_execute_ilo_step',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(os, 'makedirs', spec_set=True, autospec=True)
+    @mock.patch.object(shutil, 'copy', spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'download', spec_set=True, autospec=True)
+    def test_add_https_certificate_url_exception(self, download_mock,
+                                                 shutil_mock, os_mock,
+                                                 step_mock):
+        CONF.ilo.cert_path = "/var/lib/ironic/ilo"
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            cert_file_args = {'cert_file': 'swift://1.1.1.1/cert'}
+            self.assertRaises(exception.IloOperationNotSupported,
+                              task.driver.management.add_https_certificate,
+                              task,
+                              **cert_file_args)
+
+            cert_path = os.path.join(CONF.ilo.cert_path, self.node.uuid)
+            step_mock.assert_not_called()
+            os_mock.assert_called_once_with(cert_path, 0o755)
+            shutil_mock.assert_not_called()
+            download_mock.assert_not_called()
 
     @mock.patch.object(deploy_utils, 'build_agent_options',
                        spec_set=True, autospec=True)

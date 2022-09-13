@@ -14,7 +14,8 @@
 """
 iLO Management Interface
 """
-
+import os
+import shutil
 from urllib import parse as urlparse
 
 from ironic_lib import metrics_utils
@@ -74,6 +75,27 @@ _RESET_ILO_CREDENTIALS_ARGSINFO = {
         'description': (
             'Password string for iLO user with administrative privileges '
             'being set in the driver_info property "ilo_username".'
+        ),
+        'required': True
+    }
+}
+
+_CREATE_CSR_ARGSINFO = {
+    'csr_params': {
+        'description': (
+            "This arguments represents the information needed "
+            "to create the CSR certificate. The keys to be provided are "
+            "City, CommonName, OrgName, State."
+        ),
+        'required': True
+    }
+}
+
+_ADD_HTTPS_CERT_ARGSINFO = {
+    'cert_file': {
+        'description': (
+            "This argument represents the path to the signed HTTPS "
+            "certificate which will be added to the iLO."
         ),
         'required': True
     }
@@ -573,6 +595,61 @@ class IloManagement(base.ManagementInterface):
         LOG.info("Authentication failure logging threshold security "
                  "parameter for node %(node)s is updated",
                  {'node': node.uuid})
+
+    @METRICS.timer('IloManagement.create_csr')
+    @base.clean_step(priority=0, abortable=False,
+                     argsinfo=_CREATE_CSR_ARGSINFO)
+    def create_csr(self, task, **kwargs):
+        """Creates the CSR.
+
+        :param task: a TaskManager object.
+        """
+        node = task.node
+        csr_params = kwargs.get('csr_params')
+        csr_path = CONF.ilo.cert_path
+        path = os.path.join(csr_path, task.node.uuid)
+        if not os.path.exists(path):
+            os.makedirs(path, 0o755)
+
+        LOG.debug("Creating CSR for node %(node)s ..",
+                  {'node': node.uuid})
+        _execute_ilo_step(node, 'create_csr', path, csr_params)
+        LOG.info("Creation of CSR for node %(node)s is "
+                 "completed.", {'node': node.uuid})
+
+    @METRICS.timer('IloManagement.add_https_certificate')
+    @base.clean_step(priority=0, abortable=False,
+                     argsinfo=_ADD_HTTPS_CERT_ARGSINFO)
+    def add_https_certificate(self, task, **kwargs):
+        """Adds the signed HTTPS certificate to the iLO.
+
+        :param task: a TaskManager object.
+        """
+        node = task.node
+        csr_path = CONF.ilo.cert_path
+        path = os.path.join(csr_path, task.node.uuid)
+        if not os.path.exists(path):
+            os.makedirs(path, 0o755)
+        cert_file_name = node.uuid + ".crt"
+        cert_file_path = os.path.join(path, cert_file_name)
+        cert_file = kwargs.get('cert_file')
+        url_scheme = urlparse.urlparse(cert_file).scheme
+        if url_scheme == '':
+            shutil.copy(cert_file, cert_file_path)
+        elif url_scheme in ('http', 'https', 'file'):
+            ilo_common.download(cert_file_path, cert_file)
+        else:
+            msg = (_("The url scheme %(scheme)s not supported with clean step "
+                   "%(step)s") % {'scheme': url_scheme,
+                   'step': 'add_https_certificate'})
+            raise exception.IloOperationNotSupported(operation='clean step',
+                                                     error=msg)
+
+        LOG.debug("Adding the signed HTTPS certificate to the "
+                  "node %(node)s ..", {'node': node.uuid})
+        _execute_ilo_step(node, 'add_https_certificate', cert_file_path)
+        LOG.info("Adding of HTTPS certificate to the node %(node)s "
+                 "is completed.", {'node': node.uuid})
 
     @METRICS.timer('IloManagement.update_firmware')
     @base.deploy_step(priority=0, argsinfo=_FIRMWARE_UPDATE_ARGSINFO)

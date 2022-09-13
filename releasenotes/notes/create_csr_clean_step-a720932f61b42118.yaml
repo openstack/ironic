@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds new clean steps ``create_csr`` and ``add_https_certificate``
+    to ``ilo`` and ``ilo5`` hardware types which allows users to
+    create Certificate Signing Request(CSR) and adds signed HTTPS
+    certificate to the iLO.

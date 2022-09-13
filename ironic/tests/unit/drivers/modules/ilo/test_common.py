@@ -31,6 +31,7 @@ from oslo_utils import uuidutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
+from ironic.common import image_service
 from ironic.common import images
 from ironic.common import swift
 from ironic.conductor import task_manager
@@ -1521,3 +1522,37 @@ class IloCommonMethodsTestCase(BaseIloTest):
             self.assertRaises(exception.IloOperationError,
                               ilo_common.setup_uefi_https,
                               task, iso, True)
+
+    @mock.patch.object(image_service, 'FileImageService', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(image_service, 'HttpImageService', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
+    def test_download_file_url(self, open_mock, http_mock, file_mock):
+        url = "file:///test1/iLO.crt"
+        target_file = "/a/b/c"
+        fd_mock = mock.MagicMock(spec=io.BytesIO)
+        open_mock.return_value = fd_mock
+        fd_mock.__enter__.return_value = fd_mock
+        ilo_common.download(target_file, url)
+        open_mock.assert_called_once_with(target_file, 'wb')
+        http_mock.assert_not_called()
+        file_mock.return_value.download.assert_called_once_with(
+            "/test1/iLO.crt", fd_mock)
+
+    @mock.patch.object(image_service, 'FileImageService', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(image_service, 'HttpImageService', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
+    def test_download_http_url(self, open_mock, http_mock, file_mock):
+        url = "http://1.1.1.1/iLO.crt"
+        target_file = "/a/b/c"
+        fd_mock = mock.MagicMock(spec=io.BytesIO)
+        open_mock.return_value = fd_mock
+        fd_mock.__enter__.return_value = fd_mock
+        ilo_common.download(target_file, url)
+        http_mock.return_value.download.assert_called_once_with(
+            "http://1.1.1.1/iLO.crt", fd_mock)
+        file_mock.assert_not_called()
+        open_mock.assert_called_once_with(target_file, 'wb')

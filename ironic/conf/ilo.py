@@ -120,6 +120,11 @@ opts = [
                       '/proc/cmdline. Mind severe cmdline size limit! Can be '
                       'overridden by `instance_info/kernel_append_params` '
                       'property.')),
+    cfg.StrOpt('cert_path',
+               default='/var/lib/ironic/ilo/',
+               help=_('On the ironic-conductor node, directory where ilo '
+                      'driver stores the CSR and the cert.')),
+
 ]
 
 
