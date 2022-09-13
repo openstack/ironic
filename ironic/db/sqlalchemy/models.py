@@ -414,6 +414,10 @@ class DeployTemplate(Base):
     uuid = Column(String(36))
     name = Column(String(255), nullable=False)
     extra = Column(db_types.JsonEncodedDict)
+    steps: orm.Mapped[List['DeployTemplateStep']] = orm.relationship(  # noqa
+        "DeployTemplateStep",
+        back_populates="deploy_template",
+        lazy="selectin")
 
 
 class DeployTemplateStep(Base):
@@ -434,7 +438,6 @@ class DeployTemplateStep(Base):
     priority = Column(Integer, nullable=False)
     deploy_template = orm.relationship(
         "DeployTemplate",
-        backref='steps',
         primaryjoin=(
             'and_(DeployTemplateStep.deploy_template_id == '
             'DeployTemplate.id)'),
