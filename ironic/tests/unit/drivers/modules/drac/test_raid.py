@@ -2457,13 +2457,145 @@ class DracRedfishRAIDTestCase(test_utils.BaseDracTest):
         self.assertEqual(False, result)
         mock_log.assert_called_once()
 
+    @mock.patch.object(deploy_utils, 'reboot_to_finish_step',
+                       autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__convert_controller_to_raid_mode(
+            self, mock_get_system, mock_reboot):
+        mock_task_mon = mock.Mock(task_monitor_uri='/TaskService/1')
+        mock_oem_controller = mock.Mock()
+        mock_oem_controller.convert_to_raid.return_value = mock_task_mon
+        mock_controller = mock.Mock()
+        mock_controller.get_oem_extension.return_value = mock_oem_controller
+        mock_controllers_col = mock.Mock()
+        mock_controllers_col.get_members.return_value = [mock_controller]
+        mock_storage = mock.Mock(controllers=mock_controllers_col)
+        mock_storage_col = mock.Mock()
+        mock_storage_col.get_members.return_value = [mock_storage]
+        mock_system = mock.Mock(storage=mock_storage_col)
+        mock_get_system.return_value = mock_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            result = self.raid._convert_controller_to_raid_mode(task)
+            self.assertEqual(
+                ['/TaskService/1'],
+                task.node.driver_internal_info.get('raid_task_monitor_uris'))
+            self.assertEqual(mock_reboot.return_value, result)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__convert_controller_to_raid_mode_no_conversion(
+            self, mock_get_system):
+        mock_oem_controller = mock.Mock()
+        mock_oem_controller.convert_to_raid.return_value = None
+        mock_controller = mock.Mock()
+        mock_controller.get_oem_extension.return_value = mock_oem_controller
+        mock_controllers_col = mock.Mock()
+        mock_controllers_col.get_members.return_value = [mock_controller]
+        mock_storage = mock.Mock(controllers=mock_controllers_col)
+        mock_storage_col = mock.Mock()
+        mock_storage_col.get_members.return_value = [mock_storage]
+        mock_system = mock.Mock(storage=mock_storage_col)
+        mock_get_system.return_value = mock_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            result = self.raid._convert_controller_to_raid_mode(task)
+            self.assertIsNone(
+                task.node.driver_internal_info.get('raid_task_monitor_uris'))
+            self.assertIsNone(result)
+
+    @mock.patch.object(drac_raid.LOG, 'warning', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__convert_controller_to_raid_mode_not_raid(
+            self, mock_get_system, mock_log):
+        mock_storage = mock.Mock(storage_controllers=None)
+        mock_controllers = mock.PropertyMock(
+            side_effect=sushy.exceptions.MissingAttributeError)
+        type(mock_storage).controllers = mock_controllers
+        mock_storage_col = mock.Mock()
+        mock_storage_col.get_members.return_value = [mock_storage]
+        mock_system = mock.Mock(storage=mock_storage_col)
+        mock_get_system.return_value = mock_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            result = self.raid._convert_controller_to_raid_mode(task)
+            self.assertIsNone(
+                task.node.driver_internal_info.get('raid_task_monitor_uris'))
+            self.assertIsNone(result)
+            mock_log.assert_not_called()
+
+    @mock.patch.object(drac_raid.LOG, 'warning', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__convert_controller_to_raid_mode_old_idrac(
+            self, mock_get_system, mock_log):
+        mock_storage = mock.Mock(storage_controllers=mock.Mock())
+        mock_controllers = mock.PropertyMock(
+            side_effect=sushy.exceptions.MissingAttributeError)
+        type(mock_storage).controllers = mock_controllers
+        mock_storage_col = mock.Mock()
+        mock_storage_col.get_members.return_value = [mock_storage]
+        mock_system = mock.Mock(storage=mock_storage_col)
+        mock_get_system.return_value = mock_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            result = self.raid._convert_controller_to_raid_mode(task)
+            self.assertIsNone(
+                task.node.driver_internal_info.get('raid_task_monitor_uris'))
+            self.assertIsNone(result)
+            mock_log.assert_called_once()
+
+    @mock.patch.object(drac_raid.LOG, 'warning', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__convert_controller_to_raid_mode_old_sushy(
+            self, mock_get_system, mock_log):
+        mock_storage = mock.Mock(spec=[])
+        mock_storage.identity = "Storage 1"
+        mock_storage_col = mock.Mock()
+        mock_storage_col.get_members.return_value = [mock_storage]
+        mock_system = mock.Mock(storage=mock_storage_col)
+        mock_get_system.return_value = mock_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            result = self.raid._convert_controller_to_raid_mode(task)
+            self.assertIsNone(
+                task.node.driver_internal_info.get('raid_task_monitor_uris'))
+            self.assertIsNone(result)
+            mock_log.assert_called_once()
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__convert_controller_to_raid_mode_old_sushy_oem(
+            self, mock_get_system):
+        mock_controller = mock.Mock()
+        mock_controller.get_oem_extension.side_effect =\
+            sushy.exceptions.ExtensionError
+        mock_controllers_col = mock.Mock()
+        mock_controllers_col.get_members.return_value = [mock_controller]
+        mock_storage = mock.Mock(controllers=mock_controllers_col)
+        mock_storage_col = mock.Mock()
+        mock_storage_col.get_members.return_value = [mock_storage]
+        mock_system = mock.Mock(storage=mock_storage_col)
+        mock_get_system.return_value = mock_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            result = self.raid._convert_controller_to_raid_mode(task)
+            self.assertIsNone(
+                task.node.driver_internal_info.get('raid_task_monitor_uris'))
+            self.assertIsNone(result)
+
+    @mock.patch.object(drac_raid.DracRedfishRAID,
+                       '_convert_controller_to_raid_mode', autospec=True)
     @mock.patch.object(deploy_utils, 'get_async_step_return_state',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_post_delete_configuration_foreign_async(
             self, mock_get_system, mock_build_agent_options,
-            mock_get_async_step_return_state):
+            mock_get_async_step_return_state, mock_convert):
         fake_oem_system = mock.Mock()
         fake_system = mock.Mock()
         fake_system.get_oem_extension.return_value = fake_oem_system
@@ -2497,9 +2629,13 @@ class DracRedfishRAIDTestCase(test_utils.BaseDracTest):
         mock_get_async_step_return_state.assert_called_once_with(task.node)
         mock_task_mon1.wait.assert_not_called()
         mock_task_mon2.wait.assert_not_called()
+        mock_convert.assert_not_called()
 
+    @mock.patch.object(drac_raid.DracRedfishRAID,
+                       '_convert_controller_to_raid_mode', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_post_delete_configuration_foreign_sync(self, mock_get_system):
+    def test_post_delete_configuration_foreign_sync(
+            self, mock_get_system, mock_convert):
         fake_oem_system = mock.Mock()
         fake_system = mock.Mock()
         fake_system.get_oem_extension.return_value = fake_oem_system
@@ -2520,14 +2656,33 @@ class DracRedfishRAIDTestCase(test_utils.BaseDracTest):
         mock_task_mon2.get_task.return_value = mock_task2
         fake_oem_system.clear_foreign_config.return_value = [
             mock_task_mon1, mock_task_mon2]
+        mock_convert_state = mock.Mock()
+        mock_convert.return_value = mock_convert_state
 
         result = self.raid.post_delete_configuration(
             task, None, return_state=mock_return_state1)
 
-        self.assertEqual(result, mock_return_state1)
+        self.assertEqual(result, mock_convert_state)
         fake_oem_system.clear_foreign_config.assert_called_once()
         mock_task_mon1.wait.assert_called_once_with(CONF.drac.raid_job_timeout)
         mock_task_mon2.wait.assert_not_called()
+
+    @mock.patch.object(drac_raid.DracRedfishRAID,
+                       '_convert_controller_to_raid_mode', autospec=True)
+    @mock.patch.object(drac_raid.DracRedfishRAID,
+                       '_clear_foreign_config', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_post_delete_configuration_no_subtasks(
+            self, mock_get_system, mock_foreign, mock_convert):
+        mock_foreign.return_value = False
+        mock_convert.return_value = None
+        task = mock.Mock(node=self.node, context=self.context)
+        mock_return_state1 = mock.Mock()
+
+        result = self.raid.post_delete_configuration(
+            task, None, return_state=mock_return_state1)
+
+        self.assertEqual(mock_return_state1, result)
 
     @mock.patch.object(drac_raid.LOG, 'warning', autospec=True)
     def test__clear_foreign_config_attribute_error(self, mock_log):
@@ -2681,6 +2836,41 @@ class DracRedfishRAIDTestCase(test_utils.BaseDracTest):
             self.assertIsNone(
                 task.node.driver_internal_info.get('raid_task_monitor_uris'))
             self.raid._set_failed.assert_called_once()
+
+    @mock.patch.object(drac_raid.DracRedfishRAID,
+                       '_convert_controller_to_raid_mode', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test__check_raid_tasks_status_convert_controller(
+            self, mock_get_task_monitor, mock_convert):
+        driver_internal_info = {
+            'raid_task_monitor_uris': '/TaskService/1',
+            'raid_config_substep': 'clear_foreign_config'}
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        mock_config_task = mock.Mock()
+        mock_config_task.task_state = sushy.TASK_STATE_COMPLETED
+        mock_config_task.task_status = sushy.HEALTH_OK
+        mock_task_monitor = mock.Mock()
+        mock_task_monitor.is_processing = False
+        mock_task_monitor.get_task.return_value = mock_config_task
+        mock_get_task_monitor.return_value = mock_task_monitor
+
+        self.raid._set_success = mock.Mock()
+        self.raid._set_failed = mock.Mock()
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.raid._check_raid_tasks_status(
+                task, ['/TaskService/1'])
+
+            mock_convert.assert_called_once_with(task)
+            self.raid._set_success.assert_not_called()
+            self.raid._set_failed.assert_not_called()
+            self.assertIsNone(
+                task.node.driver_internal_info.get('raid_task_monitor_uris'))
+            self.assertIsNone(
+                task.node.driver_internal_info.get('raid_config_substep'))
 
     @mock.patch.object(manager_utils, 'notify_conductor_resume_deploy',
                        autospec=True)
