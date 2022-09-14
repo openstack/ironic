@@ -69,7 +69,7 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False):
         task.driver.power.validate(task)
         if not disable_ramdisk:
             task.driver.network.validate(task)
-    except exception.InvalidParameterValue as e:
+    except (exception.InvalidParameterValue, exception.NetworkError) as e:
         msg = (_('Validation of node %(node)s for cleaning failed: %(msg)s') %
                {'node': node.uuid, 'msg': e})
         return utils.cleaning_error_handler(task, msg)

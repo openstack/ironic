@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue where cleaning operations could fail in such a way that was
+    not easily recoverable when pre-cleaning network interface configuration
+    was validated, yet contained invalid configuration.
+    Now Ironic properly captures the error and exits from cleaning in a
+    state which allows for cleaning to be retried.
