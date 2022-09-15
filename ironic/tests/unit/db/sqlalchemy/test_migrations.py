@@ -36,6 +36,7 @@ For postgres on Ubuntu this can be done with the following commands:
 
 import collections
 import contextlib
+import json
 from unittest import mock
 
 from alembic import script
@@ -114,6 +115,7 @@ class WalkVersionsMixin(object):
                 check = getattr(self, "_check_%s" % version, None)
                 if check:
                     check(engine, data)
+
         except Exception:
             LOG.error("Failed to migrate to version %(version)s on engine "
                       "%(engine)s",
@@ -248,17 +250,24 @@ class MigrationCheckersMixin(object):
         with engine.begin() as connection:
             insert_conductor = conductors.insert().values(data_conductor)
             connection.execute(insert_conductor)
-            conductor_stmt = conductors.select(
-                conductors.c.hostname == data_conductor['hostname'])
+            conductor_stmt = sqlalchemy.select(
+                models.Conductor.id
+            ).where(
+                models.Conductor.hostname == 'test_host'
+            )
             conductor = connection.execute(conductor_stmt).first()
-
             data_node = {'uuid': uuidutils.generate_uuid(),
-                         'conductor_affinity': conductor['id']}
+                         'conductor_affinity': conductor.id}
             insert_node = nodes.insert().values(data_node)
+
             connection.execute(insert_node)
-            node_stmt = nodes.select(nodes.c.uuid == data_node['uuid'])
+            node_stmt = sqlalchemy.select(
+                models.Node.conductor_affinity
+            ).where(
+                models.Node.uuid == data_node['uuid']
+            )
             node = connection.execute(node_stmt).first()
-            self.assertEqual(conductor['id'], node['conductor_affinity'])
+            self.assertEqual(conductor.id, node.conductor_affinity)
 
     def _check_242cc6a923b3(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
@@ -285,21 +294,26 @@ class MigrationCheckersMixin(object):
         return data
 
     def _check_5674c57409b9(self, engine, data):
-        nodes = db_utils.get_table(engine, 'nodes')
-        result = engine.execute(nodes.select())
+        with engine.begin() as connection:
+            result = connection.execute(
+                sqlalchemy.select(
+                    models.Node.uuid,
+                    models.Node.provision_state
+                )
+            )
 
-        def _get_state(uuid):
-            for row in data:
-                if row['uuid'] == uuid:
-                    return row['provision_state']
+            def _get_state(uuid):
+                for row in data:
+                    if row['uuid'] == uuid:
+                        return row['provision_state']
 
-        for row in result:
-            old = _get_state(row['uuid'])
-            new = row['provision_state']
-            if old is None:
-                self.assertEqual('available', new)
-            else:
-                self.assertEqual(old, new)
+            for row in result:
+                old = _get_state(row.uuid)
+                new = row['provision_state']
+                if old is None:
+                    self.assertEqual('available', new)
+                else:
+                    self.assertEqual(old, new)
 
     def _check_bb59b63f55a(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
@@ -360,9 +374,13 @@ class MigrationCheckersMixin(object):
         with engine.begin() as connection:
             insert_node = nodes.insert().values(data)
             connection.execute(insert_node)
-            node_stmt = nodes.select(nodes.c.uuid == uuid)
+            node_stmt = sqlalchemy.select(
+                models.Node.name
+            ).where(
+                models.Node.uuid == uuid
+            )
             node = connection.execute(node_stmt).first()
-            self.assertEqual(bigstring, node['name'])
+            self.assertEqual(bigstring, node.name)
 
     def _check_516faf1bb9b1(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
@@ -372,9 +390,13 @@ class MigrationCheckersMixin(object):
         with engine.begin() as connection:
             insert_node = nodes.insert().values(data)
             connection.execute(insert_node)
-            node_stmt = nodes.select(nodes.c.uuid == uuid)
+            node_stmt = sqlalchemy.select(
+                models.Node.driver
+            ).where(
+                models.Node.uuid == uuid
+            )
             node = connection.execute(node_stmt).first()
-            self.assertEqual(bigstring, node['driver'])
+            self.assertEqual(bigstring, node.driver)
 
     def _check_48d6c242bb9b(self, engine, data):
         node_tags = db_utils.get_table(engine, 'node_tags')
@@ -390,9 +412,13 @@ class MigrationCheckersMixin(object):
             data = {'node_id': '123', 'tag': 'tag1'}
             insert_node_tag = node_tags.insert().values(data)
             connection.execute(insert_node_tag)
-            tag_stmt = node_tags.select(node_tags.c.node_id == '123')
+            tag_stmt = sqlalchemy.select(
+                models.NodeTag.tag
+            ).where(
+                models.NodeTag.node_id == '123'
+            )
             tag = connection.execute(tag_stmt).first()
-            self.assertEqual('tag1', tag['tag'])
+            self.assertEqual('tag1', tag.tag)
 
     def _check_5ea1b0d310e(self, engine, data):
         portgroup = db_utils.get_table(engine, 'portgroups')
@@ -441,17 +467,22 @@ class MigrationCheckersMixin(object):
         return data
 
     def _check_f6fdb920c182(self, engine, data):
-        ports = db_utils.get_table(engine, 'ports')
-        result = engine.execute(ports.select())
 
-        def _was_inserted(uuid):
-            for row in data:
-                if row['uuid'] == uuid:
-                    return True
+        with engine.begin() as connection:
+            port_stmt = sqlalchemy.select(
+                models.Port.uuid,
+                models.Port.pxe_enabled
+            )
+            result = connection.execute(port_stmt)
 
-        for row in result:
-            if _was_inserted(row['uuid']):
-                self.assertTrue(row['pxe_enabled'])
+            def _was_inserted(uuid):
+                for row in data:
+                    if row['uuid'] == uuid:
+                        return True
+
+            for row in result:
+                if _was_inserted(row['uuid']):
+                    self.assertTrue(row['pxe_enabled'])
 
     def _check_e294876e8028(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
@@ -494,18 +525,21 @@ class MigrationCheckersMixin(object):
         return data
 
     def _check_c14cef6dfedf(self, engine, data):
-        nodes = db_utils.get_table(engine, 'nodes')
-        result = engine.execute(nodes.select())
         counts = collections.defaultdict(int)
+        with engine.begin() as connection:
+            result = connection.execute(
+                sqlalchemy.select(
+                    models.Node.uuid,
+                    models.Node.network_interface))
 
-        def _was_inserted(uuid):
-            for row in data:
-                if row['uuid'] == uuid:
-                    return True
+            def _was_inserted(uuid):
+                for row in data:
+                    if row['uuid'] == uuid:
+                        return True
 
-        for row in result:
-            if _was_inserted(row['uuid']):
-                counts[row['network_interface']] += 1
+            for row in result:
+                if _was_inserted(row['uuid']):
+                    counts[row['network_interface']] += 1
 
         # using default config values, we should have 2 flat and one neutron
         self.assertEqual(2, counts['flat'])
@@ -602,8 +636,10 @@ class MigrationCheckersMixin(object):
         self.assertIn('mode', col_names)
         self.assertIsInstance(portgroups.c.mode.type,
                               sqlalchemy.types.String)
-
-        result = engine.execute(portgroups.select())
+        with engine.begin() as connection:
+            result = connection.execute(
+                sqlalchemy.select(models.Portgroup.mode)
+            )
         for row in result:
             self.assertEqual(CONF.default_portgroup_mode, row['mode'])
 
@@ -675,9 +711,13 @@ class MigrationCheckersMixin(object):
         with engine.begin() as connection:
             insert_node = nodes.insert().values(data)
             connection.execute(insert_node)
-            node_stmt = nodes.select(nodes.c.uuid == data['uuid'])
+            node_stmt = sqlalchemy.select(
+                models.Node.id
+            ).where(
+                models.Node.uuid == data['uuid']
+            )
             node = connection.execute(node_stmt).first()
-            data['id'] = node['id']
+            data['id'] = node.id
         return data
 
     def _check_b4130a7fc904(self, engine, data):
@@ -694,10 +734,13 @@ class MigrationCheckersMixin(object):
         with engine.begin() as connection:
             insert_trait = node_traits.insert().values(trait)
             connection.execute(insert_trait)
-            trait_stmt = node_traits.select(
-                node_traits.c.node_id == data['id'])
+            trait_stmt = sqlalchemy.select(
+                models.NodeTrait.trait
+            ).where(
+                models.NodeTrait.node_id == data['id']
+            )
             trait = connection.execute(trait_stmt).first()
-            self.assertEqual('trait1', trait['trait'])
+            self.assertEqual('trait1', trait.trait)
 
     def _pre_upgrade_82c315d60161(self, engine):
         # Create a node to which bios setting can be added.
@@ -706,9 +749,11 @@ class MigrationCheckersMixin(object):
         with engine.begin() as connection:
             insert_node = nodes.insert().values(data)
             connection.execute(insert_node)
-            node_stmt = nodes.select(nodes.c.uuid == data['uuid'])
+            node_stmt = sqlalchemy.select(
+                models.Node.id
+            ).where(models.Node.uuid == data['uuid'])
             node = connection.execute(node_stmt).first()
-            data['id'] = node['id']
+            data['id'] = node.id
         return data
 
     def _check_82c315d60161(self, engine, data):
@@ -736,10 +781,12 @@ class MigrationCheckersMixin(object):
         with engine.begin() as connection:
             insert_bios_settings = bios_settings.insert().values(setting)
             connection.execute(insert_bios_settings)
-            setting_stmt = bios_settings.select(
-                sqlalchemy.sql.and_(
-                    bios_settings.c.node_id == data['id'],
-                    bios_settings.c.name == setting['name']))
+            setting_stmt = sqlalchemy.select(
+                models.BIOSSetting.value
+            ).where(
+                models.BIOSSetting.node_id == data['id'],
+                models.BIOSSetting.name == setting['name']
+            )
             setting = connection.execute(setting_stmt).first()
             self.assertEqual('on', setting['value'])
 
@@ -826,15 +873,21 @@ class MigrationCheckersMixin(object):
             self.assertIsInstance(tbl.c.conductor_group.type,
                                   sqlalchemy.types.String)
         with engine.begin() as connection:
-            node_stmt = nodes_tbl.select(
-                nodes_tbl.c.uuid == data['node_uuid'])
+            node_stmt = sqlalchemy.select(
+                models.Node.uuid,
+                models.Node.conductor_group,
+            ).where(
+                models.Node.uuid == data['node_uuid'])
             node = connection.execute(node_stmt).first()
-            self.assertEqual(node['conductor_group'], "")
+            self.assertEqual(node.conductor_group, "")
 
-            conductor_stmt = conductors_tbl.select(
-                conductors_tbl.c.id == data['conductor_id'])
+            conductor_stmt = sqlalchemy.select(
+                models.Conductor.conductor_group,
+            ).where(
+                models.Conductor.id == data['conductor_id'],
+            )
             conductor = connection.execute(conductor_stmt).first()
-            self.assertEqual(conductor['conductor_group'], "")
+            self.assertEqual(conductor.conductor_group, "")
 
     def _check_d2b036ae9378(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
@@ -859,11 +912,15 @@ class MigrationCheckersMixin(object):
         self.assertIn('protected_reason', col_names)
 
         with engine.begin() as connection:
-            node_stmt = nodes.select(
-                nodes.c.uuid == data['node_uuid'])
+            node_stmt = sqlalchemy.select(
+                models.Node.uuid,
+                models.Node.protected,
+                models.Node.protected_reason
+            ).where(
+                models.Node.uuid == data['node_uuid'])
             node = connection.execute(node_stmt).first()
-            self.assertFalse(node['protected'])
-            self.assertIsNone(node['protected_reason'])
+            self.assertFalse(node.protected)
+            self.assertIsNone(node.protected_reason)
 
     def _check_f190f9d00a11(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
@@ -887,10 +944,13 @@ class MigrationCheckersMixin(object):
         self.assertIn('allocation_id', col_names)
 
         with engine.begin() as connection:
-            node_stmt = nodes.select(
-                nodes.c.uuid == data['node_uuid'])
+            node_stmt = sqlalchemy.select(
+                models.Node.allocation_id
+            ).where(
+                models.Node.uuid == data['node_uuid']
+            )
             node = connection.execute(node_stmt).first()
-            self.assertIsNone(node['allocation_id'])
+            self.assertIsNone(node.allocation_id)
 
         allocations = db_utils.get_table(engine, 'allocations')
         col_names = [column.name for column in allocations.c]
@@ -996,22 +1056,33 @@ class MigrationCheckersMixin(object):
             insert_dpt = deploy_templates.insert().values(template)
             connection.execute(insert_dpt)
             # Query by UUID.
-            dpt_uuid_stmt = deploy_templates.select(
-                deploy_templates.c.uuid == uuid)
+            dpt_uuid_stmt = sqlalchemy.select(
+                models.DeployTemplate.id,
+                models.DeployTemplate.name,
+            ).where(
+                models.DeployTemplate.uuid == uuid
+            )
             result = connection.execute(dpt_uuid_stmt).first()
-            template_id = result['id']
-            self.assertEqual(name, result['name'])
+            template_id = result.id
+            self.assertEqual(name, result.name)
             # Query by name.
-            dpt_name_stmt = deploy_templates.select(
-                deploy_templates.c.name == name)
+            dpt_name_stmt = sqlalchemy.select(
+                models.DeployTemplate.id
+            ).where(
+                models.DeployTemplate.name == name
+            )
             result = connection.execute(dpt_name_stmt).first()
-            self.assertEqual(template_id, result['id'])
+            self.assertEqual(template_id, result.id)
             # Query by ID.
-            dpt_id_stmt = deploy_templates.select(
-                deploy_templates.c.id == template_id)
+            dpt_id_stmt = sqlalchemy.select(
+                models.DeployTemplate.uuid,
+                models.DeployTemplate.name
+            ).where(
+                models.DeployTemplate.id == template_id
+            )
             result = connection.execute(dpt_id_stmt).first()
-            self.assertEqual(uuid, result['uuid'])
-            self.assertEqual(name, result['name'])
+            self.assertEqual(uuid, result.uuid)
+            self.assertEqual(name, result.name)
             savepoint_uuid = connection.begin_nested()
             # UUID is unique.
             template = {'name': 'CUSTOM_DT2', 'uuid': uuid}
@@ -1030,6 +1101,7 @@ class MigrationCheckersMixin(object):
             # Insert a deploy template step.
             interface = 'raid'
             step_name = 'create_configuration'
+            # The line below is JSON.
             args = '{"logical_disks": []}'
             priority = 10
             step = {'deploy_template_id': template_id, 'interface': interface,
@@ -1037,15 +1109,30 @@ class MigrationCheckersMixin(object):
             insert_dpts = deploy_template_steps.insert().values(step)
             connection.execute(insert_dpts)
             # Query by deploy template ID.
-            query_id_stmt = deploy_template_steps.select(
-                deploy_template_steps.c.deploy_template_id
-                == template_id)
+            query_id_stmt = sqlalchemy.select(
+                models.DeployTemplateStep.deploy_template_id,
+                models.DeployTemplateStep.interface,
+                models.DeployTemplateStep.step,
+                models.DeployTemplateStep.args,
+                models.DeployTemplateStep.priority,
+            ).where(
+                models.DeployTemplateStep.deploy_template_id == template_id
+            )
             result = connection.execute(query_id_stmt).first()
-            self.assertEqual(template_id, result['deploy_template_id'])
-            self.assertEqual(interface, result['interface'])
-            self.assertEqual(step_name, result['step'])
-            self.assertEqual(args, result['args'])
-            self.assertEqual(priority, result['priority'])
+            self.assertEqual(template_id, result.deploy_template_id)
+            self.assertEqual(interface, result.interface)
+            self.assertEqual(step_name, result.step)
+            if isinstance(result.args, dict):
+                # Postgres testing results in a dict being returned
+                # at this level which if you str() it, you get a dict,
+                # so comparing string to string fails.
+                result_args = json.dumps(result.args)
+            else:
+                # Mysql/MariaDB appears to be actually hand us
+                # a string back so we should be able to compare it.
+                result_args = result.args
+            self.assertEqual(args, result_args)
+            self.assertEqual(priority, result.priority)
             # Insert another step for the same template.
             insert_step = deploy_template_steps.insert().values(step)
             connection.execute(insert_step)
@@ -1103,11 +1190,15 @@ class MigrationCheckersMixin(object):
         self.assertIn('retired_reason', col_names)
 
         with engine.begin() as connection:
-            node_stmt = nodes.select(
-                nodes.c.uuid == data['node_uuid'])
+            node_stmt = sqlalchemy.select(
+                models.Node.retired,
+                models.Node.retired_reason,
+            ).where(
+                models.Node.uuid == data['node_uuid']
+            )
             node = connection.execute(node_stmt).first()
-            self.assertFalse(node['retired'])
-            self.assertIsNone(node['retired_reason'])
+            self.assertFalse(node.retired)
+            self.assertIsNone(node.retired_reason)
 
     def _check_b2ad35726bb0(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
@@ -1186,12 +1277,16 @@ class TestMigrationsMySQL(MigrationCheckersMixin,
 
         # this should always fail pre-upgrade
         mediumtext = 'a' * (pow(2, 16) + 1)
+        json_text = str({'key': mediumtext})
         uuid = uuidutils.generate_uuid()
-        expected_to_fail_data = {'uuid': uuid, 'instance_info': mediumtext}
+        expected_to_fail_data = {'uuid': uuid, 'instance_info': json_text}
         # this should always work pre-upgrade
-        text = 'a' * (pow(2, 16) - 1)
+        text = 'a' * (pow(2, 16) - 13)
+        # The field needs to contain JSON for the decoder to work against
+        # the field.
+        json_text = str({'key': text})
         uuid2 = uuidutils.generate_uuid()
-        valid_pre_upgrade_data = {'uuid': uuid2, 'instance_info': text}
+        valid_pre_upgrade_data = {'uuid': uuid2, 'instance_info': json_text}
         with engine.begin() as connection:
             self.assertRaises(db_exc.DBError, connection.execute,
                               nodes.insert(), expected_to_fail_data)
@@ -1207,21 +1302,29 @@ class TestMigrationsMySQL(MigrationCheckersMixin,
         with engine.begin() as connection:
             # check that the data for the successful pre-upgrade
             # entry didn't change
-            node_stmt = nodes.select(nodes.c.uuid == data['uuid'])
-            node = connection.execute(node_stmt).first()
-            self.assertIsNotNone(node)
-            self.assertEqual(data['instance_info'], node['instance_info'])
+            # NOTE(TheJulia): Directly select the field to bypass
+            # field decoding
+            i_info = connection.execute(
+                sqlalchemy.text(
+                    "SELECT instance_info from nodes WHERE uuid = "
+                    "'%s'" % data['uuid'])).one()
+            self.assertIsNotNone(i_info[0])
+            self.assertEqual(data['instance_info'], i_info[0])
 
             # now this should pass post-upgrade
             test = 'b' * (pow(2, 16) + 1)
+            test_text = str({'a': test})
             uuid = uuidutils.generate_uuid()
-            data = {'uuid': uuid, 'instance_info': test}
+            data = {'uuid': uuid, 'instance_info': test_text}
             insert_node = nodes.insert().values(data)
             connection.execute(insert_node)
 
-            node_stmt = nodes.select(nodes.c.uuid == uuid)
-            node = connection.execute(node_stmt).first()
-            self.assertEqual(test, node['instance_info'])
+            # Re-uses the same query to fetch current results
+            i_info = connection.execute(
+                sqlalchemy.text(
+                    "SELECT instance_info from nodes WHERE uuid = "
+                    "'%s'" % data['uuid'])).one()
+            self.assertEqual(test_text, i_info[0])
 
 
 class TestMigrationsPostgreSQL(MigrationCheckersMixin,
