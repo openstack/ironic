@@ -51,8 +51,6 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
             'step': 'build_raid', 'priority': 0, 'interface': 'deploy'}
 
     def __do_node_clean_validate_fail(self, mock_validate, clean_steps=None):
-        # InvalidParameterValue should cause node to go to CLEANFAIL
-        mock_validate.side_effect = exception.InvalidParameterValue('error')
         tgt_prov_state = states.MANAGEABLE if clean_steps else states.AVAILABLE
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
@@ -68,26 +66,42 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         self.assertIsNone(node.fault)
         mock_validate.assert_called_once_with(mock.ANY, mock.ANY)
 
+    def __do_node_clean_validate_fail_invalid(self, mock_validate,
+                                              clean_steps=None):
+        # InvalidParameterValue should cause node to go to CLEANFAIL
+        mock_validate.side_effect = exception.InvalidParameterValue('error')
+        self.__do_node_clean_validate_fail(mock_validate,
+                                           clean_steps=clean_steps)
+
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
                 autospec=True)
     def test__do_node_clean_automated_power_validate_fail(self, mock_validate):
-        self.__do_node_clean_validate_fail(mock_validate)
+        self.__do_node_clean_validate_fail_invalid(mock_validate)
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
                 autospec=True)
     def test__do_node_clean_manual_power_validate_fail(self, mock_validate):
-        self.__do_node_clean_validate_fail(mock_validate, clean_steps=[])
+        self.__do_node_clean_validate_fail_invalid(mock_validate,
+                                                   clean_steps=[])
 
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
                 autospec=True)
     def test__do_node_clean_automated_network_validate_fail(self,
                                                             mock_validate):
-        self.__do_node_clean_validate_fail(mock_validate)
+        self.__do_node_clean_validate_fail_invalid(mock_validate)
 
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
                 autospec=True)
     def test__do_node_clean_manual_network_validate_fail(self, mock_validate):
-        self.__do_node_clean_validate_fail(mock_validate, clean_steps=[])
+        self.__do_node_clean_validate_fail_invalid(mock_validate,
+                                                   clean_steps=[])
+
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    def test__do_node_clean_network_error_fail(self, mock_validate):
+        # NetworkError should cause node to go to CLEANFAIL
+        mock_validate.side_effect = exception.NetworkError()
+        self.__do_node_clean_validate_fail(mock_validate)
 
     @mock.patch.object(conductor_utils, 'LOG', autospec=True)
     @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
