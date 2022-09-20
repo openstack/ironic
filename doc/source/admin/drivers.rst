@@ -26,6 +26,7 @@ Hardware Types
   drivers/redfish
   drivers/snmp
   drivers/xclarity
+  drivers/fake
 
 Changing Hardware Types and Interfaces
 --------------------------------------
