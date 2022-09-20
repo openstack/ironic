@@ -1,0 +1,10 @@
+---
+other:
+  - |
+    The maximum disk erasure concurrency setting,
+    ``[deploy]disk_erasure_concurrency`` has been incremed to 4.
+    Previously, this was kept at 1 in order to maintain continuity of
+    experience, but operators have not reported any issues with an increased
+    concurrency, and as such we feel comfortable upstream enabling concurrent
+    disk erasure/cleaning. This setting applies to the ``erase_devices`` clean
+    step.

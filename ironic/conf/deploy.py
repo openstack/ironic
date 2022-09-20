@@ -108,7 +108,7 @@ opts = [
                        'state. If True, shred will be invoked and cleaning '
                        'will continue.')),
     cfg.IntOpt('disk_erasure_concurrency',
-               default=1,
+               default=4,
                min=1,
                mutable=True,
                help=_('Defines the target pool size used by Ironic Python '
