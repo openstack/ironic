@@ -1,0 +1,12 @@
+---
+prelude: >
+    The Ironic team hereby announces the release of the `Zed` version of
+    Ironic. This version, *21.1.0*, represents the collaboration of Ironic's
+    contributors during the `Zed` release cycle, which first saw the release
+    of Ironic *20.2.0*, and Ironic *21.1.0*. These versions saw improvements
+    in functionality to better support infrastructure operators from the
+    configuration of individual nodes, to support a greater separation
+    of duties, and ultimately Self-Service Bare Metal as a Service, or
+    "SSBMaaS". Along with these features, these releases have seen numerous
+    bug fixes. We sincerely hope you enjoy it!
+
