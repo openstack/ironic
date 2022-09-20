@@ -27,6 +27,7 @@ import subprocess
 import sys
 import tempfile
 from unittest import mock
+import warnings
 
 import eventlet
 eventlet.monkey_patch(os=False)
@@ -38,6 +39,7 @@ from oslo_log import log as logging
 from oslo_serialization import jsonutils
 from oslo_utils import uuidutils
 from oslotest import base as oslo_test_base
+from sqlalchemy import exc as sqla_exc
 
 from ironic.common import config as ironic_config
 from ironic.common import context as ironic_context
@@ -68,6 +70,84 @@ def _patch_mock_callable(obj):
             and mock._callable(obj.__func__)):
         return True
     return False
+
+
+class WarningsFixture(fixtures.Fixture):
+    """Filters out warnings during test runs."""
+
+    def setUp(self):
+        super().setUp()
+
+        self._original_warning_filters = warnings.filters[:]
+
+        # NOTE(sdague): Make deprecation warnings only happen once. Otherwise
+        # this gets kind of crazy given the way that upstream python libs use
+        # this.
+        warnings.simplefilter('once', DeprecationWarning)
+
+        # NOTE(stephenfin): We get way too many of these. Silence them.
+        warnings.filterwarnings(
+            'ignore',
+            message=(
+                'Policy enforcement is depending on the value of .*. '
+                'This key is deprecated. Please update your policy '
+                'file to use the standard policy values.'
+            ),
+        )
+
+        # NOTE(mriedem): Ignore scope check UserWarnings from oslo.policy.
+        warnings.filterwarnings(
+            'ignore',
+            message='Policy .* failed scope check',
+            category=UserWarning,
+        )
+
+        # Enable deprecation warnings to capture upcoming SQLAlchemy changes
+
+        warnings.filterwarnings(
+            'ignore',
+            category=sqla_exc.SADeprecationWarning,
+        )
+
+        warnings.filterwarnings(
+            'error',
+            module='ironic',
+            category=sqla_exc.SADeprecationWarning,
+        )
+
+        # Enable general SQLAlchemy warnings also to ensure we're not doing
+        # silly stuff. It's possible that we'll need to filter things out here
+        # with future SQLAlchemy versions, but that's a good thing
+
+        warnings.filterwarnings(
+            'error',
+            module='ironic',
+            category=sqla_exc.SAWarning,
+        )
+
+        # ...but filter everything out until we get around to fixing them
+        # TODO(stephenfin): Fix all of these
+
+        warnings.filterwarnings(
+            'ignore',
+            module='ironic',
+            message='SELECT statement has a cartesian product ',
+            category=sqla_exc.SAWarning,
+        )
+
+        # FIXME(stephenfin): We can remove this once oslo.db is fixed
+        # https://review.opendev.org/c/openstack/oslo.db/+/856453
+        warnings.filterwarnings(
+            'ignore',
+            module='ironic',
+            message='TypeDecorator .* will not produce a cache key',
+            category=sqla_exc.SAWarning,
+        )
+
+        self.addCleanup(self._reset_warning_filters)
+
+    def _reset_warning_filters(self):
+        warnings.filters[:] = self._original_warning_filters
 
 
 class ReplaceModule(fixtures.Fixture):
@@ -113,6 +193,7 @@ class TestCase(oslo_test_base.BaseTestCase):
         self.addCleanup(hash_ring.HashRingManager().reset)
         self.useFixture(fixtures.EnvironmentVariable('http_proxy'))
         self.policy = self.useFixture(policy_fixture.PolicyFixture())
+        self.useFixture(WarningsFixture())
 
         driver_factory.HardwareTypesFactory._extension_manager = None
         for factory in driver_factory._INTERFACE_LOADERS.values():
