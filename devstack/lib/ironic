@@ -1332,6 +1332,17 @@ function configure_ironic_networks {
     configure_ironic_cleaning_network
     echo_summary "Configuring Ironic rescue network"
     configure_ironic_rescue_network
+    echo_summary "Configuring Neutron Private Subnet, if needed."
+    configure_ironic_private_subnet
+}
+
+function configure_ironic_private_subnet {
+    if [[ "${IRONIC_ANACONDA_IMAGE_REF:-}" != "" ]]; then
+        # NOTE(TheJulia): Anaconda needs DNS for FQDN resolution
+        # and devstack doesn't create this network with dns.
+        subnet_id=$(openstack --os-cloud $OS_CLOUD subnet show private-subnet -f value -c id)
+        openstack --os-cloud $OS_CLOUD subnet set --dns-nameserver 8.8.8.8 $subnet_id
+    fi
 }
 
 function configure_ironic_cleaning_network {
@@ -1405,7 +1416,8 @@ function configure_ironic_provision_network {
                 ${net_segment_id:+--network-segment $net_segment_id} \
                 $IRONIC_PROVISION_PROVIDER_SUBNET_NAME \
                 --gateway $IRONIC_PROVISION_SUBNET_GATEWAY --network $net_id \
-                --subnet-range $IRONIC_PROVISION_SUBNET_PREFIX -f value -c id)"
+                --subnet-range $IRONIC_PROVISION_SUBNET_PREFIX \
+                --dns-nameserver 8.8.8.8 -f value -c id)"
         else
             # NOTE(TheJulia): Consider changing this to stateful to support UEFI once we move
             # CI to Ubuntu Jammy as it will support v6 and v4 UEFI firmware driven boot ops.
@@ -3057,6 +3069,16 @@ function upload_baremetal_ironic_deploy {
     iniset $IRONIC_CONF_FILE conductor deploy_ramdisk $IRONIC_DEPLOY_RAMDISK_ID
     iniset $IRONIC_CONF_FILE conductor rescue_kernel $IRONIC_DEPLOY_KERNEL_ID
     iniset $IRONIC_CONF_FILE conductor rescue_ramdisk $IRONIC_DEPLOY_RAMDISK_ID
+
+    if [[ "${IRONIC_ANACONDA_INSECURE_HEARTBEAT:-}" != "" ]]; then
+        iniset $IRONIC_CONF_FILE anaconda insecure_heartbeat ${IRONIC_ANACONDA_INSECURE_HEARTBEAT:-}
+    fi
+    # NOTE(TheJulia): Compared to an image deploy, anaconda is relatively
+    # slow as it installs packages one at a time. As such, we need an option
+    # to extend.
+    if [[ "${IRONIC_DEPLOY_CALLBACK_WAIT_TIMEOUT:-}" != "" ]]; then
+        iniset $IRONIC_CONF_FILE conductor deploy_callback_timeout ${IRONIC_DEPLOY_CALLBACK_WAIT_TIMEOUT:-}
+    fi
 }
 
 function prepare_baremetal_basic_ops {
@@ -3221,6 +3243,23 @@ function ironic_configure_tempest {
     if [[ "$IRONIC_RAMDISK_IMAGE" != "" ]]; then
         iniset $TEMPEST_CONFIG baremetal ramdisk_iso_image_ref "$IRONIC_RAMDISK_IMAGE"
     fi
+    if [[ "${IRONIC_ANACONDA_IMAGE_REF:-}" != "" ]]; then
+        # In a perfect world we would use *just* the opendev repo
+        # mirror, and let things be magical, but OpenDev Infra cannot
+        # mirror the /images path with the limited storage space.
+        iniset $TEMPEST_CONFIG baremetal anaconda_image_ref ${IRONIC_ANACONDA_IMAGE_REF:-}
+    fi
+    if [[ "${IRONIC_ANACONDA_KERNEL_REF:-}" != "" ]]; then
+        iniset $TEMPEST_CONFIG baremetal anaconda_kernel_ref ${IRONIC_ANACONDA_KERNEL_REF:-}
+    fi
+    if [[ "${IRONIC_ANACONDA_RAMDISK_REF:-}" != "" ]]; then
+        iniset $TEMPEST_CONFIG baremetal anaconda_initial_ramdisk_ref ${IRONIC_ANACONDA_RAMDISK_REF:-}
+    fi
+    if [[ "${IRONIC_ANACONDA_STAGE2_REF:-}" != "" ]]; then
+        iniset $TEMPEST_CONFIG baremetal anaconda_stage2_ramdisk_ref ${IRONIC_ANACONDA_STAGE2_REF:-}
+
+    fi
+
     # NOTE(dtantsur): keep this option here until the defaults change in
     # ironic-tempest-plugin to disable classic drivers testing.
     iniset $TEMPEST_CONFIG baremetal enabled_drivers ""

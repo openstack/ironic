@@ -217,6 +217,48 @@
         s-proxy: False
 
 - job:
+    name: ironic-standalone-anaconda
+    parent: ironic-standalone-redfish
+    description:
+      Test ironic with the anaconda deployment interface.
+      Test also uses Redfish.
+    required-projects:
+      - opendev.org/openstack/sushy-tools
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^install-guide/.*$
+      - ^ironic/locale/.*$
+      - ^ironic/tests/.*$
+      - ^releasenotes/.*$
+      - ^setup.cfg$
+      - ^test-requirements.txt$
+      - ^tools/.*$
+      - ^tox.ini$
+    vars:
+      tempest_test_regex: BaremetalRedfishIPxeAnacondaNoGlance
+      tempest_test_timeout: 4800
+      tempest_concurrency: 2
+      devstack_localrc:
+        IRONIC_ENABLED_DEPLOY_INTERFACES: "anaconda"
+        IRONIC_VM_COUNT: 2
+        IRONIC_VM_VOLUME_COUNT: 1
+        IRONIC_VM_SPECS_RAM: 3192
+        IRONIC_VM_SPECS_CPU: 3
+        IRONIC_ENFORCE_SCOPE: True
+        # We're using a lot of disk space in this job. Some testing nodes have
+        # a small root partition, so use /opt which is mounted from a bigger
+        # ephemeral partition on such nodes
+        LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
+        IRONIC_ANACONDA_IMAGE_REF: http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/
+        IRONIC_ANACONDA_KERNEL_REF: http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/images/pxeboot/vmlinuz
+        IRONIC_ANACONDA_RAMDISK_REF: http://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/images/pxeboot/initrd.img
+        IRONIC_ANACONDA_INSECURE_HEARTBEAT: True
+        IRONIC_DEPLOY_CALLBACK_WAIT_TIMEOUT: 3600
+        IRONIC_PXE_BOOT_RETRY_TIMEOUT: 3600
+
+- job:
     name: ironic-tempest-bios-redfish-pxe
     description: "Deploy ironic node over PXE using BIOS boot mode"
     parent: ironic-tempest-uefi-redfish-vmedia
