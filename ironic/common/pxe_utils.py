@@ -674,20 +674,33 @@ def get_instance_image_info(task, ipxe_enabled=False):
             os.path.join(root_dir, node.uuid, 'boot_iso'))
 
         return image_info
-
     image_properties = None
     d_info = deploy_utils.get_image_instance_info(node)
+    isap = node.driver_internal_info.get('is_source_a_path')
 
     def _get_image_properties():
-        nonlocal image_properties
-        if not image_properties:
+        nonlocal image_properties, isap
+        if not image_properties and not isap:
             i_service = service.get_image_service(
                 d_info['image_source'],
                 context=ctx)
             image_properties = i_service.show(
                 d_info['image_source'])['properties']
+        # TODO(TheJulia): At some point, we should teach this code
+        # to understand that with a path, it *can* retrieve the
+        # manifest from the HTTP(S) endpoint, which can populate
+        # image_properties, and drive path to variable population
+        # like is done with basically Glance.
 
     labels = ('kernel', 'ramdisk')
+    if not isap:
+        anaconda_labels = ('stage2', 'ks_template', 'ks_cfg')
+    else:
+        # When a path is used, a stage2 ramdisk can be determiend
+        # automatically by anaconda, so it is not an explicit
+        # requirement.
+        anaconda_labels = ('ks_template', 'ks_cfg')
+
     if not (i_info.get('kernel') and i_info.get('ramdisk')):
         # NOTE(rloo): If both are not specified in instance_info
         # we won't use any of them. We'll use the values specified
@@ -700,20 +713,13 @@ def get_instance_image_info(task, ipxe_enabled=False):
                 i_info[label] = str(image_properties[label + '_id'])
             node.instance_info = i_info
             node.save()
+        # TODO(TheJulia): Add functionality to look/grab the hints file
+        # for anaconda and just run with the entire path.
 
-    anaconda_labels = ()
-    if deploy_utils.get_boot_option(node) == 'kickstart':
-        isap = node.driver_internal_info.get('is_source_a_path')
         # stage2: installer stage2 squashfs image
         # ks_template: anaconda kickstart template
         # ks_cfg - rendered ks_template
-        if not isap:
-            anaconda_labels = ('stage2', 'ks_template', 'ks_cfg')
-        else:
-            # When a path is used, a stage2 ramdisk can be determiend
-            # automatically by anaconda, so it is not an explicit
-            # requirement.
-            anaconda_labels = ('ks_template', 'ks_cfg')
+
         # NOTE(rloo): We save stage2 & ks_template values in case they
         # are changed by the user after we start using them and to
         # prevent re-computing them again.
@@ -733,26 +739,31 @@ def get_instance_image_info(task, ipxe_enabled=False):
                 else:
                     node.set_driver_internal_info(
                         'stage2', str(image_properties['stage2_id']))
-        # NOTE(TheJulia): A kickstart template is entirely independent
-        # of the stage2 ramdisk. In the end, it was the configuration which
-        # told anaconda how to execute.
-        if i_info.get('ks_template'):
-            # If the value is set, we always overwrite it, in the event
-            # a rebuild is occuring or something along those lines.
-            node.set_driver_internal_info('ks_template',
-                                          i_info['ks_template'])
+    # NOTE(TheJulia): A kickstart template is entirely independent
+    # of the stage2 ramdisk. In the end, it was the configuration which
+    # told anaconda how to execute.
+    if i_info.get('ks_template'):
+        # If the value is set, we always overwrite it, in the event
+        # a rebuild is occuring or something along those lines.
+        node.set_driver_internal_info('ks_template',
+                                      i_info['ks_template'])
+    else:
+        _get_image_properties()
+        # ks_template is an optional property on the image
+        if image_properties and 'ks_template' in image_properties:
+            node.set_driver_internal_info(
+                'ks_template', str(image_properties['ks_template']))
         else:
-            _get_image_properties()
-            # ks_template is an optional property on the image
-            if 'ks_template' not in image_properties:
-                # If not defined, default to the overall system default
-                # kickstart template, as opposed to a user supplied
-                # template.
-                node.set_driver_internal_info(
-                    'ks_template', CONF.anaconda.default_ks_template)
-            else:
-                node.set_driver_internal_info(
-                    'ks_template', str(image_properties['ks_template']))
+            # If not defined, default to the overall system default
+            # kickstart template, as opposed to a user supplied
+            # template.
+            node.set_driver_internal_info(
+                'ks_template',
+                'file://' + os.path.abspath(
+                    CONF.anaconda.default_ks_template
+                )
+            )
+
     node.save()
 
     for label in labels + anaconda_labels:
@@ -1253,6 +1264,8 @@ def cache_ramdisk_kernel(task, pxe_info, ipxe_enabled=False):
                                              CONF.deploy.http_root,
                                              'stage2')
         ensure_tree(os.path.dirname(file_path))
+
+    if 'ks_cfg' in pxe_info:
         # ks_cfg is rendered later by the driver using ks_template. It cannot
         # be fetched and cached.
         t_pxe_info.pop('ks_cfg')
