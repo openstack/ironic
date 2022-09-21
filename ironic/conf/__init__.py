@@ -46,6 +46,7 @@ from ironic.conf import service_catalog
 from ironic.conf import snmp
 from ironic.conf import swift
 from ironic.conf import xclarity
+from ironic.conf import watcher
 
 CONF = cfg.CONF
 
@@ -80,3 +81,4 @@ service_catalog.register_opts(CONF)
 snmp.register_opts(CONF)
 swift.register_opts(CONF)
 xclarity.register_opts(CONF)
+watcher.register_opts(CONF)
