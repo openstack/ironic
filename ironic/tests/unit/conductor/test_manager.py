@@ -1829,6 +1829,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
 
     def test_do_node_deploy_maintenance(self, mock_iwdi):
         mock_iwdi.return_value = False
+        self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           maintenance=True)
         exc = self.assertRaises(messaging.rpc.ExpectedException,
@@ -1843,6 +1844,7 @@ class ServiceDoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertFalse(mock_iwdi.called)
 
     def _test_do_node_deploy_validate_fail(self, mock_validate, mock_iwdi):
+        self._start_service()
         mock_iwdi.return_value = False
         # InvalidParameterValue should be re-raised as InstanceDeployFailure
         mock_validate.side_effect = exception.InvalidParameterValue('error')
@@ -2389,6 +2391,7 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
                 autospec=True)
     def test_do_node_tear_down_validate_fail(self, mock_validate):
+        self._start_service()
         # InvalidParameterValue should be re-raised as InstanceDeployFailure
         mock_validate.side_effect = exception.InvalidParameterValue('error')
         node = obj_utils.create_test_node(
@@ -8374,7 +8377,6 @@ class NodeHistoryRecordCleanupTestCase(mgr_utils.ServiceSetUpMixin,
         # 9 retained due to days, 3 to config
         self.service._manage_node_history(self.context)
         events = objects.NodeHistory.list(self.context)
-        print(events)
         self.assertEqual(12, len(events))
         events = objects.NodeHistory.list_by_node_id(self.context, 10)
         self.assertEqual(4, len(events))
@@ -8394,3 +8396,73 @@ class NodeHistoryRecordCleanupTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual('one', events[1].event)
         self.assertEqual('two', events[2].event)
         self.assertEqual('three', events[3].event)
+
+
+class ConcurrentActionLimitTestCase(mgr_utils.ServiceSetUpMixin,
+                                    db_base.DbTestCase):
+
+    def setUp(self):
+        super(ConcurrentActionLimitTestCase, self).setUp()
+        self._start_service()
+        self.node1 = obj_utils.get_test_node(
+            self.context,
+            driver='fake-hardware',
+            id=110,
+            uuid=uuidutils.generate_uuid())
+        self.node2 = obj_utils.get_test_node(
+            self.context,
+            driver='fake-hardware',
+            id=111,
+            uuid=uuidutils.generate_uuid())
+        self.node3 = obj_utils.get_test_node(
+            self.context,
+            driver='fake-hardware',
+            id=112,
+            uuid=uuidutils.generate_uuid())
+        self.node4 = obj_utils.get_test_node(
+            self.context,
+            driver='fake-hardware',
+            id=113,
+            uuid=uuidutils.generate_uuid())
+        # Create the nodes, as the tasks need to operate across tables.
+        self.node1.create()
+        self.node2.create()
+        self.node3.create()
+        self.node4.create()
+
+    def test_concurrent_action_limit_deploy(self):
+        self.node1.provision_state = states.DEPLOYING
+        self.node2.provision_state = states.DEPLOYWAIT
+        self.node1.save()
+        self.node2.save()
+        CONF.set_override('max_concurrent_deploy', 2, group='conductor')
+        self.assertRaises(
+            exception.ConcurrentActionLimit,
+            self.service._concurrent_action_limit,
+            'provisioning')
+        self.service._concurrent_action_limit('unprovisioning')
+        self.service._concurrent_action_limit('cleaning')
+        CONF.set_override('max_concurrent_deploy', 3, group='conductor')
+        self.service._concurrent_action_limit('provisioning')
+
+    def test_concurrent_action_limit_cleaning(self):
+        self.node1.provision_state = states.DELETING
+        self.node2.provision_state = states.CLEANING
+        self.node3.provision_state = states.CLEANWAIT
+        self.node1.save()
+        self.node2.save()
+        self.node3.save()
+
+        CONF.set_override('max_concurrent_clean', 3, group='conductor')
+        self.assertRaises(
+            exception.ConcurrentActionLimit,
+            self.service._concurrent_action_limit,
+            'cleaning')
+        self.assertRaises(
+            exception.ConcurrentActionLimit,
+            self.service._concurrent_action_limit,
+            'unprovisioning')
+        self.service._concurrent_action_limit('provisioning')
+        CONF.set_override('max_concurrent_clean', 4, group='conductor')
+        self.service._concurrent_action_limit('cleaning')
+        self.service._concurrent_action_limit('unprovisioning')

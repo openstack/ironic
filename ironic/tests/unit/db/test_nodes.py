@@ -1081,3 +1081,39 @@ class DbNodeTestCase(base.DbTestCase):
                                 self.dbapi.check_node_list,
                                 [node1.uuid, 'this/cannot/be/a/name'])
         self.assertIn('this/cannot/be/a/name', str(exc))
+
+    def test_node_provision_state_count(self):
+        active_nodes = 5
+        manageable_nodes = 3
+        deploywait_nodes = 1
+        for i in range(0, active_nodes):
+            utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                   provision_state=states.ACTIVE)
+        for i in range(0, manageable_nodes):
+            utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                   provision_state=states.MANAGEABLE)
+        for i in range(0, deploywait_nodes):
+            utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                   provision_state=states.DEPLOYWAIT)
+
+        self.assertEqual(
+            active_nodes,
+            self.dbapi.count_nodes_in_provision_state(states.ACTIVE)
+        )
+        self.assertEqual(
+            manageable_nodes,
+            self.dbapi.count_nodes_in_provision_state(states.MANAGEABLE)
+        )
+        self.assertEqual(
+            deploywait_nodes,
+            self.dbapi.count_nodes_in_provision_state(states.DEPLOYWAIT)
+        )
+        total = active_nodes + manageable_nodes + deploywait_nodes
+        self.assertEqual(
+            total,
+            self.dbapi.count_nodes_in_provision_state([
+                states.ACTIVE,
+                states.MANAGEABLE,
+                states.DEPLOYWAIT
+            ])
+        )
