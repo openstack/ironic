@@ -2,8 +2,8 @@
 REST API Version History
 ========================
 
-1.80 (Zed)
-----------
+1.80 (Zed, 21.1)
+----------------------
 
 This verison is a signifier of additional RBAC functionality allowing
 a project scoped ``admin`` to create or delete nodes in Ironic.
