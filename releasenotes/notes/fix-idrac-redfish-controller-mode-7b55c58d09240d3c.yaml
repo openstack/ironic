@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes ``idrac-redfish`` RAID ``delete_configuration`` step to convert PERC
+    9 and PERC 10 controllers to RAID mode if it is not already set.

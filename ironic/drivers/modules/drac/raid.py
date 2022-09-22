@@ -1327,6 +1327,8 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
         """Perform post delete_configuration action to commit the config.
 
         Clears foreign configuration for all RAID controllers.
+        If no foreign configuration to clear, then checks if any controllers
+        can be converted to RAID mode.
 
         :param task: a TaskManager instance containing the node to act on.
         :param raid_configs: a list of dictionaries containing the RAID
@@ -1338,7 +1340,15 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
         async_proc = DracRedfishRAID._clear_foreign_config(system, task)
         if async_proc:
             # Async processing with system rebooting in progress
+            task.node.set_driver_internal_info(
+                'raid_config_substep', 'clear_foreign_config')
+            task.node.save()
             return deploy_utils.get_async_step_return_state(task.node)
+        else:
+            conv_state = DracRedfishRAID._convert_controller_to_raid_mode(
+                task)
+            if conv_state:
+                return conv_state
 
         return return_state
 
@@ -1486,6 +1496,69 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
                 task_mon.wait(CONF.drac.raid_job_timeout)
         return False
 
+    @staticmethod
+    def _convert_controller_to_raid_mode(task):
+        """Convert eligible controllers to RAID mode if not already.
+
+        :param task: a TaskManager instance containing the node to act on
+        :returns: Return state if there are controllers to convert and
+            and rebooting, otherwise None.
+        """
+
+        system = redfish_utils.get_system(task.node)
+        task_mons = []
+        warning_msg_templ = (
+            'Possibly because `%(pkg)s` is too old. Without newer `%(pkg)s` '
+            'PERC 9 and PERC 10 controllers that are not in RAID mode will '
+            'not be used or have limited RAID support. To avoid that update '
+            '`%(pkg)s`')
+        for storage in system.storage.get_members():
+            storage_controllers = None
+            try:
+                storage_controllers = storage.controllers
+            except sushy.exceptions.MissingAttributeError:
+                # Check if there storage_controllers to separate old iDRAC and
+                # storage without controller
+                if storage.storage_controllers:
+                    LOG.warning('%(storage)s does not have controllers for '
+                                'node %(node)s' + warning_msg_templ,
+                                {'storage': storage.identity,
+                                 'node': task.node.uuid,
+                                 'pkg': 'iDRAC'})
+                continue
+            except AttributeError:
+                LOG.warning('%(storage)s does not have controllers attribute. '
+                            + warning_msg_templ, {'storage': storage.identity,
+                                                  'pkg': 'sushy'})
+                return None
+            if storage_controllers:
+                controller = storage.controllers.get_members()[0]
+                try:
+                    oem_controller = controller.get_oem_extension('Dell')
+                except sushy.exceptions.ExtensionError as ee:
+                    LOG.warning('Failed to find extension to convert '
+                                'controller to RAID mode. '
+                                + warning_msg_templ + '. Error: %(err)s',
+                                {'err': ee, 'pkg': 'sushy-oem-idrac'})
+                    return None
+                task_mon = oem_controller.convert_to_raid()
+                if task_mon:
+                    task_mons.append(task_mon)
+
+        if task_mons:
+            deploy_utils.set_async_step_flags(
+                task.node,
+                reboot=True,
+                skip_current_step=True,
+                polling=True)
+
+            task.upgrade_lock()
+            task.node.set_driver_internal_info(
+                'raid_task_monitor_uris',
+                [tm.task_monitor_uri for tm in task_mons])
+            task.node.save()
+            return deploy_utils.reboot_to_finish_step(task)
+
     @METRICS.timer('DracRedfishRAID._query_raid_tasks_status')
     @periodics.node_periodic(
         purpose='checking async RAID tasks',
@@ -1545,6 +1618,15 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
             else:
                 # all tasks completed and none of them failed
                 node.del_driver_internal_info('raid_task_monitor_uris')
+                substep = node.driver_internal_info.get(
+                    'raid_config_substep')
+                if substep == 'clear_foreign_config':
+                    node.del_driver_internal_info('raid_config_substep')
+                    node.save()
+                    res = DracRedfishRAID._convert_controller_to_raid_mode(
+                        task)
+                    if res:  # New tasks submitted
+                        return
                 self._set_success(task)
         node.save()
 
