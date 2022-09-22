@@ -702,8 +702,8 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             raid._commit_raid_config(task)
-            get_raid_adapter_mock.assert_called_once_with(
-                irmc_common.parse_driver_info(task.node))
+            irmc_info = irmc_common.parse_driver_info(task.node)
+            get_raid_adapter_mock.assert_called_once_with(irmc_info)
             update_raid_info_mock.assert_called_once_with(
                 task.node, task.node.raid_config)
             set_async_step_flags_mock.assert_called_once_with(
