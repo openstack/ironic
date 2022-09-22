@@ -19,7 +19,6 @@
           # ramdisk OS.
         - ironic-tempest-ipa-partition-uefi-pxe_ipmitool:
             voting: false
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
@@ -45,8 +44,10 @@
             voting: false
         - ironic-tempest-ipxe-ipv6:
             voting: false
+        # NOTE(TheJulia): high-ish failure rate due to memory footprint,
+        # Commenting out for now.
+        # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     gate:
-      queue: ironic
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-standalone
@@ -56,7 +57,6 @@
         - ironic-tempest-ipa-partition-pxe_ipmitool
         # Removing from voting due to memory consumption
         # - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
