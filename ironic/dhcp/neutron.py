@@ -278,3 +278,14 @@ class NeutronDHCPApi(base.BaseDHCP):
             task, task.portgroups, client)
 
         return port_ip_addresses + portgroup_ip_addresses
+
+    def supports_ipxe_tag(self):
+        """Whether the provider will correctly apply the 'ipxe' tag.
+
+        When iPXE makes a DHCP request, does this provider support adding
+        the tag `ipxe` or `ipxe6` (for IPv6). When the provider returns True,
+        options can be added which filter on these tags.
+
+        :returns: True
+        """
+        return True

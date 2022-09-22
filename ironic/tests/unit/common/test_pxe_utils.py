@@ -25,6 +25,7 @@ from oslo_config import cfg
 from oslo_utils import fileutils
 from oslo_utils import uuidutils
 
+from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.glance_service import image_service
 from ironic.common import image_service as base_image_service
@@ -43,6 +44,11 @@ CONF = cfg.CONF
 INST_INFO_DICT = db_utils.get_test_pxe_instance_info()
 DRV_INFO_DICT = db_utils.get_test_pxe_driver_info()
 DRV_INTERNAL_INFO_DICT = db_utils.get_test_pxe_driver_internal_info()
+
+
+def _reset_dhcp_provider(config, provider_name):
+    config(dhcp_provider=provider_name, group='dhcp')
+    dhcp_factory.DHCPFactory._dhcp_provider = None
 
 
 # Prevent /httpboot validation on creating the node
@@ -674,7 +680,7 @@ class TestPXEUtils(db_base.DbTestCase):
         # TODO(TheJulia): We should... like... fix the template to
         # enable mac address usage.....
         grub_tmplte = "ironic/drivers/modules/pxe_grub_config.template"
-        self.config(dhcp_provider='none', group='dhcp')
+        _reset_dhcp_provider(self.config, 'none')
         self.config(tftp_root=tempfile.mkdtemp(), group='pxe')
         link_ip_configs_mock.side_effect = \
             exception.FailedToGetIPAddressOnPort(port_id='blah')
@@ -898,7 +904,7 @@ class TestPXEUtils(db_base.DbTestCase):
                              {'opt_name': '150',
                               'opt_value': '192.0.2.1',
                               'ip_version': ip_version},
-                             {'opt_name': 'server-ip-address',
+                             {'opt_name': '255',
                               'opt_value': '192.0.2.1',
                               'ip_version': ip_version}
                              ]
@@ -1904,7 +1910,8 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
             self.config(tftp_server='ff80::1', group='pxe')
             self.config(http_url='http://[ff80::1]:1234', group='deploy')
 
-        self.config(dhcp_provider='isc', group='dhcp')
+        _reset_dhcp_provider(self.config, 'none')
+
         if ip_version == 6:
             # NOTE(TheJulia): DHCPv6 RFCs seem to indicate that the prior
             # options are not imported, although they may be supported
@@ -1932,7 +1939,7 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                              {'opt_name': '67',
                               'opt_value': expected_boot_script_url,
                               'ip_version': ip_version},
-                             {'opt_name': 'server-ip-address',
+                             {'opt_name': '255',
                               'opt_value': '192.0.2.1',
                               'ip_version': ip_version}]
 
@@ -1940,7 +1947,8 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                               pxe_utils.dhcp_options_for_instance(
                                   task, ipxe_enabled=True))
 
-        self.config(dhcp_provider='neutron', group='dhcp')
+        _reset_dhcp_provider(self.config, 'neutron')
+
         if ip_version == 6:
             # Boot URL variable set from prior test of isc parameters.
             expected_info = [{'opt_name': 'tag:!ipxe6,59',
@@ -1963,7 +1971,7 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                              {'opt_name': 'tag:ipxe,67',
                               'opt_value': expected_boot_script_url,
                               'ip_version': ip_version},
-                             {'opt_name': 'server-ip-address',
+                             {'opt_name': '255',
                               'opt_value': '192.0.2.1',
                               'ip_version': ip_version}]
 

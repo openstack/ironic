@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    The ``[dhcp]dhcp_provider`` configuration option can now be set to
+    ``dnsmasq`` as an alternative to ``none`` for standalone deployments. This
+    enables the same node-specific DHCP capabilities as the ``neutron`` provider.
+    See the ``[dnsmasq]`` section for configuration options.

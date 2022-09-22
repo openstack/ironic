@@ -20,7 +20,8 @@ from ironic.common.i18n import _
 opts = [
     cfg.StrOpt('dhcp_provider',
                default='neutron',
-               help=_('DHCP provider to use. "neutron" uses Neutron, and '
+               help=_('DHCP provider to use. "neutron" uses Neutron, '
+                      '"dnsmasq" uses the Dnsmasq provider, and '
                       '"none" uses a no-op provider.')),
 ]
 
