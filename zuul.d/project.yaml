@@ -14,11 +14,6 @@
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-ipa-partition-pxe_ipmitool
-          # NOTE(TheJulia): Marking non-voting as CI memory changes
-          # means this job is unlikely to work without changing the base
-          # ramdisk OS.
-        - ironic-tempest-ipa-partition-uefi-pxe_ipmitool:
-            voting: false
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
         - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
         - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
@@ -42,8 +37,17 @@
             voting: false
         - ironic-tempest-pxe_ipmitool-postgres:
             voting: false
-        - ironic-tempest-ipxe-ipv6:
-            voting: false
+        # NOTE(TheJulia): Marking non-voting as CI memory changes
+        # means this job is unlikely to work without changing the base
+        # ramdisk OS.
+        # - ironic-tempest-ipa-partition-uefi-pxe_ipmitool:
+        #    voting: false
+        # NOTE(TheJulia): Tempest complains about invalid key, likely newer
+        # tempest changes are no longer compatible with this version's
+        # test. As this was already a test which had a high failure rate
+        # due to dhcp issues, we are unlikely to fix it.
+        # - ironic-tempest-ipxe-ipv6:
+        #     voting: false
         # NOTE(TheJulia): high-ish failure rate due to memory footprint,
         # Commenting out for now.
         # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode

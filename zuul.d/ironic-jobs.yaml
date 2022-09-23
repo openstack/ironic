@@ -115,6 +115,7 @@
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
         IRONIC_ENABLED_DEPLOY_INTERFACES: "iscsi,direct,ansible"
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
+        IRONIC_ENABLED_BIOS_INTERFACES: "no-bios"
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_RPC_TRANSPORT: json-rpc
         IRONIC_VM_SPECS_RAM: 512
@@ -209,6 +210,7 @@
         IRONIC_IPXE_ENABLED: False
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEFAULT_BOOT_OPTION: netboot
+      tempest_test_regex: test_baremetal_server_ops_partition_image
       devstack_services:
         mysql: False
         postgresql: True
@@ -629,6 +631,7 @@
         s-container: True
         s-object: True
         s-proxy: True
+      tempest_test_regex: test_baremetal_server_ops_wholedisk_image
       devstack_localrc:
         IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
         IRONIC_DIB_RAMDISK_OS: centos8
