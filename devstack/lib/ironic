@@ -42,7 +42,7 @@ GITBRANCH["pyghmi"]=${PYGHMI_BRANCH:-master}
 GITDIR["pyghmi"]=$DEST/pyghmi
 
 GITREPO["virtualbmc"]=${VIRTUALBMC_REPO:-${GIT_BASE}/openstack/virtualbmc.git}
-GITBRANCH["virtualbmc"]=${VIRTUALBMC_BRANCH:-835fd3b9e4cbb33a297e979db93df55498ff6ce0}
+GITBRANCH["virtualbmc"]=${VIRTUALBMC_BRANCH:-2.2.2}
 GITDIR["virtualbmc"]=$DEST/virtualbmc
 
 GITREPO["virtualpdu"]=${VIRTUALPDU_REPO:-${GIT_BASE}/openstack/virtualpdu.git}
