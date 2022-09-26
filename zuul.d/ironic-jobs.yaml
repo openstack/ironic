@@ -10,10 +10,19 @@
       # TODO(TheJulia): Explicitly pull in DIB until we get a release cut.
       - opendev.org/openstack/diskimage-builder
       - opendev.org/openstack/ironic
-      - opendev.org/openstack/ironic-python-agent
+      - name: opendev.org/openstack/ironic-python-agent
+        override-checkout: bugfix/9.0
       - opendev.org/openstack/ironic-python-agent-builder
       - opendev.org/openstack/ironic-tempest-plugin
       - opendev.org/openstack/virtualbmc
+      - name: openstack/neutron
+        override-checkout: stable/zed
+      - name: openstack/nova
+        override-checkout: stable/zed
+      - name: openstack/swift
+        override-checkout: stable/zed
+      - name: openstack/requirements
+        override-checkout: stable/zed
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -1033,8 +1042,12 @@
     description: Ironic unit tests run with Sushy from source
     parent: openstack-tox
     required-projects:
-      - opendev.org/openstack/ironic
-      - opendev.org/openstack/sushy
+      - name: opendev.org/openstack/ironic
+        override-checkout: bugfix/21.0
+      - name: opendev.org/openstack/sushy
+        override-checkout: stable/zed
+      - name: openstack/requirements
+        override-checkout: stable/zed
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -1051,3 +1064,78 @@
       # NOTE(dtantsur): this job will be run on sushy as well, so it's
       # important to set the working dir to the Ironic checkout.
       zuul_work_dir: "{{ ansible_user_dir }}/{{ zuul.projects['opendev.org/openstack/ironic'].src_dir }}"
+
+- project-template:
+    name: openstack-python3-zed-jobs-ironic-bugfix210
+    description: |
+      Runs unit tests for an OpenStack Python project under the CPython
+      version 3 releases designated for testing in the Yoga release.
+    check:
+      jobs:
+        - openstack-tox-pep8:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/zed
+        - openstack-tox-py38:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/zed
+        - openstack-tox-py39:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/zed
+        - openstack-tox-py310:
+            voting: false
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/zed
+    gate:
+      jobs:
+        - openstack-tox-pep8:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/zed
+        - openstack-tox-py38:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/zed
+        - openstack-tox-py39:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/zed
+
+- project-template:
+    name: openstack-python3-zed-jobs-ironic-bugfix210-arm64
+    description: |
+      Runs unit tests for an OpenStack Python project under the CPython
+      version 3 releases designated for testing in the Yoga release.
+    check:
+      jobs:
+        - openstack-tox-py38-arm64:
+            voting: false
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/zed
+        - openstack-tox-py39-arm64:
+            voting: false
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/zed
+
+- project-template:
+    name: openstack-cover-jobs-ironic-bugfix210
+    description: |
+                Runs openstack-tox-cover in only the check pipeline using
+                yoga upper-constraints.
+    check:
+      jobs:
+        - openstack-tox-cover:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/zed
+    gate:
+      jobs:
+        - openstack-tox-cover:
+            required-projects:
+                - name: openstack/requirements
+                  override-checkout: stable/zed
