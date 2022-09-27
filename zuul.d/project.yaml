@@ -31,7 +31,7 @@
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
             voting: false
         - ironic-tempest-bios-ipmi-direct-tinyipa
-        - ironic-tempest-bfv
+        # - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-localboot-centos8-uefi
         # Non-voting jobs
@@ -74,7 +74,6 @@
         # seeming to be 
         # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-bios-ipmi-direct-tinyipa
-        - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-localboot-centos8-uefi
     experimental:
