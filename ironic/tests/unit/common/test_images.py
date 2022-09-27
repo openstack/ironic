@@ -318,7 +318,8 @@ class IronicImagesTestCase(base.TestCase):
                        autospec=True)
     def test_is_source_a_path_content_length(self, validate_mock):
         mock_response = mock.Mock()
-        mock_response.headers = {'Content-Length': 1}
+        mock_response.headers = {'Content-Length': 1,
+                                 'Content-Type': 'text/plain'}
         validate_mock.return_value = mock_response
         self.assertFalse(images.is_source_a_path('context', 'http://foo/bar/'))
         validate_mock.assert_called_once_with(mock.ANY, 'http://foo/bar/')
