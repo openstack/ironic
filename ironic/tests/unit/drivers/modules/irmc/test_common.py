@@ -16,7 +16,9 @@
 Test class for common methods used by iRMC modules.
 """
 
-import mock
+import os
+from unittest import mock
+
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
@@ -67,6 +69,7 @@ class IRMCValidateParametersTestCase(BaseIRMCTest):
         self.assertEqual(161, info['irmc_snmp_port'])
         self.assertEqual('public', info['irmc_snmp_community'])
         self.assertFalse(info['irmc_snmp_security'])
+        self.assertTrue(info['irmc_verify_ca'])
 
     def test_parse_driver_option_default(self):
         self.node.driver_info = {
@@ -80,6 +83,7 @@ class IRMCValidateParametersTestCase(BaseIRMCTest):
         self.assertEqual(443, info['irmc_port'])
         self.assertEqual(60, info['irmc_client_timeout'])
         self.assertEqual('ipmitool', info['irmc_sensor_method'])
+        self.assertEqual(True, info['irmc_verify_ca'])
 
     def test_parse_driver_info_missing_address(self):
         del self.node.driver_info['irmc_address']
@@ -152,25 +156,176 @@ class IRMCValidateParametersTestCase(BaseIRMCTest):
         self.assertRaises(exception.InvalidParameterValue,
                           irmc_common.parse_driver_info, self.node)
 
+    @mock.patch.object(os.path, 'isabs', return_value=True, autospec=True)
+    @mock.patch.object(os.path, 'isdir', return_value=True, autospec=True)
+    def test_parse_driver_info_dir_path_verify_ca(self, mock_isdir,
+                                                  mock_isabs):
+        fake_path = 'absolute/path/to/a/valid/CA'
+        self.node.driver_info['irmc_verify_ca'] = fake_path
+        info = irmc_common.parse_driver_info(self.node)
+        self.assertEqual(fake_path, info['irmc_verify_ca'])
+        mock_isdir.assert_called_once_with(fake_path)
+        mock_isabs.assert_called_once_with(fake_path)
+
+    @mock.patch.object(os.path, 'isabs', return_value=True, autospec=True)
+    @mock.patch.object(os.path, 'isfile', return_value=True, autospec=True)
+    def test_parse_driver_info_file_path_verify_ca(self, mock_isfile,
+                                                   mock_isabs):
+        fake_path = 'absolute/path/to/a/valid/ca.pem'
+        self.node.driver_info['irmc_verify_ca'] = fake_path
+        info = irmc_common.parse_driver_info(self.node)
+        self.assertEqual(fake_path, info['irmc_verify_ca'])
+        mock_isfile.assert_called_once_with(fake_path)
+        mock_isabs.assert_called_once_with(fake_path)
+
+    def test_parse_driver_info_string_bool_verify_ca(self):
+        self.node.driver_info['irmc_verify_ca'] = "False"
+        info = irmc_common.parse_driver_info(self.node)
+        self.assertFalse(info['irmc_verify_ca'])
+
+    def test_parse_driver_info_invalid_verify_ca(self):
+        self.node.driver_info['irmc_verify_ca'] = "1234"
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+        self.node.driver_info['irmc_verify_ca'] = 1234
+        self.assertRaises(exception.InvalidParameterValue,
+                          irmc_common.parse_driver_info, self.node)
+
 
 class IRMCCommonMethodsTestCase(BaseIRMCTest):
 
+    @mock.patch.object(irmc_common, 'LOG', autospec=True)
+    @mock.patch.object(irmc_common, 'scci_mod', spec_set=['__version__'])
     @mock.patch.object(irmc_common, 'scci',
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
-    def test_get_irmc_client(self, mock_scci):
-        self.info['irmc_port'] = 80
-        self.info['irmc_auth_method'] = 'digest'
-        self.info['irmc_client_timeout'] = 60
-        mock_scci.get_client.return_value = 'get_client'
-        returned_mock_scci_get_client = irmc_common.get_irmc_client(self.node)
-        mock_scci.get_client.assert_called_with(
-            self.info['irmc_address'],
-            self.info['irmc_username'],
-            self.info['irmc_password'],
-            port=self.info['irmc_port'],
-            auth_method=self.info['irmc_auth_method'],
-            client_timeout=self.info['irmc_client_timeout'])
-        self.assertEqual('get_client', returned_mock_scci_get_client)
+    def test_get_irmc_client_cert_support_http(self, mock_scci,
+                                               mock_scciclient, mock_LOG):
+        scci_version_list = ['0.8.2', '0.8.3.1', '0.9.5', '0.10.1', '0.10.2',
+                             '0.11.3', '0.11.4', '0.12.0', '0.12.1']
+        for ver in scci_version_list:
+            mock_scciclient.__version__ = ver
+            self.info['irmc_port'] = 80
+            self.info['irmc_auth_method'] = 'digest'
+            self.info['irmc_client_timeout'] = 60
+            self.info['irmc_verify_ca'] = True
+            mock_scci.get_client.return_value = 'get_client'
+            returned_mock_scci_get_client = irmc_common.get_irmc_client(
+                self.node)
+            mock_scci.get_client.assert_called_with(
+                self.info['irmc_address'],
+                self.info['irmc_username'],
+                self.info['irmc_password'],
+                port=self.info['irmc_port'],
+                auth_method=self.info['irmc_auth_method'],
+                verify=self.info['irmc_verify_ca'],
+                client_timeout=self.info['irmc_client_timeout'])
+            self.assertEqual('get_client', returned_mock_scci_get_client)
+            mock_LOG.warning.assert_not_called()
+            mock_scci.reset_mock()
+            mock_LOG.warning.reset_mock()
+
+    @mock.patch.object(irmc_common, 'LOG', autospec=True)
+    @mock.patch.object(irmc_common, 'scci_mod', spec_set=['__version__'])
+    @mock.patch.object(irmc_common, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    def test_get_irmc_client_cert_support_https(self, mock_scci,
+                                                mock_scciclient, mock_LOG):
+        scci_version_list = ['0.8.2', '0.8.3.1', '0.9.5', '0.10.1', '0.10.2',
+                             '0.11.3', '0.11.4', '0.12.0', '0.12.1']
+        self.node.driver_info = {
+            "irmc_address": "1.2.3.4",
+            "irmc_username": "admin0",
+            "irmc_password": "fake0",
+            "irmc_port": "443",
+            "irmc_auth_method": "digest",
+        }
+
+        for ver in scci_version_list:
+            mock_scciclient.__version__ = ver
+            self.info['irmc_port'] = 443
+            self.info['irmc_auth_method'] = 'digest'
+            self.info['irmc_client_timeout'] = 60
+            self.info['irmc_verify_ca'] = True
+            mock_scci.get_client.return_value = 'get_client'
+            returned_mock_scci_get_client = irmc_common.get_irmc_client(
+                self.node)
+            mock_scci.get_client.assert_called_with(
+                self.info['irmc_address'],
+                self.info['irmc_username'],
+                self.info['irmc_password'],
+                port=self.info['irmc_port'],
+                auth_method=self.info['irmc_auth_method'],
+                verify=self.info['irmc_verify_ca'],
+                client_timeout=self.info['irmc_client_timeout'])
+            self.assertEqual('get_client', returned_mock_scci_get_client)
+            mock_LOG.warning.assert_not_called()
+            mock_scci.reset_mock()
+            mock_LOG.warning.reset_mock()
+
+    @mock.patch.object(irmc_common, 'LOG', autospec=True)
+    @mock.patch.object(irmc_common, 'scci_mod', spec_set=['__version__'])
+    @mock.patch.object(irmc_common, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    def test_get_irmc_client_no_cert_support_http(self, mock_scci,
+                                                  mock_scciclient, mock_LOG):
+        scci_version_list = ['0.8.0', '0.8.1', '0.9.0', '0.9.4', '0.10.0',
+                             '0.11.2']
+
+        for ver in scci_version_list:
+            mock_scciclient.__version__ = ver
+            self.info['irmc_port'] = 80
+            self.info['irmc_auth_method'] = 'digest'
+            self.info['irmc_client_timeout'] = 60
+            mock_scci.get_client.return_value = 'get_client'
+            returned_mock_scci_get_client = irmc_common.get_irmc_client(
+                self.node)
+            mock_scci.get_client.assert_called_with(
+                self.info['irmc_address'],
+                self.info['irmc_username'],
+                self.info['irmc_password'],
+                port=self.info['irmc_port'],
+                auth_method=self.info['irmc_auth_method'],
+                client_timeout=self.info['irmc_client_timeout'])
+            self.assertEqual('get_client', returned_mock_scci_get_client)
+            mock_LOG.warning.assert_not_called()
+            mock_scci.reset_mock()
+            mock_LOG.warning.reset_mock()
+
+    @mock.patch.object(irmc_common, 'LOG', autospec=True)
+    @mock.patch.object(irmc_common, 'scci_mod', spec_set=['__version__'])
+    @mock.patch.object(irmc_common, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    def test_get_irmc_client_no_cert_support_https(self, mock_scci,
+                                                   mock_scciclient, mock_LOG):
+        scci_version_list = ['0.8.0', '0.8.1', '0.9.0', '0.9.4', '0.10.0',
+                             '0.11.2']
+        self.node.driver_info = {
+            "irmc_address": "1.2.3.4",
+            "irmc_username": "admin0",
+            "irmc_password": "fake0",
+            "irmc_port": "443",
+            "irmc_auth_method": "digest",
+        }
+
+        for ver in scci_version_list:
+            mock_scciclient.__version__ = ver
+            self.info['irmc_port'] = 443
+            self.info['irmc_auth_method'] = 'digest'
+            self.info['irmc_client_timeout'] = 60
+            mock_scci.get_client.return_value = 'get_client'
+            returned_mock_scci_get_client = irmc_common.get_irmc_client(
+                self.node)
+            mock_scci.get_client.assert_called_with(
+                self.info['irmc_address'],
+                self.info['irmc_username'],
+                self.info['irmc_password'],
+                port=self.info['irmc_port'],
+                auth_method=self.info['irmc_auth_method'],
+                client_timeout=self.info['irmc_client_timeout'])
+            self.assertEqual('get_client', returned_mock_scci_get_client)
+            mock_LOG.warning.assert_called_once()
+            mock_scci.reset_mock()
+            mock_LOG.warning.reset_mock()
 
     def test_update_ipmi_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,
@@ -186,22 +341,139 @@ class IRMCCommonMethodsTestCase(BaseIRMCTest):
             expected_info = dict(self.info, **ipmi_info)
             self.assertEqual(expected_info, actual_info)
 
+    @mock.patch.object(irmc_common, 'LOG', autospec=True)
+    @mock.patch.object(irmc_common, 'scci_mod', spec_set=['__version__'])
     @mock.patch.object(irmc_common, 'scci',
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
-    def test_get_irmc_report(self, mock_scci):
-        self.info['irmc_port'] = 80
-        self.info['irmc_auth_method'] = 'digest'
-        self.info['irmc_client_timeout'] = 60
-        mock_scci.get_report.return_value = 'get_report'
-        returned_mock_scci_get_report = irmc_common.get_irmc_report(self.node)
-        mock_scci.get_report.assert_called_with(
-            self.info['irmc_address'],
-            self.info['irmc_username'],
-            self.info['irmc_password'],
-            port=self.info['irmc_port'],
-            auth_method=self.info['irmc_auth_method'],
-            client_timeout=self.info['irmc_client_timeout'])
-        self.assertEqual('get_report', returned_mock_scci_get_report)
+    def test_get_irmc_report_cert_support_http(self, mock_scci,
+                                               mock_scciclient, mock_LOG):
+        scci_version_list = ['0.8.2', '0.8.3.1', '0.9.5', '0.10.1', '0.10.2',
+                             '0.11.3', '0.11.4', '0.12.0', '0.12.1']
+
+        for ver in scci_version_list:
+            mock_scciclient.__version__ = ver
+            self.info['irmc_port'] = 80
+            self.info['irmc_auth_method'] = 'digest'
+            self.info['irmc_client_timeout'] = 60
+            self.info['irmc_verify_ca'] = True
+            mock_scci.get_report.return_value = 'get_report'
+            returned_mock_scci_get_report = irmc_common.get_irmc_report(
+                self.node)
+            mock_scci.get_report.assert_called_with(
+                self.info['irmc_address'],
+                self.info['irmc_username'],
+                self.info['irmc_password'],
+                port=self.info['irmc_port'],
+                auth_method=self.info['irmc_auth_method'],
+                verify=self.info['irmc_verify_ca'],
+                client_timeout=self.info['irmc_client_timeout'])
+            self.assertEqual('get_report', returned_mock_scci_get_report)
+            mock_LOG.warning.assert_not_called()
+            mock_scci.reset_mock()
+            mock_LOG.warning.reset_mock()
+
+    @mock.patch.object(irmc_common, 'LOG', autospec=True)
+    @mock.patch.object(irmc_common, 'scci_mod', spec_set=['__version__'])
+    @mock.patch.object(irmc_common, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    def test_get_irmc_report_cert_support_https(self, mock_scci,
+                                                mock_scciclient, mock_LOG):
+        scci_version_list = ['0.8.2', '0.8.3.1', '0.9.5', '0.10.1', '0.10.2',
+                             '0.11.3', '0.11.4', '0.12.0', '0.12.1']
+        self.node.driver_info = {
+            "irmc_address": "1.2.3.4",
+            "irmc_username": "admin0",
+            "irmc_password": "fake0",
+            "irmc_port": "443",
+            "irmc_auth_method": "digest",
+        }
+
+        for ver in scci_version_list:
+            mock_scciclient.__version__ = ver
+            self.info['irmc_port'] = 443
+            self.info['irmc_auth_method'] = 'digest'
+            self.info['irmc_client_timeout'] = 60
+            self.info['irmc_verify_ca'] = True
+            mock_scci.get_report.return_value = 'get_report'
+            returned_mock_scci_get_report = irmc_common.get_irmc_report(
+                self.node)
+            mock_scci.get_report.assert_called_with(
+                self.info['irmc_address'],
+                self.info['irmc_username'],
+                self.info['irmc_password'],
+                port=self.info['irmc_port'],
+                auth_method=self.info['irmc_auth_method'],
+                verify=self.info['irmc_verify_ca'],
+                client_timeout=self.info['irmc_client_timeout'])
+            self.assertEqual('get_report', returned_mock_scci_get_report)
+            mock_LOG.warning.assert_not_called()
+            mock_scci.reset_mock()
+            mock_LOG.warning.reset_mock()
+
+    @mock.patch.object(irmc_common, 'LOG', autospec=True)
+    @mock.patch.object(irmc_common, 'scci_mod', spec_set=['__version__'])
+    @mock.patch.object(irmc_common, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    def test_get_irmc_report_no_cert_support_http(self, mock_scci,
+                                                  mock_scciclient, mock_LOG):
+        scci_version_list = ['0.8.0', '0.8.1', '0.9.0', '0.9.4', '0.10.0',
+                             '0.11.2']
+
+        for ver in scci_version_list:
+            mock_scciclient.__version__ = ver
+            self.info['irmc_port'] = 80
+            self.info['irmc_auth_method'] = 'digest'
+            self.info['irmc_client_timeout'] = 60
+            mock_scci.get_report.return_value = 'get_report'
+            returned_mock_scci_get_report = irmc_common.get_irmc_report(
+                self.node)
+            mock_scci.get_report.assert_called_with(
+                self.info['irmc_address'],
+                self.info['irmc_username'],
+                self.info['irmc_password'],
+                port=self.info['irmc_port'],
+                auth_method=self.info['irmc_auth_method'],
+                client_timeout=self.info['irmc_client_timeout'])
+            self.assertEqual('get_report', returned_mock_scci_get_report)
+            mock_LOG.warning.assert_not_called()
+            mock_scci.reset_mock()
+            mock_LOG.warning.reset_mock()
+
+    @mock.patch.object(irmc_common, 'LOG', autospec=True)
+    @mock.patch.object(irmc_common, 'scci_mod', spec_set=['__version__'])
+    @mock.patch.object(irmc_common, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    def test_get_irmc_report_no_cert_support_https(self, mock_scci,
+                                                   mock_scciclient, mock_LOG):
+        scci_version_list = ['0.8.0', '0.8.1', '0.9.0', '0.9.4', '0.10.0',
+                             '0.11.2']
+        self.node.driver_info = {
+            "irmc_address": "1.2.3.4",
+            "irmc_username": "admin0",
+            "irmc_password": "fake0",
+            "irmc_port": "443",
+            "irmc_auth_method": "digest",
+        }
+
+        for ver in scci_version_list:
+            mock_scciclient.__version__ = ver
+            self.info['irmc_port'] = 443
+            self.info['irmc_auth_method'] = 'digest'
+            self.info['irmc_client_timeout'] = 60
+            mock_scci.get_report.return_value = 'get_report'
+            returned_mock_scci_get_report = irmc_common.get_irmc_report(
+                self.node)
+            mock_scci.get_report.assert_called_with(
+                self.info['irmc_address'],
+                self.info['irmc_username'],
+                self.info['irmc_password'],
+                port=self.info['irmc_port'],
+                auth_method=self.info['irmc_auth_method'],
+                client_timeout=self.info['irmc_client_timeout'])
+            self.assertEqual('get_report', returned_mock_scci_get_report)
+            mock_LOG.warning.assert_called_once()
+            mock_scci.reset_mock()
+            mock_LOG.warning.reset_mock()
 
     def test_out_range_port(self):
         self.assertRaises(ValueError, cfg.CONF.set_override,

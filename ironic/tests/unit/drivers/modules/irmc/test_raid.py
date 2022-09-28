@@ -20,6 +20,7 @@ import mock
 
 from ironic.common import exception
 from ironic.conductor import task_manager
+from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import raid
 from ironic.tests.unit.drivers.modules.irmc import test_common
 
@@ -574,10 +575,11 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
                           disk, self.valid_disk_slots)
 
     @mock.patch('ironic.common.raid.update_raid_info')
-    @mock.patch('ironic.drivers.modules.irmc.raid.client')
-    def test__commit_raid_config_with_logical_drives(self, client_mock,
-                                                     update_raid_info_mock):
-        client_mock.elcm.get_raid_adapter.return_value = {
+    @mock.patch('ironic.drivers.modules.irmc.raid.client.elcm'
+                '.get_raid_adapter')
+    def test__commit_raid_config_with_logical_drives(
+            self, get_raid_adapter_mock, update_raid_info_mock):
+        get_raid_adapter_mock.return_value = {
             "Server": {
                 "HWConfigurationIrmc": {
                     "Adapters": {
@@ -665,8 +667,8 @@ class IRMCRaidConfigurationInternalMethodsTestCase(test_common.BaseIRMCTest):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             raid._commit_raid_config(task)
-            client_mock.elcm.get_raid_adapter.assert_called_once_with(
-                task.node.driver_info)
+            irmc_info = irmc_common.parse_driver_info(task.node)
+            get_raid_adapter_mock.assert_called_once_with(irmc_info)
             update_raid_info_mock.assert_called_once_with(
                 task.node, task.node.raid_config)
             self.assertEqual(task.node.raid_config['logical_disks'],
