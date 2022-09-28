@@ -137,7 +137,7 @@ def sync_boot_mode(task):
     elif ironic_boot_mode != bm_boot_mode:
         msg = (_("Boot mode %(node_boot_mode)s currently configured "
                  "on node %(uuid)s does not match the boot mode "
-                 "%(ironic_boot_mode)s requested for provisioning."
+                 "%(ironic_boot_mode)s requested for provisioning. "
                  "Attempting to set node boot mode to %(ironic_boot_mode)s.") %
                {'uuid': node.uuid, 'node_boot_mode': bm_boot_mode,
                 'ironic_boot_mode': ironic_boot_mode})
