@@ -204,13 +204,15 @@ class IRMCPowerInternalMethodsTestCase(test_common.BaseIRMCTest):
         _wait_power_state_mock.assert_called_once_with(task, target_state,
                                                        timeout=None)
 
+    @mock.patch.object(irmc_common, 'scci_mod', spec_set=['__version__'])
     @mock.patch.object(irmc_power, '_wait_power_state', spec_set=True,
                        autospec=True)
     @mock.patch.object(irmc_boot, 'attach_boot_iso_if_needed')
     def test__set_power_state_invalid_target_state(
             self,
             attach_boot_iso_if_needed_mock,
-            _wait_power_state_mock):
+            _wait_power_state_mock, mock_scciclient):
+        mock_scciclient.__version__ = '0.8.2'
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,

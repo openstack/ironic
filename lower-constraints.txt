@@ -41,6 +41,7 @@ oslo.utils==3.33.0
 oslo.versionedobjects==1.31.2
 oslotest==3.2.0
 osprofiler==1.5.0
+packaging==16.5
 pbr==2.0.0
 pecan==1.0.0
 psutil==3.2.2
