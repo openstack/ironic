@@ -1924,6 +1924,11 @@ function init_ironic {
     # NOTE(rloo): We're not upgrading but want to make sure this command works,
     # even though we're not parsing the output of this command.
     $IRONIC_BIN_DIR/ironic-status upgrade check
+
+    $IRONIC_BIN_DIR/ironic-status upgrade check && ret_val=$? || ret_val=$?
+    if [ $ret_val -gt 1 ] ; then
+        die $LINENO "The `ironic-status upgrade check` command returned an error. Cannot proceed."
+    fi
 }
 
 # _ironic_bm_vm_names() - Generates list of names for baremetal VMs.

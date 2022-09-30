@@ -19,7 +19,7 @@ from oslo_db.sqlalchemy import enginefacade
 from oslo_db.sqlalchemy import utils
 from oslo_upgradecheck import common_checks
 from oslo_upgradecheck import upgradecheck
-from sqlalchemy import exc as sa_exc
+import sqlalchemy
 
 from ironic.cmd import dbsync
 from ironic.common.i18n import _
@@ -50,7 +50,7 @@ class Checks(upgradecheck.UpgradeCommands):
             # when a table is missing, so lets catch it, since it is fatal.
             msg = dbsync.DBCommand().check_obj_versions(
                 ignore_missing_tables=True)
-        except sa_exc.NoSuchTableError as e:
+        except sqlalchemy.exc.NoSuchTableError as e:
             msg = ('Database table missing. Please ensure you have '
                    'updated the database schema. Not Found: %s' % e)
             return upgradecheck.Result(upgradecheck.Code.FAILURE, details=msg)
@@ -94,6 +94,43 @@ class Checks(upgradecheck.UpgradeCommands):
         else:
             return upgradecheck.Result(upgradecheck.Code.SUCCESS)
 
+    def _check_allocations_table(self):
+        msg = None
+        engine = enginefacade.reader.get_engine()
+        if 'mysql' not in str(engine.url):
+            # This test only applies to mysql and database schema
+            # selection.
+            return upgradecheck.Result(upgradecheck.Code.SUCCESS)
+        res = engine.execute("show create table allocations")
+        results = str(res.all()).lower()
+        print('####################################################33')
+        print(results)
+        if 'utf8' not in results:
+            msg = ('The Allocations table is is not using UTF8 encoding. '
+                   'This is corrected in later versions of Ironic, where '
+                   'the table character set schema is automatically '
+                   'migrated. Continued use of a non-UTF8 character '
+                   'set may produce unexpected results.')
+
+        if 'innodb' not in results:
+            warning = ('The engine used by MySQL for the allocations '
+                       'table is not the intended engine for the Ironic '
+                       'database tables to use. This may have been a result '
+                       'of an error with the table creation schema. This '
+                       'may require Database Administrator intervention '
+                       'and downtime to dump, modify the table engine to '
+                       'utilize InnoDB, and reload the allocations table to '
+                       'utilize the InnoDB engine.')
+            if msg:
+                msg = msg + ' Additionally: ' + warning
+            else:
+                msg = warning
+
+        if msg:
+            return upgradecheck.Result(upgradecheck.Code.WARNING, details=msg)
+        else:
+            return upgradecheck.Result(upgradecheck.Code.SUCCESS)
+
     # A tuple of check tuples of (<name of check>, <check function>).
     # The name of the check will be used in the output of this command.
     # The check function takes no arguments and returns an
@@ -105,6 +142,8 @@ class Checks(upgradecheck.UpgradeCommands):
     _upgrade_checks = (
         (_('Object versions'), _check_obj_versions),
         (_('Database Index Status'), _check_db_indexes),
+        (_('Allocations Name Field Length Check'),
+         _check_allocations_table),
         # Victoria -> Wallaby migration
         (_('Policy File JSON to YAML Migration'),
          (common_checks.check_policy_json, {'conf': CONF})),

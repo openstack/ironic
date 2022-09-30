@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    Adds an upgrade status check for the Allocation table engine and
+    character set encoding on MySQL. This is a result of a missing
+    encoding definition on the table schema when originally created.
+    This issue will be remedied, in part, in a later version of Ironic,
+    but the upgrade status check will provide advance operator visibility.
