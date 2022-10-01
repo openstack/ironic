@@ -15,3 +15,8 @@ menuentry "boot_ramdisk"  {
 menuentry "boot_whole_disk"  {
     linuxefi chain.c32 mbr:{{ DISK_IDENTIFIER }}
 }
+
+menuentry "boot_anaconda" {
+     linuxefi {{ pxe_options.aki_path }} text {{ pxe_options.pxe_append_params|default("", true) }} inst.ks={{ pxe_options.ks_cfg_url }} {% if pxe_options.repo_url %}inst.repo={{ pxe_options.repo_url }}{% else %}inst.stage2={{ pxe_options.stage2_url }}{% endif %}
+     initrdefi {{ pxe_options.ari_path }}
+}

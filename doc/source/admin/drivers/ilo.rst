@@ -2211,6 +2211,14 @@ Events subscription is supported by ``ilo`` and ``ilo5`` hardware types with
 ``ilo`` vendor interface for Gen10 and Gen10 Plus servers. See
 :ref:`node-vendor-passthru-methods` for more information.
 
+Anaconda based deployment
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Deployment with ``anaconda`` deploy interface is supported by ``ilo`` and
+``ilo5`` hardware type and works with ``ilo-pxe`` and ``ilo-ipxe``
+boot interfaces.  See :doc:`/admin/anaconda-deploy-interface` for
+more information.
+
+
 .. _`ssacli documentation`: https://support.hpe.com/hpsc/doc/public/display?docId=c03909334
 .. _`proliant-tools`: https://docs.openstack.org/diskimage-builder/latest/elements/proliant-tools/README.html
 .. _`HPE iLO4 User Guide`: https://h20566.www2.hpe.com/hpsc/doc/public/display?docId=c03334051

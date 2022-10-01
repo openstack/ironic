@@ -16,3 +16,7 @@ menuentry "boot_whole_disk"  {
     linuxefi chain.c32 mbr:(( DISK_IDENTIFIER ))
 }
 
+menuentry "boot_anaconda" {
+     linuxefi /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/kernel text test_param inst.ks=http://fake/ks.cfg inst.stage2=http://fake/stage2
+     initrdefi /tftpboot/1be26c0b-03f2-4d2e-ae87-c02d7f33c123/ramdisk
+}
