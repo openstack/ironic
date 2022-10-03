@@ -48,5 +48,5 @@ def upgrade():
                     sa.Index('history_node_id_idx', 'node_id'),
                     sa.Index('history_uuid_idx', 'uuid'),
                     sa.Index('history_conductor_idx', 'conductor'),
-                    mysql_ENGINE='InnoDB',
-                    mysql_DEFAULT_CHARSET='UTF8')
+                    mysql_engine='InnoDB',
+                    mysql_charset='UTF8MB3')

@@ -131,6 +131,13 @@ The unit tests need a local database setup, you can use
 ``tools/test-setup.sh`` to set up the database the same way as setup
 in the OpenStack test systems.
 
+.. note::
+   If you encounter issues executing unit tests, specifically where errors
+   may indicate that a field is too long, check your database's default
+   character encoding. Debian specifically sets MariaDB to ``utf8mb4``
+   which utilizes 4 byte encoded unicode characters by default, which is
+   incompatible by default.
+
 Additional Tox Targets
 ----------------------
 

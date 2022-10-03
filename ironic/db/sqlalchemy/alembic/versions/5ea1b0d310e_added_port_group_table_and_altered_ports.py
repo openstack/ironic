@@ -42,8 +42,8 @@ def upgrade():
                     sa.UniqueConstraint('address',
                                         name='uniq_portgroups0address'),
                     sa.UniqueConstraint('name', name='uniq_portgroups0name'),
-                    mysql_ENGINE='InnoDB',
-                    mysql_DEFAULT_CHARSET='UTF8')
+                    mysql_engine='InnoDB',
+                    mysql_charset='UTF8MB3')
     op.add_column(u'ports', sa.Column('local_link_connection', sa.Text(),
                                       nullable=True))
     op.add_column(u'ports', sa.Column('portgroup_id', sa.Integer(),

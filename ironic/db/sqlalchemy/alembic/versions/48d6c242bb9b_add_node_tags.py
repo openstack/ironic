@@ -36,7 +36,7 @@ def upgrade():
         sa.Column('tag', sa.String(length=255), nullable=False),
         sa.ForeignKeyConstraint(['node_id'], ['nodes.id'], ),
         sa.PrimaryKeyConstraint('node_id', 'tag'),
-        mysql_ENGINE='InnoDB',
-        mysql_DEFAULT_CHARSET='UTF8'
+        mysql_engine='InnoDB',
+        mysql_charset='UTF8MB3'
     )
     op.create_index('node_tags_idx', 'node_tags', ['tag'], unique=False)

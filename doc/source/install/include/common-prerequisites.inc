@@ -22,8 +22,16 @@ MySQL database that is used by other OpenStack services.
    .. code-block:: console
 
       # mysql -u root -p
-      mysql> CREATE DATABASE ironic CHARACTER SET utf8;
+      mysql> CREATE DATABASE ironic CHARACTER SET utf8mb3;
       mysql> GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'localhost' \
              IDENTIFIED BY 'IRONIC_DBPASSWORD';
       mysql> GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'%' \
              IDENTIFIED BY 'IRONIC_DBPASSWORD';
+
+.. note::
+   When creating the database to house Ironic, specifically on MySQL/MariaDB,
+   the character set *cannot* be 4 byte Unicode characters. This is due to
+   an internal structural constraint. UTF8, in these database platforms,
+   has traditionally meant ``utf8mb3``, short for "UTF-8, 3 byte encoding",
+   however the platforms are expected to move to ``utf8mb4`` which is
+   incompatible with Ironic.

@@ -48,7 +48,10 @@ def upgrade():
         sa.ForeignKeyConstraint(['node_id'], ['nodes.id'], ),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('name', name='uniq_allocations0name'),
-        sa.UniqueConstraint('uuid', name='uniq_allocations0uuid')
+        sa.UniqueConstraint('uuid', name='uniq_allocations0uuid'),
+        mysql_engine='InnoDB',
+        mysql_charset='UTF8MB3'
+
     )
     op.add_column('nodes', sa.Column('allocation_id', sa.Integer(),
                                      nullable=True))

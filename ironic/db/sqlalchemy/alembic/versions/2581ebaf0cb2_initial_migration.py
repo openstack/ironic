@@ -38,8 +38,8 @@ def upgrade():
         sa.Column('drivers', sa.Text(), nullable=True),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('hostname', name='uniq_conductors0hostname'),
-        mysql_ENGINE='InnoDB',
-        mysql_DEFAULT_CHARSET='UTF8'
+        mysql_charset='UTF8MB3',
+        mysql_engine='InnoDB',
     )
     op.create_table(
         'chassis',
@@ -51,8 +51,8 @@ def upgrade():
         sa.Column('description', sa.String(length=255), nullable=True),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('uuid', name='uniq_chassis0uuid'),
-        mysql_ENGINE='InnoDB',
-        mysql_DEFAULT_CHARSET='UTF8'
+        mysql_engine='InnoDB',
+        mysql_charset='UTF8MB3'
     )
     op.create_table(
         'nodes',
@@ -77,8 +77,8 @@ def upgrade():
         sa.ForeignKeyConstraint(['chassis_id'], ['chassis.id'], ),
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('uuid', name='uniq_nodes0uuid'),
-        mysql_ENGINE='InnoDB',
-        mysql_DEFAULT_CHARSET='UTF8'
+        mysql_engine='InnoDB',
+        mysql_charset='UTF8MB3'
     )
     op.create_index('node_instance_uuid', 'nodes', ['instance_uuid'],
                     unique=False)
@@ -95,7 +95,7 @@ def upgrade():
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('address', name='uniq_ports0address'),
         sa.UniqueConstraint('uuid', name='uniq_ports0uuid'),
-        mysql_ENGINE='InnoDB',
-        mysql_DEFAULT_CHARSET='UTF8'
+        mysql_engine='InnoDB',
+        mysql_charset='UTF8MB3'
     )
     # end Alembic commands

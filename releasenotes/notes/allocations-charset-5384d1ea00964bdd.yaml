@@ -1,0 +1,23 @@
+---
+fixes:
+  - |
+    Fixes an missing MySQL/MariaDB character set configuration and default
+    table type encoding for the ``allocations`` database table. Previously,
+    If Ironic's database was attempted to be populated on a machine which
+    was using 4 byte character encoding, such as MySQL/MariaDB on Debian
+    based systems, then the database schema creation would fail.
+upgrade:
+  - This upgrade updates the default character set to utilized in the
+    database tables when using MySQL/MariaDB. Previously, the default
+    for Ironic was ``UTF8``, however we now explicitly set ``UTF8MB3``
+    which is short for "3 byte UTF8" encoding. The exception to this
+    is the ``allocations`` table, which would just rely upon the database
+    default. This was done as Ironic's database schema is incompatible
+    with MySQL/MariaDB's ``UTF8MB4``, or "4 byte UTF8" character encoding
+    and storage constraints.
+  - Upgrading will change the default chracter encoding of all tables.
+    For most tables, this should be an effective noop, but may result in
+    transitory table locks. For the ``allocations`` table, it will need to
+    be re-written, during which the database engine will have locked the
+    table from being used. Operators are advised to perform test upgrades
+    and set expectation and upgrade plans accordingly.

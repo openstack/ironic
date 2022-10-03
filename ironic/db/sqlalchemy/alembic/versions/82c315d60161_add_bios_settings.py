@@ -37,6 +37,6 @@ def upgrade():
         sa.Column('version', sa.String(length=15), nullable=True),
         sa.ForeignKeyConstraint(['node_id'], ['nodes.id'], ),
         sa.PrimaryKeyConstraint('node_id', 'name'),
-        mysql_ENGINE='InnoDB',
-        mysql_DEFAULT_CHARSET='UTF8'
+        mysql_engine='InnoDB',
+        mysql_charset='UTF8MB3'
     )

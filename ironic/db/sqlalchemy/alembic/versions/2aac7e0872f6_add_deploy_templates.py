@@ -39,8 +39,8 @@ def upgrade():
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('uuid', name='uniq_deploytemplates0uuid'),
         sa.UniqueConstraint('name', name='uniq_deploytemplates0name'),
-        mysql_ENGINE='InnoDB',
-        mysql_DEFAULT_CHARSET='UTF8'
+        mysql_engine='InnoDB',
+        mysql_charset='UTF8MB3'
     )
 
     op.create_table(
@@ -62,6 +62,6 @@ def upgrade():
         sa.Index('deploy_template_id', 'deploy_template_id'),
         sa.Index('deploy_template_steps_interface_idx', 'interface'),
         sa.Index('deploy_template_steps_step_idx', 'step'),
-        mysql_ENGINE='InnoDB',
-        mysql_DEFAULT_CHARSET='UTF8'
+        mysql_engine='InnoDB',
+        mysql_charset='UTF8MB3'
     )
