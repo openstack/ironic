@@ -20,12 +20,12 @@ import os
 from oslo_log import log as logging
 from oslo_utils import importutils
 from oslo_utils import strutils
-from packaging import version
 
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
 from ironic.conf import CONF
+import ironic.drivers.modules.irmc.packaging_version as version
 
 scci = importutils.try_import('scciclient.irmc.scci')
 elcm = importutils.try_import('scciclient.irmc.elcm')
