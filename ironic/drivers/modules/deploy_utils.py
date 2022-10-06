@@ -1301,6 +1301,32 @@ def set_async_step_flags(node, reboot=None, skip_current_step=None,
     node.save()
 
 
+def prepare_agent_boot(task):
+    """Prepare booting the agent on the node.
+
+    :param task: a TaskManager instance.
+    """
+    deploy_opts = build_agent_options(task.node)
+    task.driver.boot.prepare_ramdisk(task, deploy_opts)
+
+
+def reboot_to_finish_step(task):
+    """Reboot the node into IPA to finish a deploy/clean step.
+
+    :param task: a TaskManager instance.
+    :returns: states.CLEANWAIT if cleaning operation in progress
+              or states.DEPLOYWAIT if deploy operation in progress.
+    """
+    if manager_utils.is_fast_track(task):
+        LOG.debug('Forcing power off on node %s for a clean reboot into '
+                  'the agent image', task.node)
+        manager_utils.node_power_action(task, states.POWER_OFF)
+    prepare_agent_boot(task)
+
+    manager_utils.node_power_action(task, states.REBOOT)
+    return get_async_step_return_state(task.node)
+
+
 def get_root_device_for_deploy(node):
     """Get a root device requested for deployment or None.
 
