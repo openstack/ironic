@@ -1132,6 +1132,45 @@ class IloPXEBootTestCase(test_common.BaseIloTest):
             self.assertIsNone(task.node.driver_internal_info.get(
                               'ilo_uefi_iscsi_boot'))
 
+    @mock.patch.object(ilo_boot, 'prepare_node_for_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'get_boot_option', autospec=True)
+    @mock.patch.object(deploy_utils, 'is_iscsi_boot',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', spec_set=True,
+                       autospec=True)
+    def _test_prepare_instance_anaconda(self, pxe_prepare_instance_mock,
+                                        update_boot_mode_mock,
+                                        get_boot_mode_mock,
+                                        is_iscsi_boot_mock,
+                                        mock_get_boot_opt,
+                                        mock_prep_node_fr_deploy, prov_state):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = prov_state
+            mock_get_boot_opt.return_value = 'kickstart'
+            is_iscsi_boot_mock.return_value = False
+            get_boot_mode_mock.return_value = 'uefi'
+            task.driver.boot.prepare_instance(task)
+            update_boot_mode_mock.assert_called_once_with(task)
+            pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
+            self.assertIsNone(task.node.driver_internal_info.get(
+                              'ilo_uefi_iscsi_boot'))
+            mock_prep_node_fr_deploy.assert_called_once_with(task)
+
+    def test_prepare_instance_anaconda_deploying(self):
+        self._test_prepare_instance_anaconda(prov_state=states.DEPLOYING)
+
+    def test_prepare_instance_anaconda_rescuing(self):
+        self._test_prepare_instance_anaconda(prov_state=states.RESCUING)
+
+    def test_prepare_instance_anaconda_cleaning(self):
+        self._test_prepare_instance_anaconda(prov_state=states.CLEANING)
+
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
@@ -1298,6 +1337,45 @@ class IloiPXEBootTestCase(test_common.BaseIloTest):
             pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
             self.assertIsNone(task.node.driver_internal_info.get(
                               'ilo_uefi_iscsi_boot'))
+
+    @mock.patch.object(ilo_boot, 'prepare_node_for_deploy', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'get_boot_option', autospec=True)
+    @mock.patch.object(deploy_utils, 'is_iscsi_boot',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ilo_common, 'update_boot_mode', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(ipxe.iPXEBoot, 'prepare_instance', spec_set=True,
+                       autospec=True)
+    def _test_prepare_instance_anaconda(self, pxe_prepare_instance_mock,
+                                        update_boot_mode_mock,
+                                        get_boot_mode_mock,
+                                        is_iscsi_boot_mock,
+                                        mock_get_boot_opt,
+                                        mock_prep_node_fr_deploy, prov_state):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.node.provision_state = prov_state
+            mock_get_boot_opt.return_value = 'kickstart'
+            is_iscsi_boot_mock.return_value = False
+            get_boot_mode_mock.return_value = 'uefi'
+            task.driver.boot.prepare_instance(task)
+            update_boot_mode_mock.assert_called_once_with(task)
+            pxe_prepare_instance_mock.assert_called_once_with(mock.ANY, task)
+            self.assertIsNone(task.node.driver_internal_info.get(
+                              'ilo_uefi_iscsi_boot'))
+            mock_prep_node_fr_deploy.assert_called_once_with(task)
+
+    def test_prepare_instance_anaconda_deploying(self):
+        self._test_prepare_instance_anaconda(prov_state=states.DEPLOYING)
+
+    def test_prepare_instance_anaconda_rescuing(self):
+        self._test_prepare_instance_anaconda(prov_state=states.RESCUING)
+
+    def test_prepare_instance_anaconda_cleaning(self):
+        self._test_prepare_instance_anaconda(prov_state=states.CLEANING)
 
     @mock.patch.object(deploy_utils, 'is_iscsi_boot',
                        spec_set=True, autospec=True)

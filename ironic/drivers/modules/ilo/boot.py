@@ -604,6 +604,12 @@ class IloPXEBoot(pxe.PXEBoot):
         else:
             # Volume boot in BIOS boot mode is handled using
             # PXE boot interface
+            boot_option = deploy_utils.get_boot_option(task.node)
+            if boot_option == "kickstart":
+                if task.node.provision_state in (states.DEPLOYING,
+                                                 states.RESCUING,
+                                                 states.CLEANING):
+                    prepare_node_for_deploy(task)
             super(IloPXEBoot, self).prepare_instance(task)
 
     @METRICS.timer('IloPXEBoot.clean_up_instance')
@@ -696,6 +702,12 @@ class IloiPXEBoot(ipxe.iPXEBoot):
         else:
             # Volume boot in BIOS boot mode is handled using
             # PXE boot interface
+            boot_option = deploy_utils.get_boot_option(task.node)
+            if boot_option == "kickstart":
+                if task.node.provision_state in (states.DEPLOYING,
+                                                 states.RESCUING,
+                                                 states.CLEANING):
+                    prepare_node_for_deploy(task)
             super(IloiPXEBoot, self).prepare_instance(task)
 
     @METRICS.timer('IloiPXEBoot.clean_up_instance')

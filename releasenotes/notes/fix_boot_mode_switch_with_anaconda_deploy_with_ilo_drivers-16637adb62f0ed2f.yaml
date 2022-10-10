@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Enables boot mode switching during anaconda deploy for ``ilo``
+    and ``ilo5`` hardware types.
