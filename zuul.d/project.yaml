@@ -12,31 +12,31 @@
         - ironic-standalone
         - ironic-tempest-functional-python3
         - ironic-tempest-partition-bios-redfish-pxe
-        - ironic-tempest-partition-uefi-redfish-vmedia
-        - ironic-tempest-ipa-partition-pxe_ipmitool
-        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
-        - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
-        - ironic-tempest-bfv
+        # - ironic-tempest-partition-uefi-redfish-vmedia
+        # - ironic-tempest-ipa-partition-pxe_ipmitool
+        # - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+        # - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
+        # - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
+        # - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-localboot-centos7
         # Non-voting jobs
         - ironic-tox-bandit:
             voting: false
-        - ironic-tempest-ipa-wholedisk-bios-pxe_snmp:
-            voting: false
-        - ironic-inspector-tempest:
-            voting: false
-        - ironic-inspector-tempest-managed:
-            voting: false
-        - ironic-inspector-tempest-partition-bios-redfish-vmedia:
-            voting: false
-        - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
-            voting: false
-        - bifrost-integration-tinyipa-ubuntu-bionic:
-            voting: false
-        - ironic-tempest-pxe_ipmitool-postgres:
-            voting: false
+        # - ironic-tempest-ipa-wholedisk-bios-pxe_snmp:
+        #     voting: false
+        # - ironic-inspector-tempest:
+        #     voting: false
+        # - ironic-inspector-tempest-managed:
+        #     voting: false
+        # - ironic-inspector-tempest-partition-bios-redfish-vmedia:
+        #     voting: false
+        # - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
+        #     voting: false
+        # - bifrost-integration-tinyipa-ubuntu-bionic:
+        #     voting: false
+        # - ironic-tempest-pxe_ipmitool-postgres:
+        #    voting: false
         # NOTE(TheJulia): Marking non-voting as CI memory changes
         # means this job is unlikely to work without changing the base
         # ramdisk OS.
@@ -57,14 +57,14 @@
         - ironic-standalone
         - ironic-tempest-functional-python3
         - ironic-tempest-partition-bios-redfish-pxe
-        - ironic-tempest-partition-uefi-redfish-vmedia
-        - ironic-tempest-ipa-partition-pxe_ipmitool
+        # - ironic-tempest-partition-uefi-redfish-vmedia
+        # - ironic-tempest-ipa-partition-pxe_ipmitool
         # Removing from voting due to memory consumption
         # - ironic-tempest-ipa-partition-uefi-pxe_ipmitool
-        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
-        - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
-        - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
-        - ironic-tempest-bfv
+        # - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+        # - ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-indirect
+        # - ironic-tempest-ipa-partition-bios-agent_ipmitool-indirect
+        # - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-localboot-centos7
     experimental:
