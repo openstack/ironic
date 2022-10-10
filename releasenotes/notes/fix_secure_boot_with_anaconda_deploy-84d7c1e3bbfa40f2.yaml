@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Fixes secure boot with anaconda deploy.

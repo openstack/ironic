@@ -550,6 +550,8 @@ class PXEBootTestCase(db_base.DbTestCase):
     def test_prepare_instance_ramdisk_pxe_conf_exists(self):
         self._test_prepare_instance_ramdisk(config_file_exits=False)
 
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
+                       autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
@@ -567,7 +569,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             self, exec_mock, write_file_mock, render_mock, api_url_mock,
             boot_opt_mock, get_image_info_mock, cache_mock, dhcp_factory_mock,
             create_pxe_config_mock, switch_pxe_config_mock,
-            set_boot_device_mock):
+            set_boot_device_mock, mock_conf_sec_boot):
         image_info = {'kernel': ['ins_kernel_id', '/path/to/kernel'],
                       'ramdisk': ['ins_ramdisk_id', '/path/to/ramdisk'],
                       'stage2': ['ins_stage2_id', '/path/to/stage2'],
@@ -611,6 +613,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)
+            self.assertFalse(mock_conf_sec_boot.called)
 
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
@@ -787,11 +790,13 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
             mock_prepare_instance.assert_called_once_with(mock.ANY, task)
 
     @mock.patch.object(dhcp_factory.DHCPFactory, 'clean_dhcp', autospec=True)
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
+                       autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_env', autospec=True)
     @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     def test_reboot_to_instance(self, mock_set_boot_dev, mock_image_info,
-                                mock_cleanup_pxe_env,
+                                mock_cleanup_pxe_env, mock_conf_sec_boot,
                                 mock_dhcp):
         image_info = {'kernel': ('', '/path/to/kernel'),
                       'ramdisk': ('', '/path/to/ramdisk'),
@@ -804,6 +809,7 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.driver.deploy.reboot_to_instance(task)
             mock_set_boot_dev.assert_called_once_with(task, boot_devices.DISK)
+            mock_conf_sec_boot.assert_called_once_with(task)
             mock_cleanup_pxe_env.assert_called_once_with(task, image_info,
                                                          ipxe_enabled=False)
             mock_dhcp.assert_has_calls([
