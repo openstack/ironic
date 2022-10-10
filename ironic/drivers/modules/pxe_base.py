@@ -231,11 +231,12 @@ class PXEBaseMixin(object):
         :returns: None
         """
         boot_mode_utils.sync_boot_mode(task)
-        boot_mode_utils.configure_secure_boot_if_needed(task)
-
         node = task.node
-        boot_option = deploy_utils.get_boot_option(node)
         boot_device = None
+        boot_option = deploy_utils.get_boot_option(node)
+        if boot_option != "kickstart":
+            boot_mode_utils.configure_secure_boot_if_needed(task)
+
         instance_image_info = {}
         if boot_option == "ramdisk" or boot_option == "kickstart":
             instance_image_info = pxe_utils.get_instance_image_info(
