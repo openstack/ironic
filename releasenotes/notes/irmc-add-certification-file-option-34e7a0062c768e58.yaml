@@ -10,9 +10,3 @@ security:
     python-scciclient version must be one of >=0.8.2,<0.9.0, >=0.9.4,<0.10.0,
     >=0.10.1,<0.11.0, >=0.11.3,<0.12.0 or >=0.12.0,<0.13.0
     Or certificate verification will not occur.
-upgrade:
-  - |
-    On Yoga release, to use certification file on HTTPS connection,
-    iRMC driver requires python-scciclient version to be one of >=0.8.2,<0.9.0,
-    >=0.9.4,<0.10.0, >=0.10.1,<0.11.0, >=0.11.3,<0.12.0 or >=0.12.0,<0.13.0
-    and packaging >=16.5
