@@ -2203,18 +2203,16 @@ class ConductorManager(base_manager.BaseConductorManager):
         """
         LOG.debug('RPC set_console_mode called for node %(node)s with '
                   'enabled %(enabled)s', {'node': node_id, 'enabled': enabled})
-
-        with task_manager.acquire(context, node_id, shared=False,
+        with task_manager.acquire(context, node_id, shared=True,
                                   purpose='setting console mode') as task:
             node = task.node
-
             task.driver.console.validate(task)
-
             if enabled == node.console_enabled:
                 op = 'enabled' if enabled else 'disabled'
                 LOG.info("No console action was triggered because the "
                          "console is already %s", op)
             else:
+                task.upgrade_lock()
                 node.last_error = None
                 node.save()
                 task.spawn_after(self._spawn_worker,
@@ -3469,7 +3467,6 @@ class ConductorManager(base_manager.BaseConductorManager):
                                                            self.conductor.id):
                         # Another conductor has taken over, skipping
                         continue
-
                     LOG.debug('Taking over allocation %s', allocation.uuid)
                     allocations.do_allocate(context, allocation)
                 except Exception:

@@ -19,9 +19,11 @@ import datetime
 import json
 import threading
 
+from oslo_concurrency import lockutils
 from oslo_db import api as oslo_db_api
 from oslo_db import exception as db_exc
 from oslo_db.sqlalchemy import enginefacade
+from oslo_db.sqlalchemy import orm as sa_orm
 from oslo_db.sqlalchemy import utils as db_utils
 from oslo_log import log
 from oslo_utils import netutils
@@ -53,6 +55,10 @@ LOG = log.getLogger(__name__)
 
 _CONTEXT = threading.local()
 
+
+RESERVATION_SEMAPHORE = "reserve_node_db_lock"
+synchronized = lockutils.synchronized_with_prefix('ironic-')
+
 # NOTE(mgoddard): We limit the number of traits per node to 50 as this is the
 # maximum number of traits per resource provider allowed in placement.
 MAX_TRAITS_PER_NODE = 50
@@ -83,6 +89,11 @@ def _wrap_session(session):
 def _get_node_query_with_all_for_single_node():
     """Return a query object for the Node joined with all relevant fields.
 
+    Deprecated: This method, while useful, returns a "Legacy Query" object
+    which, while useful is considered a legacy object from SQLAlchemy
+    which at some point may be removed. SQLAlchemy encourages all users
+    to move to the unified ORM/Core Select interface.
+
     This method utilizes a joined load query which creates a result set
     where corresponding traits, and tags, are joined together in the result
     set.
@@ -109,9 +120,10 @@ def _get_node_query_with_all_for_single_node():
 
     Where joins are super in-efficent for Ironic, is where nodes are being
     enumerated, as the above result set pattern is not just for one node, but
-    potentially thousands of nodes. In that case, we should use the
-    _get_node_query_with_all_for_list helper to return a more appropriate
-    query object which will be more efficient for the end user.
+    potentially thousands of nodes. Please consider using _get_node_select
+    which results in a primary query for the nodes, and then performs
+    additional targeted queries for the joined tables, as opposed to
+    performing client side de-duplication.
 
     :returns: a query object.
     """
@@ -131,45 +143,33 @@ def _get_node_query_with_all_for_single_node():
             .options(joinedload('traits')))
 
 
-def _get_node_query_with_all_for_list():
-    """Return a query object for the Node with queried extra fields.
+def _get_node_select():
+    """Returns a SQLAlchemy Select Object for Nodes.
 
-    This method returns a query object joining tags and traits in a pattern
-    where the result set is first built, and then the resulting associations
-    are queried separately and the objects are reconciled by SQLAlchemy to
-    build the composite objects based upon the associations.
+    This method returns a pre-formatted select object which models
+    the entire Node object, allowing callers to operate on a node like
+    they would have with an SQLAlchemy ORM Query Object.
 
-    This results in the following query pattern when the query is executed:
+    This object *also* performs two additional select queries, in the form
+    of a selectin operation, to achieve the same results of a Join query,
+    but without the join query itself, and the client side load.
 
-    select $fields from nodes where x;
-    # SQLAlchemy creates a list of associated node IDs.
-    select $fields from tags where node_id in ('1', '3', '37268');
-    select $fields from traits where node_id in ('1', '3', '37268');
+    This method is best utilized when retrieving lists of nodes.
 
-    SQLAlchemy then returns a result set where the tags and traits are
-    composited together efficently as opposed to having to deduplicate
-    the result set. This shifts additional load to the database which
-    was previously a high overhead operation with-in the conductor...
-    which results in a slower conductor.
+    Select objects in this fashion were  added as a result of SQLAlchemy 1.4
+    in preparation for SQLAlchemy 2.0's release to provide a unified
+    select interface.
 
-    :returns: a query object.
+    :returns: a select object
     """
-    # NOTE(TheJulia): When comparing CI rubs *with* this being the default
-    # for all general list operations, at 10k nodes, this pattern appears
-    # to be on-par with a 5% variability between the two example benchmark
-    # tests. That being said, the test *does* not include tags or traits
-    # in it's test data set so client side deduplication is not measured.
 
-    # NOTE(TheJulia): Basic benchmark difference
-    # tests data creation: 67.117 seconds
-    # 2.32 seconds to obtain all nodes from SQLAlchemy (10k nodes)
-    # 4.99 seconds to obtain all nodes *and* have node objects (10k nodes)
-    # If this holds true, the required record deduplication with joinedload
-    # may be basically the same amount of overhead as requesting the tags
-    # and traits separately.
-    return (model_query(models.Node)
-            .options(selectinload('tags'))
-            .options(selectinload('traits')))
+    # NOTE(TheJulia): This returns a query in the SQLAlchemy 1.4->2.0
+    # migration style as query model loading is deprecated.
+
+    # This must use selectinload to avoid later need to invokededuplication.
+    return (sa.select(models.Node)
+            .options(selectinload(models.Node.tags),
+                     selectinload(models.Node.traits)))
 
 
 def _get_deploy_template_query_with_steps():
@@ -332,8 +332,10 @@ def add_allocation_filter_by_conductor(query, value):
 
 
 def _paginate_query(model, limit=None, marker=None, sort_key=None,
-                    sort_dir=None, query=None):
-    if not query:
+                    sort_dir=None, query=None, return_base_tuple=False):
+    # NOTE(TheJulia): We can't just ask for the bool of query if it is
+    # populated, so we need to ask if it is None.
+    if query is None:
         query = model_query(model)
     sort_keys = ['id']
     if sort_key and sort_key not in sort_keys:
@@ -345,7 +347,28 @@ def _paginate_query(model, limit=None, marker=None, sort_key=None,
         raise exception.InvalidParameterValue(
             _('The sort_key value "%(key)s" is an invalid field for sorting')
             % {'key': sort_key})
-    return query.all()
+    with _session_for_read() as session:
+        # NOTE(TheJulia): SQLAlchemy 2.0 no longer returns pre-uniqued result
+        # sets in ORM mode, so we need to explicitly ask for it to be unique
+        # before returning it to the caller.
+        if isinstance(query, sa_orm.Query):
+            # The classic ORM query object result set which is deprecated
+            # in advance of SQLAlchemy 2.0.
+            return query.all()
+        else:
+            # In this case, we have a sqlalchemy.sql.selectable.Select
+            # (most likely) which utilizes the unified select interface.
+            res = session.execute(query).fetchall()
+            if len(res) == 0:
+                # Return an empty list instead of a class with no objects.
+                return []
+            if return_base_tuple:
+                # The caller expects a tuple, lets just give it to them.
+                return res
+            # Everything is a tuple in a resultset from the unified interface
+            # but for objects, our model expects just object access,
+            # so we extract and return them.
+            return [r[0] for r in res]
 
 
 def _filter_active_conductors(query, interval=None):
@@ -514,15 +537,16 @@ class Connection(api.Connection):
         else:
             columns = [getattr(models.Node, c) for c in columns]
 
-        query = model_query(*columns, base_model=models.Node)
+        query = sa.select(*columns)
         query = self._add_nodes_filters(query, filters)
         return _paginate_query(models.Node, limit, marker,
-                               sort_key, sort_dir, query)
+                               sort_key, sort_dir, query,
+                               return_base_tuple=True)
 
     def get_node_list(self, filters=None, limit=None, marker=None,
                       sort_key=None, sort_dir=None, fields=None):
         if not fields:
-            query = _get_node_query_with_all_for_list()
+            query = _get_node_select()
             query = self._add_nodes_filters(query, filters)
             return _paginate_query(models.Node, limit, marker,
                                    sort_key, sort_dir, query)
@@ -559,24 +583,25 @@ class Connection(api.Connection):
             # with SQLAlchemy.
             traits_found = True
             use_columns.remove('traits')
-
         # Generate the column object list so SQLAlchemy only fulfills
         # the requested columns.
         use_columns = [getattr(models.Node, c) for c in use_columns]
-
         # In essence, traits (and anything else needed to generate the
         # composite objects) need to be reconciled without using a join
         # as multiple rows can be generated in the result set being returned
         # from the database server. In this case, with traits, we use
         # a selectinload pattern.
         if traits_found:
-            query = model_query(models.Node).options(
-                Load(models.Node).load_only(*use_columns),
-                selectinload(models.Node.traits))
+            query = sa.select(models.Node).options(
+                selectinload(models.Node.traits),
+                Load(models.Node).load_only(*use_columns)
+            )
         else:
-            query = model_query(models.Node).options(
-                Load(models.Node).load_only(*use_columns))
-
+            # Note for others, if you ask for a whole model, it is
+            # modeled, i.e. you can access it as an object.
+            query = sa.select(models.NodeBase).options(
+                Load(models.Node).load_only(*use_columns)
+            )
         query = self._add_nodes_filters(query, filters)
         return _paginate_query(models.Node, limit, marker,
                                sort_key, sort_dir, query)
@@ -618,40 +643,85 @@ class Connection(api.Connection):
 
         return mapping
 
+    @synchronized(RESERVATION_SEMAPHORE, fair=True)
+    def _reserve_node_place_lock(self, tag, node_id, node):
+        try:
+            # NOTE(TheJulia): We explicitly do *not* synch the session
+            # so the other actions in the conductor do not become aware
+            # that the lock is in place and believe they hold the lock.
+            # This necessitates an overall lock in the code side, so
+            # we avoid conditions where two separate threads can believe
+            # they hold locks at the same time.
+            with _session_for_write() as session:
+                res = session.execute(
+                    sa.update(models.Node).
+                    where(models.Node.id == node.id).
+                    where(models.Node.reservation == None).  # noqa
+                    values(reservation=tag).
+                    execution_options(synchronize_session=False))
+                session.flush()
+            node = self._get_node_by_id_no_joins(node.id)
+            # NOTE(TheJulia): In SQLAlchemy 2.0 style, we don't
+            # magically get a changed node as they moved from the
+            # many ways to do things to singular ways to do things.
+            if res.rowcount != 1:
+                # Nothing updated and node exists. Must already be
+                # locked.
+                raise exception.NodeLocked(node=node.uuid,
+                                           host=node.reservation)
+        except NoResultFound:
+            # In the event that someone has deleted the node on
+            # another thread.
+            raise exception.NodeNotFound(node=node_id)
+
     @oslo_db_api.retry_on_deadlock
     def reserve_node(self, tag, node_id):
-        with _session_for_write():
-            query = _get_node_query_with_all_for_single_node()
-            query = add_identity_filter(query, node_id)
-            count = query.filter_by(reservation=None).update(
-                {'reservation': tag}, synchronize_session=False)
+        with _session_for_read():
             try:
+                # TODO(TheJulia): Figure out a good way to query
+                # this so that we do it as light as possible without
+                # the full object invocation, which will speed lock
+                # activities. Granted, this is all at the DB level
+                # so maybe that is okay in the grand scheme of things.
+                query = model_query(models.Node)
+                query = add_identity_filter(query, node_id)
                 node = query.one()
-                if count != 1:
-                    # Nothing updated and node exists. Must already be
-                    # locked.
-                    raise exception.NodeLocked(node=node.uuid,
-                                               host=node['reservation'])
-                return node
             except NoResultFound:
                 raise exception.NodeNotFound(node=node_id)
+            if node.reservation:
+                # Fail fast, instead of attempt the update.
+                raise exception.NodeLocked(node=node.uuid,
+                                           host=node.reservation)
+        self._reserve_node_place_lock(tag, node_id, node)
+        # Return a node object as that is the contract for this method.
+        return self.get_node_by_id(node.id)
 
     @oslo_db_api.retry_on_deadlock
     def release_node(self, tag, node_id):
-        with _session_for_write():
-            query = model_query(models.Node)
-            query = add_identity_filter(query, node_id)
-            # be optimistic and assume we usually release a reservation
-            count = query.filter_by(reservation=tag).update(
-                {'reservation': None}, synchronize_session=False)
+        with _session_for_read():
             try:
-                if count != 1:
-                    node = query.one()
-                    if node['reservation'] is None:
+                query = model_query(models.Node)
+                query = add_identity_filter(query, node_id)
+                node = query.one()
+            except NoResultFound:
+                raise exception.NodeNotFound(node=node_id)
+        with _session_for_write() as session:
+            try:
+                res = session.execute(
+                    sa.update(models.Node).
+                    where(models.Node.id == node.id).
+                    where(models.Node.reservation == tag).
+                    values(reservation=None).
+                    execution_options(synchronize_session=False)
+                )
+                node = self.get_node_by_id(node.id)
+                if res.rowcount != 1:
+                    if node.reservation is None:
                         raise exception.NodeNotLocked(node=node.uuid)
                     else:
                         raise exception.NodeLocked(node=node.uuid,
                                                    host=node['reservation'])
+                session.flush()
             except NoResultFound:
                 raise exception.NodeNotFound(node=node_id)
 
@@ -677,47 +747,68 @@ class Connection(api.Connection):
 
         node = models.Node()
         node.update(values)
-        with _session_for_write() as session:
-            try:
+        try:
+            with _session_for_write() as session:
                 session.add(node)
+                # Set tags & traits to [] for new created node
+                # NOTE(mgoddard): We need to set the tags and traits fields in
+                # the session context, otherwise SQLAlchemy will try and fail
+                # to lazy load the attributes, resulting in an exception being
+                # raised.
+                node['tags'] = []
+                node['traits'] = []
                 session.flush()
-            except db_exc.DBDuplicateEntry as exc:
-                if 'name' in exc.columns:
-                    raise exception.DuplicateName(name=values['name'])
-                elif 'instance_uuid' in exc.columns:
-                    raise exception.InstanceAssociated(
-                        instance_uuid=values['instance_uuid'],
-                        node=values['uuid'])
-                raise exception.NodeAlreadyExists(uuid=values['uuid'])
-            # Set tags & traits to [] for new created node
-            # NOTE(mgoddard): We need to set the tags and traits fields in the
-            # session context, otherwise SQLAlchemy will try and fail to lazy
-            # load the attributes, resulting in an exception being raised.
-            node['tags'] = []
-            node['traits'] = []
+        except db_exc.DBDuplicateEntry as exc:
+            if 'name' in exc.columns:
+                raise exception.DuplicateName(name=values['name'])
+            elif 'instance_uuid' in exc.columns:
+                raise exception.InstanceAssociated(
+                    instance_uuid=values['instance_uuid'],
+                    node=values['uuid'])
+            raise exception.NodeAlreadyExists(uuid=values['uuid'])
         return node
 
-    def get_node_by_id(self, node_id):
-        query = _get_node_query_with_all_for_single_node()
-        query = query.filter_by(id=node_id)
+    def _get_node_by_id_no_joins(self, node_id):
+        # TODO(TheJulia): Maybe replace with this with a minimal
+        # "get these three fields" thing.
         try:
-            return query.one()
+            with _session_for_read() as session:
+                # Explicitly load NodeBase as the invocation of the
+                # priamary model object reesults in the join query
+                # triggering.
+                return session.execute(
+                    sa.select(models.NodeBase).filter_by(id=node_id).limit(1)
+                ).scalars().first()
+        except NoResultFound:
+            raise exception.NodeNotFound(node=node_id)
+
+    def get_node_by_id(self, node_id):
+        try:
+            query = _get_node_select()
+            with _session_for_read() as session:
+                return session.scalars(
+                    query.filter_by(id=node_id).limit(1)
+                ).unique().one()
         except NoResultFound:
             raise exception.NodeNotFound(node=node_id)
 
     def get_node_by_uuid(self, node_uuid):
-        query = _get_node_query_with_all_for_single_node()
-        query = query.filter_by(uuid=node_uuid)
         try:
-            return query.one()
+            query = _get_node_select()
+            with _session_for_read() as session:
+                return session.scalars(
+                    query.filter_by(uuid=node_uuid).limit(1)
+                ).unique().one()
         except NoResultFound:
             raise exception.NodeNotFound(node=node_uuid)
 
     def get_node_by_name(self, node_name):
-        query = _get_node_query_with_all_for_single_node()
-        query = query.filter_by(name=node_name)
         try:
-            return query.one()
+            query = _get_node_select()
+            with _session_for_read() as session:
+                return session.scalars(
+                    query.filter_by(name=node_name).limit(1)
+                ).unique().one()
         except NoResultFound:
             raise exception.NodeNotFound(node=node_name)
 
@@ -725,15 +816,14 @@ class Connection(api.Connection):
         if not uuidutils.is_uuid_like(instance):
             raise exception.InvalidUUID(uuid=instance)
 
-        query = _get_node_query_with_all_for_single_node()
-        query = query.filter_by(instance_uuid=instance)
-
         try:
-            result = query.one()
+            query = _get_node_select()
+            with _session_for_read() as session:
+                return session.scalars(
+                    query.filter_by(instance_uuid=instance).limit(1)
+                ).unique().one()
         except NoResultFound:
-            raise exception.InstanceNotFound(instance=instance)
-
-        return result
+            raise exception.InstanceNotFound(instance_uuid=instance)
 
     @oslo_db_api.retry_on_deadlock
     def destroy_node(self, node_id):
@@ -849,6 +939,9 @@ class Connection(api.Connection):
             # Return the updated node model joined with all relevant fields.
             query = _get_node_query_with_all_for_single_node()
             query = add_identity_filter(query, node_id)
+            # FIXME(TheJulia): This entire method needs to be re-written to
+            # use the proper execution format for SQLAlchemy 2.0. Likely
+            # A query, independent update, and a re-query on the transaction.
             return query.one()
 
     def get_port_by_id(self, port_id):
@@ -925,15 +1018,15 @@ class Connection(api.Connection):
 
         port = models.Port()
         port.update(values)
-        with _session_for_write() as session:
-            try:
+        try:
+            with _session_for_write() as session:
                 session.add(port)
                 session.flush()
-            except db_exc.DBDuplicateEntry as exc:
-                if 'address' in exc.columns:
-                    raise exception.MACAlreadyExists(mac=values['address'])
-                raise exception.PortAlreadyExists(uuid=values['uuid'])
-            return port
+        except db_exc.DBDuplicateEntry as exc:
+            if 'address' in exc.columns:
+                raise exception.MACAlreadyExists(mac=values['address'])
+            raise exception.PortAlreadyExists(uuid=values['uuid'])
+        return port
 
     @oslo_db_api.retry_on_deadlock
     def update_port(self, port_id, values):
@@ -1110,13 +1203,13 @@ class Connection(api.Connection):
 
         chassis = models.Chassis()
         chassis.update(values)
-        with _session_for_write() as session:
-            try:
+        try:
+            with _session_for_write() as session:
                 session.add(chassis)
                 session.flush()
-            except db_exc.DBDuplicateEntry:
-                raise exception.ChassisAlreadyExists(uuid=values['uuid'])
-            return chassis
+        except db_exc.DBDuplicateEntry:
+            raise exception.ChassisAlreadyExists(uuid=values['uuid'])
+        return chassis
 
     @oslo_db_api.retry_on_deadlock
     def update_chassis(self, chassis_id, values):
@@ -1293,6 +1386,13 @@ class Connection(api.Connection):
     def register_conductor_hardware_interfaces(self, conductor_id, interfaces):
         with _session_for_write() as session:
             try:
+                try:
+                    session.begin()
+                except sa.exc.InvalidRequestError:
+                    # When running unit tests, the transaction reports as
+                    # already started, where as in service startup this is
+                    # the first write op.
+                    pass
                 for iface in interfaces:
                     conductor_hw_iface = models.ConductorHardwareInterfaces()
                     conductor_hw_iface['conductor_id'] = conductor_id
@@ -1388,6 +1488,8 @@ class Connection(api.Connection):
         q = q.filter(models.Port.address.in_(addresses))
 
         try:
+            # FIXME(TheJulia): This needs to be updated to be
+            # an explicit query to identify the node for SQLAlchemy.
             return q.one()
         except NoResultFound:
             raise exception.NodeNotFound(
@@ -1586,6 +1688,8 @@ class Connection(api.Connection):
         if not versions:
             return []
 
+        if model_name == 'Node':
+            model_name = 'NodeBase'
         model = models.get_class(model_name)
 
         # NOTE(rloo): .notin_ does not handle null:
@@ -1614,7 +1718,11 @@ class Connection(api.Connection):
         """
         object_versions = release_mappings.get_object_versions()
         table_missing_ok = False
-        for model in models.Base.__subclasses__():
+        models_to_check = models.Base.__subclasses__()
+        # We need to append Node to the list as it is a subclass of
+        # NodeBase, which is intentional to delineate excess queries.
+        models_to_check.append(models.Node)
+        for model in models_to_check:
             if model.__name__ not in object_versions:
                 continue
 
@@ -1688,8 +1796,9 @@ class Connection(api.Connection):
         mapping = release_mappings.RELEASE_MAPPING['master']['objects']
         total_to_migrate = 0
         total_migrated = 0
-
-        sql_models = [model for model in models.Base.__subclasses__()
+        all_models = models.Base.__subclasses__()
+        all_models.append(models.Node)
+        sql_models = [model for model in all_models
                       if model.__name__ in mapping]
         for model in sql_models:
             version = mapping[model.__name__][0]
@@ -2238,6 +2347,7 @@ class Connection(api.Connection):
                 # Return the updated template joined with all relevant fields.
                 query = _get_deploy_template_query_with_steps()
                 query = add_identity_filter(query, template_id)
+                # FIXME(TheJulia): This needs to be fixed for SQLAlchemy 2.0.
                 return query.one()
         except db_exc.DBDuplicateEntry as e:
             if 'name' in e.columns:
@@ -2260,6 +2370,7 @@ class Connection(api.Connection):
         query = (_get_deploy_template_query_with_steps()
                  .filter_by(**{field: value}))
         try:
+            # FIXME(TheJulia): This needs to be fixed for SQLAlchemy 2.0
             return query.one()
         except NoResultFound:
             raise exception.DeployTemplateNotFound(template=value)

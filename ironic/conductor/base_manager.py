@@ -88,10 +88,14 @@ class BaseConductorManager(object):
         # clear all locks held by this conductor before registering
         self.dbapi.clear_node_reservations_for_conductor(self.host)
 
-    def init_host(self, admin_context=None):
+    def init_host(self, admin_context=None, start_consoles=True,
+                  start_allocations=True):
         """Initialize the conductor host.
 
         :param admin_context: the admin context to pass to periodic tasks.
+        :param start_consoles: If consoles should be started in intialization.
+        :param start_allocations: If allocations should be started in
+                                  initialization.
         :raises: RuntimeError when conductor is already running.
         :raises: NoDriversLoaded when no drivers are enabled on the conductor.
         :raises: DriverNotFound if a driver is enabled that does not exist.
@@ -189,8 +193,9 @@ class BaseConductorManager(object):
 
         # Start consoles if it set enabled in a greenthread.
         try:
-            self._spawn_worker(self._start_consoles,
-                               ironic_context.get_admin_context())
+            if start_consoles:
+                self._spawn_worker(self._start_consoles,
+                                   ironic_context.get_admin_context())
         except exception.NoFreeConductorWorker:
             LOG.warning('Failed to start worker for restarting consoles.')
 
@@ -207,8 +212,9 @@ class BaseConductorManager(object):
 
         # Resume allocations that started before the restart.
         try:
-            self._spawn_worker(self._resume_allocations,
-                               ironic_context.get_admin_context())
+            if start_allocations:
+                self._spawn_worker(self._resume_allocations,
+                                   ironic_context.get_admin_context())
         except exception.NoFreeConductorWorker:
             LOG.warning('Failed to start worker for resuming allocations.')
 
@@ -539,6 +545,7 @@ class BaseConductorManager(object):
             try:
                 with task_manager.acquire(context, node_uuid, shared=False,
                                           purpose='start console') as task:
+
                     notify_utils.emit_console_notification(
                         task, 'console_restore',
                         obj_fields.NotificationStatus.START)

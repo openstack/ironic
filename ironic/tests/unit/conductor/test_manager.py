@@ -7256,7 +7256,7 @@ class DoNodeTakeOverTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                                     mock_take_over,
                                                     mock_start_console,
                                                     mock_notify):
-        self._start_service()
+        self._start_service(start_consoles=False)
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           console_enabled=True)
         di_info = node.driver_internal_info

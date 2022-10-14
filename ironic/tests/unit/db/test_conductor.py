@@ -166,7 +166,9 @@ class DbConductorTestCase(base.DbTestCase):
         c = self._create_test_cdr()
         self.dbapi.touch_conductor(c.hostname)
         self.assertEqual(2, mock_update.call_count)
-        self.assertEqual(2, mock_sleep.call_count)
+        # Count that it was called, but not the number of times
+        # as this is *actually* time.sleep via import from oslo_db.api
+        self.assertTrue(mock_sleep.called)
 
     def test_touch_conductor_not_found(self):
         # A conductor's heartbeat will not create a new record,

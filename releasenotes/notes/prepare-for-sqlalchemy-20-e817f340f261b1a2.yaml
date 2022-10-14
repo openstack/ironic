@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    Ironic has started the process of upgrading the code base to support
+    SQLAlchemy 2.0 in anticipation of it's release. This results in the
+    minimum version of SQLAlchemy becoming 1.4.0 as it contains migration
+    features for the move to SQLAlchemy 2.0.

@@ -91,13 +91,17 @@ class ReleaseMappingsTestCase(base.TestCase):
 
     def test_contains_all_db_objects(self):
         self.assertIn('master', release_mappings.RELEASE_MAPPING)
-        model_names = set((s.__name__ for s in models.Base.__subclasses__()))
+        use_models = models.Base.__subclasses__()
+        use_models.append(models.Node)
+        model_names = set((s.__name__ for s in use_models))
         # NOTE(xek): As a rule, all models which can be changed between
         # releases or are sent through RPC should have their counterpart
         # versioned objects. Do not add an exception for such objects,
         # initialize them with the version 1.0 instead.
+        # NodeBase is also excluded as it is covered by Node.
         exceptions = set(['NodeTag', 'ConductorHardwareInterfaces',
-                          'NodeTrait', 'DeployTemplateStep'])
+                          'NodeTrait', 'DeployTemplateStep',
+                          'NodeBase'])
         model_names -= exceptions
         # NodeTrait maps to two objects
         model_names |= set(['Trait', 'TraitList'])
