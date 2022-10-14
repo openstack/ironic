@@ -125,7 +125,8 @@ You can also run an integration test that an instance is booted from a remote
 volume with tempest in the environment::
 
     cd /opt/stack/tempest
-    tox -e all-plugin -- ironic_tempest_plugin.tests.scenario.test_baremetal_boot_from_volume
+    tox -e venv-tempest -- pip install (path to the ironic-tempest-plugin directory)
+    tox -e all -- ironic_tempest_plugin.tests.scenario.test_baremetal_boot_from_volume
 
 Please note that the storage interface will only indicate errors based upon
 the state of the node and the configuration present. As such a node does not
