@@ -103,8 +103,6 @@ class Checks(upgradecheck.UpgradeCommands):
             return upgradecheck.Result(upgradecheck.Code.SUCCESS)
         res = engine.execute("show create table allocations")
         results = str(res.all()).lower()
-        print('####################################################33')
-        print(results)
         if 'utf8' not in results:
             msg = ('The Allocations table is is not using UTF8 encoding. '
                    'This is corrected in later versions of Ironic, where '
