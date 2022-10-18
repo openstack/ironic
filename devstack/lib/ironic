@@ -1649,14 +1649,8 @@ function configure_client_for {
 
     # NOTE(TheJulia): Below are services which we know, as of late 2021, which support
     # explicit scope based ops *and* have knobs.
-    # Needed: Neutron, swift, nova ?service_catalog?
-    # Neutron - https://review.opendev.org/c/openstack/devstack/+/797450
 
     if [[ "$service_config_section" == "inspector" ]] && [[ "$IRONIC_INSPECTOR_ENFORCE_SCOPE" == "True" ]]; then
-        use_system_scope="True"
-    elif [[ "$service_config_section" == "cinder" ]] && [[ "${CINDER_ENFORCE_SCOPE:-False}" == "True" ]]; then
-        use_system_scope="True"
-    elif [[ "$service_config_section" == "glance" ]] && [[ "${GLANCE_ENFORCE_SCOPE:-False}" == "True" ]]; then
         use_system_scope="True"
     fi
 
