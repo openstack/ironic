@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Adds ``sha256``, ``sha384`` and ``sha512`` as supported SNMPv3
+    authentication protocols to iRMC driver.
