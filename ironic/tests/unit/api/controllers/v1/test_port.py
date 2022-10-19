@@ -197,7 +197,22 @@ class TestPortsController__GetPortsCollection(base.TestCase):
                                               resource_url='ports')
         mock_list.assert_called_once_with('fake-context', 1000, None,
                                           project=None, sort_dir='asc',
-                                          sort_key=None, filters={})
+                                          sort_key=None, conductor_groups=None,
+                                          filters={})
+
+    def test__get_ports_collection_conductor_groups(self, mock_request,
+                                                    mock_list):
+        mock_request.context = 'fake-context'
+        mock_list.return_value = []
+        self.controller._get_ports_collection(None, None, None, None, None,
+                                              None, None, 'asc',
+                                              resource_url='ports',
+                                              conductor_groups=['foo'])
+        mock_list.assert_called_once_with('fake-context', 1000, None,
+                                          project=None, sort_dir='asc',
+                                          sort_key=None,
+                                          conductor_groups=['foo'],
+                                          filters={})
 
 
 @mock.patch.object(objects.Port, 'get_by_address', autospec=True)
@@ -1170,6 +1185,44 @@ class TestListPortsByShard(test_api_base.BaseApiTest):
         self.assertEqual(2, len(res['ports']))
         self.assertNotEqual(res['ports'][0]['address'], bad_shard_address)
         self.assertNotEqual(res['ports'][1]['address'], bad_shard_address)
+
+    def test_get_all_by_conductor_groups(self):
+        # Get /v1/ports with filter on conductor group
+        node_a = obj_utils.create_test_node(self.context,
+                                            uuid=uuidutils.generate_uuid(),
+                                            conductor_group='group_a')
+        node_b = obj_utils.create_test_node(self.context,
+                                            uuid=uuidutils.generate_uuid(),
+                                            conductor_group='group_b')
+        uuids_group_a = []
+        uuids_group_b = []
+        for i in range(0, 2):
+            port = obj_utils.create_test_port(self.context,
+                                              node_id=node_a.id,
+                                              uuid=uuidutils.generate_uuid(),
+                                              address='52:54:00:cf:2d:3%s' % i)
+            uuids_group_a.append(port.uuid)
+        for i in range(3, 6):
+            port = obj_utils.create_test_port(self.context,
+                                              node_id=node_b.id,
+                                              uuid=uuidutils.generate_uuid(),
+                                              address='52:54:00:cf:2d:3%s' % i)
+            uuids_group_b.append(port.uuid)
+        data = self.get_json(
+            '/ports?conductor_groups=%s' % 'group_a,group_b',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(5, len(data['ports']))
+        self.assertJsonEqual(uuids_group_a + uuids_group_b,
+                             [x['uuid'] for x in data['ports']])
+        data = self.get_json(
+            '/ports?conductor_groups=%s' % 'group_b',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(3, len(data['ports']))
+        self.assertJsonEqual(uuids_group_b, [x['uuid'] for x in data['ports']])
+        data = self.get_json(
+            '/ports?conductor_groups=%s' % 'no_such_group',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual([], data['ports'])
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'update_port', autospec=True,

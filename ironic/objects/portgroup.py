@@ -195,7 +195,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def list(cls, context, limit=None, marker=None,
-             sort_key=None, sort_dir=None, project=None):
+             sort_key=None, sort_dir=None, project=None,
+             conductor_groups=None, filters=None):
         """Return a list of Portgroup objects.
 
         :param cls: the :class:`Portgroup`
@@ -205,15 +206,21 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         :param sort_key: Column to sort results by.
         :param sort_dir: Direction to sort. "asc" or "desc".
         :param project: a node owner or lessee to match against.
+        :param conductor_groups: A list of conductor groups to filter by,
+                                 defaults to None
+        :param filters: Filters to apply, defaults to None
         :returns: A list of :class:`Portgroup` object.
         :raises: InvalidParameterValue
 
         """
-        db_portgroups = cls.dbapi.get_portgroup_list(limit=limit,
-                                                     marker=marker,
-                                                     sort_key=sort_key,
-                                                     sort_dir=sort_dir,
-                                                     project=project)
+        db_portgroups = cls.dbapi.get_portgroup_list(
+            limit=limit,
+            marker=marker,
+            sort_key=sort_key,
+            sort_dir=sort_dir,
+            project=project,
+            filters=filters,
+            conductor_groups=conductor_groups)
         return cls._from_db_object_list(context, db_portgroups)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable

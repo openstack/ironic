@@ -266,7 +266,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # @object_base.remotable_classmethod
     @classmethod
     def list(cls, context, limit=None, marker=None, sort_key=None,
-             sort_dir=None, owner=None, project=None, filters=None):
+             sort_dir=None, owner=None, project=None, conductor_groups=None,
+             filters=None):
         """Return a list of Port objects.
 
         :param context: Security context.
@@ -276,6 +277,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         :param sort_dir: direction to sort. "asc" or "desc".
         :param owner: DEPRECATED a node owner to match against
         :param project: a node owner or lessee to match against
+        :param conductor_groups: A list of conductor groups to filter by,
+                                 defaults to None
         :param filters: Filters to apply, defaults to None
         :returns: a list of :class:`Port` object.
         :raises: InvalidParameterValue
@@ -288,7 +291,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                            sort_key=sort_key,
                                            sort_dir=sort_dir,
                                            project=project,
-                                           filters=filters)
+                                           filters=filters,
+                                           conductor_groups=conductor_groups)
         return cls._from_db_object_list(context, db_ports)
 
     @classmethod

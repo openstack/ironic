@@ -545,7 +545,7 @@ RELEASE_MAPPING = {
             'Deployment': ['1.0'],
             'DeployTemplate': ['1.1'],
             'Port': ['1.11'],
-            'Portgroup': ['1.4'],
+            'Portgroup': ['1.5'],
             'Trait': ['1.0'],
             'TraitList': ['1.0'],
             'VolumeConnector': ['1.0'],
@@ -848,7 +848,7 @@ RELEASE_MAPPING = {
     # make it below. To release, we will preserve a version matching
     # the release as a separate block of text, like above.
     'master': {
-        'api': '1.98',
+        'api': '1.99',
         'rpc': '1.61',
         'objects': {
             'Allocation': ['1.1'],

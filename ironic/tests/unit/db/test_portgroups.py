@@ -111,6 +111,41 @@ class DbportgroupTestCase(base.DbTestCase):
     def test_get_portgroups_by_node_id_that_does_not_exist(self):
         self.assertEqual([], self.dbapi.get_portgroups_by_node_id(99))
 
+    def test_get_portgoups_by_conductor_groups(self):
+        group_a_node = db_utils.create_test_node(
+            uuid=uuidutils.generate_uuid(),
+            conductor_group='group_a')
+        group_b_node = db_utils.create_test_node(
+            uuid=uuidutils.generate_uuid(),
+            conductor_group='group_b')
+
+        group_a_uuids = []
+        group_b_uuids = []
+        for i in range(1, 3):
+            port = db_utils.create_test_portgroup(
+                uuid=uuidutils.generate_uuid(), node_id=group_a_node.id,
+                address='52:54:00:cf:2d:4%s' % i, name='group_a_node_pg%s' % i)
+            group_a_uuids.append(str(port.uuid))
+        for i in range(7, 9):
+            port = db_utils.create_test_portgroup(
+                uuid=uuidutils.generate_uuid(), node_id=group_b_node.id,
+                address='52:54:00:cf:2d:4%s' % i, name='group_b_node_pg%s' % i)
+            group_b_uuids.append(str(port.uuid))
+        for i in range(4, 6):
+            port = db_utils.create_test_portgroup(
+                uuid=uuidutils.generate_uuid(), node_id=self.node.id,
+                address='52:54:00:cf:2d:4%s' % i, name='SetUp_node_pg%s' % i)
+        res = self.dbapi.get_portgroup_list(conductor_groups=['group_a'])
+        res_uuids = [r.uuid for r in res]
+        self.assertJsonEqual(group_a_uuids, res_uuids)
+        res = self.dbapi.get_portgroup_list(conductor_groups=['group_b'])
+        res_uuids = [r.uuid for r in res]
+        self.assertJsonEqual(group_b_uuids, res_uuids)
+        res = self.dbapi.get_portgroup_list(
+            conductor_groups=['group_a', 'group_b'])
+        res_uuids = [r.uuid for r in res]
+        self.assertJsonEqual(group_a_uuids + group_b_uuids, res_uuids)
+
     def test_destroy_portgroup(self):
         self.dbapi.destroy_portgroup(self.portgroup.id)
         self.assertRaises(exception.PortgroupNotFound,

@@ -233,7 +233,8 @@ class PortsController(rest.RestController):
     def _get_ports_collection(self, node_ident, address, portgroup_ident,
                               shard, marker, limit, sort_key, sort_dir,
                               resource_url=None, fields=None, detail=None,
-                              project=None, description_contains=None):
+                              project=None, description_contains=None,
+                              conductor_groups=None):
         """Retrieve a collection of ports.
 
         :param node_ident: UUID or name of a node, to get only ports for that
@@ -259,6 +260,7 @@ class PortsController(rest.RestController):
         :param description_contains: Optional string value to get only ports
                                      with description field contains matching
                                      value.
+        :param conductor_groups: conductor groups, to filter the request by.
         :returns: a list of ports.
 
         """
@@ -289,6 +291,11 @@ class PortsController(rest.RestController):
         filters = {}
         if description_contains:
             filters['description_contains'] = description_contains
+
+        if conductor_groups and (node_ident or portgroup_ident or address):
+            raise exception.Invalid(
+                _("Filtering by conductor_groups cannot be combined with "
+                  "node_ident, portgroup_ident, or node address filters."))
 
         if portgroup_ident:
             # FIXME: Since all we need is the portgroup ID, we can
@@ -327,6 +334,7 @@ class PortsController(rest.RestController):
             ports = objects.Port.list(api.request.context, limit,
                                       marker_obj, sort_key=sort_key,
                                       sort_dir=sort_dir, project=project,
+                                      conductor_groups=conductor_groups,
                                       filters=filters)
         parameters = {}
 
@@ -405,11 +413,12 @@ class PortsController(rest.RestController):
                    limit=args.integer, sort_key=args.string,
                    sort_dir=args.string, fields=args.string_list,
                    portgroup=args.uuid_or_name, detail=args.boolean,
-                   shard=args.string_list, description_contains=args.string)
+                   shard=args.string_list, description_contains=args.string,
+                   conductor_groups=args.string_list)
     def get_all(self, node=None, node_uuid=None, address=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', fields=None,
                 portgroup=None, detail=None, shard=None,
-                description_contains=None):
+                description_contains=None, conductor_groups=None):
         """Retrieve a list of ports.
 
         Note that the 'node_uuid' interface is deprecated in favour
@@ -437,6 +446,7 @@ class PortsController(rest.RestController):
         :param description_contains: Optional string value to get only ports
                                      with description field contains matching
                                      value.
+        :param conductor_groups: conductor groups, to filter the request by.
         :raises: NotAcceptable, HTTPNotFound
         """
         project = api_utils.check_port_list_policy(
@@ -476,7 +486,9 @@ class PortsController(rest.RestController):
                                           sort_key, sort_dir,
                                           resource_url='ports',
                                           fields=fields, detail=detail,
-                                          project=project, **extra_args)
+                                          project=project,
+                                          conductor_groups=conductor_groups,
+                                          **extra_args)
 
     @METRICS.timer('PortsController.detail')
     @method.expose()
@@ -484,10 +496,11 @@ class PortsController(rest.RestController):
                    address=args.mac_address, marker=args.uuid,
                    limit=args.integer, sort_key=args.string,
                    sort_dir=args.string, portgroup=args.uuid_or_name,
-                   shard=args.string_list, description_contains=args.string)
+                   shard=args.string_list, description_contains=args.string,
+                   conductor_groups=args.string_list)
     def detail(self, node=None, node_uuid=None, address=None, marker=None,
                limit=None, sort_key='id', sort_dir='asc', portgroup=None,
-               shard=None, description_contains=None):
+               shard=None, description_contains=None, conductor_groups=None):
         """Retrieve a list of ports with detail.
 
         Note that the 'node_uuid' interface is deprecated in favour
@@ -513,6 +526,7 @@ class PortsController(rest.RestController):
         :param description_contains: Optional string value to get only ports
                                     with description field contains matching
                                     value.
+        :param conductor_groups: conductor groups, to filter the request by.
         :raises: NotAcceptable, HTTPNotFound
         """
         project = api_utils.check_port_list_policy(
@@ -543,7 +557,9 @@ class PortsController(rest.RestController):
                                           portgroup, shard, marker, limit,
                                           sort_key, sort_dir,
                                           resource_url='ports/detail',
-                                          project=project, **extra_args)
+                                          project=project,
+                                          conductor_groups=conductor_groups,
+                                          **extra_args)
 
     @METRICS.timer('PortsController.get_one')
     @method.expose()

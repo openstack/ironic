@@ -165,6 +165,39 @@ class DbPortTestCase(base.DbTestCase):
         res_uuids = [r.uuid for r in res]
         self.assertCountEqual(uuids, res_uuids)
 
+    def test_get_port_list_filter_by_conductor_groups(self):
+        group_a_node = db_utils.create_test_node(
+            uuid=uuidutils.generate_uuid(), conductor_group='group_a')
+        group_b_node = db_utils.create_test_node(
+            uuid=uuidutils.generate_uuid(), conductor_group='group_b')
+
+        group_a_uuids = []
+        group_b_uuids = []
+        for i in range(1, 3):
+            port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                                             node_id=group_a_node.id,
+                                             address='52:54:00:cf:2d:4%s' % i)
+            group_a_uuids.append(str(port.uuid))
+        for i in range(7, 9):
+            port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                                             node_id=group_b_node.id,
+                                             address='52:54:00:cf:2d:4%s' % i)
+            group_b_uuids.append(str(port.uuid))
+        for i in range(4, 6):
+            port = db_utils.create_test_port(uuid=uuidutils.generate_uuid(),
+                                             node_id=self.node.id,
+                                             address='52:54:00:cf:2d:4%s' % i)
+        res = self.dbapi.get_port_list(conductor_groups=['group_a'])
+        res_uuids = [r.uuid for r in res]
+        self.assertJsonEqual(group_a_uuids, res_uuids)
+        res = self.dbapi.get_port_list(conductor_groups=['group_b'])
+        res_uuids = [r.uuid for r in res]
+        self.assertJsonEqual(group_b_uuids, res_uuids)
+        res = self.dbapi.get_port_list(
+            conductor_groups=['group_a', 'group_b'])
+        res_uuids = [r.uuid for r in res]
+        self.assertJsonEqual(group_a_uuids + group_b_uuids, res_uuids)
+
     def test_get_ports_by_node_id(self):
         res = self.dbapi.get_ports_by_node_id(self.node.id)
         self.assertEqual(self.port.address, res[0].address)
