@@ -645,6 +645,23 @@ class AgentDeploy(CustomAgentDeploy):
         # Remove symbolic link when deploy is done.
         deploy_utils.remove_http_instance_symlink(task.node.uuid)
 
+    @METRICS.timer('AgentDeploy.sap_cc_install_vsmp_memoryone')
+    @base.deploy_step(priority=50)
+    @task_manager.require_exclusive_lock
+    def sap_cc_install_vsmp_memoryone(self, task):
+        node = task.node
+        LOG.debug("Agent sap_cc_install_vsmp_memoryone invoked for node %s.",
+                  node.uuid)
+        instance_info = node.instance_info
+        instance_traits = instance_info.get('traits', [])
+        if 'CUSTOM_VSMP_MEMORYONE' not in instance_traits:
+            LOG.debug("Instance does not require vSMP MemoryOne on node %s.",
+                       node.uuid)
+            return
+
+        client = agent_client.get_client(task)
+        client.sap_cc_install_vsmp_memoryone(task.node)
+
 
 class AgentRAID(base.RAIDInterface):
     """Implementation of RAIDInterface which uses agent ramdisk."""
