@@ -1072,6 +1072,7 @@
 
 - job:
     name: ironic-cross-sushy
+    nodeset: ubuntu-jammy
     description: Ironic unit tests run with Sushy from source
     parent: openstack-tox
     required-projects:
@@ -1086,10 +1087,11 @@
       - ^tools/.*$
     vars:
       # NOTE(dtantsur): change this every release cycle if needed.
-      bindep_profile: test py38
-      tox_envlist: py38
+      bindep_profile: test py310
+      tox_envlist: py310
       # This variable ensures that sushy is installed from source.
       tox_install_siblings: true
       # NOTE(dtantsur): this job will be run on sushy as well, so it's
       # important to set the working dir to the Ironic checkout.
       zuul_work_dir: "{{ ansible_user_dir }}/{{ zuul.projects['opendev.org/openstack/ironic'].src_dir }}"
+
