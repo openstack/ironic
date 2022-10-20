@@ -147,22 +147,21 @@ class TestGlanceImageService(base.TestCase):
             'os_hash_algo': None,
             'os_hash_value': None,
         }
-        if not mock._is_instance_mock(self.service.call):
-            mock.patch.object(self.service, 'call', autospec=True).start()
-        self.service.call.return_value = image
-        image_meta = self.service.show(image_id)
-        self.service.call.assert_called_with('get', image_id)
-        self.assertEqual(expected, image_meta)
+        with mock.patch.object(self.service, 'call', autospec=True):
+            self.service.call.return_value = image
+            image_meta = self.service.show(image_id)
+            self.service.call.assert_called_with('get', image_id)
+            self.assertEqual(expected, image_meta)
 
     def test_show_makes_datetimes(self):
         image_id = uuidutils.generate_uuid()
         image = self._make_datetime_fixture()
-        with mock.patch.object(self.service, 'call', return_value=image,
-                               autospec=True):
+        with mock.patch.object(self.service, 'call', autospec=True):
+            self.service.call.return_value = image
             image_meta = self.service.show(image_id)
-            self.service.call.assert_called_once_with('get', image_id)
-        self.assertEqual(self.NOW_DATETIME, image_meta['created_at'])
-        self.assertEqual(self.NOW_DATETIME, image_meta['updated_at'])
+            self.service.call.assert_called_with('get', image_id)
+            self.assertEqual(self.NOW_DATETIME, image_meta['created_at'])
+            self.assertEqual(self.NOW_DATETIME, image_meta['updated_at'])
 
     @mock.patch.object(service_utils, 'is_image_active', autospec=True)
     def test_show_raises_when_no_authtoken_in_the_context(self,
@@ -176,11 +175,10 @@ class TestGlanceImageService(base.TestCase):
     def test_show_raises_when_image_not_active(self):
         image_id = uuidutils.generate_uuid()
         image = self._make_fixture(name='image1', id=image_id, status="queued")
-        if not mock._is_instance_mock(self.service.call):
-            mock.patch.object(self.service, 'call', autospec=True).start()
-        self.service.call.return_value = image
-        self.assertRaises(exception.ImageUnacceptable,
-                          self.service.show, image_id)
+        with mock.patch.object(self.service, 'call', autospec=True):
+            self.service.call.return_value = image
+            self.assertRaises(exception.ImageUnacceptable,
+                              self.service.show, image_id)
 
     def test_download_with_retries(self):
         tries = [0]
