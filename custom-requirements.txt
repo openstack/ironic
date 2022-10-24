@@ -7,6 +7,12 @@ python-openstackclient
 python-ilorest-library>=2.1.0
 hpOneView>=4.4.0
 
+python-dracclient>=5.1.0,<8.0.0
+# The Redfish hardware type uses the Sushy library
+sushy>=3.10.0,<4.0.0
+# Dell EMC iDRAC sushy OEM extension
+sushy-oem-idrac>=3.0.1,<4.0.0
+
 git+https://github.com/openstack/ironic-inspector@stable/xena#egg=ironic-inspector
 git+https://github.com/sapcc/openstack-watcher-middleware.git#egg=watcher-middleware
 git+https://github.com/sapcc/openstack-audit-middleware.git@master#egg=audit-middleware
