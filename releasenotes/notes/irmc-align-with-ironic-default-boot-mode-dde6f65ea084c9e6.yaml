@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Modify iRMC driver to use ironic.conf [deploy] default_boot_mode to determine
+    default boot_mode.
