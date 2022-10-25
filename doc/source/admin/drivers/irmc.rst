@@ -123,11 +123,6 @@ Configuration via ``driver_info``
     the iRMC with administrator privileges.
   - ``driver_info/irmc_password`` property to be ``password`` for
     irmc_username.
-  - ``properties/capabilities`` property to be ``boot_mode:uefi`` if
-    UEFI boot is required.
-  - ``properties/capabilities`` property to be ``secure_boot:true`` if
-    UEFI Secure Boot is required. Please refer to `UEFI Secure Boot Support`_
-    for more information.
 
 * If ``port`` in ``[irmc]`` section of ``/etc/ironic/ironic.conf`` or
   ``driver_info/irmc_port`` is set to 443, ``driver_info/irmc_verify_ca``
@@ -200,6 +195,22 @@ Configuration via ``driver_info``
      ``irmc_snmp_auth_password`` and ``irmc_snmp_priv_password`` properties
      will be ignored. If you want to set passwords, please update
      python-scciclient to some newer version (>= 0.12.2).
+
+
+Configuration via ``properties``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Each node is configured for ``irmc`` hardware type by setting the following
+  ironic node object's properties:
+
+  - ``properties/capabilities`` property to be ``boot_mode:uefi`` if
+    UEFI boot is required, or ``boot_mode:bios`` if Legacy BIOS is required.
+    If this is not set, ``default_boot_mode`` at ``[default]`` section in
+    ``ironic.conf`` will be used.
+  - ``properties/capabilities`` property to be ``secure_boot:true`` if
+    UEFI Secure Boot is required. Please refer to `UEFI Secure Boot Support`_
+    for more information.
+
 
 Configuration via ``ironic.conf``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
