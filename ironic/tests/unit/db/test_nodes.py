@@ -763,6 +763,15 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertRaises(exception.NodeHistoryNotFound,
                           self.dbapi.get_node_history_by_id, history.id)
 
+    def test_inventory_get_destroyed_after_destroying_a_node_by_uuid(self):
+        node = utils.create_test_node()
+
+        inventory = utils.create_test_inventory(node_id=node.id)
+
+        self.dbapi.destroy_node(node.uuid)
+        self.assertRaises(exception.NodeInventoryNotFound,
+                          self.dbapi.get_node_inventory_by_id, inventory.id)
+
     def test_update_node(self):
         node = utils.create_test_node()
 

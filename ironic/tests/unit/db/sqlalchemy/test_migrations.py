@@ -1240,6 +1240,23 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(node_history.c.user.type,
                               sqlalchemy.types.String)
 
+    def _check_0ac0f39bc5aa(self, engine, data):
+        node_inventory = db_utils.get_table(engine, 'node_inventory')
+        col_names = [column.name for column in node_inventory.c]
+
+        expected_names = ['version', 'created_at', 'updated_at', 'id',
+                          'node_id', 'inventory_data', 'plugin_data']
+        self.assertEqual(sorted(expected_names), sorted(col_names))
+
+        self.assertIsInstance(node_inventory.c.created_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(node_inventory.c.updated_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(node_inventory.c.id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(node_inventory.c.node_id.type,
+                              sqlalchemy.types.Integer)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
@@ -1326,12 +1343,26 @@ class TestMigrationsMySQL(MigrationCheckersMixin,
                     "'%s'" % data['uuid'])).one()
             self.assertEqual(test_text, i_info[0])
 
+    def _check_0ac0f39bc5aa(self, engine, data):
+        node_inventory = db_utils.get_table(engine, 'node_inventory')
+        self.assertIsInstance(node_inventory.c.inventory_data.type,
+                              sqlalchemy.dialects.mysql.LONGTEXT)
+        self.assertIsInstance(node_inventory.c.plugin_data.type,
+                              sqlalchemy.dialects.mysql.LONGTEXT)
+
 
 class TestMigrationsPostgreSQL(MigrationCheckersMixin,
                                WalkVersionsMixin,
                                test_fixtures.OpportunisticDBTestMixin,
                                test_base.BaseTestCase):
     FIXTURE = test_fixtures.PostgresqlOpportunisticFixture
+
+    def _check_0ac0f39bc5aa(self, engine, data):
+        node_inventory = db_utils.get_table(engine, 'node_inventory')
+        self.assertIsInstance(node_inventory.c.inventory_data.type,
+                              sqlalchemy.types.Text)
+        self.assertIsInstance(node_inventory.c.plugin_data.type,
+                              sqlalchemy.types.Text)
 
 
 class ModelsMigrationSyncMixin(object):
