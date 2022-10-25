@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Modify iRMC driver to use ironic.conf [deploy] default_boot_mode to determine
+    default boot_mode.
+upgrades:
+  - Existing iRMC nodes without an explicitly set ``capabilities`` ``boot_mode``
+    will change from boot mode ``bios`` to the value of ``[deploy]
+    default_boot_mode`` (which defaults to ``uefi`` since release 18.2.0).
+
+    Explicitly setting ``capabilities`` ``boot_mode:bios`` on existing nodes
+    without any ``boot_mode`` set is recommended.
