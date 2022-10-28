@@ -25,6 +25,7 @@ from urllib import parse as urlparse
 from oslo_db import options as db_options
 from oslo_db.sqlalchemy import models
 from oslo_db.sqlalchemy import types as db_types
+from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy import Boolean, Column, DateTime, false, Index
 from sqlalchemy import ForeignKey, Integer
 from sqlalchemy import schema, String, Text
@@ -261,6 +262,15 @@ class Port(Base):
     physical_network = Column(String(64), nullable=True)
     is_smartnic = Column(Boolean, nullable=True, default=False)
     name = Column(String(255), nullable=True)
+
+    _node_uuid = orm.relationship(
+        "Node",
+        viewonly=True,
+        primaryjoin="(Node.id == Port.node_id)",
+        lazy="selectin",
+    )
+    node_uuid = association_proxy(
+        "_node_uuid", "uuid", creator=lambda _i: Node(uuid=_i))
 
 
 class Portgroup(Base):
