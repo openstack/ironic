@@ -33,6 +33,7 @@ from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import keystone
 from ironic.common import swift
+from ironic.common import utils
 from ironic.conf import CONF
 
 TempUrlCacheElement = collections.namedtuple('TempUrlCacheElement',
@@ -114,7 +115,7 @@ class GlanceImageService(object):
     @tenacity.retry(
         retry=tenacity.retry_if_exception_type(
             exception.GlanceConnectionFailed),
-        stop=tenacity.stop_after_attempt(CONF.glance.num_retries + 1),
+        stop=utils.stop_after_retries('num_retries', group='glance'),
         wait=tenacity.wait_fixed(1),
         reraise=True
     )

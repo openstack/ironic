@@ -681,3 +681,18 @@ def is_fips_enabled():
     except Exception:
         pass
     return False
+
+
+def stop_after_retries(option, group=None):
+    """A tenacity retry helper that stops after retries specified in conf."""
+    # NOTE(dtantsur): fetch the option inside of the nested call, otherwise it
+    # cannot be changed in runtime.
+    def should_stop(retry_state):
+        if group:
+            conf = getattr(CONF, group)
+        else:
+            conf = CONF
+        num_retries = getattr(conf, option)
+        return retry_state.attempt_number >= num_retries + 1
+
+    return should_stop

@@ -114,6 +114,7 @@ opts = [
                       'will determine how many containers are created.')),
     cfg.IntOpt('num_retries',
                default=0,
+               mutable=True,
                help=_('Number of retries when downloading an image from '
                       'glance.')),
 ]

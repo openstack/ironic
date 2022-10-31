@@ -24,7 +24,6 @@ from glanceclient import exc as glance_exc
 from keystoneauth1 import loading as ks_loading
 from oslo_config import cfg
 from oslo_utils import uuidutils
-import tenacity
 import testtools
 
 from ironic.common import context
@@ -204,20 +203,18 @@ class TestGlanceImageService(base.TestCase):
         image_id = uuidutils.generate_uuid()
         writer = NullWriter()
 
-        with mock.patch.object(tenacity, 'retry', autospec=True) as mock_retry:
-            # When retries are disabled, we should get an exception
-            self.config(num_retries=0, group='glance')
-            self.assertRaises(exception.GlanceConnectionFailed,
-                              stub_service.download, image_id, writer)
+        # When retries are disabled, we should get an exception
+        self.config(num_retries=0, group='glance')
+        self.assertRaises(exception.GlanceConnectionFailed,
+                          stub_service.download, image_id, writer)
 
-            # Now lets enable retries. No exception should happen now.
-            self.config(num_retries=1, group='glance')
-            importlib.reload(image_service)
-            stub_service = image_service.GlanceImageService(stub_client,
-                                                            stub_context)
-            tries = [0]
-            stub_service.download(image_id, writer)
-            mock_retry.assert_called_once()
+        # Now lets enable retries. No exception should happen now.
+        self.config(num_retries=1, group='glance')
+        importlib.reload(image_service)
+        stub_service = image_service.GlanceImageService(stub_client,
+                                                        stub_context)
+        tries = [0]
+        stub_service.download(image_id, writer)
 
     def test_download_no_data(self):
         self.client.fake_wrapped = None
