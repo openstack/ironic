@@ -681,8 +681,10 @@ def get_instance_image_info(task, ipxe_enabled=False):
     def _get_image_properties():
         nonlocal image_properties
         if not image_properties:
-            glance_service = service.GlanceImageService(context=ctx)
-            image_properties = glance_service.show(
+            i_service = service.get_image_service(
+                d_info['image_source'],
+                context=ctx)
+            image_properties = i_service.show(
                 d_info['image_source'])['properties']
 
     labels = ('kernel', 'ramdisk')
@@ -691,10 +693,13 @@ def get_instance_image_info(task, ipxe_enabled=False):
         # we won't use any of them. We'll use the values specified
         # with the image, which we assume have been set.
         _get_image_properties()
-        for label in labels:
-            i_info[label] = str(image_properties[label + '_id'])
-        node.instance_info = i_info
-        node.save()
+        if image_properties:
+            # This is intended for Glance usage, but all image properties
+            # should be routed through the image service request routing.
+            for label in labels:
+                i_info[label] = str(image_properties[label + '_id'])
+            node.instance_info = i_info
+            node.save()
 
     anaconda_labels = ()
     if deploy_utils.get_boot_option(node) == 'kickstart':
