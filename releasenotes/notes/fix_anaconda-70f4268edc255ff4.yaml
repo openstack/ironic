@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes the URL based anaconda deployment for parsing the given ``image_source``
+    url.
