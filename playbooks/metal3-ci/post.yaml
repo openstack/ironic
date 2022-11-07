@@ -1,0 +1,194 @@
+---
+- hosts: all
+  tasks:
+    - name: Set the logs root
+      set_fact:
+        logs_root: "{{ ansible_user_dir }}/metal3-logs"
+
+    - name: Set log locations and containers
+      set_fact:
+        logs_before_pivoting: "{{ logs_root }}/before_pivoting"
+        logs_after_pivoting: "{{ logs_root }}/after_pivoting"
+        logs_management_cluster: "{{ logs_root }}/management_cluster"
+        containers:
+          - dnsmasq
+          - httpd-infra
+          - ironic
+          - ironic-endpoint-keepalived
+          - ironic-inspector
+          - ironic-log-watch
+          - registry
+          - sushy-tools
+          - vbmc
+        namespaces:
+          - baremetal-operator-system
+          - capi-system
+          - metal3
+
+    - name: Create log locations
+      file:
+        path: "{{ item }}"
+        state: directory
+      loop:
+        - "{{ logs_before_pivoting }}"
+        - "{{ logs_after_pivoting }}"
+        - "{{ logs_management_cluster }}"
+        - "{{ logs_root }}/libvirt"
+        - "{{ logs_root }}/system"
+
+    - name: Check if the logs before pivoting were stored
+      stat:
+        path: /tmp/docker
+      register: before_pivoting_result
+
+    - name: Copy logs before pivoting
+      copy:
+        src: /tmp/docker/
+        dest: "{{ logs_before_pivoting }}/"
+        remote_src: true
+      when: before_pivoting_result.stat.exists
+
+    - name: Set log location for containers (pivoting happened)
+      set_fact:
+        container_logs: "{{ logs_after_pivoting }}"
+      when: before_pivoting_result.stat.exists
+
+    - name: Set log location for containers (no pivoting)
+      set_fact:
+        container_logs: "{{ logs_before_pivoting }}"
+      when: not before_pivoting_result.stat.exists
+
+    - name: Fetch current container logs
+      shell: >
+        docker logs "{{ item }}" > "{{ container_logs }}/{{ item }}.log" 2>&1
+      become: true
+      ignore_errors: true
+      loop: "{{ containers }}"
+
+    - name: Fetch libvirt networks
+      shell: >
+        virsh net-dumpxml "{{ item }}" > "{{ logs_root }}/libvirt/net-{{ item }}.xml"
+      become: true
+      ignore_errors: true
+      loop:
+        - baremetal
+        - provisioning
+
+    - name: Fetch libvirt VMs
+      shell: |
+        for vm in $(virsh list --name --all); do
+          virsh dumpxml "$vm" > "{{ logs_root }}/libvirt/vm-$vm.xml"
+        done
+      become: true
+      ignore_errors: true
+
+    - name: Fetch system information
+      shell: "{{ item }} > {{ logs_root }}/system/{{ item | replace(' ', '-') }}.txt"
+      become: true
+      ignore_errors: true
+      loop:
+        - dmesg
+        - dpkg -l
+        - ip addr
+        - ip route
+        - iptables -L -v -n
+        - journalctl -b -o with-unit
+        - journalctl -u libvirtd
+        - pip freeze
+        - docker images
+        - docker ps --all
+        - systemctl
+
+    - name: Copy libvirt logs
+      copy:
+        src: /var/log/libvirt/qemu/
+        dest: "{{ logs_root }}/libvirt/"
+        remote_src: true
+      become: true
+
+    - name: Check if we have a cluster
+      command: kubectl cluster-info
+      ignore_errors: true
+      register: kubectl_result
+
+    - include_tasks: fetch_kube_logs.yaml
+      loop: "{{ namespaces }}"
+      loop_control:
+        loop_var: namespace
+      when: kubectl_result is succeeded
+
+    - name: Collect kubernetes resources
+      shell: |
+        kubectl get "{{ item }}" -A -o yaml > "{{ logs_management_cluster }}/{{ item }}.yaml"
+      loop:
+        - baremetalhosts
+        - clusters
+        - endpoints
+        - hostfirmwaresettings
+        - machines
+        - metal3ipaddresses
+        - metal3ippools
+        - metal3machines
+        - nodes
+        - pods
+        - preprovisioningimages
+        - services
+      ignore_errors: true
+      when: kubectl_result is succeeded
+
+    # FIXME(dtantsur): this is horrible, do something about it
+    - name: Fetch kubelet status logs from the master user metal3
+      shell: |
+        ssh -vvv -o StrictHostKeyChecking=accept-new metal3@192.168.111.100 "sudo systemctl status kubelet" > "{{ logs_root }}/kubelet-0-metal3-status.log"
+      ignore_errors: true
+      register: kubelet0metal3status
+
+    - debug:
+        var: kubelet0metal3status.stdout_lines
+
+    - debug:
+        var: kubelet0metal3status.stderr_lines
+
+    - name: Fetch kubelet journal logs from the master user metal3
+      shell: |
+        ssh -vvv -o StrictHostKeyChecking=accept-new metal3@192.168.111.100 "sudo journalctl -xeu kubelet" > "{{ logs_root }}/kubelet-0-metal3-journal.log"
+      ignore_errors: true
+      register: kubelet0metal3journal
+
+    - debug:
+        var: kubelet0metal3journal.stdout_lines
+
+    - debug:
+        var: kubelet0metal3journal.stderr_lines
+
+    - name: Fetch kubelet status logs from the master user zuul
+      shell: |
+        ssh -vvv -o StrictHostKeyChecking=accept-new zuul@192.168.111.100 "sudo systemctl status kubelet" > "{{ logs_root }}/kubelet-0-zuul-status.log"
+      ignore_errors: true
+      register: kubelet0zuulstatus
+
+    - debug:
+        var: kubelet0zuulstatus.stdout_lines
+
+    - debug:
+        var: kubelet0zuulstatus.stderr_lines
+
+    - name: Fetch kubelet journal logs from the master user zuul
+      shell: |
+        ssh -vvv -o StrictHostKeyChecking=accept-new zuul@192.168.111.100 "sudo journalctl -xeu kubelet" > "{{ logs_root }}/kubelet-0-zuul-journal.log"
+      ignore_errors: true
+      register: kubelet0zuuljournal
+
+    - debug:
+        var: kubelet0zuuljournal.stdout_lines
+
+    - debug:
+        var: kubelet0zuuljournal.stderr_lines
+    # # #
+
+    - name: Copy logs to the zuul location
+      synchronize:
+        src: "{{ logs_root }}/"
+        dest: "{{ zuul.executor.log_root }}/{{ inventory_hostname }}/"
+        mode: pull
+      become: true
