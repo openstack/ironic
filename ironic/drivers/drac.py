@@ -20,11 +20,13 @@ from oslo_config import cfg
 from ironic.drivers import generic
 from ironic.drivers.modules.drac import bios
 from ironic.drivers.modules.drac import boot
+from ironic.drivers.modules.drac import console
 from ironic.drivers.modules.drac import inspect as drac_inspect
 from ironic.drivers.modules.drac import management
 from ironic.drivers.modules.drac import power
 from ironic.drivers.modules.drac import raid
 from ironic.drivers.modules.drac import vendor_passthru
+from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
@@ -42,6 +44,12 @@ class IDRACHardware(generic.GenericHardware):
     def supported_boot_interfaces(self):
         """List of supported boot interfaces."""
         return [ipxe.iPXEBoot, pxe.PXEBoot, boot.DracRedfishVirtualMediaBoot]
+
+    @property
+    def supported_console_interfaces(self):
+        """List of supported console interfaces."""
+        return [ipmitool.IPMISocatConsole, ipmitool.IPMIShellinaboxConsole,
+                noop.NoConsole, console.DracRedFishVNCConsole]
 
     @property
     def supported_management_interfaces(self):

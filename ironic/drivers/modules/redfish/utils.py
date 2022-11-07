@@ -53,6 +53,16 @@ OPTIONAL_PROPERTIES = {
                            'manages more than one ComputerSystem. Otherwise '
                            'ironic will pick the only available '
                            'ComputerSystem automatically.'),
+    'redfish_manager_id': _('The canonical path to the Manager '
+                           'resource that the driver will interact with. '
+                           'It should include the root service, version and '
+                           'the unique resource path to a Manager '
+                           'within the same authority as the redfish_address '
+                           'property. For example: /redfish/v1/Managers/1. '
+                           'This property is only required if target BMC '
+                           'consists of more than one manager. Otherwise '
+                           'ironic will pick the only available '
+                           'ComputerSystem automatically.'),
     'redfish_username': _('User account with admin/server-profile access '
                           'privilege. Although this property is not '
                           'mandatory it\'s highly recommended to set a '
@@ -139,6 +149,20 @@ def parse_driver_info(node):
                   '/redfish/v1/Systems/1') %
                 {'value': driver_info['redfish_system_id'], 'node': node.uuid})
 
+    redfish_manager_id = driver_info.get('redfish_manager_id')
+    if redfish_manager_id is not None:
+        try:
+            redfish_manager_id = urlparse.quote(redfish_manager_id)
+        except (TypeError, AttributeError):
+            raise exception.InvalidParameterValue(
+                _('Invalid value "%(value)s" set in '
+                  'driver_info/redfish_manager_id on node %(node)s. '
+                  'The value should be a path (string) to the resource '
+                  'that the driver will interact with. For example: '
+                  '/redfish/v1/Managers/1') %
+                {'value': driver_info['redfish_manager_id'],
+                 'node': node.uuid})
+
     # Check if verify_ca is a Boolean or a file/directory in the file-system
     verify_ca = driver_info.get('redfish_verify_ca', True)
     if isinstance(verify_ca, str):
@@ -174,6 +198,7 @@ def parse_driver_info(node):
 
     sushy_params = {'address': address,
                     'system_id': redfish_system_id,
+                    'manager_id': redfish_manager_id,
                     'username': driver_info.get('redfish_username'),
                     'password': driver_info.get('redfish_password'),
                     'verify_ca': verify_ca,
@@ -315,6 +340,29 @@ def get_system(node):
         LOG.error('The Redfish System "%(system)s" was not found for '
                   'node %(node)s. Error %(error)s',
                   {'system': system_id or '<default>',
+                   'node': node.uuid, 'error': e})
+        raise exception.RedfishError(error=e)
+
+
+def get_manager(node):
+    """Get a Redfish Manager that manages a node.
+
+    :param node: an Ironic node object
+    :raises: RedfishConnectionError when it fails to connect to Redfish
+    :raises: RedfishError if the System is not registered in Redfish
+    """
+    driver_info = parse_driver_info(node)
+    manager_id = driver_info['manager_id']
+
+    try:
+        return _get_connection(
+            node,
+            lambda conn, manager_id: conn.get_manager(manager_id),
+            manager_id)
+    except sushy.exceptions.ResourceNotFoundError as e:
+        LOG.error('The Redfish Manager "%(manager)s" was not found for '
+                  'node %(node)s. Error %(error)s',
+                  {'manager': manager_id or '<default>',
                    'node': node.uuid, 'error': e})
         raise exception.RedfishError(error=e)
 
