@@ -49,7 +49,8 @@ class IDRACHardware(generic.GenericHardware):
     def supported_console_interfaces(self):
         """List of supported console interfaces."""
         return [ipmitool.IPMISocatConsole, ipmitool.IPMIShellinaboxConsole,
-                noop.NoConsole, console.DracRedFishVNCConsole]
+                noop.NoConsole, console.DracRedFishVNCConsole,
+                console.DracRedFishKVMConsole]
 
     @property
     def supported_management_interfaces(self):

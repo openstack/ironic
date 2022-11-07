@@ -39,7 +39,7 @@ _VNC_PASSWORD_ATTRIBUTE = "VNCServer.1.Password"
 
 class DracRedFishVNCConsole(base.ConsoleInterface):
     def __init__(self):
-        """Initialize the Drac Redfish console interface.
+        """Initialize the Drac Redfish VNC console interface.
 
         :raises: DriverLoadError if the driver can't be loaded due to
             missing dependencies
@@ -134,3 +134,79 @@ class DracRedFishVNCConsole(base.ConsoleInterface):
             if attributes.identity == "iDRACAttributes":
                 return attributes
         return None
+
+
+
+class DracRedFishKVMConsole(base.ConsoleInterface):
+    def __init__(self):
+        """Initialize the Drac Redfish KVM console interface.
+
+        :raises: DriverLoadError if the driver can't be loaded due to
+            missing dependencies
+        """
+        super(DracRedFishKVMConsole, self).__init__()
+        if not sushy:
+            raise exception.DriverLoadError(
+                driver='drac',
+                reason=_('Unable to import the sushy library'))
+
+
+    def get_properties(self):
+        """Return the properties of the interface.
+
+        :returns: dictionary of <property name>:<property description> entries.
+        """
+        return redfish_utils.COMMON_PROPERTIES.copy()
+
+    def validate(self, task):
+        """Validates the driver information needed by the redfish driver.
+
+        :param task: a TaskManager instance containing the node to act on.
+        :raises: InvalidParameterValue on malformed parameter(s)
+        :raises: MissingParameterValue on missing parameter(s)
+        """
+        redfish_utils.parse_driver_info(task.node)
+
+    def start_console(self, task):
+        """Start a remote console for the task's node.
+
+        This method should not raise an exception if console already started.
+
+        :param task: A TaskManager instance containing the node to act on.
+        """
+        pass
+
+    def stop_console(self, task):
+        """Stop the remote console session for the task's node.
+
+        :param task: A TaskManager instance containing the node to act on.
+        """
+        pass
+
+    def get_console(self, task):
+        """Get connection information about the console.
+
+        This method should return the necessary information for the
+        client to access the console.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :returns: the console connection information.
+        """
+        driver_info= task.node.driver_info
+        address = driver_info['redfish_address']
+        username = driver_info['redfish_username']
+
+        manager = redfish_utils.get_manager(task.node)
+        oem_manager = manager.get_oem_extension('Dell')
+        idrac = oem_manager.idrac_card_service
+
+
+        result = idrac.get_kvm_session()
+        q = urlparse.urlencode({
+            "username": username,
+            "tempUsername": result["TempUsername"],
+            "tempPassword": result["TempPassword"]})
+
+        return {'type': 'kvm',
+                'url': f"{address}/console?{q}"}
+
