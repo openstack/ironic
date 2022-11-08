@@ -28,10 +28,12 @@ from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import firmware_utils
 from ironic.drivers.modules.redfish import management as redfish_mgmt
+from ironic.drivers.modules.redfish import power as redfish_power
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -268,8 +270,10 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 boot_devices.PXE,
                 task.node.driver_internal_info['redfish_boot_device'])
 
+    @mock.patch.object(boot_mode_utils, 'sync_boot_mode', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_set_boot_device_persistency_vendor(self, mock_get_system):
+    def test_set_boot_device_persistency_vendor(self, mock_get_system,
+                                                mock_sync_boot_mode):
         fake_system = mock_get_system.return_value
         fake_system.boot.get.return_value = \
             sushy.BOOT_SOURCE_ENABLED_CONTINUOUS
@@ -288,18 +292,16 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                                       shared=False) as task:
                 task.driver.management.set_boot_device(
                     task, boot_devices.PXE, persistent=True)
+                fake_system.set_system_boot_options.assert_called_once_with(
+                    sushy.BOOT_SOURCE_TARGET_PXE, enabled=expected)
                 if vendor == 'SuperMicro':
-                    fake_system.set_system_boot_options.assert_has_calls(
-                        [mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
-                                   enabled=expected),
-                         mock.call(mode=sushy.BOOT_SOURCE_MODE_UEFI)])
+                    mock_sync_boot_mode.assert_called_once_with(task)
                 else:
-                    fake_system.set_system_boot_options.assert_has_calls(
-                        [mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
-                                   enabled=expected)])
+                    mock_sync_boot_mode.assert_not_called()
 
                 # Reset mocks
                 fake_system.set_system_boot_options.reset_mock()
+                mock_sync_boot_mode.reset_mock()
                 mock_get_system.reset_mock()
 
     def test_restore_boot_device(self):
@@ -391,34 +393,46 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             self.assertEqual(list(redfish_mgmt.BOOT_MODE_MAP_REV),
                              supported_boot_modes)
 
+    @mock.patch.object(redfish_mgmt.RedfishManagement, '_wait_for_boot_mode',
+                       autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_set_boot_mode(self, mock_get_system):
+    def test_set_boot_mode(self, mock_get_system, mock_wait):
         boot_attribute = {
             'target': sushy.BOOT_SOURCE_TARGET_PXE,
             'enabled': sushy.BOOT_SOURCE_ENABLED_CONTINUOUS,
-            'mode': sushy.BOOT_SOURCE_MODE_BIOS,
+            'mode': None,
         }
         fake_system = mock.Mock(boot=boot_attribute)
-        fake_system = mock.Mock()
         mock_get_system.return_value = fake_system
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             expected_values = [
-                (boot_modes.LEGACY_BIOS, sushy.BOOT_SOURCE_MODE_BIOS),
-                (boot_modes.UEFI, sushy.BOOT_SOURCE_MODE_UEFI)
+                (boot_modes.LEGACY_BIOS, sushy.BOOT_SOURCE_MODE_BIOS,
+                 sushy.BOOT_SOURCE_MODE_UEFI),
+                (boot_modes.UEFI, sushy.BOOT_SOURCE_MODE_UEFI,
+                 sushy.BOOT_SOURCE_MODE_BIOS),
+                (boot_modes.LEGACY_BIOS, sushy.BOOT_SOURCE_MODE_BIOS, None),
+                (boot_modes.UEFI, sushy.BOOT_SOURCE_MODE_UEFI, None),
             ]
 
-            for mode, expected in expected_values:
+            for mode, expected, current in expected_values:
+                boot_attribute['mode'] = current
                 task.driver.management.set_boot_mode(task, mode=mode)
 
                 # Asserts
                 fake_system.set_system_boot_options.assert_called_once_with(
                     mode=expected)
                 mock_get_system.assert_called_once_with(task.node)
+                if current is not None:
+                    mock_wait.assert_called_once_with(task.driver.management,
+                                                      task, fake_system, mode)
+                else:
+                    mock_wait.assert_not_called()
 
                 # Reset mocks
                 fake_system.set_system_boot_options.reset_mock()
                 mock_get_system.reset_mock()
+                mock_wait.reset_mock()
 
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
@@ -461,6 +475,44 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             fake_system.set_system_boot_options.assert_called_once_with(
                 mode=sushy.BOOT_SOURCE_MODE_UEFI)
             mock_get_system.assert_called_once_with(task.node)
+
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_wait_for_boot_mode_immediate(self, mock_power):
+        fake_system = mock.Mock(spec=['boot', 'refresh'],
+                                boot={'mode': sushy.BOOT_SOURCE_MODE_UEFI})
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management._wait_for_boot_mode(
+                task, fake_system, boot_modes.UEFI)
+            fake_system.refresh.assert_called_once_with(force=True)
+            mock_power.assert_not_called()
+
+    @mock.patch('time.sleep', lambda _: None)
+    @mock.patch.object(redfish_power.RedfishPower, 'get_power_state',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_wait_for_boot_mode(self, mock_power, mock_get_power):
+        attempts = 3
+
+        def side_effect(force):
+            nonlocal attempts
+            attempts -= 1
+            if attempts <= 0:
+                fake_system.boot['mode'] = sushy.BOOT_SOURCE_MODE_UEFI
+
+        fake_system = mock.Mock(spec=['boot', 'refresh'],
+                                boot={'mode': sushy.BOOT_SOURCE_MODE_BIOS})
+        fake_system.refresh.side_effect = side_effect
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management._wait_for_boot_mode(
+                task, fake_system, boot_modes.UEFI)
+            fake_system.refresh.assert_called_with(force=True)
+            self.assertEqual(3, fake_system.refresh.call_count)
+            mock_power.assert_has_calls([
+                mock.call(task, states.REBOOT),
+                mock.call(task, mock_get_power.return_value),
+            ])
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_get_boot_mode(self, mock_get_system):
@@ -1462,61 +1514,84 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                               task.driver.management.get_secure_boot_state,
                               task)
 
+    @mock.patch.object(redfish_mgmt.RedfishManagement, '_wait_for_secure_boot',
+                       autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_set_secure_boot_state(self, mock_get_system):
+    def test_set_secure_boot_state(self, mock_get_system, mock_wait):
         fake_system = mock_get_system.return_value
         fake_system.secure_boot.enabled = False
         fake_system.boot = {'mode': sushy.BOOT_SOURCE_MODE_UEFI}
         with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
+                                  shared=False) as task:
             task.driver.management.set_secure_boot_state(task, True)
             fake_system.secure_boot.set_enabled.assert_called_once_with(True)
+            mock_wait.assert_called_once_with(task.driver.management,
+                                              task, fake_system.secure_boot,
+                                              True)
 
+    @mock.patch.object(redfish_mgmt.RedfishManagement, '_wait_for_secure_boot',
+                       autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_set_secure_boot_state_boot_mode_unknown(self, mock_get_system):
+    def test_set_secure_boot_state_boot_mode_unknown(self, mock_get_system,
+                                                     mock_wait):
         fake_system = mock_get_system.return_value
         fake_system.secure_boot.enabled = False
         fake_system.boot = {}
         with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
+                                  shared=False) as task:
             task.driver.management.set_secure_boot_state(task, True)
             fake_system.secure_boot.set_enabled.assert_called_once_with(True)
+            mock_wait.assert_called_once_with(task.driver.management,
+                                              task, fake_system.secure_boot,
+                                              True)
 
+    @mock.patch.object(redfish_mgmt.RedfishManagement, '_wait_for_secure_boot',
+                       autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_set_secure_boot_state_boot_mode_no_change(self, mock_get_system):
+    def test_set_secure_boot_state_boot_mode_no_change(self, mock_get_system,
+                                                       mock_wait):
         fake_system = mock_get_system.return_value
         fake_system.secure_boot.enabled = False
         fake_system.boot = {'mode': sushy.BOOT_SOURCE_MODE_BIOS}
         with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
+                                  shared=False) as task:
             task.driver.management.set_secure_boot_state(task, False)
-            self.assertFalse(fake_system.secure_boot.set_enabled.called)
+            fake_system.secure_boot.set_enabled.assert_not_called()
+            mock_wait.assert_not_called()
 
+    @mock.patch.object(redfish_mgmt.RedfishManagement, '_wait_for_secure_boot',
+                       autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_set_secure_boot_state_boot_mode_incorrect(self, mock_get_system):
+    def test_set_secure_boot_state_boot_mode_incorrect(self, mock_get_system,
+                                                       mock_wait):
         fake_system = mock_get_system.return_value
         fake_system.secure_boot.enabled = False
         fake_system.boot = {'mode': sushy.BOOT_SOURCE_MODE_BIOS}
         with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
+                                  shared=False) as task:
             self.assertRaisesRegex(
                 exception.RedfishError, 'requires UEFI',
                 task.driver.management.set_secure_boot_state, task, True)
-            self.assertFalse(fake_system.secure_boot.set_enabled.called)
+            fake_system.secure_boot.set_enabled.assert_not_called()
+            mock_wait.assert_not_called()
 
+    @mock.patch.object(redfish_mgmt.RedfishManagement, '_wait_for_secure_boot',
+                       autospec=True)
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
-    def test_set_secure_boot_state_boot_mode_fails(self, mock_get_system):
+    def test_set_secure_boot_state_boot_mode_fails(self, mock_get_system,
+                                                   mock_wait):
         fake_system = mock_get_system.return_value
         fake_system.secure_boot.enabled = False
         fake_system.secure_boot.set_enabled.side_effect = \
             sushy.exceptions.SushyError
         fake_system.boot = {'mode': sushy.BOOT_SOURCE_MODE_UEFI}
         with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
+                                  shared=False) as task:
             self.assertRaisesRegex(
                 exception.RedfishError, 'Failed to set secure boot',
                 task.driver.management.set_secure_boot_state, task, True)
             fake_system.secure_boot.set_enabled.assert_called_once_with(True)
+            mock_wait.assert_not_called()
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_set_secure_boot_state_not_implemented(self, mock_get_system):
@@ -1528,10 +1603,75 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
         mock_get_system.return_value = NoSecureBoot()
         with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
+                                  shared=False) as task:
             self.assertRaises(exception.UnsupportedDriverExtension,
                               task.driver.management.set_secure_boot_state,
                               task, True)
+
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_wait_for_secure_boot_immediate(self, mock_power):
+        fake_sb = mock.Mock(spec=['enabled', 'refresh'], enabled=True)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management._wait_for_secure_boot(task, fake_sb, True)
+            fake_sb.refresh.assert_called_once_with(force=True)
+            mock_power.assert_not_called()
+
+    @mock.patch('time.sleep', lambda _: None)
+    @mock.patch.object(redfish_power.RedfishPower, 'get_power_state',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_wait_for_secure_boot(self, mock_power, mock_get_power):
+        attempts = 3
+
+        def side_effect(force):
+            nonlocal attempts
+            attempts -= 1
+            if attempts <= 0:
+                fake_sb.enabled = True
+
+        fake_sb = mock.Mock(spec=['enabled', 'refresh'], enabled=False)
+        fake_sb.refresh.side_effect = side_effect
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management._wait_for_secure_boot(task, fake_sb, True)
+            fake_sb.refresh.assert_called_with(force=True)
+            self.assertEqual(3, fake_sb.refresh.call_count)
+            mock_power.assert_has_calls([
+                mock.call(task, states.REBOOT),
+                mock.call(task, mock_get_power.return_value),
+            ])
+
+    @mock.patch.object(redfish_mgmt, 'BOOT_MODE_CONFIG_INTERVAL', 0.1)
+    @mock.patch.object(redfish_power.RedfishPower, 'get_power_state',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_wait_for_secure_boot_timeout(self, mock_power, mock_get_power):
+        CONF.set_override('boot_mode_config_timeout', 1, group='redfish')
+        fake_sb = mock.Mock(spec=['enabled', 'refresh'], enabled=False)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaisesRegex(
+                exception.RedfishError, 'Timeout reached',
+                task.driver.management._wait_for_secure_boot,
+                task, fake_sb, True)
+            fake_sb.refresh.assert_called_with(force=True)
+            mock_power.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(redfish_power.RedfishPower, 'get_power_state',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_wait_for_secure_boot_no_wait(self, mock_power, mock_get_power):
+        CONF.set_override('boot_mode_config_timeout', 0, group='redfish')
+        fake_sb = mock.Mock(spec=['enabled', 'refresh'], enabled=False)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management._wait_for_secure_boot(task, fake_sb, True)
+            fake_sb.refresh.assert_called_once_with(force=True)
+            mock_power.assert_has_calls([
+                mock.call(task, states.REBOOT),
+                mock.call(task, mock_get_power.return_value),
+            ])
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_reset_secure_boot_to_default(self, mock_get_system):

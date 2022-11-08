@@ -14,6 +14,7 @@
 #    under the License.
 
 import collections
+import time
 from urllib.parse import urlparse
 
 from ironic_lib import metrics_utils
@@ -43,6 +44,8 @@ LOG = log.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
 sushy = importutils.try_import('sushy')
+
+BOOT_MODE_CONFIG_INTERVAL = 15
 
 if sushy:
     BOOT_DEVICE_MAP = {
@@ -327,9 +330,13 @@ class RedfishManagement(base.ManagementInterface):
         """
         system = redfish_utils.get_system(task.node)
 
+        # NOTE(dtantsur): check the readability of the current mode before
+        # modifying anything. I suspect it can become None transiently after
+        # the update, while we need to know if it is supported *at all*.
+        get_mode_unsupported = (system.boot.get('mode') is None)
+
         try:
             system.set_system_boot_options(mode=BOOT_MODE_MAP_REV[mode])
-
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Setting boot mode to %(mode)s '
                            'failed for node %(node)s. '
@@ -342,7 +349,7 @@ class RedfishManagement(base.ManagementInterface):
             # getting or setting the boot mode. When setting failed and the
             # mode attribute is missing from the boot field, raising
             # UnsupportedDriverExtension will allow the deploy to continue.
-            if system.boot.get('mode') is None:
+            if get_mode_unsupported:
                 LOG.info(_('Attempt to set boot mode on node %(node)s '
                            'failed to set boot mode as the node does not '
                            'appear to support overriding the boot mode. '
@@ -351,6 +358,66 @@ class RedfishManagement(base.ManagementInterface):
                 raise exception.UnsupportedDriverExtension(
                     driver=task.node.driver, extension='set_boot_mode')
             raise exception.RedfishError(error=error_msg)
+
+        # NOTE(dtantsur): this case is rather hypothetical, but in our own
+        # emulator, it's possible that mode is constantly set to None, while
+        # the request to change the mode succeeds.
+        if get_mode_unsupported:
+            LOG.warning('The request to set boot mode for node %(node)s to '
+                        '%(value)s has succeeded, but the current mode is '
+                        'not known. Skipping reboot and assuming '
+                        'the operation has succeeded.',
+                        {'node': task.node.uuid, 'value': mode})
+            return
+
+        self._wait_for_boot_mode(task, system, mode)
+        LOG.info('Boot mode for node %(node)s has been set to '
+                 '%(value)s', {'node': task.node.uuid, 'value': mode})
+
+    def _wait_for_boot_mode(self, task, system, mode):
+        system.refresh(force=True)
+
+        # NOTE(dtantsur/janders): at least Dell machines change boot mode via
+        # a BIOS configuration job. A reboot is needed to apply it.
+        if system.boot.get('mode') == BOOT_MODE_MAP_REV[mode]:
+            LOG.debug('Node %(node)s is already configured with requested '
+                      'boot mode %(new_value)s.',
+                      {'node': task.node.uuid,
+                       'new_value': BOOT_MODE_MAP_REV[mode]})
+            return
+
+        LOG.info('Rebooting node %(node)s to change boot mode from '
+                 '%(old_value)s to %(new_value)s',
+                 {'node': task.node.uuid,
+                  'old_value': system.boot.get('mode'),
+                  'new_value': BOOT_MODE_MAP_REV[mode]})
+
+        old_power_state = task.driver.power.get_power_state(task)
+        manager_utils.node_power_action(task, states.REBOOT)
+
+        if CONF.redfish.boot_mode_config_timeout:
+            threshold = time.time() + CONF.redfish.boot_mode_config_timeout
+            while (time.time() <= threshold
+                   and system.boot.get('mode') != BOOT_MODE_MAP_REV[mode]):
+                LOG.debug('Still waiting for boot mode of node %(node)s '
+                          'to become %(value)s, current is %(current)s',
+                          {'node': task.node.uuid,
+                           'value': BOOT_MODE_MAP_REV[mode],
+                           'current': system.boot.get('mode')})
+                time.sleep(BOOT_MODE_CONFIG_INTERVAL)
+                system.refresh(force=True)
+
+            if system.boot.get('mode') != BOOT_MODE_MAP_REV[mode]:
+                msg = (_('Timeout reached while waiting for boot mode of '
+                         'node %(node)s to become %(value)s, '
+                         'current is %(current)s')
+                       % {'node': task.node.uuid,
+                          'value': BOOT_MODE_MAP_REV[mode],
+                          'current': system.boot.get('mode')})
+                LOG.error(msg)
+                raise exception.RedfishError(error=msg)
+
+        manager_utils.node_power_action(task, old_power_state)
 
     def get_boot_mode(self, task):
         """Get the current boot mode for a node.
@@ -1142,9 +1209,45 @@ class RedfishManagement(base.ManagementInterface):
                    % {'node': task.node.uuid, 'value': state, 'exc': exc})
             LOG.error(msg)
             raise exception.RedfishError(error=msg)
-        else:
-            LOG.info('Secure boot state for node %(node)s has been set to '
-                     '%(value)s', {'node': task.node.uuid, 'value': state})
+
+        self._wait_for_secure_boot(task, sb, state)
+        LOG.info('Secure boot state for node %(node)s has been set to '
+                 '%(value)s', {'node': task.node.uuid, 'value': state})
+
+    def _wait_for_secure_boot(self, task, sb, state):
+        # NOTE(dtantsur): at least Dell machines change secure boot status via
+        # a BIOS configuration job. A reboot is needed to apply it.
+        sb.refresh(force=True)
+        if sb.enabled == state:
+            return
+
+        LOG.info('Rebooting node %(node)s to change secure boot state to '
+                 '%(value)s', {'node': task.node.uuid, 'value': state})
+
+        old_power_state = task.driver.power.get_power_state(task)
+        manager_utils.node_power_action(task, states.REBOOT)
+
+        if CONF.redfish.boot_mode_config_timeout:
+            threshold = time.time() + CONF.redfish.boot_mode_config_timeout
+            while time.time() <= threshold and sb.enabled != state:
+                LOG.debug(
+                    'Still waiting for secure boot state of node %(node)s '
+                    'to become %(value)s, current is %(current)s',
+                    {'node': task.node.uuid, 'value': state,
+                     'current': sb.enabled})
+                time.sleep(BOOT_MODE_CONFIG_INTERVAL)
+                sb.refresh(force=True)
+
+            if sb.enabled != state:
+                msg = (_('Timeout reached while waiting for secure boot state '
+                         'of node %(node)s to become %(state)s, '
+                         'current is %(current)s')
+                       % {'node': task.node.uuid, 'state': state,
+                          'current': sb.enabled})
+                LOG.error(msg)
+                raise exception.RedfishError(error=msg)
+
+        manager_utils.node_power_action(task, old_power_state)
 
     def _reset_keys(self, task, reset_type):
         system = redfish_utils.get_system(task.node)
