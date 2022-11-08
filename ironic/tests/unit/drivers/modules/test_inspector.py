@@ -24,6 +24,7 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules import inspector
 from ironic.drivers.modules.redfish import utils as redfish_utils
+from ironic import objects
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -551,6 +552,34 @@ class CheckStatusTestCase(BaseTestCase):
         self.driver.network.remove_inspection_network.assert_called_once_with(
             self.task)
         self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+
+    def test_status_ok_store_inventory(self, mock_client):
+        mock_get = mock_client.return_value.get_introspection
+        mock_get.return_value = mock.Mock(is_finished=True,
+                                          error=None,
+                                          spec=['is_finished', 'error'])
+        mock_get_data = mock_client.return_value.get_introspection_data
+        mock_get_data.return_value = {
+            "inventory": {"cpu": "amd"}, "disks": [{"name": "/dev/vda"}]}
+        inspector._check_status(self.task)
+        mock_get.assert_called_once_with(self.node.uuid)
+        mock_get_data.assert_called_once_with(self.node.uuid, processed=True)
+
+        stored = objects.NodeInventory.get_by_node_id(self.context,
+                                                      self.node.id)
+        self.assertEqual({"cpu": "amd"}, stored["inventory_data"])
+        self.assertEqual({"disks": [{"name": "/dev/vda"}]},
+                         stored["plugin_data"])
+
+    def test_status_error_dont_store_inventory(self, mock_client):
+        mock_get = mock_client.return_value.get_introspection
+        mock_get.return_value = mock.Mock(is_finished=True,
+                                          error='boom',
+                                          spec=['is_finished', 'error'])
+        mock_get_data = mock_client.return_value.get_introspection_data
+        inspector._check_status(self.task)
+        mock_get.assert_called_once_with(self.node.uuid)
+        mock_get_data.assert_not_called()
 
 
 @mock.patch('ironic.drivers.modules.inspector._get_client', autospec=True)

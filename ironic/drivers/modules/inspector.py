@@ -36,6 +36,7 @@ from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import inspect_utils
+from ironic.objects import node_inventory
 
 LOG = logging.getLogger(__name__)
 
@@ -339,7 +340,8 @@ def _check_status(task):
               task.node.uuid)
 
     try:
-        status = _get_client(task.context).get_introspection(node.uuid)
+        inspector_client = _get_client(task.context)
+        status = inspector_client.get_introspection(node.uuid)
     except Exception:
         # NOTE(dtantsur): get_status should not normally raise
         # let's assume it's a transient failure and retry later
@@ -363,6 +365,14 @@ def _check_status(task):
         _inspection_error_handler(task, error)
     elif status.is_finished:
         _clean_up(task)
+        introspection_data = inspector_client.get_introspection_data(
+            node.uuid, processed=True)
+        inventory_data = introspection_data.pop("inventory")
+        plugin_data = introspection_data
+        node_inventory.NodeInventory(
+            node_id=node.id,
+            inventory_data=inventory_data,
+            plugin_data=plugin_data).create()
 
 
 def _clean_up(task):
