@@ -41,6 +41,13 @@ IRMC_OS_NAME_NUM_R = re.compile(r'\d+$')
 IRMC_FW_VER_R = re.compile(r'\d(\.\d+)*\w*')
 IRMC_FW_VER_NUM_R = re.compile(r'\d(\.\d+)*')
 
+IPMI_ENABLED_BY_DEFAULT_RANGES = {
+    # iRMC S4 enables IPMI over LAN by default
+    '4': None,
+    # iRMC S5 enables IPMI over LAN by default
+    '5': None,
+    # iRMC S6 disables IPMI over LAN by default from version 2.00
+    '6': {'upper': '2.00'}}
 
 ELCM_STATUS_PATH = '/rest/v1/Oem/eLCM/eLCMStatus'
 

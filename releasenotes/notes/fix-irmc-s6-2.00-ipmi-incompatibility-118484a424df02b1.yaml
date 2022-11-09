@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Fixes a firmware incompatibility issue with iRMC versions S6 2.00
+    and later now doesn't support IPMI over LAN by default.
+    To deal with this problem, irmc driver first tries IPMI operation then,
+    if IPMI operation fails, it tries Redfish API of Fujitsu server.
+    The operator must set Redfish parameters in the ``driver_info``
+    if iRMC disable or doesn't support IPMI over LAN.
+upgrade:
+  - |
+    When Ironic operator uses irmc driver against Fujitsu server which runs
+    iRMC version S6 2.00 or later, operator may need to set Redfish parameters
+    in ``driver_info`` so this fix can operate properly or operator should
+    enable IPMI over LAN through BMC settings, if possible.
