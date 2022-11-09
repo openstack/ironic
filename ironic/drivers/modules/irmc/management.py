@@ -30,6 +30,7 @@ from ironic.drivers import base
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import common as irmc_common
+from ironic.drivers.modules.redfish import management as redfish_management
 
 irmc = importutils.try_import('scciclient.irmc')
 
@@ -204,7 +205,8 @@ def _restore_bios_config(task):
     manager_utils.node_power_action(task, states.POWER_ON)
 
 
-class IRMCManagement(ipmitool.IPMIManagement):
+class IRMCManagement(ipmitool.IPMIManagement,
+                     redfish_management.RedfishManagement):
 
     def get_properties(self):
         """Return the properties of the interface.
@@ -224,9 +226,30 @@ class IRMCManagement(ipmitool.IPMIManagement):
         :raises: InvalidParameterValue if required parameters are invalid.
         :raises: MissingParameterValue if a required parameter is missing.
         """
-        irmc_common.parse_driver_info(task.node)
-        irmc_common.update_ipmi_properties(task)
-        super(IRMCManagement, self).validate(task)
+        if task.node.driver_internal_info.get('irmc_ipmi_succeed'):
+            irmc_common.parse_driver_info(task.node)
+            irmc_common.update_ipmi_properties(task)
+            super(IRMCManagement, self).validate(task)
+        else:
+            irmc_common.parse_driver_info(task.node)
+            super(ipmitool.IPMIManagement, self).validate(task)
+
+    def get_supported_boot_devices(self, task):
+        """Get list of supported boot devices
+
+        Actual code is delegated to IPMIManagement or RedfishManagement
+        based on iRMC firmware version.
+
+        :param task: A TaskManager instance
+        :returns: A list with the supported boot devices defined
+                  in :mod:`ironic.common.boot_devices`.
+
+        """
+        if task.node.driver_internal_info.get('irmc_ipmi_succeed'):
+            return super(IRMCManagement, self).get_supported_boot_devices(task)
+        else:
+            return super(ipmitool.IPMIManagement,
+                         self).get_supported_boot_devices(task)
 
     @METRICS.timer('IRMCManagement.set_boot_device')
     @task_manager.require_exclusive_lock
@@ -245,39 +268,112 @@ class IRMCManagement(ipmitool.IPMIManagement):
                  specified.
         :raises: MissingParameterValue if a required parameter is missing.
         :raises: IPMIFailure on an error from ipmitool.
-
+        :raises: RedfishConnectionError on Redfish operation failure.
+        :raises: RedfishError on Redfish operation failure.
         """
-        if device not in self.get_supported_boot_devices(task):
-            raise exception.InvalidParameterValue(_(
-                "Invalid boot device %s specified.") % device)
+        if task.node.driver_internal_info.get('irmc_ipmi_succeed'):
+            if device not in self.get_supported_boot_devices(task):
+                raise exception.InvalidParameterValue(_(
+                    "Invalid boot device %s specified.") % device)
 
-        uefi_mode = (
-            boot_mode_utils.get_boot_mode(task.node) == 'uefi')
+            uefi_mode = (
+                boot_mode_utils.get_boot_mode(task.node) == 'uefi')
 
-        # disable 60 secs timer
-        timeout_disable = "0x00 0x08 0x03 0x08"
-        ipmitool.send_raw(task, timeout_disable)
+            # disable 60 secs timer
+            timeout_disable = "0x00 0x08 0x03 0x08"
+            ipmitool.send_raw(task, timeout_disable)
 
-        # note(naohirot):
-        # Set System Boot Options : ipmi cmd '0x08', bootparam '0x05'
-        #
-        # $ ipmitool raw 0x00 0x08 0x05 data1 data2 0x00 0x00 0x00
-        #
-        # data1 : '0xe0' persistent + uefi
-        #         '0xc0' persistent + bios
-        #         '0xa0' next only  + uefi
-        #         '0x80' next only  + bios
-        # data2 : boot device defined in the dict _BOOTPARAM5_DATA2
+            # note(naohirot):
+            # Set System Boot Options : ipmi cmd '0x08', bootparam '0x05'
+            #
+            # $ ipmitool raw 0x00 0x08 0x05 data1 data2 0x00 0x00 0x00
+            #
+            # data1 : '0xe0' persistent + uefi
+            #         '0xc0' persistent + bios
+            #         '0xa0' next only  + uefi
+            #         '0x80' next only  + bios
+            # data2 : boot device defined in the dict _BOOTPARAM5_DATA2
 
-        bootparam5 = '0x00 0x08 0x05 %s %s 0x00 0x00 0x00'
-        if persistent:
-            data1 = '0xe0' if uefi_mode else '0xc0'
+            bootparam5 = '0x00 0x08 0x05 %s %s 0x00 0x00 0x00'
+            if persistent:
+                data1 = '0xe0' if uefi_mode else '0xc0'
+            else:
+                data1 = '0xa0' if uefi_mode else '0x80'
+            data2 = _BOOTPARAM5_DATA2[device]
+
+            cmd8 = bootparam5 % (data1, data2)
+            ipmitool.send_raw(task, cmd8)
         else:
-            data1 = '0xa0' if uefi_mode else '0x80'
-        data2 = _BOOTPARAM5_DATA2[device]
+            if device not in self.get_supported_boot_devices(task):
+                raise exception.InvalidParameterValue(_(
+                    "Invalid boot device %s specified. "
+                    "Current iRMC firmware condition doesn't support IPMI "
+                    "but Redfish.") % device)
+            super(ipmitool.IPMIManagement, self).set_boot_device(
+                task, device, persistent)
 
-        cmd8 = bootparam5 % (data1, data2)
-        ipmitool.send_raw(task, cmd8)
+    def get_boot_device(self, task):
+        """Get the current boot device for the task's node.
+
+        Returns the current boot device of the node.
+
+        :param task: a task from TaskManager.
+        :raises: InvalidParameterValue if an invalid boot device is
+                 specified.
+        :raises: MissingParameterValue if a required parameter is missing.
+        :raises: IPMIFailure on an error from ipmitool.
+        :raises: RedfishConnectionError on Redfish operation failure.
+        :raises: RedfishError on Redfish operation failure.
+        :returns: a dictionary containing:
+
+            :boot_device: the boot device, one of
+                :mod:`ironic.common.boot_devices` or None if it is unknown.
+            :persistent: Whether the boot device will persist to all
+                future boots or not, None if it is unknown.
+        """
+        if task.node.driver_internal_info.get('irmc_ipmi_succeed'):
+            return super(IRMCManagement, self).get_boot_device(task)
+        else:
+            return super(
+                ipmitool.IPMIManagement, self).get_boot_device(task)
+
+    def get_supported_boot_modes(self, task):
+        """Get a list of the supported boot modes.
+
+        IRMCManagement class doesn't support this method
+
+        :param task: a task from TaskManager.
+        :raises: UnsupportedDriverExtension if requested operation is
+                 not supported by the driver
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='get_supported_boot_modes')
+
+    def set_boot_mode(self, task, mode):
+        """Set the boot mode for a node.
+
+        IRMCManagement class doesn't support this method
+
+        :param task: a task from TaskManager.
+        :param mode: The boot mode, one of
+                     :mod:`ironic.common.boot_modes`.
+        :raises: UnsupportedDriverExtension if requested operation is
+                 not supported by the driver
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='set_boot_mode')
+
+    def get_boot_mode(self, task):
+        """Get the current boot mode for a node.
+
+        IRMCManagement class doesn't support this method
+
+        :param task: a task from TaskManager.
+        :raises: UnsupportedDriverExtension if requested operation is
+                 not supported by the driver
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='get_boot_mode')
 
     @METRICS.timer('IRMCManagement.get_sensors_data')
     def get_sensors_data(self, task):
@@ -330,7 +426,13 @@ class IRMCManagement(ipmitool.IPMIManagement):
         if sensor_method == 'scci':
             return _get_sensors_data(task)
         elif sensor_method == 'ipmitool':
-            return super(IRMCManagement, self).get_sensors_data(task)
+            if task.node.driver_internal_info.get('irmc_ipmi_succeed'):
+                return super(IRMCManagement, self).get_sensors_data(task)
+            else:
+                raise exception.InvalidParameterValue(_(
+                    "Invalid sensor method %s specified. "
+                    "IPMI operation doesn't work on current iRMC "
+                    "condition.") % sensor_method)
 
     @METRICS.timer('IRMCManagement.inject_nmi')
     @task_manager.require_exclusive_lock
@@ -401,3 +503,82 @@ class IRMCManagement(ipmitool.IPMIManagement):
                  not supported by the driver or the hardware
         """
         return irmc_common.set_secure_boot_mode(task.node, state)
+
+    def get_supported_indicators(self, task, component=None):
+        """Get a map of the supported indicators (e.g. LEDs).
+
+        IRMCManagement class doesn't support this method
+
+        :param task: a task from TaskManager.
+        :param component: If not `None`, return indicator information
+            for just this component, otherwise return indicators for
+            all existing components.
+        :raises: UnsupportedDriverExtension if requested operation is
+                 not supported by the driver
+
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='get_supported_indicators')
+
+    def set_indicator_state(self, task, component, indicator, state):
+        """Set indicator on the hardware component to the desired state.
+
+        IRMCManagement class doesn't support this method
+
+        :param task: A task from TaskManager.
+        :param component: The hardware component, one of
+            :mod:`ironic.common.components`.
+        :param indicator: Indicator ID (as reported by
+            `get_supported_indicators`).
+        :state: Desired state of the indicator, one of
+            :mod:`ironic.common.indicator_states`.
+        :raises: UnsupportedDriverExtension if requested operation is
+                 not supported by the driver
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='set_indicator_state')
+
+    def get_indicator_state(self, task, component, indicator):
+        """Get current state of the indicator of the hardware component.
+
+        IRMCManagement class doesn't support this method
+
+        :param task: A task from TaskManager.
+        :param component: The hardware component, one of
+            :mod:`ironic.common.components`.
+        :param indicator: Indicator ID (as reported by
+            `get_supported_indicators`).
+        :raises: UnsupportedDriverExtension if requested operation is
+                 not supported by the driver
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='get_indicator_state')
+
+    def detect_vendor(self, task):
+        """Detects and returns the hardware vendor.
+
+        :param task: A task from TaskManager.
+        :raises: InvalidParameterValue if a required parameter is missing
+        :raises: MissingParameterValue if a required parameter is missing
+        :raises: RedfishError on Redfish operation error.
+        :raises: PasswordFileFailedToCreate from creating or writing to the
+                 temporary file during IPMI operation.
+        :raises: processutils.ProcessExecutionError from executing ipmi command
+        :returns: String representing the BMC reported Vendor or
+                  Manufacturer, otherwise returns None.
+        """
+        if task.node.driver_internal_info.get('irmc_ipmi_succeed'):
+            return super(IRMCManagement, self).detect_vendor(task)
+        else:
+            return super(ipmitool.IPMIManagement, self).detect_vendor(task)
+
+    def get_mac_addresses(self, task):
+        """Get MAC address information for the node.
+
+        IRMCManagement class doesn't support this method
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: UnsupportedDriverExtension
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='get_mac_addresses')
