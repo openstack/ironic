@@ -210,6 +210,25 @@ Configuration via ``ironic.conf``
 
   - ``port``: Port to be used for iRMC operations; either 80
     or 443. The default value is 443. Optional.
+
+    .. note::
+       Since iRMC S6 2.00, iRMC firmware doesn't support HTTP connection to
+       REST API. If you deploy server with iRMS S6 2.00 and later, please
+       set ``port`` to 443.
+
+       ``irmc`` hardware type provides ``verify_step`` named
+       ``verify_http_https_connection_and_fw_version`` to check HTTP(S)
+       connection to iRMC REST API. If HTTP(S) connection is successfully
+       established, then it fetches and caches iRMC firmware version.
+       If HTTP(S) connection to iRMC REST API failed, Ironic node's state
+       moves to ``enroll`` with suggestion put in log message.
+       Default priority of this verify step is 10.
+
+       If operator updates iRMC firmware version of node, operator should
+       run ``cache_irmc_firmware_version`` node vendor passthru method
+       to update iRMC firmware version stored in
+       ``driver_internal_info/irmc_fw_version``.
+
   - ``auth_method``: Authentication method for iRMC operations;
     either ``basic`` or ``digest``. The default value is ``basic``. Optional.
   - ``client_timeout``: Timeout (in seconds) for iRMC

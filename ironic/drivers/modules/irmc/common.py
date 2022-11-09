@@ -15,9 +15,12 @@
 """
 Common functionalities shared between different iRMC modules.
 """
+import json
 import os
+import re
 
 from oslo_log import log as logging
+from oslo_serialization import jsonutils
 from oslo_utils import importutils
 from oslo_utils import strutils
 
@@ -31,6 +34,16 @@ scci = importutils.try_import('scciclient.irmc.scci')
 elcm = importutils.try_import('scciclient.irmc.elcm')
 
 LOG = logging.getLogger(__name__)
+
+
+IRMC_OS_NAME_R = re.compile(r'iRMC\s+S\d+')
+IRMC_OS_NAME_NUM_R = re.compile(r'\d+$')
+IRMC_FW_VER_R = re.compile(r'\d(\.\d+)*\w*')
+IRMC_FW_VER_NUM_R = re.compile(r'\d(\.\d+)*')
+
+
+ELCM_STATUS_PATH = '/rest/v1/Oem/eLCM/eLCMStatus'
+
 REQUIRED_PROPERTIES = {
     'irmc_address': _("IP address or hostname of the iRMC. Required."),
     'irmc_username': _("Username for the iRMC with administrator privileges. "
@@ -436,3 +449,202 @@ def set_secure_boot_mode(node, enable):
         raise exception.IRMCOperationError(
             operation=_("setting secure boot mode"),
             error=irmc_exception)
+
+
+def check_elcm_license(node):
+    """Connect to iRMC and return status of eLCM license
+
+    This function connects to iRMC REST API and check whether eLCM
+    license is active. This function can be used to check connection to
+    iRMC REST API.
+
+    :param node: An ironic node object
+    :returns: dictionary whose keys are 'active' and 'status_code'.
+        value of 'active' is boolean showing if eLCM license is active
+        and value of 'status_code' is int which is HTTP return code
+        from iRMC REST API access
+    :raises: InvalidParameterValue if invalid value is contained
+        in the 'driver_info' property.
+    :raises: MissingParameterValue if some mandatory key is missing
+        in the 'driver_info' property.
+    :raises: IRMCOperationError if the operation fails.
+    """
+    try:
+        d_info = parse_driver_info(node)
+        # GET to /rest/v1/Oem/eLCM/eLCMStatus returns
+        # JSON data like this:
+        #
+        # {
+        # "eLCMStatus":{
+        #      "EnabledAndLicenced":"true",
+        #      "SDCardMounted":"false"
+        #      }
+        # }
+        #
+        # EnabledAndLicenced tells whether eLCM license is valid
+        #
+        r = elcm.elcm_request(d_info, 'GET', ELCM_STATUS_PATH)
+
+        # If r.status_code is 200, it means success and r.text is JSON.
+        # If it is 500, it means there is problem at iRMC side
+        # and iRMC cannot return eLCM status.
+        # If it was 401, elcm_request raises SCCIClientError.
+        # Otherwise, r.text may not be JSON.
+        if r.status_code == 200:
+            license_active = strutils.bool_from_string(
+                jsonutils.loads(r.text)['eLCMStatus']['EnabledAndLicenced'],
+                strict=True)
+        else:
+            license_active = False
+
+        return {'active': license_active, 'status_code': r.status_code}
+    except (scci.SCCIError,
+            json.JSONDecodeError,
+            TypeError,
+            KeyError,
+            ValueError) as irmc_exception:
+        LOG.error("Failed to check eLCM license status for node $(node)s",
+                  {'node': node.uuid})
+        raise exception.IRMCOperationError(
+            operation='checking eLCM license status',
+            error=irmc_exception)
+
+
+def set_irmc_version(task):
+    """Fetch and save iRMC firmware version.
+
+    This function should be called before calling any other functions which
+    need to check node's iRMC firmware version.
+
+    Set `<iRMC OS>/<fw version>` to driver_internal_info['irmc_fw_version']
+
+    :param node: An ironic node object
+    :raises: InvalidParameterValue if invalid value is contained
+        in the 'driver_info' property.
+    :raises: MissingParameterValue if some mandatory key is missing
+        in the 'driver_info' property.
+    :raises: IRMCOperationError if the operation fails.
+    :raises: NodeLocked if the target node is already locked.
+    """
+
+    node = task.node
+    try:
+        report = get_irmc_report(node)
+        irmc_os, fw_version = scci.get_irmc_version_str(report)
+
+        fw_ver = node.driver_internal_info.get('irmc_fw_version')
+        if fw_ver != '/'.join([irmc_os, fw_version]):
+            task.upgrade_lock(purpose='saving firmware version')
+            node.set_driver_internal_info('irmc_fw_version',
+                                          f"{irmc_os}/{fw_version}")
+            node.save()
+    except scci.SCCIError as irmc_exception:
+        LOG.error("Failed to fetch iRMC FW version for node %s",
+                  node.uuid)
+        raise exception.IRMCOperationError(
+            operation=_("fetching irmc fw version "),
+            error=irmc_exception)
+
+
+def _version_lt(v1, v2):
+    v1_l = v1.split('.')
+    v2_l = v2.split('.')
+    if len(v1_l) <= len(v2_l):
+        v1_l.extend(['0'] * (len(v2_l) - len(v1_l)))
+    else:
+        v2_l.extend(['0'] * (len(v1_l) - len(v2_l)))
+
+    for i in range(len(v1_l)):
+        if int(v1_l[i]) < int(v2_l[i]):
+            return True
+        elif int(v1_l[i]) > int(v2_l[i]):
+            return False
+    else:
+        return False
+
+
+def _version_le(v1, v2):
+    v1_l = v1.split('.')
+    v2_l = v2.split('.')
+    if len(v1_l) <= len(v2_l):
+        v1_l.extend(['0'] * (len(v2_l) - len(v1_l)))
+    else:
+        v2_l.extend(['0'] * (len(v1_l) - len(v2_l)))
+
+    for i in range(len(v1_l)):
+        if int(v1_l[i]) < int(v2_l[i]):
+            return True
+        elif int(v1_l[i]) > int(v2_l[i]):
+            return False
+    else:
+        return True
+
+
+def within_version_ranges(node, version_ranges):
+    """Read saved iRMC FW version and check if it is within the passed ranges.
+
+    :param node: An ironic node object
+    :param version_ranges: A Python dictionary containing version ranges in the
+        next format: <os_n>: <ranges>, where <os_n> is a string representing
+        iRMC OS number (e.g. '4') and <ranges> is a dictionaries indicating
+        the specific firmware version ranges under the iRMC OS number <os_n>.
+
+        The dictionary used in <ranges> only has two keys: 'min' and 'upper',
+        and value of each key is a string representing iRMC firmware version
+        number or None. Both keys can be absent and their value can be None.
+
+        It is acceptable to not set ranges for a <os_n> (for example set
+        <ranges> to None, {}, etc...), in this case, this function only
+        checks if the node's iRMC OS number matches the <os_n>.
+
+        Valid <version_ranges> example:
+            {'3': None,   # all version of iRMC S3 matches
+             '4': {},     # all version of iRMC S4 matches
+             # all version of iRMC S5 matches
+             '5': {'min': None, 'upper': None},
+             # iRMC S6 whose version is >=1.20 matches
+             '6': {'min': '1.20', 'upper': None},
+             # iRMC S7 whose version is
+             # 5.51<= (version) <8.23 matches
+             '7': {'min': '5.51', 'upper': '8.23'}}
+
+    :returns: True if node's iRMC FW is in range, False if not or
+        fails to parse firmware version
+    """
+
+    try:
+        fw_version = node.driver_internal_info.get('irmc_fw_version', '')
+        irmc_os, irmc_ver = fw_version.split('/')
+
+        if IRMC_OS_NAME_R.match(irmc_os) and IRMC_FW_VER_R.match(irmc_ver):
+            os_num = IRMC_OS_NAME_NUM_R.search(irmc_os).group(0)
+            fw_num = IRMC_FW_VER_NUM_R.search(irmc_ver).group(0)
+
+            if os_num not in version_ranges:
+                return False
+
+            v_range = version_ranges[os_num]
+
+            # An OS number with no ranges setted means no need to check
+            # specific version, all the version under this OS number is valid.
+            if not v_range:
+                return True
+
+            # Specific range is setted, check if the node's
+            # firmware version is within it.
+            min_ver = v_range.get('min')
+            upper_ver = v_range.get('upper')
+            flag = True
+            if min_ver:
+                flag = _version_le(min_ver, fw_num)
+            if flag and upper_ver:
+                flag = _version_lt(fw_num, upper_ver)
+            return flag
+
+    except Exception:
+        # All exceptions are ignored
+        pass
+
+    LOG.warning('Failed to parse iRMC firmware version on node %(uuid)s: '
+                '%(fw_ver)s', {'uuid': node.uuid, 'fw_ver': fw_version})
+    return False

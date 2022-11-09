@@ -500,3 +500,93 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
             result = task.driver.management.restore_irmc_bios_config(task)
             self.assertIsNone(result)
             mock_restore_bios.assert_called_once_with(task)
+
+    @mock.patch.object(irmc_common, 'set_irmc_version', autospec=True)
+    @mock.patch.object(irmc_common, 'check_elcm_license', autospec=True)
+    def test_verify_http_s_connection_and_fw_ver_success(self,
+                                                         check_elcm_mock,
+                                                         set_irmc_ver_mock):
+        check_elcm_mock.return_value = {'active': True,
+                                        'status_code': 200}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            irmc_mng = irmc_management.IRMCManagement()
+            irmc_mng.verify_http_https_connection_and_fw_version(task)
+            check_elcm_mock.assert_called_with(task.node)
+            set_irmc_ver_mock.assert_called_with(task)
+
+    @mock.patch.object(irmc_common, 'set_irmc_version', autospec=True)
+    @mock.patch.object(irmc_common, 'check_elcm_license', autospec=True)
+    def test_verify_http_s_connection_and_fw_ver_raise_http_success(
+            self, check_elcm_mock, set_irmc_ver_mock):
+        error_msg_http = ('iRMC establishing connection to REST API '
+                          'failed. Reason: '
+                          'Access to REST API returns unexpected '
+                          'status code. Check driver_info parameter '
+                          'or version of iRMC because iRMC does not '
+                          'support HTTP connection to iRMC REST API '
+                          'since iRMC S6 2.00.')
+
+        check_elcm_mock.return_value = {'active': False,
+                                        'status_code': 404}
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            irmc_mng = irmc_management.IRMCManagement()
+
+            task.node.driver_info['irmc_port'] = 80
+            self.assertRaisesRegex(
+                exception.IRMCOperationError,
+                error_msg_http,
+                irmc_mng.verify_http_https_connection_and_fw_version,
+                task)
+            check_elcm_mock.assert_called_with(task.node)
+            set_irmc_ver_mock.assert_not_called()
+
+    @mock.patch.object(irmc_common, 'set_irmc_version', autospec=True)
+    @mock.patch.object(irmc_common, 'check_elcm_license', autospec=True)
+    def test_verify_http_s_connection_and_fw_ver_raise_https_success(
+            self, check_elcm_mock, set_irmc_ver_mock):
+        error_msg_https = ('iRMC establishing connection to REST API '
+                           'failed. Reason: '
+                           'Access to REST API returns unexpected '
+                           'status code. Check driver_info parameter '
+                           'related to iRMC driver')
+
+        check_elcm_mock.return_value = {'active': False,
+                                        'status_code': 404}
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            irmc_mng = irmc_management.IRMCManagement()
+            task.node.driver_info['irmc_port'] = 443
+            self.assertRaisesRegex(
+                exception.IRMCOperationError,
+                error_msg_https,
+                irmc_mng.verify_http_https_connection_and_fw_version,
+                task)
+            check_elcm_mock.assert_called_with(task.node)
+            set_irmc_ver_mock.assert_not_called()
+
+    @mock.patch.object(irmc_common, 'set_irmc_version', autospec=True)
+    @mock.patch.object(irmc_common, 'check_elcm_license', autospec=True)
+    def test_verify_http_s_connection_and_fw_ver_fail_invalid(
+            self, check_elcm_mock, set_irmc_ver_mock):
+        check_elcm_mock.side_effect = exception.InvalidParameterValue
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            irmc_mng = irmc_management.IRMCManagement()
+            self.assertRaises(
+                exception.IRMCOperationError,
+                irmc_mng.verify_http_https_connection_and_fw_version,
+                task)
+            check_elcm_mock.assert_called_with(task.node)
+
+    @mock.patch.object(irmc_common, 'set_irmc_version', autospec=True)
+    @mock.patch.object(irmc_common, 'check_elcm_license', autospec=True)
+    def test_verify_http_s_connection_and_fw_ver_fail_missing(
+            self, check_elcm_mock, set_irmc_ver_mock):
+        check_elcm_mock.side_effect = exception.MissingParameterValue
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            irmc_mng = irmc_management.IRMCManagement()
+            self.assertRaises(
+                exception.IRMCOperationError,
+                irmc_mng.verify_http_https_connection_and_fw_version,
+                task)
+            check_elcm_mock.assert_called_with(task.node)

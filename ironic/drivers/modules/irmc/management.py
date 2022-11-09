@@ -401,3 +401,41 @@ class IRMCManagement(ipmitool.IPMIManagement):
                  not supported by the driver or the hardware
         """
         return irmc_common.set_secure_boot_mode(task.node, state)
+
+    @base.verify_step(priority=10)
+    def verify_http_https_connection_and_fw_version(self, task):
+        """Check http(s) connection to iRMC and save fw version
+
+        :param task' A task from TaskManager
+        'raises: IRMCOperationError
+        """
+        error_msg_https = ('Access to REST API returns unexpected '
+                           'status code. Check driver_info parameter '
+                           'related to iRMC driver')
+        error_msg_http = ('Access to REST API returns unexpected '
+                          'status code. Check driver_info parameter '
+                          'or version of iRMC because iRMC does not '
+                          'support HTTP connection to iRMC REST API '
+                          'since iRMC S6 2.00.')
+        try:
+            # Check connection to iRMC
+            elcm_license = irmc_common.check_elcm_license(task.node)
+
+            # On iRMC S6 2.00, access to REST API through HTTP returns 404
+            if elcm_license.get('status_code') not in (200, 500):
+                port = task.node.driver_info.get(
+                    'irmc_port', CONF.irmc.get('port'))
+                if port == 80:
+                    e_msg = error_msg_http
+                else:
+                    e_msg = error_msg_https
+                raise exception.IRMCOperationError(
+                    operation='establishing connection to REST API',
+                    error=e_msg)
+
+            irmc_common.set_irmc_version(task)
+        except (exception.InvalidParameterValue,
+                exception.MissingParameterValue) as irmc_exception:
+            raise exception.IRMCOperationError(
+                operation='configuration validation',
+                error=irmc_exception)
