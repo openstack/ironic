@@ -1257,6 +1257,10 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(node_inventory.c.node_id.type,
                               sqlalchemy.types.Integer)
 
+    def _check_4dbec778866e(self, engine, data):
+        nodes = db_utils.get_table(engine, 'nodes')
+        self.assertIsInstance(nodes.c.shard.type, sqlalchemy.types.String)
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')

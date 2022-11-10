@@ -72,6 +72,7 @@ class Connection(object, metaclass=abc.ABCMeta):
                         :reserved_by_any_of: [conductor1, conductor2]
                         :resource_class: resource class name
                         :retired: True | False
+                        :shard_in: shard (multiple possibilities)
                         :provision_state: provision state of node
                         :provision_state_in:
                             provision state of node (multiple possibilities)
@@ -106,6 +107,7 @@ class Connection(object, metaclass=abc.ABCMeta):
                         :provisioned_before:
                             nodes with provision_updated_at field before this
                             interval in seconds
+                        :shard: nodes with the given shard
         :param limit: Maximum number of nodes to return.
         :param marker: the last item of the previous page; we return the next
                        result set.
@@ -1454,4 +1456,11 @@ class Connection(object, metaclass=abc.ABCMeta):
 
         :param node_id: The integer node ID.
         :returns: An inventory of a node.
+        """
+
+    @abc.abstractmethod
+    def get_shard_list(self):
+        """Retrieve a list of shards.
+
+        :returns: list of dicts containing shard names and count
         """

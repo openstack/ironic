@@ -237,6 +237,7 @@ def get_test_node(**kw):
         'network_data': kw.get('network_data'),
         'boot_mode': kw.get('boot_mode', None),
         'secure_boot': kw.get('secure_boot', None),
+        'shard': kw.get('shard', None)
     }
 
     for iface in drivers_base.ALL_INTERFACES:
