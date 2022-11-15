@@ -108,6 +108,13 @@ Then launch the test with:
     baremetal node clean --clean-steps '[{"step": "burnin_disk", \
         "interface": "deploy"}]' $NODE_NAME_OR_UUID
 
+In order to launch a parallel SMART self test on all devices after the
+disk burn-in (which will fail the step if any of the tests fail), set:
+
+.. code-block:: console
+
+    baremetal node set --driver-info agent_burnin_fio_disk_smart_test=True \
+        $NODE_NAME_OR_UUID
 
 Network burn-in
 ===============
