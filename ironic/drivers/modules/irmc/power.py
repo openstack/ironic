@@ -93,11 +93,16 @@ def _wait_power_state(task, target_state, timeout=None):
     """
     node = task.node
     d_info = irmc_common.parse_driver_info(node)
-    snmp_client = snmp.SNMPClient(d_info['irmc_address'],
-                                  d_info['irmc_snmp_port'],
-                                  d_info['irmc_snmp_version'],
-                                  d_info['irmc_snmp_community'],
-                                  d_info['irmc_snmp_security'])
+    snmp_client = snmp.SNMPClient(
+        address=d_info['irmc_address'],
+        port=d_info['irmc_snmp_port'],
+        version=d_info['irmc_snmp_version'],
+        read_community=d_info['irmc_snmp_community'],
+        user=d_info.get('irmc_snmp_user'),
+        auth_proto=d_info.get('irmc_snmp_auth_proto'),
+        auth_key=d_info.get('irmc_snmp_auth_password'),
+        priv_proto=d_info.get('irmc_snmp_priv_proto'),
+        priv_key=d_info.get('irmc_snmp_priv_password'))
 
     interval = CONF.irmc.snmp_polling_interval
     retry_timeout_soft = timeout or CONF.conductor.soft_power_off_timeout

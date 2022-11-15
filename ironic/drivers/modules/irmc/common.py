@@ -26,6 +26,7 @@ from ironic.common.i18n import _
 from ironic.common import utils
 from ironic.conf import CONF
 import ironic.drivers.modules.irmc.packaging_version as version
+from ironic.drivers.modules import snmp
 
 scci = importutils.try_import('scciclient.irmc.scci')
 elcm = importutils.try_import('scciclient.irmc.elcm')
@@ -49,15 +50,8 @@ OPTIONAL_PROPERTIES = {
     'irmc_sensor_method': _("Sensor data retrieval method; either "
                             "'ipmitool' or 'scci'. The default value is "
                             "'ipmitool'. Optional."),
-    'irmc_snmp_version': _("SNMP protocol version; either 'v1', 'v2c', or "
-                           "'v3'. The default value is 'v2c'. Optional."),
-    'irmc_snmp_port': _("SNMP port. The default is 161. Optional."),
-    'irmc_snmp_community': _("SNMP community required for versions 'v1' and "
-                             "'v2c'. The default value is 'public'. "
-                             "Optional."),
-    'irmc_snmp_security': _("SNMP security name required for version 'v3'. "
-                            "Optional."),
 }
+
 OPTIONAL_DRIVER_INFO_PROPERTIES = {
     'irmc_verify_ca': _('Either a Boolean value, a path to a CA_BUNDLE '
                         'file or directory with certificates of trusted '
@@ -69,23 +63,68 @@ OPTIONAL_DRIVER_INFO_PROPERTIES = {
                         'directory. Defaults to True. Optional'),
 }
 
+SNMP_PROPERTIES = {
+    'irmc_snmp_version': _("SNMP protocol version; either 'v1', 'v2c', or "
+                           "'v3'. The default value is 'v2c'. Optional."),
+    'irmc_snmp_port': _("SNMP port. The default is 161. Optional."),
+    'irmc_snmp_community': _("SNMP community required for versions 'v1' and "
+                             "'v2c'. The default value is 'public'. "
+                             "Optional."),
+    'irmc_snmp_security': _("SNMP security name required for version 'v3'. "
+                            "Optional."),
+}
+
+SNMP_V3_REQUIRED_PROPERTIES = {
+    'irmc_snmp_user': _("SNMPv3 User-based Security Model (USM) username. "
+                        "Required for version 'v3’. "),
+    'irmc_snmp_auth_password': _("SNMPv3 message authentication key. Must be "
+                                 "8+ characters long. Required when message "
+                                 "authentication is used. Will be ignored if "
+                                 "the version of python-scciclient is before "
+                                 "0.12.2."),
+    'irmc_snmp_priv_password': _("SNMPv3 message privacy key. Must be 8+ "
+                                 "characters long. Required when message "
+                                 "privacy is used. Will be ignored if the "
+                                 "version of python-scciclient is before "
+                                 "0.12.2."),
+}
+
+SNMP_V3_OPTIONAL_PROPERTIES = {
+    'irmc_snmp_auth_proto': _("SNMPv3 message authentication protocol ID. "
+                              "Required for version 'v3'. Will be ignored if "
+                              "the version of python-scciclient is before "
+                              "0.12.2. 'sha' is supported."),
+    'irmc_snmp_priv_proto': _("SNMPv3 message privacy (encryption) protocol "
+                              "ID. Required for version 'v3'. Will be ignored "
+                              "if the version of python-scciclient is before "
+                              "0.12.2. 'aes' is supported."),
+}
+
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 COMMON_PROPERTIES.update(OPTIONAL_DRIVER_INFO_PROPERTIES)
+COMMON_PROPERTIES.update(SNMP_PROPERTIES)
+COMMON_PROPERTIES.update(SNMP_V3_REQUIRED_PROPERTIES)
+COMMON_PROPERTIES.update(SNMP_V3_OPTIONAL_PROPERTIES)
 
 SCCI_CERTIFICATION_SUPPORT_VERSION_RANGES = [
-    {'min': '0.8.2', 'upp': '0.9.0'},
-    {'min': '0.9.4', 'upp': '0.10.0'},
-    {'min': '0.10.1', 'upp': '0.11.0'},
-    {'min': '0.11.3', 'upp': '0.12.0'},
-    {'min': '0.12.0', 'upp': '0.13.0'}]
+    {'min': '0.8.2', 'max': '0.9.0'},
+    {'min': '0.9.4', 'max': '0.10.0'},
+    {'min': '0.10.1', 'max': '0.11.0'},
+    {'min': '0.11.3', 'max': '0.12.0'},
+    {'min': '0.12.0', 'max': '0.13.0'}]
+
+SCCI_SNMPv3_AUTHENTICATION_SUPPORT_VERSION_RANGES = [
+    {'min': '0.10.1', 'max': '0.11.0'},
+    {'min': '0.11.3', 'max': '0.12.0'},
+    {'min': '0.12.2', 'max': '0.13.0'}]
 
 
-def scci_support_certification():
+def _scci_version_in(version_ranges):
     scciclient_version = version.parse(scci_mod.__version__)
-    for rangev in SCCI_CERTIFICATION_SUPPORT_VERSION_RANGES:
+    for rangev in version_ranges:
         if (version.parse(rangev['min']) <= scciclient_version
-                < version.parse(rangev['upp'])):
+                < version.parse(rangev['max'])):
             return True
     return False
 
@@ -139,29 +178,6 @@ def parse_driver_info(node):
         error_msgs.append(
             _("Value '%s' is not supported for 'irmc_sensor_method'.") %
             d_info['irmc_sensor_method'])
-    if d_info['irmc_snmp_version'].lower() not in ('v1', 'v2c', 'v3'):
-        error_msgs.append(
-            _("Value '%s' is not supported for 'irmc_snmp_version'.") %
-            d_info['irmc_snmp_version'])
-    if not isinstance(d_info['irmc_snmp_port'], int):
-        error_msgs.append(
-            _("Value '%s' is not an integer for 'irmc_snmp_port'") %
-            d_info['irmc_snmp_port'])
-    if (d_info['irmc_snmp_version'].lower() in ('v1', 'v2c')
-        and d_info['irmc_snmp_community']
-        and not isinstance(d_info['irmc_snmp_community'], str)):
-        error_msgs.append(
-            _("Value '%s' is not a string for 'irmc_snmp_community'") %
-            d_info['irmc_snmp_community'])
-    if d_info['irmc_snmp_version'].lower() == 'v3':
-        if d_info['irmc_snmp_security']:
-            if not isinstance(d_info['irmc_snmp_security'], str):
-                error_msgs.append(
-                    _("Value '%s' is not a string for "
-                      "'irmc_snmp_security'") % d_info['irmc_snmp_security'])
-        else:
-            error_msgs.append(
-                _("'irmc_snmp_security' has to be set for SNMP version 3."))
 
     verify_ca = d_info.get('irmc_verify_ca')
     if verify_ca is None:
@@ -199,7 +215,141 @@ def parse_driver_info(node):
                  "driver_info:\n%s") % "\n".join(error_msgs))
         raise exception.InvalidParameterValue(msg)
 
+    d_info.update(_parse_snmp_driver_info(node, info))
+
     return d_info
+
+
+def _parse_snmp_driver_info(node, info):
+    """Parses the SNMP related driver_info parameters.
+
+    :param node: An Ironic node object.
+    :param info: driver_info dictionary.
+    :returns: A dictionary containing SNMP information.
+    :raises: MissingParameterValue if any of the mandatory
+        parameter values are not provided.
+    :raises: InvalidParameterValue if there is any invalid
+        value provided.
+    """
+    snmp_info = {param: info.get(param, CONF.irmc.get(param[len('irmc_'):]))
+                 for param in SNMP_PROPERTIES}
+    valid_versions = {"v1": snmp.SNMP_V1,
+                      "v2c": snmp.SNMP_V2C,
+                      "v3": snmp.SNMP_V3}
+
+    if snmp_info['irmc_snmp_version'].lower() not in valid_versions:
+        raise exception.InvalidParameterValue(_(
+            "Value '%s' is not supported for 'irmc_snmp_version'.") %
+            snmp_info['irmc_snmp_version']
+        )
+    snmp_info["irmc_snmp_version"] = \
+        valid_versions[snmp_info["irmc_snmp_version"].lower()]
+
+    snmp_info['irmc_snmp_port'] = utils.validate_network_port(
+        snmp_info['irmc_snmp_port'], 'irmc_snmp_port')
+
+    if snmp_info['irmc_snmp_version'] != snmp.SNMP_V3:
+        if (snmp_info['irmc_snmp_community']
+            and not isinstance(snmp_info['irmc_snmp_community'], str)):
+            raise exception.InvalidParameterValue(_(
+                "Value '%s' is not a string for 'irmc_snmp_community'") %
+                snmp_info['irmc_snmp_community'])
+        if utils.is_fips_enabled():
+            raise exception.InvalidParameterValue(_(
+                "'v3' has to be set for 'irmc_snmp_version' "
+                "when FIPS mode is enabled."))
+
+    else:
+        # Parse snmp user info
+        if 'irmc_snmp_user' in info:
+            if not isinstance(info['irmc_snmp_user'], str):
+                raise exception.InvalidParameterValue(_(
+                    "Value %s is not a string for 'irmc_snmp_user'.") %
+                    info['irmc_snmp_user'])
+            snmp_info['irmc_snmp_user'] = info['irmc_snmp_user']
+            if snmp_info['irmc_snmp_security']:
+                LOG.warning(_("'irmc_snmp_security' is ignored in favor of "
+                              "'irmc_snmp_user'. Please remove "
+                              "'irmc_snmp_security' from node %s "
+                              "configuration."), node.uuid)
+        else:
+            if not snmp_info['irmc_snmp_security']:
+                raise exception.MissingParameterValue(_(
+                    "'irmc_snmp_user' should be set when using SNMPv3."))
+            if not isinstance(snmp_info['irmc_snmp_security'], str):
+                raise exception.InvalidParameterValue(_(
+                    "Value %s is not a string for 'irmc_snmp_security'.") %
+                    snmp_info['irmc_snmp_security'])
+            snmp_info['irmc_snmp_user'] = snmp_info['irmc_snmp_security']
+
+        if _scci_version_in(SCCI_SNMPv3_AUTHENTICATION_SUPPORT_VERSION_RANGES):
+            snmp_info.update(_parse_snmp_v3_crypto_info(info))
+        else:
+            # For compatible with old version of python-scciclient
+            snmp_info['irmc_snmp_security'] = snmp_info['irmc_snmp_user']
+            if 'irmc_snmp_auth_password' in info or \
+                    'irmc_snmp_priv_password' in info:
+                LOG.warning(_("'irmc_snmp_auth_password' and "
+                              "'irmc_snmp_priv_password' in node %(node)s "
+                              "configuration are ignored. "
+                              "Python-scciclient version %(version)s can only "
+                              "communicate with iRMC with no authentication "
+                              "protocol setted. This means the authentication "
+                              "protocol, private protocol and password of the "
+                              "server's SNMPv3 user should all be blank, "
+                              "otherwise python-scciclient will encounter an "
+                              "authentication error. If you want to set "
+                              "password, please update python-scciclient to "
+                              "a newer version (>=0.12.2, <0.13.0)."),
+                            {'node': node.uuid,
+                             'version': scci_mod.__version__})
+
+    return snmp_info
+
+
+def _parse_snmp_v3_crypto_info(info):
+    snmp_info = {}
+    valid_values = {'irmc_snmp_auth_proto': ['sha'],
+                    'irmc_snmp_priv_proto': ['aes']}
+    valid_protocols = {'irmc_snmp_auth_proto': snmp.snmp_auth_protocols,
+                       'irmc_snmp_priv_proto': snmp.snmp_priv_protocols}
+    snmp_keys = {'irmc_snmp_auth_password', 'irmc_snmp_priv_password'}
+
+    for param in snmp_keys:
+        try:
+            snmp_info[param] = info[param]
+        except KeyError:
+            raise exception.MissingParameterValue(_(
+                "%s should be set when using SNMPv3.") % param)
+
+        if not isinstance(snmp_info[param], str):
+            raise exception.InvalidParameterValue(_(
+                "The value of %s is not a string.") % param)
+        if len(snmp_info[param]) < 8:
+            raise exception.InvalidParameterValue(_(
+                "%s is too short. (8+ chars required)") % param)
+
+    for param in SNMP_V3_OPTIONAL_PROPERTIES:
+        value = None
+        try:
+            value = info[param]
+            if value not in valid_values[param]:
+                raise exception.InvalidParameterValue(_(
+                    "Invalid value %(value)s given for driver info parameter "
+                    "%(param)s, the valid values are %(valid_values)s.") %
+                    {'param': param,
+                     'value': value,
+                     'valid_values': valid_values[param]})
+        except KeyError:
+            value = CONF.irmc.get(param[len('irmc_'):])
+        snmp_info[param] = valid_protocols[param].get(value)
+        if not snmp_info[param]:
+            raise exception.InvalidParameterValue(_(
+                "Unknown SNMPv3 protocol %(value)s given for "
+                "driver info parameter %(param)s") % {'param': param,
+                                                      'value': value})
+
+    return snmp_info
 
 
 def get_irmc_client(node):
@@ -217,7 +367,7 @@ def get_irmc_client(node):
     """
     driver_info = parse_driver_info(node)
 
-    if scci_support_certification():
+    if _scci_version_in(SCCI_CERTIFICATION_SUPPORT_VERSION_RANGES):
         scci_client = scci.get_client(
             driver_info['irmc_address'],
             driver_info['irmc_username'],
@@ -272,7 +422,7 @@ def get_irmc_report(node):
     """
     driver_info = parse_driver_info(node)
 
-    if scci_support_certification():
+    if _scci_version_in(SCCI_CERTIFICATION_SUPPORT_VERSION_RANGES):
         report = scci.get_report(
             driver_info['irmc_address'],
             driver_info['irmc_username'],
