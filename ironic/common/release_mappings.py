@@ -518,6 +518,7 @@ RELEASE_MAPPING = {
             'BIOSSetting': ['1.1'],
             'Node': ['1.36'],
             'NodeHistory': ['1.0'],
+            'NodeInventory': ['1.0'],
             'Conductor': ['1.3'],
             'Chassis': ['1.3'],
             'Deployment': ['1.0'],

@@ -465,6 +465,18 @@ class NodeHistory(Base):
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
 
 
+class NodeInventory(Base):
+    """Represents an inventory of a baremetal node."""
+    __tablename__ = 'node_inventory'
+    __table_args__ = (
+        Index('inventory_node_id_idx', 'node_id'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    inventory_data = Column(db_types.JsonEncodedDict(mysql_as_long=True))
+    plugin_data = Column(db_types.JsonEncodedDict(mysql_as_long=True))
+    node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
+
+
 def get_class(model_name):
     """Returns the model class with the specified name.
 

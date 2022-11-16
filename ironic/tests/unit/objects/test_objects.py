@@ -721,6 +721,7 @@ expected_object_fingerprints = {
     'DeployTemplateCRUDPayload': '1.0-200857e7e715f58a5b6d6b700ab73a3b',
     'Deployment': '1.0-ff10ae028c5968f1596131d85d7f5f9d',
     'NodeHistory': '1.0-9b576c6481071e7f7eac97317fa29418',
+    'NodeInventory': '1.0-97692fec24e20ab02022b9db54e8f539',
 }
 
 

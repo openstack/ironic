@@ -1425,3 +1425,33 @@ class Connection(object, metaclass=abc.ABCMeta):
                       count operation. This can be a single provision
                       state value or a list of values.
         """
+
+    @abc.abstractmethod
+    def create_node_inventory(self, values):
+        """Create a new inventory record.
+
+        :param values: Dict of values.
+        """
+
+    @abc.abstractmethod
+    def destroy_node_inventory_by_node_id(self, inventory_node_id):
+        """Destroy a inventory record.
+
+        :param inventory_uuid: The uuid of a inventory record
+        """
+
+    @abc.abstractmethod
+    def get_node_inventory_by_id(self, inventory_id):
+        """Return a node inventory representation.
+
+        :param inventory_id: The id of a inventory record.
+        :returns: An inventory of a node.
+        """
+
+    @abc.abstractmethod
+    def get_node_inventory_by_node_id(self, node_id):
+        """Get the node inventory for a given node.
+
+        :param node_id: The integer node ID.
+        :returns: An inventory of a node.
+        """

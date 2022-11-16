@@ -28,6 +28,7 @@ from ironic.objects import conductor
 from ironic.objects import deploy_template
 from ironic.objects import node
 from ironic.objects import node_history
+from ironic.objects import node_inventory
 from ironic.objects import port
 from ironic.objects import portgroup
 from ironic.objects import trait
@@ -721,3 +722,29 @@ def create_test_history(**kw):
         del history['id']
     dbapi = db_api.get_instance()
     return dbapi.create_node_history(history)
+
+
+def get_test_inventory(**kw):
+    return {
+        'id': kw.get('id', 345),
+        'version': kw.get('version', node_inventory.NodeInventory.VERSION),
+        'node_id': kw.get('node_id', 123),
+        'inventory_data': kw.get('inventory', {"inventory": "test"}),
+        'plugin_data': kw.get('plugin_data', {"pdata": {"plugin": "data"}}),
+        'created_at': kw.get('created_at'),
+        'updated_at': kw.get('updated_at'),
+    }
+
+
+def create_test_inventory(**kw):
+    """Create test inventory entry in DB and return NodeInventory DB object.
+
+    :param kw: kwargs with overriding values for port's attributes.
+    :returns: Test NodeInventory DB object.
+    """
+    inventory = get_test_inventory(**kw)
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del inventory['id']
+    dbapi = db_api.get_instance()
+    return dbapi.create_node_inventory(inventory)

@@ -859,6 +859,11 @@ class Connection(api.Connection):
                 models.NodeHistory).filter_by(node_id=node_id)
             history_query.delete()
 
+            # delete all inventory for this node
+            inventory_query = session.query(
+                models.NodeInventory).filter_by(node_id=node_id)
+            inventory_query.delete()
+
             query.delete()
 
     def update_node(self, node_id, values):
@@ -2548,3 +2553,40 @@ class Connection(api.Connection):
                     )
                 )
             )
+
+    @oslo_db_api.retry_on_deadlock
+    def create_node_inventory(self, values):
+        inventory = models.NodeInventory()
+        inventory.update(values)
+        with _session_for_write() as session:
+            try:
+                session.add(inventory)
+                session.flush()
+            except db_exc.DBDuplicateEntry:
+                raise exception.NodeInventoryAlreadyExists(
+                    id=values['id'])
+            return inventory
+
+    @oslo_db_api.retry_on_deadlock
+    def destroy_node_inventory_by_node_id(self, node_id):
+        with _session_for_write() as session:
+            query = session.query(models.NodeInventory).filter_by(
+                node_id=node_id)
+            count = query.delete()
+            if count == 0:
+                raise exception.NodeInventoryNotFound(
+                    node_id=node_id)
+
+    def get_node_inventory_by_id(self, inventory_id):
+        query = model_query(models.NodeInventory).filter_by(id=inventory_id)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.NodeInventoryNotFound(inventory=inventory_id)
+
+    def get_node_inventory_by_node_id(self, node_id):
+        query = model_query(models.NodeInventory).filter_by(node_id=node_id)
+        try:
+            return query.one()
+        except NoResultFound:
+            raise exception.NodeInventoryNotFound(node_id=node_id)
