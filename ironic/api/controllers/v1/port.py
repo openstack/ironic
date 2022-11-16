@@ -163,22 +163,13 @@ def port_sanitize(port, fields=None):
 def list_convert_with_links(rpc_ports, limit, url, fields=None, **kwargs):
     ports = []
     for rpc_port in rpc_ports:
-        try:
-            port = convert_with_links(rpc_port, fields=fields,
-                                      sanitize=False)
-            # NOTE(dtantsur): node was deleted after we fetched the port
-            # list, meaning that the port was also deleted. Skip it.
-            if port['node_uuid'] is None:
-                continue
-        except exception.PortgroupNotFound:
-            # NOTE(dtantsur): port group was deleted after we fetched the
-            # port list, it may mean that the port was deleted too, but
-            # we don't know it. Pretend that the port group was removed.
-            LOG.debug('Removing port group UUID from port %s as the port '
-                      'group was deleted', rpc_port.uuid)
-            rpc_port.portgroup_id = None
-            port = convert_with_links(rpc_port, fields=fields,
-                                      sanitize=False)
+        port = convert_with_links(rpc_port, fields=fields,
+                                  sanitize=False)
+        # NOTE(dtantsur): node was deleted after we fetched the port
+        # list, meaning that the port was also deleted. Skip it.
+        if port['node_uuid'] is None:
+            continue
+
         ports.append(port)
     return collection.list_convert_with_links(
         items=ports,

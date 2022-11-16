@@ -90,10 +90,10 @@ def convert_with_links(rpc_portgroup, fields=None, sanitize=True):
             'mode',
             'name',
             'properties',
-            'standalone_ports_supported'
+            'standalone_ports_supported',
+            'node_uuid'
         )
     )
-    api_utils.populate_node_uuid(rpc_portgroup, portgroup)
     url = api.request.public_url
     portgroup['ports'] = [
         link.make_link('self', url, 'portgroups',

@@ -15,7 +15,6 @@ Tests for the API /ports/ methods.
 
 import datetime
 from http import client as http_client
-import types
 from unittest import mock
 from urllib import parse as urlparse
 
@@ -235,24 +234,6 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertNotIn('node_uuid', data['ports'][0])
         # never expose the node_id
         self.assertNotIn('node_id', data['ports'][0])
-
-    # NOTE(jlvillal): autospec=True doesn't work on staticmethods:
-    # https://bugs.python.org/issue23078
-    @mock.patch.object(objects.Portgroup, 'get', spec_set=types.FunctionType)
-    def test_list_with_deleted_port_group(self, mock_get_pg):
-        # check that we don't end up with HTTP 400 when port group deletion
-        # races with listing ports - see https://launchpad.net/bugs/1748893
-        portgroup = obj_utils.create_test_portgroup(self.context,
-                                                    node_id=self.node.id)
-        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
-                                          portgroup_id=portgroup.id)
-        mock_get_pg.side_effect = exception.PortgroupNotFound('boom')
-        data = self.get_json(
-            '/ports/detail',
-            headers={api_base.Version.string: str(api_v1.max_version())}
-        )
-        self.assertEqual(port.uuid, data['ports'][0]["uuid"])
-        self.assertIsNone(data['ports'][0]["portgroup_uuid"])
 
     @mock.patch.object(policy, 'authorize', spec=True)
     def test_list_non_admin_forbidden(self, mock_authorize):
