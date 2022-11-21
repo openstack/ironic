@@ -1850,10 +1850,10 @@ function init_ironic {
     # even though we're not parsing the output of this command.
     $IRONIC_BIN_DIR/ironic-status upgrade check && ret_val=$? || ret_val=$?
     if [ $ret_val -gt 1 ]; then
-	# NOTE(TheJulia): The ironic-status check command can return
-	# 0 if all is okay, 1 if there is a warning, or >1 if something
-	# is broken on a major upgrade and thus the process needs to
-	# be aborted.
+        # NOTE(TheJulia): The ironic-status check command can return
+        # 0 if all is okay, 1 if there is a warning, or >1 if something
+        # is broken on a major upgrade and thus the process needs to
+        # be aborted.
         die $LINENO "Ironic db status check failed, returned: $ret_val"
     fi
 }
