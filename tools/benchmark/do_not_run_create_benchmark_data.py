@@ -10,7 +10,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
+import random
 import sys
 import time
 
@@ -20,31 +20,54 @@ from sqlalchemy import sql
 from ironic.common import service
 from ironic.conf import CONF  # noqa To Load Configuration
 from ironic.objects import node
+from ironic.objects import port
+
+
+NODE_COUNT = 10000
+PORTS_PER_NODE = 2
+
+
+# NOTE(hjensas): Mostly copy-paste from Nova
+def generate_mac_address():
+    """Generate an Ethernet MAC address."""
+    mac = [random.randint(0x00, 0xff),
+           random.randint(0x00, 0xff),
+           random.randint(0x00, 0xff),
+           random.randint(0x00, 0xff),
+           random.randint(0x00, 0xff),
+           random.randint(0x00, 0xff)]
+    return ':'.join(map(lambda x: "%02x" % x, mac))
+
+
+def _create_test_node_ports(new_node):
+    for i in range(0, PORTS_PER_NODE):
+        new_port = port.Port()
+        new_port.node_id = new_node.id
+        new_port.address = generate_mac_address()
+        new_port.pxe_enabled = True
+        new_port.create()
 
 
 def _create_test_nodes():
     print("Starting creation of fake nodes.")
     start = time.time()
-    node_count = 10000
     checkin = time.time()
-    for i in range(0, node_count):
-
-        new_node = node.Node({
-            'power_state': 'power off',
-            'driver': 'ipmi',
-            'driver_internal_info': {'test-meow': i},
-            'name': 'BenchmarkTestNode-%s' % i,
-            'driver_info': {
-                'ipmi_username': 'admin',
-                'ipmi_password': 'admin',
-                'ipmi_address': 'testhost%s.env.top.level.domain' % i},
-            'resource_class': 'CUSTOM_BAREMETAL',
-            'properties': {
-                'cpu': 4,
-                'memory': 32,
-                'cats': i,
-                'meowing': True}})
+    for i in range(0, NODE_COUNT):
+        new_node = node.Node()
+        new_node.power_state = 'power off'
+        new_node.driver = 'ipmi'
+        new_node.driver_internal_info = {'test-meow': i}
+        new_node.name = 'BenchmarkTestNode-%s' % i
+        new_node.driver_info = {
+            'ipmi_username': 'admin', 'ipmi_password': 'admin',
+            'ipmi_address': 'testhost%s.env.top.level.domain' % i}
+        new_node.resource_class = 'CUSTOM_BAREMETAL'
+        new_node.properties = {'cpu': 4,
+                               'memory': 32,
+                               'cats': i,
+                               'meowing': True}
         new_node.create()
+        _create_test_node_ports(new_node)
         delta = time.time() - checkin
         if delta > 10:
             checkin = time.time()
@@ -52,7 +75,7 @@ def _create_test_nodes():
                   % (i, delta, time.time() - start))
     created = time.time()
     elapse = created - start
-    print('Created %s nodes in %s seconds.\n' % (node_count, elapse))
+    print('Created %s nodes in %s seconds.\n' % (NODE_COUNT, elapse))
 
 
 def _mix_up_nodes_data():
