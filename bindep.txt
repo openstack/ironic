@@ -46,7 +46,7 @@ iptables [devstack]
 net-tools [platform:rpm devstack]
 
 # these are needed to compile Python dependencies from sources
-python-dev [platform:dpkg test]
+python-dev [platform:dpkg test !platform:ubuntu-jammy]
 python3-all-dev [platform:dpkg !platform:ubuntu-precise test]
 python3-devel [platform:rpm test]
 build-essential [platform:dpkg test]
