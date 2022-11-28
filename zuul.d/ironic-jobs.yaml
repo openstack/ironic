@@ -639,6 +639,7 @@
 
 - job:
     name: ironic-tox-unit-with-driver-libs
+    nodeset: ubuntu-focal
     parent: openstack-tox
     description: |
       Run python 3 unit tests with driver dependencies installed.
@@ -676,6 +677,7 @@
 - job:
     # Security testing for known issues
     name: ironic-tox-bandit
+    nodeset: ubuntu-focal
     parent: openstack-tox
     timeout: 2400
     vars:
@@ -1036,6 +1038,7 @@
     check:
       jobs:
         - openstack-tox-pep8:
+            nodeset: ubuntu-focal
             required-projects:
                 - name: openstack/requirements
                   override-checkout: stable/xena
@@ -1056,6 +1059,7 @@
     gate:
       jobs:
         - openstack-tox-pep8:
+            nodeset: ubuntu-focal
             required-projects:
                 - name: openstack/requirements
                   override-checkout: stable/xena
@@ -1094,12 +1098,14 @@
     check:
       jobs:
         - openstack-tox-cover:
+            nodeset: ubuntu-focal
             required-projects:
                 - name: openstack/requirements
                   override-checkout: stable/xena
     gate:
       jobs:
         - openstack-tox-cover:
+            nodeset: ubuntu-focal
             required-projects:
                 - name: openstack/requirements
                   override-checkout: stable/xena
