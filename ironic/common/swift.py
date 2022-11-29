@@ -111,6 +111,31 @@ class SwiftAPI(object):
 
         return obj_uuid
 
+    def create_object_from_data(self, object, data, container):
+        """Uploads a given string to Swift.
+
+        :param object: The name of the object in Swift
+        :param data: string data to put in the object
+        :param container: The name of the container for the object.
+            Defaults to the value set in the configuration options.
+        :returns: The Swift UUID of the object
+        :raises: utils.Error, if any operation with Swift fails.
+        """
+        try:
+            self.connection.put_container(container)
+        except swift_exceptions.ClientException as e:
+            operation = _("put container")
+            raise exception.SwiftOperationError(operation=operation, error=e)
+
+        try:
+            obj_uuid = self.connection.create_object(
+                container, object, data=data)
+        except swift_exceptions.ClientException as e:
+            operation = _("put object")
+            raise exception.SwiftOperationError(operation=operation, error=e)
+
+        return obj_uuid
+
     def get_temp_url(self, container, obj, timeout):
         """Returns the temp url for the given Swift object.
 

@@ -19,6 +19,7 @@ import openstack
 from ironic.common import context
 from ironic.common import exception
 from ironic.common import states
+from ironic.common import swift
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules import inspect_utils
@@ -553,7 +554,9 @@ class CheckStatusTestCase(BaseTestCase):
             self.task)
         self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
 
-    def test_status_ok_store_inventory(self, mock_client):
+    def test_status_ok_store_inventory_in_db(self, mock_client):
+        CONF.set_override('inventory_data_backend', 'database',
+                          group='inspector')
         mock_get = mock_client.return_value.get_introspection
         mock_get.return_value = mock.Mock(is_finished=True,
                                           error=None,
@@ -571,7 +574,47 @@ class CheckStatusTestCase(BaseTestCase):
         self.assertEqual({"disks": [{"name": "/dev/vda"}]},
                          stored["plugin_data"])
 
+    @mock.patch.object(swift, 'SwiftAPI', autospec=True)
+    def test_status_ok_store_inventory_in_swift(self,
+                                                swift_api_mock, mock_client):
+        CONF.set_override('inventory_data_backend', 'swift', group='inspector')
+        CONF.set_override(
+            'swift_inventory_data_container', 'introspection_data',
+            group='inspector')
+        mock_get = mock_client.return_value.get_introspection
+        mock_get.return_value = mock.Mock(is_finished=True,
+                                          error=None,
+                                          spec=['is_finished', 'error'])
+        mock_get_data = mock_client.return_value.get_introspection_data
+        fake_inventory_data = {"cpu": "amd"}
+        fake_plugin_data = {"disks": [{"name": "/dev/vda"}]}
+        mock_get_data.return_value = {
+            "inventory": fake_inventory_data, **fake_plugin_data}
+        swift_obj_mock = swift_api_mock.return_value
+        object_name = 'inspector_data-' + str(self.node.uuid)
+        inspector._check_status(self.task)
+        mock_get.assert_called_once_with(self.node.uuid)
+        mock_get_data.assert_called_once_with(self.node.uuid, processed=True)
+        container = 'introspection_data'
+        swift_obj_mock.create_object_from_data.assert_has_calls([
+            mock.call(object_name + '-inventory', fake_inventory_data,
+                      container),
+            mock.call(object_name + '-plugin', fake_plugin_data, container)])
+
+    def test_status_ok_store_inventory_nostore(self, mock_client):
+        CONF.set_override('inventory_data_backend', 'none', group='inspector')
+        mock_get = mock_client.return_value.get_introspection
+        mock_get.return_value = mock.Mock(is_finished=True,
+                                          error=None,
+                                          spec=['is_finished', 'error'])
+        mock_get_data = mock_client.return_value.get_introspection_data
+        inspector._check_status(self.task)
+        mock_get.assert_called_once_with(self.node.uuid)
+        mock_get_data.assert_not_called()
+
     def test_status_error_dont_store_inventory(self, mock_client):
+        CONF.set_override('inventory_data_backend', 'database',
+                          group='inspector')
         mock_get = mock_client.return_value.get_introspection
         mock_get.return_value = mock.Mock(is_finished=True,
                                           error='boom',
@@ -593,4 +636,5 @@ class InspectHardwareAbortTestCase(BaseTestCase):
         mock_abort = mock_client.return_value.abort_introspection
         mock_abort.side_effect = RuntimeError('boom')
         self.assertRaises(RuntimeError, self.iface.abort, self.task)
+
         mock_abort.assert_called_once_with(self.node.uuid)

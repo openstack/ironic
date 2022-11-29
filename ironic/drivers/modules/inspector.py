@@ -28,6 +28,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import keystone
 from ironic.common import states
+from ironic.common import swift
 from ironic.common import utils
 from ironic.conductor import periodics
 from ironic.conductor import task_manager
@@ -43,6 +44,7 @@ LOG = logging.getLogger(__name__)
 _INSPECTOR_SESSION = None
 # Internal field to mark whether ironic or inspector manages boot for the node
 _IRONIC_MANAGES_BOOT = 'inspector_manage_boot'
+_OBJECT_NAME_PREFIX = 'inspector_data'
 
 
 def _get_inspector_session(**kwargs):
@@ -365,14 +367,31 @@ def _check_status(task):
         _inspection_error_handler(task, error)
     elif status.is_finished:
         _clean_up(task)
+        # If store_data == 'none', do not store the data
+        store_data = CONF.inspector.inventory_data_backend
+        if store_data == 'none':
+            LOG.debug('Introspection data storage is disabled, the data will '
+                      'not be saved for node %(node)s', {'node': node.uuid})
+            return
         introspection_data = inspector_client.get_introspection_data(
             node.uuid, processed=True)
         inventory_data = introspection_data.pop("inventory")
         plugin_data = introspection_data
-        node_inventory.NodeInventory(
-            node_id=node.id,
-            inventory_data=inventory_data,
-            plugin_data=plugin_data).create()
+        if store_data == 'database':
+            node_inventory.NodeInventory(
+                node_id=node.id,
+                inventory_data=inventory_data,
+                plugin_data=plugin_data).create()
+            LOG.info('Introspection data was stored in database for node '
+                     '%(node)s', {'node': node.uuid})
+        if store_data == 'swift':
+            swift_object_name = store_introspection_data(
+                node_uuid=node.uuid,
+                inventory_data=inventory_data,
+                plugin_data=plugin_data)
+            LOG.info('Introspection data was stored for node %(node)s in Swift'
+                     ' object %(obj_name)s-inventory and %(obj_name)s-plugin',
+                     {'node': node.uuid, 'obj_name': swift_object_name})
 
 
 def _clean_up(task):
@@ -387,3 +406,22 @@ def _clean_up(task):
         LOG.info('Inspection finished successfully for node %s',
                  task.node.uuid)
         task.process_event('done')
+
+
+def store_introspection_data(node_uuid, inventory_data, plugin_data):
+    """Uploads introspection data to Swift.
+
+    :param data: data to store in Swift
+    :param node_id: ID of the Ironic node that the data came from
+    :returns: name of the Swift object that the data is stored in
+    """
+    swift_api = swift.SwiftAPI()
+    swift_object_name = '%s-%s' % (_OBJECT_NAME_PREFIX, node_uuid)
+    container = CONF.inspector.swift_inventory_data_container
+    swift_api.create_object_from_data(swift_object_name + '-inventory',
+                                      inventory_data,
+                                      container)
+    swift_api.create_object_from_data(swift_object_name + '-plugin',
+                                      plugin_data,
+                                      container)
+    return swift_object_name
