@@ -147,6 +147,10 @@ class TestV1Routing(api_base.BaseApiTest):
                 {'href': 'http://localhost/v1/ports/', 'rel': 'self'},
                 {'href': 'http://localhost/ports/', 'rel': 'bookmark'}
             ],
+            'shards': [
+                {'href': 'http://localhost/v1/shards/', 'rel': 'self'},
+                {'href': 'http://localhost/shards/', 'rel': 'bookmark'}
+            ],
             'volume': [
                 {'href': 'http://localhost/v1/volume/', 'rel': 'self'},
                 {'href': 'http://localhost/volume/', 'rel': 'bookmark'}

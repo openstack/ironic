@@ -36,6 +36,7 @@ from ironic.api.controllers.v1 import node
 from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import portgroup
 from ironic.api.controllers.v1 import ramdisk
+from ironic.api.controllers.v1 import shard
 from ironic.api.controllers.v1 import utils
 from ironic.api.controllers.v1 import versions
 from ironic.api.controllers.v1 import volume
@@ -182,6 +183,16 @@ def v1():
                            'deploy_templates', '',
                            bookmark=True)
         ]
+    if utils.allow_shards_endpoint():
+        v1['shards'] = [
+            link.make_link('self',
+                           api.request.public_url,
+                           'shards', ''),
+            link.make_link('bookmark',
+                           api.request.public_url,
+                           'shards', '',
+                           bookmark=True)
+        ]
     return v1
 
 
@@ -200,7 +211,8 @@ class Controller(object):
         'conductors': conductor.ConductorsController(),
         'allocations': allocation.AllocationsController(),
         'events': event.EventsController(),
-        'deploy_templates': deploy_template.DeployTemplatesController()
+        'deploy_templates': deploy_template.DeployTemplatesController(),
+        'shards': shard.ShardController(),
     }
 
     @method.expose()

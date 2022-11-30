@@ -2289,3 +2289,27 @@ node_history_get_entry_service:
   method: get
   headers: *service_headers
   assert_status: 200
+
+# Shard support
+shard_get_shards:
+  path: '/v1/shards'
+  method: get
+  headers: *reader_headers
+  assert_status: 200
+
+shard_patch_set_node_shard:
+  path: '/v1/nodes/{node_ident}'
+  method: patch
+  headers: *admin_headers
+  body: &replace_shard
+    - op: replace
+      path: /shard
+      value: 'TestShard'
+  assert_status: 503
+
+shard_patch_set_node_shard_disallowed:
+  path: '/v1/nodes/{node_ident}'
+  method: patch
+  headers: *scoped_member_headers
+  body: *replace_shard
+  assert_status: 403

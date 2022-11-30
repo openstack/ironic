@@ -268,6 +268,7 @@ PATCH_ALLOWED_FIELDS = [
     'resource_class',
     'retired',
     'retired_reason',
+    'shard',
     'storage_interface',
     'vendor_interface'
 ]
@@ -2070,7 +2071,7 @@ class NodesController(rest.RestController):
                               fields=None, fault=None, conductor_group=None,
                               detail=None, conductor=None, owner=None,
                               lessee=None, project=None,
-                              description_contains=None):
+                              description_contains=None, shard=None):
         if self.from_chassis and not chassis_uuid:
             raise exception.MissingParameterValue(
                 _("Chassis id not specified."))
@@ -2090,6 +2091,12 @@ class NodesController(rest.RestController):
 
         # The query parameters for the 'next' URL
         parameters = {}
+
+        # note(JayF): This is where you resolve differences between the name
+        # of the filter in the API and the name of the filter in the DB API.
+        # In the case of lists (args.string_list), you need to append _in to
+        # the filter name in order to exercise the list-aware logic in the
+        # lower level.
         possible_filters = {
             'maintenance': maintenance,
             'chassis_uuid': chassis_uuid,
@@ -2101,6 +2108,7 @@ class NodesController(rest.RestController):
             'conductor_group': conductor_group,
             'owner': owner,
             'lessee': lessee,
+            'shard_in': shard,
             'project': project,
             'description_contains': description_contains,
             'retired': retired,
@@ -2123,7 +2131,7 @@ class NodesController(rest.RestController):
             # map the name for the call, as we did not pickup a specific
             # list of fields to return.
             obj_fields = fields
-        # NOTE(TheJulia): When a data set of the nodeds list is being
+        # NOTE(TheJulia): When a data set of the nodes list is being
         # requested, this method takes approximately 3-3.5% of the time
         # when requesting specific fields aligning with Nova's sync
         # process. (Local DB though)
@@ -2248,14 +2256,15 @@ class NodesController(rest.RestController):
                    fault=args.string, conductor_group=args.string,
                    detail=args.boolean, conductor=args.string,
                    owner=args.string, description_contains=args.string,
-                   lessee=args.string, project=args.string)
+                   lessee=args.string, project=args.string,
+                   shard=args.string_list)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, retired=None, provision_state=None,
                 marker=None, limit=None, sort_key='id', sort_dir='asc',
                 driver=None, fields=None, resource_class=None, fault=None,
                 conductor_group=None, detail=None, conductor=None,
                 owner=None, description_contains=None, lessee=None,
-                project=None):
+                project=None, shard=None):
         """Retrieve a list of nodes.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -2290,9 +2299,11 @@ class NodesController(rest.RestController):
         :param owner: Optional string value that set the owner whose nodes
                       are to be retrurned.
         :param lessee: Optional string value that set the lessee whose nodes
-                      are to be returned.
+                       are to be returned.
         :param project: Optional string value that set the project - lessee or
                         owner - whose nodes are to be returned.
+        :param shard: Optional string value that set the shards whose nodes are
+                      to be returned.
         :param fields: Optional, a list with a specified set of fields
                        of the resource to be returned.
         :param fault: Optional string value to get only nodes with that fault.
@@ -2313,6 +2324,7 @@ class NodesController(rest.RestController):
         api_utils.check_allow_filter_by_conductor(conductor)
         api_utils.check_allow_filter_by_owner(owner)
         api_utils.check_allow_filter_by_lessee(lessee)
+        api_utils.check_allow_filter_by_shard(shard)
 
         fields = api_utils.get_request_return_fields(fields, detail,
                                                      _DEFAULT_RETURN_FIELDS)
@@ -2329,7 +2341,7 @@ class NodesController(rest.RestController):
                                           detail=detail,
                                           conductor=conductor,
                                           owner=owner, lessee=lessee,
-                                          project=project,
+                                          shard=shard, project=project,
                                           **extra_args)
 
     @METRICS.timer('NodesController.detail')
@@ -2342,13 +2354,15 @@ class NodesController(rest.RestController):
                    resource_class=args.string, fault=args.string,
                    conductor_group=args.string, conductor=args.string,
                    owner=args.string, description_contains=args.string,
-                   lessee=args.string, project=args.string)
+                   lessee=args.string, project=args.string,
+                   shard=args.string_list)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                maintenance=None, retired=None, provision_state=None,
                marker=None, limit=None, sort_key='id', sort_dir='asc',
                driver=None, resource_class=None, fault=None,
                conductor_group=None, conductor=None, owner=None,
-               description_contains=None, lessee=None, project=None):
+               description_contains=None, lessee=None, project=None,
+               shard=None):
         """Retrieve a list of nodes with detail.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -2385,6 +2399,7 @@ class NodesController(rest.RestController):
                       are to be returned.
         :param project: Optional string value that set the project - lessee or
                         owner - whose nodes are to be returned.
+        :param shard: Optional - set the shards whose nodes are to be returned.
         :param description_contains: Optional string value to get only nodes
                                      with description field contains matching
                                      value.
@@ -2405,6 +2420,7 @@ class NodesController(rest.RestController):
             raise exception.HTTPNotFound()
 
         api_utils.check_allow_filter_by_conductor(conductor)
+        api_utils.check_allow_filter_by_shard(shard)
 
         extra_args = {'description_contains': description_contains}
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
@@ -2418,7 +2434,7 @@ class NodesController(rest.RestController):
                                           conductor_group=conductor_group,
                                           conductor=conductor,
                                           owner=owner, lessee=lessee,
-                                          project=project,
+                                          project=project, shard=shard,
                                           **extra_args)
 
     @METRICS.timer('NodesController.validate')
@@ -2644,6 +2660,8 @@ class NodesController(rest.RestController):
                 policy_checks.append('baremetal:node:update:name')
             elif p['path'].startswith('/retired'):
                 policy_checks.append('baremetal:node:update:retired')
+            elif p['path'].startswith('/shard'):
+                policy_checks.append('baremetal:node:update:shard')
             else:
                 generic_update = True
         # always do at least one check

@@ -21,6 +21,7 @@ import sys
 import tempfile
 from unittest import mock
 from urllib import parse as urlparse
+import uuid
 
 import fixtures
 from oslo_config import cfg
@@ -7968,3 +7969,146 @@ class TestNodeInventory(test_api_base.BaseApiTest):
                             headers={api_base.Version.string: self.version})
         self.assertEqual({'inventory': self.fake_inventory_data,
                           'plugin_data': self.fake_plugin_data}, ret)
+
+
+class TestNodeShardGets(test_api_base.BaseApiTest):
+    def setUp(self):
+        super(TestNodeShardGets, self).setUp()
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
+        self.mock_gtf = p.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(p.stop)
+        self.mock_get_conductor_for = self.useFixture(
+            fixtures.MockPatchObject(rpcapi.ConductorAPI, 'get_conductor_for',
+                                     autospec=True)).mock
+        self.mock_get_conductor_for.return_value = 'fake.conductor'
+        self.node = obj_utils.create_test_node(self.context, shard='foo')
+        self.headers = {api_base.Version.string: '1.82'}
+
+    def test_get_node_shard_field(self):
+        result = self.get_json(
+            '/nodes/%s' % self.node.uuid, headers=self.headers)
+        self.assertEqual('foo', result['shard'])
+
+    def test_get_node_shard_field_fails_wrong_version(self):
+        headers = {api_base.Version.string: '1.80'}
+        result = self.get_json('/nodes/%s' % self.node.uuid, headers=headers)
+        self.assertNotIn('shard', result)
+
+    def test_filtering_by_shard(self):
+        result = self.get_json(
+            '/nodes?shard=foo', fields='shard', headers=self.headers)
+        self.assertEqual(1, len(result['nodes']))
+        self.assertEqual('foo', result['nodes'][0]['shard'])
+
+    def test_filtering_by_shard_fails_wrong_version(self):
+        headers = {api_base.Version.string: '1.80'}
+
+        result = self.get_json('/nodes?shard=foo',
+                               expect_errors=True, headers=headers)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, result.status_code)
+
+    def test_filtering_by_single_shard_detail(self):
+        result = self.get_json('/nodes/detail?shard=foo', headers=self.headers)
+        self.assertEqual(1, len(result['nodes']))
+        self.assertEqual('foo', result['nodes'][0]['shard'])
+
+    def test_filtering_by_multi_shard_detail(self):
+        obj_utils.create_test_node(
+            self.context, uuid=uuid.uuid4(), shard='bar')
+        result = self.get_json(
+            '/nodes?shard=foo,bar', headers=self.headers)
+        self.assertEqual(2, len(result['nodes']))
+
+    def test_filtering_by_shard_detail_fails_wrong_version(self):
+        headers = {api_base.Version.string: '1.80'}
+
+        result = self.get_json('/nodes/detail?shard=foo',
+                               expect_errors=True, headers=headers)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, result.status_code)
+
+
+@mock.patch.object(rpcapi.ConductorAPI, 'create_node',
+                   lambda _api, _ctx, node, _topic: _create_node_locally(node))
+class TestNodeShardPost(test_api_base.BaseApiTest):
+    def setUp(self):
+        super(TestNodeShardPost, self).setUp()
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
+        self.mock_gtf = p.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(p.stop)
+        self.chassis = obj_utils.create_test_chassis(self.context)
+
+    def test_create_node_with_shard(self):
+        shard = 'foo'
+        ndict = test_api_utils.post_get_test_node(shard=shard)
+        headers = {api_base.Version.string: '1.82'}
+        response = self.post_json('/nodes', ndict, headers=headers)
+        self.assertEqual(http_client.CREATED, response.status_int)
+
+        result = self.get_json('/nodes/%s' % ndict['uuid'], headers=headers)
+        self.assertEqual(ndict['uuid'], result['uuid'])
+        self.assertEqual(shard, result['shard'])
+
+    def test_create_node_with_shard_fail_wrong_version(self):
+        headers = {api_base.Version.string: '1.80'}
+        shard = 'foo'
+        ndict = test_api_utils.post_get_test_node(shard=shard)
+        response = self.post_json(
+            '/nodes', ndict, expect_errors=True, headers=headers)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+
+class TestNodeShardPatch(test_api_base.BaseApiTest):
+    def setUp(self):
+        super(TestNodeShardPatch, self).setUp()
+        self.node = obj_utils.create_test_node(self.context, name='node-57.1')
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
+        self.mock_gtf = p.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(p.stop)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'update_node',
+                              autospec=True)
+        self.mock_update_node = p.start()
+        self.addCleanup(p.stop)
+
+    def test_node_add_shard(self):
+        self.mock_update_node.return_value = self.node
+        (self
+         .mock_update_node
+         .return_value
+         .updated_at) = "2013-12-03T06:20:41.184720+00:00"
+        headers = {api_base.Version.string: '1.82'}
+        shard = 'shard1'
+        body = [{
+            'path': '/shard',
+            'value': shard,
+            'op': 'add',
+        }]
+
+        response = self.patch_json(
+            '/nodes/%s' % self.node.uuid, body, headers=headers)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.mock_update_node.assert_called_once()
+
+    def test_node_add_shard_fail_wrong_version(self):
+        self.mock_update_node.return_value = self.node
+        (self
+         .mock_update_node
+         .return_value
+         .updated_at) = "2013-12-03T06:20:41.184720+00:00"
+        headers = {api_base.Version.string: '1.80'}
+        shard = 'shard1'
+        body = [{
+            'path': '/shard',
+            'value': shard,
+            'op': 'add',
+        }]
+
+        response = self.patch_json('/nodes/%s' % self.node.uuid,
+                                   body, expect_errors=True, headers=headers)
+        self.mock_update_node.assert_not_called()
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)

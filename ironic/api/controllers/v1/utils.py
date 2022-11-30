@@ -807,6 +807,7 @@ VERSIONED_FIELDS = {
     'network_data': versions.MINOR_66_NODE_NETWORK_DATA,
     'boot_mode': versions.MINOR_75_NODE_BOOT_MODE,
     'secure_boot': versions.MINOR_75_NODE_BOOT_MODE,
+    'shard': versions.MINOR_82_NODE_SHARD
 }
 
 for field in V31_FIELDS:
@@ -1063,6 +1064,20 @@ def check_allow_filter_by_lessee(lessee):
             "should be %(base)s.%(opr)s") %
             {'base': versions.BASE_VERSION,
              'opr': versions.MINOR_65_NODE_LESSEE})
+
+
+def check_allow_filter_by_shard(shard):
+    """Check if filtering nodes by shard is allowed.
+
+    Version 1.81 of the API allows filtering nodes by shard.
+    """
+    if (shard is not None and api.request.version.minor
+            < versions.MINOR_82_NODE_SHARD):
+        raise exception.NotAcceptable(_(
+            "Request not acceptable. The minimal required API version "
+            "should be %(base)s.%(opr)s") %
+            {'base': versions.BASE_VERSION,
+             'opr': versions.MINOR_82_NODE_SHARD})
 
 
 def initial_node_provision_state():
@@ -1953,3 +1968,8 @@ def check_allow_clean_disable_ramdisk(target, disable_ramdisk):
     elif target != "clean":
         raise exception.BadRequest(
             _("disable_ramdisk is supported only with manual cleaning"))
+
+
+def allow_shards_endpoint():
+    """Check if shards endpoint is available."""
+    return api.request.version.minor >= versions.MINOR_82_NODE_SHARD

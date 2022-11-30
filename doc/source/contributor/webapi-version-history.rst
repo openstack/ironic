@@ -2,6 +2,15 @@
 REST API Version History
 ========================
 
+1.82 (Antelope)
+----------------------
+
+This version signifies the addition of node sharding endpoints.
+
+- Adds support for get, set, and delete of shard key on Node object.
+- Adds support for ``GET /v1/shards`` which returns a list of all shards and
+  the count of nodes assigned to each.
+
 1.81 (Antelope)
 ----------------------
 
@@ -12,7 +21,7 @@ Add endpoint to retrieve introspection data for nodes via the REST API.
 1.80 (Zed, 21.1)
 ----------------------
 
-This verison is a signifier of additional RBAC functionality allowing
+This version is a signifier of additional RBAC functionality allowing
 a project scoped ``admin`` to create or delete nodes in Ironic.
 
 1.79 (Zed, 21.0)
