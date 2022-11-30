@@ -5,13 +5,14 @@
     "ProfileName": "OpenStackIronicProfile",
     "ProfileVersion": "1.0.0",
     "Purpose": "Specifies the OpenStack Ironic vendor-independent Redfish service requirements, typically offered by a baseboard management controller (BMC).",
-    "OwningEntity": "Dell Inc.",
-    "ContactInfo": "michael.raineri@dell.com, aija.jaunteva@dell.com",
+    "OwningEntity": "Ironic community",
+    "ContactInfo": "openstack-discuss@lists.openstack.org",
     "Protocol": {
         "MinVersion": "1.6.0"
     },
     "Resources": {
         "Bios": {
+            "ReadRequirement": "Recommended",
             "PropertyRequirements": {
                 "Attributes": {}
             },
@@ -24,7 +25,9 @@
                 "AssetTag": {
                     "ReadRequirement": "Recommended"
                 },
-                "Bios": {},
+                "Bios": {
+                    "ReadRequirement": "Recommended"
+                },
                 "BiosVersion": {
                     "ReadRequirement": "Recommended"
                 },
@@ -56,7 +59,8 @@
                     }
                 },
                 "IndicatorLED": {
-                    "WriteRequirement": "Mandatory",
+                    "WriteRequirement": "Recommended",
+                    "ReadRequirement": "Recommended",
                     "MinSupportValues": [
                         "Lit",
                         "Off",
@@ -68,6 +72,9 @@
                         "Chassis": {},
                         "ManagedBy": {}
                     }
+                },
+                "Manufacturer": {
+                    "ReadRequirement": "Recommended"
                 },
                 "MemorySummary": {
                     "PropertyRequirements": {
