@@ -1191,6 +1191,18 @@ n_indicators:
   in: body
   required: true
   type: array
+n_inventory:
+  description: |
+    Inventory of this node.
+  in: body
+  required: false
+  type: JSON
+n_plugin_data:
+  description: |
+    Plugin data of this node.
+  in: body
+  required: false
+  type: JSON
 n_portgroups:
   description: |
     Links to the collection of portgroups on this node.

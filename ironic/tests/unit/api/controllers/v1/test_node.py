@@ -43,6 +43,7 @@ from ironic.common import indicator_states
 from ironic.common import policy
 from ironic.common import states
 from ironic.conductor import rpcapi
+from ironic.drivers.modules import inspector
 from ironic import objects
 from ironic.objects import fields as obj_fields
 from ironic import tests as tests_root
@@ -51,6 +52,7 @@ from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.api import utils as test_api_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
+CONF = inspector.CONF
 
 with open(
         os.path.join(
@@ -7912,3 +7914,55 @@ class TestNodeHistory(test_api_base.BaseApiTest):
         self.assertIn('nodes/%s/history' % self.node.uuid, ret['next'])
         self.assertIn('limit=1', ret['next'])
         self.assertIn('marker=%s' % result_uuid, ret['next'])
+
+
+class TestNodeInventory(test_api_base.BaseApiTest):
+    fake_inventory_data = {"cpu": "amd"}
+    fake_plugin_data = {"disks": [{"name": "/dev/vda"}]}
+
+    def setUp(self):
+        super(TestNodeInventory, self).setUp()
+        self.version = "1.81"
+        self.node = obj_utils.create_test_node(
+            self.context,
+            provision_state=states.AVAILABLE, name='node-81')
+        self.node.save()
+        self.node.obj_reset_changes()
+
+    def _add_inventory(self):
+        self.inventory = objects.NodeInventory(
+            node_id=self.node.id, inventory_data=self.fake_inventory_data,
+            plugin_data=self.fake_plugin_data)
+        self.inventory.create()
+
+    def test_get_old_version(self):
+        ret = self.get_json('/nodes/%s/inventory' % self.node.uuid,
+                            headers={api_base.Version.string: "1.80"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+
+    def test_get_inventory_no_inventory(self):
+        ret = self.get_json('/nodes/%s/inventory' % self.node.uuid,
+                            headers={api_base.Version.string: self.version},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+
+    def test_get_inventory(self):
+        self._add_inventory()
+        CONF.set_override('inventory_data_backend', 'database',
+                          group='inspector')
+        ret = self.get_json('/nodes/%s/inventory' % self.node.uuid,
+                            headers={api_base.Version.string: self.version})
+        self.assertEqual({'inventory': self.fake_inventory_data,
+                          'plugin_data': self.fake_plugin_data}, ret)
+
+    @mock.patch.object(inspector, 'get_introspection_data', autospec=True)
+    def test_get_inventory_swift(self, mock_get_data):
+        CONF.set_override('inventory_data_backend', 'swift',
+                          group='inspector')
+        mock_get_data.return_value = {"inventory": self.fake_inventory_data,
+                                      "plugin_data": self.fake_plugin_data}
+        ret = self.get_json('/nodes/%s/inventory' % self.node.uuid,
+                            headers={api_base.Version.string: self.version})
+        self.assertEqual({'inventory': self.fake_inventory_data,
+                          'plugin_data': self.fake_plugin_data}, ret)

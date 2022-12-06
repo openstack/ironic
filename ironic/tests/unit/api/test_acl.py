@@ -286,6 +286,8 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
         db_utils.create_test_node_trait(
             node_id=fake_db_node['id'])
         fake_history = db_utils.create_test_history(node_id=fake_db_node.id)
+        fake_inventory = db_utils.create_test_inventory(
+            node_id=fake_db_node.id)
         # dedicated node for portgroup addition test to avoid
         # false positives with test runners.
         db_utils.create_test_node(
@@ -309,6 +311,7 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
             'volume_target_ident': fake_db_volume_target['uuid'],
             'volume_connector_ident': fake_db_volume_connector['uuid'],
             'history_ident': fake_history['uuid'],
+            'node_inventory': fake_inventory,
         })
 
 
@@ -415,6 +418,8 @@ class TestRBACProjectScoped(TestACLBase):
             resource_class="CUSTOM_TEST")
         owned_node_history = db_utils.create_test_history(
             node_id=owned_node.id)
+        owned_node_inventory = db_utils.create_test_inventory(
+            node_id=owned_node.id)
 
         # Leased nodes
         leased_node = db_utils.create_test_node(
@@ -444,6 +449,8 @@ class TestRBACProjectScoped(TestACLBase):
                                 dict(node_id=leased_node['id']))
 
         leased_node_history = db_utils.create_test_history(
+            node_id=leased_node.id)
+        leased_node_inventory = db_utils.create_test_inventory(
             node_id=leased_node.id)
 
         # Random objects that shouldn't be project visible
@@ -480,7 +487,9 @@ class TestRBACProjectScoped(TestACLBase):
             'owner_allocation': fake_owner_allocation['uuid'],
             'lessee_allocation': fake_leased_allocation['uuid'],
             'owned_history_ident': owned_node_history['uuid'],
-            'lessee_history_ident': leased_node_history['uuid']})
+            'lessee_history_ident': leased_node_history['uuid'],
+            'owned_inventory': owned_node_inventory,
+            'leased_inventory': leased_node_inventory})
 
     @ddt.file_data('test_rbac_project_scoped.yaml')
     @ddt.unpack

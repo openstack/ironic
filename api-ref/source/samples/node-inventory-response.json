@@ -1,0 +1,31 @@
+{
+  "inventory": {
+    "interfaces":[
+      {
+        "name":"eth0",
+        "mac_address":"52:54:00:90:35:d6",
+        "ipv4_address":"192.168.122.128",
+        "ipv6_address":"fe80::5054:ff:fe90:35d6%eth0",
+        "has_carrier":true,
+        "lldp":null,
+        "vendor":"0x1af4",
+        "product":"0x0001"
+      }
+    ],
+    "cpu":{
+      "model_name":"QEMU Virtual CPU version 2.5+",
+      "frequency":null,
+      "count":1,
+      "architecture":"x86_64"
+    }
+  },
+  "plugin_data":{
+    "macs":[
+      "52:54:00:90:35:d6"
+    ],
+    "local_gb":10,
+    "cpus":1,
+    "cpu_arch":"x86_64",
+    "memory_mb":2048
+  }
+}

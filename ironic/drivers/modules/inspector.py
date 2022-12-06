@@ -425,3 +425,20 @@ def store_introspection_data(node_uuid, inventory_data, plugin_data):
                                       plugin_data,
                                       container)
     return swift_object_name
+
+
+def get_introspection_data(node_uuid):
+    """Uploads introspection data to Swift.
+
+    :param data: data to store in Swift
+    :param node_id: ID of the Ironic node that the data came from
+    :returns: name of the Swift object that the data is stored in
+    """
+    swift_api = swift.SwiftAPI()
+    swift_object_name = '%s-%s' % (_OBJECT_NAME_PREFIX, node_uuid)
+    container = CONF.inspector.swift_inventory_data_container
+    inventory_data = swift_api.get_object(swift_object_name + '-inventory',
+                                          container)
+    plugin_data = swift_api.get_object(swift_object_name + '-plugin',
+                                       container)
+    return {"inventory": inventory_data, "plugin_data": plugin_data}

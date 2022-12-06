@@ -954,6 +954,19 @@ node_policies = [
         # operating context.
         deprecated_rule=deprecated_node_get
     ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:inventory:get',
+        check_str=SYSTEM_OR_OWNER_READER,
+        scope_types=['system', 'project'],
+        description='Retrieve introspection data for a node.',
+        operations=[
+            {'path': '/nodes/{node_ident}/inventory', 'method': 'GET'},
+        ],
+        # This rule fallsback to deprecated_node_get in order to provide a
+        # mechanism so the additional policies only engage in an updated
+        # operating context.
+        deprecated_rule=deprecated_node_get
+    ),
 
 
 ]

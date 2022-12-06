@@ -118,6 +118,7 @@ BASE_VERSION = 1
 # v1.78: Add node history endpoint
 # v1.79: Change allocation behaviour to prefer node name match
 # v1.80: Marker to represent self service node creation/deletion
+# v1.81: Add node inventory
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
 MINOR_2_AVAILABLE_STATE = 2
@@ -199,6 +200,7 @@ MINOR_77_DRIVER_FIELDS_SELECTOR = 77
 MINOR_78_NODE_HISTORY = 78
 MINOR_79_ALLOCATION_NODE_NAME = 79
 MINOR_80_PROJECT_CREATE_DELETE_NODE = 80
+MINOR_81_NODE_INVENTORY = 81
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -206,7 +208,7 @@ MINOR_80_PROJECT_CREATE_DELETE_NODE = 80
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_80_PROJECT_CREATE_DELETE_NODE
+MINOR_MAX_VERSION = MINOR_81_NODE_INVENTORY
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

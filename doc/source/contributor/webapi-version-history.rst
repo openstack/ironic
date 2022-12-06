@@ -2,6 +2,13 @@
 REST API Version History
 ========================
 
+1.81 (Antelope)
+----------------------
+
+Add endpoint to retrieve introspection data for nodes via the REST API.
+
+* ``GET /v1/nodes/{node_ident}/inventory/``
+
 1.80 (Zed, 21.1)
 ----------------------
 

@@ -2123,3 +2123,17 @@ node_history_get_entry_reader:
   method: get
   headers: *reader_headers
   assert_status: 200
+
+# Node inventory support
+
+node_inventory_get_admin:
+  path: '/v1/nodes/{node_ident}/inventory'
+  method: get
+  headers: *admin_headers
+  assert_status: 200
+
+node_inventory_get_reader:
+  path: '/v1/nodes/{node_ident}/inventory'
+  method: get
+  headers: *reader_headers
+  assert_status: 200

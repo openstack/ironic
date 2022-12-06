@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds API version ``1.81`` which enables fetching node inventory
+    which might have been stored during introspection
