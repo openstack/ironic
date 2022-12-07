@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue where unexpected exceptions coming from the process to
+    start cleaning would not trigger the cleaning_error_handler which
+    performs the needful internal resets to permit cleaning to be retried
+    again in the future. Now any error which is encountered during the
+    launch of cleaning will trigger the error handler.
