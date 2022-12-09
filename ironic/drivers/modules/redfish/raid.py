@@ -1120,7 +1120,9 @@ class RedfishRAID(base.RAIDInterface):
                 raid_configs['pending'].setdefault(controller, []).append(
                     logical_disk)
 
-        node.set_driver_internal_info('raid_configs', raid_configs)
+        # Store only when async operation
+        if reboot_required:
+            node.set_driver_internal_info('raid_configs', raid_configs)
 
         return raid_configs, reboot_required
 
@@ -1182,7 +1184,9 @@ class RedfishRAID(base.RAIDInterface):
                         response.task_monitor_uri)
                     reboot_required = True
 
-        node.set_driver_internal_info('raid_configs', raid_configs)
+        # Store only when async operation
+        if reboot_required:
+            node.set_driver_internal_info('raid_configs', raid_configs)
 
         return raid_configs, reboot_required
 
