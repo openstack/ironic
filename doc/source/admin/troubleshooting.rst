@@ -1010,3 +1010,41 @@ upper limit to the setting.
    This was an infrastructure operator requested feature from actual lessons
    learned in the operation of Ironic in large scale production. The defaults
    may not be suitable for the largest scale operators.
+
+Why do I have an error that an NVMe Partition is not a block device?
+====================================================================
+
+In some cases, you can encounter an error that suggests a partition that has
+been created on an NVMe block device, is not a block device.
+
+Example:
+
+  lsblk: /dev/nvme0n1p2: not a block device
+
+What has happened is the partition contains a partition table inside of it
+which is confusing the NVMe device interaction. While basically valid in
+some cases to have nested partition tables, for example, with software
+raid, in the NVMe case the driver and possibly the underlying device gets
+quite confused. This is in part because partitions in NVMe devices are higher
+level abstracts.
+
+The way this occurs is you likely had a ``whole-disk`` image, and it was
+configured as a partition image. If using glance, your image properties
+may have a ``img_type`` field, which should be ``whole-disk``, or you
+have a ``kernel_id`` and ``ramdisk_id`` value in the glance image
+``properties`` field. Definition of a kernel and ramdisk value also
+indicates that the image is of a ``partition`` image type. This is because
+a ``whole-disk`` image is bootable from the contents within the image,
+and partition images are unable to be booted without a kernel, and ramdisk.
+
+If you are using Ironic in standalone mode, the optional
+``instance_info/image_type`` setting may be advisable to be checked.
+Very similar to Glance usage above, if you have set Ironic's node level
+``instance_info/kernel`` and ``instance_info/ramdisk`` parameters, Ironic
+will proceed with deploying an image as if it is a partition image, and
+create a partition table on the new block device, and then write the
+contents of the image into the newly created partition.
+
+.. NOTE::
+   As a general reminder, the Ironic community recommends the use of
+   whole disk images over the use of partition images.
