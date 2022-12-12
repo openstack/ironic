@@ -265,6 +265,9 @@ def get_file_path_from_label(node_uuid, root_dir, label):
     :param root_dir: Directory in which the image must be placed
     :param label: Name of the image
     """
+    if label in ['ks_template', 'ks_cfg', 'stage2']:
+        path = os.path.join(CONF.deploy.http_root, node_uuid)
+        ensure_tree(path)
     if label == 'ks_template':
         return os.path.join(CONF.deploy.http_root, node_uuid,
                             'ks.cfg.template')

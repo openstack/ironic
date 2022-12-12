@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes URL based anaconda deploy to work in pxe boot. It also enables
+    grub based pxe anaconda deploy which is required for ``ilo`` hardware
+    type.
