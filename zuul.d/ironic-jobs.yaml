@@ -890,6 +890,7 @@
           IRONIC_AUTOMATED_CLEAN_ENABLED: False
           Q_AGENT: openvswitch
           Q_ML2_TENANT_NETWORK_TYPE: vxlan
+          Q_ML2_PLUGIN_MECHANISM_DRIVERS: openvswitch
           SWIFT_ENABLE_TEMPURLS: True
           SWIFT_TEMPURL_KEY: secretkey
           EBTABLES_RACE_FIX: True
@@ -910,6 +911,18 @@
         cinder: False
         ir-api: True
         ir-cond: True
+        # Neutron services
+        # In the Ironic grenade job we want to explicitly enable ML2/OVS agents
+        # and disable OVN
+        q-agt: true
+        q-dhcp: true
+        q-l3: true
+        q-meta: true
+        q-svc: true
+        q-metering: true
+        ovn-controller: false
+        ovn-northd: false
+        q-ovn-metadata-agent: false
       tempest_plugins:
         - ironic-tempest-plugin
       tempest_test_regex: ironic_tempest_plugin.tests.scenario
