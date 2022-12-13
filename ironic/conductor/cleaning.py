@@ -114,8 +114,9 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False):
     try:
         conductor_steps.set_node_cleaning_steps(
             task, disable_ramdisk=disable_ramdisk)
-    except (exception.InvalidParameterValue,
-            exception.NodeCleaningFailure) as e:
+    except Exception as e:
+        # Catch all exceptions and follow the error handling
+        # path so things are cleaned up properly.
         msg = (_('Cannot clean node %(node)s: %(msg)s')
                % {'node': node.uuid, 'msg': e})
         return utils.cleaning_error_handler(task, msg)
