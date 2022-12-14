@@ -85,7 +85,6 @@
         q-dhcp: true
         q-l3: true
         q-meta: true
-        q-metering: true
         q-svc: true
         ovn-controller: false
         ovn-northd: false
