@@ -204,8 +204,8 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
         _inspect_hardware_mock.return_value = (inspected_props,
                                                inspected_macs,
                                                new_traits)
-        new_port_mock1 = mock.MagicMock(spec=objects.Port)
-        new_port_mock2 = mock.MagicMock(spec=objects.Port)
+        new_port_mock1 = objects.Port
+        new_port_mock2 = objects.Port
 
         port_mock.side_effect = [new_port_mock1, new_port_mock2]
 
@@ -220,11 +220,11 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
             port_mock.assert_has_calls([
                 mock.call(task.context, address=inspected_macs[0],
                           node_id=node_id),
+                mock.call.create(),
                 mock.call(task.context, address=inspected_macs[1],
-                          node_id=node_id)
-            ])
-            new_port_mock1.create.assert_called_once_with()
-            new_port_mock2.create.assert_called_once_with()
+                          node_id=node_id),
+                mock.call.create()
+            ], any_order=False)
 
             self.assertTrue(info_mock.called)
             task.node.refresh()
@@ -259,8 +259,9 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
         _inspect_hardware_mock.return_value = (inspected_props,
                                                inspected_macs,
                                                new_traits)
-        new_port_mock1 = mock.MagicMock(spec=objects.Port)
-        new_port_mock2 = mock.MagicMock(spec=objects.Port)
+
+        new_port_mock1 = objects.Port
+        new_port_mock2 = objects.Port
 
         port_mock.side_effect = [new_port_mock1, new_port_mock2]
 
@@ -276,11 +277,11 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
             port_mock.assert_has_calls([
                 mock.call(task.context, address=inspected_macs[0],
                           node_id=node_id),
+                mock.call.create(),
                 mock.call(task.context, address=inspected_macs[1],
-                          node_id=node_id)
-            ])
-            new_port_mock1.create.assert_called_once_with()
-            new_port_mock2.create.assert_called_once_with()
+                          node_id=node_id),
+                mock.call.create()
+            ], any_order=False)
 
             self.assertTrue(info_mock.called)
             task.node.refresh()
