@@ -40,7 +40,7 @@ set -o errexit
 source $TARGET_DEVSTACK_DIR/stackrc
 source $TARGET_DEVSTACK_DIR/lib/tls
 source $TARGET_DEVSTACK_DIR/lib/nova
-source $TARGET_DEVSTACK_DIR/lib/neutron-legacy
+source $TARGET_DEVSTACK_DIR/lib/neutron
 source $TARGET_DEVSTACK_DIR/lib/apache
 source $TARGET_DEVSTACK_DIR/lib/keystone
 
