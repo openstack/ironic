@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue where if selinux is enabled and enforcing, and
+    the published image is a hardlink, the source selinux context
+    is preserved, causing access denied when retrieving the image
+    using hardlink URL.
