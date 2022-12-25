@@ -1773,10 +1773,6 @@ class ConductorManager(base_manager.BaseConductorManager):
         if task.node.console_enabled:
             notify_utils.emit_console_notification(
                 task, 'console_restore', fields.NotificationStatus.START)
-            # NOTE(kaifeng) Clear allocated_ipmi_terminal_port if exists,
-            # so current conductor can allocate a new free port from local
-            # resources.
-            task.node.del_driver_internal_info('allocated_ipmi_terminal_port')
             try:
                 task.driver.console.start_console(task)
             except Exception as err:

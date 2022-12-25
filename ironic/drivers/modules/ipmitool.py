@@ -1556,6 +1556,9 @@ class IPMIShellinaboxConsole(IPMIConsole):
                  created
         :raises: ConsoleSubprocessFailed when invoking the subprocess failed
         """
+        # Dealloc allocated port if any, so the same host can never has
+        # duplicated port.
+        _release_allocated_port(task)
         driver_info = _parse_driver_info(task.node)
         if not driver_info['port']:
             driver_info['port'] = _allocate_port(task)
@@ -1611,6 +1614,9 @@ class IPMISocatConsole(IPMIConsole):
                  created
         :raises: ConsoleSubprocessFailed when invoking the subprocess failed
         """
+        # Dealloc allocated port if any, so the same host can never has
+        # duplicated port.
+        _release_allocated_port(task)
         driver_info = _parse_driver_info(task.node)
         if not driver_info['port']:
             driver_info['port'] = _allocate_port(
