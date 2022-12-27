@@ -9,7 +9,7 @@ hpOneView>=4.4.0
 
 python-dracclient>=5.1.0,<8.0.0
 # The Redfish hardware type uses the Sushy library
-git+https://github.com/sapcc/sushy.git@stable/xena-m3#egg=sushy-oem-idrac
+git+https://github.com/sapcc/sushy.git@stable/xena-m3#egg=sushy
 # Dell EMC iDRAC sushy OEM extension
 git+https://github.com/sapcc/sushy-oem-idrac.git@stable/xena-m3#egg=sushy-oem-idrac
 
