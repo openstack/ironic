@@ -15,7 +15,7 @@ if is_service_enabled ir-api ir-cond; then
 
             echo_summary "Installing Ironic"
             if ! is_service_enabled nova; then
-                source $RC_DIR/lib/nova_plugins/functions-libvirt
+                source $TOP_DIR/lib/nova_plugins/functions-libvirt
                 install_libvirt
             fi
             install_ironic
