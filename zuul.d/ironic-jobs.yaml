@@ -3,7 +3,7 @@
     abstract: true
     description: Base job for devstack/tempest based ironic jobs.
     parent: devstack-tempest
-    nodeset: openstack-single-node-focal
+    nodeset: openstack-single-node-jammy
     post-run: playbooks/ci-workarounds/get_extra_logging.yaml
     timeout: 10800
     required-projects:
@@ -365,10 +365,13 @@
         s-object: True
         s-proxy: True
 
+# NOTE(rpittau): the snmp job fails on ubuntu jammy so we pin it to
+# ubuntu focal for the time being.
 - job:
     name: ironic-tempest-wholedisk-bios-snmp-pxe
     description: SNMP power, no-op management and whole disk images.
     parent: ironic-base
+    nodeset: openstack-single-node-focal
     vars:
       devstack_localrc:
         IRONIC_ENABLED_HARDWARE_TYPES: snmp
@@ -510,7 +513,7 @@
     name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     parent: tempest-multinode-full-base
-    nodeset: openstack-two-node-focal
+    nodeset: openstack-two-node-jammy
     pre-run: playbooks/ci-workarounds/pre.yaml
     required-projects:
       - opendev.org/openstack/ironic
