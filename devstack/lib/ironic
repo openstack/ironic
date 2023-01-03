@@ -2376,6 +2376,9 @@ function enroll_nodes {
         local ironic_node_disk=$IRONIC_VM_SPECS_DISK
         local ironic_ephemeral_disk=$IRONIC_VM_EPHEMERAL_DISK
         local ironic_node_arch=x86_64
+        if [[ ! -f $IRONIC_VM_MACS_CSV_FILE ]]; then
+            touch $IRONIC_VM_MACS_CSV_FILE
+        fi
         local ironic_hwinfo_file=$IRONIC_VM_MACS_CSV_FILE
 
         if is_deployed_by_ipmi; then
