@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Fixes the default value for the ``[DEFAULT]grub_config_path`` variable to
+    be the default path for UEFI bootloader configurations, where as the
+    default was previously the BIOS grub2 configuration path.
+upgrades:
+  - |
+    The default configuration value for ``[DEFAULT]grub_config_path`` has
+    been changed from ``/boot/grub/grub.conf`` to ``EFI/BOOT/grub.efi`` as
+    the configuration parameter was for UEFI boot configuration, and the
+    ``/boot/grub/grub2.conf`` path is for BIOS booting. This was verified
+    by referencing several working UEFI virtual media examples where this
+    value was overridden to the new configuration value.

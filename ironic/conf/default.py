@@ -216,7 +216,7 @@ image_opts = [
                                     'common/isolinux_config.template'),
                help=_('Template file for isolinux configuration file.')),
     cfg.StrOpt('grub_config_path',
-               default='/boot/grub/grub.cfg',
+               default='EFI/BOOT/grub.cfg',
                help=_('GRUB2 configuration file location on the UEFI ISO '
                       'images produced by ironic. The default value is '
                       'usually incorrect and should not be relied on. '
