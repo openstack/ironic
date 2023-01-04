@@ -2946,8 +2946,16 @@ function upload_baremetal_ironic_efiboot {
 
         sudo mkdir -p $efiboot_mount/efi/boot
 
-        sudo cp "$IRONIC_GRUB2_SHIM_FILE" $efiboot_mount/efi/boot/bootx64.efi
-        sudo cp "$IRONIC_GRUB2_FILE" $efiboot_mount/efi/boot/grubx64.efi
+        if [[ "$IRONIC_GRUB2_SHIM_FILE" =~ "http".* ]]; then
+            sudo wget "$IRONIC_GRUB2_SHIM_FILE" -O $efiboot_mount/efi/boot/bootx64.efi
+        else
+            sudo cp "$IRONIC_GRUB2_SHIM_FILE" $efiboot_mount/efi/boot/bootx64.efi
+        fi
+        if [[ "$IRONIC_GRUB2_FILE" =~ "http".* ]]; then
+            sudo wget "$IRONIC_GRUB2_FILE" -O $efiboot_mount/efi/boot/grubx64.efi
+        else
+            sudo cp "$IRONIC_GRUB2_FILE" $efiboot_mount/efi/boot/grubx64.efi
+        fi
 
         sudo umount $efiboot_mount
 
@@ -2984,7 +2992,7 @@ function upload_baremetal_ironic_efiboot {
         # NOTE(dtantsur): this is likely incorrect
         efi_grub_path=EFI/BOOT/grub.cfg
     fi
-    iniset $IRONIC_CONF_FILE DEFAULT grub_config_path $efi_grub_path
+    iniset $IRONIC_CONF_FILE DEFAULT grub_config_path ${IRONIC_GRUB2_CONFIG_PATH:-$efi_grub_path}
 }
 
 # build deploy kernel+ramdisk, then upload them to glance
