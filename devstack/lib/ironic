@@ -586,7 +586,7 @@ TEMPEST_BAREMETAL_MIN_MICROVERSION=${TEMPEST_BAREMETAL_MIN_MICROVERSION:-}
 TEMPEST_BAREMETAL_MAX_MICROVERSION=${TEMPEST_BAREMETAL_MAX_MICROVERSION:-}
 
 # TODO(TheJulia): This PHYSICAL_NETWORK needs to be refactored in
-# our devstack plugin. It is used by the neutron-legacy integration,
+# our devstack plugin. It is used by the neutron integration,
 # however they want to name the new variable for the current neutron
 # plugin NEUTRON_PHYSICAL_NETWORK. For now we'll do some magic and
 # change it later once we migrate our jobs.
