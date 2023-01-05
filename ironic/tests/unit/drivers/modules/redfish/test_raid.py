@@ -336,6 +336,8 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             self.assertEqual(mock_node_power_action.call_count, 0)
             self.assertEqual(mock_build_agent_options.call_count, 0)
             self.assertEqual(mock_prepare_ramdisk.call_count, 0)
+            self.assertIsNone(
+                task.node.driver_internal_info.get('raid_configs'))
             self.assertEqual(
                 [{'controller': 'RAID controller 1',
                   'id': '1',
@@ -1066,6 +1068,8 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             self.assertEqual(mock_node_power_action.call_count, 0)
             self.assertEqual(mock_build_agent_options.call_count, 0)
             self.assertEqual(mock_prepare_ramdisk.call_count, 0)
+            self.assertIsNone(
+                task.node.driver_internal_info.get('raid_configs'))
             self.assertEqual([], task.node.raid_config['logical_disks'])
             self.assertNotEqual(
                 last_updated, task.node.raid_config['last_updated'])

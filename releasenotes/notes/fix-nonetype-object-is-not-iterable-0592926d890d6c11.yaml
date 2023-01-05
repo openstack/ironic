@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes ``'NoneType' object is not iterable`` in conductor logs for
+    ``redfish`` and ``idrac-redfish`` RAID clean and deploy steps. The message
+    should no longer appear. For affected nodes re-create the node or delete
+    ``raid_configs`` entry from ``driver_internal_info`` field.
