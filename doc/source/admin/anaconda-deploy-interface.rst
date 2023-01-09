@@ -271,16 +271,44 @@ purposes.
    ``liveimg`` which is used as the base operating system image to
    start with.
 
+Configuration Considerations
+----------------------------
+
+When using the ``anaconda`` deployment interface, some configuration
+parameters may need to be adjusted in your environment. This is in large
+part due to the general defaults being set to much lower values for image
+based deployments, but the way the anaconda deployment interface works,
+you may need to make some adjustments.
+
+* ``[conductor]deploy_callback_timeout`` likely needs to be adjusted
+  for most ``anaconda`` deployment interface users. By default this
+  is a timer which looks for "agents" which have not checked in with
+  Ironic, or agents which may have crashed or failed after they
+  started. If the value is reached, then the current operation is failed.
+  This value should be set to a number of seconds which exceeds your
+  average anaconda deployment time.
+* ``[pxe]boot_retry_timeout`` can also be triggered and result in
+  an anaconda deployment in progress getting reset as it is intended
+  to reboot nodes which might have failed their initial PXE operation.
+  Depending on sizes of images, and the exact nature of what was deployed,
+  it may be necessary to ensure this is a much higher value.
+
 Limitations
 -----------
 
-This deploy interface has only been tested with Red Hat based operating systems
-that use anaconda. Other systems are not supported.
+* This deploy interface has only been tested with Red Hat based operating
+  systems that use anaconda. Other systems are not supported.
 
-Runtime TLS certifiate injection into ramdisks is not supported. Assets such
-as ``ramdisk`` or a ``stage2`` ramdisk image need to have trusted Certificate
-Authority certificates present within the images *or* the Ironic API endpoint
-utilized should utilize a known trusted Certificate Authority.
+* Runtime TLS certifiate injection into ramdisks is not supported. Assets
+  such as ``ramdisk`` or a ``stage2`` ramdisk image need to have trusted
+  Certificate Authority certificates present within the images *or* the
+  Ironic API endpoint utilized should utilize a known trusted Certificate
+  Authority.
+
+* The ``anaconda`` tooling deploying the instance/workload does not
+  heartbeat to Ironic like the ``ironic-python-agent`` driven ramdisks.
+  As such, you may need to adjust some timers. See
+  `Configuration Considerations`_ for some details on this.
 
 .. _`anaconda`: https://fedoraproject.org/wiki/Anaconda
 .. _`ks.cfg.template`: https://opendev.org/openstack/ironic/src/branch/master/ironic/drivers/modules/ks.cfg.template
