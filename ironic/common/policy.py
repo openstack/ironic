@@ -57,7 +57,7 @@ SYSTEM_MEMBER = 'role:member and system_scope:all'
 # support. These uses are also able to view project-specific resources where
 # applicable (e.g., listing all volumes in the deployment, regardless of the
 # project they belong to).
-SYSTEM_READER = 'role:reader and system_scope:all'
+SYSTEM_READER = '(role:reader and system_scope:all) or (role:service and system_scope:all)'  # noqa
 
 # This check string is reserved for actions that require the highest level of
 # authorization on a project or resources within the project (e.g., setting the
@@ -83,6 +83,14 @@ PROJECT_MEMBER = ('role:member and '
 PROJECT_READER = ('role:reader and '
                   '(project_id:%(node.owner)s or project_id:%(node.lessee)s)')
 
+# This check string is used for granting access to other services which need
+# to communicate with Ironic, for example, Nova-Compute to provision nodes,
+# or Ironic-Inspector to create nodes. The idea behind a service role is
+# one which has restricted access to perform operations, that are limited
+# to remote automated and inter-operation processes.
+SYSTEM_SERVICE = ('role:service and system_scope:all')
+PROJECT_SERVICE = ('role:service and project_id:%(node.owner)s')
+
 # The following are common composite check strings that are useful for
 # protecting APIs designed to operate with multiple scopes (e.g., a system
 # administrator should be able to delete any baremetal host in the deployment,
@@ -91,7 +99,7 @@ SYSTEM_OR_PROJECT_MEMBER = (
     '(' + SYSTEM_MEMBER + ') or (' + PROJECT_MEMBER + ')'
 )
 SYSTEM_OR_PROJECT_READER = (
-    '(' + SYSTEM_READER + ') or (' + PROJECT_READER + ')'
+    '(' + SYSTEM_READER + ') or (' + PROJECT_READER + ') or (' + PROJECT_SERVICE + ')'  # noqa
 )
 
 PROJECT_OWNER_ADMIN = ('role:admin and project_id:%(node.owner)s')
@@ -109,28 +117,36 @@ ALLOCATION_OWNER_MANAGER = ('role:manager and project_id:%(allocation.owner)s')
 ALLOCATION_OWNER_MEMBER = ('role:member and project_id:%(allocation.owner)s')
 ALLOCATION_OWNER_READER = ('role:reader and project_id:%(allocation.owner)s')
 
+# Used for general operations like changing provision state.
 SYSTEM_OR_OWNER_MEMBER_AND_LESSEE_ADMIN = (
-    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_MEMBER + ') or (' + PROJECT_LESSEE_ADMIN + ') or (' + PROJECT_LESSEE_MANAGER + ')'  # noqa
+    '(' + SYSTEM_MEMBER + ') or (' + SYSTEM_SERVICE + ') or (' + PROJECT_OWNER_MEMBER + ') or (' + PROJECT_LESSEE_ADMIN + ') or (' + PROJECT_LESSEE_MANAGER + ') or (' + PROJECT_SERVICE + ')'  # noqa
 )
 
+# Used for creation and deletion of network ports.
 SYSTEM_ADMIN_OR_OWNER_ADMIN = (
-    '(' + SYSTEM_ADMIN + ') or (' + PROJECT_OWNER_ADMIN + ') or (' + PROJECT_OWNER_MANAGER + ')'  # noqa
+    '(' + SYSTEM_ADMIN + ') or (' + SYSTEM_SERVICE + ') or (' + PROJECT_OWNER_ADMIN + ') or (' + PROJECT_OWNER_MANAGER + ') or (' + PROJECT_SERVICE + ')'  # noqa
 )
 
+# Used to map system members, and owner admins to the same access rights.
+# This is actions such as update driver interfaces, delete ports.
 SYSTEM_MEMBER_OR_OWNER_ADMIN = (
-    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_ADMIN + ') or (' + PROJECT_OWNER_MANAGER + ')'  # noqa
+    '(' + SYSTEM_MEMBER + ') or (' + SYSTEM_SERVICE + ') or (' + PROJECT_OWNER_ADMIN + ') or (' + PROJECT_OWNER_MANAGER + ') or (' + PROJECT_SERVICE + ')'  # noqa
 )
 
+# Used to map "member" only rights, i.e. those of "users using a deployment"
 SYSTEM_MEMBER_OR_OWNER_MEMBER = (
-    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_MEMBER + ')'
+    '(' + SYSTEM_MEMBER + ') or (' + SYSTEM_SERVICE + ') or (' + PROJECT_OWNER_MEMBER + ') or (' + PROJECT_SERVICE + ')'  # noqa
 )
 
+# Used throughout to map where authenticated readers
+# should be able to read API objects.
 SYSTEM_OR_OWNER_READER = (
-    '(' + SYSTEM_READER + ') or (' + PROJECT_OWNER_READER + ')'
+    '(' + SYSTEM_READER + ') or (' + SYSTEM_SERVICE + ') or (' + PROJECT_OWNER_READER + ') or (' + PROJECT_SERVICE + ')'  # noqa
 )
 
+# Mainly used for targets/connectors
 SYSTEM_MEMBER_OR_OWNER_LESSEE_ADMIN = (
-    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_OWNER_ADMIN + ') or (' + PROJECT_OWNER_MANAGER + ') or (' + PROJECT_LESSEE_ADMIN + ') or (' + PROJECT_LESSEE_MANAGER + ')'   # noqa
+    '(' + SYSTEM_MEMBER + ') or (' + SYSTEM_SERVICE + ') or (' + PROJECT_OWNER_ADMIN + ') or (' + PROJECT_OWNER_MANAGER + ') or (' + PROJECT_LESSEE_ADMIN + ') or (' + PROJECT_LESSEE_MANAGER + ') or (' + PROJECT_SERVICE + ')'  # noqa
 )
 
 
@@ -152,7 +168,10 @@ ALLOCATION_CREATOR = (
 # Special purpose aliases for things like "ability to access the API
 # as a reader, or permission checking that does not require node
 # owner relationship checking
-API_READER = ('role:reader')
+API_READER = ('(role:reader) or (role:service)')
+
+# Used for ability to view target properties of a volume, which is
+# considered highly restricted.
 TARGET_PROPERTIES_READER = (
     '(' + SYSTEM_READER + ') or (role:admin)'
 )
@@ -436,7 +455,7 @@ deprecated_bios_disable_cleaning = policy.DeprecatedRule(
 node_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:node:create',
-        check_str=SYSTEM_ADMIN,
+        check_str='(' + SYSTEM_ADMIN + ') or (' + SYSTEM_SERVICE + ')',
         scope_types=['system', 'project'],
         description='Create Node records',
         operations=[{'path': '/nodes', 'method': 'POST'}],
@@ -444,7 +463,7 @@ node_policies = [
     ),
     policy.DocumentedRuleDefault(
         name='baremetal:node:create:self_owned_node',
-        check_str=('role:admin'),
+        check_str=('(role:admin) or (role:service)'),
         scope_types=['project'],
         description='Create node records which will be tracked '
                     'as owned by the associated user project.',

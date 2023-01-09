@@ -280,3 +280,30 @@ imparts ``owner`` privileges to the created Bare Metal node.
 
 This functionality can be disabled by setting
 ``[api]project_admin_can_manage_own_nodes`` to ``False``.
+
+Can I use a service role?
+-------------------------
+
+In later versions of Ironic, the ``service`` role has been added to enable
+delineation of accounts and access to Ironic's API. As Ironic's API was
+largely originally intended as an "admin" API service, the service role
+enables similar levels of access as a project-scoped user with the
+``admin`` or ``manager`` roles.
+
+In terms of access, this is likely best viewed as a user with the
+``manager`` role, but with slight elevation in privilege to enable
+usage of the service via a service account.
+
+A project scoped user with the ``service`` role is able to create
+baremetal nodes, but is not able to delete them. To disable the
+ability to create nodes, set the
+``[api]project_admin_can_manage_own_nodes`` setting to ``False``.
+The nodes which can be accessed/managed in the project scope also align
+with the ``owner`` and ``lessee`` access model, and thus if nodes are not
+matching the user's ``project_id``, then Ironic's API will appear not to
+have any enrolled baremetal nodes.
+
+With the system scope, a user with the ``service`` role is able to
+create baremetal nodes, but also, not delete them. The access rights
+are modeled such an ``admin`` scoped is needed to delete baremetal
+nodes from Ironic.

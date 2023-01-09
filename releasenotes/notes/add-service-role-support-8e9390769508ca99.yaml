@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Adds support for the ``service`` role, which is intended for service to
+    service communication, such as for those where ``ironic-inspector``,
+    ``nova-compute``, or ``networking-baremetal`` needs to communicate with
+    Ironic's API.
+upgrade:
+  - |
+    Ironic now has support for the ``service`` role, which is available in the
+    ``system`` scope as well as the ``project`` scope. This functionality
+    is for service to service communication, if desired. Effective access rights
+    are similar to the ``manager`` or the ``owner`` scoped admin privileges.
