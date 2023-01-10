@@ -44,7 +44,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     #              change)
     # Version 1.9: Add support for Smart NIC port
     # Version 1.10: Add name field
-    VERSION = '1.10'
+    # Version 1.11: Add node_uuid field
+    VERSION = '1.11'
 
     dbapi = dbapi.get_instance()
 
@@ -52,6 +53,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         'id': object_fields.IntegerField(),
         'uuid': object_fields.UUIDField(nullable=True),
         'node_id': object_fields.IntegerField(nullable=True),
+        'node_uuid': object_fields.UUIDField(nullable=True),
         'address': object_fields.MACAddressField(nullable=True),
         'extra': object_fields.FlexibleDictField(nullable=True),
         'local_link_connection': object_fields.FlexibleDictField(
@@ -377,6 +379,10 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         values = self.do_version_changes_for_db()
         db_port = self.dbapi.create_port(values)
+        # NOTE(hjensas): To avoid lazy load issue (DetachedInstanceError) in
+        # sqlalchemy, get new port the port from the DB to ensure the node_uuid
+        # via association_proxy relationship is loaded.
+        db_port = self.dbapi.get_port_by_id(db_port['id'])
         self._from_db_object(self._context, self, db_port)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable

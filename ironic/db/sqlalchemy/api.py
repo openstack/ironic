@@ -980,9 +980,7 @@ class Connection(api.Connection):
                                   sort_key=None, sort_dir=None, owner=None,
                                   project=None):
         query = sa.select(models.Port).where(
-            models.Port.portgroup_id == portgroup_id
-        )
-
+            models.Port.portgroup_id == portgroup_id)
         if owner:
             query = add_port_filter_by_node_owner(query, owner)
         elif project:

@@ -88,12 +88,16 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         port = objects.Port(self.context, **self.fake_port)
         with mock.patch.object(self.dbapi, 'create_port',
                                autospec=True) as mock_create_port:
-            mock_create_port.return_value = db_utils.get_test_port()
+            with mock.patch.object(self.dbapi, 'get_port_by_id',
+                                   autospec=True) as mock_get_port:
+                test_port = db_utils.get_test_port()
+                mock_create_port.return_value = test_port
+                mock_get_port.return_value = test_port
 
-            port.create()
+                port.create()
 
-            args, _kwargs = mock_create_port.call_args
-            self.assertEqual(objects.Port.VERSION, args[0]['version'])
+                args, _kwargs = mock_create_port.call_args
+                self.assertEqual(objects.Port.VERSION, args[0]['version'])
 
     def test_save(self):
         uuid = self.fake_port['uuid']

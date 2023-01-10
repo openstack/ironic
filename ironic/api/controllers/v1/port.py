@@ -123,9 +123,9 @@ def convert_with_links(rpc_port, fields=None, sanitize=True):
             'local_link_connection',
             'physical_network',
             'pxe_enabled',
+            'node_uuid',
         )
     )
-    api_utils.populate_node_uuid(rpc_port, port)
     if rpc_port.portgroup_id:
         pg = objects.Portgroup.get(api.request.context, rpc_port.portgroup_id)
         port['portgroup_uuid'] = pg.uuid
@@ -166,12 +166,10 @@ def list_convert_with_links(rpc_ports, limit, url, fields=None, **kwargs):
         try:
             port = convert_with_links(rpc_port, fields=fields,
                                       sanitize=False)
-        except exception.NodeNotFound:
             # NOTE(dtantsur): node was deleted after we fetched the port
             # list, meaning that the port was also deleted. Skip it.
-            LOG.debug('Skipping port %s as its node was deleted',
-                      rpc_port.uuid)
-            continue
+            if port['node_uuid'] is None:
+                continue
         except exception.PortgroupNotFound:
             # NOTE(dtantsur): port group was deleted after we fetched the
             # port list, it may mean that the port was deleted too, but

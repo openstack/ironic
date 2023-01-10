@@ -272,6 +272,8 @@ def get_test_port(**kw):
         'version': kw.get('version', port.Port.VERSION),
         'uuid': kw.get('uuid', '1be26c0b-03f2-4d2e-ae87-c02d7f33c781'),
         'node_id': kw.get('node_id', 123),
+        'node_uuid': kw.get('node_uuid',
+                            '59d102f7-5840-4299-8ec8-80c0ebae9de1'),
         'address': kw.get('address', '52:54:00:cf:2d:31'),
         'extra': kw.get('extra', {}),
         'created_at': kw.get('created_at'),

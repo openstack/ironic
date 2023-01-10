@@ -238,35 +238,6 @@ class TestListPorts(test_api_base.BaseApiTest):
 
     # NOTE(jlvillal): autospec=True doesn't work on staticmethods:
     # https://bugs.python.org/issue23078
-    @mock.patch.object(objects.Node, 'get_by_id', spec_set=types.FunctionType)
-    def test_list_with_deleted_node(self, mock_get_node):
-        # check that we don't end up with HTTP 400 when node deletion races
-        # with listing ports - see https://launchpad.net/bugs/1748893
-        obj_utils.create_test_port(self.context, node_id=self.node.id)
-        mock_get_node.side_effect = exception.NodeNotFound('boom')
-        data = self.get_json('/ports')
-        self.assertEqual([], data['ports'])
-
-    # NOTE(jlvillal): autospec=True doesn't work on staticmethods:
-    # https://bugs.python.org/issue23078
-    @mock.patch.object(objects.Node, 'get_by_id',
-                       spec_set=types.FunctionType)
-    def test_list_detailed_with_deleted_node(self, mock_get_node):
-        # check that we don't end up with HTTP 400 when node deletion races
-        # with listing ports - see https://launchpad.net/bugs/1748893
-        port = obj_utils.create_test_port(self.context, node_id=self.node.id)
-        port2 = obj_utils.create_test_port(self.context, node_id=self.node.id,
-                                           uuid=uuidutils.generate_uuid(),
-                                           address='66:44:55:33:11:22')
-        mock_get_node.side_effect = [exception.NodeNotFound('boom'), self.node]
-        data = self.get_json('/ports/detail')
-        # The "correct" port is still returned
-        self.assertEqual(1, len(data['ports']))
-        self.assertIn(data['ports'][0]['uuid'], {port.uuid, port2.uuid})
-        self.assertEqual(self.node.uuid, data['ports'][0]['node_uuid'])
-
-    # NOTE(jlvillal): autospec=True doesn't work on staticmethods:
-    # https://bugs.python.org/issue23078
     @mock.patch.object(objects.Portgroup, 'get', spec_set=types.FunctionType)
     def test_list_with_deleted_port_group(self, mock_get_pg):
         # check that we don't end up with HTTP 400 when port group deletion
