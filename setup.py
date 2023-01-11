@@ -13,10 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# THIS FILE IS MANAGED BY THE GLOBAL REQUIREMENTS REPO - DO NOT EDIT
 import setuptools
 
 setuptools.setup(
     setup_requires=['pbr>=2.0.0'],
-    py_modules=[],
-    pbr=True)
+    pbr=True,
+)
