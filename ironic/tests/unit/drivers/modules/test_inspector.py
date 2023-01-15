@@ -555,8 +555,8 @@ class CheckStatusTestCase(BaseTestCase):
         self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
 
     def test_status_ok_store_inventory_in_db(self, mock_client):
-        CONF.set_override('inventory_data_backend', 'database',
-                          group='inspector')
+        CONF.set_override('data_backend', 'database',
+                          group='inventory')
         mock_get = mock_client.return_value.get_introspection
         mock_get.return_value = mock.Mock(is_finished=True,
                                           error=None,
@@ -577,10 +577,10 @@ class CheckStatusTestCase(BaseTestCase):
     @mock.patch.object(swift, 'SwiftAPI', autospec=True)
     def test_status_ok_store_inventory_in_swift(self,
                                                 swift_api_mock, mock_client):
-        CONF.set_override('inventory_data_backend', 'swift', group='inspector')
+        CONF.set_override('data_backend', 'swift', group='inventory')
         CONF.set_override(
-            'swift_inventory_data_container', 'introspection_data',
-            group='inspector')
+            'swift_data_container', 'introspection_data',
+            group='inventory')
         mock_get = mock_client.return_value.get_introspection
         mock_get.return_value = mock.Mock(is_finished=True,
                                           error=None,
@@ -602,7 +602,7 @@ class CheckStatusTestCase(BaseTestCase):
             mock.call(object_name + '-plugin', fake_plugin_data, container)])
 
     def test_status_ok_store_inventory_nostore(self, mock_client):
-        CONF.set_override('inventory_data_backend', 'none', group='inspector')
+        CONF.set_override('data_backend', 'none', group='inventory')
         mock_get = mock_client.return_value.get_introspection
         mock_get.return_value = mock.Mock(is_finished=True,
                                           error=None,
@@ -613,8 +613,8 @@ class CheckStatusTestCase(BaseTestCase):
         mock_get_data.assert_not_called()
 
     def test_status_error_dont_store_inventory(self, mock_client):
-        CONF.set_override('inventory_data_backend', 'database',
-                          group='inspector')
+        CONF.set_override('data_backend', 'database',
+                          group='inventory')
         mock_get = mock_client.return_value.get_introspection
         mock_get.return_value = mock.Mock(is_finished=True,
                                           error='boom',

@@ -39,17 +39,6 @@ opts = [
                        'managed by ironic. Set this to True if your '
                        'installation of ironic-inspector does not have a '
                        'separate PXE boot environment.')),
-    cfg.StrOpt('inventory_data_backend',
-               help=_('The storage backend for storing introspection data.'),
-               choices=[('none', _('introspection data will not be stored')),
-                        ('database', _('introspection data stored in an SQL '
-                                       'database')),
-                        ('swift', _('introspection data stored in Swift'))],
-               default='database'),
-    cfg.StrOpt('swift_inventory_data_container',
-               default='introspection_data_container',
-               help=_('The Swift introspection data container to store '
-                      'the inventory data.')),
 ]
 
 
