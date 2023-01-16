@@ -1048,3 +1048,55 @@ contents of the image into the newly created partition.
 .. NOTE::
    As a general reminder, the Ironic community recommends the use of
    whole disk images over the use of partition images.
+
+Why can't I use Secure Erase/Wipe with RAID controllers?
+========================================================
+
+Situations have been reported where an infrastructure operator is expecting
+particular device types to be Secure Erased or Wiped when they are behind a
+RAID controller.
+
+For example, the server may have NVMe devices attached to a RAID controller
+which could be in pass-through or single disk volume mode. The same scenario
+exists basically regardless of the disk/storage medium/type.
+
+The basic reason why is that RAID controllers essentially act as command
+translators with a buffer cache. They tend to offer a simplified protocol
+to the Operating System, and interact with the storage device in whatever
+protocol is native to the device. This is the root of the underlying
+problem.
+
+Protocols such as SCSI are rooted in quite a bit of computing history,
+but never evolved to include primitives like Secure Erase which evolved in
+the `ATA protocol <https://en.wikipedia.org/wiki/Parallel_ATA#HDD_passwords_and_security>`_.
+
+The closest primitives in SCSI to ATA Secure Erase is the ``FORMAT UNIT``
+and ``UNMAP`` commands.
+
+``FORMAT UNIT`` might be a viable solution, and a tool named
+`sg_format <https://linux.die.net/man/8/sg_format>`_ exists,
+but there has not been a sufficient call upstream to implement this and
+test it sufficiently that the Ironic community would be comfortable
+shipping such a capability. The possibility also exists that a RAID
+controller might not translate this command through to an end device,
+just as some RAID controllers know how to handle and pass through
+ATA commands to disk devices which support them. It is entirely dependent
+upon the hardware configuration scenario.
+
+The ``UNMAP`` command is similar to the ATA ``TRIM`` command. Unfortunately
+the SCSI protocol requires this be performed at block level, and similar to
+``FORMAT UNIT``, it may not be supported or just passed through.
+
+If your interested in working on this area, or are willing to help test,
+please feel free to contact the
+:doc:`Ironic development community </contributor/community>`.
+An additional option is the creation of your own
+`custom Hardware Manager <https://opendev.org/openstack/ironic-python-agent/src/branch/master/examples/custom-disk-erase>`_
+which can contain your preferred logic, however this does require some Python
+development experience.
+
+One last item of note, depending on the RAID controller, the BMC, and a number
+of other variables, you may be able to leverage the `RAID <raid>`_
+configuration interface to delete volumes/disks, and recreate them. This may
+have the same effect as a clean disk, however that too is RAID controller
+dependent behavior.
