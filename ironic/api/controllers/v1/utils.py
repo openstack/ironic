@@ -1341,6 +1341,11 @@ def allow_node_history():
     return api.request.version.minor >= versions.MINOR_78_NODE_HISTORY
 
 
+def allow_node_inventory():
+    """Check if node inventory is allowed."""
+    return api.request.version.minor >= versions.MINOR_81_NODE_INVENTORY
+
+
 def get_request_return_fields(fields, detail, default_fields,
                               check_detail_version=allow_detail_query,
                               check_fields_version=None):

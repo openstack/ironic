@@ -168,6 +168,23 @@ class SwiftAPI(object):
             (parse_result.scheme, parse_result.netloc, url_path,
              None, None, None))
 
+    def get_object(self, object, container):
+        """Downloads a given object from Swift.
+
+        :param object: The name of the object in Swift
+        :param container: The name of the container for the object.
+            Defaults to the value set in the configuration options.
+        :returns: Swift object
+        :raises: utils.Error, if the Swift operation fails.
+        """
+        try:
+            obj = self.connection.download_object(object, container=container)
+        except swift_exceptions.ClientException as e:
+            operation = _("get object")
+            raise exception.SwiftOperationError(operation=operation, error=e)
+
+        return obj
+
     def delete_object(self, container, obj):
         """Deletes the given Swift object.
 

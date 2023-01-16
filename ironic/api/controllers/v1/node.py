@@ -48,6 +48,7 @@ from ironic.common import states as ir_states
 from ironic.conductor import steps as conductor_steps
 import ironic.conf
 from ironic.drivers import base as driver_base
+from ironic.drivers.modules import inspector as inspector
 from ironic import objects
 
 
@@ -1944,6 +1945,39 @@ class NodeHistoryController(rest.RestController):
             node.uuid, event, detail=True)
 
 
+class NodeInventoryController(rest.RestController):
+
+    def __init__(self, node_ident):
+        super(NodeInventoryController).__init__()
+        self.node_ident = node_ident
+
+    def _node_inventory_convert(self, node_inventory):
+        inventory_data = node_inventory['inventory_data']
+        plugin_data = node_inventory['plugin_data']
+        return {"inventory": inventory_data, "plugin_data": plugin_data}
+
+    @METRICS.timer('NodeInventoryController.get')
+    @method.expose()
+    @args.validate(node_ident=args.uuid_or_name)
+    def get(self):
+        """Node inventory of the node.
+
+        :param node_ident: the UUID of a node.
+        """
+        node = api_utils.check_node_policy_and_retrieve(
+            'baremetal:node:inventory:get', self.node_ident)
+        store_data = CONF.inspector.inventory_data_backend
+        if store_data == 'none':
+            raise exception.NotFound(
+                (_("Cannot obtain node inventory because it was not stored")))
+        if store_data == 'database':
+            node_inventory = objects.NodeInventory.get_by_node_id(
+                api.request.context, node.id)
+            return self._node_inventory_convert(node_inventory)
+        if store_data == 'swift':
+            return inspector.get_introspection_data(node.uuid)
+
+
 class NodesController(rest.RestController):
     """REST controller for Nodes."""
 
@@ -1990,6 +2024,7 @@ class NodesController(rest.RestController):
         'bios': bios.NodeBiosController,
         'allocation': allocation.NodeAllocationController,
         'history': NodeHistoryController,
+        'inventory': NodeInventoryController,
     }
 
     @pecan.expose()
@@ -2013,7 +2048,9 @@ class NodesController(rest.RestController):
             or (remainder[0] == 'allocation'
                 and not api_utils.allow_allocations())
             or (remainder[0] == 'history'
-                and not api_utils.allow_node_history())):
+                and not api_utils.allow_node_history())
+            or (remainder[0] == 'inventory'
+                and not api_utils.allow_node_inventory())):
             pecan.abort(http_client.NOT_FOUND)
         if remainder[0] == 'traits' and not api_utils.allow_traits():
             # NOTE(mgoddard): Returning here will ensure we exhibit the
