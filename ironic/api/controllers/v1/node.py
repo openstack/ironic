@@ -48,7 +48,7 @@ from ironic.common import states as ir_states
 from ironic.conductor import steps as conductor_steps
 import ironic.conf
 from ironic.drivers import base as driver_base
-from ironic.drivers.modules import inspector as inspector
+from ironic.drivers.modules import inspect_utils
 from ironic import objects
 
 
@@ -1951,11 +1951,6 @@ class NodeInventoryController(rest.RestController):
         super(NodeInventoryController).__init__()
         self.node_ident = node_ident
 
-    def _node_inventory_convert(self, node_inventory):
-        inventory_data = node_inventory['inventory_data']
-        plugin_data = node_inventory['plugin_data']
-        return {"inventory": inventory_data, "plugin_data": plugin_data}
-
     @METRICS.timer('NodeInventoryController.get')
     @method.expose()
     @args.validate(node_ident=args.uuid_or_name)
@@ -1966,16 +1961,7 @@ class NodeInventoryController(rest.RestController):
         """
         node = api_utils.check_node_policy_and_retrieve(
             'baremetal:node:inventory:get', self.node_ident)
-        store_data = CONF.inventory.data_backend
-        if store_data == 'none':
-            raise exception.NotFound(
-                (_("Cannot obtain node inventory because it was not stored")))
-        if store_data == 'database':
-            node_inventory = objects.NodeInventory.get_by_node_id(
-                api.request.context, node.id)
-            return self._node_inventory_convert(node_inventory)
-        if store_data == 'swift':
-            return inspector.get_introspection_data(node.uuid)
+        return inspect_utils.get_introspection_data(node, api.request.context)
 
 
 class NodesController(rest.RestController):
