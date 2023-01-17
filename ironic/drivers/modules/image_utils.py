@@ -211,6 +211,16 @@ class ImageHandler(object):
             try:
                 os.link(image_file, published_file)
                 os.chmod(image_file, self._file_permission)
+                try:
+                    utils.execute(
+                        '/usr/sbin/restorecon', '-i', '-R', 'v', public_dir)
+                except FileNotFoundError as exc:
+                    LOG.debug(
+                        "Could not restore SELinux context on "
+                        "%(public_dir)s, restorecon command not found.\n"
+                        "Error: %(error)s",
+                        {'public_dir': public_dir,
+                         'error': exc})
 
             except OSError as exc:
                 LOG.debug(
