@@ -64,13 +64,16 @@ class IRMCInspectInternalMethodsTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_inspect, '_get_mac_addresses', spec_set=True,
                        autospec=True)
-    @mock.patch.object(irmc_inspect, 'scci',
+    @mock.patch.object(irmc_inspect.irmc, 'scci',
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
     @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
                        autospec=True)
-    def test__inspect_hardware(
+    def test__inspect_hardware_ipmi(
             self, get_irmc_report_mock, scci_mock, _get_mac_addresses_mock):
         # Set config flags
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
         cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
         self.config(gpu_ids=gpu_ids, group='irmc')
@@ -117,9 +120,68 @@ class IRMCInspectInternalMethodsTestCase(test_common.BaseIRMCTest):
             self.assertEqual((expected_props, inspected_macs, new_traits),
                              result)
 
+    @mock.patch.object(
+        irmc_inspect, '_get_capabilities_properties_without_ipmi',
+        autospec=True)
     @mock.patch.object(irmc_inspect, '_get_mac_addresses', spec_set=True,
                        autospec=True)
-    @mock.patch.object(irmc_inspect, 'scci',
+    @mock.patch.object(irmc_inspect.irmc, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
+                       autospec=True)
+    def test__inspect_hardware_redfish(
+            self, get_irmc_report_mock, scci_mock, _get_mac_addresses_mock,
+            _get_cap_prop_without_ipmi_mock):
+        # Set config flags
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', False)
+        self.node.save()
+
+        kwargs = {'sleep_flag': False}
+
+        parsed_info = irmc_common.parse_driver_info(self.node)
+        inspected_props = {
+            'memory_mb': '1024',
+            'local_gb': 10,
+            'cpus': 2,
+            'cpu_arch': 'x86_64'}
+        inspected_capabilities = {
+            'irmc_firmware_version': 'iRMC S6-2.00S',
+            'server_model': 'TX2540M1F5',
+            'rom_firmware_version': 'V4.6.5.4 R1.15.0 for D3099-B1x'}
+        formatted_caps = utils.get_updated_capabilities(
+            '', inspected_capabilities)
+        existing_traits = ['EXISTING_TRAIT']
+        passed_cap_prop = {'irmc_firmware_version',
+                           'rom_firmware_version', 'server_model'}
+        inspected_macs = ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb']
+        report = 'fake_report'
+        get_irmc_report_mock.return_value = report
+        scci_mock.get_essential_properties.return_value = inspected_props
+        _get_cap_prop_without_ipmi_mock.return_value = {
+            'capabilities': formatted_caps,
+            **inspected_props}
+        _get_mac_addresses_mock.return_value = inspected_macs
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            result = irmc_inspect._inspect_hardware(task.node,
+                                                    existing_traits,
+                                                    **kwargs)
+            get_irmc_report_mock.assert_called_once_with(task.node)
+            scci_mock.get_essential_properties.assert_called_once_with(
+                report, irmc_inspect.IRMCInspect.ESSENTIAL_PROPERTIES)
+            _get_cap_prop_without_ipmi_mock.assert_called_once_with(
+                parsed_info, passed_cap_prop, '', inspected_props)
+
+            expected_props = dict(inspected_props)
+            inspected_capabilities = utils.get_updated_capabilities(
+                '', inspected_capabilities)
+            expected_props['capabilities'] = inspected_capabilities
+            self.assertEqual((expected_props, inspected_macs, existing_traits),
+                             result)
+
+    @mock.patch.object(irmc_inspect, '_get_mac_addresses', spec_set=True,
+                       autospec=True)
+    @mock.patch.object(irmc_inspect.irmc, 'scci',
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
     @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
                        autospec=True)
@@ -130,8 +192,8 @@ class IRMCInspectInternalMethodsTestCase(test_common.BaseIRMCTest):
         get_irmc_report_mock.return_value = report
         side_effect = exception.SNMPFailure("fake exception")
         scci_mock.get_essential_properties.side_effect = side_effect
-        irmc_inspect.scci.SCCIInvalidInputError = Exception
-        irmc_inspect.scci.SCCIClientError = Exception
+        irmc_inspect.irmc.scci.SCCIInvalidInputError = Exception
+        irmc_inspect.irmc.scci.SCCIClientError = Exception
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -192,6 +254,9 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     def test_inspect_hardware(self, power_state_mock, _inspect_hardware_mock,
                               port_mock, info_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         inspected_props = {
             'memory_mb': '1024',
             'local_gb': 10,
@@ -247,6 +312,9 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
                                              port_mock, info_mock,
                                              set_boot_device_mock,
                                              power_action_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         inspected_props = {
             'memory_mb': '1024',
             'local_gb': 10,
@@ -297,6 +365,9 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     def test_inspect_hardware_inspect_exception(
             self, power_state_mock, _inspect_hardware_mock, port_mock):
+        self.node.set_driver_internal_info('irmc_fw_version', 'iRMC S4/7.82F')
+        self.node.save()
+
         side_effect = exception.HardwareInspectionFailure("fake exception")
         _inspect_hardware_mock.side_effect = side_effect
         power_state_mock.return_value = states.POWER_ON
@@ -321,6 +392,9 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
     def test_inspect_hardware_mac_already_exist(
             self, power_state_mock, _inspect_hardware_mock,
             port_mock, warn_mock, trait_mock):
+        self.node.set_driver_internal_info('irmc_fw_version', 'iRMC S4/7.82F')
+        self.node.save()
+
         inspected_props = {
             'memory_mb': '1024',
             'local_gb': 10,
@@ -353,7 +427,7 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
                        spec_set=True, autospec=True)
     @mock.patch.object(irmc_inspect, '_get_mac_addresses', spec_set=True,
                        autospec=True)
-    @mock.patch.object(irmc_inspect, 'scci',
+    @mock.patch.object(irmc_inspect.irmc, 'scci',
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
     @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
                        autospec=True)
@@ -421,6 +495,9 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
             self.assertEqual(expected_traits, result[2])
 
     def test_inspect_hardware_existing_cap_in_props(self):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         # Set config flags
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
         cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
@@ -455,6 +532,9 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
                                           expected_traits)
 
     def test_inspect_hardware_props_empty_gpu_ids_fpga_ids(self):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         # Set config flags
         gpu_ids = []
         cpu_fpgas = []
@@ -479,6 +559,9 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
                                           expected_traits)
 
     def test_inspect_hardware_props_pci_gpu_devices_return_zero(self):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         # Set config flags
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
         cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
@@ -508,6 +591,9 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
 
     def test_inspect_hardware_props_empty_gpu_ids_fpga_id_sand_existing_cap(
             self):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         # Set config flags
         gpu_ids = []
         cpu_fpgas = []
@@ -538,6 +624,9 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
 
     def test_inspect_hardware_props_gpu_cpu_fpgas_zero_and_existing_cap(
             self):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         # Set config flags
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
         cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
@@ -569,6 +658,9 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
                                           expected_traits)
 
     def test_inspect_hardware_props_trusted_boot_removed(self):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         # Set config flags
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
         cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']
@@ -599,6 +691,9 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
 
     def test_inspect_hardware_props_gpu_and_cpu_fpgas_results_are_different(
             self):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         # Set config flags
         gpu_ids = ['0x1000/0x0079', '0x2100/0x0080']
         cpu_fpgas = ['0x1000/0x0179', '0x2100/0x0180']

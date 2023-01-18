@@ -29,6 +29,7 @@ from ironic.drivers import base
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import common as irmc_common
+from ironic.drivers.modules.redfish import power as redfish_power
 from ironic.drivers.modules import snmp
 
 scci = importutils.try_import('scciclient.irmc.scci')
@@ -213,7 +214,7 @@ def _set_power_state(task, target_state, timeout=None):
                                            error=snmp_exception)
 
 
-class IRMCPower(base.PowerInterface):
+class IRMCPower(redfish_power.RedfishPower, base.PowerInterface):
     """Interface for power-related actions."""
 
     def get_properties(self):
@@ -236,7 +237,19 @@ class IRMCPower(base.PowerInterface):
                  is missing or invalid on the node.
         :raises: MissingParameterValue if a required parameter is missing.
         """
-        irmc_common.parse_driver_info(task.node)
+        # validate method of power interface is called at very first point
+        # in verifying.
+        # We take try-fallback approach against iRMC S6 2.00 and later
+        # incompatibility in which iRMC firmware disables IPMI by default.
+        # get_power_state method first try IPMI and if fails try Redfish
+        # along with setting irmc_ipmi_succeed flag to indicate if IPMI works.
+        if (task.node.driver_internal_info.get('irmc_ipmi_succeed')
+            or (task.node.driver_internal_info.get('irmc_ipmi_succeed')
+            is None)):
+            irmc_common.parse_driver_info(task.node)
+        else:
+            irmc_common.parse_driver_info(task.node)
+            super(IRMCPower, self).validate(task)
 
     @METRICS.timer('IRMCPower.get_power_state')
     def get_power_state(self, task):
@@ -244,14 +257,40 @@ class IRMCPower(base.PowerInterface):
 
         :param task: a TaskManager instance containing the node to act on.
         :returns: a power state. One of :mod:`ironic.common.states`.
-        :raises: InvalidParameterValue if required ipmi parameters are missing.
-        :raises: MissingParameterValue if a required parameter is missing.
-        :raises: IPMIFailure on an error from ipmitool (from _power_status
-            call).
+        :raises: InvalidParameterValue if required parameters are incorrect.
+        :raises: MissingParameterValue if required parameters are missing.
+        :raises: IRMCOperationError If IPMI or Redfish operation fails
         """
-        irmc_common.update_ipmi_properties(task)
-        ipmi_power = ipmitool.IPMIPower()
-        return ipmi_power.get_power_state(task)
+        # If IPMI operation failed, iRMC may not enable/support IPMI,
+        # so fallback to Redfish.
+        # get_power_state is called at verifying and is called periodically
+        # so this method is good choice to determine IPMI enablement.
+        try:
+            irmc_common.update_ipmi_properties(task)
+            ipmi_power = ipmitool.IPMIPower()
+            pw_state = ipmi_power.get_power_state(task)
+            if (task.node.driver_internal_info.get('irmc_ipmi_succeed')
+                is not True):
+                task.upgrade_lock(purpose='update irmc_ipmi_succeed flag',
+                                  retry=True)
+                task.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+                task.node.save()
+                task.downgrade_lock()
+            return pw_state
+        except exception.IPMIFailure:
+            if (task.node.driver_internal_info.get('irmc_ipmi_succeed')
+                is not False):
+                task.upgrade_lock(purpose='update irmc_ipmi_succeed flag',
+                                  retry=True)
+                task.node.set_driver_internal_info('irmc_ipmi_succeed', False)
+                task.node.save()
+                task.downgrade_lock()
+            try:
+                return super(IRMCPower, self).get_power_state(task)
+            except (exception.RedfishConnectionError,
+                    exception.RedfishError):
+                raise exception.IRMCOperationError(
+                    operation='IPMI try and Redfish fallback operation')
 
     @METRICS.timer('IRMCPower.set_power_state')
     @task_manager.require_exclusive_lock
