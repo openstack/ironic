@@ -1086,7 +1086,9 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                 autospec=True)
     def test_port_changed_client_id_fail(self, dhcp_update_mock):
         self.port.internal_info = {'tenant_vif_port_id': 'fake-id'}
-        self.port.extra = {'client-id': 'fake2'}
+        self.port.extra = {'client-id': 'fake3'}
+        # NOTE(TheJulia): Does not save, because it attempts to figure
+        # out what has changed as part of the test.
         dhcp_update_mock.side_effect = (
             exception.FailedToUpdateDHCPOptOnPort(port_id=self.port.uuid))
         with task_manager.acquire(self.context, self.node.id) as task:
