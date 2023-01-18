@@ -1,0 +1,19 @@
+---
+upgrade:
+  - |
+    Since iRMC versions S6 2.00 and later, iRMC firmware doesn't
+    support HTTP connection to REST API. Operators need to set
+    ``[irmc] port`` in ironic.conf or ``driver_info/irmc_port``
+    to 443.
+features:
+  - |
+    Adds verify step and node vendor passthru method to deal with
+    a firmware incompatibility issue with iRMC versions S6 2.00
+    and later in which HTTP connection to REST API is not supported
+    and HTTPS connections to REST API is required.
+
+    Verify step checks connection to iRMC REST API and if connection
+    succeeds, it fetches version of iRMC firmware and store it in
+    ``driver_internal_info/irmc_fw_version``. Ironic operators use
+    node vendor passthru method to fetch & update iRMC firmware
+    version cached in ``driver_internal_info/irmc_fw_version``.

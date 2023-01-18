@@ -27,6 +27,7 @@ from ironic.drivers.modules.irmc import inspect
 from ironic.drivers.modules.irmc import management
 from ironic.drivers.modules.irmc import power
 from ironic.drivers.modules.irmc import raid
+from ironic.drivers.modules.irmc import vendor
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
 
@@ -77,3 +78,8 @@ class IRMCHardware(generic.GenericHardware):
     def supported_raid_interfaces(self):
         """List of supported raid interfaces."""
         return [noop.NoRAID, raid.IRMCRAID, agent.AgentRAID]
+
+    @property
+    def supported_vendor_interfaces(self):
+        """List of supported vendor interfaces."""
+        return [noop.NoVendor, vendor.IRMCVendorPassthru]

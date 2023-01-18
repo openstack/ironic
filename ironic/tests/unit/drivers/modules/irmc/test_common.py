@@ -412,3 +412,132 @@ class IRMCCommonMethodsTestCase(BaseIRMCTest):
             info = irmc_common.parse_driver_info(task.node)
             mock_elcm.set_secure_boot_mode.assert_called_once_with(
                 info, True)
+
+    @mock.patch.object(irmc_common, 'elcm',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_ELCM_SPEC)
+    def test_check_elcm_license_success_with_200(self, elcm_mock):
+        elcm_req_mock = elcm_mock.elcm_request
+        json_data = ('{ "eLCMStatus" : { "EnabledAndLicenced" : "true" , '
+                     '"SDCardMounted" : "false" } }')
+        func_return_value = {'active': True, 'status_code': 200}
+        response_mock = elcm_req_mock.return_value
+        response_mock.status_code = 200
+        response_mock.text = json_data
+        self.assertEqual(irmc_common.check_elcm_license(self.node),
+                         func_return_value)
+
+    @mock.patch.object(irmc_common, 'elcm',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_ELCM_SPEC)
+    def test_check_elcm_license_success_with_500(self, elcm_mock):
+        elcm_req_mock = elcm_mock.elcm_request
+        json_data = ''
+        func_return_value = {'active': False, 'status_code': 500}
+        response_mock = elcm_req_mock.return_value
+        response_mock.status_code = 500
+        response_mock.text = json_data
+        self.assertEqual(irmc_common.check_elcm_license(self.node),
+                         func_return_value)
+
+    @mock.patch.object(irmc_common, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    @mock.patch.object(irmc_common, 'elcm',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_ELCM_SPEC)
+    def test_check_elcm_license_fail_invalid_json(self, elcm_mock, scci_mock):
+        scci_mock.SCCIError = Exception
+        elcm_req_mock = elcm_mock.elcm_request
+        json_data = ''
+        response_mock = elcm_req_mock.return_value
+        response_mock.status_code = 200
+        response_mock.text = json_data
+        self.assertRaises(exception.IRMCOperationError,
+                          irmc_common.check_elcm_license, self.node)
+
+    @mock.patch.object(irmc_common, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    @mock.patch.object(irmc_common, 'elcm',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_ELCM_SPEC)
+    def test_check_elcm_license_fail_elcm_error(self, elcm_mock, scci_mock):
+        scci_mock.SCCIError = Exception
+        elcm_req_mock = elcm_mock.elcm_request
+        elcm_req_mock.side_effect = scci_mock.SCCIError
+        self.assertRaises(exception.IRMCOperationError,
+                          irmc_common.check_elcm_license, self.node)
+
+    @mock.patch.object(irmc_common, 'get_irmc_report', autospec=True)
+    @mock.patch.object(irmc_common, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    def test_set_irmc_version_success(self, scci_mock, get_report_mock):
+        version_str = 'iRMC S6/2.00'
+        scci_mock.get_irmc_version_str.return_value = version_str.split('/')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            irmc_common.set_irmc_version(task)
+            self.assertEqual(version_str,
+                             task.node.driver_internal_info['irmc_fw_version'])
+
+    @mock.patch.object(irmc_common, 'get_irmc_report', autospec=True)
+    @mock.patch.object(irmc_common, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    def test_set_irmc_version_fail(self, scci_mock, get_report_mock):
+        scci_mock.SCCIError = Exception
+        get_report_mock.side_effect = scci_mock.SCCIError
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.IRMCOperationError,
+                              irmc_common.set_irmc_version, task)
+
+    def test_within_version_ranges_success(self):
+        self.node.set_driver_internal_info('irmc_fw_version', 'iRMC S6/2.00')
+        ver_range_list = [
+            {'4': {'upper': '1.05'},
+             '6': {'min': '1.95', 'upper': '2.01'}
+             },
+            {'4': {'upper': '1.05'},
+             '6': {'min': '1.95', 'upper': None}
+             },
+            {'4': {'upper': '1.05'},
+             '6': {'min': '1.95'}
+             },
+            {'4': {'upper': '1.05'},
+             '6': {}
+             },
+            {'4': {'upper': '1.05'},
+             '6': None
+             }]
+        for range_dict in ver_range_list:
+            with self.subTest():
+                self.assertTrue(irmc_common.within_version_ranges(self.node,
+                                                                  range_dict))
+
+    def test_within_version_ranges_success_out_range(self):
+        self.node.set_driver_internal_info('irmc_fw_version', 'iRMC S6/2.00')
+        ver_range_list = [
+            {'4': {'upper': '1.05'},
+             '6': {'min': '1.95', 'upper': '2.00'}
+             },
+            {'4': {'upper': '1.05'},
+             '6': {'min': '1.95', 'upper': '1.99'}
+             },
+            {'4': {'upper': '1.05'},
+             }]
+        for range_dict in ver_range_list:
+            with self.subTest():
+                self.assertFalse(irmc_common.within_version_ranges(self.node,
+                                                                   range_dict))
+
+    def test_within_version_ranges_fail_no_match(self):
+        self.node.set_driver_internal_info('irmc_fw_version', 'ver/2.00')
+        ver_range = {
+            '4': {'upper': '1.05'},
+            '6': {'min': '1.95', 'upper': '2.01'}
+        }
+        self.assertFalse(irmc_common.within_version_ranges(self.node,
+                                                           ver_range))
+
+    def test_within_version_ranges_fail_no_version_set(self):
+        ver_range = {
+            '4': {'upper': '1.05'},
+            '6': {'min': '1.95', 'upper': '2.01'}
+        }
+        self.assertFalse(irmc_common.within_version_ranges(self.node,
+                                                           ver_range))

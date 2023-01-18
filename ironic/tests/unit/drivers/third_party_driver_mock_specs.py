@@ -95,9 +95,11 @@ SCCICLIENT_IRMC_SCCI_SPEC = (
     'get_virtual_fd_set_params_cmd',
     'get_essential_properties',
     'get_capabilities_properties',
+    'get_irmc_version_str',
 )
 SCCICLIENT_IRMC_ELCM_SPEC = (
     'backup_bios_config',
+    'elcm_request',
     'restore_bios_config',
     'set_secure_boot_mode',
 )
