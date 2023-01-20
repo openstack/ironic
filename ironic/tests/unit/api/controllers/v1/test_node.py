@@ -7949,8 +7949,8 @@ class TestNodeInventory(test_api_base.BaseApiTest):
 
     def test_get_inventory(self):
         self._add_inventory()
-        CONF.set_override('inventory_data_backend', 'database',
-                          group='inspector')
+        CONF.set_override('data_backend', 'database',
+                          group='inventory')
         ret = self.get_json('/nodes/%s/inventory' % self.node.uuid,
                             headers={api_base.Version.string: self.version})
         self.assertEqual({'inventory': self.fake_inventory_data,
@@ -7958,8 +7958,8 @@ class TestNodeInventory(test_api_base.BaseApiTest):
 
     @mock.patch.object(inspector, 'get_introspection_data', autospec=True)
     def test_get_inventory_swift(self, mock_get_data):
-        CONF.set_override('inventory_data_backend', 'swift',
-                          group='inspector')
+        CONF.set_override('data_backend', 'swift',
+                          group='inventory')
         mock_get_data.return_value = {"inventory": self.fake_inventory_data,
                                       "plugin_data": self.fake_plugin_data}
         ret = self.get_json('/nodes/%s/inventory' % self.node.uuid,

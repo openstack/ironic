@@ -368,7 +368,7 @@ def _check_status(task):
     elif status.is_finished:
         _clean_up(task)
         # If store_data == 'none', do not store the data
-        store_data = CONF.inspector.inventory_data_backend
+        store_data = CONF.inventory.data_backend
         if store_data == 'none':
             LOG.debug('Introspection data storage is disabled, the data will '
                       'not be saved for node %(node)s', {'node': node.uuid})
@@ -417,7 +417,7 @@ def store_introspection_data(node_uuid, inventory_data, plugin_data):
     """
     swift_api = swift.SwiftAPI()
     swift_object_name = '%s-%s' % (_OBJECT_NAME_PREFIX, node_uuid)
-    container = CONF.inspector.swift_inventory_data_container
+    container = CONF.inventory.swift_data_container
     swift_api.create_object_from_data(swift_object_name + '-inventory',
                                       inventory_data,
                                       container)
@@ -436,7 +436,7 @@ def get_introspection_data(node_uuid):
     """
     swift_api = swift.SwiftAPI()
     swift_object_name = '%s-%s' % (_OBJECT_NAME_PREFIX, node_uuid)
-    container = CONF.inspector.swift_inventory_data_container
+    container = CONF.inventory.swift_data_container
     inventory_data = swift_api.get_object(swift_object_name + '-inventory',
                                           container)
     plugin_data = swift_api.get_object(swift_object_name + '-plugin',

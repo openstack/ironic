@@ -32,6 +32,7 @@ _opts = [
     ('healthcheck', ironic.conf.healthcheck.opts),
     ('ilo', ironic.conf.ilo.opts),
     ('inspector', ironic.conf.inspector.list_opts()),
+    ('inventory', ironic.conf.inventory.opts),
     ('ipmi', ironic.conf.ipmi.opts),
     ('irmc', ironic.conf.irmc.opts),
     ('anaconda', ironic.conf.anaconda.opts),

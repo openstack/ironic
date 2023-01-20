@@ -1966,7 +1966,7 @@ class NodeInventoryController(rest.RestController):
         """
         node = api_utils.check_node_policy_and_retrieve(
             'baremetal:node:inventory:get', self.node_ident)
-        store_data = CONF.inspector.inventory_data_backend
+        store_data = CONF.inventory.data_backend
         if store_data == 'none':
             raise exception.NotFound(
                 (_("Cannot obtain node inventory because it was not stored")))

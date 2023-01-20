@@ -34,6 +34,7 @@ from ironic.conf import healthcheck
 from ironic.conf import ibmc
 from ironic.conf import ilo
 from ironic.conf import inspector
+from ironic.conf import inventory
 from ironic.conf import ipmi
 from ironic.conf import irmc
 from ironic.conf import metrics
@@ -69,6 +70,7 @@ healthcheck.register_opts(CONF)
 ibmc.register_opts(CONF)
 ilo.register_opts(CONF)
 inspector.register_opts(CONF)
+inventory.register_opts(CONF)
 ipmi.register_opts(CONF)
 irmc.register_opts(CONF)
 metrics.register_opts(CONF)
