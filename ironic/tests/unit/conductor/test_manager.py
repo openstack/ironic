@@ -54,6 +54,7 @@ from ironic.conductor import verify
 from ironic.db import api as dbapi
 from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import fake
+from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.network import flat as n_flat
 from ironic import objects
 from ironic.objects import base as obj_base
@@ -3899,6 +3900,39 @@ class DestroyNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.service.destroy_node(self.context, node.uuid)
         self.assertRaises(exception.NodeNotFound,
                           self.dbapi.get_node_by_uuid,
+                          node.uuid)
+
+    @mock.patch.object(inspect_utils, 'clean_up_swift_entries', autospec=True)
+    def test_inventory_in_swift_get_destroyed_after_destroying_a_node_by_uuid(
+            self, mock_clean_up):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware')
+        CONF.set_override('data_backend', 'swift', group='inventory')
+        self._start_service()
+        self.service.destroy_node(self.context, node.uuid)
+        mock_clean_up.assert_called_once_with(mock.ANY)
+
+    @mock.patch.object(inspect_utils, 'clean_up_swift_entries', autospec=True)
+    def test_inventory_in_swift_not_destroyed_SwiftOSE_maintenance(
+            self, mock_clean_up):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          maintenance=True)
+        CONF.set_override('data_backend', 'swift', group='inventory')
+        mock_clean_up.side_effect = exception.SwiftObjectStillExists(
+            obj="inventory-123", node=node.uuid)
+        self._start_service()
+        self.service.destroy_node(self.context, node.uuid)
+
+    @mock.patch.object(inspect_utils, 'clean_up_swift_entries', autospec=True)
+    def test_inventory_in_swift_not_destroyed_SwiftOSE_not_maintenance(
+            self, mock_clean_up):
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          maintenance=False)
+        CONF.set_override('data_backend', 'swift', group='inventory')
+        mock_clean_up.side_effect = exception.SwiftObjectStillExists(
+            obj="inventory-123", node=node.uuid)
+        self._start_service()
+        self.assertRaises(exception.SwiftObjectStillExists,
+                          self.service.destroy_node, self.context,
                           node.uuid)
 
 
