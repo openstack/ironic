@@ -17,9 +17,14 @@ from oslo_log import log as logging
 from oslo_utils import netutils
 
 from ironic.common import exception
+from ironic.common.i18n import _
+from ironic.common import swift
+from ironic.conf import CONF
 from ironic import objects
+from ironic.objects import node_inventory
 
 LOG = logging.getLogger(__name__)
+_OBJECT_NAME_PREFIX = 'inspector_data'
 
 
 def create_ports_if_not_exist(task, macs):
@@ -51,3 +56,85 @@ def create_ports_if_not_exist(task, macs):
         except exception.MACAlreadyExists:
             LOG.info("Port already exists for MAC address %(address)s "
                      "for node %(node)s", {'address': mac, 'node': node.uuid})
+
+
+def store_introspection_data(node, introspection_data, context):
+    # If store_data == 'none', do not store the data
+    store_data = CONF.inventory.data_backend
+    if store_data == 'none':
+        LOG.debug('Introspection data storage is disabled, the data will '
+                  'not be saved for node %(node)s', {'node': node.uuid})
+        return
+    inventory_data = introspection_data.pop("inventory")
+    plugin_data = introspection_data
+    if store_data == 'database':
+        node_inventory.NodeInventory(
+            context,
+            node_id=node.id,
+            inventory_data=inventory_data,
+            plugin_data=plugin_data).create()
+        LOG.info('Introspection data was stored in database for node '
+                 '%(node)s', {'node': node.uuid})
+    if store_data == 'swift':
+        swift_object_name = _store_introspection_data_in_swift(
+            node_uuid=node.uuid,
+            inventory_data=inventory_data,
+            plugin_data=plugin_data)
+        LOG.info('Introspection data was stored for node %(node)s in Swift'
+                 ' object %(obj_name)s-inventory and %(obj_name)s-plugin',
+                 {'node': node.uuid, 'obj_name': swift_object_name})
+
+
+def _node_inventory_convert(node_inventory):
+    inventory_data = node_inventory['inventory_data']
+    plugin_data = node_inventory['plugin_data']
+    return {"inventory": inventory_data, "plugin_data": plugin_data}
+
+
+def get_introspection_data(node, context):
+    store_data = CONF.inventory.data_backend
+    if store_data == 'none':
+        raise exception.NotFound(
+            (_("Cannot obtain node inventory because it was not stored")))
+    if store_data == 'database':
+        node_inventory = objects.NodeInventory.get_by_node_id(
+            context, node.id)
+        return _node_inventory_convert(node_inventory)
+    if store_data == 'swift':
+        return _get_introspection_data_from_swift(node.uuid)
+
+
+def _store_introspection_data_in_swift(node_uuid, inventory_data, plugin_data):
+    """Uploads introspection data to Swift.
+
+    :param data: data to store in Swift
+    :param node_id: ID of the Ironic node that the data came from
+    :returns: name of the Swift object that the data is stored in
+    """
+    swift_api = swift.SwiftAPI()
+    swift_object_name = '%s-%s' % (_OBJECT_NAME_PREFIX, node_uuid)
+    container = CONF.inventory.swift_data_container
+    swift_api.create_object_from_data(swift_object_name + '-inventory',
+                                      inventory_data,
+                                      container)
+    swift_api.create_object_from_data(swift_object_name + '-plugin',
+                                      plugin_data,
+                                      container)
+    return swift_object_name
+
+
+def _get_introspection_data_from_swift(node_uuid):
+    """Uploads introspection data to Swift.
+
+    :param data: data to store in Swift
+    :param node_id: ID of the Ironic node that the data came from
+    :returns: name of the Swift object that the data is stored in
+    """
+    swift_api = swift.SwiftAPI()
+    swift_object_name = '%s-%s' % (_OBJECT_NAME_PREFIX, node_uuid)
+    container = CONF.inventory.swift_data_container
+    inventory_data = swift_api.get_object(swift_object_name + '-inventory',
+                                          container)
+    plugin_data = swift_api.get_object(swift_object_name + '-plugin',
+                                       container)
+    return {"inventory": inventory_data, "plugin_data": plugin_data}

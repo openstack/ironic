@@ -43,6 +43,7 @@ from ironic.common import indicator_states
 from ironic.common import policy
 from ironic.common import states
 from ironic.conductor import rpcapi
+from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules import inspector
 from ironic import objects
 from ironic.objects import fields as obj_fields
@@ -7956,7 +7957,8 @@ class TestNodeInventory(test_api_base.BaseApiTest):
         self.assertEqual({'inventory': self.fake_inventory_data,
                           'plugin_data': self.fake_plugin_data}, ret)
 
-    @mock.patch.object(inspector, 'get_introspection_data', autospec=True)
+    @mock.patch.object(inspect_utils, '_get_introspection_data_from_swift',
+                       autospec=True)
     def test_get_inventory_swift(self, mock_get_data):
         CONF.set_override('data_backend', 'swift',
                           group='inventory')
