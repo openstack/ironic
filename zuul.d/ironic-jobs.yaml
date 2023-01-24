@@ -24,6 +24,8 @@
         override-checkout: stable/zed
       - name: openstack/requirements
         override-checkout: stable/zed
+      - name: openstack/cinder
+        override-checkout: stable/zed
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
