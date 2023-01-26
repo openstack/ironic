@@ -1100,3 +1100,47 @@ of other variables, you may be able to leverage the `RAID <raid>`_
 configuration interface to delete volumes/disks, and recreate them. This may
 have the same effect as a clean disk, however that too is RAID controller
 dependent behavior.
+
+I'm in "clean failed" state, what do I do?
+==========================================
+
+There is only one way to exit the ``clean failed`` state. But before we visit
+the answer as to **how**, we need to stress the importance of attempting to
+understand **why** cleaning failed. On the simple side of things, this may be
+as simple as a DHCP failure, but on a complex side of things, it could be that
+a cleaning action failed against the underlying hardware, possibly due to
+a hardware failure.
+
+As such, we encourage everyone to attempt to understand **why** before exiting
+the ``clean failed`` state, because you could potentially make things worse
+for yourself. For example if firmware updates were being performed, you may
+need to perform a rollback operation against the physical server, depending on
+what, and how the firmware was being updated. Unfortunately this also borders
+the territory of "no simple answer".
+
+This can be counter balanced with sometimes there is a transient networking
+failure and a DHCP address was not obtained. An example of this would be
+suggested by the ``last_error`` field indicating something about "Timeout
+reached while cleaning the node", however we recommend following several
+basic troubleshooting steps:
+
+* Consult the ``last_error`` field on the node, utilizing the
+  ``baremetal node show <uuid>`` command.
+* If the version of ironic supports the feature, consult the node history
+  log, ``baremetal node history list`` and
+  ``baremetal node history get <uuid>``.
+* Consult the acutal console screen of the physical machine. *If* the ramdisk
+  booted, you will generally want to investigate the controller logs and see
+  if an uploaded agent log is being stored on the conductor responsible for
+  the baremetal node. Consult `Retrieving logs from the deploy ramdisk`_.
+  If the node did not boot for some reason, you can typically just retry
+  at this point and move on.
+
+How to get out of the state, once you've understood **why** you reached it
+in the first place, is to utilize the ``baremetal node manage <node_id>``
+command. This returns the node to ``manageable`` state, from where you can
+retry "cleaning" through automated cleaning with the ``provide`` command,
+or manual cleaning with ``clean`` command. or the next appropriate action
+in the workflow process you are attempting to follow, which may be
+ultimately be decommissioning the node because it could have failed and is
+being removed or replaced.
