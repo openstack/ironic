@@ -90,7 +90,7 @@ def _get_console_pid(node_uuid):
         with open(pid_path, 'r') as f:
             pid_str = f.readline()
             return int(pid_str)
-    except (IOError, ValueError):
+    except (IOError, ValueError, FileNotFoundError):
         raise exception.NoConsolePid(pid_path=pid_path)
 
 
