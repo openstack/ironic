@@ -125,19 +125,23 @@ openstack ``stable/NAME`` branches:
 * ironic-inspector
 * ironic-python-agent
 
-They are also released on a regular cadence as opposed to on-demand, namely
-three times a release cycle (roughly a release every 2 months). One of the
-releases corresponds to the coordinated OpenStack released and receives a
-``stable/NAME`` branch. The other two happen during the cycle and receive a
-``bugfix/X.Y`` branch, where ``X.Y`` consists of the major and the minor
-component of the version (e.g. ``bugfix/8.1`` for 8.1.0).
+These projects receive releases every six months as part of the coordinated
+OpenStack release that happens semi-annually. These releases can be
+found in a ``stable/NAME`` branch.
+
+They are also evaluated for additional bugfix releases between scheduled
+stable releases at the two and four month milestore between stable releases
+(roughly every 2 months). These releases can be found in a ``bugfix/X.Y``
+branch. A bugfix release is only created if there are significant
+beneficial changes and a known downstream operator or distributor will consume
+the release.
 
 To leave some version space for releases from these branches, releases of these
 projects from the master branch always increase either the major or the minor
 version.
 
-Currently releases from bugfix branches cannot be automated and must be done by
-the release team manually.
+Currently releases and retirements from bugfix branches cannot be automated and
+must be done by the release team manually.
 
 After the creation of a bugfix branch it is utmost important to update the
 upper-constraints link for the tests in the tox.ini file, plus override the
