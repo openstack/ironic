@@ -8,7 +8,7 @@ if [[ "$VERBOSE" == True ]]; then
     guestfish_args="--verbose"
 fi
 
-CIRROS_VERSION=${CIRROS_VERSION:-0.5.2}
+CIRROS_VERSION=${CIRROS_VERSION:-0.6.1}
 CIRROS_ARCH=${CIRROS_ARCH:-x86_64}
 # TODO(dtantsur): use the image cached on infra images in the CI
 DISK_URL=http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-${CIRROS_ARCH}-disk.img
