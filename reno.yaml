@@ -1,5 +1,0 @@
----
-# Ignore the kilo-eol tag because that branch does not work with reno
-# and contains no release notes.
-# Ignore bugfix tags because their releasenotes are covered under stabl
-closed_branch_tag_re: "(?!^(kilo|bugfix-)).+-eol$"
