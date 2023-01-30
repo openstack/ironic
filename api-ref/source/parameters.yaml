@@ -366,6 +366,13 @@ r_port_portgroup_ident:
   in: query
   required: false
   type: string
+r_port_shard:
+  description: |
+    Filter the list of returned Ports, and only return the ones associated
+    with nodes in this specific shard(s), or an empty set if not found.
+  in: query
+  required: false
+  type: array
 r_portgroup_address:
   description: |
     Filter the list of returned Portgroups, and only return the ones with the

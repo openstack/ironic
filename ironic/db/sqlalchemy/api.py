@@ -965,6 +965,18 @@ class Connection(api.Connection):
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir, query)
 
+    def get_ports_by_shards(self, shards, limit=None, marker=None,
+                            sort_key=None, sort_dir=None):
+        shard_node_ids = sa.select(models.Node) \
+            .where(models.Node.shard.in_(shards)) \
+            .with_only_columns(models.Node.id)
+        with _session_for_read() as session:
+            query = session.query(models.Port).filter(
+                models.Port.node_id.in_(shard_node_ids))
+            ports = _paginate_query(
+                models.Port, limit, marker, sort_key, sort_dir, query)
+        return ports
+
     def get_ports_by_node_id(self, node_id, limit=None, marker=None,
                              sort_key=None, sort_dir=None, owner=None,
                              project=None):

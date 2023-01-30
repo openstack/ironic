@@ -49,6 +49,10 @@ By default, this query will return the uuid and address for each Port.
 .. versionadded:: 1.53
   Added the ``is_smartnic`` field.
 
+.. versionadded:: 1.82
+  Added the ability to filter ports based on the shard of the node they are
+  associated with.
+
 Normal response code: 200
 
 Request
@@ -60,6 +64,7 @@ Request
     - node_uuid: r_port_node_uuid
     - portgroup: r_port_portgroup_ident
     - address: r_port_address
+    - shard: r_port_shard
     - fields: fields
     - limit: limit
     - marker: marker
