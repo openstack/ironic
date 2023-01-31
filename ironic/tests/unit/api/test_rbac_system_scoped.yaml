@@ -23,6 +23,10 @@ values:
     X-Project-ID: a1111111111111111111111111111111
     X-Roles: admin
     X-Project-Name: 'other-project'
+  service_headers: &service_headers
+    X-Auth-Token: 'baremetal-service-token'
+    X-Roles: service
+    OpenStack-System-Scope: all
   owner_project_id: &owner_project_id '{owner_project_id}'
   other_project_id: &other_project_id '{other_project_id}'
   node_ident: &node_ident '{node_ident}'
@@ -51,6 +55,13 @@ nodes_post_reader:
   headers: *reader_headers
   body: *node_post_body
   assert_status: 403
+
+nodes_post_service:
+  path: '/v1/nodes'
+  method: post
+  headers: *service_headers
+  body: *node_post_body
+  assert_status: 503
 
 nodes_get_node_admin:
   path: '/v1/nodes/{node_ident}'
@@ -92,6 +103,14 @@ nodes_get_admin:
     nodes: 3
   assert_status: 200
 
+nodes_get_service:
+  path: '/v1/nodes'
+  method: get
+  headers: *service_headers
+  assert_list_length:
+    nodes: 3
+  assert_status: 200
+
 nodes_get_other_admin:
   path: '/v1/nodes'
   method: get
@@ -117,6 +136,12 @@ nodes_detail_get_reader:
   path: '/v1/nodes/detail'
   method: get
   headers: *reader_headers
+  assert_status: 200
+
+nodes_detail_get_service:
+  path: '/v1/nodes/detail'
+  method: get
+  headers: *service_headers
   assert_status: 200
 
 nodes_node_ident_get_admin:
@@ -186,6 +211,12 @@ nodes_node_ident_delete_admin:
   method: delete
   headers: *admin_headers
   assert_status: 503
+
+nodes_node_ident_delete_service:
+  path: '/v1/nodes/{node_ident}'
+  method: delete
+  headers: *service_headers
+  assert_status: 403
 
 nodes_node_ident_delete_member:
   path: '/v1/nodes/{node_ident}'
@@ -337,7 +368,6 @@ nodes_management_inject_nmi_put_reader:
   body: {}
   assert_status: 403
 
-
 nodes_states_get_admin:
   path: '/v1/nodes/{node_ident}/states'
   method: get
@@ -448,6 +478,13 @@ nodes_states_provision_put_reader:
   body: *provision_body
   assert_status: 403
 
+nodes_states_provision_put_service:
+  path: '/v1/nodes/{node_ident}/states/provision'
+  method: put
+  headers: *service_headers
+  body: *provision_body
+  assert_status: 503
+
 nodes_states_raid_put_admin:
   path: '/v1/nodes/{node_ident}/states/raid'
   method: put
@@ -486,11 +523,17 @@ nodes_states_console_get_member:
   headers: *scoped_member_headers
   assert_status: 503
 
-nodes_states_console_get_admin:
+nodes_states_console_get_reader:
   path: '/v1/nodes/{node_ident}/states/console'
   method: get
   headers: *reader_headers
   assert_status: 403
+
+nodes_states_console_get_service:
+  path: '/v1/nodes/{node_ident}/states/console'
+  method: get
+  headers: *service_headers
+  assert_status: 503
 
 nodes_states_console_put_admin:
   path: '/v1/nodes/{node_ident}/states/console'
@@ -513,6 +556,13 @@ nodes_states_console_put_reader:
   headers: *reader_headers
   body: *console_body_put
   assert_status: 403
+
+nodes_states_console_put_service:
+  path: '/v1/nodes/{node_ident}/states/console'
+  method: put
+  headers: *service_headers
+  body: *console_body_put
+  assert_status: 503
 
 # Node Traits - https://docs.openstack.org/api-ref/baremetal/?expanded=#node-vendor-passthru-nodes
 
@@ -729,6 +779,12 @@ nodes_vifs_get_reader:
   headers: *reader_headers
   assert_status: 503
 
+nodes_vifs_get_service:
+  path: '/v1/nodes/{node_ident}/vifs'
+  method: get
+  headers: *service_headers
+  assert_status: 503
+
 nodes_vifs_post_admin:
   path: '/v1/nodes/{node_ident}/vifs'
   method: post
@@ -751,6 +807,13 @@ nodes_vifs_post_reader:
   assert_status: 403
   body: *vif_body
 
+nodes_vifs_post_service:
+  path: '/v1/nodes/{node_ident}/vifs'
+  method: post
+  headers: *service_headers
+  assert_status: 503
+  body: *vif_body
+
 # This calls the conductor, hence not status 403.
 nodes_vifs_node_vif_ident_delete_admin:
   path: '/v1/nodes/{node_ident}/vifs/{vif_ident}'
@@ -769,6 +832,12 @@ nodes_vifs_node_vif_ident_delete_reader:
   method: delete
   headers: *reader_headers
   assert_status: 403
+
+nodes_vifs_node_vif_ident_delete_service:
+  path: '/v1/nodes/{node_ident}/vifs/{vif_ident}'
+  method: delete
+  headers: *service_headers
+  assert_status: 503
 
 # Indicators - https://docs.openstack.org/api-ref/baremetal/#indicators-management
 
@@ -1182,6 +1251,12 @@ volume_get_reader:
   headers: *reader_headers
   assert_status: 200
 
+volume_get_service:
+  path: '/v1/volume'
+  method: get
+  headers: *service_headers
+  assert_status: 200
+
 # Volume connectors
 
 volume_connectors_get_admin:
@@ -1200,6 +1275,12 @@ volume_connectors_get_reader:
   path: '/v1/volume/connectors'
   method: get
   headers: *reader_headers
+  assert_status: 200
+
+volume_connectors_get_service:
+  path: '/v1/volume/connectors'
+  method: get
+  headers: *service_headers
   assert_status: 200
 
 # NOTE(TheJulia): This ends up returning a 400 due to the
@@ -1228,6 +1309,13 @@ volume_connectors_post_reader:
   method: post
   headers: *reader_headers
   assert_status: 403
+  body: *volume_connector_body
+
+volume_connectors_post_service:
+  path: '/v1/volume/connectors'
+  method: post
+  headers: *service_headers
+  assert_status: 201
   body: *volume_connector_body
 
 volume_volume_connector_id_get_admin:
@@ -1272,6 +1360,13 @@ volume_volume_connector_id_patch_reader:
   body: *connector_patch_body
   assert_status: 403
 
+volume_volume_connector_id_patch_service:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: patch
+  headers: *service_headers
+  body: *connector_patch_body
+  assert_status: 503
+
 volume_volume_connector_id_delete_admin:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
@@ -1289,6 +1384,12 @@ volume_volume_connector_id_delete_reader:
   method: delete
   headers: *reader_headers
   assert_status: 403
+
+volume_volume_connector_id_delete_service:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: delete
+  headers: *service_headers
+  assert_status: 503
 
 # Volume targets
 
@@ -1308,6 +1409,12 @@ volume_targets_get_reader:
   path: '/v1/volume/targets'
   method: get
   headers: *reader_headers
+  assert_status: 200
+
+volume_targets_get_service:
+  path: '/v1/volume/targets'
+  method: get
+  headers: *service_headers
   assert_status: 200
 
 # NOTE(TheJulia): Because we can't seem to get the uuid
@@ -1360,6 +1467,12 @@ volume_volume_target_id_get_reader:
   headers: *reader_headers
   assert_status: 200
 
+volume_volume_target_id_get_service:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: get
+  headers: *service_headers
+  assert_status: 200
+
 # NOTE(TheJulia): This triggers a call to the conductor and
 # thus will fail, but does not return a 403 which means success.
 volume_volume_target_id_patch_admin:
@@ -1386,6 +1499,13 @@ volume_volume_target_id_patch_reader:
   headers: *reader_headers
   assert_status: 403
 
+volume_volume_target_id_patch_service:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: patch
+  body: *volume_target_patch
+  headers: *service_headers
+  assert_status: 503
+
 volume_volume_target_id_delete_admin:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
@@ -1403,6 +1523,12 @@ volume_volume_target_id_delete_reader:
   method: delete
   headers: *reader_headers
   assert_status: 403
+
+volume_volume_target_id_delete_service:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: delete
+  headers: *service_headers
+  assert_status: 503
 
 # Get Volumes by Node - https://docs.openstack.org/api-ref/baremetal/#listing-volume-resources-by-node-nodes-volume
 
@@ -2002,6 +2128,12 @@ chassis_get_reader:
   headers: *reader_headers
   assert_status: 200
 
+chassis_get_service:
+  path: '/v1/chassis'
+  method: get
+  headers: *service_headers
+  assert_status: 200
+
 chassis_detail_get_admin:
   path: '/v1/chassis/detail'
   method: get
@@ -2080,6 +2212,12 @@ chassis_chassis_id_delete_reader:
   headers: *reader_headers
   assert_status: 403
 
+chassis_chassis_id_delete_service:
+  path: '/v1/chassis/{chassis_ident}'
+  method: delete
+  headers: *service_headers
+  assert_status: 403
+
 # Node history entries
 
 node_history_get_admin:
@@ -2102,6 +2240,14 @@ node_history_get_reader:
   path: '/v1/nodes/{node_ident}/history'
   method: get
   headers: *reader_headers
+  assert_status: 200
+  assert_list_length:
+    history: 1
+
+node_history_get_service:
+  path: '/v1/nodes/{node_ident}/history'
+  method: get
+  headers: *service_headers
   assert_status: 200
   assert_list_length:
     history: 1
@@ -2136,4 +2282,10 @@ node_inventory_get_reader:
   path: '/v1/nodes/{node_ident}/inventory'
   method: get
   headers: *reader_headers
+  assert_status: 200
+
+node_history_get_entry_service:
+  path: '/v1/nodes/{node_ident}/history/{history_ident}'
+  method: get
+  headers: *service_headers
   assert_status: 200

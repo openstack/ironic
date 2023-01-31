@@ -74,6 +74,14 @@ values:
     X-Auth-Token: 'third-party-admin-token'
     X-Project-Id: ae64129e-b188-4662-b014-4127f4366ee6
     X-Roles: admin,manager,member,reader
+  service_headers: &service_headers
+    X-Auth-Token: 'service-token'
+    X-Project-Id: ae64129e-b188-4662-b014-4127f4366ee6
+    X-Roles: service
+  service_headers_owner_project: &service_headers_owner_project
+    X-Auth-Token: 'service-token'
+    X-Project-Id: 70e5e25a-2ca2-4cb1-8ae8-7d8739cee205
+    X-Roles: service
   owner_project_id: &owner_project_id 70e5e25a-2ca2-4cb1-8ae8-7d8739cee205
   lessee_project_id: &lessee_project_id f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
   owned_node_ident: &owned_node_ident f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
@@ -96,6 +104,22 @@ owner_admin_can_post_nodes:
   path: '/v1/nodes'
   method: post
   headers: *owner_admin_headers
+  body: *node_post_body
+  assert_status: 503
+  self_manage_nodes: True
+
+service_nodes_cannot_post_nodes:
+  path: '/v1/nodes'
+  method: post
+  headers: *service_headers
+  body: *node_post_body
+  assert_status: 403
+  self_manage_nodes: False
+
+service_nodes_can_post_nodes:
+  path: '/v1/nodes'
+  method: post
+  headers: *service_headers
   body: *node_post_body
   assert_status: 503
   self_manage_nodes: True
@@ -716,6 +740,18 @@ owner_admin_can_delete_nodes:
   assert_status: 503
   self_manage_nodes: True
 
+service_cannot_delete_owner_admin_nodes:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: delete
+  headers: *service_headers
+  assert_status: 404
+
+service_can_delete_nodes_in_own_project:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: delete
+  headers: *service_headers_owner_project
+  assert_status: 403
+
 owner_manager_cannot_delete_nodes:
   path: '/v1/nodes/{owner_node_ident}'
   method: delete
@@ -1306,7 +1342,6 @@ lessee_manager_can_change_provision_state:
   body: *provision_body
   assert_status: 503
 
-
 lessee_member_cannot_change_provision_state:
   path: '/v1/nodes/{lessee_node_ident}/states/provision'
   method: put
@@ -1318,6 +1353,20 @@ third_party_admin_cannot_change_provision_state:
   path: '/v1/nodes/{owner_node_ident}/states/provision'
   method: put
   headers: *lessee_member_headers
+  body: *provision_body
+  assert_status: 404
+
+service_can_change_provision_state_for_own_nodes:
+  path: '/v1/nodes/{owner_node_ident}/states/provision'
+  method: put
+  headers: *service_headers_owner_project
+  body: *provision_body
+  assert_status: 503
+
+service_cannot_change_provision_state:
+  path: '/v1/nodes/{owner_node_ident}/states/provision'
+  method: put
+  headers: *service_headers
   body: *provision_body
   assert_status: 404
 
@@ -1363,6 +1412,13 @@ owner_member_can_set_raid_config:
   body: *raid_body
   assert_status: 503
 
+owner_member_can_set_raid_config:
+  path: '/v1/nodes/{lessee_node_ident}/states/raid'
+  method: put
+  headers: *service_headers_owner_project
+  body: *raid_body
+  assert_status: 503
+
 lessee_member_cannot_set_raid_config:
   path: '/v1/nodes/{lessee_node_ident}/states/raid'
   method: put
@@ -1377,6 +1433,14 @@ third_party_admin_cannot_set_raid_config:
   body: *raid_body
   assert_status: 404
 
+service_cannot_set_raid_config:
+  path: '/v1/nodes/{lessee_node_ident}/states/raid'
+  method: put
+  headers: *service_headers
+  body: *raid_body
+  assert_status: 404
+
+
 # Console
 
 owner_admin_can_get_console:
@@ -1389,6 +1453,12 @@ owner_manager_can_get_console:
   path: '/v1/nodes/{owner_node_ident}/states/console'
   method: get
   headers: *owner_manager_headers
+  assert_status: 503
+
+owner_service_can_get_console:
+  path: '/v1/nodes/{owner_node_ident}/states/console'
+  method: get
+  headers: *service_headers_owner_project
   assert_status: 503
 
 lessee_admin_cannot_get_console:
@@ -1476,6 +1546,20 @@ lessee_member_cannot_set_console:
   body: *console_body_put
   assert_status: 403
 
+owner_service_can_set_console:
+  path: '/v1/nodes/{owner_node_ident}/states/console'
+  method: put
+  headers: *service_headers_owner_project
+  body: *console_body_put
+  assert_status: 503
+
+service_cannot_set_console:
+  path: '/v1/nodes/{owner_node_ident}/states/console'
+  method: put
+  headers: *service_headers
+  body: *console_body_put
+  assert_status: 404
+
 # Vendor Passthru - https://docs.openstack.org/api-ref/baremetal/?expanded=#node-vendor-passthru-nodes
 
 # owner/lessee vendor passthru methods inaccessible
@@ -1492,6 +1576,12 @@ owner_manager_cannot_get_vendor_passthru_methods:
   path: '/v1/nodes/{owner_node_ident}/vendor_passthru/methods'
   method: get
   headers: *owner_manager_headers
+  assert_status: 403
+
+owner_service_cannot_get_vendor_passthru_methods:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru/methods'
+  method: get
+  headers: *service_headers_owner_project
   assert_status: 403
 
 owner_member_cannot_get_vendor_passthru_methods:
@@ -1541,6 +1631,12 @@ owner_manager_cannot_get_vendor_passthru:
   path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
   method: get
   headers: *owner_manager_headers
+  assert_status: 403
+
+owner_service_cannot_get_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: get
+  headers: *service_headers_owner_project
   assert_status: 403
 
 owner_member_cannot_get_vendor_passthru:
@@ -1593,6 +1689,12 @@ owner_manager_cannot_post_vendor_passthru:
   headers: *owner_manager_headers
   assert_status: 403
 
+owner_service_cannot_post_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: post
+  headers: *service_headers_owner_project
+  assert_status: 403
+
 owner_member_cannot_post_vendor_passthru:
   path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
   method: post
@@ -1641,6 +1743,12 @@ owner_manager_cannot_put_vendor_passthru:
   path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
   method: put
   headers: *owner_manager_headers
+  assert_status: 403
+
+owner_service_cannot_put_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: put
+  headers: *service_headers_owner_project
   assert_status: 403
 
 owner_member_cannot_put_vendor_passthru:
@@ -1693,6 +1801,12 @@ owner_manager_cannot_delete_vendor_passthru:
   headers: *owner_manager_headers
   assert_status: 403
 
+owner_service_cannot_delete_vendor_passthru:
+  path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
+  method: delete
+  headers: *service_headers_owner_project
+  assert_status: 403
+
 owner_member_cannot_delete_vendor_passthru:
   path: '/v1/nodes/{owner_node_ident}/vendor_passthru?method=test'
   method: delete
@@ -1737,6 +1851,12 @@ owner_reader_get_traits:
   headers: *owner_reader_headers
   assert_status: 200
 
+owner_reader_get_traits:
+  path: '/v1/nodes/{owner_node_ident}/traits'
+  method: get
+  headers: *service_headers_owner_project
+  assert_status: 200
+
 lessee_reader_get_traits:
   path: '/v1/nodes/{lessee_node_ident}/traits'
   method: get
@@ -1763,6 +1883,13 @@ owner_manager_can_put_traits:
   path: '/v1/nodes/{owner_node_ident}/traits'
   method: put
   headers: *owner_manager_headers
+  assert_status: 503
+  body: *traits_body
+
+owner_service_can_put_traits:
+  path: '/v1/nodes/{owner_node_ident}/traits'
+  method: put
+  headers: *service_headers_owner_project
   assert_status: 503
   body: *traits_body
 
@@ -1798,6 +1925,13 @@ third_party_admin_cannot_put_traits:
   path: '/v1/nodes/{lessee_node_ident}/traits'
   method: put
   headers: *third_party_admin_headers
+  assert_status: 404
+  body: *traits_body
+
+third_party_admin_cannot_put_traits:
+  path: '/v1/nodes/{lessee_node_ident}/traits'
+  method: put
+  headers: *service_headers
   assert_status: 404
   body: *traits_body
 
@@ -1917,6 +2051,21 @@ owner_admin_can_post_vifs:
   body: &vif_body
     id: ee21d58f-5de2-4956-85ff-33935ea1ca00
 
+service_can_post_vifs_for_own_project:
+  path: '/v1/nodes/{owner_node_ident}/vifs'
+  method: post
+  headers: *service_headers_owner_project
+  assert_status: 503
+  body: *vif_body
+
+service_cannot_post_vifs_for_other_project:
+  path: '/v1/nodes/{owner_node_ident}/vifs'
+  method: post
+  headers: *service_headers
+  # NOTE(TheJulia): This is a 404 because the node should not be visible.
+  assert_status: 404
+  body: *vif_body
+
 owner_manager_can_post_vifs:
   path: '/v1/nodes/{owner_node_ident}/vifs'
   method: post
@@ -2015,6 +2164,18 @@ third_party_admin_cannot_delete_vifs:
   headers: *third_party_admin_headers
   assert_status: 404
 
+service_can_delete_vifs:
+  path: '/v1/nodes/{owner_node_ident}/vifs/{vif_ident}'
+  method: delete
+  headers: *service_headers_owner_project
+  assert_status: 503
+
+service_cannot_delete_other_nodes_vifs:
+  path: '/v1/nodes/{owner_node_ident}/vifs/{vif_ident}'
+  method: delete
+  headers: *service_headers
+  assert_status: 404
+
 # Indicators - https://docs.openstack.org/api-ref/baremetal/#indicators-management
 owner_readers_can_get_indicators:
   path: '/v1/nodes/{owner_node_ident}/management/indicators'
@@ -2078,6 +2239,14 @@ owner_reader_can_list_portgroups:
   assert_list_length:
     portgroups: 2
 
+owner_service_can_list_portgroups:
+  path: '/v1/portgroups'
+  method: get
+  headers: *service_headers_owner_project
+  assert_status: 200
+  assert_list_length:
+    portgroups: 2
+
 lessee_reader_can_list_portgroups:
   path: '/v1/portgroups'
   method: get
@@ -2120,6 +2289,13 @@ owner_admin_can_add_portgroup:
   headers: *owner_admin_headers
   body: &owner_portgroup_body
     node_uuid: 1ab63b9e-66d7-4cd7-8618-dddd0f9f7881
+  assert_status: 201
+
+owner_service_can_add_portgroup:
+  path: '/v1/portgroups'
+  method: post
+  headers: *service_headers_owner_project
+  body: *owner_portgroup_body
   assert_status: 201
 
 owner_manager_can_add_portgroup:
@@ -2237,6 +2413,12 @@ owner_member_cannot_delete_portgroup:
   headers: *owner_member_headers
   assert_status: 403
 
+owner_service_can_delete_portgroup:
+  path: '/v1/portgroups/{owner_portgroup_ident}'
+  method: delete
+  headers: *service_headers_owner_project
+  assert_status: 503
+
 lessee_admin_cannot_delete_portgroup:
   path: '/v1/portgroups/{lessee_portgroup_ident}'
   method: delete
@@ -2261,6 +2443,12 @@ third_party_admin_cannot_delete_portgroup:
   headers: *third_party_admin_headers
   assert_status: 404
 
+service_cannot_delete_portgroup:
+  path: '/v1/portgroups/{lessee_portgroup_ident}'
+  method: delete
+  headers: *service_headers
+  assert_status: 404
+
 # Portgroups by node - https://docs.openstack.org/api-ref/baremetal/#listing-portgroups-by-node-nodes-portgroups
 
 owner_reader_can_get_node_portgroups:
@@ -2281,6 +2469,13 @@ third_party_admin_cannot_get_portgroups:
   headers: *third_party_admin_headers
   assert_status: 404
 
+service_cannot_get_portgroups:
+  path: '/v1/nodes/{lessee_node_ident}/portgroups'
+  method: get
+  headers: *service_headers
+  assert_status: 404
+
+
 # Ports - https://docs.openstack.org/api-ref/baremetal/#ports-ports
 
 # Based on ports_* tests
@@ -2289,6 +2484,15 @@ owner_reader_can_list_ports:
   path: '/v1/ports'
   method: get
   headers: *owner_reader_headers
+  assert_status: 200
+  # Two ports owned, one on the leased node. 1 invisible.
+  assert_list_length:
+    ports: 3
+
+owner_service_can_list_ports:
+  path: '/v1/ports'
+  method: get
+  headers: *service_headers_owner_project
   assert_status: 200
   # Two ports owned, one on the leased node. 1 invisible.
   assert_list_length:
@@ -2314,6 +2518,12 @@ owner_reader_can_read_port:
   path: '/v1/ports/{owner_port_ident}'
   method: get
   headers: *owner_reader_headers
+  assert_status: 200
+
+owner_service_can_read_port:
+  path: '/v1/ports/{owner_port_ident}'
+  method: get
+  headers: *service_headers_owner_project
   assert_status: 200
 
 lessee_reader_can_read_port:
@@ -2362,6 +2572,13 @@ owner_manager_cannot_add_ports_to_other_nodes:
   body: *other_node_add_port_body
   assert_status: 403
 
+owner_service_cannot_add_ports_to_other_nodes:
+  path: '/v1/ports'
+  method: post
+  headers: *service_headers_owner_project
+  body: *other_node_add_port_body
+  assert_status: 403
+
 owner_member_cannot_add_port:
   path: '/v1/ports'
   method: post
@@ -2399,6 +2616,20 @@ third_party_admin_cannot_add_port:
   body: *lessee_port_body
   assert_status: 403
 
+service_can_add_port:
+  path: '/v1/ports'
+  method: post
+  headers: *service_headers_owner_project
+  body: *owner_port_body
+  assert_status: 503
+
+service_cannot_add_ports_to_other_project:
+  path: '/v1/ports'
+  method: post
+  headers: *service_headers
+  body: *owner_port_body
+  assert_status: 403
+
 owner_admin_can_modify_port:
   path: '/v1/ports/{owner_port_ident}'
   method: patch
@@ -2413,6 +2644,13 @@ owner_manager_can_modify_port:
   path: '/v1/ports/{owner_port_ident}'
   method: patch
   headers: *owner_manager_headers
+  body: *port_patch_body
+  assert_status: 503
+
+owner_service_can_modify_port:
+  path: '/v1/ports/{owner_port_ident}'
+  method: patch
+  headers: *service_headers_owner_project
   body: *port_patch_body
   assert_status: 503
 
@@ -2463,6 +2701,12 @@ owner_manager_can_delete_port:
   headers: *owner_manager_headers
   assert_status: 503
 
+owner_service_can_delete_port:
+  path: '/v1/ports/{owner_port_ident}'
+  method: delete
+  headers: *service_headers_owner_project
+  assert_status: 503
+
 owner_member_cannot_delete_port:
   path: '/v1/ports/{owner_port_ident}'
   method: delete
@@ -2503,6 +2747,14 @@ owner_reader_can_get_node_ports:
   assert_list_length:
     ports: 2
 
+owner_service_can_get_node_ports:
+  path: '/v1/nodes/{owner_node_ident}/ports'
+  method: get
+  headers: *service_headers_owner_project
+  assert_status: 200
+  assert_list_length:
+    ports: 2
+
 lessee_reader_can_get_node_port:
   path: '/v1/nodes/{lessee_node_ident}/ports'
   method: get
@@ -2517,6 +2769,12 @@ third_party_admin_cannot_get_ports:
   headers: *third_party_admin_headers
   assert_status: 404
 
+service_cannot_get_ports:
+  path: '/v1/nodes/{lessee_node_ident}/ports'
+  method: get
+  headers: *service_headers
+  assert_status: 404
+
 # Ports by portgroup - https://docs.openstack.org/api-ref/baremetal/#listing-ports-by-portgroup-portgroup-ports
 
 # Based on portgroups_ports_get* tests
@@ -2525,6 +2783,12 @@ owner_reader_can_get_ports_by_portgroup:
   path: '/v1/portgroups/{owner_portgroup_ident}/ports'
   method: get
   headers: *owner_reader_headers
+  assert_status: 200
+
+owner_service_cam_get_ports_by_portgroup:
+  path: '/v1/portgroups/{owner_portgroup_ident}/ports'
+  method: get
+  headers: *service_headers_owner_project
   assert_status: 200
 
 lessee_reader_can_get_ports_by_portgroup:
@@ -2538,6 +2802,13 @@ third_party_admin_cannot_get_ports_by_portgroup:
   method: get
   headers: *third_party_admin_headers
   assert_status: 404
+
+service_cannot_get_ports_by_portgroup:
+  path: '/v1/portgroups/{other_portgroup_ident}/ports'
+  method: get
+  headers: *service_headers
+  assert_status: 404
+
 
 # Volume(s) - https://docs.openstack.org/api-ref/baremetal/#volume-volume
 # TODO(TheJulia): volumes will likely need some level of exhaustive testing.
@@ -2587,6 +2858,13 @@ owner_manager_can_post_volume_connector:
   assert_status: 201
   body: *volume_connector_body
 
+owner_service_can_post_volume_connector:
+  path: '/v1/volume/connectors'
+  method: post
+  headers: *service_headers_owner_project
+  assert_status: 201
+  body: *volume_connector_body
+
 lessee_admin_cannot_post_volume_connector:
   path: '/v1/volume/connectors'
   method: post
@@ -2605,6 +2883,13 @@ third_party_admin_cannot_post_volume_connector:
   path: '/v1/volume/connectors'
   method: post
   headers: *third_party_admin_headers
+  assert_status: 403
+  body: *volume_connector_body
+
+service_admin_cannot_post_volume_connector:
+  path: '/v1/volume/connectors'
+  method: post
+  headers: *service_headers
   assert_status: 403
   body: *volume_connector_body
 
@@ -2698,6 +2983,12 @@ owner_manager_can_delete_volume_connectors:
   headers: *owner_manager_headers
   assert_status: 503
 
+owner_service_can_delete_volume_connectors:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: delete
+  headers: *service_headers_owner_project
+  assert_status: 503
+
 lessee_admin_can_delete_volume_connectors:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
@@ -2714,6 +3005,12 @@ third_party_admin_cannot_delete_volume_connector:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: delete
   headers: *third_party_admin_headers
+  assert_status: 404
+
+service_cannot_delete_volume_connector:
+  path: '/v1/volume/connectors/{volume_connector_ident}'
+  method: delete
+  headers: *service_headers
   assert_status: 404
 
 # Volume targets
@@ -2776,6 +3073,13 @@ owner_admin_create_volume_target:
     boot_index: 2
     volume_id: 'test-id'
 
+owner_service_create_volume_target:
+  path: '/v1/volume/targets'
+  method: post
+  headers: *service_headers_owner_project
+  assert_status: 201
+  body: *volume_target_body
+
 owner_manager_create_volume_target:
   path: '/v1/volume/targets'
   method: post
@@ -2826,6 +3130,13 @@ owner_member_can_patch_volume_target:
   headers: *owner_member_headers
   assert_status: 503
 
+owner_service_can_patch_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: patch
+  body: *volume_target_patch
+  headers: *service_headers_owner_project
+  assert_status: 503
+
 lessee_admin_can_patch_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: patch
@@ -2854,6 +3165,13 @@ third_party_admin_cannot_patch_volume_target:
   headers: *third_party_admin_headers
   assert_status: 404
 
+service_cannot_patch_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: patch
+  body: *volume_target_patch
+  headers: *service_headers
+  assert_status: 404
+
 owner_admin_can_delete_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
@@ -2864,6 +3182,12 @@ owner_manager_can_delete_volume_target:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *owner_manager_headers
+  assert_status: 503
+
+owner_manager_can_delete_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: delete
+  headers: *service_headers_owner_project
   assert_status: 503
 
 lessee_admin_can_delete_volume_target:
@@ -2896,12 +3220,24 @@ third_party_admin_cannot_delete_volume_target:
   headers: *third_party_admin_headers
   assert_status: 404
 
+service_cannot_delete_volume_target:
+  path: '/v1/volume/targets/{volume_target_ident}'
+  method: delete
+  headers: *service_headers
+  assert_status: 404
+
 # Get Volumes by Node - https://docs.openstack.org/api-ref/baremetal/#listing-volume-resources-by-node-nodes-volume
 
 owner_reader_can_get_volume_connectors:
   path: '/v1/nodes/{owner_node_ident}/volume/connectors'
   method: get
   headers: *owner_reader_headers
+  assert_status: 200
+
+owner_service_can_get_volume_connectors:
+  path: '/v1/nodes/{owner_node_ident}/volume/connectors'
+  method: get
+  headers: *service_headers_owner_project
   assert_status: 200
 
 lessee_reader_can_get_node_volume_connectors:
@@ -2916,10 +3252,22 @@ third_party_admin_cannot_get_node_volume_connectors:
   headers: *third_party_admin_headers
   assert_status: 404
 
+service_cannot_get_node_volume_connectors:
+  path: '/v1/nodes/{lessee_node_ident}/volume/connectors'
+  method: get
+  headers: *service_headers
+  assert_status: 404
+
 owner_reader_can_get_node_volume_targets:
   path: '/v1/nodes/{owner_node_ident}/volume/targets'
   method: get
   headers: *owner_reader_headers
+  assert_status: 200
+
+owner_service_can_read_get_node_volume_targets:
+  path: '/v1/nodes/{owner_node_ident}/volume/targets'
+  method: get
+  headers: *service_headers_owner_project
   assert_status: 200
 
 lessee_reader_can_get_node_volume_targets:
@@ -2932,6 +3280,12 @@ third_part_admin_cannot_read_node_volume_targets:
   path: '/v1/nodes/{lessee_node_ident}/volume/targets'
   method: get
   headers: *third_party_admin_headers
+  assert_status: 404
+
+service_cannot_read_node_volume_targets:
+  path: '/v1/nodes/{lessee_node_ident}/volume/targets'
+  method: get
+  headers: *service_headers
   assert_status: 404
 
 # Drivers - https://docs.openstack.org/api-ref/baremetal/#drivers-drivers
@@ -2956,6 +3310,12 @@ third_party_admin_cannot_get_drivers:
   headers: *third_party_admin_headers
   assert_status: 500
 
+service_cannot_get_drivers:
+  path: '/v1/drivers'
+  method: get
+  headers: *service_headers
+  assert_status: 500
+
 # Driver vendor passthru - https://docs.openstack.org/api-ref/baremetal/#driver-vendor-passthru-drivers
 
 # This is a system scoped endpoint, everything should fail in this section.
@@ -2978,6 +3338,12 @@ third_party_admin_cannot_get_drivers_vendor_passthru:
   headers: *third_party_admin_headers
   assert_status: 500
 
+service_cannot_get_drivers_vendor_passthru:
+  path: '/v1/drivers/{driver_name}/vendor_passthru/methods'
+  method: get
+  headers: *service_headers
+  assert_status: 500
+
 # Node Bios - https://docs.openstack.org/api-ref/baremetal/#node-bios-nodes
 
 owner_reader_can_get_bios_setttings:
@@ -2996,6 +3362,18 @@ third_party_admin_cannot_get_bios_settings:
   path: '/v1/nodes/{owner_node_ident}/bios'
   method: get
   headers: *third_party_admin_headers
+  assert_status: 404
+
+service_can_get_bios_setttings_owner_project:
+  path: '/v1/nodes/{owner_node_ident}/bios'
+  method: get
+  headers: *service_headers_owner_project
+  assert_status: 200
+
+service_cannot_get_bios_setttings:
+  path: '/v1/nodes/{owner_node_ident}/bios'
+  method: get
+  headers: *service_headers
   assert_status: 404
 
 # Conductors - https://docs.openstack.org/api-ref/baremetal/#allocations-allocations
@@ -3271,7 +3649,7 @@ third_party_admin_cannot_get_deploy_templates:
 third_party_admin_cannot_post_deploy_template:
   path: '/v1/deploy_templates'
   method: post
-  body:
+  body: &deploy_template
     name: 'CUSTOM_TEST_TEMPLATE'
     steps:
       - interface: 'deploy'
@@ -3279,6 +3657,19 @@ third_party_admin_cannot_post_deploy_template:
         args: {}
         priority: 0
   headers: *third_party_admin_headers
+  assert_status: 500
+
+service_cannot_get_deploy_templates:
+  path: '/v1/deploy_templates'
+  method: get
+  headers: *service_headers
+  assert_status: 500
+
+service_cannot_post_deploy_template:
+  path: '/v1/deploy_templates'
+  method: post
+  body: *deploy_template
+  headers: *service_headers
   assert_status: 500
 
 # Chassis endpoints - https://docs.openstack.org/api-ref/baremetal/#chassis-chassis
@@ -3311,6 +3702,20 @@ third_party_admin_cannot_create_chassis:
     description: 'test-chassis'
   assert_status: 500
 
+service_cannot_access_chassis:
+  path: '/v1/chassis'
+  method: get
+  headers: *service_headers
+  assert_status: 500
+
+service_cannot_create_chassis:
+  path: '/v1/chassis'
+  method: post
+  headers: *service_headers
+  body:
+    description: 'test-chassis'
+  assert_status: 500
+
 # Node history entries
 
 node_history_get_admin:
@@ -3336,6 +3741,20 @@ node_history_get_reader:
   assert_status: 200
   assert_list_length:
     history: 1
+
+node_history_get_service:
+  path: '/v1/nodes/{owner_node_ident}/history'
+  method: get
+  headers: *service_headers_owner_project
+  assert_status: 200
+  assert_list_length:
+    history: 1
+
+node_history_get_service_cannot_be_retrieved:
+  path: '/v1/nodes/{owner_node_ident}/history'
+  method: get
+  headers: *service_headers
+  assert_status: 404
 
 node_history_get_entry_admin:
   path: '/v1/nodes/{owner_node_ident}/history/{owned_history_ident}'
@@ -3391,6 +3810,12 @@ lessee_node_history_get_entry_reader:
   headers: *lessee_reader_headers
   assert_status: 404
 
+owner_service_node_history_get_entry_reader:
+  path: '/v1/nodes/{owner_node_ident}/history/{owned_history_ident}'
+  method: get
+  headers: *service_headers_owner_project
+  assert_status: 200
+
 third_party_admin_cannot_get_node_history:
   path: '/v1/nodes/{owner_node_ident}'
   method: get
@@ -3401,6 +3826,12 @@ node_history_get_entry_admin:
   path: '/v1/nodes/{owner_node_ident}/history/{owned_history_ident}'
   method: get
   headers: *third_party_admin_headers
+  assert_status: 404
+
+node_history_get_entry_service:
+  path: '/v1/nodes/{owner_node_ident}/history/{owned_history_ident}'
+  method: get
+  headers: *service_headers
   assert_status: 404
 
 # Node inventory support
