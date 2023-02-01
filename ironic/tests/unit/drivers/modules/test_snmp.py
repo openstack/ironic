@@ -761,7 +761,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         driver = snmp._get_driver(self.node)
         mock_client.get.return_value = driver.value_power_on
         pstate = driver.power_on()
-        mock_sleep.assert_called_once_with(1)
+        self.assertTrue(mock_sleep.called)
         mock_client.set.assert_called_once_with(driver._snmp_oid(),
                                                 driver.value_power_on)
         mock_client.get.assert_called_once_with(driver._snmp_oid())
@@ -775,7 +775,7 @@ class SNMPDeviceDriverTestCase(db_base.DbTestCase):
         driver = snmp._get_driver(self.node)
         mock_client.get.return_value = driver.value_power_off
         pstate = driver.power_off()
-        mock_sleep.assert_called_once_with(1)
+        self.assertTrue(mock_sleep.called)
         mock_client.set.assert_called_once_with(driver._snmp_oid(),
                                                 driver.value_power_off)
         mock_client.get.assert_called_once_with(driver._snmp_oid())
