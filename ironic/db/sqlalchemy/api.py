@@ -401,7 +401,8 @@ class Connection(api.Connection):
                              for field in ('uuid', 'provision_state', 'shard')}
     _NODE_NON_NULL_FILTERS = {'associated': 'instance_uuid',
                               'reserved': 'reservation',
-                              'with_power_state': 'power_state'}
+                              'with_power_state': 'power_state',
+                              'sharded': 'shard'}
     _NODE_FILTERS = ({'chassis_uuid', 'reserved_by_any_of',
                       'provisioned_before', 'inspection_started_before',
                       'description_contains', 'project'}

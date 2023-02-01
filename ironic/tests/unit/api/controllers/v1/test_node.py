@@ -8028,6 +8028,17 @@ class TestNodeShardGets(test_api_base.BaseApiTest):
                                expect_errors=True, headers=headers)
         self.assertEqual(http_client.NOT_ACCEPTABLE, result.status_code)
 
+    def test_filtering_by_sharded(self):
+        obj_utils.create_test_node(self.context, uuid=uuid.uuid4())
+        obj_utils.create_test_node(self.context, uuid=uuid.uuid4())
+        # We now have one node in shard foo (setUp) and two unsharded.
+        result_true = self.get_json(
+            '/nodes?sharded=true', headers=self.headers)
+        result_false = self.get_json(
+            '/nodes?sharded=false', headers=self.headers)
+        self.assertEqual(1, len(result_true['nodes']))
+        self.assertEqual(2, len(result_false['nodes']))
+
 
 @mock.patch.object(rpcapi.ConductorAPI, 'create_node',
                    lambda _api, _ctx, node, _topic: _create_node_locally(node))

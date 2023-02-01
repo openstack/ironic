@@ -2071,7 +2071,8 @@ class NodesController(rest.RestController):
                               fields=None, fault=None, conductor_group=None,
                               detail=None, conductor=None, owner=None,
                               lessee=None, project=None,
-                              description_contains=None, shard=None):
+                              description_contains=None, shard=None,
+                              sharded=None):
         if self.from_chassis and not chassis_uuid:
             raise exception.MissingParameterValue(
                 _("Chassis id not specified."))
@@ -2112,7 +2113,8 @@ class NodesController(rest.RestController):
             'project': project,
             'description_contains': description_contains,
             'retired': retired,
-            'instance_uuid': instance_uuid
+            'instance_uuid': instance_uuid,
+            'sharded': sharded
         }
         filters = {}
         for key, value in possible_filters.items():
@@ -2257,14 +2259,14 @@ class NodesController(rest.RestController):
                    detail=args.boolean, conductor=args.string,
                    owner=args.string, description_contains=args.string,
                    lessee=args.string, project=args.string,
-                   shard=args.string_list)
+                   shard=args.string_list, sharded=args.boolean)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, retired=None, provision_state=None,
                 marker=None, limit=None, sort_key='id', sort_dir='asc',
                 driver=None, fields=None, resource_class=None, fault=None,
                 conductor_group=None, detail=None, conductor=None,
                 owner=None, description_contains=None, lessee=None,
-                project=None, shard=None):
+                project=None, shard=None, sharded=None):
         """Retrieve a list of nodes.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -2310,6 +2312,9 @@ class NodesController(rest.RestController):
         :param description_contains: Optional string value to get only nodes
                                      with description field contains matching
                                      value.
+        :param sharded: Optional boolean whether to return a list of
+                        nodes with or without a shard set. May be combined
+                        with other parameters.
         """
         project = api_utils.check_list_policy('node', project)
 
@@ -2325,6 +2330,8 @@ class NodesController(rest.RestController):
         api_utils.check_allow_filter_by_owner(owner)
         api_utils.check_allow_filter_by_lessee(lessee)
         api_utils.check_allow_filter_by_shard(shard)
+        # Sharded is guarded by the same API version as shard
+        api_utils.check_allow_filter_by_shard(sharded)
 
         fields = api_utils.get_request_return_fields(fields, detail,
                                                      _DEFAULT_RETURN_FIELDS)
@@ -2341,8 +2348,8 @@ class NodesController(rest.RestController):
                                           detail=detail,
                                           conductor=conductor,
                                           owner=owner, lessee=lessee,
-                                          shard=shard, project=project,
-                                          **extra_args)
+                                          shard=shard, sharded=sharded,
+                                          project=project, **extra_args)
 
     @METRICS.timer('NodesController.detail')
     @method.expose()
@@ -2355,14 +2362,14 @@ class NodesController(rest.RestController):
                    conductor_group=args.string, conductor=args.string,
                    owner=args.string, description_contains=args.string,
                    lessee=args.string, project=args.string,
-                   shard=args.string_list)
+                   shard=args.string_list, sharded=args.boolean)
     def detail(self, chassis_uuid=None, instance_uuid=None, associated=None,
                maintenance=None, retired=None, provision_state=None,
                marker=None, limit=None, sort_key='id', sort_dir='asc',
                driver=None, resource_class=None, fault=None,
                conductor_group=None, conductor=None, owner=None,
                description_contains=None, lessee=None, project=None,
-               shard=None):
+               shard=None, sharded=None):
         """Retrieve a list of nodes with detail.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -2403,6 +2410,9 @@ class NodesController(rest.RestController):
         :param description_contains: Optional string value to get only nodes
                                      with description field contains matching
                                      value.
+        :param sharded: Optional boolean whether to return a list of
+                        nodes with or without a shard set. May be combined
+                        with other parameters.
         """
         project = api_utils.check_list_policy('node', project)
 
@@ -2421,6 +2431,8 @@ class NodesController(rest.RestController):
 
         api_utils.check_allow_filter_by_conductor(conductor)
         api_utils.check_allow_filter_by_shard(shard)
+        # Sharded is guarded by the same API version as shard
+        api_utils.check_allow_filter_by_shard(sharded)
 
         extra_args = {'description_contains': description_contains}
         return self._get_nodes_collection(chassis_uuid, instance_uuid,
@@ -2435,7 +2447,7 @@ class NodesController(rest.RestController):
                                           conductor=conductor,
                                           owner=owner, lessee=lessee,
                                           project=project, shard=shard,
-                                          **extra_args)
+                                          sharded=sharded, **extra_args)
 
     @METRICS.timer('NodesController.validate')
     @method.expose()

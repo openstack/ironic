@@ -1827,6 +1827,13 @@ req_shard:
   in: body
   required: false
   type: array
+req_sharded:
+  description: |
+    When true, filter the list of returned Nodes, and only return the ones with
+    a non-null ``shard`` value. When false, the inverse filter is performed.
+  in: body
+  required: false
+  type: boolean
 req_standalone_ports_supported:
   description: |
     Indicates whether ports that are members of this portgroup can be
