@@ -89,5 +89,8 @@ def update_opt_defaults():
             'openstack=WARNING',
             # Policy logging is not necessarily useless, but very verbose
             'oslo_policy=WARNING',
+            # Concurrency lock logging is not bad, but exceptionally noisy
+            # and typically not needed in debugging Ironic itself.
+            'oslo_concurrency.lockutils=WARNING',
         ]
     )
