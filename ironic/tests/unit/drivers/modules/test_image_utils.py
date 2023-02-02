@@ -105,47 +105,70 @@ class RedfishImageHandlerTestCase(db_base.DbTestCase):
             mock_swift_api.delete_object.assert_called_once_with(
                 'ironic_redfish_container', object_name)
 
+    @mock.patch.object(utils, 'execute', autospec=True)
     @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch.object(image_utils, 'shutil', autospec=True)
     @mock.patch.object(os, 'link', autospec=True)
     @mock.patch.object(os, 'mkdir', autospec=True)
     def test_publish_image_local_link(
-            self, mock_mkdir, mock_link, mock_shutil, mock_chmod):
+            self, mock_mkdir, mock_link, mock_shutil, mock_chmod,
+            mock_execute):
         self.config(use_swift=False, group='redfish')
         self.config(http_url='http://localhost', group='deploy')
         img_handler_obj = image_utils.ImageHandler(self.node.driver)
-
         url = img_handler_obj.publish_image('file.iso', 'boot.iso')
-
         self.assertEqual(
             'http://localhost/redfish/boot.iso', url)
-
         mock_mkdir.assert_called_once_with('/httpboot/redfish', 0o755)
         mock_link.assert_called_once_with(
             'file.iso', '/httpboot/redfish/boot.iso')
         mock_chmod.assert_called_once_with('file.iso', 0o644)
+        mock_execute.assert_called_once_with(
+            '/usr/sbin/restorecon', '-i', '-R', 'v', '/httpboot/redfish')
 
+    @mock.patch.object(utils, 'execute', autospec=True)
+    @mock.patch.object(os, 'chmod', autospec=True)
+    @mock.patch.object(image_utils, 'shutil', autospec=True)
+    @mock.patch.object(os, 'link', autospec=True)
+    @mock.patch.object(os, 'mkdir', autospec=True)
+    def test_publish_image_local_link_no_restorecon(
+            self, mock_mkdir, mock_link, mock_shutil, mock_chmod,
+            mock_execute):
+        self.config(use_swift=False, group='redfish')
+        self.config(http_url='http://localhost', group='deploy')
+        img_handler_obj = image_utils.ImageHandler(self.node.driver)
+        url = img_handler_obj.publish_image('file.iso', 'boot.iso')
+        self.assertEqual(
+            'http://localhost/redfish/boot.iso', url)
+        mock_mkdir.assert_called_once_with('/httpboot/redfish', 0o755)
+        mock_link.assert_called_once_with(
+            'file.iso', '/httpboot/redfish/boot.iso')
+        mock_chmod.assert_called_once_with('file.iso', 0o644)
+        mock_execute.return_value = FileNotFoundError
+        mock_shutil.assert_not_called()
+
+    @mock.patch.object(utils, 'execute', autospec=True)
     @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch.object(image_utils, 'shutil', autospec=True)
     @mock.patch.object(os, 'link', autospec=True)
     @mock.patch.object(os, 'mkdir', autospec=True)
     def test_publish_image_external_ip(
-            self, mock_mkdir, mock_link, mock_shutil, mock_chmod):
+            self, mock_mkdir, mock_link, mock_shutil, mock_chmod,
+            mock_execute):
         self.config(use_swift=False, group='redfish')
         self.config(http_url='http://localhost',
                     external_http_url='http://non-local.host',
                     group='deploy')
         img_handler_obj = image_utils.ImageHandler(self.node.driver)
-
         url = img_handler_obj.publish_image('file.iso', 'boot.iso')
-
         self.assertEqual(
             'http://non-local.host/redfish/boot.iso', url)
-
         mock_mkdir.assert_called_once_with('/httpboot/redfish', 0o755)
         mock_link.assert_called_once_with(
             'file.iso', '/httpboot/redfish/boot.iso')
         mock_chmod.assert_called_once_with('file.iso', 0o644)
+        mock_execute.assert_called_once_with(
+            '/usr/sbin/restorecon', '-i', '-R', 'v', '/httpboot/redfish')
 
     @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch.object(image_utils, 'shutil', autospec=True)
