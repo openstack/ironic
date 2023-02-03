@@ -904,11 +904,13 @@ class Connection(api.Connection):
                 if values['provision_state'] == states.INSPECTING:
                     values['inspection_started_at'] = timeutils.utcnow()
                     values['inspection_finished_at'] = None
-                elif (ref.provision_state == states.INSPECTING
+                elif ((ref.provision_state == states.INSPECTING
+                       or ref.provision_state == states.INSPECTWAIT)
                       and values['provision_state'] == states.MANAGEABLE):
                     values['inspection_finished_at'] = timeutils.utcnow()
                     values['inspection_started_at'] = None
-                elif (ref.provision_state == states.INSPECTING
+                elif ((ref.provision_state == states.INSPECTING
+                       or ref.provision_state == states.INSPECTWAIT)
                       and values['provision_state'] == states.INSPECTFAIL):
                     values['inspection_started_at'] = None
 

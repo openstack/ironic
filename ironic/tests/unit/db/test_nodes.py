@@ -884,6 +884,53 @@ class DbNodeTestCase(base.DbTestCase):
                          timeutils.normalize_time(result))
         self.assertIsNone(res['inspection_started_at'])
 
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_update_node_inspection_finished_at_inspecting(self, mock_utcnow):
+        mocked_time = datetime.datetime(2000, 1, 1, 0, 0)
+        mock_utcnow.return_value = mocked_time
+        node = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                      inspection_finished_at=mocked_time,
+                                      provision_state=states.INSPECTING)
+        res = self.dbapi.update_node(node.id,
+                                     {'provision_state': states.MANAGEABLE})
+        result = res['inspection_finished_at']
+        self.assertEqual(mocked_time,
+                         timeutils.normalize_time(result))
+        self.assertIsNone(res['inspection_started_at'])
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_update_node_inspection_finished_at_inspectwait(self,
+                                                            mock_utcnow):
+        mocked_time = datetime.datetime(2000, 1, 1, 0, 0)
+        mock_utcnow.return_value = mocked_time
+        node = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                      inspection_finished_at=mocked_time,
+                                      provision_state=states.INSPECTWAIT)
+        res = self.dbapi.update_node(node.id,
+                                     {'provision_state': states.MANAGEABLE})
+        result = res['inspection_finished_at']
+        self.assertEqual(mocked_time,
+                         timeutils.normalize_time(result))
+        self.assertIsNone(res['inspection_started_at'])
+
+    def test_update_node_inspection_started_at_inspecting(self):
+        mocked_time = datetime.datetime(2000, 1, 1, 0, 0)
+        node = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                      inspection_started_at=mocked_time,
+                                      provision_state=states.INSPECTING)
+        res = self.dbapi.update_node(node.id,
+                                     {'provision_state': states.INSPECTFAIL})
+        self.assertIsNone(res['inspection_started_at'])
+
+    def test_update_node_inspection_started_at_inspectwait(self):
+        mocked_time = datetime.datetime(2000, 1, 1, 0, 0)
+        node = utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                      inspection_started_at=mocked_time,
+                                      provision_state=states.INSPECTWAIT)
+        res = self.dbapi.update_node(node.id,
+                                     {'provision_state': states.INSPECTFAIL})
+        self.assertIsNone(res['inspection_started_at'])
+
     def test_reserve_node(self):
         node = utils.create_test_node()
         self.dbapi.set_node_tags(node.id, ['tag1', 'tag2'])
