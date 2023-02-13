@@ -343,13 +343,17 @@ r_port_node_ident:
   description: |
     Filter the list of returned Ports, and only return the ones associated
     with this specific node (name or UUID), or an empty set if not found.
+    This filter takes precedence over all other filters, and cannot be set at
+    the same time as node_uuid or portgroup.
   in: query
   required: false
   type: string
 r_port_node_uuid:
   description: |
     Filter the list of returned Ports, and only return the ones associated
-    with this specific node UUID, or an empty set if not found.
+    with this specific node UUID, or an empty set if not found. This filter
+    takes precedence over all other filters, and cannot be set at the same
+    time as node or portgroup.
   in: query
   required: false
   type: string
@@ -357,6 +361,8 @@ r_port_portgroup_ident:
   description: |
     Filter the list of returned Ports, and only return the ones associated
     with this specific Portgroup (name or UUID), or an empty set if not found.
+    This filter takes precedence over all other filters, and cannot be set at
+    the same time as node_uuid or node.
   in: query
   required: false
   type: string
