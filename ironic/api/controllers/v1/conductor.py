@@ -40,8 +40,9 @@ def convert_with_links(rpc_conductor, fields=None, sanitize=True):
         link_resource='conductors',
         link_resource_args=rpc_conductor.hostname
     )
-    conductor['alive'] = not timeutils.is_older_than(
+    recent_heartbeat = not timeutils.is_older_than(
         rpc_conductor.updated_at, CONF.conductor.heartbeat_timeout)
+    conductor['alive'] = rpc_conductor.online and recent_heartbeat
     if fields is not None:
         api_utils.check_for_invalid_fields(fields, conductor)
 

@@ -99,7 +99,7 @@ class TestListConductors(test_api_base.BaseApiTest):
         self.assertTrue(data['alive'])
 
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_get_one_conductor_offline(self, mock_utcnow):
+    def test_get_one_conductor_offline_old_heartbeat(self, mock_utcnow):
         self.config(heartbeat_timeout=10, group='conductor')
 
         _time = datetime.datetime(2000, 1, 1, 0, 0)
@@ -118,6 +118,16 @@ class TestListConductors(test_api_base.BaseApiTest):
         self.assertIn('alive', data)
         self.assertIn('drivers', data)
         self.assertEqual(data['hostname'], 'rocky.rocks')
+        self.assertFalse(data['alive'])
+
+    def test_get_one_conductor_offline_unregistered(self):
+        conductor = obj_utils.create_test_conductor(
+            self.context, hostname='rocky.rocks')
+        conductor.unregister()
+
+        data = self.get_json(
+            '/conductors/rocky.rocks',
+            headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertFalse(data['alive'])
 
     def test_get_one_with_invalid_api(self):
