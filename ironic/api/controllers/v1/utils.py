@@ -1069,7 +1069,7 @@ def check_allow_filter_by_lessee(lessee):
 def check_allow_filter_by_shard(shard):
     """Check if filtering nodes by shard is allowed.
 
-    Version 1.81 of the API allows filtering nodes by shard.
+    Version 1.82 of the API allows filtering nodes by shard.
     """
     if (shard is not None and api.request.version.minor
             < versions.MINOR_82_NODE_SHARD):

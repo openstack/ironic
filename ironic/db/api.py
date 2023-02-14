@@ -297,6 +297,14 @@ class Connection(object, metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
+    def get_ports_by_shards(self, shards, limit=None, marker=None,
+                            sort_key=None, sort_dir=None):
+        """Return a list of ports contained in the provided shards.
+
+        :param shard_ids: A list of shards to filter ports by.
+        """
+
+    @abc.abstractmethod
     def get_ports_by_node_id(self, node_id, limit=None, marker=None,
                              sort_key=None, sort_dir=None):
         """List all the ports for a given node.

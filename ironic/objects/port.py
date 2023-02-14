@@ -299,6 +299,27 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                            project=project)
         return cls._from_db_object_list(context, db_ports)
 
+    @classmethod
+    def list_by_node_shards(cls, context, shards, limit=None, marker=None,
+                            sort_key=None, sort_dir=None, project=None):
+        """Return a list of Port objects associated with nodes in shards
+
+        :param context: Security context.
+        :param shards: a list of shards
+        :param limit: maximum number of resources to return in a single result.
+        :param marker: pagination marker for large data sets.
+        :param sort_key: column to sort results by.
+        :param sort_dir: direction to sort. "asc" or "desc".
+        :param project: a node owner or lessee to match against
+        :returns: a list of :class:`Port` object.
+
+        """
+        db_ports = cls.dbapi.get_ports_by_shards(shards, limit=limit,
+                                                 marker=marker,
+                                                 sort_key=sort_key,
+                                                 sort_dir=sort_dir)
+        return cls._from_db_object_list(context, db_ports)
+
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
     # Implications of calling new remote procedures should be thought through.

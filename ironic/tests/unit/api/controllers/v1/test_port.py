@@ -194,7 +194,7 @@ class TestPortsController__GetPortsCollection(base.TestCase):
         mock_request.context = 'fake-context'
         mock_list.return_value = []
         self.controller._get_ports_collection(None, None, None, None, None,
-                                              None, 'asc',
+                                              None, None, 'asc',
                                               resource_url='ports')
         mock_list.assert_called_once_with('fake-context', 1000, None,
                                           project=None, sort_dir='asc',
@@ -1098,6 +1098,44 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertIn('Expected UUID or name for portgroup',
                       response.json['error_message'])
+
+
+class TestListPortsByShard(test_api_base.BaseApiTest):
+    def setUp(self):
+        super(TestListPortsByShard, self).setUp()
+        self.headers = {
+            api_base.Version.string: '1.%s' % versions.MINOR_82_NODE_SHARD
+        }
+
+    def _create_port_with_shard(self, shard, address):
+        node = obj_utils.create_test_node(self.context, owner='12345',
+                                          shard=shard,
+                                          uuid=uuidutils.generate_uuid())
+        return obj_utils.create_test_port(self.context, name='port_%s' % shard,
+                                          node_id=node.id, address=address,
+                                          uuid=uuidutils.generate_uuid())
+
+    def test_get_by_shard_single_fail_api_version(self):
+        self._create_port_with_shard('test_shard', 'aa:bb:cc:dd:ee:ff')
+        data = self.get_json('/ports?shard=test_shard', expect_errors=True)
+        self.assertEqual(406, data.status_int)
+
+    def test_get_by_shard_single(self):
+        port = self._create_port_with_shard('test_shard', 'aa:bb:cc:dd:ee:ff')
+        data = self.get_json('/ports?shard=test_shard', headers=self.headers)
+        self.assertEqual(port.uuid, data['ports'][0]["uuid"])
+
+    def test_get_by_shard_multi(self):
+        bad_shard_address = 'ee:ee:ee:ee:ee:ee'
+        self._create_port_with_shard('shard1', 'aa:bb:cc:dd:ee:ff')
+        self._create_port_with_shard('shard2', 'ab:bb:cc:dd:ee:ff')
+        self._create_port_with_shard('shard3', bad_shard_address)
+
+        res = self.get_json('/ports?shard=shard1,shard2', headers=self.headers)
+        self.assertEqual(2, len(res['ports']))
+        print(res['ports'][0])
+        self.assertNotEqual(res['ports'][0]['address'], bad_shard_address)
+        self.assertNotEqual(res['ports'][1]['address'], bad_shard_address)
 
 
 @mock.patch.object(rpcapi.ConductorAPI, 'update_port', autospec=True,

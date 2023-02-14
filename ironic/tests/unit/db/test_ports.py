@@ -22,6 +22,23 @@ from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils as db_utils
 
 
+def _create_test_port_with_shard(shard, address):
+    node = db_utils.create_test_node(
+        uuid=uuidutils.generate_uuid(),
+        owner='12345', lessee='54321', shard=shard)
+    pg = db_utils.create_test_portgroup(
+        name='pg-%s' % shard,
+        uuid=uuidutils.generate_uuid(),
+        node_id=node.id,
+        address=address)
+    return db_utils.create_test_port(
+        name='port-%s' % shard,
+        uuid=uuidutils.generate_uuid(),
+        node_id=node.id,
+        address=address,
+        portgroup_id=pg.id)
+
+
 class DbPortTestCase(base.DbTestCase):
 
     def setUp(self):
@@ -201,6 +218,28 @@ class DbPortTestCase(base.DbTestCase):
 
     def test_get_ports_by_portgroup_id_that_does_not_exist(self):
         self.assertEqual([], self.dbapi.get_ports_by_portgroup_id(99))
+
+    def test_get_ports_by_shard_no_match(self):
+        res = self.dbapi.get_ports_by_shards(['shard1', 'shard2'])
+        self.assertEqual([], res)
+
+    def test_get_ports_by_shard_with_match_single(self):
+        _create_test_port_with_shard('shard1', 'aa:bb:cc:dd:ee:ff')
+
+        res = self.dbapi.get_ports_by_shards(['shard1'])
+        self.assertEqual(1, len(res))
+        self.assertEqual('port-shard1', res[0].name)
+
+    def test_get_ports_by_shard_with_match_multi(self):
+        _create_test_port_with_shard('shard1', 'aa:bb:cc:dd:ee:ff')
+        _create_test_port_with_shard('shard2', 'ab:bb:cc:dd:ee:ff')
+        _create_test_port_with_shard('shard3', 'ac:bb:cc:dd:ee:ff')
+
+        res = self.dbapi.get_ports_by_shards(['shard1', 'shard2'])
+        self.assertEqual(2, len(res))
+        # note(JayF): We do not query for shard3; ensure we don't get it.
+        self.assertNotEqual('port-shard3', res[0].name)
+        self.assertNotEqual('port-shard3', res[1].name)
 
     def test_destroy_port(self):
         self.dbapi.destroy_port(self.port.id)

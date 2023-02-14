@@ -208,7 +208,7 @@ class PortsController(rest.RestController):
         self.parent_portgroup_ident = portgroup_ident
 
     def _get_ports_collection(self, node_ident, address, portgroup_ident,
-                              marker, limit, sort_key, sort_dir,
+                              shard, marker, limit, sort_key, sort_dir,
                               resource_url=None, fields=None, detail=None,
                               project=None):
         """Retrieve a collection of ports.
@@ -219,6 +219,8 @@ class PortsController(rest.RestController):
                         this MAC address.
         :param portgroup_ident: UUID or name of a portgroup, to get only ports
                                 for that portgroup.
+        :param shard: A comma-separated shard list, to get only ports for those
+                       shards
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
                       This value cannot be larger than the value of max_limit
@@ -251,8 +253,12 @@ class PortsController(rest.RestController):
         node_ident = self.parent_node_ident or node_ident
         portgroup_ident = self.parent_portgroup_ident or portgroup_ident
 
-        if node_ident and portgroup_ident:
-            raise exception.OperationNotPermitted()
+        exclusive_filters = 0
+        for i in [node_ident, portgroup_ident, shard]:
+            if i:
+                exclusive_filters += 1
+            if exclusive_filters > 1:
+                raise exception.OperationNotPermitted()
 
         if portgroup_ident:
             # FIXME: Since all we need is the portgroup ID, we can
@@ -279,6 +285,11 @@ class PortsController(rest.RestController):
                                                  project=project)
         elif address:
             ports = self._get_ports_by_address(address, project=project)
+        elif shard:
+            ports = objects.Port.list_by_node_shards(api.request.context,
+                                                     shard, limit,
+                                                     marker_obj, sort_key,
+                                                     sort_dir, project=project)
         else:
             ports = objects.Port.list(api.request.context, limit,
                                       marker_obj, sort_key=sort_key,
@@ -349,10 +360,11 @@ class PortsController(rest.RestController):
                    address=args.mac_address, marker=args.uuid,
                    limit=args.integer, sort_key=args.string,
                    sort_dir=args.string, fields=args.string_list,
-                   portgroup=args.uuid_or_name, detail=args.boolean)
+                   portgroup=args.uuid_or_name, detail=args.boolean,
+                   shard=args.string_list)
     def get_all(self, node=None, node_uuid=None, address=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', fields=None,
-                portgroup=None, detail=None):
+                portgroup=None, detail=None, shard=None):
         """Retrieve a list of ports.
 
         Note that the 'node_uuid' interface is deprecated in favour
@@ -375,6 +387,8 @@ class PortsController(rest.RestController):
             of the resource to be returned.
         :param portgroup: UUID or name of a portgroup, to get only ports
                                    for that portgroup.
+        :param shard: Optional, a list of shard ids to filter by, only ports
+                      associated with nodes in these shards will be returned.
         :raises: NotAcceptable, HTTPNotFound
         """
         project = api_utils.check_port_list_policy(
@@ -394,6 +408,8 @@ class PortsController(rest.RestController):
         if portgroup and not api_utils.allow_portgroups_subcontrollers():
             raise exception.NotAcceptable()
 
+        api_utils.check_allow_filter_by_shard(shard)
+
         fields = api_utils.get_request_return_fields(fields, detail,
                                                      _DEFAULT_RETURN_FIELDS)
 
@@ -406,8 +422,9 @@ class PortsController(rest.RestController):
                 raise exception.NotAcceptable()
 
         return self._get_ports_collection(node_uuid or node, address,
-                                          portgroup, marker, limit, sort_key,
-                                          sort_dir, resource_url='ports',
+                                          portgroup, shard, marker, limit,
+                                          sort_key, sort_dir,
+                                          resource_url='ports',
                                           fields=fields, detail=detail,
                                           project=project)
 
@@ -416,10 +433,11 @@ class PortsController(rest.RestController):
     @args.validate(node=args.uuid_or_name, node_uuid=args.uuid,
                    address=args.mac_address, marker=args.uuid,
                    limit=args.integer, sort_key=args.string,
-                   sort_dir=args.string,
-                   portgroup=args.uuid_or_name)
+                   sort_dir=args.string, portgroup=args.uuid_or_name,
+                   shard=args.string_list)
     def detail(self, node=None, node_uuid=None, address=None, marker=None,
-               limit=None, sort_key='id', sort_dir='asc', portgroup=None):
+               limit=None, sort_key='id', sort_dir='asc', portgroup=None,
+               shard=None):
         """Retrieve a list of ports with detail.
 
         Note that the 'node_uuid' interface is deprecated in favour
@@ -433,6 +451,8 @@ class PortsController(rest.RestController):
                         this MAC address.
         :param portgroup: UUID or name of a portgroup, to get only ports
                            for that portgroup.
+        :param shard: comma separated list of shards, to only get ports
+                      associated with nodes in those shards.
         :param marker: pagination marker for large data sets.
         :param limit: maximum number of resources to return in a single result.
                       This value cannot be larger than the value of max_limit
@@ -450,6 +470,8 @@ class PortsController(rest.RestController):
         if portgroup and not api_utils.allow_portgroups_subcontrollers():
             raise exception.NotAcceptable()
 
+        api_utils.check_allow_filter_by_shard(shard)
+
         if not node_uuid and node:
             # We're invoking this interface using positional notation, or
             # explicitly using 'node'.  Try and determine which one.
@@ -464,8 +486,8 @@ class PortsController(rest.RestController):
             raise exception.HTTPNotFound()
 
         return self._get_ports_collection(node_uuid or node, address,
-                                          portgroup, marker, limit, sort_key,
-                                          sort_dir,
+                                          portgroup, shard, marker, limit,
+                                          sort_key, sort_dir,
                                           resource_url='ports/detail',
                                           project=project)
 
