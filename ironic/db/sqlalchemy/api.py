@@ -2588,3 +2588,31 @@ class Connection(api.Connection):
             return query.one()
         except NoResultFound:
             raise exception.NodeInventoryNotFound(node_id=node_id)
+
+    def get_shard_list(self):
+        """Return a list of shards.
+
+        :returns: A list of dicts containing the keys name and count.
+        """
+        # Note(JayF): This should never be a large enough list to require
+        #             pagination. Furthermore, it wouldn't really be a sensible
+        #             thing to paginate as the data it's fetching can mutate.
+        #             So we just aren't even going to try.
+        shard_list = []
+        with _session_for_read() as session:
+            res = session.execute(
+                # Note(JayF): SQLAlchemy counts are notoriously slow because
+                #             sometimes they will use a subquery. Be careful
+                #             before changing this to use any magic.
+                sa.text(
+                    "SELECT count(id), shard from nodes group by shard;"
+                )).fetchall()
+
+            if res:
+                res.sort(key=lambda x: x[0], reverse=True)
+                for shard in res:
+                    shard_list.append(
+                        {"name": str(shard[1]), "count": shard[0]}
+                    )
+
+        return shard_list

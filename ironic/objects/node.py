@@ -78,7 +78,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.34: Add lessee field
     # Version 1.35: Add network_data field
     # Version 1.36: Add boot_mode and secure_boot fields
-    VERSION = '1.36'
+    # Version 1.37: Add shard field
+    VERSION = '1.37'
 
     dbapi = db_api.get_instance()
 
@@ -170,6 +171,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'network_data': object_fields.FlexibleDictField(nullable=True),
         'boot_mode': object_fields.StringField(nullable=True),
         'secure_boot': object_fields.BooleanField(nullable=True),
+        'shard': object_fields.StringField(nullable=True),
     }
 
     def as_dict(self, secure=False, mask_configdrive=True):
@@ -656,6 +658,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             should be set to empty dict (or removed).
         Version 1.36: boot_mode, secure_boot were was added. Defaults are None.
             For versions prior to this, it should be set to None or removed.
+        Version 1.37: shard was added. Default is None. For versions prior to
+            this, it should be set to None or removed.
 
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
@@ -671,7 +675,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                   ('automated_clean', 28), ('protected_reason', 29),
                   ('owner', 30), ('allocation_id', 31), ('description', 32),
                   ('retired_reason', 33), ('lessee', 34), ('boot_mode', 36),
-                  ('secure_boot', 36)]
+                  ('secure_boot', 36), ('shard', 37)]
 
         for name, minor in fields:
             self._adjust_field_to_version(name, None, target_version,

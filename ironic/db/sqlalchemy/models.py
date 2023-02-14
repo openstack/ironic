@@ -134,6 +134,7 @@ class NodeBase(Base):
         Index('reservation_idx', 'reservation'),
         Index('conductor_group_idx', 'conductor_group'),
         Index('resource_class_idx', 'resource_class'),
+        Index('shard_idx', 'shard'),
         table_args())
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
@@ -213,6 +214,8 @@ class NodeBase(Base):
 
     boot_mode = Column(String(16), nullable=True)
     secure_boot = Column(Boolean, nullable=True)
+
+    shard = Column(String(255), nullable=True)
 
 
 class Node(NodeBase):
