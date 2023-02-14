@@ -73,6 +73,7 @@ from ironic.conf import CONF
 from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
+from ironic.drivers.modules import inspect_utils
 from ironic import objects
 from ironic.objects import base as objects_base
 from ironic.objects import fields
@@ -2023,6 +2024,26 @@ class ConductorManager(base_manager.BaseConductorManager):
                     node.console_enabled = False
                     notify_utils.emit_console_notification(
                         task, 'console_set', fields.NotificationStatus.END)
+            # Destroy Swift Inventory entries for this node
+            try:
+                inspect_utils.clean_up_swift_entries(task)
+            except exception.SwiftObjectStillExists as e:
+                if node.maintenance:
+                    # Maintenance -> Allow orphaning
+                    LOG.warning('Swift object orphaned during destruction of '
+                                'node %(node)s: %(e)s',
+                                {'node': node.uuid, 'e': e})
+                else:
+                    LOG.error('Swift object cannot be orphaned during '
+                              'destruction of node %(node)s: %(e)s',
+                              {'node': node.uuid, 'e': e})
+                    raise
+            except Exception as err:
+                LOG.error('Failed to delete Swift entries related '
+                          'to the node %(node)s: %(err)s.',
+                          {'node': node.uuid, 'err': err})
+                raise
+
             node.destroy()
             LOG.info('Successfully deleted node %(node)s.',
                      {'node': node.uuid})

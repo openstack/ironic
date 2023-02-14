@@ -17,6 +17,7 @@
 from unittest import mock
 
 from oslo_utils import importutils
+import swiftclient.exceptions
 
 from ironic.common import context as ironic_context
 from ironic.common import exception
@@ -94,6 +95,75 @@ class InspectFunctionTestCase(db_base.DbTestCase):
             self.assertEqual(2, port_mock.return_value.create.call_count)
 
 
+class SwiftCleanUp(db_base.DbTestCase):
+
+    def setUp(self):
+        super(SwiftCleanUp, self).setUp()
+        self.node = obj_utils.create_test_node(self.context)
+
+    @mock.patch.object(swift, 'SwiftAPI', autospec=True)
+    def test_clean_up_swift_entries(self, swift_api_mock):
+        CONF.set_override('data_backend', 'swift', group='inventory')
+        container = 'introspection_data'
+        CONF.set_override('swift_data_container', container, group='inventory')
+        swift_obj_mock = swift_api_mock.return_value
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            utils.clean_up_swift_entries(task)
+            object_name = 'inspector_data-' + str(self.node.uuid)
+            swift_obj_mock.delete_object.assert_has_calls([
+                mock.call(object_name + '-inventory', container),
+                mock.call(object_name + '-plugin', container)])
+
+    @mock.patch.object(swift, 'SwiftAPI', autospec=True)
+    def test_clean_up_swift_entries_with_404_exception(self, swift_api_mock):
+        CONF.set_override('data_backend', 'swift', group='inventory')
+        container = 'introspection_data'
+        CONF.set_override('swift_data_container', container, group='inventory')
+        swift_obj_mock = swift_api_mock.return_value
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            swift_obj_mock.delete_object.side_effect = [
+                swiftclient.exceptions.ClientException("not found",
+                                                       http_status=404),
+                swiftclient.exceptions.ClientException("not found",
+                                                       http_status=404)]
+            utils.clean_up_swift_entries(task)
+
+    @mock.patch.object(swift, 'SwiftAPI', autospec=True)
+    def test_clean_up_swift_entries_with_fail_exception(self, swift_api_mock):
+        CONF.set_override('data_backend', 'swift', group='inventory')
+        container = 'introspection_data'
+        CONF.set_override('swift_data_container', container, group='inventory')
+        swift_obj_mock = swift_api_mock.return_value
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            swift_obj_mock.delete_object.side_effect = [
+                swiftclient.exceptions.ClientException("failed",
+                                                       http_status=417),
+                swiftclient.exceptions.ClientException("not found",
+                                                       http_status=404)]
+            self.assertRaises(exception.SwiftObjectStillExists,
+                              utils.clean_up_swift_entries, task)
+
+    @mock.patch.object(swift, 'SwiftAPI', autospec=True)
+    def test_clean_up_swift_entries_with_fail_exceptions(self, swift_api_mock):
+        CONF.set_override('data_backend', 'swift', group='inventory')
+        container = 'introspection_data'
+        CONF.set_override('swift_data_container', container, group='inventory')
+        swift_obj_mock = swift_api_mock.return_value
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            swift_obj_mock.delete_object.side_effect = [
+                swiftclient.exceptions.ClientException("failed",
+                                                       http_status=417),
+                swiftclient.exceptions.ClientException("failed",
+                                                       http_status=417)]
+            self.assertRaises((exception.SwiftObjectStillExists,
+                               exception.SwiftObjectStillExists),
+                              utils.clean_up_swift_entries, task)
+
+
 class IntrospectionDataStorageFunctionsTestCase(db_base.DbTestCase):
     fake_inventory_data = {"cpu": "amd"}
     fake_plugin_data = {"disks": [{"name": "/dev/vda"}]}
@@ -163,6 +233,17 @@ class IntrospectionDataStorageFunctionsTestCase(db_base.DbTestCase):
         utils.get_introspection_data(self.node, fake_context)
         mock_convert.assert_called_once_with(fake_introspection_data)
 
+    @mock.patch.object(objects, 'NodeInventory', spec_set=True, autospec=True)
+    def test_get_introspection_data_db_exception(self, mock_inventory):
+        CONF.set_override('data_backend', 'database',
+                          group='inventory')
+        fake_context = ironic_context.RequestContext()
+        mock_inventory.get_by_node_id.side_effect = [
+            exception.NodeInventoryNotFound(self.node.uuid)]
+        self.assertRaises(
+            exception.NodeInventoryNotFound, utils.get_introspection_data,
+            self.node, fake_context)
+
     @mock.patch.object(utils, '_get_introspection_data_from_swift',
                        autospec=True)
     def test_get_introspection_data_swift(self, mock_get_data):
@@ -175,11 +256,24 @@ class IntrospectionDataStorageFunctionsTestCase(db_base.DbTestCase):
         mock_get_data.assert_called_once_with(
             self.node.uuid)
 
+    @mock.patch.object(utils, '_get_introspection_data_from_swift',
+                       autospec=True)
+    def test_get_introspection_data_swift_exception(self, mock_get_data):
+        CONF.set_override('data_backend', 'swift', group='inventory')
+        CONF.set_override(
+            'swift_data_container', 'introspection_data',
+            group='inventory')
+        fake_context = ironic_context.RequestContext()
+        mock_get_data.side_effect = exception.SwiftObjectNotFoundError()
+        self.assertRaises(
+            exception.NodeInventoryNotFound, utils.get_introspection_data,
+            self.node, fake_context)
+
     def test_get_introspection_data_nostore(self):
         CONF.set_override('data_backend', 'none', group='inventory')
         fake_context = ironic_context.RequestContext()
         self.assertRaises(
-            exception.NotFound, utils.get_introspection_data,
+            exception.NodeInventoryNotFound, utils.get_introspection_data,
             self.node, fake_context)
 
     @mock.patch.object(swift, 'SwiftAPI', autospec=True)
@@ -209,3 +303,17 @@ class IntrospectionDataStorageFunctionsTestCase(db_base.DbTestCase):
         req_ret = {"inventory": self.fake_inventory_data,
                    "plugin_data": self.fake_plugin_data}
         self.assertEqual(req_ret, ret)
+
+    @mock.patch.object(swift, 'SwiftAPI', autospec=True)
+    def test__get_introspection_data_from_swift_exception(self,
+                                                          swift_api_mock):
+        container = 'introspection_data'
+        CONF.set_override('swift_data_container', container, group='inventory')
+        swift_obj_mock = swift_api_mock.return_value
+        swift_obj_mock.get_object.side_effect = [
+            exception.SwiftOperationError,
+            self.fake_plugin_data
+        ]
+        self.assertRaises(exception.SwiftObjectNotFoundError,
+                          utils._get_introspection_data_from_swift,
+                          self.node.uuid)

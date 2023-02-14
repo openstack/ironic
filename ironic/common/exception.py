@@ -829,7 +829,7 @@ class NodeHistoryNotFound(NotFound):
 
 
 class NodeInventoryNotFound(NotFound):
-    _msg_fmt = _("Node inventory record %(inventory)s could not be found.")
+    _msg_fmt = _("Node inventory record for node %(node)s could not be found.")
 
 
 class IncorrectConfiguration(IronicException):
@@ -865,3 +865,8 @@ class ConcurrentActionLimit(IronicException):
                  "The concurrent action limit for %(task_type)s "
                  "has been reached. Please contact your administrator "
                  "and try again later.")
+
+
+class SwiftObjectStillExists(IronicException):
+    _msg_fmt = _("Clean up failed for swift object %(obj)s during deletion"
+                 " of node %(node)s.")

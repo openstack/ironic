@@ -15,9 +15,9 @@
 
 from oslo_log import log as logging
 from oslo_utils import netutils
+import swiftclient.exceptions
 
 from ironic.common import exception
-from ironic.common.i18n import _
 from ironic.common import swift
 from ironic.conf import CONF
 from ironic import objects
@@ -58,7 +58,61 @@ def create_ports_if_not_exist(task, macs):
                      "for node %(node)s", {'address': mac, 'node': node.uuid})
 
 
+def clean_up_swift_entries(task):
+    """Delete swift entries containing introspection data.
+
+    Delete swift entries related to the node in task.node containing
+    introspection data. The entries are
+    ``inspector_data-<task.node.uuid>-inventory`` for hardware inventory and
+    similar for ``-plugin`` containing the rest of the introspection data.
+
+    :param task: A TaskManager instance.
+    """
+    if CONF.inventory.data_backend != 'swift':
+        return
+    swift_api = swift.SwiftAPI()
+    swift_object_name = '%s-%s' % (_OBJECT_NAME_PREFIX, task.node.uuid)
+    container = CONF.inventory.swift_data_container
+    inventory_obj_name = swift_object_name + '-inventory'
+    plugin_obj_name = swift_object_name + '-plugin'
+    try:
+        swift_api.delete_object(inventory_obj_name, container)
+    except swiftclient.exceptions.ClientException as e:
+        if e.http_status == 404:
+            # 404 -> entry did not exist - acceptable.
+            pass
+        else:
+            LOG.error("Object %(obj)s related to node %(node)s "
+                      "failed to be deleted with expection: %(e)s",
+                      {'obj': inventory_obj_name, 'node': task.node.uuid,
+                       'e': e})
+            raise exception.SwiftObjectStillExists(obj=inventory_obj_name,
+                                                   node=task.node.uuid)
+    try:
+        swift_api.delete_object(plugin_obj_name, container)
+    except swiftclient.exceptions.ClientException as e:
+        if e.http_status == 404:
+            # 404 -> entry did not exist - acceptable.
+            pass
+        else:
+            LOG.error("Object %(obj)s related to node %(node)s "
+                      "failed to be deleted with exception: %(e)s",
+                      {'obj': plugin_obj_name, 'node': task.node.uuid,
+                       'e': e})
+            raise exception.SwiftObjectStillExists(obj=plugin_obj_name,
+                                                   node=task.node.uuid)
+
+
 def store_introspection_data(node, introspection_data, context):
+    """Store introspection data.
+
+    Store the introspection data for a node. Either to database
+    or swift as configured.
+
+    :param node: the Ironic node that the introspection data is about
+    :param introspection_data: the data to store
+    :param context: an admin context
+    """
     # If store_data == 'none', do not store the data
     store_data = CONF.inventory.data_backend
     if store_data == 'none':
@@ -92,16 +146,28 @@ def _node_inventory_convert(node_inventory):
 
 
 def get_introspection_data(node, context):
+    """Get introspection data.
+
+    Retrieve the introspection data for a node. Either from database
+    or swift as configured.
+
+    :param node_id: the Ironic node that the required data is about
+    :param context: an admin context
+    :returns: dictionary with ``inventory`` and ``plugin_data`` fields
+    """
     store_data = CONF.inventory.data_backend
     if store_data == 'none':
-        raise exception.NotFound(
-            (_("Cannot obtain node inventory because it was not stored")))
+        raise exception.NodeInventoryNotFound(node=node.uuid)
     if store_data == 'database':
         node_inventory = objects.NodeInventory.get_by_node_id(
             context, node.id)
         return _node_inventory_convert(node_inventory)
     if store_data == 'swift':
-        return _get_introspection_data_from_swift(node.uuid)
+        try:
+            node_inventory = _get_introspection_data_from_swift(node.uuid)
+        except exception.SwiftObjectNotFoundError:
+            raise exception.NodeInventoryNotFound(node=node.uuid)
+        return node_inventory
 
 
 def _store_introspection_data_in_swift(node_uuid, inventory_data, plugin_data):
@@ -124,17 +190,30 @@ def _store_introspection_data_in_swift(node_uuid, inventory_data, plugin_data):
 
 
 def _get_introspection_data_from_swift(node_uuid):
-    """Uploads introspection data to Swift.
+    """Get introspection data from Swift.
 
-    :param data: data to store in Swift
-    :param node_id: ID of the Ironic node that the data came from
-    :returns: name of the Swift object that the data is stored in
+    :param node_uuid: UUID of the Ironic node that the data came from
+    :returns: dictionary with ``inventory`` and ``plugin_data`` fields
     """
     swift_api = swift.SwiftAPI()
     swift_object_name = '%s-%s' % (_OBJECT_NAME_PREFIX, node_uuid)
     container = CONF.inventory.swift_data_container
-    inventory_data = swift_api.get_object(swift_object_name + '-inventory',
-                                          container)
-    plugin_data = swift_api.get_object(swift_object_name + '-plugin',
-                                       container)
+    inv_obj = swift_object_name + '-inventory'
+    plug_obj = swift_object_name + '-plugin'
+    try:
+        inventory_data = swift_api.get_object(inv_obj, container)
+    except exception.SwiftOperationError:
+        LOG.error("Failed to retrieve object %(obj)s from swift",
+                  {'obj': inv_obj})
+        raise exception.SwiftObjectNotFoundError(obj=inv_obj,
+                                                 container=container,
+                                                 operation='get')
+    try:
+        plugin_data = swift_api.get_object(plug_obj, container)
+    except exception.SwiftOperationError:
+        LOG.error("Failed to retrieve object %(obj)s from swift",
+                  {'obj': plug_obj})
+        raise exception.SwiftObjectNotFoundError(obj=plug_obj,
+                                                 container=container,
+                                                 operation='get')
     return {"inventory": inventory_data, "plugin_data": plugin_data}
