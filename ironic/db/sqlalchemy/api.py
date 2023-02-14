@@ -398,7 +398,7 @@ class Connection(api.Connection):
                           'uuid', 'id', 'fault', 'conductor_group',
                           'owner', 'lessee', 'instance_uuid'}
     _NODE_IN_QUERY_FIELDS = {'%s_in' % field: field
-                             for field in ('uuid', 'provision_state')}
+                             for field in ('uuid', 'provision_state', 'shard')}
     _NODE_NON_NULL_FILTERS = {'associated': 'instance_uuid',
                               'reserved': 'reservation',
                               'with_power_state': 'power_state'}

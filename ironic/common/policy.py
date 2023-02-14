@@ -986,8 +986,21 @@ node_policies = [
         # operating context.
         deprecated_rule=deprecated_node_get
     ),
-
-
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:update:shard',
+        check_str=SYSTEM_ADMIN,
+        scope_types=['system', 'project'],
+        description='Governs if node shard field can be updated via '
+                    'the API clients.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:shards:get',
+        check_str=SYSTEM_READER,
+        scope_types=['system', 'project'],
+        description='Governs if shards can be read via the API clients.',
+        operations=[{'path': '/shards', 'method': 'GET'}],
+    ),
 ]
 
 deprecated_port_reason = """

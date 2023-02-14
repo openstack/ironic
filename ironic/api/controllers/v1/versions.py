@@ -201,6 +201,7 @@ MINOR_78_NODE_HISTORY = 78
 MINOR_79_ALLOCATION_NODE_NAME = 79
 MINOR_80_PROJECT_CREATE_DELETE_NODE = 80
 MINOR_81_NODE_INVENTORY = 81
+MINOR_82_NODE_SHARD = 82
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -208,7 +209,7 @@ MINOR_81_NODE_INVENTORY = 81
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_81_NODE_INVENTORY
+MINOR_MAX_VERSION = MINOR_82_NODE_SHARD
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

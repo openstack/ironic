@@ -1,0 +1,12 @@
+{
+  "shards": [
+    {
+      "count": 47,
+      "name": "example_shard1",
+    },
+    {
+      "count": 46,
+      "name": "example_shard2"
+    }
+  ]
+}

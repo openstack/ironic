@@ -1813,6 +1813,13 @@ req_resource_class_create:
   in: body
   required: false
   type: string
+req_shard:
+  description: |
+    Filter the list of returned Nodes, and only return the ones associated
+    with nodes in this specific shard(s), or an empty set if not found.
+  in: body
+  required: false
+  type: array
 req_standalone_ports_supported:
   description: |
     Indicates whether ports that are members of this portgroup can be
@@ -1938,6 +1945,22 @@ secure_boot:
     Indicates whether node is currently booted with secure_boot turned on.
   in: body
   type: boolean
+shard:
+  description: |
+    A string indicating the shard this node belongs to.
+  in: body
+  type: string
+shard_count:
+  description: |
+    The number of nodes with this current string as their assigned shard value.
+  in: body
+  type: integer
+shard_name:
+  description: |
+    The name of the shard. A value of "None" indicates the count of nodes with
+    an empty shard value.
+  in: body
+  type: string
 standalone_ports_supported:
   description: |
     Indicates whether ports that are members of this portgroup can be

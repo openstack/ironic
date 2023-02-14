@@ -3871,3 +3871,20 @@ lessee_node_inventory_get_reader:
   method: get
   headers: *lessee_reader_headers
   assert_status: 404
+
+# Shard support - system scoped req'd to set on a node or view via /v1/shards
+shard_get_shards_disallowed:
+  path: '/v1/shards'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 403
+
+shard_patch_set_node_shard_disallowed:
+  path: '/v1/nodes/{owner_node_ident}'
+  method: patch
+  headers: *owner_admin_headers
+  body:
+    - op: replace
+      path: /shard
+      value: 'TestShard'
+  assert_status: 403
