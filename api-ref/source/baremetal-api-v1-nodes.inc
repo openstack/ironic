@@ -286,7 +286,7 @@ provision state, and maintenance setting for each Node.
   Introduced the ``lessee`` field.
 
 .. versionadded:: 1.82
-  Introduced the ``shard`` field.
+  Introduced the ``shard`` field. Introduced the ``sharded`` request parameter.
 
 Normal response codes: 200
 
@@ -309,6 +309,7 @@ Request
    - owner: owner
    - lessee: lessee
    - shard: req_shard
+   - sharded: req_sharded
    - description_contains: r_description_contains
    - fields: fields
    - limit: limit
@@ -381,7 +382,7 @@ Nova instance, eg. with a request to ``v1/nodes/detail?instance_uuid={NOVA INSTA
   Introduced the ``lessee`` field.
 
 .. versionadded:: 1.82
-  Introduced the ``shard`` field.
+  Introduced the ``shard`` field. Introduced the ``sharded`` request parameter.
 
 Normal response codes: 200
 
@@ -404,6 +405,7 @@ Request
    - owner: owner
    - lessee: lessee
    - shard: req_shard
+   - sharded: req_sharded
    - description_contains: r_description_contains
    - limit: limit
    - marker: marker
