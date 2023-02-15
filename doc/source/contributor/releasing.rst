@@ -5,7 +5,7 @@ Releasing Ironic Projects
 Since the responsibility for releases will move between people, we document
 that process here.
 
-A full list of projects that ironic manages is available in the `governance
+A full list of projects that Ironic manages is available in the `governance
 site`_.
 
 .. _`governance site`: https://governance.openstack.org/reference/projects/ironic.html
@@ -33,7 +33,7 @@ documented in the `Project Team Guide`_.
 What do we have to release?
 ===========================
 
-The ironic project has a number of deliverables under its governance.  The
+The Ironic project has a number of deliverables under its governance.  The
 ultimate source of truth for this is `projects.yaml
 <https://opendev.org/openstack/governance/src/branch/master/reference/projects.yaml>`__
 in the governance repository. These deliverables have varying release models,
@@ -41,7 +41,7 @@ and these are defined in the `deliverables YAML files
 <https://opendev.org/openstack/releases/src/branch/master/deliverables>`__ in
 the releases repository.
 
-In general, ironic deliverables follow the `cycle-with-intermediary
+In general, Ironic deliverables follow the `cycle-with-intermediary
 <https://releases.openstack.org/reference/release_models.html#cycle-with-intermediary>`__
 release model.
 
@@ -130,7 +130,7 @@ OpenStack release that happens semi-annually. These releases can be
 found in a ``stable/NAME`` branch.
 
 They are also evaluated for additional bugfix releases between scheduled
-stable releases at the two and four month milestore between stable releases
+stable releases at the two and four month milestone between stable releases
 (roughly every 2 months). These releases can be found in a ``bugfix/X.Y``
 branch. A bugfix release is only created if there are significant
 beneficial changes and a known downstream operator or distributor will consume
@@ -143,12 +143,12 @@ version.
 Currently releases and retirements from bugfix branches cannot be automated and
 must be done by the release team manually.
 
-After the creation of a bugfix branch it is utmost important to update the
-upper-constraints link for the tests in the tox.ini file, plus override the
-branch for the requirements project to be sure to use the correct
+After the creation of a bugfix branch it is of the utmost importance to update
+the upper-constraints link for the tests in the tox.ini file, plus override
+the branch for the requirements project to be sure to use the correct
 upper-constraints; for example see the following change:
 
-https://review.opendev.org/c/openstack/ironic-python-agent/+/841290
+https://review.opendev.org/c/openstack/Ironic-python-agent/+/841290
 
 Things to do before releasing
 =============================
@@ -159,7 +159,7 @@ Things to do before releasing
   Combine release notes if necessary (for example, a release note for a
   feature and another release note to add to that feature may be combined).
 
-* For ironic releases only, not ironic-inspector releases: if any new API
+* For Ironic releases only, not Ironic-inspector releases: if any new API
   microversions have been added since the last release, update the REST API
   version history (``doc/source/contributor/webapi-version-history.rst``) to
   indicate that they were part of the new release.
@@ -200,7 +200,7 @@ following the next steps:
     deliverable (i.e. subproject) grouped by release cycles.
 
   * The ``_independent`` directory contains yaml files for deliverables that
-    are not bound to (official) cycles (e.g. ironic-python-agent-builder).
+    are not bound to (official) cycles (e.g. Ironic-python-agent-builder).
 
 * To check the changes we're about to release we can use the tox environment
   ``list-unreleased-changes``, with this syntax:
@@ -213,7 +213,7 @@ following the next steps:
   not stable/ussuri or stable/train).
 
   For example, assuming we're in the main directory of the releases repository,
-  to check the changes in the ussuri series for ironic-python-agent
+  to check the changes in the ussuri series for Ironic-python-agent
   type:
 
   .. code-block:: bash
@@ -243,12 +243,12 @@ following the next steps:
 
   The ``--intermediate-branch`` option is used to create an intermediate
   bugfix branch following the
-  `new release model for ironic projects <https://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/new-release-model.html>`_.
+  `new release model for Ironic projects <https://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/new-release-model.html>`_.
 
   To propose the release, use the script to update the deliverable file, then
   commit the change, and propose it for review.
 
-  For example, to propose a minor release for ironic in the master branch
+  For example, to propose a minor release for Ironic in the master branch
   (current development branch), considering that the code name of the future
   stable release is wallaby, use:
 
@@ -260,7 +260,7 @@ following the next steps:
   deliverable, the new version and the branch, if applicable.
 
   A good commit message title should also include the same, for example
-  "Release ironic 1.2.3 for ussuri"
+  "Release Ironic 1.2.3 for ussuri"
 
 * As an optional step, we can use ``tox -e list-changes`` to double-check the
   changes before submitting them for review.
@@ -310,7 +310,7 @@ This includes:
 
 We need to submit patches for changes in the stable branch to:
 
-* update the ironic devstack plugin to point at the branched tarball for IPA.
+* update the Ironic devstack plugin to point at the branched tarball for IPA.
   An example of this patch is
   `here <https://review.opendev.org/685069/>`_.
 * set appropriate defaults for ``TEMPEST_BAREMETAL_MIN_MICROVERSION`` and
@@ -324,7 +324,7 @@ We need to submit patches for changes on master to:
   need to make these changes. Note that we need to wait until *after* the
   switch in grenade is made to test the latest release (N) with master
   (e.g. `for stable/queens <https://review.opendev.org/#/c/543615>`_).
-  Doing these changes sooner -- after the ironic release and before the switch
+  Doing these changes sooner -- after the Ironic release and before the switch
   when grenade is testing the prior release (N-1) with master, will cause
   the tests to fail. (You may want to ask/remind infra/qa team, as to
   when they will do this switch.)
@@ -335,7 +335,7 @@ We need to submit patches for changes on master to:
     only support upgrades from the most recent named release to master.
 
   * remove any DB migration scripts from ``ironic.cmd.dbsync.ONLINE_MIGRATIONS``
-    and remove the corresponding code from ironic. (These migration scripts
+    and remove the corresponding code from Ironic. (These migration scripts
     are used to migrate from an old release to this latest release; they
     shouldn't be needed after that.)
 
