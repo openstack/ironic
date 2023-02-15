@@ -194,9 +194,9 @@ def _get_cleaning_steps(task, enabled=False, sort=True):
                                     sort_step_key=sort_key,
                                     prio_overrides=csp_override)
 
-        LOG.debug("cleaning_steps after applying "
-                  "clean_step_priority_override for node %(node)s: %(step)s",
-                  task.node.uuid, cleaning_steps)
+        LOG.debug('cleaning_steps after applying '
+                  'clean_step_priority_override for node %(node)s: %(steps)s',
+                  {'node': task.node.uuid, 'steps': cleaning_steps})
     else:
         cleaning_steps = _get_steps(task, CLEANING_INTERFACE_PRIORITY,
                                     'get_clean_steps', enabled=enabled,
