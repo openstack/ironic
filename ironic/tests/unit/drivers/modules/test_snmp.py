@@ -46,6 +46,41 @@ class SNMPClientTestCase(base.TestCase):
         self.value = 'value'
 
     @mock.patch.object(pysnmp, 'SnmpEngine', autospec=True)
+    def test__get_client(self, mock_snmpengine):
+        driver_info = db_utils.get_test_snmp_info(
+            snmp_address=self.address,
+            snmp_port=self.port,
+            snmp_user='test-user',
+            snmp_auth_protocol='sha',
+            snmp_auth_key='test-auth-key',
+            snmp_priv_protocol='aes',
+            snmp_priv_key='test-priv-key',
+            snmp_context_engine_id='test-engine-id',
+            snmp_context_name='test-context-name',
+            snmp_version='3')
+        node = obj_utils.get_test_node(
+            self.context,
+            driver_info=driver_info)
+        info = snmp._parse_driver_info(node)
+
+        client = snmp._get_client(info)
+
+        mock_snmpengine.assert_called_once_with()
+        self.assertEqual(self.address, client.address)
+        self.assertEqual(int(self.port), client.port)
+        self.assertEqual(snmp.SNMP_V3, client.version)
+        self.assertNotIn('read_community', client.__dict__)
+        self.assertNotIn('write_community', client.__dict__)
+        self.assertEqual('test-user', client.user)
+        self.assertEqual(pysnmp.usmHMACSHAAuthProtocol, client.auth_proto)
+        self.assertEqual('test-auth-key', client.auth_key)
+        self.assertEqual(pysnmp.usmAesCfb128Protocol, client.priv_proto)
+        self.assertEqual('test-priv-key', client.priv_key)
+        self.assertEqual('test-engine-id', client.context_engine_id)
+        self.assertEqual('test-context-name', client.context_name)
+        self.assertEqual(mock_snmpengine.return_value, client.snmp_engine)
+
+    @mock.patch.object(pysnmp, 'SnmpEngine', autospec=True)
     def test___init__(self, mock_snmpengine):
         client = snmp.SNMPClient(self.address, self.port, snmp.SNMP_V1)
         mock_snmpengine.assert_called_once_with()

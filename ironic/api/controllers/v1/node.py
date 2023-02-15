@@ -1600,6 +1600,10 @@ def node_sanitize(node, fields, cdict=None,
             node['driver_info'] = strutils.mask_dict_password(
                 node['driver_info'], "******")
 
+            _mask_fields(node['driver_info'],
+                         ['snmp_auth_key', 'snmp_priv_key'],
+                         "******")
+
     if not show_instance_secrets and 'instance_info' in node_keys:
         node['instance_info'] = strutils.mask_dict_password(
             node['instance_info'], "******")
@@ -1661,6 +1665,12 @@ def _node_sanitize_extended(node, node_keys, target_dict, cdict):
         node['driver_internal_info'] = {
             'content': '** Redacted - Requires baremetal:node:get:'
                        'driver_internal_info permission. **'}
+
+
+def _mask_fields(dictionary, fields, secret):
+    for field in fields:
+        if dictionary.get(field):
+            dictionary[field] = secret
 
 
 def node_list_convert_with_links(nodes, limit, url, fields=None, **kwargs):

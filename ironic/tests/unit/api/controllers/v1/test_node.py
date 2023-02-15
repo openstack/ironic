@@ -844,6 +844,64 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('retired_reason', data['nodes'][0])
         self.assertIn('network_data', data['nodes'][0])
 
+    def test_detail_snmpv3(self):
+        driver_info = {
+            'snmp_version': 3,
+            'snmp_user': 'test-user',
+            'snmp_auth_protocol': 'sha',
+            'snmp_auth_key': 'test-auth-key',
+            'snmp_priv_protocol': 'aes',
+            'snmp_priv_key': 'test-priv-key'
+        }
+        sanitized_driver_info = driver_info.copy()
+        sanitized_driver_info['snmp_auth_key'] = '******'
+        sanitized_driver_info['snmp_priv_key'] = '******'
+
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id,
+                                          driver_info=driver_info)
+        data = self.get_json(
+            '/nodes/detail',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(node.uuid, data['nodes'][0]["uuid"])
+        self.assertIn('name', data['nodes'][0])
+        self.assertIn('driver', data['nodes'][0])
+        self.assertIn('driver_info', data['nodes'][0])
+        self.assertEqual(sanitized_driver_info,
+                         data['nodes'][0]['driver_info'])
+        self.assertIn('extra', data['nodes'][0])
+        self.assertIn('properties', data['nodes'][0])
+        self.assertIn('chassis_uuid', data['nodes'][0])
+        self.assertIn('reservation', data['nodes'][0])
+        self.assertIn('maintenance', data['nodes'][0])
+        self.assertIn('console_enabled', data['nodes'][0])
+        self.assertIn('target_power_state', data['nodes'][0])
+        self.assertIn('target_provision_state', data['nodes'][0])
+        self.assertIn('provision_updated_at', data['nodes'][0])
+        self.assertIn('inspection_finished_at', data['nodes'][0])
+        self.assertIn('inspection_started_at', data['nodes'][0])
+        self.assertIn('raid_config', data['nodes'][0])
+        self.assertIn('target_raid_config', data['nodes'][0])
+        self.assertIn('network_interface', data['nodes'][0])
+        self.assertIn('resource_class', data['nodes'][0])
+        for field in api_utils.V31_FIELDS:
+            self.assertIn(field, data['nodes'][0])
+        self.assertIn('storage_interface', data['nodes'][0])
+        self.assertIn('traits', data['nodes'][0])
+        self.assertIn('conductor_group', data['nodes'][0])
+        self.assertIn('automated_clean', data['nodes'][0])
+        self.assertIn('protected', data['nodes'][0])
+        self.assertIn('protected_reason', data['nodes'][0])
+        self.assertIn('owner', data['nodes'][0])
+        self.assertIn('lessee', data['nodes'][0])
+        # never expose the chassis_id
+        self.assertNotIn('chassis_id', data['nodes'][0])
+        self.assertNotIn('allocation_id', data['nodes'][0])
+        self.assertIn('allocation_uuid', data['nodes'][0])
+        self.assertIn('retired', data['nodes'][0])
+        self.assertIn('retired_reason', data['nodes'][0])
+        self.assertIn('network_data', data['nodes'][0])
+
     def test_detail_instance_uuid(self):
         instance_uuid = '6eccd391-961c-4da5-b3c5-e2fa5cfbbd9d'
         node = obj_utils.create_test_node(
