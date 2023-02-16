@@ -2034,9 +2034,9 @@ class ConductorManager(base_manager.BaseConductorManager):
                                 'node %(node)s: %(e)s',
                                 {'node': node.uuid, 'e': e})
                 else:
-                    LOG.error('Swift object cannot be orphaned during '
-                              'destruction of node %(node)s: %(e)s',
-                              {'node': node.uuid, 'e': e})
+                    LOG.error('Swift object cannot be orphaned without '
+                              'maintenance mode during destruction of node '
+                              '%(node)s: %(e)s', {'node': node.uuid, 'e': e})
                     raise
             except Exception as err:
                 LOG.error('Failed to delete Swift entries related '
