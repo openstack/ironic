@@ -24,18 +24,6 @@ class TestNodeInventoryObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         super(TestNodeInventoryObject, self).setUp()
         self.fake_inventory = db_utils.get_test_inventory()
 
-    def test_get_by_id(self):
-        with mock.patch.object(self.dbapi, 'get_node_inventory_by_id',
-                               autospec=True) as mock_get:
-            id_ = self.fake_inventory['id']
-            mock_get.return_value = self.fake_inventory
-
-            inventory = objects.NodeInventory.get_by_id(self.context, id_)
-
-            mock_get.assert_called_once_with(id_)
-            self.assertIsInstance(inventory, objects.NodeInventory)
-            self.assertEqual(self.context, inventory._context)
-
     def test_create(self):
         with mock.patch.object(self.dbapi, 'create_node_inventory',
                                autospec=True) as mock_db_create:

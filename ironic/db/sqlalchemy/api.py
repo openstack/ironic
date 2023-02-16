@@ -2585,21 +2585,14 @@ class Connection(api.Connection):
             count = query.delete()
             if count == 0:
                 raise exception.NodeInventoryNotFound(
-                    node_id=node_id)
-
-    def get_node_inventory_by_id(self, inventory_id):
-        query = model_query(models.NodeInventory).filter_by(id=inventory_id)
-        try:
-            return query.one()
-        except NoResultFound:
-            raise exception.NodeInventoryNotFound(inventory=inventory_id)
+                    node=node_id)
 
     def get_node_inventory_by_node_id(self, node_id):
         query = model_query(models.NodeInventory).filter_by(node_id=node_id)
         try:
             return query.one()
         except NoResultFound:
-            raise exception.NodeInventoryNotFound(node_id=node_id)
+            raise exception.NodeInventoryNotFound(node=node_id)
 
     def get_shard_list(self):
         """Return a list of shards.
