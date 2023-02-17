@@ -120,6 +120,10 @@ class VolumeTargetBootIndexAlreadyExists(Conflict):
                  "for the same node already exists.")
 
 
+class NodeInventoryAlreadyExists(Conflict):
+    _msg_fmt = _("A node inventory with ID %(id)s already exists.")
+
+
 class VifAlreadyAttached(Conflict):
     _msg_fmt = _("Unable to attach VIF because VIF %(vif)s is already "
                  "attached to Ironic %(object_type)s %(object_uuid)s")

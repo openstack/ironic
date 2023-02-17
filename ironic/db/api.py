@@ -1451,14 +1451,6 @@ class Connection(object, metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def get_node_inventory_by_id(self, inventory_id):
-        """Return a node inventory representation.
-
-        :param inventory_id: The id of a inventory record.
-        :returns: An inventory of a node.
-        """
-
-    @abc.abstractmethod
     def get_node_inventory_by_node_id(self, node_id):
         """Get the node inventory for a given node.
 

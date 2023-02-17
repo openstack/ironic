@@ -28,20 +28,9 @@ class DBNodeInventoryTestCase(base.DbTestCase):
     def test_destroy_node_inventory_by_node_id(self):
         self.dbapi.destroy_node_inventory_by_node_id(self.inventory.node_id)
         self.assertRaises(exception.NodeInventoryNotFound,
-                          self.dbapi.get_node_inventory_by_id,
-                          self.inventory.id)
-
-    def test_get_inventory_by_id(self):
-        res = self.dbapi.get_node_inventory_by_id(self.inventory.id)
-        self.assertEqual(self.inventory.inventory_data, res.inventory_data)
-
-    def test_get_inventory_by_id_not_found(self):
-        self.assertRaises(exception.NodeInventoryNotFound,
-                          self.dbapi.get_node_inventory_by_id, -1)
+                          self.dbapi.get_node_inventory_by_node_id,
+                          self.node.id)
 
     def test_get_inventory_by_node_id(self):
         res = self.dbapi.get_node_inventory_by_node_id(self.inventory.node_id)
         self.assertEqual(self.inventory.id, res.id)
-
-    def test_get_history_by_node_id_empty(self):
-        self.assertEqual([], self.dbapi.get_node_history_by_node_id(10))
