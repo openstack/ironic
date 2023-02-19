@@ -296,6 +296,15 @@ class Portgroup(Base):
     mode = Column(String(255))
     properties = Column(db_types.JsonEncodedDict)
 
+    _node_uuid = orm.relationship(
+        "Node",
+        viewonly=True,
+        primaryjoin="(Node.id == Portgroup.node_id)",
+        lazy="selectin",
+    )
+    node_uuid = association_proxy(
+        "_node_uuid", "uuid", creator=lambda _i: Node(uuid=_i))
+
 
 class NodeTag(Base):
     """Represents a tag of a bare metal node."""

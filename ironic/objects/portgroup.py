@@ -36,7 +36,8 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.4: Migrate/copy extra['vif_port_id'] to
     #              internal_info['tenant_vif_port_id'] (not an explicit db
     #              change)
-    VERSION = '1.4'
+    # Version 1.5: Add node_uuid field
+    VERSION = '1.5'
 
     dbapi = dbapi.get_instance()
 
@@ -45,6 +46,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         'uuid': object_fields.UUIDField(nullable=True),
         'name': object_fields.StringField(nullable=True),
         'node_id': object_fields.IntegerField(nullable=True),
+        'node_uuid': object_fields.UUIDField(nullable=True),
         'address': object_fields.MACAddressField(nullable=True),
         'extra': object_fields.FlexibleDictField(nullable=True),
         'internal_info': object_fields.FlexibleDictField(nullable=True),
@@ -261,6 +263,10 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         values = self.do_version_changes_for_db()
         db_portgroup = self.dbapi.create_portgroup(values)
+        # NOTE(hjensas): To avoid lazy load issue (DetachedInstanceError) in
+        # sqlalchemy, get new port the port from the DB to ensure the node_uuid
+        # via association_proxy relationship is loaded.
+        db_portgroup = self.dbapi.get_portgroup_by_id(db_portgroup['id'])
         self._from_db_object(self._context, self, db_portgroup)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable

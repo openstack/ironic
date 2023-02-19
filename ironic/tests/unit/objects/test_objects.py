@@ -680,7 +680,7 @@ expected_object_fingerprints = {
     'MyObj': '1.5-9459d30d6954bffc7a9afd347a807ca6',
     'Chassis': '1.3-d656e039fd8ae9f34efc232ab3980905',
     'Port': '1.11-97bf15b61224f26c65e90f007d78bfd2',
-    'Portgroup': '1.4-71923a81a86743b313b190f5c675e258',
+    'Portgroup': '1.5-df4dc15967f67114d51176a98a901a83',
     'Conductor': '1.3-d3f53e853b4d58cae5bfbd9a8341af4a',
     'EventType': '1.1-aa2ba1afd38553e3880c267404e8d370',
     'NotificationPublisher': '1.0-51a09397d6c0687771fb5be9a999605d',

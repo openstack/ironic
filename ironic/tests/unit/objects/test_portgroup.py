@@ -80,13 +80,18 @@ class TestPortgroupObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
     def test_create(self):
         portgroup = objects.Portgroup(self.context, **self.fake_portgroup)
         with mock.patch.object(self.dbapi, 'create_portgroup',
-                               autospec=True) as mock_create_portgroup:
-            mock_create_portgroup.return_value = db_utils.get_test_portgroup()
+                               autospec=True) as mock_create_pg:
+            with mock.patch.object(self.dbapi, 'get_portgroup_by_id',
+                                   autospec=True) as mock_get_pg:
+                test_pg = db_utils.get_test_portgroup()
+                mock_create_pg.return_value = test_pg
+                mock_get_pg.return_value = test_pg
+                mock_create_pg.return_value = db_utils.get_test_portgroup()
 
-            portgroup.create()
+                portgroup.create()
 
-            args, _kwargs = mock_create_portgroup.call_args
-            self.assertEqual(objects.Portgroup.VERSION, args[0]['version'])
+                args, _kwargs = mock_create_pg.call_args
+                self.assertEqual(objects.Portgroup.VERSION, args[0]['version'])
 
     def test_save(self):
         uuid = self.fake_portgroup['uuid']

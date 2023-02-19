@@ -449,6 +449,8 @@ def get_test_portgroup(**kw):
         'uuid': kw.get('uuid', '6eb02b44-18a3-4659-8c0b-8d2802581ae4'),
         'name': kw.get('name', 'fooname'),
         'node_id': kw.get('node_id', 123),
+        'node_uuid': kw.get('node_uuid',
+                            '40481b96-306b-4a33-901f-795a3dc2f397'),
         'address': kw.get('address', '52:54:00:cf:2d:31'),
         'extra': kw.get('extra', {}),
         'created_at': kw.get('created_at'),

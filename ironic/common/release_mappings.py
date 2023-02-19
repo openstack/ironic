@@ -524,7 +524,7 @@ RELEASE_MAPPING = {
             'Deployment': ['1.0'],
             'DeployTemplate': ['1.1'],
             'Port': ['1.11'],
-            'Portgroup': ['1.4'],
+            'Portgroup': ['1.5'],
             'Trait': ['1.0'],
             'TraitList': ['1.0'],
             'VolumeConnector': ['1.0'],
