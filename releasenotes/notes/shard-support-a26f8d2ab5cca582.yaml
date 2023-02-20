@@ -1,0 +1,14 @@
+features:
+  - Adds support for setting a shard key on a node, and filtering node or port
+    lists by shard. This shard key is not used for any purpose internally in
+    Ironic, but instead is intended to allow API clients to filter for a
+    subset of nodes or ports. Being able to fetch only a subset of nodes or
+    ports is useful for parallelizing any operational task that needs to be
+    performed across all nodes or ports.
+  - Adds support for querying for nodes which are sharded or unsharded. This
+    is useful for allowing operators to find nodes which have not been
+    assigned a shard key.
+  - Adds support for querying for a list of shards via ``/v1/shards``. This
+    endpoint will return a list of currently assigned shard keys as well as
+    the count of nodes which has those keys assigned. Using this API endpoint,
+    operators can see a high level listing of how their nodes are sharded.
