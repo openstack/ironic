@@ -202,7 +202,7 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
         self._test_management_interface_set_boot_device_ok(
             None,
             params,
-            "0x00 0x08 0x05 0x80 0x04 0x00 0x00 0x00")
+            "0x00 0x08 0x05 0xa0 0x04 0x00 0x00 0x00")
         self._test_management_interface_set_boot_device_ok(
             'bios',
             params,
@@ -216,7 +216,7 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
         self._test_management_interface_set_boot_device_ok(
             None,
             params,
-            "0x00 0x08 0x05 0xc0 0x04 0x00 0x00 0x00")
+            "0x00 0x08 0x05 0xe0 0x04 0x00 0x00 0x00")
         self._test_management_interface_set_boot_device_ok(
             'bios',
             params,
@@ -231,7 +231,7 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
         self._test_management_interface_set_boot_device_ok(
             None,
             params,
-            "0x00 0x08 0x05 0x80 0x08 0x00 0x00 0x00")
+            "0x00 0x08 0x05 0xa0 0x08 0x00 0x00 0x00")
         self._test_management_interface_set_boot_device_ok(
             'bios',
             params,
@@ -245,7 +245,7 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
         self._test_management_interface_set_boot_device_ok(
             None,
             params,
-            "0x00 0x08 0x05 0xc0 0x08 0x00 0x00 0x00")
+            "0x00 0x08 0x05 0xe0 0x08 0x00 0x00 0x00")
         self._test_management_interface_set_boot_device_ok(
             'bios',
             params,
@@ -260,7 +260,7 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
         self._test_management_interface_set_boot_device_ok(
             None,
             params,
-            "0x00 0x08 0x05 0x80 0x20 0x00 0x00 0x00")
+            "0x00 0x08 0x05 0xa0 0x20 0x00 0x00 0x00")
         self._test_management_interface_set_boot_device_ok(
             'bios',
             params,
@@ -274,7 +274,7 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
         self._test_management_interface_set_boot_device_ok(
             None,
             params,
-            "0x00 0x08 0x05 0xc0 0x20 0x00 0x00 0x00")
+            "0x00 0x08 0x05 0xe0 0x20 0x00 0x00 0x00")
         self._test_management_interface_set_boot_device_ok(
             'bios',
             params,
@@ -289,7 +289,7 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
         self._test_management_interface_set_boot_device_ok(
             None,
             params,
-            "0x00 0x08 0x05 0x80 0x18 0x00 0x00 0x00")
+            "0x00 0x08 0x05 0xa0 0x18 0x00 0x00 0x00")
         self._test_management_interface_set_boot_device_ok(
             'bios',
             params,
@@ -303,7 +303,7 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
         self._test_management_interface_set_boot_device_ok(
             None,
             params,
-            "0x00 0x08 0x05 0xc0 0x18 0x00 0x00 0x00")
+            "0x00 0x08 0x05 0xe0 0x18 0x00 0x00 0x00")
         self._test_management_interface_set_boot_device_ok(
             'bios',
             params,
@@ -318,7 +318,7 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
         self._test_management_interface_set_boot_device_ok(
             None,
             params,
-            "0x00 0x08 0x05 0x80 0x0c 0x00 0x00 0x00")
+            "0x00 0x08 0x05 0xa0 0x0c 0x00 0x00 0x00")
         self._test_management_interface_set_boot_device_ok(
             'bios',
             params,
@@ -332,7 +332,7 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
         self._test_management_interface_set_boot_device_ok(
             None,
             params,
-            "0x00 0x08 0x05 0xc0 0x0c 0x00 0x00 0x00")
+            "0x00 0x08 0x05 0xe0 0x0c 0x00 0x00 0x00")
         self._test_management_interface_set_boot_device_ok(
             'bios',
             params,
