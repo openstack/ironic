@@ -100,7 +100,7 @@ _FASTTRACK_HEARTBEAT_ALLOWED = (states.DEPLOYWAIT, states.CLEANWAIT,
 FASTTRACK_HEARTBEAT_ALLOWED = frozenset(_FASTTRACK_HEARTBEAT_ALLOWED)
 
 
-@METRICS.timer('post_clean_step_hook')
+@METRICS.timer('AgentBase.post_clean_step_hook')
 def post_clean_step_hook(interface, step):
     """Decorator method for adding a post clean step hook.
 
@@ -128,7 +128,7 @@ def post_clean_step_hook(interface, step):
     return decorator
 
 
-@METRICS.timer('post_deploy_step_hook')
+@METRICS.timer('AgentBase.post_deploy_step_hook')
 def post_deploy_step_hook(interface, step):
     """Decorator method for adding a post deploy step hook.
 
@@ -279,7 +279,7 @@ def _get_completed_command(task, commands, step_type):
         return last_command
 
 
-@METRICS.timer('log_and_raise_deployment_error')
+@METRICS.timer('AgentBase.log_and_raise_deployment_error')
 def log_and_raise_deployment_error(task, msg, collect_logs=True, exc=None):
     """Helper method to log the error and raise exception.
 

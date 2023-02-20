@@ -1,0 +1,9 @@
+---
+upgrade:
+  - |
+    Two statsd metrics names have been modified to provide structural clarity
+    and consistency for consumers of statistics metrics. Consumers of metrics
+    statistics may need to update their dashboards as the
+    ``post_clean_step_hook`` metric is now named
+    ``AgentBase.post_clean_step_hook``, and the ``post_deploy_step_hook`` is
+    now named ``AgentBase.post_deploy_step_hook``.
