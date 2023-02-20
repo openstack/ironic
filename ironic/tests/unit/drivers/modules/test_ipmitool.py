@@ -3255,6 +3255,11 @@ class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
         mock_start.return_value = None
         mock_info.return_value = {'port': None}
         mock_alloc.return_value = 1234
+        # Ensure allocated port is not re-used
+        dii = self.node.driver_internal_info
+        dii['allocated_ipmi_terminal_port'] = 4321
+        self.node.driver_internal_info = dii
+        self.node.save()
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
@@ -3468,6 +3473,11 @@ class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
         mock_start.return_value = None
         mock_info.return_value = {'port': None}
         mock_alloc.return_value = 1234
+        # Ensure allocated port is not re-used
+        dii = self.node.driver_internal_info
+        dii['allocated_ipmi_terminal_port'] = 4321
+        self.node.driver_internal_info = dii
+        self.node.save()
 
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:

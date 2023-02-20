@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes issues that auto-allocated console port could conflict on the same
+    host under certain circumstances related to conductor takeover.
+
+    For more information, see `story 2010489
+    <https://storyboard.openstack.org/#!/story/2010489>`_.
