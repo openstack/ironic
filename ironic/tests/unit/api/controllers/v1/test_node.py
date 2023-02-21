@@ -44,8 +44,8 @@ from ironic.common import indicator_states
 from ironic.common import policy
 from ironic.common import states
 from ironic.conductor import rpcapi
+from ironic.conf import CONF
 from ironic.drivers.modules import inspect_utils
-from ironic.drivers.modules import inspector
 from ironic import objects
 from ironic.objects import fields as obj_fields
 from ironic import tests as tests_root
@@ -54,7 +54,6 @@ from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.api import utils as test_api_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
-CONF = inspector.CONF
 
 with open(
         os.path.join(

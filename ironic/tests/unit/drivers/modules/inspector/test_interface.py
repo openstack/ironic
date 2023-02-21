@@ -13,64 +13,18 @@
 from unittest import mock
 
 import eventlet
-from keystoneauth1 import exceptions as ks_exception
-import openstack
 
-from ironic.common import context
 from ironic.common import exception
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
+from ironic.conf import CONF
 from ironic.drivers.modules import inspect_utils
-from ironic.drivers.modules import inspector
+from ironic.drivers.modules.inspector import client
+from ironic.drivers.modules.inspector import interface as inspector
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
-
-CONF = inspector.CONF
-
-
-@mock.patch('ironic.common.keystone.get_auth', autospec=True,
-            return_value=mock.sentinel.auth)
-@mock.patch('ironic.common.keystone.get_session', autospec=True,
-            return_value=mock.sentinel.session)
-@mock.patch.object(openstack.connection, 'Connection', autospec=True)
-class GetClientTestCase(db_base.DbTestCase):
-
-    def setUp(self):
-        super(GetClientTestCase, self).setUp()
-        # NOTE(pas-ha) force-reset  global inspector session object
-        inspector._INSPECTOR_SESSION = None
-        self.context = context.RequestContext(global_request_id='global')
-
-    def test__get_client(self, mock_conn, mock_session, mock_auth):
-        inspector._get_client(self.context)
-        mock_conn.assert_called_once_with(
-            session=mock.sentinel.session,
-            oslo_conf=mock.ANY)
-        self.assertEqual(1, mock_auth.call_count)
-        self.assertEqual(1, mock_session.call_count)
-
-    def test__get_client_standalone(self, mock_conn, mock_session, mock_auth):
-        self.config(auth_strategy='noauth')
-        inspector._get_client(self.context)
-        self.assertEqual('none', inspector.CONF.inspector.auth_type)
-        mock_conn.assert_called_once_with(
-            session=mock.sentinel.session,
-            oslo_conf=mock.ANY)
-        self.assertEqual(1, mock_auth.call_count)
-        self.assertEqual(1, mock_session.call_count)
-
-    def test__get_client_connection_problem(
-            self, mock_conn, mock_session, mock_auth):
-        mock_conn.side_effect = ks_exception.DiscoveryFailure("")
-        self.assertRaises(exception.ConfigInvalid,
-                          inspector._get_client, self.context)
-        mock_conn.assert_called_once_with(
-            session=mock.sentinel.session,
-            oslo_conf=mock.ANY)
-        self.assertEqual(1, mock_auth.call_count)
-        self.assertEqual(1, mock_session.call_count)
 
 
 class BaseTestCase(db_base.DbTestCase):
@@ -129,7 +83,7 @@ class CommonFunctionsTestCase(BaseTestCase):
 
 
 @mock.patch.object(eventlet, 'spawn_n', lambda f, *a, **kw: f(*a, **kw))
-@mock.patch('ironic.drivers.modules.inspector._get_client', autospec=True)
+@mock.patch.object(client, 'get_client', autospec=True)
 class InspectHardwareTestCase(BaseTestCase):
     def test_validate_ok(self, mock_client):
         self.iface.validate(self.task)
@@ -369,7 +323,7 @@ class InspectHardwareTestCase(BaseTestCase):
             self.task, 'power off', timeout=None)
 
 
-@mock.patch('ironic.drivers.modules.inspector._get_client', autospec=True)
+@mock.patch.object(client, 'get_client', autospec=True)
 class CheckStatusTestCase(BaseTestCase):
     def setUp(self):
         super(CheckStatusTestCase, self).setUp()
@@ -593,7 +547,7 @@ class CheckStatusTestCase(BaseTestCase):
         mock_get_data.assert_not_called()
 
 
-@mock.patch('ironic.drivers.modules.inspector._get_client', autospec=True)
+@mock.patch.object(client, 'get_client', autospec=True)
 class InspectHardwareAbortTestCase(BaseTestCase):
     def test_abort_ok(self, mock_client):
         mock_abort = mock_client.return_value.abort_introspection
