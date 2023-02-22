@@ -246,12 +246,21 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
     task.process_event(event)
 
 
+def get_last_error(node):
+    last_error = _('By request, the clean operation was aborted')
+    if node.clean_step:
+        last_error += (
+            _(' during or after the completion of step "%s"')
+            % conductor_steps.step_id(node.clean_step)
+        )
+    return last_error
+
+
 @task_manager.require_exclusive_lock
-def do_node_clean_abort(task, step_name=None):
+def do_node_clean_abort(task):
     """Internal method to abort an ongoing operation.
 
     :param task: a TaskManager instance with an exclusive lock
-    :param step_name: The name of the clean step.
     """
     node = task.node
     try:
@@ -269,12 +278,13 @@ def do_node_clean_abort(task, step_name=None):
                                      set_fail_state=False)
         return
 
+    last_error = get_last_error(node)
     info_message = _('Clean operation aborted for node %s') % node.uuid
-    last_error = _('By request, the clean operation was aborted')
-    if step_name:
-        msg = _(' after the completion of step "%s"') % step_name
-        last_error += msg
-        info_message += msg
+    if node.clean_step:
+        info_message += (
+            _(' during or after the completion of step "%s"')
+            % node.clean_step
+        )
 
     node.last_error = last_error
     node.clean_step = None
@@ -316,7 +326,7 @@ def continue_node_clean(task):
                 target_state = None
 
             task.process_event('fail', target_state=target_state)
-            do_node_clean_abort(task, step_name)
+            do_node_clean_abort(task)
             return
 
         LOG.debug('The cleaning operation for node %(node)s was '

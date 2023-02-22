@@ -527,7 +527,8 @@ class TaskManager(object):
             self.release_resources()
 
     def process_event(self, event, callback=None, call_args=None,
-                      call_kwargs=None, err_handler=None, target_state=None):
+                      call_kwargs=None, err_handler=None, target_state=None,
+                      last_error=None):
         """Process the given event for the task's current state.
 
         :param event: the name of the event to process
@@ -540,6 +541,8 @@ class TaskManager(object):
                 prev_target_state)
         :param target_state: if specified, the target provision state for the
                node. Otherwise, use the target state from the fsm
+        :param last_error: last error to set on the node together with
+               the state transition.
         :raises: InvalidState if the event is not allowed by the associated
                  state machine
         """
@@ -572,13 +575,15 @@ class TaskManager(object):
 
         # set up the async worker
         if callback:
-            # clear the error if we're going to start work in a callback
-            self.node.last_error = None
+            # update the error if we're going to start work in a callback
+            self.node.last_error = last_error
             if call_args is None:
                 call_args = ()
             if call_kwargs is None:
                 call_kwargs = {}
             self.spawn_after(callback, *call_args, **call_kwargs)
+        elif last_error is not None:
+            self.node.last_error = last_error
 
         # publish the state transition by saving the Node
         self.node.save()

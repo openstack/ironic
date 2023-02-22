@@ -300,9 +300,11 @@ def node_power_action(task, new_state, timeout=None):
 
     # Set the target_power_state and clear any last_error, if we're
     # starting a new operation. This will expose to other processes
-    # and clients that work is in progress.
-    node['target_power_state'] = target_state
-    node['last_error'] = None
+    # and clients that work is in progress. Keep the last_error intact
+    # if the power action happens as a result of a failure.
+    node.target_power_state = target_state
+    if node.provision_state not in states.FAILURE_STATES:
+        node.last_error = None
     node.timestamp_driver_internal_info('last_power_state_change')
     # NOTE(dtantsur): wipe token on shutting down, otherwise a reboot in
     # fast-track (or an accidentally booted agent) will cause subsequent
