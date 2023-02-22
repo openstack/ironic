@@ -269,6 +269,9 @@ _FASTTRACK_LOOKUP_ALLOWED_STATES = (ENROLL, MANAGEABLE, AVAILABLE,
 FASTTRACK_LOOKUP_ALLOWED_STATES = frozenset(_FASTTRACK_LOOKUP_ALLOWED_STATES)
 """States where API lookups are permitted with fast track enabled."""
 
+FAILURE_STATES = frozenset((DEPLOYFAIL, CLEANFAIL, INSPECTFAIL,
+                            RESCUEFAIL, UNRESCUEFAIL, ADOPTFAIL))
+
 
 ##############
 # Power states
