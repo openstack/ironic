@@ -1124,12 +1124,12 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
 
 class DoNodeCleanAbortTestCase(db_base.DbTestCase):
     @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)
-    def _test__do_node_clean_abort(self, step_name, tear_mock):
+    def _test_do_node_clean_abort(self, clean_step, tear_mock):
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
-            provision_state=states.CLEANFAIL,
+            provision_state=states.CLEANWAIT,
             target_provision_state=states.AVAILABLE,
-            clean_step={'step': 'foo', 'abortable': True},
+            clean_step=clean_step,
             driver_internal_info={
                 'agent_url': 'some url',
                 'agent_secret_token': 'token',
@@ -1139,11 +1139,11 @@ class DoNodeCleanAbortTestCase(db_base.DbTestCase):
                 'skip_current_clean_step': True})
 
         with task_manager.acquire(self.context, node.uuid) as task:
-            cleaning.do_node_clean_abort(task, step_name=step_name)
+            cleaning.do_node_clean_abort(task)
             self.assertIsNotNone(task.node.last_error)
             tear_mock.assert_called_once_with(task.driver.deploy, task)
-            if step_name:
-                self.assertIn(step_name, task.node.last_error)
+            if clean_step:
+                self.assertIn(clean_step['step'], task.node.last_error)
             # assert node's clean_step and metadata was cleaned up
             self.assertEqual({}, task.node.clean_step)
             self.assertNotIn('clean_step_index',
@@ -1159,11 +1159,12 @@ class DoNodeCleanAbortTestCase(db_base.DbTestCase):
             self.assertNotIn('agent_secret_token',
                              task.node.driver_internal_info)
 
-    def test__do_node_clean_abort(self):
-        self._test__do_node_clean_abort(None)
+    def test_do_node_clean_abort_early(self):
+        self._test_do_node_clean_abort(None)
 
-    def test__do_node_clean_abort_with_step_name(self):
-        self._test__do_node_clean_abort('foo')
+    def test_do_node_clean_abort_with_step(self):
+        self._test_do_node_clean_abort({'step': 'foo', 'interface': 'deploy',
+                                        'abortable': True})
 
     @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)
     def test__do_node_clean_abort_tear_down_fail(self, tear_mock):
