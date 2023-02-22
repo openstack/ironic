@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    When aborting cleaning, the ``last_error`` field is no longer initially
+    empty. It is now populated on the state transition to ``clean failed``.
+  - |
+    When cleaning or deployment fails, the ``last_error`` field is no longer
+    temporary set to ``None`` while the power off action is running.
