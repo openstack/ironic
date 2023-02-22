@@ -1349,7 +1349,8 @@ class ConductorManager(base_manager.BaseConductorManager):
                 callback=self._spawn_worker,
                 call_args=(cleaning.do_node_clean_abort, task),
                 err_handler=utils.provisioning_error_handler,
-                target_state=target_state)
+                target_state=target_state,
+                last_error=cleaning.get_last_error(node))
             return
 
         if node.provision_state == states.RESCUEWAIT:
