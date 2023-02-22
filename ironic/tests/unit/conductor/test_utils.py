@@ -196,7 +196,8 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid(),
                                           driver='fake-hardware',
-                                          power_state=states.POWER_OFF)
+                                          power_state=states.POWER_OFF,
+                                          last_error='failed before')
         task = task_manager.TaskManager(self.context, node.uuid)
 
         get_power_mock.return_value = states.POWER_OFF
@@ -208,6 +209,27 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertEqual(states.POWER_ON, node['power_state'])
         self.assertIsNone(node['target_power_state'])
         self.assertIsNone(node['last_error'])
+
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_keep_last_error(self, get_power_mock):
+        """Test node_power_action to keep last_error for failed states."""
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake-hardware',
+                                          power_state=states.POWER_OFF,
+                                          provision_state=states.CLEANFAIL,
+                                          last_error='failed before')
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        get_power_mock.return_value = states.POWER_OFF
+
+        conductor_utils.node_power_action(task, states.POWER_ON)
+
+        node.refresh()
+        get_power_mock.assert_called_once_with(mock.ANY, mock.ANY)
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertEqual('failed before', node['last_error'])
 
     @mock.patch('ironic.objects.node.NodeSetPowerStateNotification',
                 autospec=True)
