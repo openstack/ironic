@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes a database API internal check to update the
+    ``inspection_finished_at`` field upon the completion of inspection.
