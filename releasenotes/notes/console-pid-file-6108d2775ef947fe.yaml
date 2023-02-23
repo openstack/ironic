@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue that when a node has console enabled but pid
+    file missing, the console could not be disabled as well as be
+    restarted, which makes the console feature unusable.
