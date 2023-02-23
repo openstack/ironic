@@ -1,0 +1,8 @@
+---
+other:
+  - |
+    The default logging level for the ``oslo_concurrencty.lockutils``
+    module logging has been changed to ``WARNING``. By default, the debug
+    logging was resulting in lots of noise. Operators wishing to view debug
+    logging for this module can tuilize the ``[DEFAULT]default_log_levels``
+    configuration option.
