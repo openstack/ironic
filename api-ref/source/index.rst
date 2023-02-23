@@ -28,6 +28,7 @@
 .. include:: baremetal-api-v1-node-allocation.inc
 .. include:: baremetal-api-v1-deploy-templates.inc
 .. include:: baremetal-api-v1-nodes-history.inc
+.. include:: baremetal-api-v1-nodes-inventory.inc
 .. include:: baremetal-api-v1-shards.inc
 .. NOTE(dtantsur): keep chassis close to the end since it's semi-deprecated
 .. include:: baremetal-api-v1-chassis.inc
