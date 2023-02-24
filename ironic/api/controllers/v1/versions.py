@@ -119,6 +119,7 @@ BASE_VERSION = 1
 # v1.79: Change allocation behaviour to prefer node name match
 # v1.80: Marker to represent self service node creation/deletion
 # v1.81: Add node inventory
+# v1.82: Add node sharding capability
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
 MINOR_2_AVAILABLE_STATE = 2
