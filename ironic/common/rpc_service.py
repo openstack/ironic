@@ -100,7 +100,8 @@ class RPCService(service.Service):
             seconds=CONF.hash_ring_reset_interval)
 
         try:
-            self.manager.del_host(deregister=self.deregister)
+            self.manager.del_host(deregister=self.deregister,
+                                  clear_node_reservations=False)
         except Exception as e:
             LOG.exception('Service error occurred when cleaning up '
                           'the RPC manager. Error: %s', e)
@@ -127,6 +128,21 @@ class RPCService(service.Service):
         LOG.info('Stopped RPC server for service %(service)s on host '
                  '%(host)s.',
                  {'service': self.topic, 'host': self.host})
+
+        # Wait for reservation locks held by this conductor.
+        # The conductor process will end when:
+        # - All reservations for this conductor are released
+        # - CONF.graceful_shutdown_timeout has elapsed
+        # - The process manager (systemd, kubernetes) sends SIGKILL after the
+        #   configured graceful period
+        graceful_time = initial_time + datetime.timedelta(
+            seconds=CONF.graceful_shutdown_timeout)
+        while (self.manager.has_reserved()
+               and graceful_time > timeutils.utcnow()):
+            LOG.info('Waiting for reserved nodes to clear on host %(host)s',
+                     {'host': self.host})
+            time.sleep(1)
+
         rpc.set_global_manager(None)
 
     def _handle_signal(self, signo, frame):

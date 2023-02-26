@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    On shutdown the conductor will wait for at most
+    ``[DEFAULT]graceful_shutdown_timeout`` seconds for existing lock node
+    reservations to clear. Previously lock reservations were cleared
+    immediately, which in some cases would result in nodes going into a failed
+    state.
+upgrade:
+  - |
+    ``[DEFAULT]graceful_shutdown_timeout`` defaults to 60s. Systemd
+    ``TimeoutStopSec`` defaults to 30s. Kubernetes
+    ``terminationGracePeriodSeconds`` defaults to 90s. It is recommended to
+    align the value of ``[DEFAULT]graceful_shutdown_timeout`` with the graceful
+    timeout of the process manager of the conductor process.

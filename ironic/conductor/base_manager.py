@@ -298,15 +298,17 @@ class BaseConductorManager(object):
         # This is only used in tests currently. Delete it?
         self._periodic_task_callables = periodic_task_callables
 
-    def del_host(self, deregister=True):
+    def del_host(self, deregister=True, clear_node_reservations=True):
         # Conductor deregistration fails if called on non-initialized
         # conductor (e.g. when rpc server is unreachable).
         if not hasattr(self, 'conductor'):
             return
         self._shutdown = True
         self._keepalive_evt.set()
-        # clear all locks held by this conductor before deregistering
-        self.dbapi.clear_node_reservations_for_conductor(self.host)
+
+        if clear_node_reservations:
+            # clear all locks held by this conductor before deregistering
+            self.dbapi.clear_node_reservations_for_conductor(self.host)
         if deregister:
             try:
                 # Inform the cluster that this conductor is shutting down.
@@ -337,6 +339,15 @@ class BaseConductorManager(object):
     def get_online_conductor_count(self):
         """Return a count of currently online conductors"""
         return len(self.dbapi.get_online_conductors())
+
+    def has_reserved(self):
+        """Determines if this host currently has any reserved nodes
+
+        :returns: True if this host has reserved nodes
+        """
+        return bool(self.dbapi.get_nodeinfo_list(
+            filters={'reserved_by_any_of': [self.host]},
+            limit=1))
 
     def _register_and_validate_hardware_interfaces(self, hardware_types):
         """Register and validate hardware interfaces for this conductor.
