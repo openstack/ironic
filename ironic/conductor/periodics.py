@@ -18,6 +18,7 @@ import inspect
 
 import eventlet
 from futurist import periodics
+from ironic_lib import metrics_utils
 from oslo_log import log
 
 from ironic.common import exception
@@ -27,6 +28,9 @@ from ironic.drivers import base as driver_base
 
 
 LOG = log.getLogger(__name__)
+
+
+METRICS = metrics_utils.get_metrics_logger(__name__)
 
 
 def periodic(spacing, enabled=True, **kwargs):
@@ -46,7 +50,7 @@ class Stop(Exception):
 
 def node_periodic(purpose, spacing, enabled=True, filters=None,
                   predicate=None, predicate_extra_fields=(), limit=None,
-                  shared_task=True):
+                  shared_task=True, node_count_metric_name=None):
     """A decorator to define a periodic task to act on nodes.
 
     Defines a periodic task that fetches the list of nodes mapped to the
@@ -84,6 +88,9 @@ def node_periodic(purpose, spacing, enabled=True, filters=None,
         iteration to determine the limit.
     :param shared_task: if ``True``, the task will have a shared lock. It is
         recommended to start with a shared lock and upgrade it only if needed.
+    :param node_count_metric_name: A string value to identify a metric
+        representing the count of matching nodes to be recorded upon the
+        completion of the periodic.
     """
     node_type = collections.namedtuple(
         'Node',
@@ -116,10 +123,11 @@ def node_periodic(purpose, spacing, enabled=True, filters=None,
             else:
                 local_limit = limit
             assert local_limit is None or local_limit > 0
-
+            node_count = 0
             nodes = manager.iter_nodes(filters=filters,
                                        fields=predicate_extra_fields)
             for (node_uuid, *other) in nodes:
+                node_count += 1
                 if predicate is not None:
                     node = node_type(node_uuid, *other)
                     if accepts_manager:
@@ -158,6 +166,11 @@ def node_periodic(purpose, spacing, enabled=True, filters=None,
                     local_limit -= 1
                     if not local_limit:
                         return
+            if node_count_metric_name:
+                # Send post-run metrics.
+                METRICS.send_gauge(
+                    node_count_metric_name,
+                    node_count)
 
         return wrapper
 

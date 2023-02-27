@@ -97,41 +97,6 @@ opts = [
     cfg.IntOpt('node_locked_retry_interval',
                default=1,
                help=_('Seconds to sleep between node lock attempts.')),
-    cfg.BoolOpt('send_sensor_data',
-                default=False,
-                help=_('Enable sending sensor data message via the '
-                       'notification bus')),
-    cfg.IntOpt('send_sensor_data_interval',
-               default=600,
-               min=1,
-               help=_('Seconds between conductor sending sensor data message '
-                      'to ceilometer via the notification bus.')),
-    cfg.IntOpt('send_sensor_data_workers',
-               default=4, min=1,
-               help=_('The maximum number of workers that can be started '
-                      'simultaneously for send data from sensors periodic '
-                      'task.')),
-    cfg.IntOpt('send_sensor_data_wait_timeout',
-               default=300,
-               help=_('The time in seconds to wait for send sensors data '
-                      'periodic task to be finished before allowing periodic '
-                      'call to happen again. Should be less than '
-                      'send_sensor_data_interval value.')),
-    cfg.ListOpt('send_sensor_data_types',
-                default=['ALL'],
-                help=_('List of comma separated meter types which need to be'
-                       ' sent to Ceilometer. The default value, "ALL", is a '
-                       'special value meaning send all the sensor data.')),
-    cfg.BoolOpt('send_sensor_data_for_undeployed_nodes',
-                default=False,
-                help=_('The default for sensor data collection is to only '
-                       'collect data for machines that are deployed, however '
-                       'operators may desire to know if there are failures '
-                       'in hardware that is not presently in use. '
-                       'When set to true, the conductor will collect sensor '
-                       'information from all nodes when sensor data '
-                       'collection is enabled via the send_sensor_data '
-                       'setting.')),
     cfg.IntOpt('sync_local_state_interval',
                default=180,
                help=_('When conductors join or leave the cluster, existing '

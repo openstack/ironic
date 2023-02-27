@@ -1,0 +1,39 @@
+---
+features:
+  - |
+    Adds the ability for Ironic to send conductor process metrics
+    for monitoring. This requires the use of a new ``[metrics]backend``
+    option value of ``collector``. This data was previously only available
+    through the use of statsd. This requires ``ironic-lib`` version ``5.4.0``
+    or newer. This capability can be disabled using the
+    ``[sensor_data]enable_for_conductor`` option if set to False.
+  - |
+    Adds a ``[sensor_data]enable_for_nodes`` configuration option
+    to allow operators to disable sending node metric data via the
+    message bus notifier.
+  - |
+    Adds a new gauge metric ``ConductorManager.PowerSyncNodesCount``
+    which tracks the nodes considered for power state synchrnozation.
+  - Adds a new gauge metric ``ConductorManager.PowerSyncRecoveryNodeCount``
+    which represents the number of nodes which are being evaluated for power
+    state recovery checking.
+  - Adds a new gauge metric ``ConductorManager.SyncLocalStateNodeCount``
+    which represents the number of nodes being tracked locally by the
+    conductor.
+issues:
+  - Sensor data notifications to the message bus, such as using the
+    ``[metrics]backend`` configuration option of ``collector`` on a dedicated
+    API service process or instance, is not presently supported. This
+    functionality requires a periodic task to trigger the transmission
+    of metrics messages to the message bus notifier.
+deprecations:
+  - The setting values starting with ``send_sensor`` in the ``[conductor]``
+    configuration group have been deprecated and moved to a ``[sensor_data]``
+    configuration group. The names have been updated to shorter, operator
+    friendly names..
+upgrades:
+  - Settings starting with ``sensor_data`` in the ``[conductor]``
+    configuration group have been moved to a ``[sensor_data]`` configuration
+    group amd have been renamed to have shorter value names. If configuration
+    values are not updated, the ``oslo.config`` library will emit a warning
+    in the logs.

@@ -17,8 +17,11 @@ These performance measurements, herein referred to as "metrics", can be
 emitted from the Bare Metal service, including ironic-api, ironic-conductor,
 and ironic-python-agent. By default, none of the services will emit metrics.
 
-Configuring the Bare Metal Service to Enable Metrics
-====================================================
+It is important to stress that not only statsd is supported for metrics
+collection and transmission. This is covered later on in our documentation.
+
+Configuring the Bare Metal Service to Enable Metrics with Statsd
+================================================================
 
 Enabling metrics in ironic-api and ironic-conductor
 ---------------------------------------------------
@@ -62,6 +65,30 @@ in the ironic configuration file as well::
   agent_statsd_host = 198.51.100.2
   agent_statsd_port = 8125
 
+.. Note::
+   Use of a different metrics backend with the agent is not presently
+   supported.
+
+Transmission to the Message Bus Notifier
+========================================
+
+Regardless if you're using Ceilometer,
+`ironic-prometheus-exporter <https://docs.openstack.org/ironic-prometheus-exporter/latest/>`_,
+or some scripting you wrote to consume the message bus notifications,
+metrics data can be sent to the message bus notifier from the timer methods
+*and* additional gauge counters by utilizing the ``[metrics]backend``
+configuration option and setting it to ``collector``. When this is the case,
+Information is cached locally and periodically sent along with the general sensor
+data update to the messaging notifier, which can consumed off of the message bus,
+or via notifier plugin (such as is done with ironic-prometheus-exporter).
+
+.. NOTE::
+   Transmission of timer data only works for the Conductor or ``single-process``
+   Ironic service model. A separate webserver process presently does not have
+   the capability of triggering the call to retrieve and transmit the data.
+
+.. NOTE::
+   This functionality requires ironic-lib version 5.4.0 to be installed.
 
 Types of Metrics Emitted
 ========================
@@ -78,6 +105,9 @@ determine if a deployer needs to scale their metrics backend to handle the
 additional load before enabling metrics. To see which metrics have changed names
 or have been removed between releases, refer to the `ironic release notes
 <https://docs.openstack.org/releasenotes/ironic/>`_.
+
+Additional conductor metrics in the form of counts will also be generated in
+limited locations where petinant to the activity of the conductor.
 
 .. note::
   With the default statsd configuration, each timing metric may create

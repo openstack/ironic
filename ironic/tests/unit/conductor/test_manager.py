@@ -26,6 +26,7 @@ from unittest import mock
 
 import eventlet
 from futurist import waiters
+from ironic_lib import metrics as ironic_metrics
 from oslo_config import cfg
 import oslo_messaging as messaging
 from oslo_utils import uuidutils
@@ -4273,7 +4274,8 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test__filter_out_unsupported_types_all(self):
         self._start_service()
-        CONF.set_override('send_sensor_data_types', ['All'], group='conductor')
+        CONF.set_override('data_types', ['All'],
+                          group='sensor_data')
         fake_sensors_data = {"t1": {'f1': 'v1'}, "t2": {'f1': 'v1'}}
         actual_result = (
             self.service._filter_out_unsupported_types(fake_sensors_data))
@@ -4282,7 +4284,8 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test__filter_out_unsupported_types_part(self):
         self._start_service()
-        CONF.set_override('send_sensor_data_types', ['t1'], group='conductor')
+        CONF.set_override('data_types', ['t1'],
+                          group='sensor_data')
         fake_sensors_data = {"t1": {'f1': 'v1'}, "t2": {'f1': 'v1'}}
         actual_result = (
             self.service._filter_out_unsupported_types(fake_sensors_data))
@@ -4291,7 +4294,8 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test__filter_out_unsupported_types_non(self):
         self._start_service()
-        CONF.set_override('send_sensor_data_types', ['t3'], group='conductor')
+        CONF.set_override('data_types', ['t3'],
+                          group='sensor_data')
         fake_sensors_data = {"t1": {'f1': 'v1'}, "t2": {'f1': 'v1'}}
         actual_result = (
             self.service._filter_out_unsupported_types(fake_sensors_data))
@@ -4305,7 +4309,8 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         for i in range(5):
             nodes.put_nowait(('fake_uuid-%d' % i, 'fake-hardware', '', None))
         self._start_service()
-        CONF.set_override('send_sensor_data', True, group='conductor')
+        CONF.set_override('send_sensor_data', True,
+                          group='sensor_data')
 
         task = acquire_mock.return_value.__enter__.return_value
         task.node.maintenance = False
@@ -4334,7 +4339,8 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         nodes.put_nowait(('fake_uuid', 'fake-hardware', '', None))
         self._start_service()
         self.service._shutdown = True
-        CONF.set_override('send_sensor_data', True, group='conductor')
+        CONF.set_override('send_sensor_data', True,
+                          group='sensor_data')
         self.service._sensors_nodes_task(self.context, nodes)
         acquire_mock.return_value.__enter__.assert_not_called()
 
@@ -4343,7 +4349,8 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         nodes = queue.Queue()
         nodes.put_nowait(('fake_uuid', 'fake-hardware', '', None))
 
-        CONF.set_override('send_sensor_data', True, group='conductor')
+        CONF.set_override('send_sensor_data', True,
+                          group='sensor_data')
 
         self._start_service()
 
@@ -4361,7 +4368,7 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         nodes = queue.Queue()
         nodes.put_nowait(('fake_uuid', 'fake-hardware', '', None))
         self._start_service()
-        CONF.set_override('send_sensor_data', True, group='conductor')
+        CONF.set_override('send_sensor_data', True, group='sensor_data')
 
         task = acquire_mock.return_value.__enter__.return_value
         task.node.maintenance = True
@@ -4384,16 +4391,47 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                 mock_spawn):
         self._start_service()
 
-        CONF.set_override('send_sensor_data', True, group='conductor')
+        CONF.set_override('send_sensor_data', True, group='sensor_data')
         # NOTE(galyna): do not wait for threads to be finished in unittests
-        CONF.set_override('send_sensor_data_wait_timeout', 0,
-                          group='conductor')
+        CONF.set_override('wait_timeout', 0,
+                          group='sensor_data')
         _mapped_to_this_conductor_mock.return_value = True
         get_nodeinfo_list_mock.return_value = [('fake_uuid', 'fake', None)]
         self.service._send_sensor_data(self.context)
         mock_spawn.assert_called_with(self.service,
                                       self.service._sensors_nodes_task,
                                       self.context, mock.ANY)
+
+    @mock.patch.object(queue, 'Queue', autospec=True)
+    @mock.patch.object(manager.ConductorManager, '_sensors_conductor',
+                       autospec=True)
+    @mock.patch.object(manager.ConductorManager, '_spawn_worker',
+                       autospec=True)
+    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor',
+                       autospec=True)
+    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list', autospec=True)
+    def test___send_sensor_data_disabled(
+            self, get_nodeinfo_list_mock,
+            _mapped_to_this_conductor_mock,
+            mock_spawn, mock_sensors_conductor,
+            mock_queue):
+        self._start_service()
+
+        CONF.set_override('send_sensor_data', True, group='sensor_data')
+        CONF.set_override('enable_for_nodes', False,
+                          group='sensor_data')
+        CONF.set_override('enable_for_conductor', False,
+                          group='sensor_data')
+        # NOTE(galyna): do not wait for threads to be finished in unittests
+        CONF.set_override('wait_timeout', 0,
+                          group='sensor_data')
+        _mapped_to_this_conductor_mock.return_value = True
+        get_nodeinfo_list_mock.return_value = [('fake_uuid', 'fake', None)]
+        self.service._send_sensor_data(self.context)
+        mock_sensors_conductor.assert_not_called()
+        # NOTE(TheJulia): Can't use the spawn worker since it records other,
+        # unrelated calls. So, queue works well here.
+        mock_queue.assert_not_called()
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
@@ -4407,12 +4445,42 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_spawn.reset_mock()
 
         number_of_workers = 8
-        CONF.set_override('send_sensor_data', True, group='conductor')
-        CONF.set_override('send_sensor_data_workers', number_of_workers,
-                          group='conductor')
+        CONF.set_override('send_sensor_data', True, group='sensor_data')
+        CONF.set_override('workers', number_of_workers,
+                          group='sensor_data')
         # NOTE(galyna): do not wait for threads to be finished in unittests
-        CONF.set_override('send_sensor_data_wait_timeout', 0,
-                          group='conductor')
+        CONF.set_override('wait_timeout', 0,
+                          group='sensor_data')
+
+        _mapped_to_this_conductor_mock.return_value = True
+        get_nodeinfo_list_mock.return_value = [('fake_uuid', 'fake',
+                                                None)] * 20
+        self.service._send_sensor_data(self.context)
+        self.assertEqual(number_of_workers + 1,
+                         mock_spawn.call_count)
+
+    # TODO(TheJulia): At some point, we should add a test to validate that
+    # a modified filter to return all nodes actually works, although
+    # the way the sensor tests are written, the list is all mocked.
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    @mock.patch.object(manager.ConductorManager, '_mapped_to_this_conductor',
+                       autospec=True)
+    @mock.patch.object(dbapi.IMPL, 'get_nodeinfo_list', autospec=True)
+    def test___send_sensor_data_one_worker(
+            self, get_nodeinfo_list_mock, _mapped_to_this_conductor_mock,
+            mock_spawn):
+        self._start_service()
+        mock_spawn.reset_mock()
+
+        number_of_workers = 1
+        CONF.set_override('send_sensor_data', True, group='sensor_data')
+        CONF.set_override('workers', number_of_workers,
+                          group='sensor_data')
+        # NOTE(galyna): do not wait for threads to be finished in unittests
+        CONF.set_override('wait_timeout', 0,
+                          group='sensor_data')
 
         _mapped_to_this_conductor_mock.return_value = True
         get_nodeinfo_list_mock.return_value = [('fake_uuid', 'fake',
@@ -4421,9 +4489,21 @@ class SensorsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(number_of_workers,
                          mock_spawn.call_count)
 
-    # TODO(TheJulia): At some point, we should add a test to validate that
-    # a modified filter to return all nodes actually works, although
-    # the way the sensor tests are written, the list is all mocked.
+    @mock.patch.object(messaging.Notifier, 'info', autospec=True)
+    @mock.patch.object(ironic_metrics.MetricLogger,
+                       'get_metrics_data', autospec=True)
+    def test__sensors_conductor(self, mock_get_metrics, mock_notifier):
+        metric = {'metric': 'data'}
+        mock_get_metrics.return_value = metric
+        self._start_service()
+        self.service._sensors_conductor(self.context)
+        self.assertEqual(mock_notifier.call_count, 1)
+        self.assertEqual('ironic.metrics', mock_notifier.call_args.args[2])
+        metrics_dict = mock_notifier.call_args.args[3]
+        self.assertEqual(metrics_dict.get('event_type'),
+                         'ironic.metrics.update')
+        self.assertDictEqual(metrics_dict.get('payload'),
+                             metric)
 
 
 @mgr_utils.mock_record_keepalive
