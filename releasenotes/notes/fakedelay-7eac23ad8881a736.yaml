@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    There are now configurable random wait times for fake drivers in a new
+    ironic.conf [fake] section. Each supported driver having one configuration
+    option controlling the delay. These delays are applied to operations which
+    typically block in other drivers. This allows more realistic scenarios to
+    be arranged for performance and functional testing of ironic itself.

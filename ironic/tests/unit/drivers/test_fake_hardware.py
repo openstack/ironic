@@ -17,6 +17,8 @@
 
 """Test class for Fake driver."""
 
+import time
+from unittest import mock
 
 from ironic.common import boot_devices
 from ironic.common import boot_modes
@@ -26,6 +28,7 @@ from ironic.common import indicator_states
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.drivers import base as driver_base
+from ironic.drivers.modules import fake
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 
@@ -164,3 +167,29 @@ class FakeHardwareTestCase(db_base.DbTestCase):
         self.assertEqual({}, self.driver.inspect.get_properties())
         self.driver.inspect.validate(self.task)
         self.driver.inspect.inspect_hardware(self.task)
+
+    def test_parse_sleep_range(self):
+        self.assertEqual((0, 0), fake.parse_sleep_range('0'))
+        self.assertEqual((0, 0), fake.parse_sleep_range(''))
+        self.assertEqual((1, 1), fake.parse_sleep_range('1'))
+        self.assertEqual((1, 10), fake.parse_sleep_range('1,10'))
+        self.assertEqual((10, 20), fake.parse_sleep_range('10, 20'))
+
+    @mock.patch.object(time, 'sleep', autospec=True)
+    def test_sleep_zero(self, mock_sleep):
+        fake.sleep("0")
+        mock_sleep.assert_not_called()
+
+    @mock.patch.object(time, 'sleep', autospec=True)
+    def test_sleep_one(self, mock_sleep):
+        fake.sleep("1")
+        mock_sleep.assert_called_once_with(1)
+
+    @mock.patch.object(time, 'sleep', autospec=True)
+    def test_sleep_range(self, mock_sleep):
+        for i in range(100):
+            fake.sleep("1,10")
+        for call in mock_sleep.call_args_list:
+            v = call[0][0]
+            self.assertGreaterEqual(v, 1)
+            self.assertLessEqual(v, 10)
