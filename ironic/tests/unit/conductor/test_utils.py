@@ -1171,6 +1171,9 @@ class ErrorHandlersTestCase(db_base.DbTestCase):
         self.node.set_driver_internal_info('skip_current_clean_step', True)
         self.node.set_driver_internal_info('clean_step_index', 0)
         self.node.set_driver_internal_info('agent_url', 'url')
+        self.node.set_driver_internal_info('agent_secret_token', 'foo')
+        self.node.set_driver_internal_info('agent_secret_token_pregenerated',
+                                           False)
 
         msg = 'error bar'
         last_error = "last error"
@@ -1182,6 +1185,9 @@ class ErrorHandlersTestCase(db_base.DbTestCase):
         self.assertNotIn('cleaning_reboot', self.node.driver_internal_info)
         self.assertNotIn('cleaning_polling', self.node.driver_internal_info)
         self.assertNotIn('skip_current_clean_step',
+                         self.node.driver_internal_info)
+        self.assertNotIn('agent_secret_token', self.node.driver_internal_info)
+        self.assertNotIn('agent_secret_token_pregenerated',
                          self.node.driver_internal_info)
         self.assertEqual(last_error, self.node.last_error)
         self.assertTrue(self.node.maintenance)

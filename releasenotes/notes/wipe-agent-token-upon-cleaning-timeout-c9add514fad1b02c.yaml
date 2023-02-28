@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue where an agent token was being orphaned if a baremetal node
+    timed out during cleaning operations, leading to issues where the node
+    would not be able to establish a new token with Ironic upon future
+    in some cases. We now always wipe the token in this case.
