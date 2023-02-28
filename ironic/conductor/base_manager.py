@@ -334,6 +334,10 @@ class BaseConductorManager(object):
 
         self._started = False
 
+    def get_online_conductor_count(self):
+        """Return a count of currently online conductors"""
+        return len(self.dbapi.get_online_conductors())
+
     def _register_and_validate_hardware_interfaces(self, hardware_types):
         """Register and validate hardware interfaces for this conductor.
 

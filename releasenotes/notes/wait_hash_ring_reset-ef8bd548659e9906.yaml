@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    When a conductor service is stopped it will now continue to respond to RPC
+    requests until ``[DEFAULT]hash_ring_reset_interval`` has elapsed, allowing
+    a hash ring reset to complete on the cluster after conductor is
+    unregistered. This will improve the reliability of the cluster when scaling
+    down or rolling out updates.
+
+    This delay only occurs when there is more than one online conductor,
+    to allow fast restarts on single-node ironic installs (bifrost,
+    metal3).
+

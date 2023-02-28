@@ -14,6 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import datetime
 import signal
 import sys
 import time
@@ -24,6 +25,7 @@ from oslo_log import log
 import oslo_messaging as messaging
 from oslo_service import service
 from oslo_utils import importutils
+from oslo_utils import timeutils
 
 from ironic.common import context
 from ironic.common import rpc
@@ -93,6 +95,26 @@ class RPCService(service.Service):
                   'transport': CONF.rpc_transport})
 
     def stop(self):
+        initial_time = timeutils.utcnow()
+        extend_time = initial_time + datetime.timedelta(
+            seconds=CONF.hash_ring_reset_interval)
+
+        try:
+            self.manager.del_host(deregister=self.deregister)
+        except Exception as e:
+            LOG.exception('Service error occurred when cleaning up '
+                          'the RPC manager. Error: %s', e)
+
+        if self.manager.get_online_conductor_count() > 1:
+            # Delay stopping the server until the hash ring has been
+            # reset on the cluster
+            stop_time = timeutils.utcnow()
+            if stop_time < extend_time:
+                stop_wait = max(0, (extend_time - stop_time).seconds)
+                LOG.info('Waiting %(stop_wait)s seconds for hash ring reset.',
+                         {'stop_wait': stop_wait})
+                time.sleep(stop_wait)
+
         try:
             if self.rpcserver is not None:
                 self.rpcserver.stop()
@@ -100,11 +122,6 @@ class RPCService(service.Service):
         except Exception as e:
             LOG.exception('Service error occurred when stopping the '
                           'RPC server. Error: %s', e)
-        try:
-            self.manager.del_host(deregister=self.deregister)
-        except Exception as e:
-            LOG.exception('Service error occurred when cleaning up '
-                          'the RPC manager. Error: %s', e)
 
         super(RPCService, self).stop(graceful=True)
         LOG.info('Stopped RPC server for service %(service)s on host '
