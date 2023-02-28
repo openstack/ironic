@@ -312,6 +312,6 @@ boot_up_seq               GET            Query boot up sequence
 get_raid_controller_list  GET            Query RAID controller summary info
 ========================  ============   ======================================
 
-.. _Huawei iBMC: https://e.huawei.com/en/products/cloud-computing-dc/servers/accessories/ibmc
+.. _Huawei iBMC: https://e.huawei.com/en/products/computing/kunpeng/accessories/ibmc
 .. _TLS: https://en.wikipedia.org/wiki/Transport_Layer_Security
 .. _HUAWEI iBMC Client library: https://pypi.org/project/python-ibmcclient/
