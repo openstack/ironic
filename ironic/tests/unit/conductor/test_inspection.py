@@ -1,3 +1,4 @@
+
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -16,6 +17,7 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import inspection
 from ironic.conductor import task_manager
+from ironic.drivers.modules import inspect_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -116,3 +118,56 @@ class TestInspectHardware(db_base.DbTestCase):
         self.assertEqual('Unexpected exception of type RuntimeError: x',
                          node.last_error)
         self.assertTrue(mock_inspect.called)
+
+
+@mock.patch('ironic.drivers.modules.fake.FakeInspect.continue_inspection',
+            autospec=True)
+class TestContinueInspection(db_base.DbTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.node = obj_utils.create_test_node(
+            self.context, provision_state=states.INSPECTING)
+        self.inventory = {"test": "inventory"}
+        self.plugin_data = {"plugin": "data"}
+
+    @mock.patch.object(inspect_utils, 'store_inspection_data', autospec=True)
+    def test_ok(self, mock_store, mock_continue):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            inspection.continue_inspection(task, self.inventory,
+                                           self.plugin_data)
+            mock_continue.assert_called_once_with(task.driver.inspect,
+                                                  task, self.inventory,
+                                                  self.plugin_data)
+            mock_store.assert_called_once_with(task.node, self.inventory,
+                                               self.plugin_data, self.context)
+        self.node.refresh()
+        self.assertEqual(states.MANAGEABLE, self.node.provision_state)
+
+    @mock.patch.object(inspect_utils, 'store_inspection_data', autospec=True)
+    def test_ok_asynchronous(self, mock_store, mock_continue):
+        mock_continue.return_value = states.INSPECTWAIT
+        with task_manager.acquire(self.context, self.node.id) as task:
+            inspection.continue_inspection(task, self.inventory,
+                                           self.plugin_data)
+            mock_continue.assert_called_once_with(task.driver.inspect,
+                                                  task, self.inventory,
+                                                  self.plugin_data)
+            mock_store.assert_not_called()
+            self.assertEqual(states.INSPECTWAIT, task.node.provision_state)
+
+    @mock.patch.object(inspect_utils, 'store_inspection_data', autospec=True)
+    def test_failure(self, mock_store, mock_continue):
+        mock_continue.side_effect = exception.HardwareInspectionFailure("boom")
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.assertRaises(exception.HardwareInspectionFailure,
+                              inspection.continue_inspection,
+                              task, self.inventory, self.plugin_data)
+            mock_continue.assert_called_once_with(task.driver.inspect,
+                                                  task, self.inventory,
+                                                  self.plugin_data)
+
+        mock_store.assert_not_called()
+        self.node.refresh()
+        self.assertEqual(states.INSPECTFAIL, self.node.provision_state)
+        self.assertIn("boom", self.node.last_error)

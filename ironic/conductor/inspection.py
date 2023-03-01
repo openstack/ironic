@@ -20,6 +20,7 @@ from ironic.common.i18n import _
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils
+from ironic.drivers.modules import inspect_utils
 
 LOG = log.getLogger(__name__)
 
@@ -106,3 +107,45 @@ def abort_inspection(task):
     task.process_event('abort')
     LOG.info('Successfully aborted inspection of node %(node)s',
              {'node': node.uuid})
+
+
+@task_manager.require_exclusive_lock
+def continue_inspection(task, inventory, plugin_data):
+    """Continue inspection for the node."""
+    node = task.node
+    LOG.debug('Inventory for node %(node)s: %(data)s',
+              {'node': node.uuid, 'data': inventory})
+
+    try:
+        result = task.driver.inspect.continue_inspection(
+            task, inventory, plugin_data)
+
+        if result == states.INSPECTWAIT:
+            if task.node.provision_state == states.INSPECTING:
+                task.process_event('wait')
+            LOG.debug('Waiting for inspection data to be processed '
+                      'asynchronously for node %s', node.uuid)
+            return
+
+        # NOTE(dtantsur): this is done *after* processing to allow
+        # modifications, especially to plugin_data.
+        inspect_utils.store_inspection_data(
+            node, inventory, plugin_data, context=task.context)
+    except exception.UnsupportedDriverExtension:
+        with excutils.save_and_reraise_exception():
+            intf_name = task.driver.inspect.__class__.__name__
+            LOG.error('Inspect interface %(intf)s does not '
+                      'support processing inspection data for node %(node)s',
+                      {'intf': intf_name, 'node': node.uuid})
+    except Exception as e:
+        with excutils.save_and_reraise_exception():
+            LOG.exception('Error when processing inspection data for '
+                          'node %(node)s', {'node': node.uuid})
+            error = _('Failed to finish inspection: %s') % e
+            utils.node_history_record(task.node, event=error,
+                                      event_type=states.INTROSPECTION,
+                                      error=True)
+            task.process_event('fail')
+
+    task.process_event('done')
+    LOG.info('Successfully finished inspection of node %s', node.uuid)

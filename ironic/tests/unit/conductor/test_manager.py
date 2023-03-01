@@ -8439,3 +8439,34 @@ class ConcurrentActionLimitTestCase(mgr_utils.ServiceSetUpMixin,
         CONF.set_override('max_concurrent_clean', 4, group='conductor')
         self.service._concurrent_action_limit('cleaning')
         self.service._concurrent_action_limit('unprovisioning')
+
+
+@mgr_utils.mock_record_keepalive
+class ContinueInspectionTestCase(mgr_utils.ServiceSetUpMixin,
+                                 db_base.DbTestCase):
+
+    @mock.patch.object(manager.ConductorManager, '_spawn_worker',
+                       autospec=True)
+    def test_continue_ok(self, mock_spawn):
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state=states.INSPECTWAIT)
+        self.service.continue_inspection(self.context, node.id,
+                                         {"test": "inventory"},
+                                         ["plugin data"])
+        node.refresh()
+        self.assertEqual(states.INSPECTING, node.provision_state)
+        mock_spawn.assert_called_once_with(
+            self.service, inspection.continue_inspection, mock.ANY,
+            {"test": "inventory"}, ["plugin data"])
+
+    def test_wrong_state(self):
+        node = obj_utils.create_test_node(self.context,
+                                          provision_state=states.AVAILABLE)
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.continue_inspection,
+                                self.context, node.id,
+                                {"test": "inventory"},
+                                ["plugin data"])
+        self.assertEqual(exception.NotFound, exc.exc_info[0])
+        node.refresh()
+        self.assertEqual(states.AVAILABLE, node.provision_state)

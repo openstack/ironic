@@ -482,6 +482,9 @@ machine.add_transition(INSPECTWAIT, INSPECTFAIL, 'fail')
 # Inspection is aborted.
 machine.add_transition(INSPECTWAIT, INSPECTFAIL, 'abort')
 
+# Inspection is continued.
+machine.add_transition(INSPECTWAIT, INSPECTING, 'resume')
+
 # Move the node to manageable state for any other
 # action.
 machine.add_transition(INSPECTFAIL, MANAGEABLE, 'manage')

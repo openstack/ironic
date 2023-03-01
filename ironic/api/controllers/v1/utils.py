@@ -1986,3 +1986,18 @@ def check_allow_clean_disable_ramdisk(target, disable_ramdisk):
 def allow_shards_endpoint():
     """Check if shards endpoint is available."""
     return api.request.version.minor >= versions.MINOR_82_NODE_SHARD
+
+
+def new_continue_inspection_endpoint():
+    """Check if /v1/continue_inspection endpoint is explicitly requested."""
+    return api.request.version.minor >= versions.MINOR_84_CONTINUE_INSPECTION
+
+
+def allow_continue_inspection_endpoint():
+    """Check if /v1/continue_inspection endpoint is available.
+
+    As a special exception, we allow it in the base version so that the API
+    can be used as a drop-in replacement for the Inspector's API.
+    """
+    return (new_continue_inspection_endpoint()
+            or api.request.version.minor == versions.MINOR_1_INITIAL_VERSION)

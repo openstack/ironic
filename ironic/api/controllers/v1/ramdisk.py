@@ -21,12 +21,14 @@ from pecan import rest
 from ironic import api
 from ironic.api.controllers.v1 import node as node_ctl
 from ironic.api.controllers.v1 import utils as api_utils
+from ironic.api.controllers.v1 import versions
 from ironic.api import method
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
 from ironic.common import utils
+from ironic.drivers.modules import inspect_utils
 from ironic import objects
 
 
@@ -66,6 +68,31 @@ def convert_with_links(node):
     return {'node': node, 'config': config(token)}
 
 
+def get_valid_mac_addresses(addresses, node_uuid=None):
+    if addresses is None:
+        addresses = []
+
+    valid_addresses = []
+    invalid_addresses = []
+    for addr in addresses:
+        try:
+            mac = utils.validate_and_normalize_mac(addr)
+            valid_addresses.append(mac)
+        except exception.InvalidMAC:
+            invalid_addresses.append(addr)
+
+    if invalid_addresses:
+        node_log = ('' if not node_uuid
+                    else '(Node UUID: %s)' % node_uuid)
+        LOG.warning('The following MAC addresses "%(addrs)s" are '
+                    'invalid and will be ignored by the lookup '
+                    'request %(node)s',
+                    {'addrs': ', '.join(invalid_addresses),
+                     'node': node_log})
+
+    return valid_addresses
+
+
 class LookupController(rest.RestController):
     """Controller handling node lookup for a deploy ramdisk."""
 
@@ -100,27 +127,7 @@ class LookupController(rest.RestController):
         api_utils.check_policy('baremetal:driver:ipa_lookup')
 
         # Validate the list of MAC addresses
-        if addresses is None:
-            addresses = []
-
-        valid_addresses = []
-        invalid_addresses = []
-        for addr in addresses:
-            try:
-                mac = utils.validate_and_normalize_mac(addr)
-                valid_addresses.append(mac)
-            except exception.InvalidMAC:
-                invalid_addresses.append(addr)
-
-        if invalid_addresses:
-            node_log = ('' if not node_uuid
-                        else '(Node UUID: %s)' % node_uuid)
-            LOG.warning('The following MAC addresses "%(addrs)s" are '
-                        'invalid and will be ignored by the lookup '
-                        'request %(node)s',
-                        {'addrs': ', '.join(invalid_addresses),
-                         'node': node_log})
-
+        valid_addresses = get_valid_mac_addresses(addresses)
         if not valid_addresses and not node_uuid:
             raise exception.IncompleteLookup()
 
@@ -254,3 +261,99 @@ class HeartbeatController(rest.RestController):
             api.request.context, rpc_node.uuid, callback_url,
             agent_version, agent_token, agent_verify_ca, agent_status,
             agent_status_message, topic=topic)
+
+
+DATA_VALIDATOR = args.schema({
+    'type': 'object',
+    'properties': {
+        # This validator defines a minimal acceptable inventory.
+        'inventory': {
+            'type': 'object',
+            'properties': {
+                'bmc_address': {'type': 'string'},
+                'bmc_v6address': {'type': 'string'},
+                'interfaces': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'mac_address': {'type': 'string'},
+                        },
+                        'required': ['mac_address'],
+                        'additionalProperties': True,
+                    },
+                    'minItems': 1,
+                },
+            },
+            'required': ['interfaces'],
+            'additionalProperties': True,
+        },
+    },
+    'required': ['inventory'],
+    'additionalProperties': True,
+})
+
+
+class ContinueInspectionController(rest.RestController):
+    """Controller handling inspection data from deploy ramdisk."""
+
+    @method.expose(status_code=http_client.ACCEPTED)
+    @method.body('data')
+    @args.validate(data=DATA_VALIDATOR, node_uuid=args.uuid)
+    def post(self, data, node_uuid=None):
+        """Process a introspection data from the deploy ramdisk.
+
+        :param data: Introspection data.
+        :param node_uuid: UUID of a node.
+        :raises: InvalidParameterValue if node_uuid is a valid UUID.
+        :raises: NoValidHost if RPC topic for node could not be retrieved.
+        :raises: NotFound if requested API version does not allow this
+            endpoint or if lookup fails.
+        """
+        if (not api_utils.allow_continue_inspection_endpoint()
+                # Node UUID support is a new addition
+                or (node_uuid
+                    and not api_utils.new_continue_inspection_endpoint())):
+            raise exception.NotFound(
+                # This is a small lie: 1.1 is accepted as well, but no need
+                # to really advertise this fact, it's only for compatibility.
+                _('API version 1.%d or newer is required')
+                % versions.MINOR_83_CONTINUE_INSPECTION)
+
+        api_utils.check_policy('baremetal:node:ipa_continue_inspection')
+
+        inventory = data.pop('inventory')
+        macs = get_valid_mac_addresses(
+            iface['mac_address'] for iface in inventory['interfaces'])
+        bmc_addresses = list(
+            filter(None, (inventory.get('bmc_address'),
+                          inventory.get('bmc_v6address')))
+        )
+        if not macs and not bmc_addresses and not node_uuid:
+            raise exception.BadRequest(_('No lookup information provided'))
+
+        rpc_node = inspect_utils.lookup_node(
+            api.request.context, macs, bmc_addresses, node_uuid=node_uuid)
+
+        try:
+            topic = api.request.rpcapi.get_topic_for(rpc_node)
+        except exception.NoValidHost as e:
+            e.code = http_client.BAD_REQUEST
+            raise
+
+        if api_utils.new_continue_inspection_endpoint():
+            # This has to happen before continue_inspection since processing
+            # the data may take significant time, and creating a token required
+            # a lock on the node.
+            rpc_node = api.request.rpcapi.get_node_with_token(
+                api.request.context, rpc_node.uuid, topic=topic)
+
+        api.request.rpcapi.continue_inspection(
+            api.request.context, rpc_node.uuid, inventory=inventory,
+            plugin_data=data, topic=topic)
+
+        if api_utils.new_continue_inspection_endpoint():
+            return convert_with_links(rpc_node)
+        else:
+            # Compatibility with ironic-inspector
+            return {'uuid': rpc_node.uuid}

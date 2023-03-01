@@ -13,13 +13,19 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import socket
+import urllib
+
 from oslo_log import log as logging
 from oslo_utils import netutils
 import swiftclient.exceptions
 
 from ironic.common import exception
+from ironic.common import states
 from ironic.common import swift
+from ironic.common import utils
 from ironic.conf import CONF
+from ironic.drivers.modules import ipmitool
 from ironic import objects
 from ironic.objects import node_inventory
 
@@ -212,3 +218,168 @@ def _get_inspection_data_from_swift(node_uuid):
                                                  container=container,
                                                  operation='get')
     return {"inventory": inventory_data, "plugin_data": plugin_data}
+
+
+LOOKUP_CACHE_FIELD = 'lookup_bmc_addresses'
+
+
+def lookup_node(context, mac_addresses, bmc_addresses, node_uuid=None):
+    """Do a node lookup by the information from the inventory.
+
+    :param context: Request context
+    :param mac_addresses: List of MAC addresses.
+    :param bmc_addresses: List of BMC (realistically, IPMI) addresses.
+    :param node_uuid: Node UUID (if known).
+    :raises: NotFound with a generic message for all failures to avoid
+        disclosing any information.
+    """
+    node = None
+    if node_uuid:
+        try:
+            node = objects.Node.get_by_uuid(context, node_uuid)
+        except exception.NotFound:
+            # NOTE(dtantsur): we are reraising the same exception to make sure
+            # we don't disclose the difference between nodes that are not found
+            # at all and nodes in a wrong state by different error messages.
+            raise exception.NotFound()
+
+    if mac_addresses:
+        try:
+            node = objects.Node.get_by_port_addresses(context, mac_addresses)
+        except exception.NotFound as exc:
+            # The exception has enough context already, just log it and move on
+            LOG.debug("Lookup for inspection: %s", exc)
+        else:
+            if node_uuid and node.uuid != node_uuid:
+                LOG.error('Conflict on inspection lookup: node %(node1)s '
+                          'does not match MAC addresses (%(macs)s), which '
+                          'belong to node %(node2)s. This may be a sign of '
+                          'incorrectly created ports.',
+                          {'node1': node_uuid,
+                           'node2': node.uuid,
+                           'macs': ', '.join(mac_addresses)})
+                raise exception.NotFound()
+
+    # TODO(dtantsur): support active state inspection
+    if node and node.provision_state != states.INSPECTWAIT:
+        LOG.error('Node %(node)s was found during inspection lookup '
+                  'with MAC addresses %(macs)s, but it is in '
+                  'provision state %(state)s',
+                  {'node': node.uuid,
+                   'macs': ', '.join(mac_addresses),
+                   'state': node.provision_state})
+        raise exception.NotFound()
+
+    if bmc_addresses:
+        for candidate in objects.Node.list(
+                context,
+                filters={'provision_state': states.INSPECTWAIT},
+                fields=['uuid', 'driver_internal_info']):
+            # This field has to be populated on inspection start
+            for addr in candidate.driver_internal_info.get(
+                    LOOKUP_CACHE_FIELD) or ():
+                if addr in bmc_addresses:
+                    break
+            else:
+                continue
+
+            if node and candidate.uuid != node.uuid:
+                LOG.error('Conflict on inspection lookup: nodes %(node1)s '
+                          'and %(node2)s both satisfy MAC addresses '
+                          '(%(macs)s) and BMC address(s) (%(bmc)s). The cause '
+                          'may be ports attached to a wrong node.',
+                          {'node1': node.uuid,
+                           'node2': candidate.uuid,
+                           'macs': ', '.join(mac_addresses),
+                           'bmc': ', '.join(bmc_addresses)})
+                raise exception.NotFound()
+
+            try:
+                # Fetch the complete object now.
+                node = objects.Node.get_by_uuid(context, candidate.uuid)
+            except exception.NotFound:
+                pass  # Deleted in-between?
+
+    if not node:
+        LOG.error('No nodes satisfy MAC addresses (%(macs)s) and BMC '
+                  'address(s) (%(bmc)s) during inspection lookup',
+                  {'macs': ', '.join(mac_addresses),
+                   'bmc': ', '.join(bmc_addresses)})
+        raise exception.NotFound()
+
+    LOG.debug('Inspection lookup succeeded for node %(node)s using MAC '
+              'addresses %(mac)s and BMC addresses %(bmc)s',
+              {'node': node.uuid, 'mac': mac_addresses, 'bmc': bmc_addresses})
+    return node
+
+
+def _get_bmc_addresses(node):
+    """Get the BMC address defined in the node's driver_info.
+
+    All valid hosts are returned along with their v4 and v6 IP addresses.
+
+    :param node: Node object with defined driver_info dictionary
+    :return: a set with suitable addresses
+    """
+    result = set()
+
+    # FIXME(dtantsur): this extremely lame process is adapted from
+    # ironic-inspector. Now that it's in Ironic proper, we need to replace it
+    # with something using information from hardware types.
+    for name, address in node.driver_info.items():
+        if not name.endswith('_address'):
+            continue
+
+        # NOTE(sambetts): IPMI address is useless to us if bridging is enabled
+        # so just ignore it.
+        if (name.startswith('ipmi_')
+                and ipmitool.is_bridging_enabled(node)):
+            LOG.debug('Will not used %(field)s %(addr)s for lookup since '
+                      'IPMI bridging is enabled for node %(node)s',
+                      {'addr': address, 'field': name, 'node': node.uuid})
+            continue
+
+        if '//' in address:
+            address = urllib.parse.urlparse(address).hostname
+
+        try:
+            addrinfo = socket.getaddrinfo(address, None, proto=socket.SOL_TCP)
+        except socket.gaierror as exc:
+            LOG.warning('Failed to resolve the hostname (%(addr)s) in '
+                        '%(field)s of node %(node)s: %(exc)s',
+                        {'addr': address, 'field': name, 'node': node.uuid,
+                         'exc': exc})
+            continue
+
+        for *other, sockaddr in addrinfo:
+            ip = sockaddr[0]
+            if utils.is_loopback(ip):
+                LOG.warning('Ignoring loopback %(field)s %(addr)s '
+                            'for node %(node)s',
+                            {'addr': ip, 'field': name, 'node': node.uuid})
+            else:
+                result.add(ip)
+
+        if not utils.is_loopback(address):
+            result.add(address)
+
+    return result
+
+
+def cache_lookup_addresses(node):
+    """Cache lookup addresses for a quick access."""
+    addresses = _get_bmc_addresses(node)
+    if addresses:
+        LOG.debug('Will use the following BMC addresses for inspection lookup '
+                  'of node %(node)s: %(addr)s',
+                  {'node': node.uuid, 'addr': addresses})
+        node.set_driver_internal_info(LOOKUP_CACHE_FIELD, list(addresses))
+    else:
+        LOG.debug('No BMC addresses to use for inspection lookup of node %s',
+                  node.uuid)
+        clear_lookup_addresses(node)
+
+
+def clear_lookup_addresses(node):
+    """Remove lookup addresses cached on the node."""
+    return node.del_driver_internal_info(LOOKUP_CACHE_FIELD)

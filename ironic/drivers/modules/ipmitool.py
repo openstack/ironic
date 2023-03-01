@@ -313,6 +313,14 @@ def _make_password_file(password):
             f.close()
 
 
+def is_bridging_enabled(node):
+    """Check if IPMI bridging is enabled.
+
+    This call is used in the inspector lookup.
+    """
+    return node.driver_info.get("ipmi_bridging", "no") != "no"
+
+
 def _parse_driver_info(node):
     """Gets the parameters required for ipmitool to access the node.
 

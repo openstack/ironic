@@ -113,6 +113,12 @@ class TestV1Routing(api_base.BaseApiTest):
                 {'href': 'http://localhost/v1/conductors/', 'rel': 'self'},
                 {'href': 'http://localhost/conductors/', 'rel': 'bookmark'}
             ],
+            'continue_inspection': [
+                {'href': 'http://localhost/v1/continue_inspection/',
+                 'rel': 'self'},
+                {'href': 'http://localhost/continue_inspection/',
+                 'rel': 'bookmark'}
+            ],
             'deploy_templates': [
                 {'href': 'http://localhost/v1/deploy_templates/',
                  'rel': 'self'},
