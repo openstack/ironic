@@ -27,7 +27,7 @@ LOG = logging.getLogger(__name__)
 _OBJECT_NAME_PREFIX = 'inspector_data'
 
 
-def create_ports_if_not_exist(task, macs):
+def create_ports_if_not_exist(task, macs=None):
     """Create ironic ports from MAC addresses data dict.
 
     Creates ironic ports from MAC addresses data returned with inspection or
@@ -36,8 +36,17 @@ def create_ports_if_not_exist(task, macs):
     pair.
 
     :param task: A TaskManager instance.
-    :param macs: A sequence of MAC addresses.
+    :param macs: A sequence of MAC addresses. If ``None``, fetched from
+        the task's management interface.
     """
+    if macs is None:
+        macs = task.driver.management.get_mac_addresses(task)
+        if not macs:
+            LOG.warning("Not attempting to create any port as no NICs "
+                        "were discovered in 'enabled' state for node %s",
+                        task.node.uuid)
+            return
+
     node = task.node
     for mac in macs:
         if not netutils.is_valid_mac(mac):

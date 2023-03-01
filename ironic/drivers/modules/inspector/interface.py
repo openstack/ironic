@@ -15,8 +15,6 @@ Modules required to work with ironic_inspector:
     https://pypi.org/project/ironic-inspector
 """
 
-import ipaddress
-import shlex
 from urllib import parse as urlparse
 
 import eventlet
@@ -47,14 +45,8 @@ def _get_callback_endpoint(client):
         return root
 
     parts = urlparse.urlsplit(root)
-    is_loopback = False
-    try:
-        # ip_address requires a unicode string on Python 2
-        is_loopback = ipaddress.ip_address(parts.hostname).is_loopback
-    except ValueError:  # host name
-        is_loopback = (parts.hostname == 'localhost')
 
-    if is_loopback:
+    if utils.is_loopback(parts.hostname):
         raise exception.InvalidParameterValue(
             _('Loopback address %s cannot be used as an introspection '
               'callback URL') % parts.hostname)
@@ -145,26 +137,14 @@ def _ironic_manages_boot(task, raise_exc=False):
     return True
 
 
-def _parse_kernel_params():
-    """Parse kernel params from the configuration."""
-    result = {}
-    for s in shlex.split(CONF.inspector.extra_kernel_params):
-        try:
-            key, value = s.split('=', 1)
-        except ValueError:
-            result[s] = None
-        else:
-            result[key] = value
-    return result
-
-
 def _start_managed_inspection(task):
     """Start inspection managed by ironic."""
     try:
         cli = client.get_client(task.context)
         endpoint = _get_callback_endpoint(cli)
-        params = dict(_parse_kernel_params(),
-                      **{'ipa-inspection-callback-url': endpoint})
+        params = dict(
+            utils.parse_kernel_params(CONF.inspector.extra_kernel_params),
+            **{'ipa-inspection-callback-url': endpoint})
         if utils.fast_track_enabled(task.node):
             params['ipa-api-url'] = deploy_utils.get_ironic_api_url()
 
@@ -199,7 +179,7 @@ class Inspector(base.InspectInterface):
         :param task: a task from TaskManager.
         :raises: UnsupportedDriverExtension
         """
-        _parse_kernel_params()
+        utils.parse_kernel_params(CONF.inspector.extra_kernel_params)
         if CONF.inspector.require_managed_boot:
             _ironic_manages_boot(task, raise_exc=True)
 
@@ -214,16 +194,7 @@ class Inspector(base.InspectInterface):
         :raises: HardwareInspectionFailure on failure
         """
         try:
-            enabled_macs = task.driver.management.get_mac_addresses(task)
-            if enabled_macs:
-                inspect_utils.create_ports_if_not_exist(task, enabled_macs)
-            else:
-                LOG.warning("Not attempting to create any port as no NICs "
-                            "were discovered in 'enabled' state for node "
-                            "%(node)s: %(mac_data)s",
-                            {'mac_data': enabled_macs,
-                             'node': task.node.uuid})
-
+            inspect_utils.create_ports_if_not_exist(task)
         except exception.UnsupportedDriverExtension:
             LOG.debug('Pre-creating ports prior to inspection not supported'
                       ' on node %s.', task.node.uuid)
