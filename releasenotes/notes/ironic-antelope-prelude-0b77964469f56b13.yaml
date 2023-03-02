@@ -1,0 +1,14 @@
+---
+prelude: >
+    The Ironic team hereby announces the release of OpenStack 2023.1
+    (Ironic 23.4.0). This repesents the completion of a six month development
+    cycle, which primarily focused on internal and scaling improvements.
+    Those improvements included revamping the database layer to improve
+    performance and ensure compatability with new versions of SQLAlchemy,
+    enhancing the ironic-conductor service to export application metrics to
+    prometheus via the ironic-prometheus-exporter, and the addition of a
+    new API concept of node sharding to help with scaling of services that
+    make frequent API calls to Ironic.
+
+    The new Ironic release also comes with a slew of bugfixes for Ironic
+    services and hardware drivers. We sincerely hope you enjoy it!
