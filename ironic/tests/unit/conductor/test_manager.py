@@ -2735,7 +2735,8 @@ class DoProvisioningActionTestCase(mgr_utils.ServiceSetUpMixin,
         # Node will be moved to tgt_prov_state after cleaning, not tested here
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
-        self.assertIsNone(node.last_error)
+        self.assertEqual('By request, the clean operation was aborted',
+                         node.last_error)
         mock_spawn.assert_called_with(
             self.service, cleaning.do_node_clean_abort, mock.ANY)
 
