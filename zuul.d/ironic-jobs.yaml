@@ -7,6 +7,11 @@
     post-run: playbooks/ci-workarounds/get_extra_logging.yaml
     timeout: 10800
     required-projects:
+      # TODO(dtantsur): change everything to stable/2023.1
+      - name: openstack/requirements
+        override-checkout: master
+      - name: openstack/devstack
+        override-checkout: master
       # TODO(TheJulia): Explicitly pull in DIB until we get a release cut.
       - opendev.org/openstack/diskimage-builder
       - opendev.org/openstack/ironic
