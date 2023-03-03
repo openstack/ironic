@@ -51,8 +51,16 @@
             voting: false
         - bifrost-integration-tinyipa-ubuntu-focal:
             voting: false
+            required-projects:
+              # TODO(dtantsur): change to stable/2023.1
+              - name: openstack/bifrost
+                override-checkout: master
         - bifrost-integration-redfish-vmedia-uefi-centos-9:
             voting: false
+            required-projects:
+              # TODO(dtantsur): change to stable/2023.1
+              - name: openstack/bifrost
+                override-checkout: master
         - ironic-tempest-pxe_ipmitool-postgres:
             voting: false
         - bifrost-benchmark-ironic:
