@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    No longer re-calculates checksums for images that are already raw.
+    Previously, it would cause significant delays in deploying raw images.

@@ -1940,7 +1940,7 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         self.node.save()
 
         self.checksum_mock = self.useFixture(fixtures.MockPatchObject(
-            fileutils, 'compute_file_checksum')).mock
+            fileutils, 'compute_file_checksum', autospec=True)).mock
         self.checksum_mock.return_value = 'fake-checksum'
         self.cache_image_mock = self.useFixture(fixtures.MockPatchObject(
             utils, 'cache_instance_image', autospec=True)).mock
@@ -2012,9 +2012,25 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
             image_info=self.image_info, expect_raw=True)
 
         self.assertIsNone(instance_info['image_checksum'])
+        self.assertEqual(instance_info['image_os_hash_algo'], 'sha512')
+        self.assertEqual(instance_info['image_os_hash_value'],
+                         'fake-checksum')
         self.assertEqual(instance_info['image_disk_format'], 'raw')
-        calls = [mock.call(image_path, algorithm='sha512')]
-        self.checksum_mock.assert_has_calls(calls)
+        self.checksum_mock.assert_called_once_with(image_path,
+                                                   algorithm='sha512')
+
+    def test_build_instance_info_already_raw(self):
+        cfg.CONF.set_override('force_raw_images', True)
+        self.image_info['disk_format'] = 'raw'
+        image_path, instance_info = self._test_build_instance_info(
+            image_info=self.image_info, expect_raw=True)
+
+        self.assertEqual(instance_info['image_checksum'], 'aa')
+        self.assertEqual(instance_info['image_os_hash_algo'], 'sha512')
+        self.assertEqual(instance_info['image_os_hash_value'],
+                         'fake-sha512')
+        self.assertEqual(instance_info['image_disk_format'], 'raw')
+        self.checksum_mock.assert_not_called()
 
     def test_build_instance_info_force_raw_drops_md5(self):
         cfg.CONF.set_override('force_raw_images', True)
@@ -2027,6 +2043,17 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         calls = [mock.call(image_path, algorithm='sha256')]
         self.checksum_mock.assert_has_calls(calls)
 
+    def test_build_instance_info_already_raw_keeps_md5(self):
+        cfg.CONF.set_override('force_raw_images', True)
+        self.image_info['os_hash_algo'] = 'md5'
+        self.image_info['disk_format'] = 'raw'
+        image_path, instance_info = self._test_build_instance_info(
+            image_info=self.image_info, expect_raw=True)
+
+        self.assertEqual(instance_info['image_checksum'], 'aa')
+        self.assertEqual(instance_info['image_disk_format'], 'raw')
+        self.checksum_mock.assert_not_called()
+
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
                        autospec=True)
     def test_build_instance_info_file_image(self, validate_href_mock):
@@ -2035,7 +2062,6 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         i_info['image_source'] = 'file://image-ref'
         i_info['image_checksum'] = 'aa'
         i_info['root_gb'] = 10
-        i_info['image_checksum'] = 'aa'
         driver_internal_info['is_whole_disk_image'] = True
         self.node.instance_info = i_info
         self.node.driver_internal_info = driver_internal_info
@@ -2052,6 +2078,7 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
             self.assertEqual(expected_url, info['image_url'])
             self.assertEqual('sha256', info['image_os_hash_algo'])
             self.assertEqual('fake-checksum', info['image_os_hash_value'])
+            self.assertEqual('raw', info['image_disk_format'])
             self.cache_image_mock.assert_called_once_with(
                 task.context, task.node, force_raw=True)
             self.checksum_mock.assert_called_once_with(
@@ -2068,7 +2095,6 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         i_info['image_source'] = 'http://image-ref'
         i_info['image_checksum'] = 'aa'
         i_info['root_gb'] = 10
-        i_info['image_checksum'] = 'aa'
         driver_internal_info['is_whole_disk_image'] = True
         self.node.instance_info = i_info
         self.node.driver_internal_info = driver_internal_info
@@ -2102,7 +2128,6 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         i_info['image_source'] = 'http://image-ref'
         i_info['image_checksum'] = 'aa'
         i_info['root_gb'] = 10
-        i_info['image_checksum'] = 'aa'
         i_info['image_download_source'] = 'local'
         driver_internal_info['is_whole_disk_image'] = True
         self.node.instance_info = i_info
@@ -2138,7 +2163,6 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
         i_info['image_source'] = 'http://image-ref'
         i_info['image_checksum'] = 'aa'
         i_info['root_gb'] = 10
-        i_info['image_checksum'] = 'aa'
         d_info['image_download_source'] = 'local'
         driver_internal_info['is_whole_disk_image'] = True
         self.node.instance_info = i_info
@@ -2161,6 +2185,41 @@ class TestBuildInstanceInfoForHttpProvisioning(db_base.DbTestCase):
                 task.context, task.node, force_raw=True)
             self.checksum_mock.assert_called_once_with(
                 self.fake_path, algorithm='sha256')
+            validate_href_mock.assert_called_once_with(
+                mock.ANY, expected_url, False)
+
+    @mock.patch.object(image_service.HttpImageService, 'validate_href',
+                       autospec=True)
+    def test_build_instance_info_local_image_already_raw(self,
+                                                         validate_href_mock):
+        cfg.CONF.set_override('image_download_source', 'local', group='agent')
+        i_info = self.node.instance_info
+        driver_internal_info = self.node.driver_internal_info
+        i_info['image_source'] = 'http://image-ref'
+        i_info['image_checksum'] = 'aa'
+        i_info['root_gb'] = 10
+        i_info['image_disk_format'] = 'raw'
+        driver_internal_info['is_whole_disk_image'] = True
+        self.node.instance_info = i_info
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        expected_url = (
+            'http://172.172.24.10:8080/agent_images/%s' % self.node.uuid)
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            info = utils.build_instance_info_for_deploy(task)
+
+            self.assertEqual(expected_url, info['image_url'])
+            self.assertEqual('aa', info['image_checksum'])
+            self.assertEqual('raw', info['image_disk_format'])
+            self.assertIsNone(info['image_os_hash_algo'])
+            self.assertIsNone(info['image_os_hash_value'])
+            self.cache_image_mock.assert_called_once_with(
+                task.context, task.node, force_raw=True)
+            self.checksum_mock.assert_not_called()
             validate_href_mock.assert_called_once_with(
                 mock.ANY, expected_url, False)
 
