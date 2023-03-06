@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    Fixes an issue in the online upgrade logic where database models for
+    Node Traits and BIOS Settings resulted in an error when performing
+    the online data migration. This was because these tables were originally
+    created as extensions of the Nodes database table, and the schema
+    of the database was slightly different enough to result in an error
+    if there was data to migrate in these tables upon upgrade,
+    which would have occured if an early BIOS Setting adopter had
+    data in the database prior to upgrading to the Yoga release of Ironic.
+
+    The online upgrade parameter now subsitutes an alternate primary key name
+    name when applicable.

@@ -1715,9 +1715,12 @@ class Connection(api.Connection):
         max_to_migrate = max_count or total_to_migrate
 
         for model in sql_models:
+            use_node_id = False
+            if (not hasattr(model, 'id') and hasattr(model, 'node_id')):
+                use_node_id = True
             version = mapping[model.__name__][0]
             num_migrated = 0
-            with _session_for_write():
+            with _session_for_write() as session:
                 query = model_query(model).filter(model.version != version)
                 # NOTE(rloo) Caution here; after doing query.count(), it is
                 #            possible that the value is different in the
@@ -1728,13 +1731,27 @@ class Connection(api.Connection):
                     # max_to_migrate objects.
                     ids = []
                     for obj in query.slice(0, max_to_migrate):
-                        ids.append(obj['id'])
-                    num_migrated = (
-                        model_query(model).
-                        filter(sql.and_(model.id.in_(ids),
-                                        model.version != version)).
-                        update({model.version: version},
-                               synchronize_session=False))
+                        if not use_node_id:
+                            ids.append(obj['id'])
+                        else:
+                            # BIOSSettings, NodeTrait, NodeTag do not have id
+                            # columns, fallback to node_id as they both have
+                            # it.
+                            ids.append(obj['node_id'])
+                    if not use_node_id:
+                        num_migrated = (
+                            session.query(model).
+                            filter(sql.and_(model.id.in_(ids),
+                                            model.version != version)).
+                            update({model.version: version},
+                                   synchronize_session=False))
+                    else:
+                        num_migrated = (
+                            session.query(model).
+                            filter(sql.and_(model.node_id.in_(ids),
+                                            model.version != version)).
+                            update({model.version: version},
+                                   synchronize_session=False))
                 else:
                     num_migrated = (
                         model_query(model).
