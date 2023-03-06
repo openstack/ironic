@@ -15,6 +15,19 @@ provisioned within a short period of time.
    the ``noop`` networking. The case where inspection, cleaning and
    provisioning networks are different is not supported.
 
+.. note::
+   Fast track mode is very sensitive to long-running processes on the conductor
+   side that may prevent agent heartbeats from being registered.
+
+   For example, converting a large image to the raw format may take long enough
+   to reach the fast track timeout. In this case, you can either :ref:`use raw
+   images <stream_raw_images>` or move the conversion to the agent side with:
+
+   .. code-block:: ini
+
+    [DEFAULT]
+    force_raw_images = False
+
 Enabling
 ========
 

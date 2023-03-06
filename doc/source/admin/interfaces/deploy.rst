@@ -81,6 +81,46 @@ accessible from HTTP service. Please refer to configuration option
 ``FollowSymLinks`` if you are using Apache HTTP server, or
 ``disable_symlinks`` if Nginx HTTP server is in use.
 
+.. _stream_raw_images:
+
+Streaming raw images
+--------------------
+
+The Bare Metal service is capable of streaming raw images directly to the
+target disk of a node, without caching them in the node's RAM. When the source
+image is not already raw, the conductor will convert the image and calculate
+the new checksum.
+
+.. note::
+   If no algorithm is specified via the ``image_os_hash_algo`` field, or if
+   this field is set to ``md5``, SHA256 is used for the updated checksum.
+
+For HTTP or local file images that are already raw, you need to explicitly set
+the disk format to prevent the checksum from being unnecessarily re-calculated.
+For example:
+
+.. code-block:: shell
+
+    baremetal node set <node> \
+        --instance-info image_source=http://server/myimage.img \
+        --instance-info image_os_hash_algo=sha512 \
+        --instance-info image_os_hash_value=<SHA512 of the raw image> \
+        --instance-info image_disk_format=raw
+
+To disable this feature and cache images in the node's RAM, set
+
+.. code-block:: ini
+
+   [agent]
+   stream_raw_images = False
+
+To disable the conductor-side conversion completely, set
+
+.. code-block:: ini
+
+   [DEFAULT]
+   force_raw_images = False
+
 .. _ansible-deploy:
 
 Ansible deploy
