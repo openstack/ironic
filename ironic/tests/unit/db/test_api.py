@@ -226,6 +226,11 @@ class UpdateToLatestVersionsTestCase(base.DbTestCase):
         for i in range(0, num_nodes):
             node = utils.create_test_node(version=version,
                                           uuid=uuidutils.generate_uuid())
+            # Create entries on the tables so we force field upgrades
+            utils.create_test_node_trait(node_id=node.id, trait='foo',
+                                         version='0.0')
+            utils.create_test_bios_setting(node_id=node.id, version='1.0')
+
             nodes.append(node.uuid)
         for uuid in nodes:
             node = self.dbapi.get_node_by_uuid(uuid)
@@ -238,10 +243,15 @@ class UpdateToLatestVersionsTestCase(base.DbTestCase):
             return
 
         nodes = self._create_nodes(5)
+        # Check/migrate 2, 10 remain.
         self.assertEqual(
-            (5, 2), self.dbapi.update_to_latest_versions(self.context, 2))
+            (10, 2), self.dbapi.update_to_latest_versions(self.context, 2))
+        # Check/migrate 10, 8 migrated, 8 remain.
         self.assertEqual(
-            (3, 3), self.dbapi.update_to_latest_versions(self.context, 10))
+            (8, 8), self.dbapi.update_to_latest_versions(self.context, 10))
+        # Just make sure it is still 0, 0 in case more things are added.
+        self.assertEqual(
+            (0, 0), self.dbapi.update_to_latest_versions(self.context, 10))
         for uuid in nodes:
             node = self.dbapi.get_node_by_uuid(uuid)
             self.assertEqual(self.node_ver, node.version)
@@ -250,10 +260,19 @@ class UpdateToLatestVersionsTestCase(base.DbTestCase):
         if self.node_version_same:
             # can't test if we don't have diff versions of the node
             return
-
-        nodes = self._create_nodes(5)
+        vm_count = 5
+        nodes = self._create_nodes(vm_count)
+        # NOTE(TheJulia): Under current testing, 5 node will result in 10
+        # records implicitly needing to be migrated.
+        migrate_count = vm_count * 2
         self.assertEqual(
-            (5, 5), self.dbapi.update_to_latest_versions(self.context, 5))
+            (migrate_count, migrate_count),
+            self.dbapi.update_to_latest_versions(self.context,
+                                                 migrate_count))
+        self.assertEqual(
+            (0, 0), self.dbapi.update_to_latest_versions(self.context,
+                                                         migrate_count))
+
         for uuid in nodes:
             node = self.dbapi.get_node_by_uuid(uuid)
             self.assertEqual(self.node_ver, node.version)
