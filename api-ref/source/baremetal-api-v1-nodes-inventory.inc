@@ -9,8 +9,12 @@ Node inventory
 Given a Node identifier, the API provides access to the introspection data
 associated to the Node via ``v1/nodes/{node_ident}/inventory`` endpoint.
 
-Fetch node inventory
-===============================
+The format inventory comes from ironic-python-agent and is currently documented
+in the `agent inventory documentation
+<https://docs.openstack.org/ironic-python-agent/latest/admin/how_it_works.html#hardware-inventory>`_.
+
+Show Node Inventory
+===================
 
 .. rest_method:: GET /v1/nodes/{node_ident}/inventory
 
