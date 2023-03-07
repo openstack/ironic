@@ -510,6 +510,69 @@ RELEASE_MAPPING = {
             'VolumeTarget': ['1.0'],
         }
     },
+    '21.2': {
+        'api': '1.80',
+        'rpc': '1.55',
+        'objects': {
+            'Allocation': ['1.1'],
+            'BIOSSetting': ['1.1'],
+            'Node': ['1.36'],
+            'NodeHistory': ['1.0'],
+            'NodeInventory': ['1.0'],
+            'Conductor': ['1.3'],
+            'Chassis': ['1.3'],
+            'Deployment': ['1.0'],
+            'DeployTemplate': ['1.1'],
+            'Port': ['1.10'],
+            'Portgroup': ['1.4'],
+            'Trait': ['1.0'],
+            'TraitList': ['1.0'],
+            'VolumeConnector': ['1.0'],
+            'VolumeTarget': ['1.0'],
+        }
+    },
+    '21.3': {
+        'api': '1.81',
+        'rpc': '1.55',
+        'objects': {
+            'Allocation': ['1.1'],
+            'BIOSSetting': ['1.1'],
+            'Node': ['1.36'],
+            'NodeHistory': ['1.0'],
+            'NodeInventory': ['1.0'],
+            'Conductor': ['1.3'],
+            'Chassis': ['1.3'],
+            'Deployment': ['1.0'],
+            'DeployTemplate': ['1.1'],
+            'Port': ['1.11'],
+            'Portgroup': ['1.4'],
+            'Trait': ['1.0'],
+            'TraitList': ['1.0'],
+            'VolumeConnector': ['1.0'],
+            'VolumeTarget': ['1.0'],
+        }
+    },
+    '21.4': {
+        'api': '1.82',
+        'rpc': '1.55',
+        'objects': {
+            'Allocation': ['1.1'],
+            'BIOSSetting': ['1.1'],
+            'Node': ['1.37'],
+            'NodeHistory': ['1.0'],
+            'NodeInventory': ['1.0'],
+            'Conductor': ['1.3'],
+            'Chassis': ['1.3'],
+            'Deployment': ['1.0'],
+            'DeployTemplate': ['1.1'],
+            'Port': ['1.11'],
+            'Portgroup': ['1.5'],
+            'Trait': ['1.0'],
+            'TraitList': ['1.0'],
+            'VolumeConnector': ['1.0'],
+            'VolumeTarget': ['1.0'],
+        }
+    },
     'master': {
         'api': '1.82',
         'rpc': '1.55',
@@ -543,12 +606,11 @@ RELEASE_MAPPING = {
 #
 #            Just after we do a new named release, delete the oldest named
 #            release (that we are no longer supporting for a rolling upgrade).
-#
-#            There should be at most two named mappings here.
 
-# NOTE(mgoddard): remove yoga prior to the antelope release.
 RELEASE_MAPPING['yoga'] = RELEASE_MAPPING['20.1']
 RELEASE_MAPPING['zed'] = RELEASE_MAPPING['21.1']
+RELEASE_MAPPING['antelope'] = RELEASE_MAPPING['21.4']
+RELEASE_MAPPING['2023.1'] = RELEASE_MAPPING['21.4']
 
 # List of available versions with named versions first; 'master' is excluded.
 RELEASE_VERSIONS = sorted(set(RELEASE_MAPPING) - {'master'}, reverse=True)
