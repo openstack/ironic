@@ -1,0 +1,32 @@
+---
+- name: Create the target directory
+  file:
+    path: "{{ logs_management_cluster }}/{{ namespace }}"
+    state: directory
+
+- name: Fetch pods list
+  command: kubectl get pods -n "{{ namespace }}" -o json
+  ignore_errors: true
+  register: pods_result
+
+- block:
+    - name: Save the pods list
+      copy:
+        dest: "{{ logs_management_cluster }}/{{ namespace }}/pods.yaml"
+        content: "{{ pods_result.stdout }}"
+
+    - name: Set pod names
+      set_fact:
+        pods: "{{ pods_result.stdout | from_json | json_query('items[*].metadata.name') }}"
+
+    - include_tasks: fetch_pod_logs.yaml
+      loop: "{{ pods }}"
+      loop_control:
+        loop_var: pod
+  when: pods_result is succeeded
+
+- name: Fetch secrets
+  shell: |
+    kubectl get secrets -n "{{ namespace }}" -o yaml \
+      > "{{ logs_management_cluster }}/{{ namespace }}/secrets.yaml"
+  ignore_errors: true

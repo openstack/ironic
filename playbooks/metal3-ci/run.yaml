@@ -1,0 +1,39 @@
+---
+- hosts: all
+  tasks:
+    - name: Define the metal3 variables
+      set_fact:
+        metal3_dev_env_src_dir: '{{ ansible_user_dir }}/metal3-dev-env'
+        metal3_environment:
+          CONTROL_PLANE_MACHINE_COUNT: 1
+          IMAGE_OS: ubuntu
+          IMAGE_USERNAME: zuul
+          # NOTE(dtantsur): we don't have enough resources to provision even
+          # a 2-node cluster, so only provision a control plane node.
+          NUM_NODES: 2
+          WORKER_MACHINE_COUNT: 1
+
+    # TODO(dtantsur): add metal3-io/metal3-dev-env as a recognized project to
+    # https://opendev.org/openstack/project-config/src/commit/e15b9cae77bdc243322cee64b3688a2a43dd193c/zuul/main.yaml#L1416
+    # TODO(dtantsur): replace my fork with the upstream source once all fixes
+    # merge there.
+    # TODO(rpittau): move back to dtantsur or metal3-io after we merge the changes
+    - name: Clone metal3-dev-env
+      git:
+        dest: "{{ metal3_dev_env_src_dir }}"
+        repo: "https://github.com/elfosardo/metal3-dev-env"
+        version: ironic-ci
+
+    - name: Build a metal3 environment
+      command: make
+      args:
+        chdir: "{{ metal3_dev_env_src_dir }}"
+      environment: "{{ metal3_environment }}"
+
+# NOTE(rpittau) skip the tests for the time begin, they imply the presence of
+# 2 nodes, 1 control plus 1 worker
+#    - name: Run metal3 tests
+#      command: make test
+#      args:
+#        chdir: "{{ metal3_dev_env_src_dir }}"
+#      environment: "{{ metal3_environment }}"

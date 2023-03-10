@@ -1,0 +1,30 @@
+- job:
+    name: metal3-base
+    abstract: true
+    description: Base job for metal3-dev-env based ironic jobs.
+    nodeset: openstack-single-node-jammy
+    run: playbooks/metal3-ci/run.yaml
+    post-run: playbooks/metal3-ci/post.yaml
+    timeout: 10800
+    required-projects:
+      - opendev.org/openstack/ironic
+      - opendev.org/openstack/ironic-inspector
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^driver-requirements.txt$
+      - ^install-guide/.*$
+      - ^ironic/locale/.*$
+      - ^ironic/tests/.*$
+      - ^ironic_inspector/locale/.*$
+      - ^ironic_inspector/test/.*$
+      - ^releasenotes/.*$
+      - ^setup.cfg$
+      - ^test-requirements.txt$
+      - ^tox.ini$
+
+- job:
+    name: metal3-integration
+    description: Run metal3 CI on ironic.
+    parent: metal3-base

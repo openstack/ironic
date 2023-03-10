@@ -1,0 +1,24 @@
+---
+- name: Create the target directory
+  file:
+    path: "{{ logs_management_cluster }}/{{ namespace }}/{{ pod }}"
+    state: directory
+
+- name: Fetch pod information
+  command: kubectl get pod -n "{{ namespace }}" -o json "{{ pod }}"
+  register: pod_result
+
+- name: Process pod JSON
+  set_fact:
+    pod_json: "{{ pod_result.stdout | from_json }}"
+
+- name: Set container names
+  set_fact:
+    containers: "{{ pod_json.spec.containers | map(attribute='name') | list }}"
+    init_containers: "{{ pod_json.spec.initContainers | default([]) | map(attribute='name') | list }}"
+
+- name: Fetch container logs
+  shell: |
+    kubectl logs -n "{{ namespace }}" "{{ pod }}" "{{ item }}" \
+      > "{{ logs_management_cluster }}/{{ namespace }}/{{ pod }}/{{ item }}.log" 2>&1
+  loop: "{{ containers + init_containers }}"

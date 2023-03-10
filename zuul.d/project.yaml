@@ -57,6 +57,8 @@
             voting: false
         - bifrost-benchmark-ironic:
             voting: false
+        - metal3-integration:
+            voting: false
     gate:
       jobs:
         - ironic-tox-unit-with-driver-libs
