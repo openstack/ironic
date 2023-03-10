@@ -20,13 +20,10 @@ import shlex
 from urllib import parse as urlparse
 
 import eventlet
-from keystoneauth1 import exceptions as ks_exception
-import openstack
 from oslo_log import log as logging
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import keystone
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import periodics
@@ -36,45 +33,12 @@ from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import inspect_utils
+from ironic.drivers.modules.inspector import client
 
 LOG = logging.getLogger(__name__)
 
-_INSPECTOR_SESSION = None
 # Internal field to mark whether ironic or inspector manages boot for the node
 _IRONIC_MANAGES_BOOT = 'inspector_manage_boot'
-
-
-def _get_inspector_session(**kwargs):
-    global _INSPECTOR_SESSION
-    if not _INSPECTOR_SESSION:
-        if CONF.auth_strategy != 'keystone':
-            # NOTE(dtantsur): using set_default instead of set_override because
-            # the native keystoneauth option must have priority.
-            CONF.set_default('auth_type', 'none', group='inspector')
-        service_auth = keystone.get_auth('inspector')
-        _INSPECTOR_SESSION = keystone.get_session('inspector',
-                                                  auth=service_auth,
-                                                  **kwargs)
-    return _INSPECTOR_SESSION
-
-
-def _get_client(context):
-    """Helper to get inspector client instance."""
-    session = _get_inspector_session()
-    # NOTE(dtantsur): openstacksdk expects config option groups to match
-    # service name, but we use just "inspector".
-    conf = dict(CONF)
-    conf['ironic-inspector'] = conf.pop('inspector')
-    # TODO(pas-ha) investigate possibility of passing user context here,
-    # similar to what neutron/glance-related code does
-    try:
-        return openstack.connection.Connection(
-            session=session,
-            oslo_conf=conf).baremetal_introspection
-    except ks_exception.DiscoveryFailure as exc:
-        raise exception.ConfigInvalid(
-            _("Could not contact ironic-inspector for version discovery: %s")
-            % exc)
 
 
 def _get_callback_endpoint(client):
@@ -197,8 +161,8 @@ def _parse_kernel_params():
 def _start_managed_inspection(task):
     """Start inspection managed by ironic."""
     try:
-        client = _get_client(task.context)
-        endpoint = _get_callback_endpoint(client)
+        cli = client.get_client(task.context)
+        endpoint = _get_callback_endpoint(cli)
         params = dict(_parse_kernel_params(),
                       **{'ipa-inspection-callback-url': endpoint})
         if utils.fast_track_enabled(task.node):
@@ -208,7 +172,7 @@ def _start_managed_inspection(task):
         with cond_utils.power_state_for_network_configuration(task):
             task.driver.network.add_inspection_network(task)
         task.driver.boot.prepare_ramdisk(task, ramdisk_params=params)
-        client.start_introspection(task.node.uuid, manage_boot=False)
+        cli.start_introspection(task.node.uuid, manage_boot=False)
         cond_utils.node_power_action(task, states.POWER_ON)
     except Exception as exc:
         LOG.exception('Unable to start managed inspection for node %(uuid)s: '
@@ -295,7 +259,7 @@ class Inspector(base.InspectInterface):
         node_uuid = task.node.uuid
         LOG.debug('Aborting inspection for node %(uuid)s using '
                   'ironic-inspector', {'uuid': node_uuid})
-        _get_client(task.context).abort_introspection(node_uuid)
+        client.get_client(task.context).abort_introspection(node_uuid)
 
     @periodics.node_periodic(
         purpose='checking hardware inspection status',
@@ -310,7 +274,7 @@ class Inspector(base.InspectInterface):
 def _start_inspection(node_uuid, context):
     """Call to inspector to start inspection."""
     try:
-        _get_client(context).start_introspection(node_uuid)
+        client.get_client(context).start_introspection(node_uuid)
     except Exception as exc:
         LOG.error('Error contacting ironic-inspector for inspection of node '
                   '%(node)s: %(cls)s: %(err)s',
@@ -339,7 +303,7 @@ def _check_status(task):
               task.node.uuid)
 
     try:
-        inspector_client = _get_client(task.context)
+        inspector_client = client.get_client(task.context)
         status = inspector_client.get_introspection(node.uuid)
     except Exception:
         # NOTE(dtantsur): get_status should not normally raise
