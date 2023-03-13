@@ -46,6 +46,7 @@ from ironic.common import nova
 from ironic.common import states
 from ironic.conductor import cleaning
 from ironic.conductor import deployments
+from ironic.conductor import inspection
 from ironic.conductor import manager
 from ironic.conductor import notification_utils
 from ironic.conductor import steps as conductor_steps
@@ -6461,77 +6462,6 @@ class ManagerSyncLocalStateTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
 @mgr_utils.mock_record_keepalive
 class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
-                autospec=True)
-    def test_inspect_hardware_ok(self, mock_inspect):
-        self._start_service()
-        node = obj_utils.create_test_node(
-            self.context, driver='fake-hardware',
-            provision_state=states.INSPECTING,
-            driver_internal_info={'agent_url': 'url',
-                                  'agent_secret_token': 'token'})
-        task = task_manager.TaskManager(self.context, node.uuid)
-        mock_inspect.return_value = states.MANAGEABLE
-        manager._do_inspect_hardware(task)
-        node.refresh()
-        self.assertEqual(states.MANAGEABLE, node.provision_state)
-        self.assertEqual(states.NOSTATE, node.target_provision_state)
-        self.assertIsNone(node.last_error)
-        mock_inspect.assert_called_once_with(task.driver.inspect, task)
-        task.node.refresh()
-        self.assertNotIn('agent_url', task.node.driver_internal_info)
-        self.assertNotIn('agent_secret_token', task.node.driver_internal_info)
-
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
-                autospec=True)
-    def test_inspect_hardware_return_inspecting(self, mock_inspect):
-        self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=states.INSPECTING)
-        task = task_manager.TaskManager(self.context, node.uuid)
-        mock_inspect.return_value = states.INSPECTING
-        self.assertRaises(exception.HardwareInspectionFailure,
-                          manager._do_inspect_hardware, task)
-
-        node.refresh()
-        self.assertIn('driver returned unexpected state', node.last_error)
-        self.assertEqual(states.INSPECTFAIL, node.provision_state)
-        self.assertEqual(states.MANAGEABLE, node.target_provision_state)
-        mock_inspect.assert_called_once_with(task.driver.inspect, task)
-
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
-                autospec=True)
-    def test_inspect_hardware_return_inspect_wait(self, mock_inspect):
-        self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=states.INSPECTING)
-        task = task_manager.TaskManager(self.context, node.uuid)
-        mock_inspect.return_value = states.INSPECTWAIT
-        manager._do_inspect_hardware(task)
-        node.refresh()
-        self.assertEqual(states.INSPECTWAIT, node.provision_state)
-        self.assertEqual(states.MANAGEABLE, node.target_provision_state)
-        self.assertIsNone(node.last_error)
-        mock_inspect.assert_called_once_with(task.driver.inspect, task)
-
-    @mock.patch.object(manager, 'LOG', autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
-                autospec=True)
-    def test_inspect_hardware_return_other_state(self, mock_inspect, log_mock):
-        self._start_service()
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=states.INSPECTING)
-        task = task_manager.TaskManager(self.context, node.uuid)
-        mock_inspect.return_value = None
-        self.assertRaises(exception.HardwareInspectionFailure,
-                          manager._do_inspect_hardware, task)
-        node.refresh()
-        self.assertEqual(states.INSPECTFAIL, node.provision_state)
-        self.assertEqual(states.MANAGEABLE, node.target_provision_state)
-        self.assertIsNotNone(node.last_error)
-        mock_inspect.assert_called_once_with(task.driver.inspect, task)
-        self.assertTrue(log_mock.error.called)
-
     def test__check_inspect_wait_timeouts(self):
         self._start_service()
         CONF.set_override('inspect_wait_timeout', 1, group='conductor')
@@ -6608,46 +6538,6 @@ class NodeInspectHardware(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 autospec=True)
     def test_inspect_hardware_power_validate_fail(self, mock_validate):
         self._test_inspect_hardware_validate_fail(mock_validate)
-
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
-                autospec=True)
-    def test_inspect_hardware_raises_error(self, mock_inspect):
-        self._start_service()
-        mock_inspect.side_effect = exception.HardwareInspectionFailure('test')
-        state = states.MANAGEABLE
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=states.INSPECTING,
-                                          target_provision_state=state)
-        task = task_manager.TaskManager(self.context, node.uuid)
-
-        self.assertRaisesRegex(exception.HardwareInspectionFailure, '^test$',
-                               manager._do_inspect_hardware, task)
-        node.refresh()
-        self.assertEqual(states.INSPECTFAIL, node.provision_state)
-        self.assertEqual(states.MANAGEABLE, node.target_provision_state)
-        self.assertEqual('test', node.last_error)
-        self.assertTrue(mock_inspect.called)
-
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.inspect_hardware',
-                autospec=True)
-    def test_inspect_hardware_unexpected_error(self, mock_inspect):
-        self._start_service()
-        mock_inspect.side_effect = RuntimeError('x')
-        state = states.MANAGEABLE
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          provision_state=states.INSPECTING,
-                                          target_provision_state=state)
-        task = task_manager.TaskManager(self.context, node.uuid)
-
-        self.assertRaisesRegex(exception.HardwareInspectionFailure,
-                               'Unexpected exception of type RuntimeError: x',
-                               manager._do_inspect_hardware, task)
-        node.refresh()
-        self.assertEqual(states.INSPECTFAIL, node.provision_state)
-        self.assertEqual(states.MANAGEABLE, node.target_provision_state)
-        self.assertEqual('Unexpected exception of type RuntimeError: x',
-                         node.last_error)
-        self.assertTrue(mock_inspect.called)
 
 
 @mock.patch.object(conductor_utils, 'node_history_record',
@@ -8247,7 +8137,7 @@ class NodeTraitsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
                                  mgr_utils.ServiceSetUpMixin,
                                  db_base.DbTestCase):
-    @mock.patch.object(manager, 'LOG', autospec=True)
+    @mock.patch.object(inspection, 'LOG', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort', autospec=True)
     @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
     def test_do_inspect_abort_interface_not_support(self, mock_acquire,
@@ -8268,7 +8158,7 @@ class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
                          exc.exc_info[0])
         self.assertTrue(mock_log.error.called)
 
-    @mock.patch.object(manager, 'LOG', autospec=True)
+    @mock.patch.object(inspection, 'LOG', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort', autospec=True)
     @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
     def test_do_inspect_abort_interface_return_failed(self, mock_acquire,
