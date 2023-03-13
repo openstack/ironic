@@ -26,6 +26,7 @@ import hashlib
 import ipaddress
 import os
 import re
+import shlex
 import shutil
 import tempfile
 import time
@@ -696,3 +697,30 @@ def stop_after_retries(option, group=None):
         return retry_state.attempt_number >= num_retries + 1
 
     return should_stop
+
+
+def is_loopback(hostname_or_ip):
+    """Check if the provided hostname or IP address is a loopback."""
+    try:
+        return ipaddress.ip_address(hostname_or_ip).is_loopback
+    except ValueError:  # host name
+        return hostname_or_ip in ('localhost', 'localhost.localdomain')
+
+
+def parse_kernel_params(params):
+    """Parse kernel parameters into a dictionary.
+
+    ``None`` is used as a value for parameters that are not in
+    the ``key=value`` format.
+
+    :param params: kernel parameters as a space-delimited string.
+    """
+    result = {}
+    for s in shlex.split(params):
+        try:
+            key, value = s.split('=', 1)
+        except ValueError:
+            result[s] = None
+        else:
+            result[key] = value
+    return result
