@@ -297,6 +297,13 @@ def node_power_action(task, new_state, timeout=None):
     node = task.node
 
     if _can_skip_state_change(task, new_state):
+        # NOTE(TheJulia): Even if we are not changing the power state,
+        # we need to wipe the token out, just in case for some reason
+        # the power was turned off outside of our interaction/management.
+        if new_state in (states.POWER_OFF, states.SOFT_POWER_OFF,
+                         states.REBOOT, states.SOFT_REBOOT):
+            wipe_internal_info_on_power_off(node)
+            node.save()
         return
     target_state = _calculate_target_state(new_state)
 
