@@ -277,9 +277,8 @@ the space requirements are different:
   In both cases a cached image is converted to raw if ``force_raw_images``
   is ``True`` (the default).
 
-  .. note::
-    ``image_download_source`` can also be provided in the node's
-    ``driver_info`` or ``instance_info``. See :ref:`image_download_source`.
+  See :ref:`image_download_source` and :ref:`stream_raw_images` for more
+  details.
 
 * When network boot is used, the instance image kernel and ramdisk are cached
   locally while the instance is active.

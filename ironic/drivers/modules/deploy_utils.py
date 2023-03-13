@@ -1093,6 +1093,11 @@ def _cache_and_convert_image(task, instance_info, image_info=None):
     _, image_path = cache_instance_image(task.context, task.node,
                                          force_raw=force_raw)
     if force_raw or image_info is None:
+        if image_info is None:
+            initial_format = instance_info.get('image_disk_format')
+        else:
+            initial_format = image_info.get('disk_format')
+
         if force_raw:
             instance_info['image_disk_format'] = 'raw'
         else:
@@ -1108,21 +1113,29 @@ def _cache_and_convert_image(task, instance_info, image_info=None):
         # sha256.
         if image_info is None:
             os_hash_algo = instance_info.get('image_os_hash_algo')
+            hash_value = instance_info.get('image_os_hash_value')
+            old_checksum = instance_info.get('image_checksum')
         else:
             os_hash_algo = image_info.get('os_hash_algo')
+            hash_value = image_info.get('os_hash_value')
+            old_checksum = image_info.get('checksum')
 
-        if not os_hash_algo or os_hash_algo == 'md5':
-            LOG.debug("Checksum algorithm for image %(image)s for node "
-                      "%(node)s is set to '%(algo)s', changing to 'sha256'",
-                      {'algo': os_hash_algo, 'node': task.node.uuid,
-                       'image': image_path})
-            os_hash_algo = 'sha256'
+        if initial_format != instance_info['image_disk_format']:
+            if not os_hash_algo or os_hash_algo == 'md5':
+                LOG.debug("Checksum algorithm for image %(image)s for node "
+                          "%(node)s is set to '%(algo)s', changing to sha256",
+                          {'algo': os_hash_algo, 'node': task.node.uuid,
+                           'image': image_path})
+                os_hash_algo = 'sha256'
 
-        LOG.debug('Recalculating checksum for image %(image)s for node '
-                  '%(node)s due to image conversion',
-                  {'image': image_path, 'node': task.node.uuid})
-        instance_info['image_checksum'] = None
-        hash_value = compute_image_checksum(image_path, os_hash_algo)
+            LOG.debug('Recalculating checksum for image %(image)s for node '
+                      '%(node)s due to image conversion',
+                      {'image': image_path, 'node': task.node.uuid})
+            instance_info['image_checksum'] = None
+            hash_value = compute_image_checksum(image_path, os_hash_algo)
+        else:
+            instance_info['image_checksum'] = old_checksum
+
         instance_info['image_os_hash_algo'] = os_hash_algo
         instance_info['image_os_hash_value'] = hash_value
     else:
