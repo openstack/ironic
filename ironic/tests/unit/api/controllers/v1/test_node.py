@@ -7927,20 +7927,15 @@ class TestNodeInventory(test_api_base.BaseApiTest):
         self.node = obj_utils.create_test_node(
             self.context,
             provision_state=states.AVAILABLE, name='node-81')
-        self.node.save()
-        self.node.obj_reset_changes()
+        CONF.set_override('data_backend', 'database', group='inventory')
 
-    def _add_inventory(self):
-        self.inventory = objects.NodeInventory(
-            node_id=self.node.id, inventory_data=self.fake_inventory_data,
-            plugin_data=self.fake_plugin_data)
-        self.inventory.create()
-
-    def test_get_old_version(self):
+    @mock.patch.object(inspect_utils, 'get_inspection_data', autospec=True)
+    def test_get_old_version(self, mock_get):
         ret = self.get_json('/nodes/%s/inventory' % self.node.uuid,
                             headers={api_base.Version.string: "1.80"},
                             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
+        mock_get.assert_not_called()
 
     def test_get_inventory_no_inventory(self):
         ret = self.get_json('/nodes/%s/inventory' % self.node.uuid,
@@ -7949,33 +7944,10 @@ class TestNodeInventory(test_api_base.BaseApiTest):
         self.assertEqual(http_client.NOT_FOUND, ret.status_code)
 
     def test_get_inventory(self):
-        self._add_inventory()
-        CONF.set_override('data_backend', 'database',
-                          group='inventory')
-        ret = self.get_json('/nodes/%s/inventory' % self.node.uuid,
-                            headers={api_base.Version.string: self.version})
-        self.assertEqual({'inventory': self.fake_inventory_data,
-                          'plugin_data': self.fake_plugin_data}, ret)
-
-    @mock.patch.object(inspect_utils, 'get_introspection_data',
-                       autospec=True)
-    def test_get_inventory_exception(self, mock_get_data):
-        CONF.set_override('data_backend', 'database',
-                          group='inventory')
-        mock_get_data.side_effect = [
-            exception.NodeInventoryNotFound]
-        ret = self.get_json('/nodes/%s/inventory' % self.node.uuid,
-                            headers={api_base.Version.string: self.version},
-                            expect_errors=True)
-        self.assertEqual(http_client.NOT_FOUND, ret.status_int)
-
-    @mock.patch.object(inspect_utils, '_get_introspection_data_from_swift',
-                       autospec=True)
-    def test_get_inventory_swift(self, mock_get_data):
-        CONF.set_override('data_backend', 'swift',
-                          group='inventory')
-        mock_get_data.return_value = {"inventory": self.fake_inventory_data,
-                                      "plugin_data": self.fake_plugin_data}
+        obj_utils.create_test_inventory(
+            self.context, self.node,
+            inventory_data=self.fake_inventory_data,
+            plugin_data=self.fake_plugin_data)
         ret = self.get_json('/nodes/%s/inventory' % self.node.uuid,
                             headers={api_base.Version.string: self.version})
         self.assertEqual({'inventory': self.fake_inventory_data,

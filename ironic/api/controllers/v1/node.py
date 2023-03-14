@@ -1964,8 +1964,7 @@ class NodeInventoryController(rest.RestController):
         """
         node = api_utils.check_node_policy_and_retrieve(
             'baremetal:node:inventory:get', self.node_ident)
-        return inspect_utils.get_introspection_data(node,
-                                                    api.request.context)
+        return inspect_utils.get_inspection_data(node, api.request.context)
 
 
 class NodesController(rest.RestController):

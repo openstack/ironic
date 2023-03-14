@@ -505,22 +505,24 @@ class CheckStatusTestCase(BaseTestCase):
             self.task)
         self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
 
-    @mock.patch.object(inspect_utils, 'store_introspection_data',
-                       autospec=True)
+    @mock.patch.object(inspect_utils, 'store_inspection_data', autospec=True)
     def test_status_ok_store_inventory(self, mock_store_data, mock_client):
         mock_get = mock_client.return_value.get_introspection
         mock_get.return_value = mock.Mock(is_finished=True,
                                           error=None,
                                           spec=['is_finished', 'error'])
-        fake_introspection_data = {
-            "inventory": {"cpu": "amd"}, "disks": [{"name": "/dev/vda"}]}
+        fake_inventory = {"cpu": "amd"}
+        fake_plugin_data = {"disks": [{"name": "/dev/vda"}]}
+        fake_introspection_data = dict(fake_plugin_data,
+                                       inventory=fake_inventory)
         mock_get_data = mock_client.return_value.get_introspection_data
         mock_get_data.return_value = fake_introspection_data
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid)
         mock_get_data.assert_called_once_with(self.node.uuid, processed=True)
         mock_store_data.assert_called_once_with(self.node,
-                                                fake_introspection_data,
+                                                fake_inventory,
+                                                fake_plugin_data,
                                                 self.task.context)
 
     def test_status_ok_store_inventory_nostore(self, mock_client):

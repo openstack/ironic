@@ -299,15 +299,17 @@ def _check_status(task):
         _inspection_error_handler(task, error)
     elif status.is_finished:
         _clean_up(task)
-        store_data = CONF.inventory.data_backend
-        if store_data == 'none':
-            LOG.debug('Introspection data storage is disabled, the data will '
-                      'not be saved for node %(node)s', {'node': node.uuid})
+        if CONF.inventory.data_backend == 'none':
+            LOG.debug('Inspection data storage is disabled, the data will '
+                      'not be saved for node %s', node.uuid)
             return
         introspection_data = inspector_client.get_introspection_data(
             node.uuid, processed=True)
-        inspect_utils.store_introspection_data(node, introspection_data,
-                                               task.context)
+        # TODO(dtantsur): having no inventory is an abnormal state, handle it.
+        inventory = introspection_data.pop('inventory', {})
+        inspect_utils.store_inspection_data(node, inventory,
+                                            introspection_data,
+                                            task.context)
 
 
 def _clean_up(task):
