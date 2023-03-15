@@ -488,9 +488,9 @@ def cleaning_error_handler(task, logmsg, errmsg=None, traceback=False,
         node.del_driver_internal_info('cleaning_reboot')
         node.del_driver_internal_info('cleaning_polling')
         node.del_driver_internal_info('skip_current_clean_step')
-        # We don't need to keep the old agent URL
+        # We don't need to keep the old agent URL, or token
         # as it should change upon the next cleaning attempt.
-        node.del_driver_internal_info('agent_url')
+        wipe_token_and_url(task)
     # For manual cleaning, the target provision state is MANAGEABLE, whereas
     # for automated cleaning, it is AVAILABLE.
     manual_clean = node.target_provision_state == states.MANAGEABLE
