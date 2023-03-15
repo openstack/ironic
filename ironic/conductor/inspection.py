@@ -115,6 +115,7 @@ def continue_inspection(task, inventory, plugin_data):
     node = task.node
     LOG.debug('Inventory for node %(node)s: %(data)s',
               {'node': node.uuid, 'data': inventory})
+    plugin_data = plugin_data or {}
 
     try:
         result = task.driver.inspect.continue_inspection(

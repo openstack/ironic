@@ -15,7 +15,6 @@
 
 from ironic.drivers import generic
 from ironic.drivers.modules import agent
-from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import noop_mgmt
@@ -50,8 +49,8 @@ class RedfishHardware(generic.GenericHardware):
     @property
     def supported_inspect_interfaces(self):
         """List of supported power interfaces."""
-        return [redfish_inspect.RedfishInspect, inspector.Inspector,
-                noop.NoInspect]
+        return ([redfish_inspect.RedfishInspect]
+                + super().supported_inspect_interfaces)
 
     @property
     def supported_boot_interfaces(self):

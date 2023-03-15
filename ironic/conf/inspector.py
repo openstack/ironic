@@ -17,6 +17,19 @@ from oslo_config import cfg
 from ironic.common.i18n import _
 from ironic.conf import auth
 
+
+VALID_ADD_PORTS_VALUES = {
+    'all': _('all MAC addresses'),
+    'active': _('MAC addresses of NIC\'s with IP addresses'),
+    'pxe': _('only the MAC address of the PXE NIC'),
+    'disabled': _('do not create any ports'),
+}
+VALID_KEEP_PORTS_VALUES = {
+    'all': _('keep even ports with MAC\'s not present in the inventory'),
+    'present': _('keep only ports with MAC\'s present in the inventory'),
+    'added': _('keep only ports determined by the add_ports option'),
+}
+
 opts = [
     cfg.IntOpt('status_check_period', default=60,
                help=_('period (in seconds) to check status of nodes '

@@ -58,7 +58,7 @@ class GenericHardware(hardware_type.AbstractHardwareType):
         """List of supported inspect interfaces."""
         # Inspector support should be the default if it's enabled by an
         # operator (implying that the service is installed).
-        return [inspector.Inspector, noop.NoInspect]
+        return [inspector.Inspector, inspector.AgentInspect, noop.NoInspect]
 
     @property
     def supported_network_interfaces(self):
