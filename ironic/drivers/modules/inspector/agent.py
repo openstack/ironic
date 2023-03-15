@@ -23,6 +23,7 @@ from ironic.conductor import utils as cond_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.inspector import interface as common
+from ironic.drivers.modules.inspector import nics
 
 LOG = logging.getLogger(__name__)
 
@@ -78,6 +79,5 @@ class AgentInspect(common.Common):
         :param plugin_data: optional plugin-specific data.
         """
         # TODO(dtantsur): migrate the whole pipeline from ironic-inspector
-        LOG.error('Meaningful inspection is not implemented yet in the "agent"'
-                  ' inspect interface')
+        nics.process_interfaces(task, inventory, plugin_data)
         common.clean_up(task, finish=False)

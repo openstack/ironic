@@ -21,6 +21,7 @@ from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.inspector import agent as inspector
 from ironic.drivers.modules.inspector import interface as common
+from ironic.drivers.modules.inspector import nics
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -102,6 +103,7 @@ class InspectHardwareTestCase(db_base.DbTestCase):
 
 
 @mock.patch.object(common, 'tear_down_managed_boot', autospec=True)
+@mock.patch.object(nics, 'process_interfaces', autospec=True)
 class ContinueInspectionTestCase(db_base.DbTestCase):
     def setUp(self):
         super().setUp()
@@ -113,10 +115,12 @@ class ContinueInspectionTestCase(db_base.DbTestCase):
             provision_state=states.INSPECTING)
         self.iface = inspector.AgentInspect()
 
-    def test(self, mock_tear_down):
+    def test(self, mock_process, mock_tear_down):
         mock_tear_down.return_value = None
         with task_manager.acquire(self.context, self.node.id) as task:
             result = self.iface.continue_inspection(
+                task, mock.sentinel.inventory, mock.sentinel.plugin_data)
+            mock_process.assert_called_once_with(
                 task, mock.sentinel.inventory, mock.sentinel.plugin_data)
             mock_tear_down.assert_called_once_with(task)
             self.assertEqual(states.INSPECTING, task.node.provision_state)
