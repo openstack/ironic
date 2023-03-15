@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue where an agent token could be inadvertently orphaned
+    if a node is already in the target power state when we attempt to turn
+    the node off.
