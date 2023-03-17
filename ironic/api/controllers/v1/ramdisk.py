@@ -131,13 +131,17 @@ class LookupController(rest.RestController):
             else:
                 node = objects.Node.get_by_port_addresses(
                     api.request.context, valid_addresses)
-        except exception.NotFound:
+        except exception.NotFound as e:
             # NOTE(dtantsur): we are reraising the same exception to make sure
             # we don't disclose the difference between nodes that are not found
             # at all and nodes in a wrong state by different error messages.
+            LOG.error('No node has been found during lookup: %s', e)
             raise exception.NotFound()
 
         if CONF.api.restrict_lookup and not self.lookup_allowed(node):
+            LOG.error('Lookup is not allowed for node %(node)s in the '
+                      'provision state %(state)s',
+                      {'node': node.uuid, 'state': node.provision_state})
             raise exception.NotFound()
 
         if api_utils.allow_agent_token():
