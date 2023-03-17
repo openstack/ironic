@@ -392,9 +392,9 @@ def _get_client(snmp_info):
                       snmp_info.get("read_community"),
                       snmp_info.get("write_community"),
                       snmp_info.get("user"),
-                      snmp_info.get("auth_proto"),
+                      snmp_info.get("auth_protocol"),
                       snmp_info.get("auth_key"),
-                      snmp_info.get("priv_proto"),
+                      snmp_info.get("priv_protocol"),
                       snmp_info.get("priv_key"),
                       snmp_info.get("context_engine_id"),
                       snmp_info.get("context_name"))

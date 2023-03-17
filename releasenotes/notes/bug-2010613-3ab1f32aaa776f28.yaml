@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    [`bug 2010613 <https://storyboard.openstack.org/#!/story/2010613>`_]
+    Fixes issue with SNMP v3 auth protocol and priv protocol set in
+    driver info not being retrieved correctly when a SNMP client is
+    initialized.
