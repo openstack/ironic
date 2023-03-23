@@ -17,16 +17,17 @@ from ironic.common.i18n import _
 
 opts = [
     cfg.StrOpt('data_backend',
-               help=_('The storage backend for storing introspection data.'),
-               choices=[('none', _('introspection data will not be stored')),
-                        ('database', _('introspection data stored in an SQL '
-                                       'database')),
-                        ('swift', _('introspection data stored in Swift'))],
+               help=_('The storage backend for storing inspection data.'),
+               choices=[
+                   ('none', _('do not store inspection data')),
+                   ('database', _('store in the service database')),
+                   ('swift', _('store in the Object Storage (swift)')),
+               ],
                default='database'),
     cfg.StrOpt('swift_data_container',
                default='introspection_data_container',
-               help=_('The Swift introspection data container to store '
-                      'the inventory data.')),
+               help=_('The Swift container prefix to store the inspection '
+                      'data (separately inventory and plugin data).')),
 ]
 
 

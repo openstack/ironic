@@ -380,3 +380,15 @@ class SchemasTestMixIn(object):
                               "for %s, schema key %s has invalid %s "
                               "field %s" % (payload, schema_key, resource,
                                             key))
+
+
+def create_test_inventory(ctxt, node, **kw):
+    """Create and return a test node inventory object."""
+    inv = objects.NodeInventory(ctxt)
+    if not isinstance(node, str):
+        node = node.id
+    kw['node_id'] = node
+    for key, value in kw.items():
+        setattr(inv, key, value)
+    inv.create()
+    return inv
