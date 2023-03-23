@@ -63,6 +63,7 @@ from ironic.conductor import allocations
 from ironic.conductor import base_manager
 from ironic.conductor import cleaning
 from ironic.conductor import deployments
+from ironic.conductor import inspection
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import periodics
 from ironic.conductor import steps as conductor_steps
@@ -1365,35 +1366,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             return
 
         if node.provision_state == states.INSPECTWAIT:
-            try:
-                task.driver.inspect.abort(task)
-            except exception.UnsupportedDriverExtension:
-                with excutils.save_and_reraise_exception():
-                    intf_name = task.driver.inspect.__class__.__name__
-                    LOG.error('Inspect interface %(intf)s does not '
-                              'support abort operation when aborting '
-                              'inspection of node %(node)s',
-                              {'intf': intf_name, 'node': node.uuid})
-            except Exception as e:
-                with excutils.save_and_reraise_exception():
-                    LOG.exception('Error in aborting the inspection of '
-                                  'node %(node)s', {'node': node.uuid})
-                    error = _('Failed to abort inspection: %s') % e
-                    utils.node_history_record(task.node, event=error,
-                                              event_type=states.INTROSPECTION,
-                                              error=True,
-                                              user=task.context.user_id)
-                    node.save()
-            error = _('Inspection was aborted by request.')
-            utils.node_history_record(task.node, event=error,
-                                      event_type=states.INTROSPECTION,
-                                      error=True,
-                                      user=task.context.user_id)
-            utils.wipe_token_and_url(task)
-            task.process_event('abort')
-            LOG.info('Successfully aborted inspection of node %(node)s',
-                     {'node': node.uuid})
-            return
+            return inspection.abort_inspection(task)
 
     @METRICS.timer('ConductorManager._sync_power_states')
     @periodics.periodic(spacing=CONF.conductor.sync_power_state_interval,
@@ -3038,7 +3011,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 task.process_event(
                     'inspect',
                     callback=self._spawn_worker,
-                    call_args=(_do_inspect_hardware, task),
+                    call_args=(inspection.inspect_hardware, task),
                     err_handler=utils.provisioning_error_handler)
 
             except exception.InvalidState:
@@ -3858,53 +3831,3 @@ def do_sync_power_state(task, count):
             task, old_power_state)
 
     return count
-
-
-@task_manager.require_exclusive_lock
-def _do_inspect_hardware(task):
-    """Initiates inspection.
-
-    :param task: a TaskManager instance with an exclusive lock
-                 on its node.
-    :raises: HardwareInspectionFailure if driver doesn't
-             return the state as states.MANAGEABLE, states.INSPECTWAIT.
-
-    """
-    node = task.node
-
-    def handle_failure(e, log_func=LOG.error):
-        utils.node_history_record(task.node, event=e,
-                                  event_type=states.INTROSPECTION,
-                                  error=True, user=task.context.user_id)
-        task.process_event('fail')
-        log_func("Failed to inspect node %(node)s: %(err)s",
-                 {'node': node.uuid, 'err': e})
-
-    # Inspection cannot start in fast-track mode, wipe token and URL.
-    utils.wipe_token_and_url(task)
-
-    try:
-        new_state = task.driver.inspect.inspect_hardware(task)
-    except exception.IronicException as e:
-        with excutils.save_and_reraise_exception():
-            error = str(e)
-            handle_failure(error)
-    except Exception as e:
-        error = (_('Unexpected exception of type %(type)s: %(msg)s') %
-                 {'type': type(e).__name__, 'msg': e})
-        handle_failure(error, log_func=LOG.exception)
-        raise exception.HardwareInspectionFailure(error=error)
-
-    if new_state == states.MANAGEABLE:
-        task.process_event('done')
-        LOG.info('Successfully inspected node %(node)s',
-                 {'node': node.uuid})
-    elif new_state == states.INSPECTWAIT:
-        task.process_event('wait')
-        LOG.info('Successfully started introspection on node %(node)s',
-                 {'node': node.uuid})
-    else:
-        error = (_("During inspection, driver returned unexpected "
-                   "state %(state)s") % {'state': new_state})
-        handle_failure(error)
-        raise exception.HardwareInspectionFailure(error=error)
