@@ -33,8 +33,7 @@ service and Bare Metal service::
     | Property               | Value                                                                |
     +------------------------+----------------------------------------------------------------------+
     | instance_uuid          | None                                                                 |
-    | properties             | {u'memory_mb': u'1024', u'cpu_arch': u'x86_64', u'local_gb': u'10',  |
-    |                        | u'cpus': u'1'}                                                       |
+    | properties             | {u'memory_mb': u'1024', u'cpu_arch': u'x86_64', u'local_gb': u'10'}  |
     | maintenance            | False                                                                |
     | driver_info            | { [SNIP] }                                                           |
     | extra                  | {}                                                                   |

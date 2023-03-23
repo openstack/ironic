@@ -534,10 +534,10 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
                                autospec=True) as mock_get_node:
             mock_get_node.return_value = self.fake_node
             node = objects.Node.get(self.context, uuid)
-            node.properties = {"local_gb": "5G", "memory_mb": "5",
-                               'cpus': '-1', 'cpu_arch': 'x86_64'}
+            node.properties = {"local_gb": "5G", "memory_mb": "-5",
+                               'cpu_arch': 'x86_64'}
             self.assertRaisesRegex(exception.InvalidParameterValue,
-                                   ".*local_gb=5G, cpus=-1$", node.save)
+                                   ".*local_gb=5G, memory_mb=-5$", node.save)
             mock_get_node.assert_called_once_with(uuid)
 
     def test__validate_property_values_success(self):
@@ -549,7 +549,6 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             values = self.fake_node
             expect = {
                 'cpu_arch': 'x86_64',
-                "cpus": '8',
                 "local_gb": '10',
                 "memory_mb": '4096',
             }

@@ -176,8 +176,6 @@ class DracWSManInspect(base.InspectInterface):
                 [memory.size_mb for memory in client.list_memory()])
             cpus = client.list_cpus()
             if cpus:
-                properties['cpus'] = sum(
-                    [self._calculate_cpus(cpu) for cpu in cpus])
                 properties['cpu_arch'] = 'x86_64' if cpus[0].arch64 else 'x86'
 
             bios_settings = client.list_bios_settings()
@@ -263,18 +261,6 @@ class DracWSManInspect(base.InspectInterface):
         for disk in disks:
             if disk.size_mb >= min_size_required_mb:
                 return disk
-
-    def _calculate_cpus(self, cpu):
-        """Find actual CPU count.
-
-        :param cpu: Pass cpu.
-
-        :returns: returns total cpu count.
-        """
-        if cpu.ht_enabled:
-            return cpu.cores * 2
-        else:
-            return cpu.cores
 
     def _calculate_gpus(self, video_controllers):
         """Find actual GPU count.

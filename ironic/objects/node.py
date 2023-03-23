@@ -29,7 +29,7 @@ from ironic.objects import base
 from ironic.objects import fields as object_fields
 from ironic.objects import notification
 
-REQUIRED_INT_PROPERTIES = ['local_gb', 'cpus', 'memory_mb']
+REQUIRED_INT_PROPERTIES = ['local_gb', 'memory_mb']
 
 CONF = cfg.CONF
 LOG = log.getLogger(__name__)
@@ -191,7 +191,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         return d
 
     def _validate_property_values(self, properties):
-        """Check if the input of local_gb, cpus and memory_mb are valid.
+        """Check if the input of local_gb and memory_mb are valid.
 
         :param properties: a dict contains the node's information.
         """

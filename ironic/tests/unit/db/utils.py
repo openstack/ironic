@@ -165,7 +165,6 @@ def get_test_snmp_info(**kw):
 def get_test_node(**kw):
     properties = {
         "cpu_arch": "x86_64",
-        "cpus": "8",
         "local_gb": "10",
         "memory_mb": "4096",
     }
@@ -509,7 +508,6 @@ def create_test_node_tag(**kw):
 def get_test_xclarity_properties():
     return {
         "cpu_arch": "x86_64",
-        "cpus": "8",
         "local_gb": "10",
         "memory_mb": "4096",
     }

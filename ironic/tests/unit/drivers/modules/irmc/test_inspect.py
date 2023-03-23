@@ -83,7 +83,6 @@ class IRMCInspectInternalMethodsTestCase(test_common.BaseIRMCTest):
         inspected_props = {
             'memory_mb': '1024',
             'local_gb': 10,
-            'cpus': 2,
             'cpu_arch': 'x86_64'}
         inspected_capabilities = {
             'irmc_firmware_version': 'iRMC S4-7.82F',
@@ -142,7 +141,6 @@ class IRMCInspectInternalMethodsTestCase(test_common.BaseIRMCTest):
         inspected_props = {
             'memory_mb': '1024',
             'local_gb': 10,
-            'cpus': 2,
             'cpu_arch': 'x86_64'}
         inspected_capabilities = {
             'irmc_firmware_version': 'iRMC S6-2.00S',
@@ -260,7 +258,6 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
         inspected_props = {
             'memory_mb': '1024',
             'local_gb': 10,
-            'cpus': 2,
             'cpu_arch': 'x86_64'}
         inspected_macs = ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb']
         new_traits = ['CUSTOM_CPU_FPGA']
@@ -318,7 +315,6 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
         inspected_props = {
             'memory_mb': '1024',
             'local_gb': 10,
-            'cpus': 2,
             'cpu_arch': 'x86_64'}
         inspected_macs = ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb']
         new_traits = ['CUSTOM_CPU_FPGA']
@@ -398,7 +394,6 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
         inspected_props = {
             'memory_mb': '1024',
             'local_gb': 10,
-            'cpus': 2,
             'cpu_arch': 'x86_64'}
         inspected_macs = ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb']
         existing_traits = ['CUSTOM_CPU_FPGA']
@@ -459,7 +454,6 @@ class IRMCInspectTestCase(test_common.BaseIRMCTest):
         inspected_props = {
             'memory_mb': '1024',
             'local_gb': 10,
-            'cpus': 2,
             'cpu_arch': 'x86_64'}
 
         inspected_macs = ['aa:aa:aa:aa:aa:aa', 'bb:bb:bb:bb:bb:bb']

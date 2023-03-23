@@ -1224,7 +1224,7 @@ class InspectInterface(BaseInterface):
     """Interface for inspection-related actions."""
     interface_type = 'inspect'
 
-    ESSENTIAL_PROPERTIES = {'memory_mb', 'local_gb', 'cpus', 'cpu_arch'}
+    ESSENTIAL_PROPERTIES = {'memory_mb', 'local_gb', 'cpu_arch'}
     """The properties required by scheduler/deploy."""
 
     @abc.abstractmethod
