@@ -59,6 +59,27 @@ def max_version():
         versions.min_version_string(), versions.max_version_string())
 
 
+def make_controller_links(name):
+    return [
+        link.make_link('self', api.request.public_url, name, ''),
+        link.make_link('bookmark', api.request.public_url, name, '',
+                       bookmark=True)
+    ]
+
+
+VERSIONED_CONTROLLERS = {
+    'portgroups': utils.allow_portgroups,
+    'volume': utils.allow_volume,
+    'lookup': utils.allow_ramdisk_endpoints,
+    'heartbeat': utils.allow_ramdisk_endpoints,
+    'conductors': utils.allow_expose_conductors,
+    'allocations': utils.allow_allocations,
+    'events': utils.allow_expose_events,
+    'deploy_templates': utils.allow_deploy_templates,
+    'shards': utils.allow_shards_endpoint,
+}
+
+
 def v1():
     v1 = {
         'id': "v1",
@@ -75,124 +96,15 @@ def v1():
             'base': 'application/json',
             'type': 'application/vnd.openstack.ironic.v1+json'
         },
-        'chassis': [
-            link.make_link('self', api.request.public_url,
-                           'chassis', ''),
-            link.make_link('bookmark',
-                           api.request.public_url,
-                           'chassis', '',
-                           bookmark=True)
-        ],
-        'nodes': [
-            link.make_link('self', api.request.public_url,
-                           'nodes', ''),
-            link.make_link('bookmark',
-                           api.request.public_url,
-                           'nodes', '',
-                           bookmark=True)
-        ],
-        'ports': [
-            link.make_link('self', api.request.public_url,
-                           'ports', ''),
-            link.make_link('bookmark',
-                           api.request.public_url,
-                           'ports', '',
-                           bookmark=True)
-        ],
-        'drivers': [
-            link.make_link('self', api.request.public_url,
-                           'drivers', ''),
-            link.make_link('bookmark',
-                           api.request.public_url,
-                           'drivers', '',
-                           bookmark=True)
-        ],
-        'version': version.default_version()
+        'chassis': make_controller_links('chassis'),
+        'nodes': make_controller_links('nodes'),
+        'ports': make_controller_links('ports'),
+        'drivers': make_controller_links('drivers'),
+        'version': version.default_version(),
     }
-    if utils.allow_portgroups():
-        v1['portgroups'] = [
-            link.make_link('self', api.request.public_url,
-                           'portgroups', ''),
-            link.make_link('bookmark', api.request.public_url,
-                           'portgroups', '', bookmark=True)
-        ]
-    if utils.allow_volume():
-        v1['volume'] = [
-            link.make_link('self',
-                           api.request.public_url,
-                           'volume', ''),
-            link.make_link('bookmark',
-                           api.request.public_url,
-                           'volume', '',
-                           bookmark=True)
-        ]
-    if utils.allow_ramdisk_endpoints():
-        v1['lookup'] = [
-            link.make_link('self', api.request.public_url,
-                           'lookup', ''),
-            link.make_link('bookmark',
-                           api.request.public_url,
-                           'lookup', '',
-                           bookmark=True)
-        ]
-        v1['heartbeat'] = [
-            link.make_link('self',
-                           api.request.public_url,
-                           'heartbeat', ''),
-            link.make_link('bookmark',
-                           api.request.public_url,
-                           'heartbeat', '',
-                           bookmark=True)
-        ]
-    if utils.allow_expose_conductors():
-        v1['conductors'] = [
-            link.make_link('self',
-                           api.request.public_url,
-                           'conductors', ''),
-            link.make_link('bookmark',
-                           api.request.public_url,
-                           'conductors', '',
-                           bookmark=True)
-        ]
-    if utils.allow_allocations():
-        v1['allocations'] = [
-            link.make_link('self',
-                           api.request.public_url,
-                           'allocations', ''),
-            link.make_link('bookmark',
-                           api.request.public_url,
-                           'allocations', '',
-                           bookmark=True)
-        ]
-    if utils.allow_expose_events():
-        v1['events'] = [
-            link.make_link('self', api.request.public_url,
-                           'events', ''),
-            link.make_link('bookmark',
-                           api.request.public_url,
-                           'events', '',
-                           bookmark=True)
-        ]
-    if utils.allow_deploy_templates():
-        v1['deploy_templates'] = [
-            link.make_link('self',
-                           api.request.public_url,
-                           'deploy_templates', ''),
-            link.make_link('bookmark',
-                           api.request.public_url,
-                           'deploy_templates', '',
-                           bookmark=True)
-        ]
-    if utils.allow_shards_endpoint():
-        v1['shards'] = [
-            link.make_link('self',
-                           api.request.public_url,
-                           'shards', ''),
-            link.make_link('bookmark',
-                           api.request.public_url,
-                           'shards', '',
-                           bookmark=True)
-        ]
+    for link_name, check_func in VERSIONED_CONTROLLERS.items():
+        if check_func():
+            v1[link_name] = make_controller_links(link_name)
     return v1
 
 
