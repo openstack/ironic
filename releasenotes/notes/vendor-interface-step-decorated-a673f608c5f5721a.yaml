@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Methods in vendor interfaces may now be decroated with ``clean_step`` and
+    ``deploy_step`` decorators.
+  - |
+    The ``ipmitool`` vendor interface's ``send_raw`` method can now be called
+    as a part of cleaning or deployment steps with an "raw_bytes" argument
+    matching how it can be called with the vendor passthru interface.
+other:
+  - |
+    The ``ipmitool`` vendor passthrough interface method no longer requires a
+    ``http_method`` parameter. This is optional in the code base, but included
+    on all API initiated vendor passthru method calls.
+    The value was not utilized.

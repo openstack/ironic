@@ -581,9 +581,14 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
         self.deploy_erase = {
             'step': 'erase_disks', 'priority': 20, 'interface': 'deploy',
             'abortable': True}
+        self.vendor_action = {
+            'abortable': False, 'argsinfo': None, 'interface': 'vendor',
+            'priority': 1, 'requires_ramdisk': True,
+            'step': 'log_passthrough'}
+
         # Automated cleaning should be executed in this order
         self.clean_steps = [self.deploy_erase, self.power_update,
-                            self.deploy_update]
+                            self.deploy_update, self.vendor_action]
         # Manual clean step
         self.deploy_raid = {
             'step': 'build_raid', 'priority': 0, 'interface': 'deploy',
@@ -614,6 +619,8 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
 
         self.assertEqual(self.clean_steps, steps)
 
+    @mock.patch('ironic.drivers.modules.fake.FakeVendorB.get_clean_steps',
+                lambda self, task: [])
     @mock.patch('ironic.drivers.modules.fake.FakeBIOS.get_clean_steps',
                 lambda self, task: [])
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps',
@@ -661,6 +668,8 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
 
         self.assertEqual(self.clean_steps, steps)
 
+    @mock.patch('ironic.drivers.modules.fake.FakeVendorB.get_clean_steps',
+                lambda self, task: [])
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps',
                 autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.get_clean_steps',
@@ -766,7 +775,13 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
                                     {'interface': 'power', 'priority': 10,
                                      'step': 'update_firmware'},
                                     {'interface': 'deploy', 'priority': 10,
-                                     'step': 'update_firmware'}]
+                                     'step': 'update_firmware'},
+                                    {'abortable': False,
+                                     'argsinfo': None,
+                                     'interface': 'vendor',
+                                     'priority': 1,
+                                     'requires_ramdisk': True,
+                                     'step': 'log_passthrough'}]
 
         self.assertEqual(expected_step_priorities, steps)
 
@@ -781,7 +796,8 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
         cfg.CONF.set_override('clean_step_priority_override',
                               ["deploy.erase_disks:0",
                                "power.update_firmware:0",
-                               "deploy.update_firmware:0", ],
+                               "deploy.update_firmware:0",
+                               "vendor.log_passthrough:0", ],
                               'conductor')
 
         node = obj_utils.create_test_node(

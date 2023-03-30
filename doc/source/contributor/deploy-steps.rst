@@ -160,6 +160,14 @@ the step.
    This approach only works for steps implemented on a ``deploy``
    interface that inherits agent deploy.
 
+.. warning::
+   Steps generally should have a return value of None **unless** the
+   a state is returned as part of an asyncrhonous workflow.
+
+   Please be mindful of this constraint when creating steps, as the
+   step runner **will** error if a value aside from None is returned
+   upon step completion.
+
 Execution on reboot
 ~~~~~~~~~~~~~~~~~~~
 

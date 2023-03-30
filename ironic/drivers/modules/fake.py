@@ -181,6 +181,9 @@ class FakeVendorA(base.VendorInterface):
                 raise exception.MissingParameterValue(_(
                     "Parameter 'bar' not passed to method 'first_method'."))
 
+    # NOTE(TheJulia): As an example, it is advisable to assign
+    # parameters from **kwargs, and then perform handling on
+    # the needful necessary from there.
     @base.passthru(['POST'],
                    description=_("Test if the value of bar is baz"))
     def first_method(self, task, http_method, bar):
@@ -220,6 +223,16 @@ class FakeVendorB(base.VendorInterface):
     def fourth_method_shared_lock(self, task, http_method, bar):
         sleep(CONF.fake.vendor_delay)
         return True if bar == 'woof' else False
+
+    @base.clean_step(priority=1)
+    @base.passthru(['POST'],
+                   description=_("Test pass-through to wait."))
+    def log_passthrough(self, task, **kwargs):
+        LOG.debug('Test method test_passhtrough_method called with '
+                  'arguments %s.', kwargs)
+        sleep(CONF.fake.vendor_delay)
+        # NOTE(TheJulia): Step methods invoked via an API *cannot*
+        # have return values
 
 
 class FakeConsole(base.ConsoleInterface):

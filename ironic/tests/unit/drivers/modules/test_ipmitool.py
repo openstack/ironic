@@ -2208,6 +2208,37 @@ class IPMIToolDriverTestCase(Base):
                               http_method='POST',
                               raw_bytes='0x00 0x01')
 
+    def test_send_raw_bytes_is_in_step_list(self):
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            steps = task.driver.vendor.get_clean_steps(task)
+            self.assertEqual('send_raw', steps[0]['step'])
+            self.assertEqual('vendor', steps[0]['interface'])
+            self.assertIn('raw_bytes', steps[0]['argsinfo'])
+            steps = task.driver.vendor.get_deploy_steps(task)
+            self.assertEqual('send_raw', steps[0]['step'])
+            self.assertEqual('vendor', steps[0]['interface'])
+            self.assertIn('raw_bytes', steps[0]['argsinfo'])
+
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    def test_send_raw_bytes_from_clean_step(self, ipmitool_mock):
+        step = {
+            'priority': 10,
+            'interface': 'vendor',
+            'step': 'send_raw',
+            'args': {'raw_bytes': '0x00 0x00 0x00 0x00'},
+            'reboot_requested': False
+        }
+        ipmitool_mock.return_value = ('', '')
+        self.node.save()
+
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            task.driver.vendor.execute_clean_step(task, step)
+            ipmitool_mock.assert_called_once_with(
+                self.info,
+                'raw 0x00 0x00 0x00 0x00')
+
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     def test__bmc_reset_ok(self, mock_exec):
         mock_exec.return_value = [None, None]
@@ -2391,13 +2422,24 @@ class IPMIToolDriverTestCase(Base):
                               task, method='send_raw')
 
     @mock.patch.object(ipmi.VendorPassthru, 'send_raw', autospec=True)
-    def test_vendor_passthru_call_send_raw_bytes(self, raw_bytes_mock):
+    def test_vendor_passthru_call_send_raw_bytes_with_http_method(
+            self, raw_bytes_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             self.vendor.send_raw(task, http_method='POST',
                                  raw_bytes='0x00 0x01')
             raw_bytes_mock.assert_called_once_with(
                 self.vendor, task, http_method='POST',
+                raw_bytes='0x00 0x01')
+
+    @mock.patch.object(ipmi.VendorPassthru, 'send_raw', autospec=True)
+    def test_vendor_passthru_call_send_raw_bytes(self, raw_bytes_mock):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.vendor.send_raw(task,
+                                 raw_bytes='0x00 0x01')
+            raw_bytes_mock.assert_called_once_with(
+                self.vendor, task,
                 raw_bytes='0x00 0x01')
 
     def test_vendor_passthru_validate__bmc_reset_good(self):

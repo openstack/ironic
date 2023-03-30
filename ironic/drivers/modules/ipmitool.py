@@ -1379,23 +1379,42 @@ class VendorPassthru(base.VendorInterface):
     def __init__(self):
         _constructor_checks(driver=self.__class__.__name__)
 
+    _send_raw_step_args = {
+        'raw_bytes': {
+            'description': (
+                'A string of raw bytes to convey the request to transmit '
+                'to the remote BMC.'
+            ),
+            'required': True
+        }
+    }
+
     @METRICS.timer('VendorPassthru.send_raw')
+    @base.deploy_step(priority=0,
+                      argsinfo=_send_raw_step_args)
+    @base.clean_step(priority=0, abortable=False,
+                     argsinfo=_send_raw_step_args,
+                     requires_ramdisk=False)
     @base.passthru(['POST'],
                    description=_("Send raw bytes to the BMC. Required "
                                  "argument: 'raw_bytes' - a string of raw "
                                  "bytes (e.g. '0x00 0x01')."))
     @task_manager.require_exclusive_lock
-    def send_raw(self, task, http_method, raw_bytes):
+    def send_raw(self, task, **kwargs):
         """Send raw bytes to the BMC. Bytes should be a string of bytes.
 
         :param task: a TaskManager instance.
-        :param http_method: the HTTP method used on the request.
         :param raw_bytes: a string of raw bytes to send, e.g. '0x00 0x01'
+                          supplied as a kwargument.
         :raises: IPMIFailure on an error from ipmitool.
         :raises: MissingParameterValue if a required parameter is missing.
         :raises:  InvalidParameterValue when an invalid value is specified.
 
         """
+        raw_bytes = kwargs.get('raw_bytes')
+        if not raw_bytes:
+            raise exception.MissingParameterValue(
+                'Argument raw_bytes is missing.')
         send_raw(task, raw_bytes)
 
     @METRICS.timer('VendorPassthru.bmc_reset')

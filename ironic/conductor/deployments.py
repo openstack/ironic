@@ -561,6 +561,10 @@ def execute_step_on_child_nodes(task, step):
                     # deploys to take place with the agent from a parent node
                     # being deployed.
                     continue
+                # NOTE(TheJulia): If your here debugging a step which fails,
+                # part of the constraint is that a value *cannot* be returned.
+                # to the runner. The step has to either succeed and return
+                # None, or raise an exception.
                 msg = (_('While executing step %(step)s on child node '
                          '%(node)s, step returned invalid value: %(val)s')
                        % {'step': step, 'node': child_task.node.uuid,
