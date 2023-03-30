@@ -58,6 +58,7 @@ Advanced Topics
    Tuning Ironic <tuning>
    Role Based Access Control <secure-rbac>
    Deploying with Anaconda <anaconda-deploy-interface>
+   Steps <steps>
 
 .. toctree::
   :hidden:

@@ -1136,6 +1136,36 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
     def test__do_next_clean_step_manual_bad_step_return_value(self):
         self._do_next_clean_step_bad_step_return_value(manual=True)
 
+    def _test_do_next_clean_step_handles_hold(self, start_state):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=start_state,
+            driver_internal_info={
+                'clean_steps': [
+                    {
+                        'step': 'hold',
+                        'priority': 10,
+                        'interface': 'power'
+                    }
+                ],
+                'clean_step_index': None},
+            clean_step=None)
+
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            cleaning.do_next_clean_step(task, 0)
+        node.refresh()
+
+        self.assertEqual(states.CLEANHOLD, node.provision_state)
+
+    def test_do_next_clean_step_handles_hold_from_active(self):
+        # Start is from the conductor
+        self._test_do_next_clean_step_handles_hold(states.CLEANING)
+
+    def test_do_next_clean_step_handles_hold_from_wait(self):
+        # Start is the continuation from a heartbeat.
+        self._test_do_next_clean_step_handles_hold(states.CLEANWAIT)
+
     @mock.patch.object(cleaning, 'do_next_clean_step', autospec=True)
     def _continue_node_clean(self, mock_next_step, skip=True):
         # test that skipping current step mechanism works
@@ -1168,7 +1198,8 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
 
 class DoNodeCleanAbortTestCase(db_base.DbTestCase):
     @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)
-    def _test_do_node_clean_abort(self, clean_step, tear_mock):
+    def _test_do_node_clean_abort(self, clean_step,
+                                  tear_mock=None):
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.CLEANWAIT,
@@ -1219,6 +1250,24 @@ class DoNodeCleanAbortTestCase(db_base.DbTestCase):
             provision_state=states.CLEANFAIL,
             target_provision_state=states.AVAILABLE,
             clean_step={'step': 'foo', 'abortable': True})
+
+        with task_manager.acquire(self.context, node.uuid) as task:
+            cleaning.do_node_clean_abort(task)
+            tear_mock.assert_called_once_with(task.driver.deploy, task)
+            self.assertIsNotNone(task.node.last_error)
+            self.assertIsNotNone(task.node.maintenance_reason)
+            self.assertTrue(task.node.maintenance)
+            self.assertEqual('clean failure', task.node.fault)
+
+    @mock.patch.object(fake.FakeDeploy, 'tear_down_cleaning', autospec=True)
+    def test__do_node_cleanhold_abort_tear_down_fail(self, tear_mock):
+        tear_mock.side_effect = Exception('Surprise')
+
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANHOLD,
+            target_provision_state=states.MANAGEABLE,
+            clean_step={'step': 'hold', 'abortable': True})
 
         with task_manager.acquire(self.context, node.uuid) as task:
             cleaning.do_node_clean_abort(task)

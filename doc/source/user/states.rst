@@ -17,7 +17,7 @@ API-initiated-transitions that are possible from non-stable states.
 The events for these API-initiated transitions are indicated with '(via API)'.
 Internally, the conductor initiates the other transitions (depicted in gray).
 
-.. figure:: ../images/states.svg
+.. figure:: ../images/states.png
    :width: 660px
    :align: left
    :alt: Ironic state transitions

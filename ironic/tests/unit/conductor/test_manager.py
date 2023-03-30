@@ -2764,6 +2764,53 @@ class DoProvisioningActionTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.CLEANWAIT, node.provision_state)
         self.assertEqual(states.AVAILABLE, node.target_provision_state)
 
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def _do_provision_action_abort_from_cleanhold(self, mock_spawn,
+                                                  manual=False):
+        tgt_prov_state = states.MANAGEABLE if manual else states.AVAILABLE
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANHOLD,
+            target_provision_state=tgt_prov_state)
+
+        self._start_service()
+        self.service.do_provisioning_action(self.context, node.uuid, 'abort')
+        node.refresh()
+        # Node will be moved to tgt_prov_state after cleaning, not tested here
+        self.assertEqual(states.CLEANFAIL, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertEqual('By request, the clean operation was aborted',
+                         node.last_error)
+        mock_spawn.assert_called_with(
+            self.service, cleaning.do_node_clean_abort, mock.ANY)
+
+    def test_do_provision_action_abort_cleanhold_automated_clean(self):
+        self._do_provision_action_abort_from_cleanhold()
+
+    def test_do_provision_action_abort_cleanhold_manual_clean(self):
+        self._do_provision_action_abort_from_cleanhold(manual=True)
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_do_provision_action_abort_from_deployhold(self, mock_spawn):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYHOLD,
+            driver_internal_info={
+                'agent_url': 'https://foo.bar/'
+            })
+
+        self._start_service()
+        self.service.do_provisioning_action(self.context, node.uuid, 'abort')
+        node.refresh()
+        mock_spawn.assert_called_with(
+            self.service,
+            self.service._do_node_tear_down,
+            mock.ANY,
+            states.DEPLOYHOLD)
+        self.assertNotIn('agent_url', node.driver_internal_info)
+
 
 @mgr_utils.mock_record_keepalive
 class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
@@ -3057,6 +3104,90 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 ([exception.NodeLocked(node='foo', host='foo')] * max_attempts)
                 + [node])
             self.service.continue_node_clean(self.context, node.uuid)
+        self._stop_service()
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_do_provision_action_unlocks_cleaning_manual(self, mock_spawn):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANHOLD,
+            target_provision_state=states.MANAGEABLE,
+            driver_internal_info={
+                'clean_steps': [
+                    {'step': 'hold', 'priority': 9, 'interface': 'power'},
+                    {'step': 'update_firmware', 'priority': 10,
+                     'interface': 'power'}
+                ],
+                'clean_step_index': 1
+            }
+        )
+        self._start_service()
+        self.service.do_provisioning_action(self.context, node.uuid, 'unhold')
+        node.refresh()
+        self.assertIsNone(node.last_error)
+        self.assertEqual(states.CLEANWAIT, node.provision_state)
+        self.service.continue_node_clean(self.context, node.uuid)
+        node.refresh()
+        self.assertIsNone(node.last_error)
+        self.assertEqual(states.CLEANING, node.provision_state)
+        self._stop_service()
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_do_provision_action_unlocks_cleaning_automated(self, mock_spawn):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANHOLD,
+            # NOTE(TheJulia): This actually tests should this occur with
+            # automated cleaning. While not an explicit feature, we don't
+            # want things to go sideways in this case.
+            target_provision_state=states.AVAILABLE,
+            driver_internal_info={
+                'clean_steps': [
+                    {'step': 'hold', 'priority': 9, 'interface': 'power'},
+                    {'step': 'update_firmware', 'priority': 10,
+                     'interface': 'power'}
+                ],
+                'clean_step_index': 1
+            }
+        )
+        self._start_service()
+        self.service.do_provisioning_action(self.context, node.uuid, 'unhold')
+        node.refresh()
+        self.assertIsNone(node.last_error)
+        self.assertEqual(states.CLEANWAIT, node.provision_state)
+        self.service.continue_node_clean(self.context, node.uuid)
+        node.refresh()
+        self.assertIsNone(node.last_error)
+        self.assertEqual(states.CLEANING, node.provision_state)
+        self._stop_service()
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_do_provision_action_unlocks_deploying(self, mock_spawn):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.DEPLOYHOLD,
+            target_provision_state=states.ACTIVE,
+            driver_internal_info={
+                'clean_steps': [
+                    {'step': 'hold', 'priority': 9, 'interface': 'power'},
+                    {'step': 'update_firmware', 'priority': 10,
+                     'interface': 'power'}
+                ],
+                'deploy_step_index': 1
+            }
+        )
+        self._start_service()
+        self.service.do_provisioning_action(self.context, node.uuid, 'unhold')
+        node.refresh()
+        self.assertIsNone(node.last_error)
+        self.assertEqual(states.DEPLOYWAIT, node.provision_state)
+        self.service.continue_node_deploy(self.context, node.uuid)
+        node.refresh()
+        self.assertIsNone(node.last_error)
+        self.assertEqual(states.DEPLOYING, node.provision_state)
         self._stop_service()
 
 
@@ -8275,7 +8406,6 @@ class NodeHistoryRecordCleanupTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(8, len(events))
         self.service._manage_node_history(self.context)
         events = objects.NodeHistory.list(self.context)
-        print(events)
         self.assertEqual(6, len(events))
         events = objects.NodeHistory.list_by_node_id(self.context, 10)
         self.assertEqual(2, len(events))

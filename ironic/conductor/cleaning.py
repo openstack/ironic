@@ -159,7 +159,6 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
     LOG.info('Executing %(kind)s cleaning on node %(node)s, remaining steps: '
              '%(steps)s', {'node': node.uuid, 'steps': steps,
                            'kind': 'manual' if manual_clean else 'automated'})
-
     # Execute each step until we hit an async step or run out of steps
     for ind, step in enumerate(steps):
         # Save which step we're about to start so we can restart
@@ -171,10 +170,20 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
         result = None
         try:
             if not eocn:
-                interface = getattr(task.driver, step.get('interface'))
                 LOG.info('Executing %(step)s on node %(node)s',
                          {'step': step, 'node': node.uuid})
-                if not conductor_steps.use_reserved_step_handler(task, step):
+                use_step_handler = conductor_steps.use_reserved_step_handler(
+                    task, step)
+                if use_step_handler:
+                    if use_step_handler == conductor_steps.EXIT_STEPS:
+                        # Exit the step, i.e. hold step
+                        return
+                    # if use_step_handler == conductor_steps.USED_HANDLER
+                    # Then we have completed the needful in the handler,
+                    # but since there is no other value to check now,
+                    # we know we just need to skip execute_deploy_step
+                else:
+                    interface = getattr(task.driver, step.get('interface'))
                     result = interface.execute_clean_step(task, step)
             else:
                 LOG.info('Executing %(step)s on child nodes for node '
@@ -234,7 +243,6 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
             return utils.cleaning_error_handler(task, msg)
         LOG.info('Node %(node)s finished clean step %(step)s',
                  {'node': node.uuid, 'step': step})
-
     if CONF.agent.deploy_logs_collect == 'always' and not disable_ramdisk:
         driver_utils.collect_ramdisk_logs(task.node, label='cleaning')
 

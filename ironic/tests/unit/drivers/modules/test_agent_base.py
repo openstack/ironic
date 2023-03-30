@@ -231,7 +231,8 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     def test_heartbeat_noops_in_wrong_state(self, next_step_mock, log_mock):
         allowed = {states.DEPLOYWAIT, states.CLEANWAIT, states.RESCUEWAIT,
-                   states.DEPLOYING, states.CLEANING, states.RESCUING}
+                   states.DEPLOYING, states.CLEANING, states.RESCUING,
+                   states.DEPLOYHOLD, states.CLEANHOLD}
         for state in set(states.machine.states) - allowed:
             for m in (next_step_mock, log_mock):
                 m.reset_mock()
@@ -463,8 +464,9 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             task, 'Node failed to perform rescue operation: some failure')
 
     @mock.patch.object(agent_base.LOG, 'error', autospec=True)
-    def test_heartbeat_records_cleaning_deploying(self, log_mock):
-        for provision_state in (states.CLEANING, states.DEPLOYING):
+    def test_heartbeat_records_when_appropriate(self, log_mock):
+        for provision_state in (states.CLEANING, states.DEPLOYING,
+                                states.CLEANHOLD, states.DEPLOYHOLD):
             self.node.driver_internal_info = {}
             self.node.provision_state = provision_state
             self.node.save()

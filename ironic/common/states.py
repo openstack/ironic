@@ -52,6 +52,7 @@ VERBS = {
     'adopt': 'adopt',
     'rescue': 'rescue',
     'unrescue': 'unrescue',
+    'unhold': 'unhold',
 }
 """ Mapping of state-changing events that are PUT to the REST API
 
@@ -129,6 +130,9 @@ This is mainly a target provision state used during deployment. A successfully
 deployed node should go to ACTIVE status.
 """
 
+DEPLOYHOLD = 'deploy hold'
+""" Node is being held by a deploy step. """
+
 DELETING = 'deleting'
 """ Node is actively being torn down. """
 
@@ -158,6 +162,9 @@ the driver to finish a cleaning step.
 
 CLEANFAIL = 'clean failed'
 """ Node failed cleaning. This requires operator intervention to resolve. """
+
+CLEANHOLD = 'clean hold'
+""" Node is a holding state due to a clean step. """
 
 ERROR = 'error'
 """ An error occurred during node processing.
@@ -354,11 +361,13 @@ machine.add_state(VERIFYING, target=MANAGEABLE, **watchers)
 machine.add_state(DEPLOYING, target=ACTIVE, **watchers)
 machine.add_state(DEPLOYWAIT, target=ACTIVE, **watchers)
 machine.add_state(DEPLOYFAIL, target=ACTIVE, **watchers)
+machine.add_state(DEPLOYHOLD, target=ACTIVE, **watchers)
 
 # Add clean* states
 machine.add_state(CLEANING, target=AVAILABLE, **watchers)
 machine.add_state(CLEANWAIT, target=AVAILABLE, **watchers)
 machine.add_state(CLEANFAIL, target=AVAILABLE, **watchers)
+machine.add_state(CLEANHOLD, target=AVAILABLE, **watchers)
 
 # Add delete* states
 machine.add_state(DELETING, target=AVAILABLE, **watchers)
@@ -393,10 +402,18 @@ machine.add_transition(DEPLOYFAIL, DEPLOYING, 'deploy')
 
 # A deployment may also wait on external callbacks
 machine.add_transition(DEPLOYING, DEPLOYWAIT, 'wait')
+machine.add_transition(DEPLOYING, DEPLOYHOLD, 'hold')
+machine.add_transition(DEPLOYWAIT, DEPLOYHOLD, 'hold')
 machine.add_transition(DEPLOYWAIT, DEPLOYING, 'resume')
 
 # A deployment waiting on callback may time out
 machine.add_transition(DEPLOYWAIT, DEPLOYFAIL, 'fail')
+
+# Return the node into a deploying state from holding
+machine.add_transition(DEPLOYHOLD, DEPLOYWAIT, 'unhold')
+
+# A node in deploy hold may also be aborted
+machine.add_transition(DEPLOYHOLD, DEPLOYFAIL, 'abort')
 
 # A deployment may complete
 machine.add_transition(DEPLOYING, ACTIVE, 'done')
@@ -435,7 +452,15 @@ machine.add_transition(CLEANWAIT, CLEANFAIL, 'abort')
 
 # Cleaning may also wait on external callbacks
 machine.add_transition(CLEANING, CLEANWAIT, 'wait')
+machine.add_transition(CLEANING, CLEANHOLD, 'hold')
+machine.add_transition(CLEANWAIT, CLEANHOLD, 'hold')
 machine.add_transition(CLEANWAIT, CLEANING, 'resume')
+
+# A node in a clean hold step may also be aborted
+machine.add_transition(CLEANHOLD, CLEANFAIL, 'abort')
+
+# Return the node back to cleaning
+machine.add_transition(CLEANHOLD, CLEANWAIT, 'unhold')
 
 # An operator may want to move a CLEANFAIL node to MANAGEABLE, to perform
 # other actions like cleaning

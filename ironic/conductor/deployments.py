@@ -278,7 +278,18 @@ def do_next_deploy_step(task, step_index):
                 interface = getattr(task.driver, step.get('interface'))
                 LOG.info('Executing %(step)s on node %(node)s',
                          {'step': step, 'node': node.uuid})
-                if not conductor_steps.use_reserved_step_handler(task, step):
+                use_step_handler = conductor_steps.use_reserved_step_handler(
+                    task, step)
+                if use_step_handler:
+                    if use_step_handler == conductor_steps.EXIT_STEPS:
+                        # Exit the step, i.e. hold step
+                        return
+                    # if use_step_handler == conductor_steps.USED_HANDLER
+                    # Then we have completed the needful in the handler,
+                    # but since there is no other value to check now,
+                    # we know we just need to skip execute_deploy_step
+                else:
+                    interface = getattr(task.driver, step.get('interface'))
                     result = interface.execute_deploy_step(task, step)
             else:
                 LOG.info('Executing %(step)s on child nodes for node '

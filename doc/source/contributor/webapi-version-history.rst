@@ -2,6 +2,15 @@
 REST API Version History
 ========================
 
+1.85 (Bobcat)
+-------------
+
+This version adds a new provision state change verb called ``unhold``
+to be utilized with the new ``provision_state`` values ``clean hold``
+and ``deploy hold``. The verb instructs Ironic to remove the node
+from it's present hold and to resume it's prior cleaning or
+deployment process.
+
 1.84 (Bobcat)
 -------------
 

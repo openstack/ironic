@@ -122,7 +122,8 @@ _DEFAULT_RETURN_FIELDS = ['instance_uuid', 'maintenance', 'power_state',
 PROVISION_ACTION_STATES = (ir_states.VERBS['manage'],
                            ir_states.VERBS['provide'],
                            ir_states.VERBS['abort'],
-                           ir_states.VERBS['adopt'])
+                           ir_states.VERBS['adopt'],
+                           ir_states.VERBS['unhold'])
 
 _NODES_CONTROLLER_RESERVED_WORDS = None
 
@@ -1127,6 +1128,13 @@ class NodeStatesController(rest.RestController):
         if (rpc_node.provision_state == ir_states.INSPECTWAIT
                 and target == ir_states.VERBS['abort']):
             if not api_utils.allow_inspect_abort():
+                raise exception.NotAcceptable()
+
+        if target == ir_states.VERBS['unhold']:
+            # NOTE(TheJulia): There is no solid reason to do state checks
+            # as well, other than add additional complexity as multiple
+            # states are involved.
+            if not api_utils.allow_unhold_verb():
                 raise exception.NotAcceptable()
 
         self._do_provision_action(rpc_node, target, configdrive, clean_steps,

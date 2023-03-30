@@ -1951,6 +1951,11 @@ def allow_status_in_heartbeat():
     return api.request.version.minor >= versions.MINOR_72_HEARTBEAT_STATUS
 
 
+def allow_unhold_verb():
+    """Check if the unhold verb may be passed to the API"""
+    return api.request.version.minor >= versions.MINOR_85_UNHOLD_VERB
+
+
 def check_allow_deploy_steps(target, deploy_steps):
     """Check if deploy steps are allowed"""
 
