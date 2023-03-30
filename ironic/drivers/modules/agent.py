@@ -615,8 +615,8 @@ class AgentDeploy(CustomAgentDeploy):
         else:
             manager_utils.node_set_boot_device(task, 'disk', persistent=True)
 
-        # Remove symbolic link when deploy is done.
-        deploy_utils.remove_http_instance_symlink(task.node.uuid)
+        # Remove symbolic link and image when deploy is done.
+        deploy_utils.destroy_http_instance_images(task.node)
 
 
 class AgentRAID(base.RAIDInterface):
