@@ -1324,7 +1324,7 @@ class ReservedStepsHandlerTestCase(db_base.DbTestCase):
     def _test_reserved_step(self, step, mock_power_action):
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
-            provision_state=states.VERIFYING,
+            provision_state=states.CLEANING,
             target_provision_state=states.MANAGEABLE,
             last_error=None,
             clean_step=None)
@@ -1341,3 +1341,45 @@ class ReservedStepsHandlerTestCase(db_base.DbTestCase):
 
     def test_reserved_step_power_reboot(self):
         self._test_reserved_step({'step': 'reboot'})
+
+
+class ReservedStepHandlerByNameTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(ReservedStepHandlerByNameTestCase, self).setUp()
+
+    @mock.patch.object(conductor_steps, '_sleep_wrapper', autospec=True)
+    def _test_reserved_step(self, step, mock_sleep):
+        CONF.set_override('max_conductor_wait_step_seconds', 2,
+                          group='conductor')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=states.MANAGEABLE,
+            last_error=None,
+            clean_step=None)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            res = conductor_steps.use_reserved_step_handler(task, step)
+            self.assertTrue(res)
+            if step.get('step') == 'wait':
+                if 'args' in step:
+                    self.assertEqual(task.node.provision_state,
+                                     states.CLEANING)
+                    if step['args']['seconds'] == 3:
+                        mock_sleep.assert_called_once_with(2)
+                    else:
+                        mock_sleep.assert_called_once_with(
+                            step['args']['seconds'])
+                else:
+                    self.assertEqual(task.node.provision_state,
+                                     states.CLEANWAIT)
+                    mock_sleep.assert_not_called()
+
+    def test_reserved_step_wait(self):
+        self._test_reserved_step({'step': 'wait'})
+
+    def test_reserved_step_wait_time_to_long(self):
+        self._test_reserved_step({'step': 'wait', 'args': {'seconds': 3}})
+
+    def test_reserved_step_wait_time(self):
+        self._test_reserved_step({'step': 'wait', 'args': {'seconds': 1}})

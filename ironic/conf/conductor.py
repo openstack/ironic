@@ -366,6 +366,20 @@ opts = [
                        'for operators to use if needed to perform specific '
                        'tasks where this is known acceptable. Use at your'
                        'own risk!')),
+    cfg.IntOpt('max_conductor_wait_step_seconds',
+               default=30,
+               min=0,
+               max=1800,
+               mutable=True,
+               help=_('The maximum number of seconds which a step can '
+                      'be requested to explicitly sleep or wait. This '
+                      'value should be changed sparingly as it holds a '
+                      'conductor thread and if used across many nodes at '
+                      'once can exhaust a conductor\'s resources. This'
+                      'capability has a hard coded maximum wait of 1800 '
+                      'seconds, or 30 minutes. If you need to wait longer '
+                      'than the maximum value, we recommend exploring '
+                      'hold steps.')),
 ]
 
 

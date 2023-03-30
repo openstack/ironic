@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds a ``wait`` clean/deploy step, which takes an optional argument,
+    passed in a step definition of ``seconds`` to force an explicit
+    pause of the current process. Otherwise the next heartbeat action
+    triggers resumption of the process.
