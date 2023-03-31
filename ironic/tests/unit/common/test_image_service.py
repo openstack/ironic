@@ -10,7 +10,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import builtins
 import datetime
 from http import client as http_client
 import io
@@ -483,119 +482,55 @@ class FileImageServiceTestCase(base.TestCase):
                           'properties': {},
                           'no_cache': True}, result)
 
+    @mock.patch.object(shutil, 'copyfile', autospec=True)
     @mock.patch.object(os, 'link', autospec=True)
     @mock.patch.object(os, 'remove', autospec=True)
-    @mock.patch.object(os, 'access', return_value=True, autospec=True)
-    @mock.patch.object(os, 'stat', autospec=True)
     @mock.patch.object(image_service.FileImageService, 'validate_href',
                        autospec=True)
-    def test_download_hard_link(self, _validate_mock, stat_mock, access_mock,
-                                remove_mock, link_mock):
+    def test_download_hard_link(self, _validate_mock, remove_mock, link_mock,
+                                copy_mock):
         _validate_mock.return_value = self.href_path
-        stat_mock.return_value.st_dev = 'dev1'
         file_mock = mock.Mock(spec=io.BytesIO)
         file_mock.name = 'file'
         self.service.download(self.href, file_mock)
         _validate_mock.assert_called_once_with(mock.ANY, self.href)
-        self.assertEqual(2, stat_mock.call_count)
-        access_mock.assert_called_once_with(self.href_path, os.R_OK | os.W_OK)
         remove_mock.assert_called_once_with('file')
         link_mock.assert_called_once_with(self.href_path, 'file')
+        copy_mock.assert_not_called()
 
-    @mock.patch.object(os, 'sendfile', return_value=42, autospec=True)
-    @mock.patch.object(os.path, 'getsize', return_value=42, autospec=True)
-    @mock.patch.object(builtins, 'open', autospec=True)
-    @mock.patch.object(os, 'access', return_value=False, autospec=True)
-    @mock.patch.object(os, 'stat', autospec=True)
+    @mock.patch.object(shutil, 'copyfile', autospec=True)
+    @mock.patch.object(os, 'link', autospec=True)
+    @mock.patch.object(os, 'remove', autospec=True)
     @mock.patch.object(image_service.FileImageService, 'validate_href',
                        autospec=True)
-    def test_download_copy(self, _validate_mock, stat_mock, access_mock,
-                           open_mock, size_mock, copy_mock):
+    def test_download_copy(self, _validate_mock, remove_mock, link_mock,
+                           copy_mock):
         _validate_mock.return_value = self.href_path
-        stat_mock.return_value.st_dev = 'dev1'
+        link_mock.side_effect = PermissionError
         file_mock = mock.MagicMock(spec=io.BytesIO)
         file_mock.name = 'file'
-        input_mock = mock.MagicMock(spec=io.BytesIO)
-        open_mock.return_value = input_mock
         self.service.download(self.href, file_mock)
         _validate_mock.assert_called_once_with(mock.ANY, self.href)
-        self.assertEqual(2, stat_mock.call_count)
-        access_mock.assert_called_once_with(self.href_path, os.R_OK | os.W_OK)
-        copy_mock.assert_called_once_with(file_mock.fileno(),
-                                          input_mock.__enter__().fileno(),
-                                          0, 42)
+        link_mock.assert_called_once_with(self.href_path, 'file')
+        copy_mock.assert_called_once_with(self.href_path, 'file')
 
-    @mock.patch.object(os, 'sendfile', autospec=True)
-    @mock.patch.object(os.path, 'getsize', return_value=42, autospec=True)
-    @mock.patch.object(builtins, 'open', autospec=True)
-    @mock.patch.object(os, 'access', return_value=False, autospec=True)
-    @mock.patch.object(os, 'stat', autospec=True)
+    @mock.patch.object(shutil, 'copyfile', autospec=True)
+    @mock.patch.object(os, 'link', autospec=True)
+    @mock.patch.object(os, 'remove', autospec=True)
     @mock.patch.object(image_service.FileImageService, 'validate_href',
                        autospec=True)
-    def test_download_copy_segmented(self, _validate_mock, stat_mock,
-                                     access_mock, open_mock, size_mock,
-                                     copy_mock):
-        # Fake a 3G + 1k image
-        chunk_size = image_service.SENDFILE_CHUNK_SIZE
-        fake_image_size = chunk_size * 3 + 1024
-        fake_chunk_seq = [chunk_size, chunk_size, chunk_size, 1024]
+    def test_download_copy_fail(self, _validate_mock, remove_mock, link_mock,
+                                copy_mock):
         _validate_mock.return_value = self.href_path
-        stat_mock.return_value.st_dev = 'dev1'
-        file_mock = mock.MagicMock(spec=io.BytesIO)
-        file_mock.name = 'file'
-        input_mock = mock.MagicMock(spec=io.BytesIO)
-        open_mock.return_value = input_mock
-        size_mock.return_value = fake_image_size
-        copy_mock.side_effect = fake_chunk_seq
-        self.service.download(self.href, file_mock)
-        _validate_mock.assert_called_once_with(mock.ANY, self.href)
-        self.assertEqual(2, stat_mock.call_count)
-        access_mock.assert_called_once_with(self.href_path, os.R_OK | os.W_OK)
-        copy_calls = [mock.call(file_mock.fileno(),
-                                input_mock.__enter__().fileno(),
-                                chunk_size * i,
-                                fake_chunk_seq[i]) for i in range(4)]
-        copy_mock.assert_has_calls(copy_calls)
-        size_mock.assert_called_once_with(self.href_path)
-
-    @mock.patch.object(os, 'remove', side_effect=OSError, autospec=True)
-    @mock.patch.object(os, 'access', return_value=True, autospec=True)
-    @mock.patch.object(os, 'stat', autospec=True)
-    @mock.patch.object(image_service.FileImageService, 'validate_href',
-                       autospec=True)
-    def test_download_hard_link_fail(self, _validate_mock, stat_mock,
-                                     access_mock, remove_mock):
-        _validate_mock.return_value = self.href_path
-        stat_mock.return_value.st_dev = 'dev1'
+        link_mock.side_effect = PermissionError
+        copy_mock.side_effect = PermissionError
         file_mock = mock.MagicMock(spec=io.BytesIO)
         file_mock.name = 'file'
         self.assertRaises(exception.ImageDownloadFailed,
                           self.service.download, self.href, file_mock)
         _validate_mock.assert_called_once_with(mock.ANY, self.href)
-        self.assertEqual(2, stat_mock.call_count)
-        access_mock.assert_called_once_with(self.href_path, os.R_OK | os.W_OK)
-
-    @mock.patch.object(os, 'sendfile', side_effect=OSError, autospec=True)
-    @mock.patch.object(os.path, 'getsize', return_value=42, autospec=True)
-    @mock.patch.object(builtins, 'open', autospec=True)
-    @mock.patch.object(os, 'access', return_value=False, autospec=True)
-    @mock.patch.object(os, 'stat', autospec=True)
-    @mock.patch.object(image_service.FileImageService, 'validate_href',
-                       autospec=True)
-    def test_download_copy_fail(self, _validate_mock, stat_mock, access_mock,
-                                open_mock, size_mock, copy_mock):
-        _validate_mock.return_value = self.href_path
-        stat_mock.return_value.st_dev = 'dev1'
-        file_mock = mock.MagicMock(spec=io.BytesIO)
-        file_mock.name = 'file'
-        input_mock = mock.MagicMock(spec=io.BytesIO)
-        open_mock.return_value = input_mock
-        self.assertRaises(exception.ImageDownloadFailed,
-                          self.service.download, self.href, file_mock)
-        _validate_mock.assert_called_once_with(mock.ANY, self.href)
-        self.assertEqual(2, stat_mock.call_count)
-        access_mock.assert_called_once_with(self.href_path, os.R_OK | os.W_OK)
-        size_mock.assert_called_once_with(self.href_path)
+        link_mock.assert_called_once_with(self.href_path, 'file')
+        copy_mock.assert_called_once_with(self.href_path, 'file')
 
 
 class ServiceGetterTestCase(base.TestCase):
