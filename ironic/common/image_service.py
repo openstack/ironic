@@ -34,10 +34,6 @@ from ironic.common import utils
 from ironic.conf import CONF
 
 IMAGE_CHUNK_SIZE = 1024 * 1024  # 1mb
-# NOTE(kaifeng) Image will be truncated to 2GiB by sendfile,
-# we use a large chunk size here for a better performance
-# while keep the chunk size less than the size limit.
-SENDFILE_CHUNK_SIZE = 1024 * 1024 * 1024  # 1Gb
 LOG = log.getLogger(__name__)
 
 
@@ -264,26 +260,23 @@ class FileImageService(BaseImageService):
         """
         source_image_path = self.validate_href(image_href)
         dest_image_path = image_file.name
-        local_device = os.stat(dest_image_path).st_dev
         try:
-            # We should have read and write access to source file to create
-            # hard link to it.
-            if (local_device == os.stat(source_image_path).st_dev
-                    and os.access(source_image_path, os.R_OK | os.W_OK)):
-                image_file.close()
-                os.remove(dest_image_path)
+            image_file.close()
+            os.remove(dest_image_path)
+
+            try:
                 os.link(source_image_path, dest_image_path)
+            except OSError as exc:
+                LOG.debug('Could not create a link from %(src)s to %(dest)s, '
+                          'will copy the content instead. Error: %(exc)s.',
+                          {'src': source_image_path, 'dest': dest_image_path,
+                           'exc': exc})
             else:
-                filesize = os.path.getsize(source_image_path)
-                offset = 0
-                with open(source_image_path, 'rb') as input_img:
-                    while offset < filesize:
-                        count = min(SENDFILE_CHUNK_SIZE, filesize - offset)
-                        nbytes_out = os.sendfile(image_file.fileno(),
-                                                 input_img.fileno(),
-                                                 offset,
-                                                 count)
-                        offset += nbytes_out
+                return
+
+            # NOTE(dtantsur): starting with Python 3.8, copyfile() uses
+            # efficient copying (i.e. sendfile) under the hood.
+            shutil.copyfile(source_image_path, dest_image_path)
         except Exception as e:
             raise exception.ImageDownloadFailed(image_href=image_href,
                                                 reason=str(e))
