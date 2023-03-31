@@ -9,6 +9,8 @@
           CONTROL_PLANE_MACHINE_COUNT: 1
           IMAGE_OS: ubuntu
           IMAGE_USERNAME: zuul
+          IRONIC_FROM_SOURCE: "true"
+          IRONIC_SOURCE: "/home/zuul/src/opendev.org/openstack/ironic"
           # NOTE(dtantsur): we don't have enough resources to provision even
           # a 2-node cluster, so only provision a control plane node.
           NUM_NODES: 2
