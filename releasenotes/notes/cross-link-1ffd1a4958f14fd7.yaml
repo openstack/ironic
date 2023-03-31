@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes ``Invalid cross-device link`` in some cases when using ``file://``
+    image URLs.
