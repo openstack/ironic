@@ -311,6 +311,33 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # 3 without reuse of the database connection.
         self.assertEqual(2, mock_dbapi.call_count)
 
+    def test_start_with_json_rpc(self):
+        CONF.set_override('rpc_transport', 'json-rpc')
+        CONF.set_override('host', 'foo.bar.baz')
+        self._start_service()
+        res = objects.Conductor.get_by_hostname(self.context, self.hostname)
+        self.assertEqual(self.hostname, res['hostname'])
+
+    def test_start_with_json_rpc_port(self):
+        CONF.set_override('rpc_transport', 'json-rpc')
+        CONF.set_override('host', 'foo.bar.baz')
+        CONF.set_override('port', 8192, group='json_rpc')
+
+        self._start_service()
+        res = objects.Conductor.get_by_hostname(self.context,
+                                                self.service.host)
+        self.assertEqual(f'{self.hostname}:8192', res['hostname'])
+
+    def test_start_without_jsonrpc_port_pined_version(self):
+        CONF.set_override('rpc_transport', 'json-rpc')
+        CONF.set_override('host', 'foo.bar.baz')
+        CONF.set_override('port', 8192, group='json_rpc')
+        CONF.set_override('pin_release_version', '21.4')
+        self._start_service()
+        res = objects.Conductor.get_by_hostname(self.context,
+                                                self.service.host)
+        self.assertEqual(self.hostname, res['hostname'])
+
 
 class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test__conductor_service_record_keepalive(self):

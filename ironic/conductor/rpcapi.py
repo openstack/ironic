@@ -154,12 +154,13 @@ class ConductorAPI(object):
     |    1.55 - Added change_node_boot_mode
     |    1.56 - Added continue_inspection
     |    1.57 - Added do_node_service
+    |    1.58 - Added support for json-rpc port usage
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.57'
+    RPC_API_VERSION = '1.58'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
