@@ -23,6 +23,7 @@ import pycdlib
 import requests
 
 from ironic.common import exception
+from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
 
@@ -107,7 +108,8 @@ def decode_and_extract_config_drive_iso(config_drive_iso_gz):
 
 def _fetch_config_drive_from_url(url):
     try:
-        config_drive = requests.get(url).content
+        config_drive = requests.get(
+            url, timeout=CONF.webserver_connection_timeout).content
     except requests.exceptions.RequestException as e:
         raise exception.InstanceDeployFailure(
             "Can't download the configdrive content from '%(url)s'. "

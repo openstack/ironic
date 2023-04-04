@@ -46,7 +46,8 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
             molds.save_configuration(task, url, data)
 
         mock_put.assert_called_once_with(url, '{\n  "key": "value"\n}',
-                                         headers={'X-Auth-Token': 'token'})
+                                         headers={'X-Auth-Token': 'token'},
+                                         timeout=60)
 
     @mock.patch.object(swift, 'get_swift_session', autospec=True)
     @mock.patch.object(requests, 'put', autospec=True)
@@ -77,7 +78,8 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
 
             mock_put.assert_called_once_with(
                 url, '{\n  "key": "value"\n}',
-                headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='})
+                headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='},
+                timeout=60)
 
     @mock.patch.object(requests, 'put', autospec=True)
     def test_save_configuration_http_noauth(self, mock_put):
@@ -91,7 +93,8 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
             molds.save_configuration(task, url, data)
             mock_put.assert_called_once_with(
                 url, '{\n  "key": "value"\n}',
-                headers=None)
+                headers=None,
+                timeout=60)
 
     @mock.patch.object(requests, 'put', autospec=True)
     def test_save_configuration_http_error(self, mock_put):
@@ -112,7 +115,8 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
                 {'key': 'value'})
             mock_put.assert_called_once_with(
                 'https://example.com/file2', '{\n  "key": "value"\n}',
-                headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='})
+                headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='},
+                timeout=60)
 
     @mock.patch.object(requests, 'put', autospec=True)
     def test_save_configuration_connection_error(self, mock_put):
@@ -132,7 +136,8 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
                 task, 'https://example.com/file2', {'key': 'value'})
             mock_put.assert_called_with(
                 'https://example.com/file2', '{\n  "key": "value"\n}',
-                headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='})
+                headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='},
+                timeout=60)
             self.assertEqual(mock_put.call_count, 3)
 
     @mock.patch.object(requests, 'put', autospec=True)
@@ -155,7 +160,8 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
                 {'key': 'value'})
             mock_put.assert_called_with(
                 'https://example.com/file2', '{\n  "key": "value"\n}',
-                headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='})
+                headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='},
+                timeout=60)
             self.assertEqual(mock_put.call_count, 2)
 
     @mock.patch.object(swift, 'get_swift_session', autospec=True)
@@ -176,7 +182,8 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
             result = molds.get_configuration(task, url)
 
             mock_get.assert_called_once_with(
-                url, headers={'X-Auth-Token': 'token'})
+                url, headers={'X-Auth-Token': 'token'},
+                timeout=60)
             self.assertJsonEqual({'key': 'value'}, result)
 
     @mock.patch.object(swift, 'get_swift_session', autospec=True)
@@ -210,7 +217,8 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
             result = molds.get_configuration(task, url)
 
             mock_get.assert_called_once_with(
-                url, headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='})
+                url, headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='},
+                timeout=60)
             self.assertJsonEqual({"key": "value"}, result)
 
     @mock.patch.object(requests, 'get', autospec=True)
@@ -228,7 +236,7 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             result = molds.get_configuration(task, url)
 
-            mock_get.assert_called_once_with(url, headers=None)
+            mock_get.assert_called_once_with(url, headers=None, timeout=60)
             self.assertJsonEqual({"key": "value"}, result)
 
     @mock.patch.object(requests, 'get', autospec=True)
@@ -249,7 +257,8 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
                 'https://example.com/file2')
             mock_get.assert_called_once_with(
                 'https://example.com/file2',
-                headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='})
+                headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='},
+                timeout=60)
 
     @mock.patch.object(requests, 'get', autospec=True)
     def test_get_configuration_connection_error(self, mock_get):
@@ -269,7 +278,8 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
                 task, 'https://example.com/file2')
             mock_get.assert_called_with(
                 'https://example.com/file2',
-                headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='})
+                headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='},
+                timeout=60)
             self.assertEqual(mock_get.call_count, 3)
 
     @mock.patch.object(requests, 'get', autospec=True)
@@ -291,7 +301,8 @@ class ConfigurationMoldTestCase(db_base.DbTestCase):
                 'https://example.com/file2')
             mock_get.assert_called_with(
                 'https://example.com/file2',
-                headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='})
+                headers={'Authorization': 'Basic dXNlcjpwYXNzd29yZA=='},
+                timeout=60)
             self.assertEqual(mock_get.call_count, 2)
 
     @mock.patch.object(requests, 'get', autospec=True)

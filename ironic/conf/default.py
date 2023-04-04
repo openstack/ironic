@@ -426,8 +426,9 @@ webserver_opts = [
                       'Defaults to True.')),
     cfg.IntOpt('webserver_connection_timeout',
                default=60,
-               help=_('Connection timeout when accessing remote web servers '
-                      'with images.')),
+               help=_('Connection timeout when accessing/interacting with '
+                      'remote web servers with images or other artifacts '
+                      'being accessed.')),
 ]
 
 

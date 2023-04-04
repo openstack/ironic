@@ -129,4 +129,5 @@ echo $CONTENT | /usr/bin/base64 --decode > {file_path}\n\
             task.node.instance_info = i_info
             task.node.save()
             self.assertEqual(expected, ks_utils.prepare_config_drive(task))
-            mock_get.assert_called_with('http://server/fake-configdrive-url')
+            mock_get.assert_called_with('http://server/fake-configdrive-url',
+                                        timeout=60)
