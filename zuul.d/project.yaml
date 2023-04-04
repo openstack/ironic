@@ -10,6 +10,7 @@
       - release-notes-jobs-python3
     check:
       jobs:
+        - ironic-tox-bandit
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-sqlalchemy-2x
         - ironic-tox-unit-with-driver-libs
@@ -42,8 +43,6 @@
         - metalsmith-integration-glance-centos9-legacy
         - metal3-integration
         # Non-voting jobs
-        - ironic-tox-bandit:
-            voting: false
         - ironic-inspector-tempest:
             voting: false
         - ironic-inspector-tempest-managed-non-standalone:
@@ -68,6 +67,7 @@
             voting: false
     gate:
       jobs:
+        - ironic-tox-bandit
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-sqlalchemy-2x
         - ironic-tox-unit-with-driver-libs
