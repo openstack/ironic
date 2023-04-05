@@ -83,5 +83,5 @@ EOF
 chmod 0600 $HOME/.pgpass
 
 # Now create our database
-psql -h 127.0.0.1 -U $DB_USER -d template1 -c "DROP DATABASE IF EXISTS openstack_citest"
+psql -h 127.0.0.1 -U $DB_USER -d postgres -c "DROP DATABASE IF EXISTS openstack_citest"
 createdb -h 127.0.0.1 -U $DB_USER -l C -T template0 -E utf8 openstack_citest
