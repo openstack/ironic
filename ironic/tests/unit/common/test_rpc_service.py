@@ -22,6 +22,7 @@ from oslo_utils import timeutils
 from ironic.common import context
 from ironic.common import rpc
 from ironic.common import rpc_service
+from ironic.common import service as ironic_service
 from ironic.conductor import manager
 from ironic.objects import base as objects_base
 from ironic.tests.unit.db import base as db_base
@@ -39,6 +40,8 @@ class TestRPCService(db_base.DbTestCase):
         mgr_module = "ironic.conductor.manager"
         mgr_class = "ConductorManager"
         self.rpc_svc = rpc_service.RPCService(host, mgr_module, mgr_class)
+        # register oslo_service DEFAULT config options
+        ironic_service.process_launcher()
         self.rpc_svc.manager.dbapi = self.dbapi
 
     @mock.patch.object(manager.ConductorManager, 'prepare_host', autospec=True)
@@ -123,7 +126,10 @@ class TestRPCService(db_base.DbTestCase):
         with mock.patch.object(self.dbapi, 'get_online_conductors',
                                autospec=True) as mock_cond_list:
             mock_cond_list.return_value = [conductor1]
-            self.rpc_svc.stop()
+            with mock.patch.object(self.dbapi, 'get_nodeinfo_list',
+                                   autospec=True) as mock_nodeinfo_list:
+                mock_nodeinfo_list.return_value = []
+                self.rpc_svc.stop()
 
         # single conductor so exit immediately without waiting
         mock_sleep.assert_not_called()
@@ -139,7 +145,11 @@ class TestRPCService(db_base.DbTestCase):
                                autospec=True) as mock_cond_list:
             # multiple conductors, so wait for hash_ring_reset_interval
             mock_cond_list.return_value = [conductor1, conductor2]
-            self.rpc_svc.stop()
+            with mock.patch.object(self.dbapi, 'get_nodeinfo_list',
+                                   autospec=True) as mock_nodeinfo_list:
+                mock_nodeinfo_list.return_value = []
+                self.rpc_svc.stop()
+                mock_nodeinfo_list.assert_called_once()
 
         # wait the total CONF.hash_ring_reset_interval 15 seconds
         mock_sleep.assert_has_calls([mock.call(15)])
@@ -160,7 +170,11 @@ class TestRPCService(db_base.DbTestCase):
                                autospec=True) as mock_cond_list:
             # multiple conductors, so wait for hash_ring_reset_interval
             mock_cond_list.return_value = [conductor1, conductor2]
-            self.rpc_svc.stop()
+            with mock.patch.object(self.dbapi, 'get_nodeinfo_list',
+                                   autospec=True) as mock_nodeinfo_list:
+                mock_nodeinfo_list.return_value = []
+                self.rpc_svc.stop()
+                mock_nodeinfo_list.assert_called_once()
 
         # wait the remaining 10 seconds
         mock_sleep.assert_has_calls([mock.call(10)])
@@ -181,7 +195,35 @@ class TestRPCService(db_base.DbTestCase):
                                autospec=True) as mock_cond_list:
             # multiple conductors, so wait for hash_ring_reset_interval
             mock_cond_list.return_value = [conductor1, conductor2]
-            self.rpc_svc.stop()
+            with mock.patch.object(self.dbapi, 'get_nodeinfo_list',
+                                   autospec=True) as mock_nodeinfo_list:
+                mock_nodeinfo_list.return_value = []
+                self.rpc_svc.stop()
+                mock_nodeinfo_list.assert_called_once()
 
         # no wait required, CONF.hash_ring_reset_interval already exceeded
         mock_sleep.assert_not_called()
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    @mock.patch.object(time, 'sleep', autospec=True)
+    def test_stop_has_reserved(self, mock_sleep, mock_utcnow):
+        mock_utcnow.return_value = datetime.datetime(2023, 2, 2, 21, 10, 0)
+        conductor1 = db_utils.get_test_conductor(hostname='fake_host')
+        conductor2 = db_utils.get_test_conductor(hostname='other_fake_host')
+
+        with mock.patch.object(self.dbapi, 'get_online_conductors',
+                               autospec=True) as mock_cond_list:
+            # multiple conductors, so wait for hash_ring_reset_interval
+            mock_cond_list.return_value = [conductor1, conductor2]
+            with mock.patch.object(self.dbapi, 'get_nodeinfo_list',
+                                   autospec=True) as mock_nodeinfo_list:
+                # 3 calls to manager has_reserved until all reservation locks
+                # are released
+                mock_nodeinfo_list.side_effect = [['a', 'b'], ['a'], []]
+                self.rpc_svc.stop()
+                self.assertEqual(3, mock_nodeinfo_list.call_count)
+
+        # wait the remaining 15 seconds, then wait until has_reserved
+        # returns False
+        mock_sleep.assert_has_calls(
+            [mock.call(15), mock.call(1), mock.call(1)])
