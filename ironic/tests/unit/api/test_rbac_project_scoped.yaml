@@ -84,9 +84,8 @@ values:
     X-Roles: service
   owner_project_id: &owner_project_id 70e5e25a-2ca2-4cb1-8ae8-7d8739cee205
   lessee_project_id: &lessee_project_id f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
-  owned_node_ident: &owned_node_ident f11853c7-fa9c-4db3-a477-c9d8e0dbbf13
+  owned_node_ident: &owned_node_ident 1ab63b9e-66d7-4cd7-8618-dddd0f9f7881
   lessee_node_ident: &lessee_node_ident 38d5abed-c585-4fce-a57e-a2ffc2a2ec6f
-
 # Nodes - https://docs.openstack.org/api-ref/baremetal/?expanded=#nodes-nodes
 
 # Based on nodes_post_admin test.
@@ -3888,3 +3887,62 @@ shard_patch_set_node_shard_disallowed:
       path: /shard
       value: 'TestShard'
   assert_status: 403
+
+# Update node parent_node field - baremetal:node:update:parent_node
+
+parent_node_patch_by_admin:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *owner_admin_headers
+  body: &patch_parent_node
+    - op: replace
+      path: /parent_node
+      value: *owned_node_ident
+  assert_status: 403
+
+parent_node_patch_by_member:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *owner_member_headers
+  body: *patch_parent_node
+  assert_status: 403
+
+parent_node_patch_by_reader:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *owner_reader_headers
+  body: *patch_parent_node
+  assert_status: 403
+
+parent_node_patch_by_manager:
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *owner_manager_headers
+  body: *patch_parent_node
+  assert_status: 403
+
+parent_node_patch_by_cannot_see_node:
+  # This node cannot be seen, and also just doesn't exist.
+  # Just to verify we return a 400 on a node we can change.
+  path: '/v1/nodes/{lessee_node_ident}'
+  method: patch
+  headers: *owner_admin_headers
+  body:
+    - op: replace
+      path: /parent_node
+      value: 'f11853c7-fa9c-4db3-a477-c9d8e0dbbf13'
+  assert_status: 400
+
+parent_node_children_can_get_list_of_children:
+  path: '/v1/nodes/{owner_node_ident}/children'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+  assert_list_length:
+    children: 1
+
+lessee_cannot_get_a_nodes_children:
+  path: '/v1/nodes/{owner_node_ident}/children'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 404

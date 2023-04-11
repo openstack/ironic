@@ -8164,3 +8164,180 @@ class TestNodeShardPatch(test_api_base.BaseApiTest):
                                    body, expect_errors=True, headers=headers)
         self.mock_update_node.assert_not_called()
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
+
+class TestNodeChildrenTestCase(test_api_base.BaseApiTest):
+    def setUp(self):
+        super(TestNodeChildrenTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(self.context, name='din')
+        self.child_node = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            name='not-yoda',
+            parent_node=self.node.uuid)
+        self.headers = {api_base.Version.string: '1.83'}
+
+    def test_list_nodes(self):
+        response = self.get_json(
+            '/nodes/', headers=self.headers)
+        self.assertEqual(1, len(response['nodes']))
+        self.assertEqual('din', response['nodes'][0]['name'])
+
+    def test_get_child_node(self):
+        response = self.get_json(
+            '/nodes/%s/children' % self.node.uuid, headers=self.headers)
+        self.assertEqual(1, len(response['children']))
+        self.assertEqual(self.child_node.uuid, response['children'][0])
+
+    def test_list_nodes_with_include_children(self):
+        response = self.get_json(
+            '/nodes/?include_children=True', headers=self.headers)
+        self.assertEqual(2, len(response['nodes']))
+
+    def test_list_nodes_ignores_parent_if_include_children_indicated(self):
+        response = self.get_json(
+            '/nodes/?include_children=True&parent_node=111',
+            headers=self.headers)
+        self.assertEqual(2, len(response['nodes']))
+
+    @mock.patch.object(api_utils, 'check_list_policy', autospec=True)
+    def test_list_nodes_cannot_see_children_if_not_owned(self, mock_policy):
+        project_id = uuidutils.generate_uuid()
+        mock_policy.return_value = project_id
+        self.node['owner'] = project_id
+        self.node.save()
+        response = self.get_json(
+            '/nodes/?parent_node={}'.format(project_id),
+            headers=self.headers)
+        self.assertEqual(0, len(response['nodes']))
+
+    @mock.patch.object(api_utils, 'check_list_policy', autospec=True)
+    def test_list_nodes_with_children_only_parent(self, mock_policy):
+        project_id = uuidutils.generate_uuid()
+        headers = self.headers.copy()
+        mock_policy.return_value = project_id
+        self.node['lessee'] = project_id
+        self.node.save()
+        response = self.get_json(
+            '/nodes/?include_children=True&'
+            'fields=uuid,lessee,name,parent_node',
+            headers=headers)
+        self.assertEqual(1, len(response['nodes']))
+        self.assertEqual(self.node.uuid, response['nodes'][0]['uuid'])
+
+    def test_list_nodes_lists_empty_for_specific_parent(self):
+        node = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            name='kryze',
+            parent_node=self.node.uuid)
+        response = self.get_json(
+            '/nodes/?parent_node={}'.format(node.uuid), headers=self.headers)
+        self.assertEqual(0, len(response['nodes']))
+
+
+@mock.patch.object(rpcapi.ConductorAPI, 'create_node',
+                   lambda _api, _ctx, node, _topic: _create_node_locally(node))
+class TestNodeParentNodePost(test_api_base.BaseApiTest):
+    def setUp(self):
+        super(TestNodeParentNodePost, self).setUp()
+        self.node = obj_utils.create_test_node(self.context, name='din')
+
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
+        self.mock_gtf = p.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(p.stop)
+        self.chassis = obj_utils.create_test_chassis(self.context)
+
+    def test_create_node_with_parent_node(self):
+        ndict = test_api_utils.post_get_test_node(
+            uuid=uuidutils.generate_uuid())
+        ndict['parent_node'] = self.node.uuid
+        headers = {api_base.Version.string: '1.83'}
+        response = self.post_json('/nodes', ndict, headers=headers)
+        self.assertEqual(http_client.CREATED, response.status_int)
+
+        result = self.get_json('/nodes/{}'.format(ndict['uuid']),
+                               headers=headers)
+        self.assertEqual(ndict['uuid'], result['uuid'])
+        self.assertEqual(self.node.uuid, result['parent_node'])
+
+    def test_create_node_with_parent_node_fail_wrong_version(self):
+        headers = {api_base.Version.string: '1.82'}
+        ndict = test_api_utils.post_get_test_node(
+            uuid=uuidutils.generate_uuid())
+        ndict['parent_node'] = self.node.uuid
+        response = self.post_json(
+            '/nodes', ndict, expect_errors=True, headers=headers)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+
+class TestNodeParentNodePatch(test_api_base.BaseApiTest):
+    def setUp(self):
+        super(TestNodeParentNodePatch, self).setUp()
+        self.node = obj_utils.create_test_node(
+            self.context,
+            name='djarin')
+        self.child_node = obj_utils.create_test_node(
+            self.context,
+            name='the_child',
+            uuid=uuidutils.generate_uuid())
+
+        p = mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                              autospec=True)
+        self.mock_gtf = p.start()
+        self.mock_gtf.return_value = 'test-topic'
+        self.addCleanup(p.stop)
+        p = mock.patch.object(rpcapi.ConductorAPI, 'update_node',
+                              autospec=True)
+        self.mock_update_node = p.start()
+        self.addCleanup(p.stop)
+
+    def test_node_add_parent(self):
+        self.mock_update_node.return_value = self.node
+        (self
+         .mock_update_node
+         .return_value
+         .updated_at) = "2013-12-03T06:20:41.184720+00:00"
+        headers = {api_base.Version.string: '1.83'}
+        body = [{
+            'path': '/parent_node',
+            'value': self.node.uuid,
+            'op': 'add',
+        }]
+
+        response = self.patch_json(
+            '/nodes/%s' % self.child_node.uuid, body, headers=headers)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.mock_update_node.assert_called_once()
+
+    def test_node_add_parent_node_fail_wrong_version(self):
+        headers = {api_base.Version.string: '1.82'}
+        body = [{
+            'path': '/parent_node',
+            'value': self.node.uuid,
+            'op': 'add',
+        }]
+
+        response = self.patch_json('/nodes/%s' % self.child_node.uuid,
+                                   body, expect_errors=True, headers=headers)
+        self.mock_update_node.assert_not_called()
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
+    def test_node_remove_parent(self):
+        self.mock_update_node.return_value = self.node
+        (self
+         .mock_update_node
+         .return_value
+         .updated_at) = "2013-12-03T06:20:41.184720+00:00"
+        headers = {api_base.Version.string: '1.83'}
+        body = [{
+            'path': '/parent_node',
+            'op': 'remove',
+        }]
+
+        response = self.patch_json(
+            '/nodes/%s' % self.child_node.uuid, body, headers=headers)
+        self.assertEqual(http_client.OK, response.status_code)
+        self.mock_update_node.assert_called_once()

@@ -107,6 +107,9 @@ supplied when the Node is created, or the resource may be updated later.
 .. versionadded:: 1.82
   Introduced the ``shard`` field.
 
+.. versionadded: 1.83
+  Introduced the ``parent_node`` field.
+
 Normal response codes: 201
 
 Error codes: 400,403,406
@@ -147,6 +150,7 @@ Request
     - maintenance: req_maintenance
     - maintenance_reason: maintenance_reason
     - network_data: network_data
+    - parent_node: parent_node
     - protected: protected
     - protected_reason: protected_reason
     - retired: retired
@@ -212,6 +216,7 @@ microversion 1.81.
     - vendor_interface: vendor_interface
     - volume: n_volume
     - conductor_group: conductor_group
+    - parent_node: parent_node
     - protected: protected
     - protected_reason: protected_reason
     - conductor: conductor
@@ -288,6 +293,13 @@ provision state, and maintenance setting for each Node.
 .. versionadded:: 1.82
   Introduced the ``shard`` field. Introduced the ``sharded`` request parameter.
 
+.. versionadded:: 1.83
+  Introduced the ``parent_node`` field and query parameter to identify
+  matching nodes.
+  Introduced the ``include_children`` parameter which allows for all child
+  nodes to be enumerated, which are normally hidden as child nodes are not
+  normally intended for direct consumption by end users.
+
 Normal response codes: 200
 
 Error codes: 400,403,406
@@ -317,6 +329,8 @@ Request
    - sort_dir: sort_dir
    - sort_key: sort_key
    - detail: detail
+   - parent_node: parent_node
+   - include_children: include_children
 
 Response
 --------
@@ -461,6 +475,7 @@ Response
     - vendor_interface: vendor_interface
     - volume: n_volume
     - conductor_group: conductor_group
+    - parent_node: parent_node
     - protected: protected
     - protected_reason: protected_reason
     - owner: owner
@@ -526,6 +541,9 @@ only the specified set.
 
 .. versionadded:: 1.82
   Introduced the ``shard`` field.
+
+.. versionadded:: 1.83
+  Introduced the ``parent_node`` field.
 
 Normal response codes: 200
 

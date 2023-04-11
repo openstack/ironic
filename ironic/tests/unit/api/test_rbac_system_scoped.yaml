@@ -3,7 +3,7 @@ values:
   # System scoped admin token
   admin_headers: &admin_headers
     X-Auth-Token: 'baremetal-admin-token'
-    X-Roles: admin
+    X-Roles: admin,member,reader
     OpenStack-System-Scope: all
   # System scoped other member token.
   scoped_member_headers: &scoped_member_headers
@@ -21,7 +21,7 @@ values:
   other_admin_headers: &other_admin_headers
     X-Auth-Token: 'other-admin-token'
     X-Project-ID: a1111111111111111111111111111111
-    X-Roles: admin
+    X-Roles: admin,member,reader
     X-Project-Name: 'other-project'
   service_headers: &service_headers
     X-Auth-Token: 'baremetal-service-token'
@@ -30,6 +30,7 @@ values:
   owner_project_id: &owner_project_id '{owner_project_id}'
   other_project_id: &other_project_id '{other_project_id}'
   node_ident: &node_ident '{node_ident}'
+  allocated_node_ident: &allocated_node_ident 22e26c0b-03f2-4d2e-ae87-c02d7f33c000
 
 # Nodes - https://docs.openstack.org/api-ref/baremetal/?expanded=#nodes-nodes
 
@@ -2312,4 +2313,30 @@ shard_patch_set_node_shard_disallowed:
   method: patch
   headers: *scoped_member_headers
   body: *replace_shard
+  assert_status: 403
+
+# Update node parent_node field - baremetal:node:update:parent_node
+
+parent_node_patch_by_admin:
+  path: '/v1/nodes/{node_ident}'
+  method: patch
+  headers: *admin_headers
+  body: &patch_parent_node
+    - op: replace
+      path: /parent_node
+      value: *allocated_node_ident
+  assert_status: 503
+
+parent_node_patch_by_member:
+  path: '/v1/nodes/{node_ident}'
+  method: patch
+  headers: *scoped_member_headers
+  body: *patch_parent_node
+  assert_status: 503
+
+parent_node_patch_by_reader:
+  path: '/v1/nodes/{node_ident}'
+  method: patch
+  headers: *reader_headers
+  body: *patch_parent_node
   assert_status: 403

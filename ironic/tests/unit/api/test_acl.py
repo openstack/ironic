@@ -392,6 +392,17 @@ class TestRBACProjectScoped(TestACLBase):
             owner=owner_project_id,
             last_error='meow',
             reservation='lolcats')
+        # invisible child node, rbac + project query enforcement
+        # prevents it from being visible.
+        db_utils.create_test_node(
+            uuid='2b3b8adb-add7-4fd0-8e82-dcb714d848e7',
+            parent_node=owned_node.uuid)
+        # Child node which will appear in child node endpoint
+        # queries.
+        db_utils.create_test_node(
+            uuid='3c3b8adb-edd7-3ed0-8e82-aab714d8411a',
+            parent_node=owned_node.uuid,
+            owner=owner_project_id)
         owned_node_port = db_utils.create_test_port(
             uuid='ebe30f19-358d-41e1-8d28-fd7357a0164c',
             node_id=owned_node['id'],

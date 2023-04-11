@@ -1001,6 +1001,14 @@ node_policies = [
         description='Governs if shards can be read via the API clients.',
         operations=[{'path': '/shards', 'method': 'GET'}],
     ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:update:parent_node',
+        check_str=SYSTEM_MEMBER,
+        scope_types=['system', 'project'],
+        description='Governs if node parent_node field can be updated via '
+                    'the API clients.',
+        operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
+    ),
 ]
 
 deprecated_port_reason = """

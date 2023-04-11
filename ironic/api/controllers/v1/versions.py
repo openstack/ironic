@@ -120,6 +120,7 @@ BASE_VERSION = 1
 # v1.80: Marker to represent self service node creation/deletion
 # v1.81: Add node inventory
 # v1.82: Add node sharding capability
+# v1.83: Add child node modeling
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
 MINOR_2_AVAILABLE_STATE = 2
@@ -203,6 +204,7 @@ MINOR_79_ALLOCATION_NODE_NAME = 79
 MINOR_80_PROJECT_CREATE_DELETE_NODE = 80
 MINOR_81_NODE_INVENTORY = 81
 MINOR_82_NODE_SHARD = 82
+MINOR_83_PARENT_CHILD_NODES = 83
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -210,7 +212,7 @@ MINOR_82_NODE_SHARD = 82
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_82_NODE_SHARD
+MINOR_MAX_VERSION = MINOR_83_PARENT_CHILD_NODES
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

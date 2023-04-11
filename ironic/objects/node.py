@@ -79,7 +79,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.35: Add network_data field
     # Version 1.36: Add boot_mode and secure_boot fields
     # Version 1.37: Add shard field
-    VERSION = '1.37'
+    # Version 1.38: Add parent_node field
+    VERSION = '1.38'
 
     dbapi = db_api.get_instance()
 
@@ -172,6 +173,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'boot_mode': object_fields.StringField(nullable=True),
         'secure_boot': object_fields.BooleanField(nullable=True),
         'shard': object_fields.StringField(nullable=True),
+        'parent_node': object_fields.StringField(nullable=True),
     }
 
     def as_dict(self, secure=False, mask_configdrive=True):
