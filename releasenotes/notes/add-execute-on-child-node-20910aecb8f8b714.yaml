@@ -1,0 +1,16 @@
+---
+features:
+  - |
+    Adds a capability for syncrhonous steps to be executed through the
+    cleaning and deployment steps framework upon child nodes, as associated
+    through the ``parent_node`` field. The new, optional step arguments are
+    a boolean value of ``execute_on_child_nodes``, and
+    ``limit_child_node_execution`` which consists of a list of node UUIDs.
+    The ability to invoke this permisison requires the ability to
+    set a provision state action upon the child node in the RBAC model.
+  - |
+    Adds a ``power_on``, ``power_on``, and ``reboot`` reserved step name
+    actions which toggles power through the conductor. This allows embedded
+    devices such as child nodes to have power state toggled as part
+    of the parent node's cleaning or deployment sequnece, if so stated
+    through the supplied configuration or deployment template.

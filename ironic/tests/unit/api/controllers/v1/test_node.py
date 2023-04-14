@@ -49,9 +49,9 @@ from ironic.drivers.modules import inspect_utils
 from ironic import objects
 from ironic.objects import fields as obj_fields
 from ironic import tests as tests_root
-from ironic.tests import base
 from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.api import utils as test_api_utils
+from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
 
 
@@ -6826,7 +6826,7 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
 
-class TestCheckCleanSteps(base.TestCase):
+class TestCheckCleanSteps(db_base.DbTestCase):
     def test__check_clean_steps_not_list(self):
         clean_steps = {"step": "upgrade_firmware", "interface": "deploy"}
         self.assertRaisesRegex(exception.InvalidParameterValue,
@@ -6893,6 +6893,55 @@ class TestCheckCleanSteps(base.TestCase):
 
         step2 = {"step": "configure raid", "interface": "raid"}
         api_node._check_clean_steps([step1, step2])
+
+    @mock.patch.object(api_utils, 'check_node_policy_and_retrieve',
+                       autospec=True)
+    def test__check_clean_steps_child_node(self, mock_policy):
+        node = obj_utils.create_test_node(
+            self.context,
+            provision_state=states.AVAILABLE,
+            name='node-1337')
+        obj_utils.create_test_node(
+            self.context,
+            provision_state=states.AVAILABLE,
+            name='node-n071337',
+            parent_node=node.uuid,
+            uuid=uuidutils.generate_uuid())
+        clean_steps = [{"step": "upgrade_firmware", "interface": "deploy",
+                        "execute_on_child_nodes": True}]
+        api_node._check_clean_steps(clean_steps)
+        mock_policy.assert_not_called()
+
+    @mock.patch.object(api_utils, 'check_node_policy_and_retrieve',
+                       autospec=True)
+    def test__check_clean_steps_child_node_list(self, mock_policy):
+        node = obj_utils.create_test_node(
+            self.context,
+            provision_state=states.AVAILABLE,
+            name='node-1337')
+        child_node_1 = obj_utils.create_test_node(
+            self.context,
+            provision_state=states.AVAILABLE,
+            name='node-n071337',
+            parent_node=node.uuid,
+            uuid=uuidutils.generate_uuid())
+        child_node_2 = obj_utils.create_test_node(
+            self.context,
+            provision_state=states.AVAILABLE,
+            name='node-1337-card1',
+            parent_node=node.uuid,
+            uuid=uuidutils.generate_uuid())
+
+        clean_steps = [{"step": "upgrade_firmware", "interface": "deploy",
+                        "execute_on_child_nodes": True,
+                        "limit_child_node_execution": [child_node_1.uuid,
+                                                       child_node_2.uuid]}]
+        api_node._check_clean_steps(clean_steps)
+        mock_policy.assert_has_calls([
+            mock.call('baremetal:node:set_provision_state',
+                      child_node_1.uuid),
+            mock.call('baremetal:node:set_provision_state',
+                      child_node_2.uuid)])
 
 
 class TestAttachDetachVif(test_api_base.BaseApiTest):

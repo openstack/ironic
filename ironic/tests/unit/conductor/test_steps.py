@@ -19,6 +19,7 @@ from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
+from ironic.conductor import utils as conductor_utils
 from ironic.conductor import verify as verify_steps
 from ironic import objects
 from ironic.tests.unit.db import base as db_base
@@ -971,6 +972,19 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
                      'priority': 20, 'abortable': True}]
         self.assertEqual(expected, result)
 
+    @mock.patch.object(conductor_steps, '_validate_user_step',
+                       autospec=True)
+    def test__validate_user_clean_steps_reserved_options(self, mock_steps):
+        node = obj_utils.create_test_node(self.context)
+        user_steps = [{'step': 'magic', 'execute_on_child_nodes': True},
+                      {'step': 'power_on', 'interface': 'power'},
+                      {'step': 'power_off', 'interface': 'power'},
+                      {'step': 'reboot', 'interface': 'power'}]
+        with task_manager.acquire(self.context, node.uuid) as task:
+            conductor_steps._validate_user_clean_steps(
+                task, user_steps, disable_ramdisk=True)
+            mock_steps.assert_not_called()
+
 
 @mock.patch.object(conductor_steps, '_get_deployment_templates',
                    autospec=True)
@@ -1299,3 +1313,31 @@ class NodeVerifyStepsTestCase(db_base.DbTestCase):
             verify_steps.do_node_verify(task)
             node.refresh()
             self.assertTrue(mock_execute.called)
+
+
+class ReservedStepsHandlerTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(ReservedStepsHandlerTestCase, self).setUp()
+
+    @mock.patch.object(conductor_utils, 'node_power_action',
+                       autospec=True)
+    def _test_reserved_step(self, step, mock_power_action):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.VERIFYING,
+            target_provision_state=states.MANAGEABLE,
+            last_error=None,
+            clean_step=None)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            res = conductor_steps.use_reserved_step_handler(task, step)
+            self.assertTrue(res)
+
+    def test_reserved_step_power_on(self):
+        self._test_reserved_step({'step': 'power_on'})
+
+    def test_reserved_step_power_off(self):
+        self._test_reserved_step({'step': 'power_off'})
+
+    def test_reserved_step_power_reboot(self):
+        self._test_reserved_step({'step': 'reboot'})

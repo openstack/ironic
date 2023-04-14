@@ -1227,3 +1227,185 @@ class DoNodeCleanAbortTestCase(db_base.DbTestCase):
             self.assertIsNotNone(task.node.maintenance_reason)
             self.assertTrue(task.node.maintenance)
             self.assertEqual('clean failure', task.node.fault)
+
+
+class DoNodeCleanTestChildNodes(db_base.DbTestCase):
+    def setUp(self):
+        super(DoNodeCleanTestChildNodes, self).setUp()
+        self.config(automated_clean=True, group='conductor')
+        self.power_off_parent = {
+            'step': 'power_off', 'priority': 4, 'interface': 'power'}
+        self.power_on_children = {
+            'step': 'power_on', 'priority': 5, 'interface': 'power',
+            'execute_on_child_nodes': True}
+        self.update_firmware_on_children = {
+            'step': 'update_firmware', 'priority': 10,
+            'interface': 'management', 'execute_on_child_nodes': True}
+        self.reboot_children = {
+            'step': 'reboot', 'priority': 5, 'interface': 'power',
+            'execute_on_child_nodes': True}
+        self.power_on_parent = {
+            'step': 'power_on', 'priority': 15, 'interface': 'power'}
+        self.clean_steps = [
+            self.power_off_parent,
+            self.power_on_children,
+            self.update_firmware_on_children,
+            self.reboot_children,
+            self.power_on_parent]
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.CLEANING,
+            target_provision_state=states.MANAGEABLE,
+            last_error=None,
+            power_state=states.POWER_ON,
+            driver_internal_info={'agent_secret_token': 'old',
+                                  'clean_steps': self.clean_steps})
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.reboot',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.set_power_state',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.'
+                'execute_clean_step', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
+                autospec=True)
+    def test_do_next_clean_step_with_children(
+            self, mock_deploy, mock_mgmt, mock_power, mock_pv, mock_nv,
+            mock_sps, mock_reboot):
+        child_node1 = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            last_error=None,
+            power_state=states.POWER_OFF,
+            parent_node=self.node.uuid)
+        child_node2 = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            last_error=None,
+            power_state=states.POWER_OFF,
+            parent_node=self.node.uuid)
+
+        mock_deploy.return_value = None
+        mock_mgmt.return_value = None
+        mock_power.return_value = None
+        child1_updated_at = str(child_node1.updated_at)
+        child2_updated_at = str(child_node2.updated_at)
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            cleaning.do_next_clean_step(task, 0,
+                                        disable_ramdisk=True)
+        self.node.refresh()
+        child_node1.refresh()
+        child_node2.refresh()
+
+        # Confirm the objects *did* recieve locks.
+        self.assertNotEqual(child1_updated_at, child_node1.updated_at)
+        self.assertNotEqual(child2_updated_at, child_node2.updated_at)
+
+        # Confirm the child nodes have no errors
+        self.assertFalse(child_node1.maintenance)
+        self.assertFalse(child_node2.maintenance)
+        self.assertIsNone(child_node1.last_error)
+        self.assertIsNone(child_node2.last_error)
+        self.assertIsNone(self.node.last_error)
+
+        # Confirm the call counts expected
+        self.assertEqual(0, mock_deploy.call_count)
+        self.assertEqual(2, mock_mgmt.call_count)
+        self.assertEqual(0, mock_power.call_count)
+        self.assertEqual(0, mock_nv.call_count)
+        self.assertEqual(0, mock_pv.call_count)
+        self.assertEqual(4, mock_sps.call_count)
+        self.assertEqual(2, mock_reboot.call_count)
+        mock_sps.assert_has_calls([
+            mock.call(mock.ANY, mock.ANY, 'power off', timeout=None),
+            mock.call(mock.ANY, mock.ANY, 'power on', timeout=None),
+            mock.call(mock.ANY, mock.ANY, 'power on', timeout=None)])
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.set_power_state',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.execute_clean_step',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.'
+                'execute_clean_step', autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.execute_clean_step',
+                autospec=True)
+    def test_do_next_clean_step_with_children_by_uuid(
+            self, mock_deploy, mock_mgmt, mock_power, mock_pv, mock_nv,
+            mock_sps):
+        child_node1 = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            last_error=None,
+            parent_node=self.node.uuid)
+        child_node2 = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            last_error=None,
+            parent_node=self.node.uuid)
+        power_on_children = {
+            'step': 'power_on', 'priority': 5, 'interface': 'power',
+            'execute_on_child_nodes': True,
+            'limit_child_node_execution': [child_node1.uuid]}
+        update_firmware_on_children = {
+            'step': 'update_firmware', 'priority': 10,
+            'interface': 'management',
+            'execute_on_child_nodes': True,
+            'limit_child_node_execution': [child_node1.uuid]}
+        power_on_parent = {
+            'step': 'not_power', 'priority': 15, 'interface': 'power'}
+        clean_steps = [power_on_children, update_firmware_on_children,
+                       power_on_parent]
+        dii = self.node.driver_internal_info
+        dii['clean_steps'] = clean_steps
+        self.node.driver_internal_info = dii
+        self.node.save()
+
+        mock_deploy.return_value = None
+        mock_mgmt.return_value = None
+        mock_power.return_value = None
+        child1_updated_at = str(child_node1.updated_at)
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            cleaning.do_next_clean_step(task, 0,
+                                        disable_ramdisk=True)
+        self.node.refresh()
+        child_node1.refresh()
+        child_node2.refresh()
+
+        # Confirm the objects *did* recieve locks.
+        self.assertNotEqual(child1_updated_at, child_node1.updated_at)
+        self.assertIsNone(child_node2.updated_at)
+
+        # Confirm the child nodes have no errors
+        self.assertFalse(child_node1.maintenance)
+        self.assertFalse(child_node2.maintenance)
+        self.assertIsNone(child_node1.last_error)
+        self.assertIsNone(child_node2.last_error)
+        self.assertIsNone(self.node.last_error)
+
+        # Confirm the call counts expected
+        self.assertEqual(0, mock_deploy.call_count)
+        self.assertEqual(1, mock_mgmt.call_count)
+        self.assertEqual(1, mock_power.call_count)
+        self.assertEqual(0, mock_nv.call_count)
+        self.assertEqual(0, mock_pv.call_count)
+        mock_sps.assert_has_calls([
+            mock.call(mock.ANY, mock.ANY, 'power on', timeout=None)])
