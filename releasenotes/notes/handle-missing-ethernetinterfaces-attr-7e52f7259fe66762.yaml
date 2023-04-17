@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes the bug where provisioning a Redfish managed node fails if the BMC
+    doesn't support EthernetInterfaces attribute, even if MAC address
+    information is provided manually. This is done by handling of
+    MissingAttributeError sushy exception in get_mac_addresses() method.
+    This fix is needed to successfully provision machines such as Cisco UCSB
+    and UCSX.
