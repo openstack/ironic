@@ -1598,3 +1598,13 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertEqual([],
                              task.driver.management.get_mac_addresses(task))
+
+    @mock.patch.object(redfish_utils, 'get_enabled_macs', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_mac_addresses_missing_attr(self, mock_get_system,
+                                            mock_get_enabled_macs):
+        redfish_utils.get_enabled_macs.side_effect = (sushy.exceptions.
+                                                      MissingAttributeError)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertIsNone(task.driver.management.get_mac_addresses(task))
