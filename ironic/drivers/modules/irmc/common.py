@@ -31,6 +31,8 @@ scci = importutils.try_import('scciclient.irmc.scci')
 elcm = importutils.try_import('scciclient.irmc.elcm')
 
 LOG = logging.getLogger(__name__)
+
+
 REQUIRED_PROPERTIES = {
     'irmc_address': _("IP address or hostname of the iRMC. Required."),
     'irmc_username': _("Username for the iRMC with administrator privileges. "

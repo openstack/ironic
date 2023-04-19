@@ -24,6 +24,8 @@ from ironic.conductor import task_manager
 from ironic.drivers.modules.irmc import boot as irmc_boot
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import power as irmc_power
+from ironic.drivers.modules.redfish import power as redfish_power
+from ironic.drivers.modules.redfish import utils as redfish_util
 from ironic.tests.unit.drivers.modules.irmc import test_common
 
 
@@ -289,17 +291,32 @@ class IRMCPowerTestCase(test_common.BaseIRMCTest):
             for prop in irmc_common.COMMON_PROPERTIES:
                 self.assertIn(prop, properties)
 
+    @mock.patch.object(redfish_util, 'parse_driver_info', autospec=True)
     @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
                        autospec=True)
-    def test_validate(self, mock_drvinfo):
+    def test_validate_default(self, mock_drvinfo, redfish_parsedr_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.power.validate(task)
             mock_drvinfo.assert_called_once_with(task.node)
+            redfish_parsedr_mock.assert_not_called()
 
+    @mock.patch.object(redfish_util, 'parse_driver_info', autospec=True)
     @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
                        autospec=True)
-    def test_validate_fail(self, mock_drvinfo):
+    def test_validate_ipmi(self, mock_drvinfo, redfish_parsedr_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.power.validate(task)
+            mock_drvinfo.assert_called_once_with(task.node)
+            redfish_parsedr_mock.assert_not_called()
+
+    @mock.patch.object(redfish_util, 'parse_driver_info', autospec=True)
+    @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
+    def test_validate_fail_ipmi(self, mock_drvinfo, redfish_parsedr_mock):
         side_effect = exception.InvalidParameterValue("Invalid Input")
         mock_drvinfo.side_effect = side_effect
         with task_manager.acquire(self.context, self.node.uuid,
@@ -307,10 +324,40 @@ class IRMCPowerTestCase(test_common.BaseIRMCTest):
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.power.validate,
                               task)
+            redfish_parsedr_mock.assert_not_called()
 
+    @mock.patch.object(redfish_util, 'parse_driver_info', autospec=True)
+    @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
+    def test_validate_redfish(self, mock_drvinfo, redfish_parsedr_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', False)
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.power.validate(task)
+            mock_drvinfo.assert_called_once_with(task.node)
+            redfish_parsedr_mock.assert_called_once_with(task.node)
+
+    @mock.patch.object(redfish_util, 'parse_driver_info', autospec=True)
+    @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
+    def test_validate_fail_redfish(self, mock_drvinfo, redfish_parsedr_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', False)
+        self.node.save()
+        side_effect = exception.InvalidParameterValue("Invalid Input")
+        redfish_parsedr_mock.side_effect = side_effect
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.power.validate,
+                              task)
+            mock_drvinfo.assert_called_once_with(task.node)
+
+    @mock.patch.object(redfish_power.RedfishPower, 'get_power_state',
+                       autospec=True)
     @mock.patch('ironic.drivers.modules.irmc.power.ipmitool.IPMIPower',
                 spec_set=True, autospec=True)
-    def test_get_power_state(self, mock_IPMIPower):
+    def test_get_power_state_default(self, mock_IPMIPower, redfish_getpw_mock):
         ipmi_power = mock_IPMIPower.return_value
         ipmi_power.get_power_state.return_value = states.POWER_ON
         with task_manager.acquire(self.context, self.node.uuid,
@@ -318,6 +365,41 @@ class IRMCPowerTestCase(test_common.BaseIRMCTest):
             self.assertEqual(states.POWER_ON,
                              task.driver.power.get_power_state(task))
             ipmi_power.get_power_state.assert_called_once_with(task)
+            redfish_getpw_mock.assert_not_called()
+
+    @mock.patch.object(redfish_power.RedfishPower, 'get_power_state',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.power.ipmitool.IPMIPower',
+                spec_set=True, autospec=True)
+    def test_get_power_state_ipmi(self, mock_IPMIPower, redfish_getpw_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+        ipmi_power = mock_IPMIPower.return_value
+        ipmi_power.get_power_state.return_value = states.POWER_ON
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertEqual(states.POWER_ON,
+                             task.driver.power.get_power_state(task))
+            ipmi_power.get_power_state.assert_called_once_with(task)
+            redfish_getpw_mock.assert_not_called()
+
+    @mock.patch.object(redfish_power.RedfishPower, 'get_power_state',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.irmc.power.ipmitool.IPMIPower',
+                spec_set=True, autospec=True)
+    def test_get_power_state_redfish(self, mock_IPMIPower, redfish_getpw_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', False)
+        self.node.save()
+        ipmipw_instance = mock_IPMIPower()
+        ipmipw_instance.get_power_state.side_effect = exception.IPMIFailure
+        redfish_getpw_mock.return_value = states.POWER_ON
+        irmc_power_inst = irmc_power.IRMCPower()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertEqual(states.POWER_ON,
+                             irmc_power_inst.get_power_state(task))
+            ipmipw_instance.get_power_state.assert_called()
+            redfish_getpw_mock.assert_called_once_with(irmc_power_inst, task)
 
     @mock.patch.object(irmc_power, '_set_power_state', spec_set=True,
                        autospec=True)

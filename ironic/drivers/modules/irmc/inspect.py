@@ -32,7 +32,7 @@ from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules import snmp
 from ironic import objects
 
-scci = importutils.try_import('scciclient.irmc.scci')
+irmc = importutils.try_import('scciclient.irmc')
 
 LOG = logging.getLogger(__name__)
 
@@ -122,6 +122,39 @@ def _get_mac_addresses(node):
             if c == NODE_CLASS_OID_VALUE['primary']]
 
 
+def _get_capabilities_properties_without_ipmi(d_info, cap_props,
+                                              current_cap, props):
+    capabilities = {}
+    snmp_client = snmp.SNMPClient(
+        address=d_info['irmc_address'],
+        port=d_info['irmc_snmp_port'],
+        version=d_info['irmc_snmp_version'],
+        read_community=d_info['irmc_snmp_community'],
+        user=d_info.get('irmc_snmp_user'),
+        auth_proto=d_info.get('irmc_snmp_auth_proto'),
+        auth_key=d_info.get('irmc_snmp_auth_password'),
+        priv_proto=d_info.get('irmc_snmp_priv_proto'),
+        priv_key=d_info.get('irmc_snmp_priv_password'))
+
+    if 'rom_firmware_version' in cap_props:
+        capabilities['rom_firmware_version'] = \
+            irmc.snmp.get_bios_firmware_version(snmp_client)
+
+    if 'irmc_firmware_version' in cap_props:
+        capabilities['irmc_firmware_version'] = \
+            irmc.snmp.get_irmc_firmware_version(snmp_client)
+
+    if 'server_model' in cap_props:
+        capabilities['server_model'] = irmc.snmp.get_server_model(
+            snmp_client)
+
+    capabilities = utils.get_updated_capabilities(current_cap, capabilities)
+    if capabilities:
+        props['capabilities'] = capabilities
+
+    return props
+
+
 def _inspect_hardware(node, existing_traits=None, **kwargs):
     """Inspect the node and get hardware information.
 
@@ -161,35 +194,41 @@ def _inspect_hardware(node, existing_traits=None, **kwargs):
 
     try:
         report = irmc_common.get_irmc_report(node)
-        props = scci.get_essential_properties(
+        props = irmc.scci.get_essential_properties(
             report, IRMCInspect.ESSENTIAL_PROPERTIES)
         d_info = irmc_common.parse_driver_info(node)
-        capabilities = scci.get_capabilities_properties(
-            d_info,
-            capabilities_props,
-            gpu_ids,
-            fpga_ids=fpga_ids,
-            **kwargs)
-        if capabilities:
-            if capabilities.get('pci_gpu_devices') == 0:
-                capabilities.pop('pci_gpu_devices')
-
-            cpu_fpga = capabilities.pop('cpu_fpga', 0)
-            if cpu_fpga == 0 and 'CUSTOM_CPU_FPGA' in new_traits:
-                new_traits.remove('CUSTOM_CPU_FPGA')
-            elif cpu_fpga != 0 and 'CUSTOM_CPU_FPGA' not in new_traits:
-                new_traits.append('CUSTOM_CPU_FPGA')
-
-            # Ironic no longer supports trusted boot
-            capabilities.pop('trusted_boot', None)
-            capabilities = utils.get_updated_capabilities(
-                node.properties.get('capabilities'), capabilities)
+        if node.driver_internal_info.get('irmc_ipmi_succeed'):
+            capabilities = irmc.scci.get_capabilities_properties(
+                d_info,
+                capabilities_props,
+                gpu_ids,
+                fpga_ids=fpga_ids,
+                **kwargs)
             if capabilities:
-                props['capabilities'] = capabilities
+                if capabilities.get('pci_gpu_devices') == 0:
+                    capabilities.pop('pci_gpu_devices')
+
+                cpu_fpga = capabilities.pop('cpu_fpga', 0)
+                if cpu_fpga == 0 and 'CUSTOM_CPU_FPGA' in new_traits:
+                    new_traits.remove('CUSTOM_CPU_FPGA')
+                elif cpu_fpga != 0 and 'CUSTOM_CPU_FPGA' not in new_traits:
+                    new_traits.append('CUSTOM_CPU_FPGA')
+
+                # Ironic no longer supports trusted boot
+                capabilities.pop('trusted_boot', None)
+                capabilities = utils.get_updated_capabilities(
+                    node.properties.get('capabilities', ''), capabilities)
+                if capabilities:
+                    props['capabilities'] = capabilities
+
+        else:
+            props = _get_capabilities_properties_without_ipmi(
+                d_info, capabilities_props,
+                node.properties.get('capabilities', ''), props)
 
         macs = _get_mac_addresses(node)
-    except (scci.SCCIInvalidInputError,
-            scci.SCCIClientError,
+    except (irmc.scci.SCCIInvalidInputError,
+            irmc.scci.SCCIClientError,
             exception.SNMPFailure) as e:
         error = (_("Inspection failed for node %(node_id)s "
                    "with the following error: %(error)s") %

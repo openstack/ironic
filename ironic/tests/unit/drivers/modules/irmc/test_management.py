@@ -30,6 +30,8 @@ from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules.irmc import power as irmc_power
+from ironic.drivers.modules.redfish import management as redfish_management
+from ironic.drivers.modules.redfish import utils as redfish_util
 from ironic.drivers import utils as driver_utils
 from ironic.tests.unit.drivers.modules.irmc import test_common
 from ironic.tests.unit.drivers import third_party_driver_mock_specs \
@@ -155,26 +157,66 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
             task.driver.deploy = fake.FakeDeploy()
             self.assertEqual(expected, task.driver.get_properties())
 
+    @mock.patch.object(redfish_util, 'parse_driver_info', autospec=True)
     @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
                        autospec=True)
-    def test_validate(self, mock_drvinfo):
+    def test_validate_ipmi_success(self, mock_drvinfo, redfish_parsedr_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             task.driver.management.validate(task)
             mock_drvinfo.assert_called_once_with(task.node)
+            redfish_parsedr_mock.assert_not_called()
 
+    @mock.patch.object(redfish_util, 'parse_driver_info', autospec=True)
     @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
                        autospec=True)
-    def test_validate_fail(self, mock_drvinfo):
+    def test_validate_ipmi_fail(self, mock_drvinfo, redfish_parsedr_mock):
         side_effect = exception.InvalidParameterValue("Invalid Input")
         mock_drvinfo.side_effect = side_effect
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertRaises(exception.InvalidParameterValue,
                               task.driver.management.validate,
                               task)
+            mock_drvinfo.assert_called_once_with(task.node)
+            redfish_parsedr_mock.assert_not_called()
 
-    def test_management_interface_get_supported_boot_devices(self):
+    @mock.patch.object(redfish_util, 'parse_driver_info', autospec=True)
+    @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
+    def test_validate_redfish_success(
+            self, mock_drvinfo, redfish_parsedr_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', False)
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            task.driver.management.validate(task)
+            redfish_parsedr_mock.assert_called_once_with(task.node)
+            mock_drvinfo.assert_called_once_with(task.node)
+
+    @mock.patch.object(redfish_util, 'parse_driver_info', autospec=True)
+    @mock.patch.object(irmc_common, 'parse_driver_info', spec_set=True,
+                       autospec=True)
+    def test_validate_redfish_fail(self, mock_drvinfo, redfish_parsedr_mock):
+        side_effect = exception.InvalidParameterValue("Invalid Input")
+        redfish_parsedr_mock.side_effect = side_effect
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', False)
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_drvinfo.assert_not_called()
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.management.validate,
+                              task)
+            redfish_parsedr_mock.assert_called_once_with(task.node)
+
+    def test_management_interface_get_supported_boot_devices_ipmi(self):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             expected = [boot_devices.PXE, boot_devices.DISK,
                         boot_devices.CDROM, boot_devices.BIOS,
@@ -182,10 +224,20 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
             self.assertEqual(sorted(expected), sorted(task.driver.management.
                              get_supported_boot_devices(task)))
 
+    def test_management_interface_get_supported_boot_devices_redfish(self):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', False)
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            expected = list(redfish_management.BOOT_DEVICE_MAP_REV)
+            self.assertEqual(sorted(expected), sorted(task.driver.management.
+                             get_supported_boot_devices(task)))
+
     @mock.patch.object(irmc_management.ipmitool, "send_raw", spec_set=True,
                        autospec=True)
     def _test_management_interface_set_boot_device_ok(
             self, boot_mode, params, expected_raw_code, send_raw_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
         send_raw_mock.return_value = [None, None]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -197,7 +249,10 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
                 mock.call(task, "0x00 0x08 0x03 0x08"),
                 mock.call(task, expected_raw_code)])
 
-    def test_management_interface_set_boot_device_ok_pxe(self):
+    def test_management_interface_set_boot_device_ok_pxe_ipmi(self):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         params = {'device': boot_devices.PXE, 'persistent': False}
         self._test_management_interface_set_boot_device_ok(
             None,
@@ -226,7 +281,10 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
             params,
             "0x00 0x08 0x05 0xe0 0x04 0x00 0x00 0x00")
 
-    def test_management_interface_set_boot_device_ok_disk(self):
+    def test_management_interface_set_boot_device_ok_disk_ipmi(self):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         params = {'device': boot_devices.DISK, 'persistent': False}
         self._test_management_interface_set_boot_device_ok(
             None,
@@ -255,7 +313,10 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
             params,
             "0x00 0x08 0x05 0xe0 0x08 0x00 0x00 0x00")
 
-    def test_management_interface_set_boot_device_ok_cdrom(self):
+    def test_management_interface_set_boot_device_ok_cdrom_ipmi(self):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         params = {'device': boot_devices.CDROM, 'persistent': False}
         self._test_management_interface_set_boot_device_ok(
             None,
@@ -284,7 +345,10 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
             params,
             "0x00 0x08 0x05 0xe0 0x20 0x00 0x00 0x00")
 
-    def test_management_interface_set_boot_device_ok_bios(self):
+    def test_management_interface_set_boot_device_ok_bios_ipmi(self):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         params = {'device': boot_devices.BIOS, 'persistent': False}
         self._test_management_interface_set_boot_device_ok(
             None,
@@ -313,7 +377,10 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
             params,
             "0x00 0x08 0x05 0xe0 0x18 0x00 0x00 0x00")
 
-    def test_management_interface_set_boot_device_ok_safe(self):
+    def test_management_interface_set_boot_device_ok_safe_ipmi(self):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         params = {'device': boot_devices.SAFE, 'persistent': False}
         self._test_management_interface_set_boot_device_ok(
             None,
@@ -344,7 +411,10 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(irmc_management.ipmitool, "send_raw", spec_set=True,
                        autospec=True)
-    def test_management_interface_set_boot_device_ng(self, send_raw_mock):
+    def test_management_interface_set_boot_device_ng_ipmi(self, send_raw_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+
         """uefi mode, next boot only, unknown device."""
         send_raw_mock.return_value = [None, None]
 
@@ -355,11 +425,39 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
                               task,
                               "unknown")
 
+    @mock.patch.object(irmc_management.ipmitool, 'send_raw', autospec=True)
+    @mock.patch.object(redfish_management.RedfishManagement, 'set_boot_device',
+                       autospec=True)
+    def test_management_interfase_set_boot_device_success_redfish(
+            self, redfish_set_boot_dev_mock, ipmi_raw_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', False)
+        self.node.save()
+        ipmi_raw_mock.side_effect = exception.IPMIFailure
+        management_inst = irmc_management.IRMCManagement()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            params = ['pxe', True]
+            management_inst.set_boot_device(task, *params)
+            redfish_set_boot_dev_mock.assert_called_once_with(
+                management_inst, task, *params)
+
+    @mock.patch.object(redfish_management.RedfishManagement, 'set_boot_device',
+                       autospec=True)
+    def test_management_interfase_set_boot_device_fail_redfish(
+            self, redfish_set_boot_dev_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', False)
+        self.node.save()
+        management_inst = irmc_management.IRMCManagement()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            params = [task, 'safe', True]
+            self.assertRaises(exception.InvalidParameterValue,
+                              management_inst.set_boot_device, *params)
+            redfish_set_boot_dev_mock.assert_not_called()
+
     @mock.patch.object(irmc_management.irmc, 'scci',
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
     @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
                        autospec=True)
-    def test_management_interface_get_sensors_data_scci_ok(
+    def test_management_interface_get_sensors_data_scci_ok_ipmi(
             self, mock_get_irmc_report, mock_scci):
         """'irmc_sensor_method' = 'scci' specified and OK data."""
         with open(os.path.join(os.path.dirname(__file__),
@@ -371,6 +469,8 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
         mock_scci.get_sensor_data.return_value = fake_xml.find(
             "./System/SensorDataRecords")
 
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.driver_info['irmc_sensor_method'] = 'scci'
             sensor_dict = irmc_management.IRMCManagement().get_sensors_data(
@@ -408,7 +508,58 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
                        spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
     @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
                        autospec=True)
-    def test_management_interface_get_sensors_data_scci_ng(
+    def test_management_interface_get_sensors_data_scci_ok_redfish(
+            self, mock_get_irmc_report, mock_scci):
+        """'irmc_sensor_method' = 'scci' specified and OK data."""
+        with open(os.path.join(os.path.dirname(__file__),
+                               'fake_sensors_data_ok.xml'), "r") as report:
+            fake_txt = report.read()
+        fake_xml = ET.fromstring(fake_txt)
+
+        mock_get_irmc_report.return_value = fake_xml
+        mock_scci.get_sensor_data.return_value = fake_xml.find(
+            "./System/SensorDataRecords")
+
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', False)
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.driver_info['irmc_sensor_method'] = 'scci'
+            sensor_dict = irmc_management.IRMCManagement().get_sensors_data(
+                task)
+
+        expected = {
+            'Fan (4)': {
+                'FAN1 SYS (29)': {
+                    'Units': 'RPM',
+                    'Sensor ID': 'FAN1 SYS (29)',
+                    'Sensor Reading': '600 RPM'
+                },
+                'FAN2 SYS (29)': {
+                    'Units': 'None',
+                    'Sensor ID': 'FAN2 SYS (29)',
+                    'Sensor Reading': 'None None'
+                }
+            },
+            'Temperature (1)': {
+                'Systemboard 1 (7)': {
+                    'Units': 'degree C',
+                    'Sensor ID': 'Systemboard 1 (7)',
+                    'Sensor Reading': '80 degree C'
+                },
+                'Ambient (55)': {
+                    'Units': 'degree C',
+                    'Sensor ID': 'Ambient (55)',
+                    'Sensor Reading': '42 degree C'
+                }
+            }
+        }
+        self.assertEqual(expected, sensor_dict)
+
+    @mock.patch.object(irmc_management.irmc, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
+                       autospec=True)
+    def test_management_interface_get_sensors_data_scci_ng_ipmi(
             self, mock_get_irmc_report, mock_scci):
         """'irmc_sensor_method' = 'scci' specified and NG data."""
         with open(os.path.join(os.path.dirname(__file__),
@@ -420,6 +571,33 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
         mock_scci.get_sensor_data.return_value = fake_xml.find(
             "./System/SensorDataRecords")
 
+        self.node.set_driver_internal_info('irmc_fw_version', 'iRMC S5/2.00S')
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.driver_info['irmc_sensor_method'] = 'scci'
+            sensor_dict = irmc_management.IRMCManagement().get_sensors_data(
+                task)
+
+        self.assertEqual(len(sensor_dict), 0)
+
+    @mock.patch.object(irmc_management.irmc, 'scci',
+                       spec_set=mock_specs.SCCICLIENT_IRMC_SCCI_SPEC)
+    @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
+                       autospec=True)
+    def test_management_interface_get_sensors_data_scci_ng_redfish(
+            self, mock_get_irmc_report, mock_scci):
+        """'irmc_sensor_method' = 'scci' specified and NG data."""
+        with open(os.path.join(os.path.dirname(__file__),
+                               'fake_sensors_data_ng.xml'), "r") as report:
+            fake_txt = report.read()
+        fake_xml = ET.fromstring(fake_txt)
+
+        mock_get_irmc_report.return_value = fake_xml
+        mock_scci.get_sensor_data.return_value = fake_xml.find(
+            "./System/SensorDataRecords")
+
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', False)
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.driver_info['irmc_sensor_method'] = 'scci'
             sensor_dict = irmc_management.IRMCManagement().get_sensors_data(
@@ -429,15 +607,30 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
 
     @mock.patch.object(ipmitool.IPMIManagement, 'get_sensors_data',
                        spec_set=True, autospec=True)
-    def test_management_interface_get_sensors_data_ipmitool_ok(
+    def test_management_interface_get_sensors_data_ipmitool_ok_ipmi(
             self,
             get_sensors_data_mock):
         """'irmc_sensor_method' = 'ipmitool' specified."""
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             task.node.driver_info['irmc_sensor_method'] = 'ipmitool'
             task.driver.management.get_sensors_data(task)
             get_sensors_data_mock.assert_called_once_with(
                 task.driver.management, task)
+
+    @mock.patch.object(ipmitool.IPMIManagement, 'get_sensors_data',
+                       spec_set=True, autospec=True)
+    def test_management_interface_get_sensors_data_ipmitool_ng_redfish(
+            self,
+            get_sensors_data_mock):
+        """'irmc_sensor_method' = 'ipmitool' specified."""
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', False)
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.driver_info['irmc_sensor_method'] = 'ipmitool'
+            self.assertRaises(exception.InvalidParameterValue,
+                              task.driver.management.get_sensors_data, task)
 
     @mock.patch.object(irmc_common, 'get_irmc_report', spec_set=True,
                        autospec=True)
@@ -458,6 +651,36 @@ class IRMCManagementTestCase(test_common.BaseIRMCTest):
                 irmc_management.IRMCManagement().get_sensors_data, task)
         self.assertEqual("Failed to get sensor data for node %s. "
                          "Error: Fake Error" % self.node.uuid, str(e))
+
+    @mock.patch.object(redfish_management.RedfishManagement, 'detect_vendor',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ipmitool.IPMIManagement, 'detect_vendor',
+                       spec_set=True, autospec=True)
+    def test_management_interface_detect_vendor_ipmi(self,
+                                                     ipmimgmt_detectv_mock,
+                                                     redfishmgmt_detectv_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', True)
+        self.node.save()
+        irmc_mgmt_inst = irmc_management.IRMCManagement()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            irmc_mgmt_inst.detect_vendor(task)
+            ipmimgmt_detectv_mock.assert_called_once_with(irmc_mgmt_inst, task)
+            redfishmgmt_detectv_mock.assert_not_called()
+
+    @mock.patch.object(redfish_management.RedfishManagement, 'detect_vendor',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(ipmitool.IPMIManagement, 'detect_vendor',
+                       spec_set=True, autospec=True)
+    def test_management_interface_detect_vendor_redfish(
+            self, ipmimgmt_detectv_mock, redfishmgmt_detectv_mock):
+        self.node.set_driver_internal_info('irmc_ipmi_succeed', False)
+        self.node.save()
+        ipmimgmt_detectv_mock.side_effect = exception.IPMIFailure
+        irmc_mgmt_inst = irmc_management.IRMCManagement()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            irmc_mgmt_inst.detect_vendor(task)
+            redfishmgmt_detectv_mock.assert_called_once_with(
+                irmc_mgmt_inst, task)
 
     @mock.patch.object(irmc_management.LOG, 'error', spec_set=True,
                        autospec=True)

@@ -124,6 +124,29 @@ Configuration via ``driver_info``
   - ``driver_info/irmc_password`` property to be ``password`` for
     irmc_username.
 
+  .. note::
+     Fujitsu server equipped with iRMC S6 2.00 or later version of firmware
+     disables IPMI over LAN by default. However user may be able to enable IPMI
+     via BMC settings.
+     To handle this change, ``irmc`` hardware type first tries IPMI and,
+     if IPMI operation fails, ``irmc`` hardware type uses Redfish API of Fujitsu
+     server to provide Ironic functionalities.
+     So if user deploys Fujitsu server with iRMC S6 2.00 or later, user needs
+     to set Redfish related parameters in ``driver_info``.
+
+  - ``driver_info/redifsh_address`` property to be ``IP address`` or
+    ``hostname`` of the iRMC. You can prefix it with protocol (e.g.
+    ``https://``). If you don't provide protocol, Ironic assumes HTTPS
+    (i.e. add ``https://`` prefix).
+    iRMC with S6 2.00 or later only support HTTPS connection to Redfish API.
+  - ``driver_info/redfish_username`` to be user name of iRMC with administrative
+    privileges
+  - ``driver_info/redfish_password`` to be password of ``redfish_username``
+  - ``driver_info/redfish_verify_ca`` accepts values those accepted in
+    ``driver_info/irmc_verify_ca``
+  - ``driver_info/redfish_auth_type`` to be one of ``basic``, ``session`` or
+    ``auto``
+
 * If ``port`` in ``[irmc]`` section of ``/etc/ironic/ironic.conf`` or
   ``driver_info/irmc_port`` is set to 443, ``driver_info/irmc_verify_ca``
   will take effect:
