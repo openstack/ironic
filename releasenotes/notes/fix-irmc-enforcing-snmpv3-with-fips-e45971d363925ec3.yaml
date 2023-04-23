@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes bug of iRMC driver in parse_driver_info where, if FIPS is enabled,
+    SNMP version is always required to be version 3 even though iRMC driver's
+    xxx_interface doesn't use SNMP actually.
