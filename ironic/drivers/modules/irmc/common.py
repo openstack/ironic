@@ -33,6 +33,14 @@ elcm = importutils.try_import('scciclient.irmc.elcm')
 scci_mod = importutils.try_import('scciclient')
 
 LOG = logging.getLogger(__name__)
+
+
+# List of xxx_interface & implementation pair which uses SNMP internally
+# and iRMC driver supports
+INTERFACE_IMPL_LIST_WITH_SNMP = {
+    'inspect_interface': {'irmc', },
+    'power_interface': {'irmc', }}
+
 REQUIRED_PROPERTIES = {
     'irmc_address': _("IP address or hostname of the iRMC. Required."),
     'irmc_username': _("Username for the iRMC with administrator privileges. "
@@ -238,6 +246,12 @@ def _parse_snmp_driver_info(node, info):
     valid_versions = {"v1": snmp.SNMP_V1,
                       "v2c": snmp.SNMP_V2C,
                       "v3": snmp.SNMP_V3}
+
+    for int_name, impl_list in INTERFACE_IMPL_LIST_WITH_SNMP.items():
+        if getattr(node, int_name) in impl_list:
+            break
+    else:
+        return snmp_info
 
     if snmp_info['irmc_snmp_version'].lower() not in valid_versions:
         raise exception.InvalidParameterValue(_(
