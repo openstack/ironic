@@ -59,7 +59,7 @@ apidoc_excluded_paths = [
 apidoc_separate_modules = True
 
 openstackdocs_repo_name = 'openstack/ironic'
-openstackdocs_use_storyboard = True
+openstackdocs_use_storyboard = False
 openstackdocs_pdf_link = True
 openstackdocs_projects = [
     'bifrost',
