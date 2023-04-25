@@ -262,7 +262,7 @@ def create_test_node(**kw):
     # Let DB generate an ID if one isn't specified explicitly.
     # Creating a node with tags or traits will raise an exception. If tags or
     # traits are not specified explicitly just delete them.
-    for field in {'id', 'tags', 'traits'}:
+    for field in {'id', 'uuid', 'tags', 'traits'}:
         if field not in kw:
             del node[field]
     dbapi = db_api.get_instance()
@@ -305,8 +305,9 @@ def create_test_port(**kw):
     """
     port = get_test_port(**kw)
     # Let DB generate ID if it isn't specified explicitly
-    if 'id' not in kw:
-        del port['id']
+    for field in ('id', 'uuid'):
+        if field not in kw:
+            del port[field]
     dbapi = db_api.get_instance()
     return dbapi.create_port(port)
 
@@ -337,8 +338,9 @@ def create_test_volume_connector(**kw):
     """
     connector = get_test_volume_connector(**kw)
     # Let DB generate ID if it isn't specified explicitly
-    if 'id' not in kw:
-        del connector['id']
+    for field in ('id', 'uuid'):
+        if field not in kw:
+            del connector[field]
     dbapi = db_api.get_instance()
     return dbapi.create_volume_connector(connector)
 
@@ -371,8 +373,9 @@ def create_test_volume_target(**kw):
     """
     target = get_test_volume_target(**kw)
     # Let DB generate ID if it isn't specified explicitly
-    if 'id' not in kw:
-        del target['id']
+    for field in ('id', 'uuid'):
+        if field not in kw:
+            del target[field]
     dbapi = db_api.get_instance()
     return dbapi.create_volume_target(target)
 
@@ -400,8 +403,9 @@ def create_test_chassis(**kw):
     """
     chassis = get_test_chassis(**kw)
     # Let DB generate ID if it isn't specified explicitly
-    if 'id' not in kw:
-        del chassis['id']
+    for field in ('id', 'uuid'):
+        if field not in kw:
+            del chassis[field]
     dbapi = db_api.get_instance()
     return dbapi.create_chassis(chassis)
 
@@ -476,8 +480,9 @@ def create_test_portgroup(**kw):
     """
     portgroup = get_test_portgroup(**kw)
     # Let DB generate ID if it isn't specified explicitly
-    if 'id' not in kw:
-        del portgroup['id']
+    for field in ('id', 'uuid'):
+        if field not in kw:
+            del portgroup[field]
     dbapi = db_api.get_instance()
     return dbapi.create_portgroup(portgroup)
 

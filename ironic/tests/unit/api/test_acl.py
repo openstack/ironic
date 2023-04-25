@@ -249,6 +249,7 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
             resource_class="CUSTOM_TEST")
         fake_db_node = db_utils.create_test_node(
             chassis_id=None,
+            uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
             driver='fake-driverz',
             owner='z')
         fake_db_node_alloced = db_utils.create_test_node(
@@ -262,12 +263,14 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
                                 dict(node_id=allocated_node_id))
         fake_vif_port_id = "ee21d58f-5de2-4956-85ff-33935ea1ca00"
         fake_db_port = db_utils.create_test_port(
+            uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c781',
             node_id=fake_db_node['id'],
             internal_info={'tenant_vif_port_id': fake_vif_port_id})
         fake_db_portgroup = db_utils.create_test_portgroup(
             uuid="6eb02b44-18a3-4659-8c0b-8d2802581ae4",
             node_id=fake_db_node['id'])
         fake_db_chassis = db_utils.create_test_chassis(
+            uuid='e74c40e0-d825-11e2-a28f-0800200c9a66',
             drivers=['fake-hardware', 'fake-driverz', 'fake-driver'])
         fake_db_deploy_template = db_utils.create_test_deploy_template()
         fake_db_conductor = db_utils.create_test_conductor()
