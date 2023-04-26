@@ -214,7 +214,7 @@ user-specified kernel command line parameters.
 .. code-block:: bash
 
   baremetal node set node-0 \
-    --driver-info kernel_append_params="nofb nomodeset vga=normal"
+    --driver-info kernel_append_params="nofb vga=normal"
 
 .. note::
    The ``driver_info`` field is supported starting with the Xena release.

@@ -1793,7 +1793,7 @@ function configure_ironic_conductor {
             -subj '/O=OpenStack/OU=DevStack Servers'
     fi
 
-    local pxe_params="nofb nomodeset console=${IRONIC_TTY_DEV}"
+    local pxe_params="nofb console=${IRONIC_TTY_DEV}"
     pxe_params+=" systemd.journald.forward_to_console=yes"
     if is_service_enabled tls-proxy; then
         pxe_params+=" ipa-insecure=1"
@@ -1805,7 +1805,7 @@ function configure_ironic_conductor {
         iniset $IRONIC_CONF_FILE pxe kernel_append_params "$pxe_params"
     fi
 
-    local kernel_append_params="nofb nomodeset console=${IRONIC_TTY_DEV}"
+    local kernel_append_params="nofb console=${IRONIC_TTY_DEV}"
     kernel_append_params+=" systemd.journald.forward_to_console=yes"
 
     # NOTE(dtantsur): avoid setting ipa-insecure for redfish, we have a way to

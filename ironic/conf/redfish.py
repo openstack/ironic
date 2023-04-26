@@ -64,7 +64,7 @@ opts = [
                       'auto-expire. Applies only when `use_swift` is '
                       'enabled.')),
     cfg.StrOpt('kernel_append_params',
-               default='nofb nomodeset vga=normal',
+               default='nofb vga=normal',
                mutable=True,
                help=_('Additional kernel parameters to pass down to the '
                       'instance kernel. These parameters can be consumed by '

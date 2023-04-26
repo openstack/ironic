@@ -49,7 +49,7 @@ configuration option:
 .. code-block:: ini
 
     [pxe]
-    kernel_append_params = nofb nomodeset vga=normal
+    kernel_append_params = nofb vga=normal
 
 .. note::
    The option was called ``pxe_append_params`` before the Xena cycle.
@@ -59,9 +59,9 @@ Per-node and per-instance overrides are also possible, for example:
 .. code-block:: bash
 
   baremetal node set node-0 \
-    --driver-info kernel_append_params="nofb nomodeset vga=normal"
+    --driver-info kernel_append_params="nofb vga=normal"
   baremetal node set node-0 \
-    --instance-info kernel_append_params="nofb nomodeset vga=normal"
+    --instance-info kernel_append_params="nofb vga=normal"
 
 Starting with the Zed cycle, you can combine the parameters from the
 configuration and from the node using the special ``%default%`` syntax:
@@ -74,12 +74,20 @@ configuration and from the node using the special ``%default%`` syntax:
 Together with the configuration above, the following parameters will be
 appended to the kernel command line::
 
-    nofb nomodeset vga=normal console=ttyS0,115200n8
+    nofb vga=normal console=ttyS0,115200n8
 
 .. note::
    Ironic does not do any de-duplication of the resulting kernel parameters.
    Both kernel itself and dracut seem to give priority to the last instance
    of the same parameter.
+
+.. warning::
+   Previously our documentation listed the Linux kernel parameter
+   ``nomodeset`` as an option. This option is intended for troubleshooting,
+   and can greatly degrade performance with Matrox/Aspeed BMC Graphics
+   controllers which is very commonly used on physical servers. The
+   performance degredation can greatly reduce IO capacity upon every
+   console graphics update being written to the screen.
 
 Common options
 --------------

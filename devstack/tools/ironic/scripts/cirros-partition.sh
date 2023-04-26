@@ -18,7 +18,7 @@ IRONIC_TTY_DEV=${IRONIC_TTY_DEV:-ttyS0,115200}
 # rdroot : boot from the ramdisk present on the root partition instead of
 #          mounting the root partition.
 # dslist : disable Nova metadata support, it takes a long time on boot.
-KARGS=${KARGS:-nofb nomodeset vga=normal console=${IRONIC_TTY_DEV} rdroot dslist=configdrive}
+KARGS=${KARGS:-nofb vga=normal console=${IRONIC_TTY_DEV} rdroot dslist=configdrive}
 
 workdir=$(mktemp -d)
 root_mp=$workdir/root

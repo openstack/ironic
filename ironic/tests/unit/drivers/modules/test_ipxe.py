@@ -813,7 +813,7 @@ class iPXEBootTestCase(db_base.DbTestCase):
                 'aki_path': 'http://192.1.2.3:1234/' + uuid + '/kernel',
                 'ari_path': 'http://192.1.2.3:1234/' + uuid + '/ramdisk',
                 'ramdisk_opts': 'cat meow',
-                'pxe_append_params': 'nofb nomodeset vga=normal ipa-debug=1 '
+                'pxe_append_params': 'nofb vga=normal ipa-debug=1 '
                                      'ipa-global-request-'
                                      'id=' + task.context.request_id,
                 'tftp_server': mock.ANY,

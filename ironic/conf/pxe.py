@@ -24,7 +24,7 @@ from ironic.common.i18n import _
 opts = [
     cfg.StrOpt('kernel_append_params',
                deprecated_name='pxe_append_params',
-               default='nofb nomodeset vga=normal',
+               default='nofb vga=normal',
                mutable=True,
                help=_('Additional append parameters for baremetal PXE boot.')),
     cfg.StrOpt('default_ephemeral_format',

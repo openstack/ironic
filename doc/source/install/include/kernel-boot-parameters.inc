@@ -91,7 +91,7 @@ respectively.
         [pxe]
 
         # Additional append parameters for baremetal PXE boot.
-        kernel_append_params = nofb nomodeset vga=normal console=ttyS0,115200n8
+        kernel_append_params = nofb vga=normal console=ttyS0,115200n8
 
 
 * For node web console configuration is similar with the addition of ``ttyX``
@@ -100,7 +100,7 @@ respectively.
         [pxe]
 
         # Additional append parameters for baremetal PXE boot.
-        kernel_append_params = nofb nomodeset vga=normal console=tty0 console=ttyS0,115200n8
+        kernel_append_params = nofb vga=normal console=tty0 console=ttyS0,115200n8
 
 For detailed information on how to add consoles see the reference documents
 `kernel params`_ and `serial console`_.
