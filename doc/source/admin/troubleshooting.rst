@@ -104,23 +104,6 @@ A few things should be checked in this case:
      ``True``; make sure the target nodes are in ``available`` and
      ``maintenance`` is ``False``;
 
-#. If you do not use scheduling based on resource classes, then the node's
-   properties must have been set either manually or via inspection.
-   For each node with ``available`` state check that the ``properties``
-   JSON field has valid values for the keys ``cpus``, ``cpu_arch``,
-   ``memory_mb`` and ``local_gb``. Example of valid properties::
-
-        $ baremetal node show <IRONIC NODE> --fields properties
-        +------------+------------------------------------------------------------------------------------+
-        | Property   | Value                                                                              |
-        +------------+------------------------------------------------------------------------------------+
-        | properties | {u'memory_mb': u'8192', u'cpu_arch': u'x86_64', u'local_gb': u'41', u'cpus': u'4'} |
-        +------------+------------------------------------------------------------------------------------+
-
-   .. warning::
-       If you're using exact match filters in the Nova Scheduler, make sure
-       the flavor and the node properties match exactly.
-
 #. The Nova flavor that you are using does not match any properties of the
    available Ironic nodes. Use
    ::

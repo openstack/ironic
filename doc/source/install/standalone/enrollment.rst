@@ -87,9 +87,7 @@ Enrolling nodes
 
 #. As in case of Compute service, you can also provide ``capabilities`` to node
    properties, but they will be used only by Bare Metal service (for example,
-   boot mode). Although you don't need to add properties like ``memory_mb``,
-   ``cpus`` etc. as Bare Metal service will require UUID of a node you're
-   going to deploy.
+   boot mode).
 
 #. Then create a port to inform Bare Metal service of the network interface
    cards which are part of the node by creating a port with each NIC's MAC

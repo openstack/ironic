@@ -465,12 +465,9 @@ configuration:
 Supported properties
 ~~~~~~~~~~~~~~~~~~~~
 
-The inspection process will discover the following essential properties
-(properties required for scheduling deployment):
+The inspection process will discover the following properties:
 
 * ``memory_mb``: memory size
-
-* ``cpus``: number of cpus
 
 * ``cpu_arch``: cpu architecture
 

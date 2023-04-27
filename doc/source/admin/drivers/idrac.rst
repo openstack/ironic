@@ -250,7 +250,6 @@ without affecting the operation of the system being inspected.
 The inspection discovers the following properties:
 
 * ``cpu_arch``: cpu architecture
-* ``cpus``: number of cpus
 * ``local_gb``: disk size in gigabytes
 * ``memory_mb``: memory size in megabytes
 

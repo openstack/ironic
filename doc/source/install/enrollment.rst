@@ -285,12 +285,13 @@ Adding scheduling information
       This is not required for standalone deployments, only for those using
       the Compute service for provisioning bare metal instances.
 
-#. Update the node's properties to match the actual hardware of the node:
+#. Update the node's properties to match the actual hardware of the node.
+   These are optional. When provided, ``memory_mb`` can be used for checking
+   if the instance image fits into the node's memory:
 
    .. code-block:: console
 
     $ baremetal node set $NODE_UUID \
-        --property cpus=$CPU_COUNT \
         --property memory_mb=$RAM_MB \
         --property local_gb=$DISK_GB
 
@@ -303,14 +304,13 @@ Adding scheduling information
          --driver-info ipmi_username=$USER \
          --driver-info ipmi_password=$PASS \
          --driver-info ipmi_address=$ADDRESS \
-         --property cpus=$CPU_COUNT \
          --property memory_mb=$RAM_MB \
          --property local_gb=$DISK_GB
 
    These values can also be discovered during `Hardware Inspection`_.
 
-   .. warning::
-      The value provided for the ``local_gb`` property must match the size of
+   .. note::
+      The value provided for the ``local_gb`` property should match the size of
       the root device you're going to deploy on. By default
       **ironic-python-agent** picks the smallest disk which is not smaller
       than 4 GiB.

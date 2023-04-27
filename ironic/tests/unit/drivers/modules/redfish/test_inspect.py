@@ -93,8 +93,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                  mock_get_system):
         expected_properties = {
             'capabilities': 'boot_mode:uefi',
-            'cpu_arch': 'mips', 'cpus': '8',
-            'local_gb': '3', 'memory_mb': '2048'
+            'cpu_arch': 'mips', 'local_gb': '3', 'memory_mb': '2048'
         }
 
         self.init_system_mock(mock_get_system.return_value)
@@ -140,8 +139,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected_properties = {
                 'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'x86_64', 'cpus': '8',
-                'local_gb': '3', 'memory_mb': '2048'
+                'cpu_arch': 'x86_64', 'local_gb': '3', 'memory_mb': '2048'
             }
             task.driver.inspect.inspect_hardware(task)
             self.assertEqual(expected_properties, task.node.properties)
@@ -156,8 +154,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected_properties = {
                 'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'mips', 'cpus': '8',
-                'local_gb': '0', 'memory_mb': '2048'
+                'cpu_arch': 'mips', 'local_gb': '0', 'memory_mb': '2048'
             }
             task.driver.inspect.inspect_hardware(task)
             self.assertEqual(expected_properties, task.node.properties)
@@ -182,8 +179,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             expected_properties = {
                 'capabilities': 'boot_mode:uefi',
-                'cpu_arch': 'mips', 'cpus': '8',
-                'local_gb': '3', 'memory_mb': '4096'
+                'cpu_arch': 'mips', 'local_gb': '3', 'memory_mb': '4096'
             }
             task.driver.inspect.inspect_hardware(task)
             self.assertEqual(expected_properties, task.node.properties)
@@ -212,8 +208,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             }
             expected_properties = {
                 'capabilities': 'boot_mode:bios',
-                'cpu_arch': 'mips', 'cpus': '8',
-                'local_gb': '3', 'memory_mb': '2048'
+                'cpu_arch': 'mips', 'local_gb': '3', 'memory_mb': '2048'
             }
             task.driver.inspect.inspect_hardware(task)
             self.assertEqual(expected_properties, task.node.properties)
@@ -226,8 +221,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             expected_properties = {
-                'cpu_arch': 'mips', 'cpus': '8',
-                'local_gb': '3', 'memory_mb': '2048'
+                'cpu_arch': 'mips', 'local_gb': '3', 'memory_mb': '2048'
             }
             task.driver.inspect.inspect_hardware(task)
             self.assertEqual(expected_properties, task.node.properties)

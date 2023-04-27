@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    Fully removes the ``cpus`` property from the documentation and inspect
+    interface implementations. It was never used internally by Ironic,
+    and is no longer used by Nova.

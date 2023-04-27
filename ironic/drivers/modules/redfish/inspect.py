@@ -108,9 +108,7 @@ class RedfishInspect(base.InspectInterface):
                 system.memory_summary.size_gib * units.Ki)
 
         if system.processors and system.processors.summary:
-            cpus, arch = system.processors.summary
-            if cpus:
-                inspected_properties['cpus'] = cpus
+            arch = system.processors.summary[1]
 
             if arch:
                 try:

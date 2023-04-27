@@ -908,12 +908,9 @@ The hardware type ``ilo`` supports hardware inspection.
      * ``snmp_auth_priv_protocol`` : The Privacy protocol. The valid
        values are "AES" and "DES". The iLO default value is "DES".
 
-The inspection process will discover the following essential properties
-(properties required for scheduling deployment):
+The inspection process will discover the following properties:
 
 * ``memory_mb``: memory size
-
-* ``cpus``: number of cpus
 
 * ``cpu_arch``: cpu architecture
 
