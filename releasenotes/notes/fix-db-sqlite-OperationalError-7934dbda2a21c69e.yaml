@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes issues in Ironic's use of SQLAlchemy with SQLite Databases,
+    which is common with users like Metal3, which prevented Ironic from
+    supporting SQLAlchemy 2.0 properly, as autocommit was re-enabled.

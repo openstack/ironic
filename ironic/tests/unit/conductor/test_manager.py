@@ -3568,6 +3568,23 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
                                               filters=mock.sentinel.filters))
         self.assertEqual([], result)
 
+    def test_get_node_with_token(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            network_interface='noop')
+        self.assertNotIn('agent_secret_token', node.driver_internal_info)
+        res = self.service.get_node_with_token(self.context, node.id)
+        self.assertIn('agent_secret_token', res.driver_internal_info)
+
+    def test_node_with_token_already_set(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            network_interface='noop',
+            driver_internal_info={'agent_secret_token': 'secret'})
+        res = self.service.get_node_with_token(self.context, node.id)
+        self.assertEqual('******',
+                         res.driver_internal_info['agent_secret_token'])
+
 
 @mgr_utils.mock_record_keepalive
 class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
@@ -3952,18 +3969,6 @@ class CreatePortTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         res = objects.Port.get_by_uuid(self.context, port['uuid'])
         self.assertEqual({'foo': 'bar'}, res.extra)
         mock_validate.assert_called_once_with(mock.ANY, port)
-
-    def test_create_port_node_locked(self):
-        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
-                                          reservation='fake-reserv')
-        port = obj_utils.get_test_port(self.context, node_id=node.id)
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.create_port,
-                                self.context, port)
-        # Compare true exception hidden by @messaging.expected_exceptions
-        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
-        self.assertRaises(exception.PortNotFound, port.get_by_uuid,
-                          self.context, port.uuid)
 
     @mock.patch.object(conductor_utils, 'validate_port_physnet', autospec=True)
     def test_create_port_mac_exists(self, mock_validate):

@@ -2284,10 +2284,13 @@ class ConductorManager(base_manager.BaseConductorManager):
         LOG.debug("RPC create_port called for port %s.", port_uuid)
 
         with task_manager.acquire(context, port_obj.node_id,
-                                  purpose='port create') as task:
+                                  purpose='port create',
+                                  shared=True) as task:
+            # NOTE(TheJulia): We're creating a port, we don't need
+            # an exclusive parent lock to do so.
             utils.validate_port_physnet(task, port_obj)
             port_obj.create()
-            return port_obj
+        return port_obj
 
     @METRICS.timer('ConductorManager.update_port')
     @messaging.expected_exceptions(exception.NodeLocked,
@@ -2373,7 +2376,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
             port_obj.save()
 
-            return port_obj
+        return port_obj
 
     @METRICS.timer('ConductorManager.update_portgroup')
     @messaging.expected_exceptions(exception.NodeLocked,
@@ -2452,7 +2455,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
             portgroup_obj.save()
 
-            return portgroup_obj
+        return portgroup_obj
 
     @METRICS.timer('ConductorManager.update_volume_connector')
     @messaging.expected_exceptions(
@@ -2496,7 +2499,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             connector.save()
             LOG.info("Successfully updated volume connector %(connector)s.",
                      {'connector': connector.uuid})
-            return connector
+        return connector
 
     @METRICS.timer('ConductorManager.update_volume_target')
     @messaging.expected_exceptions(
@@ -2537,7 +2540,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             target.save()
             LOG.info("Successfully updated volume target %(target)s.",
                      {'target': target.uuid})
-            return target
+        return target
 
     @METRICS.timer('ConductorManager.get_driver_properties')
     @messaging.expected_exceptions(exception.DriverNotFound)
@@ -3564,7 +3567,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                       {'node': task.node.uuid})
             utils.add_secret_token(task.node)
             task.node.save()
-            return task.node
+        return objects.Node.get(context, node_id)
 
     @METRICS.timer('ConductorManager.manage_node_history')
     @periodics.periodic(

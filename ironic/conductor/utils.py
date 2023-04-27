@@ -808,7 +808,6 @@ def power_state_error_handler(e, node, power_state):
                     {'node': node.uuid, 'power_state': power_state})
 
 
-@task_manager.require_exclusive_lock
 def validate_port_physnet(task, port_obj):
     """Validate the consistency of physical networks of ports in a portgroup.
 

@@ -324,7 +324,9 @@ def _paginate_query(model, limit=None, marker=None, sort_key=None,
             # object is garbage collected as ORM Query objects allow
             # for DB interactions to occur after the fact, so it remains
             # connected to the DB..
-            return query.all()
+            # Save the query.all() results, but don't return yet, so we
+            # begin to exit and unwind the session.
+            ref = query.all()
         else:
             # In this case, we have a sqlalchemy.sql.selectable.Select
             # (most likely) which utilizes the unified select interface.
@@ -338,7 +340,10 @@ def _paginate_query(model, limit=None, marker=None, sort_key=None,
             # Everything is a tuple in a resultset from the unified interface
             # but for objects, our model expects just object access,
             # so we extract and return them.
-            return [r[0] for r in res]
+            ref = [r[0] for r in res]
+    # Return the results to the caller, outside of the session context
+    # if an ORM object, because we want the session to close.
+    return ref
 
 
 def _filter_active_conductors(query, interval=None):
@@ -1341,6 +1346,12 @@ class Connection(api.Connection):
 
     def get_active_hardware_type_dict(self, use_groups=False):
         with _session_for_read() as session:
+            # TODO(TheJulia): We should likely take a look at this
+            # joined query, as we may not be getting what we expect.
+            # Metal3 logs upwards of 200 rows returned with multiple datetime
+            # columns.
+            # Given dualing datetime fields, we really can't just expect
+            # requesting a unique set to "just work".
             query = (session.query(models.ConductorHardwareInterfaces,
                                    models.Conductor)
                      .join(models.Conductor))
@@ -1375,7 +1386,8 @@ class Connection(api.Connection):
         with _session_for_read() as session:
             query = (session.query(models.ConductorHardwareInterfaces)
                      .filter_by(conductor_id=conductor_id))
-            return query.all()
+            ref = query.all()
+        return ref
 
     def list_hardware_type_interfaces(self, hardware_types):
         with _session_for_read() as session:
@@ -1397,6 +1409,8 @@ class Connection(api.Connection):
                     conductor_hw_iface['conductor_id'] = conductor_id
                     for k, v in iface.items():
                         conductor_hw_iface[k] = v
+                    # TODO(TheJulia): Uhh... We should try to do this as one
+                    # bulk operation and not insert each row.
                     session.add(conductor_hw_iface)
                 session.flush()
             except db_exc.DBDuplicateEntry as e:
@@ -2080,9 +2094,10 @@ class Connection(api.Connection):
             query = session.query(models.Allocation).filter_by(
                 id=allocation_id)
             try:
-                return query.one()
+                ref = query.one()
             except NoResultFound:
                 raise exception.AllocationNotFound(allocation=allocation_id)
+        return ref
 
     def get_allocation_by_uuid(self, allocation_uuid):
         """Return an allocation representation.
@@ -2095,9 +2110,10 @@ class Connection(api.Connection):
             query = session.query(models.Allocation).filter_by(
                 uuid=allocation_uuid)
             try:
-                return query.one()
+                ref = query.one()
             except NoResultFound:
                 raise exception.AllocationNotFound(allocation=allocation_uuid)
+        return ref
 
     def get_allocation_by_name(self, name):
         """Return an allocation representation.
@@ -2109,9 +2125,10 @@ class Connection(api.Connection):
         with _session_for_read() as session:
             query = session.query(models.Allocation).filter_by(name=name)
             try:
-                return query.one()
+                ref = query.one()
             except NoResultFound:
                 raise exception.AllocationNotFound(allocation=name)
+        return ref
 
     def get_allocation_list(self, filters=None, limit=None, marker=None,
                             sort_key=None, sort_dir=None):
@@ -2455,7 +2472,7 @@ class Connection(api.Connection):
                 session.flush()
             except db_exc.DBDuplicateEntry:
                 raise exception.NodeHistoryAlreadyExists(uuid=values['uuid'])
-            return history
+        return history
 
     @oslo_db_api.retry_on_deadlock
     def destroy_node_history_by_uuid(self, history_uuid):
@@ -2469,9 +2486,10 @@ class Connection(api.Connection):
     def get_node_history_by_id(self, history_id):
         query = model_query(models.NodeHistory).filter_by(id=history_id)
         try:
-            return query.one()
+            res = query.one()
         except NoResultFound:
             raise exception.NodeHistoryNotFound(history=history_id)
+        return res
 
     def get_node_history_by_uuid(self, history_uuid):
         query = model_query(models.NodeHistory).filter_by(uuid=history_uuid)
