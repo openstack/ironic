@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Add new conductor conf option: [conductor]poweroff_in_cleanfail
+    (default: False). when True nodes entering clean failed state
+    will be powered off. This option may be unsafe when using
+    Cleaning to perform hardware-transformative actions such as
+    firmware upgrade.

@@ -349,6 +349,14 @@ opts = [
                       'is a global setting applying to all requests this '
                       'conductor receives, regardless of access rights. '
                       'The concurrent clean limit cannot be disabled.')),
+
+    cfg.BoolOpt('poweroff_in_cleanfail',
+                default=False,
+                help=_('If True power off nodes in the ``clean failed`` '
+                       'state. Default False. Option may be unsafe '
+                       'when using Cleaning to perform '
+                       'hardware-transformative actions such as '
+                       'firmware upgrade.')),
 ]
 
 

@@ -436,6 +436,36 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         self.assertFalse(node.maintenance)
         self.assertIsNone(node.fault)
 
+    @mock.patch('ironic.drivers.modules.fake.FakePower.set_power_state',
+                autospec=True)
+    @mock.patch.object(n_flat.FlatNetwork, 'validate', autospec=True)
+    @mock.patch.object(conductor_steps, 'set_node_cleaning_steps',
+                       autospec=True)
+    def test_do_node_clean_steps_fail_poweroff(self, mock_steps, mock_validate,
+                                               mock_power, clean_steps=None,
+                                               invalid_exc=True):
+        if invalid_exc:
+            mock_steps.side_effect = exception.InvalidParameterValue('invalid')
+        else:
+            mock_steps.side_effect = exception.NodeCleaningFailure('failure')
+        tgt_prov_state = states.MANAGEABLE if clean_steps else states.AVAILABLE
+        self.config(poweroff_in_cleanfail=True, group='conductor')
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            uuid=uuidutils.generate_uuid(),
+            provision_state=states.CLEANING,
+            power_state=states.POWER_ON,
+            target_provision_state=tgt_prov_state)
+        with task_manager.acquire(
+                self.context, node.uuid, shared=False) as task:
+            cleaning.do_node_clean(task, clean_steps=clean_steps)
+            mock_validate.assert_called_once_with(mock.ANY, task)
+        node.refresh()
+        self.assertEqual(states.CLEANFAIL, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        mock_steps.assert_called_once_with(mock.ANY, disable_ramdisk=False)
+        self.assertTrue(mock_power.called)
+
     def test__do_node_clean_automated_steps_fail(self):
         for invalid in (True, False):
             self.__do_node_clean_steps_fail(invalid_exc=invalid)
