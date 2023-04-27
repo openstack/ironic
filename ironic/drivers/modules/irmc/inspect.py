@@ -236,7 +236,7 @@ def _inspect_hardware(node, existing_traits=None, **kwargs):
                       "with the server, please check if you have set them "
                       "correctly.")
         error = (_("Inspection failed for node %(node_id)s "
-                   "with the following error: %(error)s. (advice)s") %
+                   "with the following error: %(error)s. %(advice)s") %
                  {'node_id': node.uuid, 'error': e, 'advice': advice})
         raise exception.HardwareInspectionFailure(error=error)
 
