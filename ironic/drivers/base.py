@@ -1662,7 +1662,7 @@ class NetworkInterface(BaseInterface):
         """
 
     def need_power_on(self, task):
-        """Check if ironic node must be powered on before applying network changes
+        """Check if node must be powered on before applying network changes
 
         :param task: A TaskManager instance.
         :returns: Boolean.

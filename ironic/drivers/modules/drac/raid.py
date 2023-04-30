@@ -1022,7 +1022,7 @@ def _commit_to_controllers(node, controllers, substep="completed"):
     # all realtime controllers
     all_realtime = all(
         (cntlr['is_reboot_required'] == optional)
-        and not(cntlr.get('is_ehba_mode'))
+        and not (cntlr.get('is_ehba_mode'))
         for cntlr in controllers)
 
     # check any controller with ehba mode
