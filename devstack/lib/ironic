@@ -3248,7 +3248,7 @@ function ironic_configure_tempest {
     else
         iniset $TEMPEST_CONFIG baremetal whole_disk_image_url "http://$IRONIC_HTTP_SERVER:$IRONIC_HTTP_PORT/${IRONIC_WHOLEDISK_IMAGE_NAME}.img"
     fi
-    iniset $TEMPEST_CONFIG baremetal whole_disk_image_checksum $(md5sum $FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}.img)
+    iniset $TEMPEST_CONFIG baremetal whole_disk_image_checksum $(sha256sum $FILES/${IRONIC_WHOLEDISK_IMAGE_NAME}.img)
 
     if [[ "$IRONIC_RAMDISK_IMAGE" != "" ]]; then
         iniset $TEMPEST_CONFIG baremetal ramdisk_iso_image_ref "$IRONIC_RAMDISK_IMAGE"
