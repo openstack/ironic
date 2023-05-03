@@ -57,6 +57,7 @@ def config(token):
         # explicit True statement for newer agents to lock the setting
         # and behavior into place.
         'agent_token_required': True,
+        'agent_md5_checksum_enable': CONF.agent.allow_md5_checksum,
     }
 
 
