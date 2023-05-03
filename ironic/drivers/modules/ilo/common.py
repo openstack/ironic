@@ -908,7 +908,7 @@ def remove_single_or_list_of_files(file_location):
 
 
 def verify_image_checksum(image_location, expected_checksum):
-    """Verifies checksum (md5) of image file against the expected one.
+    """Verifies checksum of image file against the expected one.
 
     This method generates the checksum of the image file on the fly and
     verifies it against the expected checksum provided as argument.
@@ -919,8 +919,24 @@ def verify_image_checksum(image_location, expected_checksum):
              verification fails.
     """
     try:
-        actual_checksum = fileutils.compute_file_checksum(image_location,
-                                                          algorithm='md5')
+        if len(expected_checksum) <= 32:
+            actual_checksum = fileutils.compute_file_checksum(image_location,
+                                                              algorithm='md5')
+        elif len(expected_checksum) <= 64:
+            actual_checksum = fileutils.compute_file_checksum(
+                image_location,
+                algorithm='sha256')
+        elif len(expected_checksum) <= 128:
+            actual_checksum = fileutils.compute_file_checksum(
+                image_location,
+                algorithm='sha512')
+        else:
+            raise exception.ImageRefValidationFailed(
+                image_href=image_location,
+                reason="Unable to identify checksum based upon length. "
+                       "Please validate your checksum and ensure it is "
+                       "MD5, SHA256, or SHA512")
+
     except IOError as e:
         LOG.error("Error opening file: %(file)s", {'file': image_location})
         raise exception.ImageRefValidationFailed(image_href=image_location,

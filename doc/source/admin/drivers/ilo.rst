@@ -1379,17 +1379,17 @@ step could be::
                 },
                 {
                     "url": "http://my_address:port/firmwares/bios_vLatest.scexe",
-                    "checksum": "<md5-checksum-of-this-file>",
+                    "checksum": "<sha256-checksum-of-this-file>",
                     "component": "bios"
                 },
                 {
                     "url": "https://my_secure_address_url/firmwares/chassis_vLatest.scexe",
-                    "checksum": "<md5-checksum-of-this-file>",
+                    "checksum": "<sha512-checksum-of-this-file>",
                     "component": "chassis"
                 },
                 {
                     "url": "file:///home/ubuntu/firmware_images/power_pic/pmc_v3.0.bin",
-                    "checksum": "<md5-checksum-of-this-file>",
+                    "checksum": "<sha256-checksum-of-this-file>",
                     "component": "power_pic"
                 }
             ]
@@ -1412,7 +1412,7 @@ Each firmware image block is represented by a dictionary (JSON), in the form::
 
     {
       "url": "<url of firmware image file>",
-      "checksum": "<md5 checksum of firmware image file to verify the image>",
+      "checksum": "<SHA256, SHA512, or MD5 checksum of firmware image file to verify the image>",
       "component": "<device on which firmware image will be flashed>"
     }
 
@@ -1459,11 +1459,11 @@ All the fields in the firmware image block are mandatory.
   things were left off or where things failed. You can then fix or work around
   and then try again. A common cause of update failure is HPE Secure Digital
   Signature check failure for the firmware image file.
-* To compute ``md5`` checksum for your image file, you can use the following
+* To compute ``sha256`` checksum for your image file, you can use the following
   command::
 
-    $ md5sum image.rpm
-    66cdb090c80b71daa21a67f06ecd3f33  image.rpm
+    $ sha256sum image.rpm
+    24f6abba6fb6921b05afdb4f9a671aed72af3add90c912b5e3989f51f1b359e5  image.rpm
 
 Smart Update Manager (SUM) based firmware update
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
