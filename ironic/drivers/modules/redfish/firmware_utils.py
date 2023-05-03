@@ -137,8 +137,22 @@ def verify_checksum(node, checksum, file_path):
     :param file_path: File path for which to verify checksum
     :raises RedfishError: When checksum does not match
     """
-    calculated_checksum = fileutils.compute_file_checksum(
-        file_path, algorithm='sha1')
+    if len(checksum) <= 41:
+        # SHA1: 40 bytes long
+        calculated_checksum = fileutils.compute_file_checksum(
+            file_path, algorithm='sha1')
+    elif len(checksum) <= 64:
+        calculated_checksum = fileutils.compute_file_checksum(
+            file_path, algorithm='sha256')
+    elif len(checksum) <= 128:
+        calculated_checksum = fileutils.compute_file_checksum(
+            file_path, algorithm='sha512')
+    else:
+        raise exception.RedfishError(
+            _('Unable to identify checksum to perform firmware file checksum '
+              'calculation. Please validate your input in and try again. '
+              'Received: %(checksum)s')
+            % {'checksum': checksum})
     if checksum != calculated_checksum:
         raise exception.RedfishError(
             _('For node %(node)s firmware file %(temp_file)s checksums do not '

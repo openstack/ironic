@@ -407,7 +407,7 @@ The ``update_firmware`` cleaning step accepts JSON in the following format::
             "firmware_images":[
                 {
                     "url": "<url_to_firmware_image1>",
-                    "checksum": "<checksum for image, uses SHA1>",
+                    "checksum": "<checksum for image, uses SHA1, SHA256, or SHA512>",
                     "source": "<optional override source setting for image>",
                     "wait": <number_of_seconds_to_wait>
                 },

@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The Redfish firmware upgrade interface now supports checksum determination
+    by length, and ``sha256`` and ``sha512`` checksums may now be supplied to
+    the step arguments.

@@ -256,6 +256,30 @@ class FirmwareUtilsTestCase(base.TestCase):
         mock_compute_file_checksum.assert_called_with(
             file_path, algorithm='sha1')
 
+    @mock.patch.object(fileutils, 'compute_file_checksum', autospec=True)
+    def test_verify_checksum_sha256(self, mock_compute_file_checksum):
+        checksum = 'a' * 64
+        file_path = '/tmp/bios.exe'
+        mock_compute_file_checksum.return_value = checksum
+        node = mock.Mock(uuid='9f0f6795-f74e-4b5a-850e-72f586a92435')
+
+        firmware_utils.verify_checksum(node, checksum, file_path)
+
+        mock_compute_file_checksum.assert_called_with(
+            file_path, algorithm='sha256')
+
+    @mock.patch.object(fileutils, 'compute_file_checksum', autospec=True)
+    def test_verify_checksum_sha512(self, mock_compute_file_checksum):
+        checksum = 'a' * 128
+        file_path = '/tmp/bios.exe'
+        mock_compute_file_checksum.return_value = checksum
+        node = mock.Mock(uuid='9f0f6795-f74e-4b5a-850e-72f586a92435')
+
+        firmware_utils.verify_checksum(node, checksum, file_path)
+
+        mock_compute_file_checksum.assert_called_with(
+            file_path, algorithm='sha512')
+
     @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch.object(shutil, 'copyfile', autospec=True)
     @mock.patch.object(os, 'link', autospec=True)
