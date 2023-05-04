@@ -720,6 +720,7 @@ def get_instance_image_info(task, ipxe_enabled=False):
         # TODO(TheJulia): Add functionality to look/grab the hints file
         # for anaconda and just run with the entire path.
 
+    if 'stage2' in anaconda_labels:
         # stage2: installer stage2 squashfs image
         # ks_template: anaconda kickstart template
         # ks_cfg - rendered ks_template
@@ -1160,7 +1161,7 @@ def validate_kickstart_file(ks_cfg):
         ks_file.flush()
         try:
             utils.execute(
-                'ksvalidator', ks_file.name, check_on_exit=[0], attempts=1
+                'ksvalidator', ks_file.name, check_exit_code=[0], attempts=1
             )
         except processutils.ProcessExecutionError as e:
             msg = (_("The kickstart file generated does not pass validation. "
