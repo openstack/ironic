@@ -13,7 +13,10 @@
         - ironic-cross-sushy:
             voting: false
         - ironic-tempest-functional-python3
-        - ironic-tempest-functional-rbac-scope-enforced
+        # NOTE(rpittau) moving to non-voting until we fix the tests
+        # see also https://review.opendev.org/c/openstack/ironic-tempest-plugin/+/882312
+        - ironic-tempest-functional-rbac-scope-enforced:
+            voting: false
         - ironic-grenade
         - ironic-standalone
         - ironic-standalone-redfish
@@ -63,7 +66,9 @@
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
-        - ironic-tempest-functional-rbac-scope-enforced
+        # NOTE(rpittau) disabled until we fix the tests
+        # see also https://review.opendev.org/c/openstack/ironic-tempest-plugin/+/882312
+        #- ironic-tempest-functional-rbac-scope-enforced
         - ironic-grenade
         - ironic-standalone
         - ironic-standalone-redfish
