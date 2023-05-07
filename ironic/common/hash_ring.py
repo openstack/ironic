@@ -40,7 +40,7 @@ class HashRingManager(object):
     @property
     def ring(self):
         interval = CONF.hash_ring_reset_interval
-        limit = time.time() - interval
+        limit = time.monotonic() - interval
 
         if not self.cache:
             return self._load_hash_rings()
@@ -56,7 +56,7 @@ class HashRingManager(object):
             if hash_rings is None or updated_at < limit:
                 LOG.debug('Rebuilding cached hash rings')
                 hash_rings = self._load_hash_rings()
-                self.__class__._hash_rings = hash_rings, time.time()
+                self.__class__._hash_rings = hash_rings, time.monotonic()
                 LOG.debug('Finished rebuilding hash rings, available drivers '
                           'are %s', ', '.join(hash_rings))
             return hash_rings
