@@ -1065,10 +1065,14 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         expected_dhcp_opts = [{'opt_name': '61', 'opt_value': 'fake2'}]
         self.port.extra = expected_extra
         self.port.internal_info = expected_ii
+        what_changed_mock = mock.Mock()
+        what_changed_mock.return_value = ['extra', 'internal_info']
+        self.port.obj_what_changed = what_changed_mock
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.port_changed(task, self.port)
             dhcp_update_mock.assert_called_once_with(
                 mock.ANY, 'fake-id', expected_dhcp_opts, context=task.context)
+        self.assertEqual(2, what_changed_mock.call_count)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
                 autospec=True)
