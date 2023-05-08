@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes scope classification check with the "self_owned_node" policy
+    check where it was limited to check execution with only project
+    scoped, so system scoped users who ticked the policy endpoint would
+    basically get an incorrect error.
