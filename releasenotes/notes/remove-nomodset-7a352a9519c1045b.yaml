@@ -1,0 +1,22 @@
+---
+upgrade:
+  - |
+    The defaults for ``kernel_append_params`` have had the Linux kernel
+    command line parameter ``nomodeset`` removed from the defaults for the
+    ``kernel_append_params`` settings. The ``nomodeset`` option is for
+    troubleshooting and changes the behavior of the graphics interface
+    such that memory can be locked upon graphical updates on physical
+    servers with BMC graphical interfaces, which results in spikes in
+    latency and packet loss whenever graphics updates occur. Operators
+    may add the option to their local configuration, but should be aware
+    that large image transfers or other high IO operations can be impacted.
+fixes:
+  - |
+    Agents deploying on physical servers with default kernel arguments were
+    suspetible to packet loss if a Matrox VGA/Aspeed BMC Graphics interface
+    is present on the machine. The defaults have been changed to remove
+    the use of the ``nomodeset`` kernel command line parameter which
+    should only be used for troubleshooting as it has been determined
+    that the memory updates can lock all of the kernel memory upon any
+    console graphics update which can negatively impact IO for Networking
+    or Disk interactions.

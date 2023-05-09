@@ -583,7 +583,7 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href='http://bootloader/img',
-                kernel_params='nofb nomodeset vga=normal',
+                kernel_params='nofb vga=normal',
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
                 inject_files=None)
 
@@ -604,7 +604,7 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href=None,
-                kernel_params='nofb nomodeset vga=normal',
+                kernel_params='nofb vga=normal',
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
                 inject_files=None)
 
@@ -633,7 +633,7 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='bios', esp_image_href=None,
-                kernel_params='nofb nomodeset vga=normal',
+                kernel_params='nofb vga=normal',
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
                 inject_files=None)
 
@@ -702,7 +702,7 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
                 boot_mode='uefi', esp_image_href=None,
-                kernel_params=f'nofb nomodeset vga=normal {kernel_params}',
+                kernel_params=f'nofb vga=normal {kernel_params}',
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
                 inject_files=None)
 
