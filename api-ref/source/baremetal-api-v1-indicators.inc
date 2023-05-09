@@ -90,7 +90,7 @@ Response Parameters
 Get Indicator State
 ===================
 
-.. rest_method:: GET /v1/nodes/{node_ident}/management/indicators/{component}/{ind_ident}
+.. rest_method:: GET /v1/nodes/{node_ident}/management/indicators/{ind_ident}@{component}
 
 .. versionadded:: 1.63
 
@@ -127,7 +127,7 @@ Response Parameters
 Set Indicator State
 ===================
 
-.. rest_method:: PUT /v1/nodes/{node_ident}/management/indicators/{component}/{ind_ident}
+.. rest_method:: PUT /v1/nodes/{node_ident}/management/indicators/{ind_ident}@{component}
 
 .. versionadded:: 1.63
 
