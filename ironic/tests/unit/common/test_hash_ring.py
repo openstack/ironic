@@ -129,7 +129,7 @@ class HashRingManagerTestCase(db_base.DbTestCase):
 
         self.ring_manager.__class__._hash_rings = (
             self.ring_manager.__class__._hash_rings[0],
-            time.time() - 31
+            time.monotonic() - 31
         )
         ring = self.ring_manager.get_ring('hardware-type', '')
         self.assertEqual(2, len(ring))
