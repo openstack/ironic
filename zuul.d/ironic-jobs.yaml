@@ -720,14 +720,19 @@
 # we can convert them to dib.
 
 # Used by devstack/ironic/nova/neutron
+# NOTE(TheJulia): Disable Rescue on this branch, by not enabling
+# the rescue interface. tl;dr tempest is unbranched, but the plugin
+# has a change which is incompatible with wallaby which causes
+# this test to fail. Since there is no path to fix, just bypass
+# since the risk of breakage is low otherwise.
 - job:
     name: ironic-tempest-bios-ipmi-direct-tinyipa
     description: ironic-tempest-wholedisk-bios-ipmi-direct-tinyipa that also tests cleaning.
     parent: ironic-base
     vars:
       devstack_localrc:
-        IRONIC_DEFAULT_RESCUE_INTERFACE: agent
-        IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
+        IRONIC_DEFAULT_RESCUE_INTERFACE: no-rescue
+        IRONIC_ENABLED_RESCUE_INTERFACES: "fake,no-rescue"
         IRONIC_RAMDISK_TYPE: tinyipa
         IRONIC_VM_SPECS_RAM: 1024
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
