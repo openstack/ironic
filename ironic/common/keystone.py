@@ -125,7 +125,8 @@ def get_endpoint(group, **adapter_kwargs):
     return result
 
 
-def get_service_auth(context, endpoint, service_auth):
+def get_service_auth(context, endpoint, service_auth,
+                     only_service_auth=False):
     """Create auth plugin wrapping both user and service auth.
 
     When properly configured and using auth_token middleware,
@@ -134,8 +135,25 @@ def get_service_auth(context, endpoint, service_auth):
 
     Ideally we would use the plugin provided by auth_token middleware
     however this plugin isn't serialized yet.
+
+    :param context: The RequestContext instance from which the user
+                    auth_token is extracted.
+    :param endpoint: The requested endpoint to be utilized.
+    :param service_auth: The service authenticaiton credentals to be
+                         used.
+    :param only_service_auth: Boolean, default False. When set to True,
+                              the resulting Service token pair is generated
+                              as if it originates from the user itself.
+                              Useful to cast admin level operations which are
+                              launched by Ironic itself, as opposed to user
+                              initiated requests.
+    :returns: Returns a service token via the ServiceTokenAuthWrapper
+              class.
     """
-    # TODO(pas-ha) use auth plugin from context when it is available
-    user_auth = token_endpoint.Token(endpoint, context.auth_token)
+    user_auth = None
+    if not only_service_auth:
+        user_auth = token_endpoint.Token(endpoint, context.auth_token)
+    else:
+        user_auth = service_auth
     return service_token.ServiceTokenAuthWrapper(user_auth=user_auth,
                                                  service_auth=service_auth)

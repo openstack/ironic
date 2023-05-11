@@ -58,8 +58,7 @@ class TestCinderSession(base.TestCase):
 @mock.patch('ironic.common.keystone.get_adapter', autospec=True)
 @mock.patch('ironic.common.keystone.get_service_auth', autospec=True,
             return_value=mock.sentinel.sauth)
-@mock.patch('ironic.common.keystone.get_auth', autospec=True,
-            return_value=mock.sentinel.auth)
+@mock.patch('ironic.common.keystone.get_auth', autospec=True)
 @mock.patch('ironic.common.keystone.get_session', autospec=True,
             return_value=mock.sentinel.session)
 @mock.patch.object(cinderclient.Client, '__init__', autospec=True,
@@ -74,8 +73,11 @@ class TestCinderClient(base.TestCase):
         cinder._CINDER_SESSION = None
         self.context = context.RequestContext(global_request_id='global')
 
-    def _assert_client_call(self, init_mock, url, auth=mock.sentinel.auth):
-        cinder.get_client(self.context)
+    def _assert_client_call(self, init_mock, url, auth=mock.sentinel.auth,
+                            auth_from_config=None):
+        if not auth_from_config:
+            self.context.auth_token = 'meow'
+        cinder.get_client(self.context, auth_from_config=auth_from_config)
         init_mock.assert_called_once_with(
             mock.ANY,
             session=mock.sentinel.session,
@@ -86,31 +88,57 @@ class TestCinderClient(base.TestCase):
 
     def test_get_client(self, mock_client_init, mock_session, mock_auth,
                         mock_sauth, mock_adapter):
-
+        mock_auth.return_value = mock_auth_obj = mock.Mock()
+        mock_auth_obj.get_project_id.return_value = '1111'
         mock_adapter.return_value = mock_adapter_obj = mock.Mock()
-        mock_adapter_obj.get_endpoint.return_value = 'cinder_url'
-        self._assert_client_call(mock_client_init, 'cinder_url')
+        mock_adapter_obj.get_endpoint.side_effect = iter([
+            'cinder_url/1111',
+            'cinder_url'])
+        self._assert_client_call(mock_client_init, 'cinder_url/1111',
+                                 auth=mock_auth_obj)
         mock_session.assert_called_once_with('cinder')
         mock_auth.assert_called_once_with('cinder')
-        mock_adapter.assert_called_once_with('cinder',
-                                             session=mock.sentinel.session,
-                                             auth=mock.sentinel.auth)
+        mock_adapter.assert_called_once_with(
+            'cinder', session=mock.sentinel.session,
+            auth=mock_auth_obj)
+        self.assertTrue(mock_sauth.called)
+
+    def test_get_client_service_token(self, mock_client_init, mock_session,
+                                      mock_auth, mock_sauth, mock_adapter):
+        mock_auth.return_value = mock_auth_obj = mock.Mock()
+        mock_auth_obj.get_project_id.return_value = '1111'
+        mock_adapter.return_value = mock_adapter_obj = mock.Mock()
+        mock_adapter_obj.get_endpoint.side_effect = iter([
+            'cinder_url/1111',
+            'cinder_url'])
+        self._assert_client_call(
+            mock_client_init,
+            'cinder_url/1111',
+            auth=mock_auth_obj,
+            auth_from_config=True)
+        mock_session.assert_has_calls([
+            mock.call('cinder'),
+            mock.call('cinder', timeout=1, auth=mock_auth_obj)])
+        mock_auth.assert_called_once_with('cinder')
+        mock_adapter.assert_called_once_with(
+            'cinder', session=mock.sentinel.session, auth=mock_auth_obj)
         self.assertFalse(mock_sauth.called)
 
     def test_get_client_deprecated_opts(self, mock_client_init, mock_session,
                                         mock_auth, mock_sauth, mock_adapter):
-
+        mock_auth.return_value = mock_auth_obj = mock.Mock()
+        mock_auth_obj.get_project_id.return_value = '1111'
         self.config(url='http://test-url', group='cinder')
         mock_adapter.return_value = mock_adapter_obj = mock.Mock()
         mock_adapter_obj.get_endpoint.return_value = 'http://test-url'
 
-        self._assert_client_call(mock_client_init, 'http://test-url')
+        self._assert_client_call(mock_client_init, 'http://test-url',
+                                 auth=mock_auth_obj)
         mock_auth.assert_called_once_with('cinder')
         mock_session.assert_called_once_with('cinder')
         mock_adapter.assert_called_once_with(
-            'cinder', session=mock.sentinel.session, auth=mock.sentinel.auth,
-            endpoint_override='http://test-url')
-        self.assertFalse(mock_sauth.called)
+            'cinder', session=mock.sentinel.session, auth=mock_auth_obj)
+        self.assertTrue(mock_sauth.called)
 
 
 class TestCinderUtils(db_base.DbTestCase):

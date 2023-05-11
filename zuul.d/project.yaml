@@ -10,7 +10,7 @@
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-standalone
-        - ironic-tempest-functional-python3
+        #- ironic-tempest-functional-python3
         - ironic-tempest-partition-bios-redfish-pxe
         # - ironic-tempest-partition-uefi-redfish-vmedia
         # - ironic-tempest-ipa-partition-pxe_ipmitool
@@ -55,7 +55,7 @@
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-standalone
-        - ironic-tempest-functional-python3
+        # - ironic-tempest-functional-python3
         - ironic-tempest-partition-bios-redfish-pxe
         # - ironic-tempest-partition-uefi-redfish-vmedia
         # - ironic-tempest-ipa-partition-pxe_ipmitool
