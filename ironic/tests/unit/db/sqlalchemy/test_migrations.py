@@ -1323,17 +1323,17 @@ class MigrationCheckersMixin(object):
             insert_fw_cmp = fw_information.insert().values(fw_data)
             connection.execute(insert_fw_cmp)
             fw_cmp_stmt = sqlalchemy.select(
-                models.FirmwareInformation.initial_version
+                models.FirmwareComponent.initial_version
             ).where(
-                models.FirmwareInformation.node_id == data['id'],
-                models.FirmwareInformation.component == fw_data['component']
+                models.FirmwareComponent.node_id == data['id'],
+                models.FirmwareComponent.component == fw_data['component']
             )
             fw_component = connection.execute(fw_cmp_stmt).first()
             self.assertEqual('v1.0.0', fw_component['initial_version'])
             del_stmt = (
                 sqlalchemy.delete(
-                    models.FirmwareInformation
-                ).where(models.FirmwareInformation.node_id == data['id'])
+                    models.FirmwareComponent
+                ).where(models.FirmwareComponent.node_id == data['id'])
             )
             connection.execute(del_stmt)
 

@@ -26,6 +26,7 @@ from ironic.objects import bios
 from ironic.objects import chassis
 from ironic.objects import conductor
 from ironic.objects import deploy_template
+from ironic.objects import firmware
 from ironic.objects import node
 from ironic.objects import node_history
 from ironic.objects import node_inventory
@@ -752,3 +753,43 @@ def create_test_inventory(**kw):
         del inventory['id']
     dbapi = db_api.get_instance()
     return dbapi.create_node_inventory(inventory)
+
+
+def create_test_firmware_component(**kw):
+    """Create test Firmware Component entry in DB and return object.
+
+    Function to be used to create test FirmwareComponent object in the DB.
+
+    :param kw: kwargs with overriding values for firmware component
+    :returns: Test FirmwareComponent DB object
+    """
+    fw_cmp_values = get_test_firmware_component(**kw)
+    if 'id' not in kw:
+        del fw_cmp_values['id']
+    dbapi = db_api.get_instance()
+    return dbapi.create_firmware_component(fw_cmp_values)
+
+
+def get_test_firmware_component(**kw):
+    # NOTE(iurygregory): update version to get from the object in the object
+    # patch.
+    return {
+        'id': kw.get('id', 256),
+        'node_id': kw.get('node_id', 123),
+        'component': kw.get('component', 'bmc'),
+        'initial_version': kw.get('initial_version', 'v1.0.0'),
+        'current_version': kw.get('current_version', 'v1.0.0'),
+        'last_version_flashed': kw.get('last_version_flashed', None),
+        'version': kw.get('version', firmware.FirmwareComponent.VERSION),
+        'created_at': kw.get('created_at'),
+        'updated_at': kw.get('updated_at'),
+    }
+
+
+def get_test_firmware_component_list():
+    return [
+        {'component': 'bmc', 'initial_version': 'v1.0.0',
+         'current_version': 'v1.0.0', 'last_version_flashed': None},
+        {'component': 'BIOS', 'initial_version': 'v1.5.0',
+         'current_version': 'v1.5.0', 'last_version_flashed': None},
+    ]

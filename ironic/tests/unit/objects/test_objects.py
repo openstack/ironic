@@ -722,6 +722,8 @@ expected_object_fingerprints = {
     'Deployment': '1.0-ff10ae028c5968f1596131d85d7f5f9d',
     'NodeHistory': '1.0-9b576c6481071e7f7eac97317fa29418',
     'NodeInventory': '1.0-97692fec24e20ab02022b9db54e8f539',
+    'FirmwareComponent': '1.0-0e0720dab959e20247bbcfd5f28958c5',
+    'FirmwareComponentList': '1.0-33a2e1bb91ad4082f9f63429b77c1244',
 }
 
 

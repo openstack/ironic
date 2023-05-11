@@ -499,7 +499,7 @@ class NodeInventory(Base):
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
 
 
-class FirmwareInformation(Base):
+class FirmwareComponent(Base):
     """Represents the firmware information of a bare metal node."""
     __tablename__ = "firmware_information"
     __table_args__ = (

@@ -798,6 +798,15 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertRaises(exception.NodeInventoryNotFound,
                           self.dbapi.get_node_inventory_by_node_id, node.id)
 
+    def test_firmware_component_list_after_destroying_a_node_by_uuid(self):
+        node = utils.create_test_node()
+
+        utils.create_test_firmware_component(node_id=node.id)
+
+        self.dbapi.destroy_node(node.uuid)
+        self.assertRaises(exception.NodeNotFound,
+                          self.dbapi.get_firmware_component_list, node.id)
+
     def test_update_node(self):
         node = utils.create_test_node()
 

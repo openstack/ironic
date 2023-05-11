@@ -874,3 +874,12 @@ class ConcurrentActionLimit(IronicException):
 class SwiftObjectStillExists(IronicException):
     _msg_fmt = _("Clean up failed for swift object %(obj)s during deletion"
                  " of node %(node)s.")
+
+
+class FirmwareComponentAlreadyExists(Conflict):
+    _msg_fmt = _('A Firmware component %(name)s for node %(node)s'
+                 ' already exists.')
+
+
+class FirmwareComponentNotFound(NotFound):
+    _msg_fmt = _("Node %(node)s doesn't have Firmware component %(name)s")

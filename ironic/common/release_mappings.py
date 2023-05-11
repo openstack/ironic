@@ -592,6 +592,7 @@ RELEASE_MAPPING = {
             'TraitList': ['1.0'],
             'VolumeConnector': ['1.0'],
             'VolumeTarget': ['1.0'],
+            'FirmwareComponent': ['1.0'],
         }
     },
 }
