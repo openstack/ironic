@@ -1,0 +1,16 @@
+---
+fixes:
+  - |
+    Fixes Ironic integration with Cinder because of changes which resulted as
+    part of the recent Security related fix in
+    `bug 2004555 <https://launchpad.net/bugs/2004555>`_. The work in Ironic
+    to track this fix was logged in
+    `bug 2019892 <https://bugs.launchpad.net/ironic/+bug/2019892>`_.
+    Ironic now sends a service token to Cinder, which allows for access
+    restrictions added as part of the original CVE-2023-2088
+    fix to be appropriately bypassed. Ironic was not vulnerable,
+    but the restrictions added as a result did impact Ironic's usage.
+    This is because Ironic volume attachments are not on a shared
+    "compute node", but instead mapped to the physical machines
+    and Ironic handles the attachment life-cycle after initial
+    attachment.

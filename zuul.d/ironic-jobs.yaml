@@ -167,8 +167,8 @@
     vars:
       devstack_localrc:
         IRONIC_DEFAULT_DEPLOY_INTERFACE: direct
-        IRONIC_DEFAULT_RESCUE_INTERFACE: agent
-        IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
+        IRONIC_DEFAULT_RESCUE_INTERFACE: no-rescue
+        IRONIC_ENABLED_RESCUE_INTERFACES: "fake,no-rescue"
         IRONIC_VM_COUNT: 2
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
