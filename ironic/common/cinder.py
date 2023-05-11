@@ -19,6 +19,7 @@ from cinderclient import exceptions as cinder_exceptions
 from cinderclient.v3 import client
 from oslo_log import log
 
+from ironic.common import context as ironic_context
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import keystone
@@ -39,32 +40,46 @@ def _get_cinder_session():
     return _CINDER_SESSION
 
 
-def get_client(context):
+def get_client(context, auth_from_config=False):
     """Get a cinder client connection.
 
     :param context: request context,
                     instance of ironic.common.context.RequestContext
+    :param auth_from_config: (boolean) When True, use auth values from
+                             conf parameters
     :returns: A cinder client.
     """
     service_auth = keystone.get_auth('cinder')
     session = _get_cinder_session()
+    # Used the service cached session to get the endpoint
+    # because getting an endpoint requires auth!
+    endpoint = keystone.get_endpoint('cinder', session=session,
+                                     auth=service_auth)
+    if not context:
+        context = ironic_context.RequestContext(auth_token=None)
 
-    # TODO(pas-ha) use versioned endpoint data to select required
-    # cinder api version
-    cinder_url = keystone.get_endpoint('cinder', session=session,
-                                       auth=service_auth)
-    # TODO(pas-ha) investigate possibility of passing a user context here,
-    # similar to what neutron/glance-related code does
-    # NOTE(pas-ha) cinderclient has both 'connect_retries' (passed to
-    # ksa.Adapter) and 'retries' (used in its subclass of ksa.Adapter) options.
-    # The first governs retries on establishing the HTTP connection,
-    # the second governs retries on OverLimit exceptions from API.
-    # The description of [cinder]/retries fits the first,
-    # so this is what we pass.
-    return client.Client(session=session, auth=service_auth,
-                         endpoint_override=cinder_url,
-                         connect_retries=CONF.cinder.retries,
-                         global_request_id=context.global_id)
+    user_auth = None
+    if CONF.cinder.auth_type != 'none' and context.auth_token:
+        user_auth = keystone.get_service_auth(
+            context, endpoint, service_auth,
+            only_service_auth=auth_from_config)
+
+    if auth_from_config:
+        # If we are here, then we've been requested to *only* use our supplied
+        sess = keystone.get_session('cinder', timeout=CONF.cinder.timeout,
+                                    auth=service_auth)
+
+        return client.Client(
+            session=sess, auth=user_auth or service_auth,
+            endpoint_override=endpoint,
+            connect_retries=CONF.cinder.retries,
+            global_request_id=context.global_id)
+    else:
+        return client.Client(
+            session=session, auth=service_auth,
+            endpoint_override=endpoint,
+            connect_retries=CONF.cinder.retries,
+            global_request_id=context.global_id)
 
 
 def is_volume_available(volume):
@@ -134,17 +149,21 @@ def _create_metadata_dictionary(node, action):
     return {label: json.dumps(data)}
 
 
-def _init_client(task):
+def _init_client(task, auth_from_config=False):
     """Obtain cinder client and return it for use.
 
     :param task: TaskManager instance representing the operation.
+    :param auth_from_config: If we should source our authentication parameters
+                             from the configured service as opposed to request
+                             context.
 
     :returns: A cinder client.
     :raises: StorageError If an exception is encountered creating the client.
     """
     node = task.node
     try:
-        return get_client(task.context)
+        return get_client(task.context,
+                          auth_from_config=auth_from_config)
     except Exception as e:
         msg = (_('Failed to initialize cinder client for operations on node '
                  '%(uuid)s: %(err)s') % {'uuid': node.uuid, 'err': e})
@@ -238,8 +257,9 @@ def attach_volumes(task, volume_list, connector):
                    }]
        """
     node = task.node
+    LOG.debug('Initializing volume attach for node %(node)s.',
+              {'node': node.uuid})
     client = _init_client(task)
-
     connected = []
     for volume_id in volume_list:
         try:
@@ -367,8 +387,11 @@ def detach_volumes(task, volume_list, connector, allow_errors=False):
             LOG.error(msg)
             raise exception.StorageError(msg)
 
-    client = _init_client(task)
+    client = _init_client(task, auth_from_config=False)
+    svc_client = _init_client(task, auth_from_config=True)
     node = task.node
+    LOG.debug('Initializing volume detach for node %(node)s.',
+              {'node': node.uuid})
 
     for volume_id in volume_list:
         try:
@@ -389,7 +412,7 @@ def detach_volumes(task, volume_list, connector, allow_errors=False):
             continue
 
         try:
-            client.volumes.begin_detaching(volume_id)
+            svc_client.volumes.begin_detaching(volume_id)
         except cinder_exceptions.ClientException as e:
             _handle_errors(_('Failed to request detach for volume %(vol_id)s '
                              'from cinder for node %(node)s: %(err)s') %
@@ -400,7 +423,7 @@ def detach_volumes(task, volume_list, connector, allow_errors=False):
             # is set to True.
         try:
             # Remove the attachment
-            client.volumes.terminate_connection(volume_id, connector)
+            svc_client.volumes.terminate_connection(volume_id, connector)
         except cinder_exceptions.ClientException as e:
             _handle_errors(_('Failed to detach volume %(vol_id)s from node '
                              '%(node)s: %(err)s') %
@@ -417,7 +440,7 @@ def detach_volumes(task, volume_list, connector, allow_errors=False):
         attachment_id = _get_attachment_id(node, volume)
         try:
             # Update the API attachment record
-            client.volumes.detach(volume_id, attachment_id)
+            svc_client.volumes.detach(volume_id, attachment_id)
         except cinder_exceptions.ClientException as e:
             _handle_errors(_('Failed to inform cinder that the detachment for '
                              'volume %(vol_id)s from node %(node)s has been '
