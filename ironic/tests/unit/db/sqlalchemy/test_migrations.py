@@ -1261,6 +1261,68 @@ class MigrationCheckersMixin(object):
         nodes = db_utils.get_table(engine, 'nodes')
         self.assertIsInstance(nodes.c.shard.type, sqlalchemy.types.String)
 
+    def _pre_upgrade_163040c5513f(self, engine):
+        # Create a node to which firmware information can be added.
+        data = {'uuid': uuidutils.generate_uuid()}
+        nodes = db_utils.get_table(engine, 'nodes')
+        with engine.begin() as connection:
+            insert_node = nodes.insert().values(data)
+            connection.execute(insert_node)
+            node_stmt = sqlalchemy.select(
+                models.Node.id
+            ).where(models.Node.uuid == data['uuid'])
+            node = connection.execute(node_stmt).first()
+            data['id'] = node.id
+
+        return data
+
+    def _check_163040c5513f(self, engine, data):
+        fw_information = db_utils.get_table(engine, 'firmware_information')
+        col_names = [column.name for column in fw_information.c]
+        expected_names = ['created_at', 'updated_at', 'id', 'node_id',
+                          'component', 'initial_version', 'current_version',
+                          'last_version_flashed', 'version']
+        self.assertEqual(sorted(expected_names), sorted(col_names))
+        self.assertIsInstance(fw_information.c.created_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(fw_information.c.updated_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(fw_information.c.id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(fw_information.c.node_id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(fw_information.c.component.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(fw_information.c.initial_version.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(fw_information.c.current_version.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(fw_information.c.last_version_flashed.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(fw_information.c.version.type,
+                              sqlalchemy.types.String)
+
+        nodes = db_utils.get_table(engine, 'nodes')
+        col_names = [column.name for column in nodes.c]
+        self.assertIn('firmware_interface', col_names)
+        self.assertIsInstance(nodes.c.firmware_interface.type,
+                              sqlalchemy.types.String)
+
+        with engine.begin() as connection:
+            fw_data = {'node_id': data['id'],
+                       'component': 'bmc',
+                       'initial_version': 'v1.0.0'}
+            insert_fw_cmp = fw_information.insert().values(fw_data)
+            connection.execute(insert_fw_cmp)
+            fw_cmp_stmt = sqlalchemy.select(
+                models.FirmwareInformation.initial_version
+            ).where(
+                models.FirmwareInformation.node_id == data['id'],
+                models.FirmwareInformation.component == fw_data['component']
+            )
+            fw_component = connection.execute(fw_cmp_stmt).first()
+            self.assertEqual('v1.0.0', fw_component['initial_version'])
+
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
             self.migration_api.upgrade('head')
