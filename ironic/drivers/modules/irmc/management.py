@@ -226,7 +226,8 @@ class IRMCManagement(ipmitool.IPMIManagement,
         :raises: InvalidParameterValue if required parameters are invalid.
         :raises: MissingParameterValue if a required parameter is missing.
         """
-        if task.node.driver_internal_info.get('irmc_ipmi_succeed'):
+        if (getattr(task.node, 'power_interface') == 'ipmitool'
+            or task.node.driver_internal_info.get('irmc_ipmi_succeed')):
             irmc_common.parse_driver_info(task.node)
             irmc_common.update_ipmi_properties(task)
             super(IRMCManagement, self).validate(task)
@@ -245,7 +246,8 @@ class IRMCManagement(ipmitool.IPMIManagement,
                   in :mod:`ironic.common.boot_devices`.
 
         """
-        if task.node.driver_internal_info.get('irmc_ipmi_succeed'):
+        if (getattr(task.node, 'power_interface') == 'ipmitool'
+            or task.node.driver_internal_info.get('irmc_ipmi_succeed')):
             return super(IRMCManagement, self).get_supported_boot_devices(task)
         else:
             return super(ipmitool.IPMIManagement,
@@ -271,7 +273,8 @@ class IRMCManagement(ipmitool.IPMIManagement,
         :raises: RedfishConnectionError on Redfish operation failure.
         :raises: RedfishError on Redfish operation failure.
         """
-        if task.node.driver_internal_info.get('irmc_ipmi_succeed'):
+        if (getattr(task.node, 'power_interface') == 'ipmitool'
+            or task.node.driver_internal_info.get('irmc_ipmi_succeed')):
             if device not in self.get_supported_boot_devices(task):
                 raise exception.InvalidParameterValue(_(
                     "Invalid boot device %s specified.") % device)
@@ -331,7 +334,8 @@ class IRMCManagement(ipmitool.IPMIManagement,
             :persistent: Whether the boot device will persist to all
                 future boots or not, None if it is unknown.
         """
-        if task.node.driver_internal_info.get('irmc_ipmi_succeed'):
+        if (getattr(task.node, 'power_interface') == 'ipmitool'
+            or task.node.driver_internal_info.get('irmc_ipmi_succeed')):
             return super(IRMCManagement, self).get_boot_device(task)
         else:
             return super(
@@ -426,7 +430,8 @@ class IRMCManagement(ipmitool.IPMIManagement,
         if sensor_method == 'scci':
             return _get_sensors_data(task)
         elif sensor_method == 'ipmitool':
-            if task.node.driver_internal_info.get('irmc_ipmi_succeed'):
+            if (getattr(task.node, 'power_interface') == 'ipmitool'
+                or task.node.driver_internal_info.get('irmc_ipmi_succeed')):
                 return super(IRMCManagement, self).get_sensors_data(task)
             else:
                 raise exception.InvalidParameterValue(_(
@@ -567,7 +572,8 @@ class IRMCManagement(ipmitool.IPMIManagement,
         :returns: String representing the BMC reported Vendor or
                   Manufacturer, otherwise returns None.
         """
-        if task.node.driver_internal_info.get('irmc_ipmi_succeed'):
+        if (getattr(task.node, 'power_interface') == 'ipmitool'
+            or task.node.driver_internal_info.get('irmc_ipmi_succeed')):
             return super(IRMCManagement, self).detect_vendor(task)
         else:
             return super(ipmitool.IPMIManagement, self).detect_vendor(task)
