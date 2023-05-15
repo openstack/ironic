@@ -1,28 +1,21 @@
 Bug Reporting and Triaging Guide
 ================================
 
-StoryBoard
+Launchpad
 ----------
 
-All ironic projects use StoryBoard_ for tracking both bugs and enhancement
-requests (RFE). The `ironic project group`_ lists all our projects.
+All Ironic projects use Launchpad_ for tracking bugs.
 
 .. note::
-   Ironic is developed as part of OpenStack and therefore uses
-   the ``openstack/`` namespace.
+   Ironic projects formerly used Storyboard_ for tracking bugs. Since April
+   2023, we have switched to Launchpad_ for bugtracking.
 
-StoryBoard is somewhat different from traditional bug tracking
-systems because every *story* is not linked to a project itself, but rather
-through its *tasks*. A story represents an issue you are facing or an
-enhancement you want to see, while tasks represent individual action items
-which can span several projects. When creating a story, you'll also need to
-create the first task. If unsure, create a task against ``openstack/ironic``.
 
 Reporting Guide
 ---------------
 
 We are constantly receiving a lot of requests, so it's important to file a
-meaningful story for it to be acted upon. A good story:
+meaningful one for it to be acted upon. A good request:
 
 * specifies **why** a change is needed. In case of a bug - what you expected
   to happen.
@@ -56,12 +49,16 @@ meaningful story for it to be acted upon. A good story:
 An enhancement request additionally:
 
 * benefits the overall project, not just one consumer. If you have a case that
-  is specific to your requirements, think about ways to make ironic extensible
+  is specific to your requirements, think about ways to make Ironic extensible
   to be able to cover it.
 
 * does not unnecessary increase the project scope. Consider if your idea can be
-  implemented without changing ironic or its projects, maybe it actually
+  implemented without changing Ironic or its projects, maybe it actually
   should?
+
+* should specify if you are willing to perform the work to enhance Ironic
+  yourself, of if you're submitting a request to for the project team to
+  executed your requested enhancement.
 
 Triaging Guide
 --------------
@@ -129,7 +126,7 @@ the following cases:
    As usual, common sense should be applied when closing stories.
 
 .. _StoryBoard: https://storyboard.openstack.org
-.. _ironic project group: https://storyboard.openstack.org/#!/project_group/ironic
+.. _Launchpad: https://bugs.launchpad.net/ironic/+bugs
 .. _bifrost: https://docs.openstack.org/bifrost
 .. _spec: https://specs.openstack.org/openstack/ironic-specs/
 .. _weekly meeting: https://wiki.openstack.org/wiki/Meetings/Ironic

@@ -48,7 +48,7 @@ except ImportError:
     openstackdocstheme = None
 
 openstackdocs_repo_name = 'openstack/ironic'
-openstackdocs_use_storyboard = True
+openstackdocs_use_storyboard = False
 openstackdocs_auto_name = False
 
 # Add any paths that contain templates here, relative to this directory.
