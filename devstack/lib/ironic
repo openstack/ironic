@@ -594,7 +594,12 @@ TEMPEST_BAREMETAL_MAX_MICROVERSION=${TEMPEST_BAREMETAL_MAX_MICROVERSION:-}
 PHYSICAL_NETWORK=${NEUTRON_PHYSICAL_NETWORK:-${PHYSICAL_NETWORK:-}}
 
 # Ramdisk ISO image for Ramdisk Virtual Media/iPXE testing
-IRONIC_RAMDISK_IMAGE=${IRONIC_RAMDISK_IMAGE:-http://tinycorelinux.net/13.x/x86/archive/13.0/Core-13.0.iso}
+# Originally http://tinycorelinux.net/13.x/x86/archive/13.0/Core-13.0.iso
+# However sometimes this is unreachable.
+# NOTE(TheJulia): As of May 19th, 2023, mirrors.dotsrc.org was
+# accessible via ipv4 and ipv6, it appears to be the only v6
+# accessible tinycore mirror..
+IRONIC_RAMDISK_IMAGE=${IRONIC_RAMDISK_IMAGE:-http://mirrors.dotsrc.org/tinycorelinux/14.x/x86/release/Core-current.iso}
 
 IRONIC_LOADER_PATHS=${IRONIC_LOADER_PATHS:-}
 
