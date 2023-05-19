@@ -1089,17 +1089,26 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
                 autospec=True)
     def test_port_changed_client_id_fail(self, dhcp_update_mock):
-        self.port.internal_info = {'tenant_vif_port_id': 'fake-id'}
-        self.port.extra = {'client-id': 'fake3'}
+        port = obj_utils.create_test_port(
+            self.context,
+            id=1119,
+            uuid=uuidutils.generate_uuid(),
+            node_id=self.node.id,
+            address='51:51:00:cf:2d:33',
+            internal_info={'tenant_vif_port_id': uuidutils.generate_uuid()},
+            extra={'client-id': 'fake1'})
+
+        port.internal_info = {'tenant_vif_port_id': 'fake-id'}
+        port.extra = {'client-id': 'fake3'}
         what_changed_mock = mock.Mock()
         what_changed_mock.return_value = ['extra']
-        self.port.obj_what_changed = what_changed_mock
+        port.obj_what_changed = what_changed_mock
         dhcp_update_mock.side_effect = (
-            exception.FailedToUpdateDHCPOptOnPort(port_id=self.port.uuid))
+            exception.FailedToUpdateDHCPOptOnPort(port_id=port.uuid))
         with task_manager.acquire(self.context, self.node.id) as task:
             self.assertRaises(exception.FailedToUpdateDHCPOptOnPort,
                               self.interface.port_changed,
-                              task, self.port)
+                              task, port)
         self.assertEqual(2, what_changed_mock.call_count)
 
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
