@@ -32,13 +32,7 @@
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
             voting: false
         - ironic-tempest-bios-ipmi-direct-tinyipa
-        # Currently broken, fallout from OSSA-2023-003 which was a breaking
-        # change. Ironic needs to ensure we use a service token, not the
-        # admin token credentials, and we then may need to revise our tempest
-        # plugin once we have that sorted.
-        # bugs.launchpad.net/ironic/+bug/2019892
-        - ironic-tempest-bfv:
-            voting: false
+        - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-centos8-legacy
         # Non-voting jobs
@@ -86,10 +80,7 @@
         # seeming to be 
         # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-bios-ipmi-direct-tinyipa
-        # NOTE(TheJulia): Disabled as of 20230516 until we can get the
-        # Cinder boot from volume integration sorted.
-        # https://bugs.launchpad.net/ironic/+bug/2019892
-        # - ironic-tempest-bfv
+        - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-centos8-legacy
     experimental:
