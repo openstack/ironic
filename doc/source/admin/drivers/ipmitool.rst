@@ -279,7 +279,7 @@ synchronization process, and record this value if not already set.
 While similar issues may exist when setting the boot mode and target
 boot device in other vendors' BMCs, we are not aware of them at present.
 Should you encounter such an issue, please feel free to report this via
-`Storyboard <https://storyboard.openstack.org>`_, and be sure to include
+`Launchpad <https://bugs.launchpad.net/ironic/+bugs>`_, and be sure to include
 the ``chassis bootparam get 5`` output value along with the ``mc info``
 output from your BMC.
 

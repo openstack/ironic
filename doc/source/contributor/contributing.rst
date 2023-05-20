@@ -55,21 +55,19 @@ be submitted before a spec or code is proposed.
 
 When a member of the `ironic-core team <https://review.opendev.org/#/admin/groups/165,members>`_
 decides that the proposal is worth implementing, a spec (if needed) and code
-should be submitted, referencing the RFE task or story ID number. Contributors
+should be submitted, referencing the RFE task or bug number. Contributors
 are welcome to submit a spec and/or code before the RFE is approved, however
 those patches will not land until the RFE is approved.
 
 Feature Submission Process
 --------------------------
 
-#. Submit a bug report on the `ironic StoryBoard
-   <https://storyboard.openstack.org/#!/project/943>`_.
-   There are two fields that must be filled: 'Title' and
-   'Description'. 'Tasks' can be added and are associated with a project.
-   If you can't describe it in a sentence or two, it may mean that you are
-   either trying to capture more than one RFE at once, or that you are having
-   a hard time defining what you are trying to solve at all. This may also be
-   a sign that your feature may require a specification document.
+#. Submit a bug report on `Launchpad
+   <https://bugs.launchpad.net/ironic/+bugs>`_.
+   If you can't describe your feature in a sentence or two, it may mean that
+   you are either trying to capture more than one RFE at once, or that you are
+   having a hard time defining what you are trying to solve at all. This may
+   also be a sign that your feature may require a specification document.
 
 #. Describe the proposed change in the 'Description' field. The
    description should provide enough details for a knowledgeable developer to
@@ -77,12 +75,16 @@ Feature Submission Process
    to be addressed, or what is the enhancement that would make the platform
    more capable, both from a functional and a non-functional standpoint.
 
-#. Submit the story, add an 'rfe' tag to it and assign yourself or whoever is
+#. Submit the bug, add an 'rfe' tag to it and assign yourself or whoever is
    going to work on this feature.
 
-#. As soon as a member of the team acknowledges the story,
-   we will move the story to the 'Review' state. As time goes on, Discussion
-   about the RFE, and whether to approve it will occur.
+#. As soon as a member of the team acknowledges the bug,
+   we will move it to the 'Review' state. As time goes on, Discussion
+   about the RFE, and whether to approve it will occur. If the RFE has not
+   been triaged and you'd like it to recieve immediate attention, add it to
+   the Open Discussion section of our
+   `weekly meeting agenda <https://wiki.openstack.org/wiki/Meetings/Ironic>`,
+   and, timezone permitting, attend the meeting to advocate for your RFE.
 
 #. Contributors will evaluate the RFE and may advise the submitter to file a
    spec in the ironic-specs repository to elaborate on the feature request.
@@ -100,36 +102,22 @@ Feature Submission Process
    of the story referenced as 'Task' in the commit message), reviewed, and merged
    before the RFE will be 'approved' (and the tag changed to 'rfe-approved').
 
-#. The tasks then goes through the usual process -- first to 'Review' when
-   the spec/code is being worked on, then 'Merged' when it is
-   implemented.
-
 #. If the RFE is rejected, the ironic-core team will move the story to
    "Invalid" status.
 
 Change Tracking
 ---------------
 
-We track our stories and tasks in Storyboard.
-
-https://storyboard.openstack.org/#!/project/ironic
-
-
-When working on an RFE, please be sure to tag your commits properly:
-"Story: #xxxx" or "Task: #xxxx". It is also helpful to set a consistent
-review topic, such as "story/xxxx" for all patches related to the RFE.
-
-If the RFE spans across several projects (e.g. ironic and python-ironicclient),
-but the main work is going to happen within ironic, please use the same story
-for all the code you're submitting, there is no need to create a separate RFE
-in every project.
+Please ensure work related to a bug or RFE is tagged with the bug. This
+generally is a "Closes-bug", "Partial-bug" or "Related-bug" tag as described
+in the
+`Git Commit messages guide <https://wiki.openstack.org/wiki/GitCommitMessages#Including_external_references>``.
 
 .. note:: **RFEs may only be approved by members of the ironic-core team**.
 
 .. note:: While not strictly required for minor changes and fixes,
           it is highly preferred by the Ironic community that any change
-          which needs to be backported, have a recorded Story and Task in
-          Storyboard.
+          which needs to be backported, have a recorded bug.
 
 Managing Change Sets
 --------------------
