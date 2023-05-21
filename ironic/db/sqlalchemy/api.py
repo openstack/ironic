@@ -763,31 +763,34 @@ class Connection(api.Connection):
         try:
             query = _get_node_select()
             with _session_for_read() as session:
-                return session.scalars(
+                res = session.scalars(
                     query.filter_by(id=node_id).limit(1)
                 ).unique().one()
         except NoResultFound:
             raise exception.NodeNotFound(node=node_id)
+        return res
 
     def get_node_by_uuid(self, node_uuid):
         try:
             query = _get_node_select()
             with _session_for_read() as session:
-                return session.scalars(
+                res = session.scalars(
                     query.filter_by(uuid=node_uuid).limit(1)
                 ).unique().one()
         except NoResultFound:
             raise exception.NodeNotFound(node=node_uuid)
+        return res
 
     def get_node_by_name(self, node_name):
         try:
             query = _get_node_select()
             with _session_for_read() as session:
-                return session.scalars(
+                res = session.scalars(
                     query.filter_by(name=node_name).limit(1)
                 ).unique().one()
         except NoResultFound:
             raise exception.NodeNotFound(node=node_name)
+        return res
 
     def get_node_by_instance(self, instance):
         if not uuidutils.is_uuid_like(instance):
@@ -796,11 +799,12 @@ class Connection(api.Connection):
         try:
             query = _get_node_select()
             with _session_for_read() as session:
-                return session.scalars(
+                res = session.scalars(
                     query.filter_by(instance_uuid=instance).limit(1)
                 ).unique().one()
         except NoResultFound:
             raise exception.InstanceNotFound(instance_uuid=instance)
+        return res
 
     @oslo_db_api.retry_on_deadlock
     def destroy_node(self, node_id):
