@@ -1798,11 +1798,12 @@ class Connection(api.Connection):
             #             compatible with its (old) DB representation.
             # NOTE(rloo): .notin_ does not handle null:
             # http://docs.sqlalchemy.org/en/latest/core/sqlelement.html#sqlalchemy.sql.operators.ColumnOperators.notin_
-            query = model_query(model.version).filter(
-                sql.or_(model.version == sql.null(),
-                        model.version.notin_(supported_versions)))
-            if query.count():
-                return False
+            with _session_for_read() as session:
+                query = session.query(model.version).filter(
+                    sql.or_(model.version == sql.null(),
+                            model.version.notin_(supported_versions)))
+                if query.count():
+                    return False
 
         return True
 
