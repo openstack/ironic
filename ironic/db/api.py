@@ -968,16 +968,6 @@ class Connection(object, metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def get_not_versions(self, model_name, versions):
-        """Returns objects with versions that are not the specified versions.
-
-        :param model_name: the name of the model (class) of desired objects
-        :param versions: list of versions of objects not to be returned
-        :returns: list of the DB objects
-        :raises: IronicException if there is no class associated with the name
-        """
-
-    @abc.abstractmethod
     def check_versions(self, ignore_models=()):
         """Checks the whole database for incompatible objects.
 
