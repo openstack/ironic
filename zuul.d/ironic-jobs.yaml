@@ -70,6 +70,7 @@
         # which cuts API memory utilziation in half reducing the risk of
         # oom-killer events in CI.
         API_WORKERS: 1
+        CIRROS_VERSION: 0.6.1
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
       tempest_plugins:
@@ -898,6 +899,7 @@
           LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
           INSTANCE_WAIT: 120
           MYSQL_GATHER_PERFORMANCE: False
+          CIRROS_VERSION: 0.6.1
         old:
           IRONIC_VM_LOG_DIR: '{{ devstack_bases.old }}/ironic-bm-logs'
       grenade_localrc:
