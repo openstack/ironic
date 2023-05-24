@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes an issue where the database upgrade can hang on Python 3.10.
+    This was because open transactions could become orphaned awaiting
+    the Python runtime to clean up their memory references due to the
+    way the overall database query was being intiiated to pre-flight
+    check the upgrade. We have structurally changed the behavior
+    to remedy this case.
