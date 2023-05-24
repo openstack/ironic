@@ -3202,7 +3202,7 @@ function ironic_configure_tempest {
 
     if is_service_enabled nova; then
         local bm_flavor_id
-        bm_flavor_id=$(openstack --os-cloud $IRONIC_OS_CLOUD flavor show baremetal -f value -c id)
+        bm_flavor_id=$(openstack --os-cloud devstack-admin flavor show baremetal -f value -c id)
         die_if_not_set $LINENO bm_flavor_id "Failed to get id of baremetal flavor"
         iniset $TEMPEST_CONFIG compute flavor_ref $bm_flavor_id
         iniset $TEMPEST_CONFIG compute flavor_ref_alt $bm_flavor_id
