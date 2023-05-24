@@ -410,7 +410,8 @@ class Connection(api.Connection):
                               'sharded': 'shard'}
     _NODE_FILTERS = ({'chassis_uuid', 'reserved_by_any_of',
                       'provisioned_before', 'inspection_started_before',
-                      'description_contains', 'project'}
+                      'description_contains', 'project', 'include_children',
+                      'parent_node'}
                      | _NODE_QUERY_FIELDS
                      | set(_NODE_IN_QUERY_FIELDS)
                      | set(_NODE_NON_NULL_FILTERS))
@@ -472,7 +473,17 @@ class Connection(api.Connection):
             project = filters['project']
             query = query.filter((models.Node.owner == project)
                                  | (models.Node.lessee == project))
+        # Determine parent/child node handling
+        if not filters.get('include_children', False):
+            if 'parent_node' in filters:
+                query = query.filter(
+                    models.Node.parent_node == filters.get('parent_node')
+                )
+            else:
+                query = query.filter(models.Node.parent_node == sql.null())
 
+        # The presence of ``include_children`` as a filter results in
+        # a full list of both parents and children being conveyed.
         return query
 
     def _add_allocations_filters(self, query, filters):

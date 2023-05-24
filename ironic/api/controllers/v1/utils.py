@@ -531,7 +531,6 @@ def get_rpc_node(node_ident):
     # as a UUID.
     if uuidutils.is_uuid_like(node_ident):
         return objects.Node.get_by_uuid(api.request.context, node_ident)
-
     # We can refer to nodes by their name, if the client supports it
     if allow_node_logical_names():
         if is_valid_logical_name(node_ident):
@@ -807,7 +806,8 @@ VERSIONED_FIELDS = {
     'network_data': versions.MINOR_66_NODE_NETWORK_DATA,
     'boot_mode': versions.MINOR_75_NODE_BOOT_MODE,
     'secure_boot': versions.MINOR_75_NODE_BOOT_MODE,
-    'shard': versions.MINOR_82_NODE_SHARD
+    'shard': versions.MINOR_82_NODE_SHARD,
+    'parent_node': versions.MINOR_83_PARENT_CHILD_NODES
 }
 
 for field in V31_FIELDS:
@@ -1078,6 +1078,19 @@ def check_allow_filter_by_shard(shard):
             "should be %(base)s.%(opr)s") %
             {'base': versions.BASE_VERSION,
              'opr': versions.MINOR_82_NODE_SHARD})
+
+
+def check_allow_child_node_params(include_children=None,
+                                  parent_node=None):
+    if ((include_children is not None
+         or parent_node is not None)
+            and api.request.version.minor
+            < versions.MINOR_83_PARENT_CHILD_NODES):
+        raise exception.NotAcceptable(_(
+            "Request not acceptable. The minimal required API version "
+            "should be %(base)s.%(opr)s") %
+            {'base': versions.BASE_VERSION,
+             'opr': versions.MINOR_83_PARENT_CHILD_NODES})
 
 
 def initial_node_provision_state():

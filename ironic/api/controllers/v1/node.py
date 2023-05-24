@@ -172,6 +172,7 @@ def node_schema():
             ]},
             'network_interface': {'type': ['string', 'null']},
             'owner': {'type': ['string', 'null']},
+            'parent_node': {'type': ['string', 'null'], 'maxLength': 36},
             'power_interface': {'type': ['string', 'null']},
             'properties': {'type': ['object', 'null']},
             'raid_interface': {'type': ['string', 'null']},
@@ -270,7 +271,8 @@ PATCH_ALLOWED_FIELDS = [
     'retired_reason',
     'shard',
     'storage_interface',
-    'vendor_interface'
+    'vendor_interface',
+    'parent_node'
 ]
 
 TRAITS_SCHEMA = {
@@ -1370,6 +1372,7 @@ def _get_fields_for_node_query(fields=None):
                     'network_data',
                     'network_interface',
                     'owner',
+                    'parent_node',
                     'power_interface',
                     'power_state',
                     'properties',
@@ -1977,6 +1980,51 @@ class NodeInventoryController(rest.RestController):
         return inspect_utils.get_inspection_data(node, api.request.context)
 
 
+class NodeChildrenController(rest.RestController):
+
+    def __init__(self, node_ident):
+        if hasattr(self, 'parent'):
+            # Short circuit any attempt to access
+            # /v1/nodes/<node>/children/<child_node>/children
+            raise exception.HTTPNotFound()
+        if api.request.version.minor < versions.MINOR_83_PARENT_CHILD_NODES:
+            # Minimum Client version is required.
+            raise exception.HTTPNotFound()
+
+        super(NodeChildrenController).__init__()
+        self.parent_node = node_ident
+
+    @METRICS.timer('NodeHistoryController.get_all')
+    @method.expose()
+    def get_all(self):
+        try:
+            # retrieve the parent node and validate access is permitted.
+            rpc_node = api_utils.check_node_policy_and_retrieve(
+                'baremetal:node:get', self.parent_node)
+        except exception.HTTPForbidden:
+            # If access is forbidden, we cannot tell the user they don't
+            # have access.
+            raise exception.HTTPNotFound()
+
+        filters = {}
+        # Extract the project ID or get None if not applicable.
+        project = api_utils.check_list_policy('node', None)
+        url = api.request.public_url
+        if project:
+            filters['project'] = project
+        filters['parent_node'] = rpc_node.uuid
+        nodes = objects.Node.list(api.request.context,
+                                  filters=filters, fields=['uuid'])
+        node_list = []
+        for node in nodes:
+            node_list.append(node.uuid)
+        # todo, need to check the format for links
+        return {
+            'children': node_list,
+            'links': link.make_link('children', url, 'nodes',
+                                    '?parent_node={}'.format(rpc_node.uuid))}
+
+
 class NodesController(rest.RestController):
     """REST controller for Nodes."""
 
@@ -2003,6 +2051,10 @@ class NodesController(rest.RestController):
     """A flag to indicate if the requests to this controller are coming
     from the top-level resource Chassis"""
 
+    parent_node = None
+    """An indicator to signal if this resource is being accessed
+    by a sub-controller."""
+
     _custom_actions = {
         'detail': ['GET'],
         'validate': ['GET'],
@@ -2024,6 +2076,7 @@ class NodesController(rest.RestController):
         'allocation': allocation.NodeAllocationController,
         'history': NodeHistoryController,
         'inventory': NodeInventoryController,
+        'children': NodeChildrenController,
     }
 
     @pecan.expose()
@@ -2056,6 +2109,7 @@ class NodesController(rest.RestController):
             # behaviour of previous releases for microversions without this
             # endpoint.
             return
+
         subcontroller = self._subcontroller_map.get(remainder[0])
         if subcontroller:
             return subcontroller(node_ident=ident), remainder[1:]
@@ -2082,7 +2136,8 @@ class NodesController(rest.RestController):
                               detail=None, conductor=None, owner=None,
                               lessee=None, project=None,
                               description_contains=None, shard=None,
-                              sharded=None):
+                              sharded=None, include_children=None,
+                              parent_node=None):
         if self.from_chassis and not chassis_uuid:
             raise exception.MissingParameterValue(
                 _("Chassis id not specified."))
@@ -2124,7 +2179,9 @@ class NodesController(rest.RestController):
             'description_contains': description_contains,
             'retired': retired,
             'instance_uuid': instance_uuid,
-            'sharded': sharded
+            'sharded': sharded,
+            'include_children': include_children,
+            'parent_node': parent_node,
         }
         filters = {}
         for key, value in possible_filters.items():
@@ -2143,6 +2200,7 @@ class NodesController(rest.RestController):
             # map the name for the call, as we did not pickup a specific
             # list of fields to return.
             obj_fields = fields
+
         # NOTE(TheJulia): When a data set of the nodes list is being
         # requested, this method takes approximately 3-3.5% of the time
         # when requesting specific fields aligning with Nova's sync
@@ -2176,7 +2234,6 @@ class NodesController(rest.RestController):
             # and we cannot pass a limit of 0 to sqlalchemy
             # and expect a response.
             limit = 0
-
         return node_list_convert_with_links(nodes, limit,
                                             url=resource_url,
                                             fields=fields,
@@ -2269,14 +2326,16 @@ class NodesController(rest.RestController):
                    detail=args.boolean, conductor=args.string,
                    owner=args.string, description_contains=args.string,
                    lessee=args.string, project=args.string,
-                   shard=args.string_list, sharded=args.boolean)
+                   shard=args.string_list, sharded=args.boolean,
+                   include_children=args.boolean, parent_node=args.string)
     def get_all(self, chassis_uuid=None, instance_uuid=None, associated=None,
                 maintenance=None, retired=None, provision_state=None,
                 marker=None, limit=None, sort_key='id', sort_dir='asc',
                 driver=None, fields=None, resource_class=None, fault=None,
                 conductor_group=None, detail=None, conductor=None,
                 owner=None, description_contains=None, lessee=None,
-                project=None, shard=None, sharded=None):
+                project=None, shard=None, sharded=None, include_children=None,
+                parent_node=None):
         """Retrieve a list of nodes.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -2342,6 +2401,9 @@ class NodesController(rest.RestController):
         api_utils.check_allow_filter_by_shard(shard)
         # Sharded is guarded by the same API version as shard
         api_utils.check_allow_filter_by_shard(sharded)
+        api_utils.check_allow_child_node_params(
+            include_children=include_children,
+            parent_node=parent_node)
 
         fields = api_utils.get_request_return_fields(fields, detail,
                                                      _DEFAULT_RETURN_FIELDS)
@@ -2359,7 +2421,10 @@ class NodesController(rest.RestController):
                                           conductor=conductor,
                                           owner=owner, lessee=lessee,
                                           shard=shard, sharded=sharded,
-                                          project=project, **extra_args)
+                                          project=project,
+                                          include_children=include_children,
+                                          parent_node=parent_node,
+                                          **extra_args)
 
     @METRICS.timer('NodesController.detail')
     @method.expose()
@@ -2379,7 +2444,8 @@ class NodesController(rest.RestController):
                driver=None, resource_class=None, fault=None,
                conductor_group=None, conductor=None, owner=None,
                description_contains=None, lessee=None, project=None,
-               shard=None, sharded=None):
+               shard=None, sharded=None, include_children=None,
+               parent_node=None):
         """Retrieve a list of nodes with detail.
 
         :param chassis_uuid: Optional UUID of a chassis, to get only nodes for
@@ -2457,7 +2523,10 @@ class NodesController(rest.RestController):
                                           conductor=conductor,
                                           owner=owner, lessee=lessee,
                                           project=project, shard=shard,
-                                          sharded=sharded, **extra_args)
+                                          sharded=sharded,
+                                          include_children=include_children,
+                                          parent_node=parent_node,
+                                          **extra_args)
 
     @METRICS.timer('NodesController.validate')
     @method.expose()
@@ -2639,57 +2708,77 @@ class NodesController(rest.RestController):
         for network_data in network_data_fields:
             validate_network_data(network_data)
 
+        parent_node = api_utils.get_patch_values(patch, '/parent_node')
+        if parent_node:
+            try:
+                # Verify we can see the parent node
+                api_utils.check_node_policy_and_retrieve(
+                    'baremetal:node:get', parent_node[0])
+            except Exception:
+                msg = _("Unable to apply the requested parent_node. "
+                        "Requested value was invalid.")
+                raise exception.Invalid(msg)
+
     def _authorize_patch_and_get_node(self, node_ident, patch):
         # deal with attribute-specific policy rules
         policy_checks = []
         generic_update = False
-        for p in patch:
-            if p['path'].startswith('/instance_info'):
-                policy_checks.append('baremetal:node:update_instance_info')
-            elif p['path'].startswith('/extra'):
-                policy_checks.append('baremetal:node:update_extra')
-            elif (p['path'].startswith('/automated_clean')
-                  and strutils.bool_from_string(p['value'], default=None)
-                  is False):
-                policy_checks.append('baremetal:node:disable_cleaning')
-            elif p['path'].startswith('/driver_info'):
-                policy_checks.append('baremetal:node:update:driver_info')
-            elif p['path'].startswith('/properties'):
-                policy_checks.append('baremetal:node:update:properties')
-            elif p['path'].startswith('/chassis_uuid'):
-                policy_checks.append('baremetal:node:update:chassis_uuid')
-            elif p['path'].startswith('/instance_uuid'):
-                policy_checks.append('baremetal:node:update:instance_uuid')
-            elif p['path'].startswith('/lessee'):
-                policy_checks.append('baremetal:node:update:lessee')
-            elif p['path'].startswith('/owner'):
-                policy_checks.append('baremetal:node:update:owner')
-            elif p['path'].startswith('/driver'):
-                policy_checks.append('baremetal:node:update:driver_interfaces')
-            elif ((p['path'].lstrip('/').rsplit(sep="_", maxsplit=1)[0]
-                   in driver_base.ALL_INTERFACES)
-                  and (p['path'].lstrip('/').rsplit(sep="_", maxsplit=1)[-1]
-                       == "interface")):
-                # TODO(TheJulia): Replace the above check with something like
-                # elif (p['path'].lstrip('/').removesuffix('_interface')
-                # when the minimum supported version is Python 3.9.
-                policy_checks.append('baremetal:node:update:driver_interfaces')
-            elif p['path'].startswith('/network_data'):
-                policy_checks.append('baremetal:node:update:network_data')
-            elif p['path'].startswith('/conductor_group'):
-                policy_checks.append('baremetal:node:update:conductor_group')
-            elif p['path'].startswith('/name'):
-                policy_checks.append('baremetal:node:update:name')
-            elif p['path'].startswith('/retired'):
-                policy_checks.append('baremetal:node:update:retired')
-            elif p['path'].startswith('/shard'):
-                policy_checks.append('baremetal:node:update:shard')
-            else:
-                generic_update = True
-        # always do at least one check
-        if generic_update or not policy_checks:
-            policy_checks.append('baremetal:node:update')
 
+        paths_to_policy = (
+            ('/instance_info', 'baremetal:node:update_instance_info'),
+            ('/extra', 'baremetal:node:update_extra'),
+            ('/driver_info', 'baremetal:node:update:driver_info'),
+            ('/properties', 'baremetal:node:update:properties'),
+            ('/chassis_uuid', 'baremetal:node:update:chassis_uuid'),
+            ('/instance_uuid', 'baremetal:node:update:instance_uuid'),
+            ('/lessee', 'baremetal:node:update:lessee'),
+            ('/owner', 'baremetal:node:update:owner'),
+            ('/driver', 'baremetal:node:update:driver_interfaces'),
+            ('/network_data', 'baremetal:node:update:network_data'),
+            ('/conductor_group', 'baremetal:node:update:conductor_group'),
+            ('/name', 'baremetal:node:update:name'),
+            ('/retired', 'baremetal:node:update:retired'),
+            ('/shard', 'baremetal:node:update:shard'),
+            ('/parent_node', 'baremetal:node:update:parent_node')
+        )
+        for p in patch:
+            # Process general direct path to policy map
+            rule_match_found = False
+            for check_path, policy_name in paths_to_policy:
+                if p['path'].startswith(check_path):
+                    policy_checks.append(policy_name)
+                    # Break from the loop as there is no reason to
+                    # continue iterating
+                    rule_match_found = True
+                    break
+
+            # Process more advanced checks and conditional behavior checks.
+            if not rule_match_found:
+                if ((p['path'].lstrip('/').rsplit(sep="_", maxsplit=1)[0]
+                     in driver_base.ALL_INTERFACES)
+                    and (p['path'].lstrip('/').rsplit(sep="_", maxsplit=1)[-1]
+                         == "interface")):
+                    # TODO(TheJulia): Replace the above check with something
+                    # like elif (p['path'].lstrip('/').removesuffix(
+                    # '_interface') when the minimum supported version is
+                    # Python 3.9.
+                    policy_checks.append(
+                        'baremetal:node:update:driver_interfaces')
+                    rule_match_found = True
+                elif (p['path'].startswith('/automated_clean')
+                      and strutils.bool_from_string(p['value'], default=None)
+                      is False):
+                    policy_checks.append('baremetal:node:disable_cleaning')
+                    rule_match_found = True
+            if not rule_match_found:
+                generic_update = True
+        # End of loop over patch to determine rules to apply.
+
+        if generic_update or not policy_checks:
+            # General policy check, either we no specific policy to apply
+            # on a node, or we fell through completely, regardless,
+            # we apply the update policy check.
+            policy_checks.append('baremetal:node:update')
         return api_utils.check_multiple_node_policies_and_retrieve(
             policy_checks, node_ident, with_suffix=True)
 

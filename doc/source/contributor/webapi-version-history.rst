@@ -2,6 +2,27 @@
 REST API Version History
 ========================
 
+1.83 (Bobcat)
+----------------------
+
+This version adds a concept of child nodes through the use of a
+``parent_node`` field which can be set on a node.
+
+Under normal conditions, child nodes are not visible in the normal node
+list, as they are more for nested resources and not machines which can be
+freely used outside of an integrated context of the parent node.
+Think of a "child node" as a node with it's own BMC embedded inside of
+an existing node.
+
+Additionally:
+
+- Adds ``GET /v1/nodes/{node_ident}/children`` to return a list of node
+  UUIDs which represent children, which can acted upon individually.
+- Adds ``GET /v1/nodes/?include_children=True`` to return a list of all
+  parent nodes and children.
+- Adds ``GET /v1/nodes?parent_node={node_ident}`` to explicitly request
+  a detailed list of nodes by parent relationship.
+
 1.82 (Antelope)
 ----------------------
 

@@ -1,0 +1,23 @@
+---
+features:
+  - |
+    Adds the concept of ``parent_node`` which allows a "child node", such as
+    an independently managed BMC controlled device deployed within a
+    ``parent_node`` as part of API version *1.83*. Child nodes are hidden
+    from normal node lists as they are not "general purpose" machines,
+    but have a specific embedded usage. In this model, RBAC rules also apply
+    so if you wish an ``owner`` or ``lessee`` to have the child node visible,
+    they must also have the the appropriate ``owner`` or ``lessee`` value set
+    matching the parent node.
+  - |
+    Adds a ``/v1/nodes/?include_children=True`` parameter to get a list of
+    all nodes and their children.
+  - |
+    Adds a ``/v1/nodes/?parent_node=<node_ident>`` query parameter to permit
+    retrieval of a list of child nodes assigned to the parent denoted by
+    ``<node_ident>``.
+upgrade:
+  - |
+    This upgrade contains an additional field for the ``nodes`` table, named
+    ``parent_node``. This update also indexes the ``parent_node`` database
+    column to prevent performance issues in large deployments.

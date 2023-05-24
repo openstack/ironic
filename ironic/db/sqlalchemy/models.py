@@ -135,6 +135,7 @@ class NodeBase(Base):
         Index('conductor_group_idx', 'conductor_group'),
         Index('resource_class_idx', 'resource_class'),
         Index('shard_idx', 'shard'),
+        Index('parent_node_idx', 'parent_node'),
         table_args())
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
@@ -211,11 +212,10 @@ class NodeBase(Base):
     storage_interface = Column(String(255), nullable=True)
     power_interface = Column(String(255), nullable=True)
     vendor_interface = Column(String(255), nullable=True)
-
     boot_mode = Column(String(16), nullable=True)
     secure_boot = Column(Boolean, nullable=True)
-
     shard = Column(String(255), nullable=True)
+    parent_node = Column(String(36), nullable=True)
 
 
 class Node(NodeBase):
