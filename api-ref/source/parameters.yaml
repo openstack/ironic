@@ -209,7 +209,7 @@ fields_for_conductor:
   type: array
 include_children:
   description: |
-    Wheter to show child nodes in the node list, which are normally hidden.
+    Whether to show child nodes in the node list, which are normally hidden.
   in: query
   required: false
   type: boolean
@@ -1329,9 +1329,8 @@ owner:
   type: string
 parent_node:
   description: |
-    A UUID representing a node which is a parent_node to the present
-    node. If populated, the node will disappear from the normal node
-    list, as it is *not* intended for *normal* usage directly.
+    An optional UUID which can be used to denote the "parent" baremetal
+    node.
   in: body
   required: false
   type: string
