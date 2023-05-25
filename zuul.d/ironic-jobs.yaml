@@ -896,6 +896,7 @@
           SWIFT_TEMPURL_KEY: secretkey
           EBTABLES_RACE_FIX: True
           LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
+          MYSQL_GATHER_PERFORMANCE: False
         old:
           IRONIC_VM_LOG_DIR: '{{ devstack_bases.old }}/ironic-bm-logs'
       grenade_localrc:
