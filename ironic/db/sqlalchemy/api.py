@@ -127,6 +127,9 @@ def _get_deploy_template_select_with_steps():
 def model_query(model, *args, **kwargs):
     """Query helper for simpler session usage.
 
+    WARNING: DO NOT USE, unless you know exactly what your doing
+    AND are okay with a transaction possibly hanging.
+
     :param session: if present, the session to use
     """
 
@@ -946,36 +949,44 @@ class Connection(api.Connection):
             return session.execute(query).one()[0]
 
     def get_port_by_id(self, port_id):
-        query = model_query(models.Port).filter_by(id=port_id)
         try:
-            return query.one()
+            with _session_for_read() as session:
+                query = session.query(models.Port).filter_by(id=port_id)
+                res = query.one()
         except NoResultFound:
             raise exception.PortNotFound(port=port_id)
+        return res
 
     def get_port_by_uuid(self, port_uuid):
-        query = model_query(models.Port).filter_by(uuid=port_uuid)
         try:
-            return query.one()
+            with _session_for_read() as session:
+                query = session.query(models.Port).filter_by(uuid=port_uuid)
+                res = query.one()
         except NoResultFound:
             raise exception.PortNotFound(port=port_uuid)
+        return res
 
     def get_port_by_address(self, address, owner=None, project=None):
-        query = model_query(models.Port).filter_by(address=address)
-        if owner:
-            query = add_port_filter_by_node_owner(query, owner)
-        elif project:
-            query = add_port_filter_by_node_project(query, project)
         try:
-            return query.one()
+            with _session_for_read() as session:
+                query = session.query(models.Port).filter_by(address=address)
+                if owner:
+                    query = add_port_filter_by_node_owner(query, owner)
+                elif project:
+                    query = add_port_filter_by_node_project(query, project)
+                res = query.one()
         except NoResultFound:
             raise exception.PortNotFound(port=address)
+        return res
 
     def get_port_by_name(self, port_name):
-        query = model_query(models.Port).filter_by(name=port_name)
         try:
-            return query.one()
+            with _session_for_read() as session:
+                query = session.query(models.Port).filter_by(name=port_name)
+                res = query.one()
         except NoResultFound:
             raise exception.PortNotFound(port=port_name)
+        return res
 
     def get_port_list(self, limit=None, marker=None,
                       sort_key=None, sort_dir=None, owner=None,
@@ -1072,36 +1083,49 @@ class Connection(api.Connection):
                 raise exception.PortNotFound(port=port_id)
 
     def get_portgroup_by_id(self, portgroup_id, project=None):
-        query = model_query(models.Portgroup).filter_by(id=portgroup_id)
-        if project:
-            query = add_portgroup_filter_by_node_project(query, project)
         try:
-            return query.one()
+            with _session_for_read() as session:
+                query = session.query(models.Portgroup).filter_by(
+                    id=portgroup_id)
+                if project:
+                    query = add_portgroup_filter_by_node_project(query,
+                                                                 project)
+                res = query.one()
         except NoResultFound:
             raise exception.PortgroupNotFound(portgroup=portgroup_id)
+        return res
 
     def get_portgroup_by_uuid(self, portgroup_uuid):
-        query = model_query(models.Portgroup).filter_by(uuid=portgroup_uuid)
         try:
-            return query.one()
+            with _session_for_read() as session:
+                query = session.query(models.Portgroup).filter_by(
+                    uuid=portgroup_uuid)
+                res = query.one()
         except NoResultFound:
             raise exception.PortgroupNotFound(portgroup=portgroup_uuid)
+        return res
 
     def get_portgroup_by_address(self, address, project=None):
-        query = model_query(models.Portgroup).filter_by(address=address)
-        if project:
-            query = add_portgroup_filter_by_node_project(query, project)
         try:
-            return query.one()
+            with _session_for_read() as session:
+                query = session.query(models.Portgroup).filter_by(
+                    address=address)
+                if project:
+                    query = add_portgroup_filter_by_node_project(query,
+                                                                 project)
+                res = query.one()
         except NoResultFound:
             raise exception.PortgroupNotFound(portgroup=address)
+        return res
 
     def get_portgroup_by_name(self, name):
-        query = model_query(models.Portgroup).filter_by(name=name)
         try:
-            return query.one()
+            with _session_for_read() as session:
+                query = session.query(models.Portgroup).filter_by(name=name)
+                res = query.one()
         except NoResultFound:
             raise exception.PortgroupNotFound(portgroup=name)
+        return res
 
     def get_portgroup_list(self, limit=None, marker=None,
                            sort_key=None, sort_dir=None, project=None):
@@ -1544,19 +1568,24 @@ class Connection(api.Connection):
                                sort_key, sort_dir, query)
 
     def get_volume_connector_by_id(self, db_id):
-        query = model_query(models.VolumeConnector).filter_by(id=db_id)
         try:
-            return query.one()
+            with _session_for_read() as session:
+                query = session.query(models.VolumeConnector).filter_by(
+                    id=db_id)
+                res = query.one()
         except NoResultFound:
             raise exception.VolumeConnectorNotFound(connector=db_id)
+        return res
 
     def get_volume_connector_by_uuid(self, connector_uuid):
-        query = model_query(models.VolumeConnector).filter_by(
-            uuid=connector_uuid)
         try:
-            return query.one()
+            with _session_for_read() as session:
+                query = session.query(models.VolumeConnector).filter_by(
+                    uuid=connector_uuid)
+                res = query.one()
         except NoResultFound:
             raise exception.VolumeConnectorNotFound(connector=connector_uuid)
+        return res
 
     def get_volume_connectors_by_node_id(self, node_id, limit=None,
                                          marker=None, sort_key=None,
@@ -1630,19 +1659,24 @@ class Connection(api.Connection):
                                sort_key, sort_dir, query)
 
     def get_volume_target_by_id(self, db_id):
-        query = model_query(models.VolumeTarget).where(
-            models.VolumeTarget.id == db_id)
         try:
-            return query.one()
+            with _session_for_read() as session:
+                query = session.query(models.VolumeTarget).where(
+                    models.VolumeTarget.id == db_id)
+                res = query.one()
         except NoResultFound:
             raise exception.VolumeTargetNotFound(target=db_id)
+        return res
 
     def get_volume_target_by_uuid(self, uuid):
-        query = model_query(models.VolumeTarget).filter_by(uuid=uuid)
         try:
-            return query.one()
+            with _session_for_read() as session:
+                query = session.query(models.VolumeTarget).filter_by(
+                    uuid=uuid)
+                res = query.one()
         except NoResultFound:
             raise exception.VolumeTargetNotFound(target=uuid)
+        return res
 
     def get_volume_targets_by_node_id(self, node_id, limit=None, marker=None,
                                       sort_key=None, sort_dir=None,
@@ -2461,8 +2495,9 @@ class Connection(api.Connection):
 
     def get_deploy_template_list(self, limit=None, marker=None,
                                  sort_key=None, sort_dir=None):
-        query = model_query(models.DeployTemplate).options(
-            selectinload(models.DeployTemplate.steps))
+        with _session_for_read() as session:
+            query = session.query(models.DeployTemplate).options(
+                selectinload(models.DeployTemplate.steps))
         return _paginate_query(models.DeployTemplate, limit, marker,
                                sort_key, sort_dir, query)
 
@@ -2500,19 +2535,24 @@ class Connection(api.Connection):
                 raise exception.NodeHistoryNotFound(history=history_uuid)
 
     def get_node_history_by_id(self, history_id):
-        query = model_query(models.NodeHistory).filter_by(id=history_id)
         try:
-            res = query.one()
+            with _session_for_read() as session:
+                query = session.query(models.NodeHistory).filter_by(
+                    id=history_id)
+                res = query.one()
         except NoResultFound:
             raise exception.NodeHistoryNotFound(history=history_id)
         return res
 
     def get_node_history_by_uuid(self, history_uuid):
-        query = model_query(models.NodeHistory).filter_by(uuid=history_uuid)
         try:
-            return query.one()
+            with _session_for_read() as session:
+                query = session.query(models.NodeHistory).filter_by(
+                    uuid=history_uuid)
+                res = query.one()
         except NoResultFound:
             raise exception.NodeHistoryNotFound(history=history_uuid)
+        return res
 
     def get_node_history_list(self, limit=None, marker=None,
                               sort_key='created_at', sort_dir='asc'):
@@ -2521,8 +2561,9 @@ class Connection(api.Connection):
 
     def get_node_history_by_node_id(self, node_id, limit=None, marker=None,
                                     sort_key=None, sort_dir=None):
-        query = model_query(models.NodeHistory)
-        query = query.where(models.NodeHistory.node_id == node_id)
+        with _session_for_read() as session:
+            query = session.query(models.NodeHistory)
+            query = query.where(models.NodeHistory.node_id == node_id)
         return _paginate_query(models.NodeHistory, limit, marker,
                                sort_key, sort_dir, query)
 
@@ -2644,11 +2685,14 @@ class Connection(api.Connection):
                     node=node_id)
 
     def get_node_inventory_by_node_id(self, node_id):
-        query = model_query(models.NodeInventory).filter_by(node_id=node_id)
         try:
-            return query.one()
+            with _session_for_read() as session:
+                query = session.query(models.NodeInventory).filter_by(
+                    node_id=node_id)
+                res = query.one()
         except NoResultFound:
             raise exception.NodeInventoryNotFound(node=node_id)
+        return res
 
     def get_shard_list(self):
         """Return a list of shards.
