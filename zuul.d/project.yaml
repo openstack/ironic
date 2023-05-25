@@ -18,6 +18,8 @@
         - ironic-tempest-functional-rbac-scope-enforced:
             voting: false
         - ironic-grenade
+        - ironic-grenade-skip-level:
+            voting: false
         - ironic-standalone
         - ironic-standalone-redfish
         - ironic-tempest-bios-redfish-pxe

@@ -1113,3 +1113,12 @@
       # important to set the working dir to the Ironic checkout.
       zuul_work_dir: "{{ ansible_user_dir }}/{{ zuul.projects['opendev.org/openstack/ironic'].src_dir }}"
 
+- job:
+    name: ironic-grenade-skip-level
+    parent: ironic-grenade
+    vars:
+      grenade_from_branch: stable/zed
+      grenade_to_branch: master
+      grenade_localrc:
+        # NOTE(iurygregory): This is required for skip upgrades.
+        NOVA_ENABLE_UPGRADE_WORKAROUND: True
