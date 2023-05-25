@@ -1747,31 +1747,6 @@ class Connection(api.Connection):
             if count == 0:
                 raise exception.VolumeTargetNotFound(target=ident)
 
-    def get_not_versions(self, model_name, versions):
-        """Returns objects with versions that are not the specified versions.
-
-        This returns objects with versions that are not the specified versions.
-        Objects with null versions (there shouldn't be any) are also returned.
-
-        :param model_name: the name of the model (class) of desired objects
-        :param versions: list of versions of objects not to be returned
-        :returns: list of the DB objects
-        :raises: IronicException if there is no class associated with the name
-        """
-        if not versions:
-            return []
-
-        if model_name == 'Node':
-            model_name = 'NodeBase'
-        model = models.get_class(model_name)
-
-        # NOTE(rloo): .notin_ does not handle null:
-        # http://docs.sqlalchemy.org/en/latest/core/sqlelement.html#sqlalchemy.sql.operators.ColumnOperators.notin_
-        query = model_query(model).filter(
-            sql.or_(model.version == sql.null(),
-                    model.version.notin_(versions)))
-        return query.all()
-
     def check_versions(self, ignore_models=(), permit_initial_version=False):
         """Checks the whole database for incompatible objects.
 
