@@ -135,6 +135,9 @@ def model_query(model, *args, **kwargs):
 
     with _session_for_read() as session:
         query = session.query(model, *args)
+        # NOTE(TheJulia): This is intentional, because we are intentionally
+        # returning the session as part of the query, which we should
+        # generally attempt to avoid.
         return query
 
 
@@ -767,11 +770,12 @@ class Connection(api.Connection):
                 # Explicitly load NodeBase as the invocation of the
                 # priamary model object reesults in the join query
                 # triggering.
-                return session.execute(
+                res = session.execute(
                     sa.select(models.NodeBase).filter_by(id=node_id).limit(1)
                 ).scalars().first()
         except NoResultFound:
             raise exception.NodeNotFound(node=node_id)
+        return res
 
     def get_node_by_id(self, node_id):
         try:
@@ -946,7 +950,8 @@ class Connection(api.Connection):
         # use the proper execution format for SQLAlchemy 2.0. Likely
         # A query, independent update, and a re-query on the transaction.
         with _session_for_read() as session:
-            return session.execute(query).one()[0]
+            res = session.execute(query).one()[0]
+        return res
 
     def get_port_by_id(self, port_id):
         try:
@@ -1164,7 +1169,7 @@ class Connection(api.Connection):
                     raise exception.PortgroupMACAlreadyExists(
                         mac=values['address'])
                 raise exception.PortgroupAlreadyExists(uuid=values['uuid'])
-            return portgroup
+        return portgroup
 
     @oslo_db_api.retry_on_deadlock
     def update_portgroup(self, portgroup_id, values):
@@ -1189,17 +1194,18 @@ class Connection(api.Connection):
                         mac=values['address'])
                 else:
                     raise
-            return ref
+        return ref
 
     @oslo_db_api.retry_on_deadlock
     def destroy_portgroup(self, portgroup_id):
         def portgroup_not_empty(session):
             """Checks whether the portgroup does not have ports."""
             with _session_for_read() as session:
-                return session.scalar(
+                res = session.scalar(
                     sa.select(
                         sa.func.count(models.Port.id)
                     ).where(models.Port.portgroup_id == portgroup_id)) != 0
+            return res
 
         with _session_for_write() as session:
             if portgroup_not_empty(session):
@@ -1218,9 +1224,10 @@ class Connection(api.Connection):
 
         try:
             with _session_for_read() as session:
-                return session.execute(query).one()[0]
+                res = session.execute(query).one()[0]
         except NoResultFound:
             raise exception.ChassisNotFound(chassis=chassis_id)
+        return res
 
     def get_chassis_by_uuid(self, chassis_uuid):
         query = sa.select(models.Chassis).where(
@@ -1228,9 +1235,10 @@ class Connection(api.Connection):
 
         try:
             with _session_for_read() as session:
-                return session.execute(query).one()[0]
+                res = session.execute(query).one()[0]
         except NoResultFound:
             raise exception.ChassisNotFound(chassis=chassis_uuid)
+        return res
 
     def get_chassis_list(self, limit=None, marker=None,
                          sort_key=None, sort_dir=None):
@@ -1318,7 +1326,7 @@ class Connection(api.Connection):
                 query = query.where(models.Conductor.online == online)
             with _session_for_read() as session:
                 res = session.execute(query).one()[0]
-                return res
+            return res
         except NoResultFound:
             raise exception.ConductorNotFound(conductor=hostname)
 
@@ -1413,7 +1421,7 @@ class Connection(api.Connection):
             limit = timeutils.utcnow() - datetime.timedelta(seconds=interval)
             result = (session.query(field)
                       .filter(models.Conductor.updated_at < limit))
-            return [row[0] for row in result]
+        return [row[0] for row in result]
 
     def get_online_conductors(self):
         with _session_for_read() as session:
@@ -2424,7 +2432,8 @@ class Connection(api.Connection):
                 # Return the updated template joined with all relevant fields.
                 query = _get_deploy_template_select_with_steps()
                 query = add_identity_filter(query, template_id)
-                return session.execute(query).one()[0]
+                res = session.execute(query).one()[0]
+            return res
         except db_exc.DBDuplicateEntry as e:
             if 'name' in e.columns:
                 raise exception.DeployTemplateDuplicateName(
@@ -2450,9 +2459,9 @@ class Connection(api.Connection):
         query = (_get_deploy_template_select_with_steps()
                  .where(field == value))
         try:
-            # FIXME(TheJulia): This needs to be fixed for SQLAlchemy 2.0
             with _session_for_read() as session:
-                return session.execute(query).one()[0]
+                res = session.execute(query).one()[0]
+            return res
         except NoResultFound:
             raise exception.DeployTemplateNotFound(template=value)
 
@@ -2626,7 +2635,7 @@ class Connection(api.Connection):
             # literally have the DB do *all* of the world, so no
             # client side ops occur. The column is also indexed,
             # which means this will be an index based response.
-            return session.scalar(
+            res = session.scalar(
                 sa.select(
                     sa.func.count(models.Node.id)
                 ).filter(
@@ -2635,6 +2644,7 @@ class Connection(api.Connection):
                     )
                 )
             )
+        return res
 
     @oslo_db_api.retry_on_deadlock
     def create_node_inventory(self, values):
@@ -2647,7 +2657,7 @@ class Connection(api.Connection):
             except db_exc.DBDuplicateEntry:
                 raise exception.NodeInventoryAlreadyExists(
                     id=values['id'])
-            return inventory
+        return inventory
 
     @oslo_db_api.retry_on_deadlock
     def destroy_node_inventory_by_node_id(self, node_id):
