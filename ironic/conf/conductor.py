@@ -356,6 +356,13 @@ opts = [
                        'when using Cleaning to perform '
                        'hardware-transformative actions such as '
                        'firmware upgrade.')),
+    cfg.BoolOpt('poweroff_in_servicefail',
+                default=False,
+                help=_('If True power off nodes in the ``service failed`` '
+                       'state. Default False. Option may be unsafe '
+                       'when using service to perform '
+                       'hardware-transformative actions such as '
+                       'firmware upgrade.')),
     cfg.BoolOpt('permit_child_node_step_async_result',
                 default=False,
                 mutable=True,

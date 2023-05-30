@@ -1490,6 +1490,90 @@ class ErrorHandlersTestCase(db_base.DbTestCase):
         log_mock.assert_has_calls(log_calls)
         self.node.save.assert_called_once_with()
 
+    @mock.patch.object(conductor_utils.LOG, 'error', autospec=True)
+    def _test_servicing_error_handler(self, mock_log_error,
+                                      prov_state=states.SERVICING):
+        self.node.provision_state = prov_state
+        target = 'baz'
+        self.node.target_provision_state = target
+        self.node.service_step = {'key': 'val'}
+        self.node.set_driver_internal_info('service_reboot', True)
+        self.node.set_driver_internal_info('service_polling', True)
+        self.node.set_driver_internal_info('skip_current_service_step', True)
+        self.node.set_driver_internal_info('service_step_index', 0)
+        self.node.set_driver_internal_info('agent_url', 'url')
+        self.node.set_driver_internal_info('agent_secret_token', 'foo')
+        self.node.set_driver_internal_info('agent_secret_token_pregenerated',
+                                           False)
+
+        msg = 'error bar'
+        last_error = "last error"
+        conductor_utils.servicing_error_handler(self.task, msg,
+                                                errmsg=last_error)
+        self.node.save.assert_called_once_with()
+        self.assertEqual({}, self.node.service_step)
+        self.assertNotIn('service_step_index', self.node.driver_internal_info)
+        self.assertNotIn('service_reboot', self.node.driver_internal_info)
+        self.assertNotIn('service_polling', self.node.driver_internal_info)
+        self.assertNotIn('skip_current_service_step',
+                         self.node.driver_internal_info)
+        self.assertNotIn('agent_secret_token', self.node.driver_internal_info)
+        self.assertNotIn('agent_secret_token_pregenerated',
+                         self.node.driver_internal_info)
+        self.assertEqual(last_error, self.node.last_error)
+        self.assertTrue(self.node.maintenance)
+        self.assertEqual(last_error, self.node.maintenance_reason)
+        self.assertEqual('service failure', self.node.fault)
+        driver = self.task.driver.deploy
+        driver.tear_down_service.assert_called_once_with(self.task)
+        if prov_state == states.SERVICEFAIL:
+            self.assertFalse(self.task.process_event.called)
+        else:
+            self.task.process_event.assert_called_once_with('fail')
+        self.assertNotIn('agent_url', self.node.driver_internal_info)
+        mock_log_error.assert_called_once_with(msg, exc_info=False)
+
+    def test_servicing_error_handler(self):
+        self._test_servicing_error_handler()
+
+    def test_servicing_error_handler_servicewait(self):
+        self._test_servicing_error_handler(prov_state=states.SERVICEWAIT)
+
+    def test_servicing_error_handler_servicefail(self):
+        self._test_servicing_error_handler(prov_state=states.SERVICEFAIL)
+
+    def test_servicing_error_handler_no_teardown(self):
+        target = states.MANAGEABLE
+        self.node.target_provision_state = target
+        conductor_utils.servicing_error_handler(self.task, 'foo',
+                                                tear_down_service=False)
+        self.assertFalse(self.task.driver.deploy.tear_down_service.called)
+        self.task.process_event.assert_called_once_with('fail')
+
+    def test_servicing_error_handler_no_fail(self):
+        conductor_utils.servicing_error_handler(self.task, 'foo',
+                                                set_fail_state=False)
+        driver = self.task.driver.deploy
+        driver.tear_down_service.assert_called_once_with(self.task)
+        self.assertFalse(self.task.process_event.called)
+
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    def test_servicing_error_handler_tear_down_error(self, log_mock):
+        def _side_effect(task):
+            # simulate overwriting last error by another operation (e.g. power)
+            task.node.last_error = None
+            raise Exception('bar')
+
+        driver = self.task.driver.deploy
+        msg = 'foo'
+        driver.tear_down_service.side_effect = _side_effect
+        conductor_utils.servicing_error_handler(self.task, msg)
+        log_mock.error.assert_called_once_with(msg, exc_info=False)
+        self.assertTrue(log_mock.exception.called)
+        self.assertIn(msg, self.node.last_error)
+        self.assertIn(msg, self.node.maintenance_reason)
+        self.assertEqual('service failure', self.node.fault)
+
 
 class ValidatePortPhysnetTestCase(db_base.DbTestCase):
 
@@ -2738,3 +2822,46 @@ class GetTokenProjectFromRequestTestCase(db_base.DbTestCase):
         self.context.auth_token_info = self.auth_token_info
         res = conductor_utils.get_token_project_from_request(self.context)
         self.assertEqual('user-project', res)
+
+
+class ServiceUtilsTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(ServiceUtilsTestCase, self).setUp()
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            uuid=uuidutils.generate_uuid(),
+            driver_internal_info={
+                'agent_last_heartbeat': str(timeutils.utcnow().isoformat()),
+                'agent_url': 'a_url'})
+        self.config(fast_track=True, group='deploy')
+
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_wipe_service_internal_info(self, mock_power):
+        mock_power.return_value = False
+        self.node.driver_internal_info = {
+            'service_steps': {'foo': 'bar'},
+            'agent_cached_service_steps': {'more_foo': None},
+            'service_reboot': False,
+            'service_polling': 1,
+            'service_disable_ramdisk': False,
+            'skip_current_service_step': False,
+            'steps_validated': 'meow'
+            'agent_secret_token'}
+        self.node.save()
+        not_in_list = ['agent_cached_service_steps',
+                       'serivce_reboot',
+                       'service_polling',
+                       'service_disable_ramdisk',
+                       'skip_current_service_step',
+                       'steps_validated',
+                       'agent_secret_token']
+        with task_manager.acquire(self.context, self.node.id,
+                                  shared=True) as task:
+            conductor_utils.wipe_service_internal_info(task)
+            task.node.save()
+            self.assertIsNone(
+                task.node.driver_internal_info['service_steps']
+            )
+            for field in not_in_list:
+                self.assertNotIn(field, task.node.driver_internal_info)

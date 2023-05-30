@@ -153,12 +153,13 @@ class ConductorAPI(object):
                 heartbeat
     |    1.55 - Added change_node_boot_mode
     |    1.56 - Added continue_inspection
+    |    1.57 - Added do_node_service
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.56'
+    RPC_API_VERSION = '1.57'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -1409,3 +1410,27 @@ class ConductorAPI(object):
         cctxt = self._prepare_call(topic=topic, version='1.56')
         return cctxt.call(context, 'continue_inspection', node_id=node_id,
                           inventory=inventory, plugin_data=plugin_data)
+
+    def do_node_service(self, context, node_id, service_steps,
+                        disable_ramdisk=None, topic=None):
+        """Signal to conductor service to perform manual cleaning on a node.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param service_steps: a list of service step dictionaries.
+        :param disable_ramdisk: Whether to skip booting ramdisk for service.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: InvalidParameterValue if validation of power driver interface
+                 failed.
+        :raises: InvalidStateRequested if cleaning can not be performed.
+        :raises: NodeInMaintenance if node is in maintenance mode.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+        """
+        cctxt = self._prepare_call(topic=topic, version='1.57')
+        return cctxt.call(
+            context, 'do_node_service',
+            node_id=node_id,
+            service_steps=service_steps,
+            disable_ramdisk=disable_ramdisk)

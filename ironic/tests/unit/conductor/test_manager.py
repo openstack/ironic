@@ -49,6 +49,7 @@ from ironic.conductor import deployments
 from ironic.conductor import inspection
 from ironic.conductor import manager
 from ironic.conductor import notification_utils
+from ironic.conductor import servicing
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils as conductor_utils
@@ -8601,3 +8602,49 @@ class ContinueInspectionTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(exception.NotFound, exc.exc_info[0])
         node.refresh()
         self.assertEqual(states.AVAILABLE, node.provision_state)
+
+
+@mgr_utils.mock_record_keepalive
+class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
+    def setUp(self):
+        super(DoNodeServiceTestCase, self).setUp()
+
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    def test_do_node_service_maintenance(self, mock_validate):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ACTIVE,
+            target_provision_state=states.NOSTATE,
+            maintenance=True, maintenance_reason='reason')
+        self._start_service()
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.do_node_service,
+                                self.context, node.uuid, {'foo': 'bar'})
+        # Compare true exception hidden by @messaging.expected_exceptions
+        self.assertEqual(exception.NodeInMaintenance, exc.exc_info[0])
+        self.assertFalse(mock_validate.called)
+
+    @mock.patch.object(task_manager.TaskManager, 'process_event',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    def test_do_node_service(self, mock_pv, mock_nv, mock_event):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.ACTIVE,
+            target_provision_state=states.NOSTATE)
+        self._start_service()
+        self.service.do_node_service(self.context,
+                                     node.uuid, {'foo': 'bar'})
+        self.assertTrue(mock_pv.called)
+        self.assertTrue(mock_nv.called)
+        mock_event.assert_called_once_with(
+            mock.ANY,
+            'service',
+            callback=mock.ANY,
+            call_args=(servicing.do_node_service, mock.ANY,
+                       {'foo': 'bar'}, False),
+            err_handler=mock.ANY, target_state='active')

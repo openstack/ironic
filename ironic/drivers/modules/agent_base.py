@@ -32,6 +32,7 @@ from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import cleaning
 from ironic.conductor import deployments
+from ironic.conductor import servicing
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
@@ -85,21 +86,23 @@ VENDOR_PROPERTIES = {
 
 __HEARTBEAT_RECORD_ONLY = (states.ENROLL, states.MANAGEABLE, states.AVAILABLE,
                            states.CLEANING, states.DEPLOYING, states.RESCUING,
-                           states.DEPLOYHOLD, states.CLEANHOLD)
+                           states.DEPLOYHOLD, states.CLEANHOLD,
+                           states.SERVICING, states.SERVICEHOLD)
 _HEARTBEAT_RECORD_ONLY = frozenset(__HEARTBEAT_RECORD_ONLY)
 
 _HEARTBEAT_ALLOWED = (states.DEPLOYWAIT, states.CLEANWAIT, states.RESCUEWAIT,
                       # These are allowed but don't cause any actions since
                       # they're also in HEARTBEAT_RECORD_ONLY.
                       states.DEPLOYING, states.CLEANING, states.RESCUING,
-                      states.DEPLOYHOLD, states.CLEANHOLD)
+                      states.DEPLOYHOLD, states.CLEANHOLD, states.SERVICING,
+                      states.SERVICEWAIT, states.SERVICEHOLD)
 HEARTBEAT_ALLOWED = frozenset(_HEARTBEAT_ALLOWED)
 
 _FASTTRACK_HEARTBEAT_ALLOWED = (states.DEPLOYWAIT, states.CLEANWAIT,
                                 states.RESCUEWAIT, states.ENROLL,
                                 states.MANAGEABLE, states.AVAILABLE,
                                 states.DEPLOYING, states.CLEANHOLD,
-                                states.DEPLOYHOLD)
+                                states.DEPLOYHOLD, states.SERVICEHOLD)
 FASTTRACK_HEARTBEAT_ALLOWED = frozenset(_FASTTRACK_HEARTBEAT_ALLOWED)
 
 
@@ -164,11 +167,12 @@ def _get_post_step_hook(node, step_type):
     """Get post clean/deploy step hook for the currently executing step.
 
     :param node: a node object
-    :param step_type: 'clean' or 'deploy'
+    :param step_type: 'clean' or 'deploy' or 'service'
     :returns: a method if there is a post clean step hook for this clean
         step; None otherwise
     """
-    step_obj = node.clean_step if step_type == 'clean' else node.deploy_step
+
+    step_obj = getattr(node, "%s_step" % step_type)
     interface = step_obj.get('interface')
     step = step_obj.get('step')
     try:
@@ -178,17 +182,16 @@ def _get_post_step_hook(node, step_type):
 
 
 def _post_step_reboot(task, step_type):
-    """Reboots a node out of band after a clean/deploy step that requires it.
+    """Reboots a node out of band after a step that requires it.
 
     If an agent step has 'reboot_requested': True, reboots the node when
     the step is completed. Will put the node in CLEANFAIL/DEPLOYFAIL if
     the node cannot be rebooted.
 
     :param task: a TaskManager instance
-    :param step_type: 'clean' or 'deploy'
+    :param step_type: 'clean' or 'deploy' or 'service'
     """
-    current_step = (task.node.clean_step if step_type == 'clean'
-                    else task.node.deploy_step)
+    current_step = getattr(task.node, '%s_step' % step_type)
     try:
         # NOTE(fellypefca): ensure that the baremetal node boots back into
         # the ramdisk after reboot.
@@ -205,16 +208,22 @@ def _post_step_reboot(task, step_type):
         if step_type == 'clean':
             manager_utils.cleaning_error_handler(task, msg,
                                                  traceback=traceback)
-        else:
+        elif step_type == 'deploy':
             manager_utils.deploying_error_handler(task, msg,
+                                                  traceback=traceback)
+        elif step_type == 'service':
+            manager_utils.servicing_error_handler(task, msg,
                                                   traceback=traceback)
         return
 
     # Signify that we've rebooted
     if step_type == 'clean':
         task.node.set_driver_internal_info('cleaning_reboot', True)
-    else:
+    elif step_type == 'deploy':
         task.node.set_driver_internal_info('deployment_reboot', True)
+    elif step_type == 'service':
+        task.node.set_driver_internal_info('servicing_reboot', True)
+
     if not task.node.driver_internal_info.get(
             'agent_secret_token_pregenerated', False):
         # Wipes out the existing recorded token because the machine will
@@ -261,8 +270,7 @@ def _get_completed_command(task, commands, step_type):
 
     last_result = last_command.get('command_result') or {}
     last_step = last_result.get('%s_step' % step_type)
-    current_step = (task.node.clean_step if step_type == 'clean'
-                    else task.node.deploy_step)
+    current_step = getattr(task.node, '%s_step' % step_type)
     if last_command['command_status'] == 'RUNNING':
         LOG.debug('%(type)s step still running for node %(node)s: %(step)s',
                   {'step': last_step, 'node': task.node.uuid,
@@ -410,7 +418,10 @@ def _continue_steps(task, step_type):
         cleaning.continue_node_clean(task)
     else:
         task.process_event('resume')
-        deployments.continue_node_deploy(task)
+        if step_type == 'deploy':
+            deployments.continue_node_deploy(task)
+        else:
+            servicing.continue_node_service(task)
 
 
 class HeartbeatMixin(object):
@@ -439,11 +450,18 @@ class HeartbeatMixin(object):
         """
         return self.refresh_steps(task, 'clean')
 
-    def process_next_step(self, task, step_type):
-        """Start the next clean/deploy step if the previous one is complete.
+    def refresh_service_steps(self, task):
+        """Refresh the node's cached service steps
 
         :param task: a TaskManager instance
-        :param step_type: "clean" or "deploy"
+        """
+        return self.refresh_steps(task, 'service')
+
+    def process_next_step(self, task, step_type):
+        """Start the next step if the previous one is complete.
+
+        :param task: a TaskManager instance
+        :param step_type: "clean", "deploy", "service"
         """
 
     def continue_cleaning(self, task):
@@ -452,6 +470,13 @@ class HeartbeatMixin(object):
         :param task: a TaskManager instance
         """
         return self.process_next_step(task, 'clean')
+
+    def continue_servicing(self, task):
+        """Start the next cleaning step if the previous one is complete.
+
+        :param task: a TaskManager instance
+        """
+        return self.process_next_step(task, 'service')
 
     def heartbeat_allowed(self, node):
         if utils.fast_track_enabled(node):
@@ -480,6 +505,12 @@ class HeartbeatMixin(object):
                       'maintenance mode', node.uuid)
             last_error = _('Rescue aborted as node is in maintenance mode')
             manager_utils.rescuing_error_handler(task, last_error)
+        elif (node.provision_state in (states.SERVICING, states.SERVICEWAIT)
+              and not CONF.conductor.allow_provisioning_in_maintenance):
+            LOG.error('Aborting service for node %s, as it is in '
+                      'maintenance mode', node.uuid)
+            last_error = _('Service aborted as node is in maintenance mode')
+            manager_utils.servicing_error_handler(task, last_error)
         else:
             LOG.warning('Heartbeat from node %(node)s in '
                         'maintenance mode; not taking any action.',
@@ -559,6 +590,37 @@ class HeartbeatMixin(object):
                                              states.RESCUEWAIT):
                 manager_utils.rescuing_error_handler(task, last_error)
 
+    def _heartbeat_service_wait(self, task):
+        node = task.node
+        msg = _('Failed checking if service is done')
+        try:
+            node.touch_provisioning()
+            if not node.service_step:
+                LOG.debug('Node %s just booted to start %s service',
+                          node.uuid)
+                msg = _('Node failed to start the first service step')
+                task.process_event('resume')
+                # First, cache the service steps
+                self.refresh_service_steps(task)
+                # Then set/verify node servicesteps and start service
+                conductor_steps.set_node_service_steps(task)
+                servicing.continue_node_service(task)
+            else:
+                msg = _('Node failed to check service progress')
+                # Check if the driver is polling for completion of a step,
+                # via the 'cleaning_polling' flag.
+                polling = node.driver_internal_info.get(
+                    'service_polling', False)
+                if not polling:
+                    self.continue_servicing(task)
+        except Exception as e:
+            last_error = _('%(msg)s: %(exc)s') % {'msg': msg, 'exc': e}
+            log_msg = ('Asynchronous exception for node %(node)s: %(err)s' %
+                       {'node': task.node.uuid, 'err': last_error})
+            if node.provision_state in (states.SERVICING, states.SERVICEWAIT):
+                manager_utils.servicing_error_handler(task, log_msg,
+                                                      errmsg=last_error)
+
     @METRICS.timer('HeartbeatMixin.heartbeat')
     def heartbeat(self, task, callback_url, agent_version,
                   agent_verify_ca=None, agent_status=None,
@@ -616,13 +678,14 @@ class HeartbeatMixin(object):
 
         if node.maintenance:
             return self._heartbeat_in_maintenance(task)
-
         if node.provision_state == states.DEPLOYWAIT:
             self._heartbeat_deploy_wait(task)
         elif node.provision_state == states.CLEANWAIT:
             self._heartbeat_clean_wait(task)
         elif node.provision_state == states.RESCUEWAIT:
             self._heartbeat_rescue_wait(task)
+        elif node.provision_state == states.SERVICEWAIT:
+            self._heartbeat_service_wait(task)
 
     def _finalize_rescue(self, task):
         """Call ramdisk to prepare rescue mode and verify result.
@@ -744,6 +807,35 @@ class AgentBaseMixin(object):
         deploy_utils.tear_down_inband_cleaning(
             task, manage_boot=self.should_manage_boot(task))
 
+    @METRICS.timer('AgentBaseMixin.prepare_cleaning')
+    def prepare_service(self, task):
+        """Boot into the agent to prepare for cleaning.
+
+        :param task: a TaskManager object containing the node
+        :raises: NodeCleaningFailure, NetworkError if the previous cleaning
+            ports cannot be removed or if new cleaning ports cannot be created.
+        :raises: InvalidParameterValue if cleaning network UUID config option
+            has an invalid value.
+        :returns: states.CLEANWAIT to signify an asynchronous prepare
+        """
+        result = deploy_utils.prepare_inband_service(
+            task, manage_boot=self.should_manage_boot(task))
+        if result is None:
+            # Fast-track, ensure the steps are available.
+            self.refresh_steps(task, 'service')
+        return result
+
+    @METRICS.timer('AgentBaseMixin.tear_down_service')
+    def tear_down_service(self, task):
+        """Clean up the PXE and DHCP files after cleaning.
+
+        :param task: a TaskManager object containing the node
+        :raises: NodeServiceFailure, NetworkError if the cleaning ports cannot
+            be removed
+        """
+        deploy_utils.tear_down_inband_service(
+            task, manage_boot=self.should_manage_boot(task))
+
     @METRICS.timer('AgentBaseMixin.get_clean_steps')
     def get_clean_steps(self, task):
         """Get the list of clean steps from the agent.
@@ -785,7 +877,6 @@ class AgentBaseMixin(object):
                   'Previously cached steps: %(steps)s',
                   {'node': node.uuid, 'type': step_type,
                    'steps': previous_steps})
-
         client = agent_client.get_client(task)
         call = getattr(client, 'get_%s_steps' % step_type)
         try:
@@ -936,32 +1027,34 @@ class AgentBaseMixin(object):
         set to True, this method will coordinate the reboot once the step is
         completed.
         """
-        assert step_type in ('clean', 'deploy')
+        assert step_type in ('clean', 'deploy', 'service')
 
         node = task.node
         client = agent_client.get_client(task)
         agent_commands = client.get_commands_status(task.node)
-
         if _freshly_booted(agent_commands, step_type):
-            field = ('cleaning_reboot' if step_type == 'clean'
-                     else 'deployment_reboot')
+            if step_type == 'clean':
+                field = 'cleaning_reboot'
+            elif step_type == 'service':
+                field = 'servicing_reboot'
+            else:
+                # TODO(TheJulia): One day we should standardize the field
+                # names here, but we also need to balance human ability
+                # to understand what is going on so *shrug*.
+                field = 'deployment_reboot'
             utils.pop_node_nested_field(node, 'driver_internal_info', field)
             node.save()
             return _continue_steps(task, step_type)
-
-        current_step = (node.clean_step if step_type == 'clean'
-                        else node.deploy_step)
+        current_step = getattr(node, '%s_step' % step_type)
         command = _get_completed_command(task, agent_commands, step_type)
         LOG.debug('%(type)s command status for node %(node)s on step %(step)s:'
                   ' %(command)s', {'node': node.uuid,
                                    'step': current_step,
                                    'command': command,
                                    'type': step_type})
-
         if not command:
             # Agent command in progress
             return
-
         if command.get('command_status') == 'FAILED':
             msg = (_('%(type)s step %(step)s failed on node %(node)s. '
                      '%(err)s') %

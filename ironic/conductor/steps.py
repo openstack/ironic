@@ -54,6 +54,8 @@ DEPLOYING_INTERFACE_PRIORITY = {
     'raid': 1,
 }
 
+SERVICING_INTERFACE_PRIORITY = DEPLOYING_INTERFACE_PRIORITY.copy()
+
 VERIFYING_INTERFACE_PRIORITY = {
     # When two verify steps have the same priority, their order is determined
     # by which interface is implementing the verify step. The verifying step of
@@ -125,6 +127,15 @@ def _sorted_steps(steps, sort_step_key):
     """
     # Sort the steps from higher priority to lower priority
     return sorted(steps, key=sort_step_key, reverse=True)
+
+
+def _service_step_key(step):
+    """Sort by priority, then interface priority in event of tie.
+
+    :param step: deploy step dict to get priority for.
+    """
+    return (step.get('priority'),
+            SERVICING_INTERFACE_PRIORITY[step.get('interface')])
 
 
 def is_equivalent(step1, step2):
@@ -238,6 +249,26 @@ def _get_deployment_steps(task, enabled=False, sort=True):
     sort_key = _deploy_step_key if sort else None
     return _get_steps(task, DEPLOYING_INTERFACE_PRIORITY, 'get_deploy_steps',
                       enabled=enabled, sort_step_key=sort_key)
+
+
+def _get_service_steps(task, enabled=False, sort=True):
+    """Get service steps for task.node.
+
+    :param task: A TaskManager object
+    :param enabled: If True, returns only enabled (priority > 0) steps. If
+        False, returns all clean steps.
+    :param sort: If True, the steps are sorted from highest priority to lowest
+        priority. For steps having the same priority, they are sorted from
+        highest interface priority to lowest.
+    :raises: NodeServicingFailure if there was a problem getting the
+        clean steps.
+    :returns: A list of clean step dictionaries
+    """
+    sort_key = _service_step_key if sort else None
+    service_steps = _get_steps(task, SERVICING_INTERFACE_PRIORITY,
+                               'get_service_steps', enabled=enabled,
+                               sort_step_key=sort_key)
+    return service_steps
 
 
 def _get_verify_steps(task, enabled=False, sort=True):
@@ -452,6 +483,34 @@ def set_node_deployment_steps(task, reset_current=True, skip_missing=False):
     if reset_current:
         node.deploy_step = {}
         node.set_driver_internal_info('deploy_step_index', None)
+    node.save()
+
+
+def set_node_service_steps(task, disable_ramdisk=False):
+    """Set up the node with clean step information for cleaning.
+
+    For automated cleaning, get the clean steps from the driver.
+    For manual cleaning, the user's clean steps are known but need to be
+    validated against the driver's clean steps.
+
+    :param disable_ramdisk: If `True`, only steps with requires_ramdisk=False
+        are accepted.
+    :raises: InvalidParameterValue if there is a problem with the user's
+             clean steps.
+    :raises: NodeCleaningFailure if there was a problem getting the
+             clean steps.
+    """
+    node = task.node
+    steps = _validate_user_service_steps(
+        task, node.driver_internal_info.get('service_steps', []),
+        disable_ramdisk=disable_ramdisk)
+    LOG.debug('List of the steps for service of node %(node)s: '
+              '%(steps)s', {'node': node.uuid,
+                            'steps': steps})
+
+    node.service_step = {}
+    node.set_driver_internal_info('service_steps', steps)
+    node.set_driver_internal_info('service_step_index', None)
     node.save()
 
 
@@ -705,7 +764,6 @@ def _validate_user_steps(task, user_steps, driver_steps, step_type,
         err = error_prefix or ''
         err += '; '.join(errors)
         raise exception.InvalidParameterValue(err=err)
-
     return result
 
 
@@ -767,6 +825,36 @@ def _validate_user_deploy_steps(task, user_steps, error_prefix=None,
     return _validate_user_steps(task, user_steps, driver_steps, 'deploy',
                                 error_prefix=error_prefix,
                                 skip_missing=skip_missing)
+
+
+def _validate_user_service_steps(task, user_steps, disable_ramdisk=False):
+    """Validate the user-specified service steps.
+
+    :param task: A TaskManager object
+    :param user_steps: a list of clean steps. A clean step is a dictionary
+        with required keys 'interface' and 'step', and optional key 'args'::
+
+              { 'interface': <driver_interface>,
+                'step': <name_of_clean_step>,
+                'args': {<arg1>: <value1>, ..., <argn>: <valuen>} }
+
+            For example::
+
+              { 'interface': 'deploy',
+                'step': 'upgrade_firmware',
+                'args': {'force': True} }
+    :param disable_ramdisk: If `True`, only steps with requires_ramdisk=False
+        are accepted.
+    :raises: InvalidParameterValue if validation of clean steps fails.
+    :raises: NodeCleaningFailure if there was a problem getting the
+        clean steps from the driver.
+    :return: validated clean steps update with information from the driver
+    """
+    # We call with enabled = False below so we pickup auto-disabled
+    # steps, since service steps are not automagic like cleaning can be.
+    driver_steps = _get_service_steps(task, enabled=False, sort=False)
+    return _validate_user_steps(task, user_steps, driver_steps, 'service',
+                                disable_ramdisk=disable_ramdisk)
 
 
 def _get_validated_user_deploy_steps(task, deploy_steps=None,

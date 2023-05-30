@@ -81,7 +81,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.37: Add shard field
     # Version 1.38: Add parent_node field
     # Version 1.39: Add firmware_interface field
-    VERSION = '1.39'
+    # Version 1.40: Add service_step field
+    VERSION = '1.40'
 
     dbapi = db_api.get_instance()
 
@@ -106,6 +107,11 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         # being executed, or None, indicating deployment is not in progress
         # or has not yet started.
         'deploy_step': object_fields.FlexibleDictField(nullable=True),
+
+        # A service step dictionary, indicating the current step
+        # being executed, or None, indicating deployment is not in progress
+        # or has not yet started.
+        'service_step': object_fields.FlexibleDictField(nullable=True),
 
         'raid_config': object_fields.FlexibleDictField(nullable=True),
         'target_raid_config': object_fields.FlexibleDictField(nullable=True),

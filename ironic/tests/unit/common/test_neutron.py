@@ -1422,3 +1422,28 @@ class TestGetPhysnetsByPortUUID(base.TestCase):
                           self.client, port_uuid)
         mock_gp.assert_called_once_with(self.client, port_uuid)
         mock_gn.assert_called_once_with(self.client, network_uuid)
+
+
+class TestNeutronNetworkInterfaceMixin(db_base.DbTestCase):
+
+    def setUp(self):
+        super(TestNeutronNetworkInterfaceMixin, self).setUp()
+        self.node = object_utils.create_test_node(self.context)
+
+    def test_get_network_names_and_uuids(self):
+        """A test to validate confiured overrides work."""
+        for name in ['cleaning', 'provisioning', 'rescuing', 'inspection',
+                     'servicing']:
+            method_name = 'get_{}_network_uuid'.format(name)
+            method_to_call = getattr(neutron.NeutronNetworkInterfaceMixin,
+                                     method_name)
+            network_uuid = uuidutils.generate_uuid()
+            self.node.driver_info = {'%s_network' % name: network_uuid}
+            self.node.save()
+            with mock.patch.object(neutron, 'validate_network',
+                                   autospec=True) as mock_validate:
+                with task_manager.acquire(self.context,
+                                          self.node.uuid) as task:
+                    method_to_call(self, task)
+                    mock_validate.assert_called_once_with(
+                        network_uuid, mock.ANY, context=task.context)

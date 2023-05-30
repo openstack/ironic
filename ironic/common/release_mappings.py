@@ -574,12 +574,12 @@ RELEASE_MAPPING = {
         }
     },
     'master': {
-        'api': '1.86',
-        'rpc': '1.56',
+        'api': '1.87',
+        'rpc': '1.57',
         'objects': {
             'Allocation': ['1.1'],
             'BIOSSetting': ['1.1'],
-            'Node': ['1.39', '1.38', '1.37'],
+            'Node': ['1.40', '1.39', '1.38', '1.37'],
             'NodeHistory': ['1.0'],
             'NodeInventory': ['1.0'],
             'Conductor': ['1.3'],

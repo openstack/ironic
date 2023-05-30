@@ -56,9 +56,12 @@ from ironic import objects
 CONF = ironic.conf.CONF
 
 LOG = log.getLogger(__name__)
-_CLEAN_STEPS_SCHEMA = {
+
+
+# TODO(TheJulia): We *really* need to just have *one* schema.
+_STEPS_SCHEMA = {
     "$schema": "http://json-schema.org/schema#",
-    "title": "Clean steps schema",
+    "title": "Steps schema",
     "type": "array",
     # list of clean steps
     "items": {
@@ -124,7 +127,8 @@ PROVISION_ACTION_STATES = (ir_states.VERBS['manage'],
                            ir_states.VERBS['provide'],
                            ir_states.VERBS['abort'],
                            ir_states.VERBS['adopt'],
-                           ir_states.VERBS['unhold'])
+                           ir_states.VERBS['unhold'],
+                           ir_states.VERBS['service'])
 
 _NODES_CONTROLLER_RESERVED_WORDS = None
 
@@ -950,7 +954,8 @@ class NodeStatesController(rest.RestController):
 
     def _do_provision_action(self, rpc_node, target, configdrive=None,
                              clean_steps=None, deploy_steps=None,
-                             rescue_password=None, disable_ramdisk=None):
+                             rescue_password=None, disable_ramdisk=None,
+                             service_steps=None):
         topic = api.request.rpcapi.get_topic_for(rpc_node)
         # Note that there is a race condition. The node state(s) could change
         # by the time the RPC call is made and the TaskManager manager gets a
@@ -993,6 +998,17 @@ class NodeStatesController(rest.RestController):
             api.request.rpcapi.do_node_clean(
                 api.request.context, rpc_node.uuid, clean_steps,
                 disable_ramdisk, topic=topic)
+        elif target == ir_states.VERBS['service']:
+            if not service_steps:
+                msg = (_('"service_steps" is required when setting '
+                         'target provision state to '
+                         '%s') % ir_states.VERBS['service'])
+                raise exception.ClientSideError(
+                    msg, status_code=http_client.BAD_REQUEST)
+            _check_service_steps(service_steps)
+            api.request.rpcapi.do_node_service(
+                api.request.context, rpc_node.uuid, service_steps,
+                disable_ramdisk, topic=topic)
         elif target in PROVISION_ACTION_STATES:
             api.request.rpcapi.do_provisioning_action(
                 api.request.context, rpc_node.uuid, target, topic)
@@ -1008,10 +1024,12 @@ class NodeStatesController(rest.RestController):
                    clean_steps=args.types(type(None), list),
                    deploy_steps=args.types(type(None), list),
                    rescue_password=args.string,
-                   disable_ramdisk=args.boolean)
+                   disable_ramdisk=args.boolean,
+                   service_steps=args.types(type(None), list))
     def provision(self, node_ident, target, configdrive=None,
                   clean_steps=None, deploy_steps=None,
-                  rescue_password=None, disable_ramdisk=None):
+                  rescue_password=None, disable_ramdisk=None,
+                  service_steps=None):
         """Asynchronous trigger the provisioning of the node.
 
         This will set the target provision state of the node, and a
@@ -1069,11 +1087,31 @@ class NodeStatesController(rest.RestController):
             inside the rescue environment. This is required (and only valid),
             when target is "rescue".
         :param disable_ramdisk: Whether to skip booting ramdisk for cleaning.
+        :param service_steps: A list of service steps that will be performed on
+            the node. A service step is a dictionary with required keys
+            'interface', 'step', 'priority' and 'args'. If specified, the value
+            for 'args' is a keyword variable argument dictionary that is passed
+            to the service step method.::
+
+              { 'interface': <driver_interface>,
+                'step': <name_of_service_step>,
+                'args': {<arg1>: <value1>, ..., <argn>: <valuen>}
+                'priority': <integer>}
+
+            For example (this isn't a real example, this service step doesn't
+            exist)::
+
+              { 'interface': 'deploy',
+                'step': 'upgrade_firmware',
+                'args': {'force': True},
+                'priority': 90 }
+
         :raises: NodeLocked (HTTP 409) if the node is currently locked.
         :raises: ClientSideError (HTTP 409) if the node is already being
                  provisioned.
         :raises: InvalidParameterValue (HTTP 400), if validation of
-                 clean_steps, deploy_steps or power driver interface fails.
+                 clean_steps, deploy_steps, service_steps or power driver
+                 interface fails.
         :raises: InvalidStateRequested (HTTP 400) if the requested transition
                  is not possible from the current state.
         :raises: NodeInMaintenance (HTTP 400), if operation cannot be
@@ -1140,9 +1178,13 @@ class NodeStatesController(rest.RestController):
             if not api_utils.allow_unhold_verb():
                 raise exception.NotAcceptable()
 
+        if target == ir_states.VERBS['service']:
+            if not api_utils.allow_service_verb():
+                raise exception.NotAcceptable()
+
         self._do_provision_action(rpc_node, target, configdrive, clean_steps,
                                   deploy_steps, rescue_password,
-                                  disable_ramdisk)
+                                  disable_ramdisk, service_steps)
 
         # Set the HTTP Location Header
         url_args = '/'.join([node_ident, 'states'])
@@ -1156,7 +1198,7 @@ def _check_clean_steps(clean_steps):
         clean_steps parameter of :func:`NodeStatesController.provision`.
     :raises: InvalidParameterValue if validation of steps fails.
     """
-    _check_steps(clean_steps, 'clean', _CLEAN_STEPS_SCHEMA)
+    _check_steps(clean_steps, 'clean', _STEPS_SCHEMA)
 
 
 def _check_deploy_steps(deploy_steps):
@@ -1167,6 +1209,16 @@ def _check_deploy_steps(deploy_steps):
     :raises: InvalidParameterValue if validation of steps fails.
     """
     _check_steps(deploy_steps, 'deploy', _DEPLOY_STEPS_SCHEMA)
+
+
+def _check_service_steps(service_steps):
+    """Ensure all necessary keys are present and correct in steps for service
+
+    :param service_steps: a list of steps. For more details, see the
+        service_steps parameter of :func:`NodeStatesController.provision`.
+    :raises: InvalidParameterValue if validation of steps fails.
+    """
+    _check_steps(service_steps, 'service', _STEPS_SCHEMA)
 
 
 def _check_steps(steps, step_type, schema):
@@ -1429,6 +1481,7 @@ def _get_fields_for_node_query(fields=None):
                     'retired',
                     'retired_reason',
                     'secure_boot',
+                    'service_step',
                     'shard',
                     'storage_interface',
                     'target_power_state',
@@ -2105,7 +2158,7 @@ class NodesController(rest.RestController):
                              'instance_info', 'driver_internal_info',
                              'clean_step', 'deploy_step',
                              'raid_config', 'target_raid_config',
-                             'traits', 'network_data']
+                             'traits', 'network_data', 'service_step']
 
     _subcontroller_map = {
         'ports': port.PortsController,

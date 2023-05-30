@@ -66,6 +66,7 @@ from ironic.conductor import deployments
 from ironic.conductor import inspection
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import periodics
+from ironic.conductor import servicing
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
 from ironic.conductor import utils
@@ -93,7 +94,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.56'
+    RPC_API_VERSION = '1.57'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -3710,6 +3711,81 @@ class ConductorManager(base_manager.BaseConductorManager):
                            task, inventory, plugin_data),
                 err_handler=utils.provisioning_error_handler)
 
+    @METRICS.timer('ConductorManager.do_node_service')
+    @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.InvalidStateRequested,
+                                   exception.NodeInMaintenance,
+                                   exception.NodeLocked,
+                                   exception.NoFreeConductorWorker,
+                                   exception.ConcurrentActionLimit)
+    def do_node_service(self, context, node_id, service_steps,
+                        disable_ramdisk=False):
+        """RPC method to initiate node service.
+
+        :param context: an admin context.
+        :param node_id: the ID or UUID of a node.
+        :param service_steps: an ordered list of steps that will be
+            performed on the node. A step is a dictionary with required
+            keys 'interface' and 'step', and optional key 'args'. If
+            specified, the 'args' arguments are passed to the clean step
+            method.::
+
+              { 'interface': <driver_interface>,
+                'step': <name_of__step>,
+                'args': {<arg1>: <value1>, ..., <argn>: <valuen>} }
+
+            For example (this isn't a real example, this service step
+            doesn't exist)::
+
+              { 'interface': deploy',
+                'step': 'upgrade_firmware',
+                'args': {'force': True} }
+        :param disable_ramdisk: Optional. Whether to disable the ramdisk boot.
+        :raises: InvalidParameterValue if power validation fails.
+        :raises: InvalidStateRequested if the node is not in manageable state.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+        :raises: ConcurrentActionLimit If this action would exceed the
+                 configured limits of the deployment.
+        """
+        self._concurrent_action_limit(action='service')
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='node service') as task:
+            node = task.node
+            if node.maintenance:
+                raise exception.NodeInMaintenance(op=_('service'),
+                                                  node=node.uuid)
+            # NOTE(TheJulia): service.do_node_service() will also make similar
+            # calls to validate power & network, but we are doing it again
+            # here so that the user gets immediate feedback of any issues.
+            # This behaviour (of validating) is consistent with other methods
+            # like self.do_node_deploy().
+            try:
+                task.driver.power.validate(task)
+                task.driver.network.validate(task)
+            except exception.InvalidParameterValue as e:
+                msg = (_('Validation of node %(node)s for servicing '
+                         'failed: %(msg)s') %
+                       {'node': node.uuid, 'msg': e})
+                raise exception.InvalidParameterValue(msg)
+            try:
+                task.process_event(
+                    'service',
+                    callback=self._spawn_worker,
+                    call_args=(servicing.do_node_service, task, service_steps,
+                               disable_ramdisk),
+                    err_handler=utils.provisioning_error_handler,
+                    target_state=states.ACTIVE)
+            except exception.InvalidState:
+                raise exception.InvalidStateRequested(
+                    action='service', node=node.uuid,
+                    state=node.provision_state)
+
+
+# NOTE(TheJulia): This is the end of the class definition for the
+# conductor manager. Methods for RPC and stuffs should go above this
+# point in the File. Everything below is a helper or periodic.
 
 @METRICS.timer('get_vendor_passthru_metadata')
 def get_vendor_passthru_metadata(route_dict):

@@ -238,7 +238,8 @@ def get_test_node(**kw):
         'boot_mode': kw.get('boot_mode', None),
         'secure_boot': kw.get('secure_boot', None),
         'shard': kw.get('shard', None),
-        'parent_node': kw.get('parent_node', None)
+        'parent_node': kw.get('parent_node', None),
+        'service_step': kw.get('service_step'),
     }
 
     for iface in drivers_base.ALL_INTERFACES:
