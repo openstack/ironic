@@ -136,6 +136,8 @@ branch. A bugfix release is only created if there are significant
 beneficial changes and a known downstream operator or distributor will consume
 the release.
 
+A bugfix branch is supported for 6 months after its creation date.
+
 To leave some version space for releases from these branches, releases of these
 projects from the master branch always increase either the major or the minor
 version.
@@ -243,7 +245,7 @@ following the next steps:
 
   The ``--intermediate-branch`` option is used to create an intermediate
   bugfix branch following the
-  `new release model for Ironic projects <https://specs.openstack.org/openstack/ironic-specs/specs/not-implemented/new-release-model.html>`_.
+  `new release model for Ironic projects <https://specs.openstack.org/openstack/ironic-specs/specs/approved/new-release-model.html>`_.
 
   To propose the release, use the script to update the deliverable file, then
   commit the change, and propose it for review.
