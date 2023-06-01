@@ -14,3 +14,14 @@
       shell: "ip -6 route > {{ zuul_output_dir }}/logs/post-job-network-routes-v6.txt"
       ignore_errors: True
       become: yes
+    - name: Get interfaces
+      shell: "ip -s -s link > {{ zuul_output_dir }}/logs/post-job-network-interfaces.txt"
+      ignore_errors: True
+      become: yes
+    - name: Get addresses
+      shell: "ip addr > {{ zuul_output_dir }}/logs/post-job-network-addresses.txt"
+      ignore_errors: True
+      become: yes
+    - name: Get OVS
+      shell: "osv-vsctl show > {{ zuul_output_dir }}/logs/post-job-network-ovs.txt"
+      ignore_errors: True

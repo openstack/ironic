@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    While Ironic has not explicitly added support for OVN, because that is
+    in theory a Neutron implementation detail, we have added some basic
+    testing and are pleased to announce that you can use OVN's DHCP service
+    for IPv4 based provisioning with OVN v23.06.00 and beyond. This is not
+    without issues, and we've added
+    `ovn documentation <https://docs.openstack.org/ironic/latest/admin/ovn-networking.html>`_
+    as a result to help provide as much Ironic operator clarity as possible.
+issues:
+  - |
+    Use of OVN may require disabling SNAT for provisioning with IPv4 when
+    using TFTP. This is due to the Linux Kernel, and how IP packet handling
+    occurs with OVN. No solution is known to this issue, and use of
+    provisioning technologies which do *not* use TFTP is also advisable.
+  - |
+    Use of OVN may require careful attention to the MTUs of networks.
+    Oversized packets and networking may be dropped. That being said this
+    is more likely an issue for testing than with actual physical baremetal
+    in a production deployment.
+  - |
+    Use of OVN for IPv6 based PXE/iPXE is not supported by Neutron.
+    The Ironic project expects this to be addressed during the Caracal
+    (2024.1) development cycle.

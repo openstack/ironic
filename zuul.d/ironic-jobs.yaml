@@ -347,7 +347,7 @@
 # could be an issue with the lookup in ironic-python-agent
 - job:
     name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool
-    description: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool
+    description: Gate-ish job with classic name. Executes rescue!
     parent: ironic-base
     vars:
       devstack_localrc:
@@ -369,7 +369,7 @@
 # ubuntu focal for the time being.
 - job:
     name: ironic-tempest-wholedisk-bios-snmp-pxe
-    description: SNMP power, no-op management and whole disk images.
+    description: SNMP power, iPXE, OVN, no-op management and whole disk images.
     parent: ironic-base
     nodeset: openstack-single-node-focal
     vars:
@@ -381,14 +381,59 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_ENFORCE_SCOPE: True
         IRONIC_BOOT_MODE: bios
+        Q_AGENT: ovn
+        Q_ML2_TENANT_NETWORK_TYPE: vlan
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn
+        ENABLE_CHASSIS_AS_GW: True
+        ML2_L3_PLUGIN: "ovn-router,trunk"
+        OVN_DBS_LOG_LEVEL: dbg
+        OVN_BUILD_FROM_SOURCE: True
+        Q_BUILD_OVS_FROM_GIT: True
+        # NOTE(TheJulia): Ubuntu ships an out of date OVN package, so
+        # we need to build from source. These are the minimum versions
+        # representing June 2023 release. Ubuntu Kinetic is shipping Q3 2022
+        # i.e. OVN 22.09, so likely possible to remove sometime *after*
+        # Ubuntu Mantic OVN 2023.03.
+        OVN_BRANCH: v23.06.0
+        OVS_BRANCH: v3.1.1
+      devstack_services:
+        q-agt: False
+        q-dhcp: False
+        q-l3: False
+        ovn-controller: True
+        ovn-northd: True
+        q-ovn-metadata-agent: True
 
 - job:
     name: ironic-tempest-partition-uefi-ipmi-pxe
-    description: IPMI power, UEFI, partition image.
+    description: IPMI power, UEFI, iPXE, OVN, partition image.
     parent: ironic-base
     vars:
       devstack_localrc:
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        Q_AGENT: ovn
+        Q_ML2_TENANT_NETWORK_TYPE: vlan
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn
+        ENABLE_CHASSIS_AS_GW: True
+        ML2_L3_PLUGIN: "ovn-router,trunk"
+        OVN_DBS_LOG_LEVEL: dbg
+        OVN_BUILD_FROM_SOURCE: True
+        Q_BUILD_OVS_FROM_GIT: True
+        # NOTE(TheJulia): Ubuntu ships an out of date OVN package, so
+        # we need to build from source. These are the minimum versions
+        # representing June 2023 release. Ubuntu Kinetic is shipping Q3 2022
+        # i.e. OVN 22.09, so likely possible to remove sometime *after*
+        # Ubuntu Mantic which is OVN 2023.03.
+        OVN_BRANCH: v23.06.0
+        OVS_BRANCH: v3.1.1
+      devstack_services:
+        q-agt: False
+        q-dhcp: False
+        q-l3: False
+        ovn-controller: True
+        ovn-northd: True
+        ovn-vswitchd: True
+        q-ovn-metadata-agent: True
 
 - job:
     name: ironic-tempest-bfv
