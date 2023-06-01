@@ -41,6 +41,17 @@ if sushy:
         sushy.PROCESSOR_ARCH_OEM: 'oem'
     }
 
+    PROCESSOR_INSTRUCTION_SET_MAP = {
+        sushy.InstructionSet.ARM_A32: 'arm',
+        sushy.InstructionSet.ARM_A64: 'aarch64',
+        sushy.InstructionSet.IA_64: 'ia64',
+        sushy.InstructionSet.MIPS32: 'mips',
+        sushy.InstructionSet.MIPS64: 'mips64',
+        sushy.InstructionSet.OEM: None,
+        sushy.InstructionSet.X86: 'i686',
+        sushy.InstructionSet.X86_64: 'x86_64'
+    }
+
     BOOT_MODE_MAP = {
         sushy.BOOT_SOURCE_MODE_UEFI: boot_modes.UEFI,
         sushy.BOOT_SOURCE_MODE_BIOS: boot_modes.LEGACY_BIOS
@@ -102,33 +113,58 @@ class RedfishInspect(base.InspectInterface):
         # get the essential properties and update the node properties
         # with it.
         inspected_properties = task.node.properties
+        inventory = {}
 
         if system.memory_summary and system.memory_summary.size_gib:
-            inspected_properties['memory_mb'] = str(
-                system.memory_summary.size_gib * units.Ki)
+            memory = system.memory_summary.size_gib * units.Ki
+            inspected_properties['memory_mb'] = memory
+            inventory['memory'] = {'physical_mb': memory}
 
-        if system.processors and system.processors.summary:
-            arch = system.processors.summary[1]
-
-            if arch:
-                try:
-                    inspected_properties['cpu_arch'] = CPU_ARCH_MAP[arch]
-
-                except KeyError:
-                    LOG.warning("Unknown CPU arch %(arch)s discovered "
-                                "for node %(node)s", {'node': task.node.uuid,
-                                                      'arch': arch})
+        self._get_processor_info(task, system, inspected_properties, inventory)
 
         # TODO(etingof): should we respect root device hints here?
         local_gb = self._detect_local_gb(task, system)
 
         if local_gb:
             inspected_properties['local_gb'] = str(local_gb)
+
         else:
             LOG.warning("Could not provide a valid storage size configured "
                         "for node %(node)s. Assuming this is a disk-less node",
                         {'node': task.node.uuid})
             inspected_properties['local_gb'] = '0'
+
+        if system.simple_storage:
+            simple_storage_list = system.simple_storage.get_members()
+            disks = list()
+
+            for simple_storage in simple_storage_list:
+                for simple_storage_device in simple_storage.devices:
+                    disk = {}
+                    disk['name'] = simple_storage_device.name
+                    disk['size'] = simple_storage_device.capacity_bytes
+                    disks.append(disk)
+
+            inventory['disks'] = disks
+
+        if system.ethernet_interfaces and system.ethernet_interfaces.summary:
+            inventory['interfaces'] = []
+            mac_addresses = list(system.ethernet_interfaces.summary.keys())
+            for mac_address in mac_addresses:
+                inventory['interfaces'].append({'mac_address': mac_address})
+
+        system_vendor = {}
+        if system.name:
+            system_vendor['product_name'] = str(system.name)
+
+        if system.serial_number:
+            system_vendor['serial_number'] = str(system.serial_number)
+
+        if system.manufacturer:
+            system_vendor['manufacturer'] = str(system.manufacturer)
+
+        if system_vendor:
+            inventory['system_vendor'] = system_vendor
 
         if system.boot.mode:
             if not drivers_utils.get_node_capability(task.node, 'boot_mode'):
@@ -137,6 +173,8 @@ class RedfishInspect(base.InspectInterface):
                     {'boot_mode': BOOT_MODE_MAP[system.boot.mode]})
 
                 inspected_properties['capabilities'] = capabilities
+            inventory['boot'] = {'current_boot_mode':
+                                 BOOT_MODE_MAP[system.boot.mode]}
 
         valid_keys = self.ESSENTIAL_PROPERTIES
         missing_keys = valid_keys - set(inspected_properties)
@@ -182,6 +220,8 @@ class RedfishInspect(base.InspectInterface):
                 LOG.warning("No port information discovered "
                             "for node %(node)s", {'node': task.node.uuid})
 
+        inspect_utils.store_inspection_data(task.node,
+                                            inventory, None, task.context)
         return states.MANAGEABLE
 
     def _create_ports(self, task, system):
@@ -269,3 +309,34 @@ class RedfishInspect(base.InspectInterface):
                   If cannot be determined, returns None.
         """
         return None
+
+    def _get_processor_info(self, task, system, inspected_properties,
+                            inventory):
+        if system.processors is None:
+            return
+
+        cpu = {}
+        if system.processors.summary:
+            cpus, arch = system.processors.summary
+            if cpus:
+                inspected_properties['cpus'] = cpus
+                cpu['count'] = cpus
+            if arch:
+                try:
+                    inspected_properties['cpu_arch'] = CPU_ARCH_MAP[arch]
+                except KeyError:
+                    LOG.warning("Unknown CPU arch %(arch)s discovered "
+                                "for node %(node)s", {'node': task.node.uuid,
+                                                      'arch': arch})
+
+        processor = system.processors.get_members()[0]
+
+        if processor.model is not None:
+            cpu['model_name'] = str(processor.model)
+        if processor.max_speed_mhz is not None:
+            cpu['frequency'] = processor.max_speed_mhz
+        if processor.instruction_set is not None:
+            cpu['architecture'] = PROCESSOR_INSTRUCTION_SET_MAP[
+                processor.instruction_set]
+
+        inventory['cpu'] = cpu

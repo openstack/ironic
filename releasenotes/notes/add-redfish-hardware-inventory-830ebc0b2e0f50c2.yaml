@@ -1,0 +1,8 @@
+---
+features:
+  - Uses Redfish to collect the available hardware inventory information and
+    stores it in the right format. Information collected includes cpu
+    information including "count", "architecture", "model_name", and
+    "frequency", disk "size" (in bytes), interface "mac_address",
+    "system_vendor" information including "product_name", "serial_number" and
+    "manufacturer", and "current_boot_mode".
