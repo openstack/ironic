@@ -443,3 +443,24 @@ class FakeRescue(base.RescueInterface):
     def unrescue(self, task):
         sleep(CONF.fake.rescue_delay)
         return states.ACTIVE
+
+
+class FakeFirmware(base.FirmwareInterface):
+    """Example implementation of a simple firmware interface."""
+
+    def get_properties(self):
+        return {}
+
+    def validate(self, task):
+        pass
+
+    @base.clean_step(priority=0, argsinfo={
+        'settings': {'description': ('List of Firmware components, each item '
+                     'needs to contain a dictionary with name/value pairs'),
+                     'required': True}})
+    def update(self, task, settings):
+        sleep(CONF.fake.firmware_delay)
+
+    def cache_firmware_components(self, task):
+        sleep(CONF.fake.firmware_delay)
+        pass

@@ -219,7 +219,7 @@ class TestListDrivers(base.BaseApiTest):
 
         for iface in driver_base.ALL_INTERFACES:
             if iface != 'bios':
-                if latest_if or iface not in ['rescue', 'storage']:
+                if latest_if or iface not in ['rescue', 'storage', 'firmware']:
                     self.assertIn('default_%s_interface' % iface, data)
                     self.assertIn('enabled_%s_interfaces' % iface, data)
 

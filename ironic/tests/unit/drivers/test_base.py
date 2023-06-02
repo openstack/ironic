@@ -839,12 +839,43 @@ class TestManagementInterface(base.TestCase):
                           management.get_mac_addresses, task_mock)
 
 
+class MyFirmwareInterface(driver_base.FirmwareInterface):
+
+    def get_properties(self):
+        pass
+
+    def validate(self, task):
+        pass
+
+    @driver_base.cache_firmware_components
+    def update(self, task, settings):
+        return "return_update"
+
+    def cache_firmware_components(self, task):
+        pass
+
+
+class TestFirmwareInterface(base.TestCase):
+
+    @mock.patch.object(MyFirmwareInterface, 'cache_firmware_components',
+                       autospec=True)
+    def test_update_with_wrapper(self, cache_firmware_components_mock):
+        firmware = MyFirmwareInterface()
+        task_mock = mock.MagicMock()
+
+        actual = firmware.update(task_mock, "")
+        cache_firmware_components_mock.assert_called_once_with(
+            firmware, task_mock)
+        self.assertEqual(actual, "return_update")
+
+
 class TestBareDriver(base.TestCase):
 
     def test_class_variables(self):
         self.assertEqual(['boot', 'deploy', 'management', 'network', 'power'],
                          driver_base.BareDriver().core_interfaces)
         self.assertEqual(
-            ['bios', 'console', 'inspect', 'raid', 'rescue', 'storage'],
+            ['bios', 'console', 'firmware', 'inspect', 'raid',
+             'rescue', 'storage'],
             driver_base.BareDriver().optional_interfaces
         )

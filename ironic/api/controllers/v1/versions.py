@@ -209,6 +209,7 @@ MINOR_82_NODE_SHARD = 82
 MINOR_83_PARENT_CHILD_NODES = 83
 MINOR_84_CONTINUE_INSPECTION = 84
 MINOR_85_UNHOLD_VERB = 85
+MINOR_86_FIRMWARE_INTERFACE = 86
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -216,7 +217,7 @@ MINOR_85_UNHOLD_VERB = 85
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_85_UNHOLD_VERB
+MINOR_MAX_VERSION = MINOR_86_FIRMWARE_INTERFACE
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

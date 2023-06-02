@@ -8478,3 +8478,40 @@ class TestNodeParentNodePatch(test_api_base.BaseApiTest):
             '/nodes/%s' % self.child_node.uuid, body, headers=headers)
         self.assertEqual(http_client.OK, response.status_code)
         self.mock_update_node.assert_called_once()
+
+
+class TestNodeFirmwareComponent(test_api_base.BaseApiTest):
+
+    def setUp(self):
+        super(TestNodeFirmwareComponent, self).setUp()
+        self.version = "1.86"
+        self.node = obj_utils.create_test_node(
+            self.context, id=1)
+
+        self.fw_cmp = obj_utils.create_test_firmware_component(
+            self.context, node_id=self.node.id)
+        self.fw_cmp2 = obj_utils.create_test_firmware_component(
+            self.context, node_id=self.node.id, component='BIOS')
+
+    def test_get_all_firmware_components(self):
+        ret = self.get_json('/nodes/%s/firmware' % self.node.uuid,
+                            headers={api_base.Version.string: self.version})
+        expected_components = [
+            {'created_at': ret['firmware'][0]['created_at'],
+             'updated_at': ret['firmware'][0]['updated_at'],
+             'component': 'BIOS',
+             'initial_version': 'v1.0.0', 'current_version': 'v1.0.0',
+             'last_version_flashed': None},
+            {'created_at': ret['firmware'][1]['created_at'],
+             'updated_at': ret['firmware'][1]['updated_at'],
+             'component': 'bmc',
+             'initial_version': 'v1.0.0', 'current_version': 'v1.0.0',
+             'last_version_flashed': None}]
+        self.assertEqual({'firmware': expected_components}, ret)
+
+    def test_wrong_version_get_all_firmware_components_old_version(self):
+        ret = self.get_json('/nodes/%s/firmware' % self.node.uuid,
+                            headers={api_base.Version.string: "1.81"},
+                            expect_errors=True)
+
+        self.assertEqual(http_client.NOT_FOUND, ret.status_int)

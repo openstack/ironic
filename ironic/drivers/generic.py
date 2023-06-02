@@ -86,6 +86,11 @@ class GenericHardware(hardware_type.AbstractHardwareType):
         return [noop_storage.NoopStorage, cinder.CinderStorage,
                 external_storage.ExternalStorage]
 
+    @property
+    def supported_firmware_interfaces(self):
+        """List of supported firmware interfaces."""
+        return [noop.NoFirmware]
+
 
 class ManualManagementHardware(GenericHardware):
     """Hardware type that uses manual power and boot management.

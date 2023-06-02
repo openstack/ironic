@@ -2340,3 +2340,23 @@ parent_node_patch_by_reader:
   headers: *reader_headers
   body: *patch_parent_node
   assert_status: 403
+
+# Node Firmware  - baremetal:node:firmware:get
+
+nodes_firmware_component_get_admin:
+  path: '/v1/nodes/{node_ident}/firmware'
+  method: get
+  headers: *admin_headers
+  assert_status: 200
+
+nodes_firmware_component_get_member:
+  path: '/v1/nodes/{node_ident}/firmware'
+  method: get
+  headers: *scoped_member_headers
+  assert_status: 200
+
+nodes_firmware_component_get_reader:
+  path: '/v1/nodes/{node_ident}/firmware'
+  method: get
+  headers: *reader_headers
+  assert_status: 200

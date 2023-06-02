@@ -105,6 +105,12 @@ class BareDriver(object):
     A reference to an instance of :class:DeployInterface.
     """
 
+    firmware = None
+    """`Standard` attribute for inspection related features.
+
+    A reference to an instance of :class:FirmwareInterface.
+    """
+
     inspect = None
     """`Standard` attribute for inspection related features.
 
@@ -161,7 +167,8 @@ class BareDriver(object):
     @property
     def optional_interfaces(self):
         """Interfaces that can be no-op."""
-        return ['bios', 'console', 'inspect', 'raid', 'rescue', 'storage']
+        return ['bios', 'console', 'firmware', 'inspect', 'raid', 'rescue',
+                'storage']
 
     @property
     def all_interfaces(self):
@@ -1733,6 +1740,55 @@ class StorageInterface(BaseInterface, metaclass=abc.ABCMeta):
         :returns: Boolean value to indicate if the interface expects
                   the image to be written by Ironic.
         :raises: UnsupportedDriverExtension
+        """
+
+
+def cache_firmware_components(func):
+    """A decorator to cache firmware components after running the function.
+
+    :param func: Function or method to wrap.
+    """
+    @functools.wraps(func)
+    def wrapped(self, task, *args, **kwargs):
+        result = func(self, task, *args, **kwargs)
+        self.cache_firmware_components(task)
+        return result
+    return wrapped
+
+
+class FirmwareInterface(BaseInterface):
+    """Base class for firmware interface"""
+
+    interface_type = 'firmware'
+
+    @abc.abstractmethod
+    def update(self, task, settings):
+        """Update the Firmware on the given using the settings for components.
+
+        :param task: a TaskManager instance.
+        :param settings: a list of dictionaries, each dictionary contains the
+            component name and the url that will be used to update the
+            firmware.
+        :raises: UnsupportedDriverExtension, if the node's driver doesn't
+            support update via the interface.
+        :raises: InvalidParameterValue, if validation of the settings fails.
+        :raises: MissingParamterValue, if some required parameters are
+            missing.
+        :returns: states.CLEANWAIT if Firmware update with the settings is in
+            progress asynchronously of None if it is complete.
+        """
+
+    @abc.abstractmethod
+    def cache_firmware_components(self, task):
+        """Store or update Firmware Components on the given node.
+
+        This method stores Firmware Components to the firmware_information
+        table during 'cleaning' operation. It will also update the timestamp
+        of each Firmware Component.
+
+        :param task: a TaskManager instance.
+        :raises: UnsupportedDriverExtension, if the node's driver doesn't
+            support getting Firmware Components from bare metal.
         """
 
 

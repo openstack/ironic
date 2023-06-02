@@ -80,7 +80,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.36: Add boot_mode and secure_boot fields
     # Version 1.37: Add shard field
     # Version 1.38: Add parent_node field
-    VERSION = '1.38'
+    # Version 1.39: Add firmware_interface field
+    VERSION = '1.39'
 
     dbapi = db_api.get_instance()
 
@@ -155,6 +156,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'boot_interface': object_fields.StringField(nullable=True),
         'console_interface': object_fields.StringField(nullable=True),
         'deploy_interface': object_fields.StringField(nullable=True),
+        'firmware_interface': object_fields.StringField(nullable=True),
         'inspect_interface': object_fields.StringField(nullable=True),
         'management_interface': object_fields.StringField(nullable=True),
         'network_interface': object_fields.StringField(nullable=True),
@@ -662,6 +664,9 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             For versions prior to this, it should be set to None or removed.
         Version 1.37: shard was added. Default is None. For versions prior to
             this, it should be set to None or removed.
+        Version 1.39: firmware_interface field was added. Its default value is
+            None. For versions prior to this, it should be set to None (or
+            removed).
 
         :param target_version: the desired version of the object
         :param remove_unavailable_fields: True to remove fields that are
@@ -677,7 +682,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
                   ('automated_clean', 28), ('protected_reason', 29),
                   ('owner', 30), ('allocation_id', 31), ('description', 32),
                   ('retired_reason', 33), ('lessee', 34), ('boot_mode', 36),
-                  ('secure_boot', 36), ('shard', 37)]
+                  ('secure_boot', 36), ('shard', 37),
+                  ('firmware_interface', 39)]
 
         for name, minor in fields:
             self._adjust_field_to_version(name, None, target_version,

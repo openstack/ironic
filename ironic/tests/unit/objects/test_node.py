@@ -1377,6 +1377,68 @@ class TestConvertToVersion(db_base.DbTestCase):
         self.assertIsNone(node.secure_boot)
         self.assertEqual({}, node.obj_get_changes())
 
+    def test_firmware_supported_missing(self):
+        # firmware_interface not set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        delattr(node, 'firmware_interface')
+        node.obj_reset_changes()
+
+        node._convert_to_version("1.39")
+
+        self.assertIsNone(node.firmware_interface)
+        self.assertEqual({'firmware_interface': None},
+                         node.obj_get_changes())
+
+    def test_firmware_supported_set(self):
+        # firmware_interface set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.firmware_interface = 'fake'
+        node.obj_reset_changes()
+        node._convert_to_version("1.39")
+        self.assertEqual('fake', node.firmware_interface)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_firmware_unsupported_missing(self):
+        # firmware_interface not set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        delattr(node, 'firmware_interface')
+        node.obj_reset_changes()
+        node._convert_to_version("1.38")
+        self.assertNotIn('firmware_interface', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_firmware_unsupported_set_remove(self):
+        # firmware_interface set, should be removed.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.firmware_interface = 'fake'
+        node.obj_reset_changes()
+        node._convert_to_version("1.38")
+        self.assertNotIn('firmware_interface', node)
+        self.assertEqual({}, node.obj_get_changes())
+
+    def test_firmware_unsupported_set_no_remove_non_default(self):
+        # firmware_interface set, should be set to default.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.firmware_interface = 'fake'
+        node.obj_reset_changes()
+        node._convert_to_version("1.38", False)
+        self.assertIsNone(node.firmware_interface)
+        self.assertEqual({'firmware_interface': None}, node.obj_get_changes())
+
+    def test_firmware_unsupported_set_no_remove_default(self):
+        # firmware_interface set, no change required.
+        node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+
+        node.firmware_interface = None
+        node.obj_reset_changes()
+        node._convert_to_version("1.38", False)
+        self.assertIsNone(node.firmware_interface)
+        self.assertEqual({}, node.obj_get_changes())
+
 
 class TestNodePayloads(db_base.DbTestCase):
 

@@ -78,6 +78,12 @@ opts = [
                       'rescue driver. Two comma-delimited values will '
                       'result in a delay with a triangular random '
                       'distribution, weighted on the first value.')),
+    cfg.StrOpt('firmware_delay',
+               default='0',
+               help=_('Delay in seconds for operations with the fake '
+                      'firmware driver. Two comma-delimited values will '
+                      'result in a delay with a triangular random '
+                      'distribution, weighted on the first value.')),
 ]
 
 

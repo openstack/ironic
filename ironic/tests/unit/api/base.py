@@ -72,8 +72,8 @@ class BaseApiTest(db_base.DbTestCase):
 
     def _make_app(self):
         # Determine where we are so we can set up paths in the config
-        root_dir = self.path_get()
 
+        root_dir = self.path_get()
         self.app_config = {
             'app': {
                 'root': self.root_controller,

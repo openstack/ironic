@@ -807,7 +807,8 @@ VERSIONED_FIELDS = {
     'boot_mode': versions.MINOR_75_NODE_BOOT_MODE,
     'secure_boot': versions.MINOR_75_NODE_BOOT_MODE,
     'shard': versions.MINOR_82_NODE_SHARD,
-    'parent_node': versions.MINOR_83_PARENT_CHILD_NODES
+    'parent_node': versions.MINOR_83_PARENT_CHILD_NODES,
+    'firmware_interface': versions.MINOR_86_FIRMWARE_INTERFACE
 }
 
 for field in V31_FIELDS:
@@ -2006,3 +2007,11 @@ def allow_continue_inspection_endpoint():
     """
     return (new_continue_inspection_endpoint()
             or api.request.version.minor == versions.MINOR_1_INITIAL_VERSION)
+
+
+def allow_firmware_interface():
+    """Check if we should support firmware interface and endpoints.
+
+    Version 1.84 of the API added support for firmware interface.
+    """
+    return api.request.version.minor >= versions.MINOR_86_FIRMWARE_INTERFACE
