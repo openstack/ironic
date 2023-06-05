@@ -34,11 +34,14 @@ opts = [
                help=_('endpoint to use as a callback for posting back '
                       'introspection data when boot is managed by ironic. '
                       'Standard keystoneauth options are used by default.')),
-    cfg.BoolOpt('require_managed_boot', default=False,
+    cfg.BoolOpt('require_managed_boot', default=None,
                 help=_('require that the in-band inspection boot is fully '
-                       'managed by ironic. Set this to True if your '
-                       'installation of ironic-inspector does not have a '
-                       'separate PXE boot environment.')),
+                       'managed by the node\'s boot interface. Set this to '
+                       'True if your installation does not have a separate '
+                       '(i)PXE boot environment for node discovery. Set '
+                       'to False if you need to inspect nodes that are not '
+                       'supported by boot interfaces (e.g. because they '
+                       'don\'t have ports).')),
 ]
 
 

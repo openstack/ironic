@@ -164,6 +164,14 @@ def _start_managed_inspection(task):
 class Inspector(base.InspectInterface):
     """In-band inspection via ironic-inspector project."""
 
+    def __init__(self):
+        super().__init__()
+        if CONF.inspector.require_managed_boot is None:
+            LOG.warning("The option [inspector]require_managed_boot will "
+                        "change its default value to True in the future. "
+                        "Set it to an explicit boolean value to avoid a "
+                        "potential breakage.")
+
     def get_properties(self):
         """Return the properties of the interface.
 

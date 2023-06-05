@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    The default value of the ``[inspector]require_managed_boot`` option will
+    change from ``False`` to ``True`` in the future, causing in-band inspection
+    to fail if the boot interface cannot prepare the ramdisk boot (e.g. in case
+    of missing ports). Please set this option to an explicit value to avoid
+    the behavior change.
