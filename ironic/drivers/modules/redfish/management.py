@@ -1197,9 +1197,18 @@ class RedfishManagement(base.ManagementInterface):
         :raises: RedfishError on an error from the Sushy library
         :returns: A list of MAC addresses for the node
         """
+        system = redfish_utils.get_system(task.node)
         try:
-            system = redfish_utils.get_system(task.node)
             return list(redfish_utils.get_enabled_macs(task, system))
+        # NOTE(janders) we should handle MissingAttributeError separately
+        # from other SushyErrors - some servers (e.g. some Cisco UCSB and UCSX
+        # blades) are missing EthernetInterfaces attribute yet could be
+        # provisioned successfully if MAC information is provided manually AND
+        # this exception is caught and handled accordingly.
+        except sushy.exceptions.MissingAttributeError as exc:
+            LOG.warning('Cannot get MAC addresses for node %(node)s: %(exc)s',
+                        {'node': task.node.uuid, 'exc': exc})
+        # if the exception is not a MissingAttributeError, raise it
         except sushy.exceptions.SushyError as exc:
             msg = (_('Failed to get network interface information on node '
                      '%(node)s: %(exc)s')
