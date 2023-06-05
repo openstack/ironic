@@ -2651,12 +2651,13 @@ class Connection(api.Connection):
         inventory = models.NodeInventory()
         inventory.update(values)
         with _session_for_write() as session:
-            try:
-                session.add(inventory)
-                session.flush()
-            except db_exc.DBDuplicateEntry:
-                raise exception.NodeInventoryAlreadyExists(
-                    id=values['id'])
+            session.query(
+                models.NodeInventory
+            ).filter(
+                models.NodeInventory.node_id == values['node_id']
+            ).delete()
+            session.add(inventory)
+            session.flush()
         return inventory
 
     @oslo_db_api.retry_on_deadlock
@@ -2670,12 +2671,26 @@ class Connection(api.Connection):
                     node=node_id)
 
     def get_node_inventory_by_node_id(self, node_id):
-        try:
-            with _session_for_read() as session:
-                query = session.query(models.NodeInventory).filter_by(
-                    node_id=node_id)
-                res = query.one()
-        except NoResultFound:
+        with _session_for_read() as session:
+            # Note(masghar): The most recent node inventory is extracted
+            # (as per the created_at field). This is because previously, it was
+            # possible to add more than one inventory per node into the
+            # database, due to there being no unique constraint on the node_id
+            # column in the node_inventory table. Now, all previous node
+            # inventories are deleted before a new one is added using
+            # create_node_inventory. However, some databases would already
+            # contain multiple node inventories due to the prior
+            # implementation. Hence the most recent one is being retrieved.
+            query = session.query(
+                models.NodeInventory
+            ).filter_by(
+                node_id=node_id
+            ).order_by(
+                models.NodeInventory.created_at.desc()
+            )
+            res = query.first()
+
+        if res is None:
             raise exception.NodeInventoryNotFound(node=node_id)
         return res
 

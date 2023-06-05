@@ -24,6 +24,7 @@ from sqlalchemy.orm import exc as sa_exc
 
 from ironic.common import exception
 from ironic.common import states
+from ironic.db.sqlalchemy.models import NodeInventory
 from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils
 
@@ -762,6 +763,31 @@ class DbNodeTestCase(base.DbTestCase):
         self.dbapi.destroy_node(node.uuid)
         self.assertRaises(exception.NodeHistoryNotFound,
                           self.dbapi.get_node_history_by_id, history.id)
+
+    def test_inventory_updated_for_node(self):
+        node = utils.create_test_node()
+
+        first_timestamp = datetime.datetime(2000, 1, 1, 0, 0)
+        second_timestamp = first_timestamp + datetime.timedelta(minutes=8)
+        utils.create_test_inventory(node_id=node.id,
+                                    id=1,
+                                    created_at=first_timestamp)
+        utils.create_test_inventory(node_id=node.id,
+                                    id=2,
+                                    inventory={"inventory": "test2"},
+                                    created_at=second_timestamp)
+
+        node_inventory = self.dbapi.get_node_inventory_by_node_id(
+            node_id=node.id)
+        expected_inventory = NodeInventory(node_id=node.id,
+                                           id=2,
+                                           inventory_data={"inventory":
+                                                           "test2"},
+                                           created_at=second_timestamp,
+                                           plugin_data={"pdata":
+                                                        {"plugin": "data"}},
+                                           version='1.0')
+        self.assertJsonEqual(expected_inventory, node_inventory)
 
     def test_inventory_get_destroyed_after_destroying_a_node_by_uuid(self):
         node = utils.create_test_node()

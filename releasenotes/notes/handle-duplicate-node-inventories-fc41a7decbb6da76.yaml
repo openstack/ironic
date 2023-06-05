@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Fixes a bug that occurs when a node is inspected more than once and the
+    database is configured as a storage backend: a new node inventory entry
+    is added in the database for each inspection result, causing more than one
+    inventory to exist for the node in the node_inventory table.
+
+    This is handled by:
+
+    * Deleting any previous inventory entries for a node before adding a new
+      entry in the database.
+    * Retrieving the most recent node inventory from the database when the
+      database is queried. (To cater for databases that already contain
+      duplicate node inventories due to the bug.)
