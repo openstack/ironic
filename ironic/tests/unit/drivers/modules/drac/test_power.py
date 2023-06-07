@@ -19,6 +19,7 @@ from unittest import mock
 
 from dracclient import constants as drac_constants
 from dracclient import exceptions as drac_exceptions
+from oslo_service import loopingcall
 
 from ironic.common import exception
 from ironic.common import states
@@ -69,8 +70,9 @@ class DracPowerTestCase(test_utils.BaseDracTest):
 
         mock_client.get_power_state.assert_called_once_with()
 
+    @mock.patch.object(loopingcall.BackOffLoopingCall, '_sleep', autospec=True)
     @mock.patch.object(drac_power.LOG, 'warning', autospec=True)
-    def test_set_power_state(self, mock_log, mock_get_drac_client):
+    def test_set_power_state(self, mock_log, mock_sleep, mock_get_drac_client):
         mock_client = mock_get_drac_client.return_value
         mock_client.get_power_state.side_effect = [drac_constants.POWER_ON,
                                                    drac_constants.POWER_OFF]
@@ -96,8 +98,10 @@ class DracPowerTestCase(test_utils.BaseDracTest):
         drac_power_state = drac_power.REVERSE_POWER_STATES[states.POWER_OFF]
         mock_client.set_power_state.assert_called_once_with(drac_power_state)
 
+    @mock.patch.object(loopingcall.BackOffLoopingCall, '_sleep', autospec=True)
     @mock.patch.object(drac_power.LOG, 'warning', autospec=True)
-    def test_set_power_state_timeout(self, mock_log, mock_get_drac_client):
+    def test_set_power_state_timeout(self, mock_log, mock_sleep,
+                                     mock_get_drac_client):
         mock_client = mock_get_drac_client.return_value
         mock_client.get_power_state.side_effect = [drac_constants.POWER_ON,
                                                    drac_constants.POWER_OFF]

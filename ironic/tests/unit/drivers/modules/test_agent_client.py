@@ -523,7 +523,8 @@ class TestAgentClient(base.TestCase):
         self.assertRaises(exception.InvalidParameterValue,
                           self.client._command, self.node, method, params)
 
-    def test__command_poll(self):
+    @mock.patch('time.sleep', autospec=True)
+    def test__command_poll(self, mock_sleep):
         response_data = {'status': 'ok'}
         final_status = MockCommandStatus('SUCCEEDED', name='run_image')
         self.client.session.post.return_value = MockResponse(response_data)
@@ -553,6 +554,7 @@ class TestAgentClient(base.TestCase):
             verify=True)
         self.client.session.get.assert_called_with(url, timeout=60,
                                                    verify=True)
+        mock_sleep.assert_called_with(CONF.agent.command_wait_interval)
 
     def test_get_commands_status(self):
         if not mock._is_instance_mock(self.client.session):

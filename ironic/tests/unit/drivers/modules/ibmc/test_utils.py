@@ -132,8 +132,9 @@ class IBMCUtilsTestCase(base.IBMCTestCase):
             "value2": "key2"
         }, revert)
 
+    @mock.patch('time.sleep', autospec=True)
     @mock.patch.object(ibmc_client, 'connect', spec=object)
-    def test_handle_ibmc_exception_retry(self, connect_ibmc):
+    def test_handle_ibmc_exception_retry(self, connect_ibmc, mock_sleep):
 
         @utils.handle_ibmc_exception('get IBMC system')
         def get_ibmc_system(_task):
