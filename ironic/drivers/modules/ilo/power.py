@@ -174,9 +174,12 @@ def _wait_for_state_change(node, target_state, requested_state,
     else:
         timeout = int(max_retry * interval)
         LOG.error("iLO failed to change state to %(tstate)s "
-                  "within %(timeout)s sec for node %(node)s",
+                  "within %(timeout)s sec for node %(node)s. Reported "
+                  "state from iLO is %(state)s, expected state from iLO "
+                  "is %(expected)s.",
                   {'tstate': target_state, 'node': node.uuid,
-                   'timeout': int(max_retry * interval)})
+                   'timeout': int(max_retry * interval), 'state': state[0],
+                   'expected': state_to_check})
         raise exception.PowerStateFailure(pstate=target_state)
 
 
