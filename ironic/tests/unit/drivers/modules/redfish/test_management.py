@@ -865,7 +865,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.node, reboot=True, skip_current_step=True, polling=True)
             mock_get_async_step_return_state.assert_called_once_with(
                 task.node)
-            mock_node_power_action.assert_called_once_with(task, states.REBOOT)
+            mock_node_power_action.assert_called_once_with(
+                task, states.REBOOT, None)
 
     @mock.patch.object(redfish_mgmt.RedfishManagement, '_stage_firmware_file',
                        autospec=True)
@@ -919,7 +920,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.node, reboot=True, skip_current_step=True, polling=True)
             mock_get_async_step_return_state.assert_called_once_with(
                 task.node)
-            mock_node_power_action.assert_called_once_with(task, states.REBOOT)
+            mock_node_power_action.assert_called_once_with(
+                task, states.REBOOT, None)
 
     @mock.patch.object(redfish_mgmt.RedfishManagement, '_stage_firmware_file',
                        autospec=True)
@@ -979,7 +981,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.node, reboot=True, skip_current_step=True, polling=True)
             mock_get_async_step_return_state.assert_called_once_with(
                 task.node)
-            mock_node_power_action.assert_called_once_with(task, states.REBOOT)
+            mock_node_power_action.assert_called_once_with(
+                task, states.REBOOT, None)
 
     def test_update_firmware_invalid_args(self):
         with task_manager.acquire(self.context, self.node.uuid,

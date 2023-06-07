@@ -477,6 +477,8 @@ class FakeFirmware(base.FirmwareInterface):
                      'needs to contain a dictionary with name/value pairs'),
                      'required': True}})
     def update(self, task, settings):
+        LOG.debug('Calling update clean step with settings %s.',
+                  settings)
         sleep(CONF.fake.firmware_delay)
 
     def cache_firmware_components(self, task):

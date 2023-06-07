@@ -1828,3 +1828,15 @@ def servicing_error_handler(task, logmsg, errmsg=None, traceback=False,
 
     if set_fail_state and node.provision_state != states.SERVICEFAIL:
         task.process_event('fail')
+
+
+def node_cache_firmware_components(task):
+    """Do caching of firmware components if supported by driver"""
+
+    try:
+        LOG.debug('Getting Firmware Components for node %s', task.node.uuid)
+        task.driver.firmware.validate(task)
+        task.driver.firmware.cache_firmware_components(task)
+    except exception.UnsupportedDriverExtension:
+        LOG.warning('Firmware Components are not supported for node %s, '
+                    'skipping', task.node.uuid)

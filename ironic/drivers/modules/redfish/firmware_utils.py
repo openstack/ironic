@@ -63,6 +63,36 @@ _UPDATE_FIRMWARE_SCHEMA = {
         "additionalProperties": False
     }
 }
+
+_FIRMWARE_INTERFACE_UPDATE_SCHEMA = {
+    "$schema": "http://json-schema.org/schema#",
+    "title": "update_firmware clean step schema",
+    "type": "array",
+    # list of firmware update images
+    "items": {
+        "type": "object",
+        "required": ["component", "url"],
+        "properties": {
+            "component": {
+                "description": "name of the firmware component to be updated",
+                "type": "string",
+                "minLenght": 1
+            },
+            "url": {
+                "description": "URL for firmware file",
+                "type": "string",
+                "minLength": 1
+            },
+            "wait": {
+                "description": "optional wait time for firmware update",
+                "type": "integer",
+                "minimum": 1
+            }
+        },
+        "additionalProperties": False
+    }
+}
+
 _FIRMWARE_SUBDIR = 'firmware'
 
 
@@ -78,6 +108,20 @@ def validate_update_firmware_args(firmware_images):
         raise exception.InvalidParameterValue(
             _('Invalid firmware update %(firmware_images)s. Errors: %(err)s')
             % {'firmware_images': firmware_images, 'err': err})
+
+
+def validate_firmware_interface_update_args(settings):
+    """Validate ``update`` step input argument
+
+    :param settings: args to validate.
+    :raises: InvalidParameterValue When argument is not valid
+    """
+    try:
+        jsonschema.validate(settings, _FIRMWARE_INTERFACE_UPDATE_SCHEMA)
+    except jsonschema.ValidationError as err:
+        raise exception.InvalidParameterValue(
+            _('Invalid firmware update %(settings)s. Errors: %(err)s')
+            % {'settings': settings, 'err': err})
 
 
 def get_swift_temp_url(parsed_url):

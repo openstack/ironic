@@ -2018,6 +2018,6 @@ def allow_continue_inspection_endpoint():
 def allow_firmware_interface():
     """Check if we should support firmware interface and endpoints.
 
-    Version 1.84 of the API added support for firmware interface.
+    Version 1.86 of the API added support for firmware interface.
     """
     return api.request.version.minor >= versions.MINOR_86_FIRMWARE_INTERFACE

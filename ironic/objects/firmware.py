@@ -145,11 +145,15 @@ class FirmwareComponentList(base.IronicObjectListBase, base.IronicObject):
         for cmp in components:
             if cmp['component'] in current_components_dict:
                 values = current_components_dict[cmp['component']]
-
-                cv_changed = cmp['current_version'] \
-                    != values.get('current_version')
-                lvf_changed = cmp['last_version_flashed'] \
-                    != values.get('last_version_flashed')
+                if values.get('last_version_flashed') is None:
+                    lvf_changed = False
+                    cv_changed = cmp['current_version'] \
+                        != values.get('current_version')
+                else:
+                    lvf_changed = cmp['current_version'] \
+                        != values.get('last_version_flashed')
+                    cv_changed = cmp['current_version'] \
+                        != values.get('current_version')
 
                 if cv_changed or lvf_changed:
                     update_list.append(cmp)

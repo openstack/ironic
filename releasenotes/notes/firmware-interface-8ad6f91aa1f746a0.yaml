@@ -1,0 +1,31 @@
+---
+features:
+  - |
+    Adds Firmware Interface support to ironic, we would like to receive
+    feedback since this is a new feature we introduced and we as a developer
+    community have limited hardware access, reach out to us in case of any
+    unexpected behavior.
+
+    - Adds version 1.86 of the Bare Metal API, which includes:
+
+      * List all firmware components of a node via the
+        ``GET /v1/nodes/{node_ident}/firmware`` API.
+
+      * The ``firmware_interface`` field of the node resource. A firmware
+        interface can be set when creating or updating a node.
+
+      * The ``default_firmware_interface`` and ``enabled_firmware_interface``
+        fields of the driver resource.
+
+    - Adds new configuration options for the firmware interface feature:
+
+      * Firmware interfaces are enabled via
+        ``[DEFAULT]/enabled_firmware_interfaces``. A default firmware
+        interface to use when creating or updating nodes can be specified with
+        ``[DEFAULT]/default_firmware_interface``.
+
+    - Available interfaces: ``redfish``, ``no-firmware`` and ``fake``.
+
+    - Support to update firmware of BIOS and BMC via ``update`` step, can be
+      done via clean or deploy steps, the node should be using the
+      ``redfish`` driver and set the  ``firmware_interface``.

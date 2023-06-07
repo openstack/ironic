@@ -4,7 +4,7 @@
 Node Firmware (nodes)
 =====================
 
-.. versionadded:: 1.84
+.. versionadded:: 1.86
 
 Given a Node identifier (``uuid`` or ``name``), the API exposes the list of
 all Firmware Components associated with that Node.

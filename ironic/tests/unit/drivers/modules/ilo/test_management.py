@@ -1681,7 +1681,7 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
             ilo_mock_object.do_disk_erase.assert_called_once_with(
                 'HDD', 'overwrite')
             self.assertEqual(states.CLEANWAIT, result)
-            mock_power.assert_called_once_with(task, states.REBOOT)
+            mock_power.assert_called_once_with(task, states.REBOOT, None)
 
     @mock.patch.object(deploy_utils, 'build_agent_options',
                        autospec=True)
@@ -1712,7 +1712,7 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
             ilo_mock_object.do_disk_erase.assert_called_once_with(
                 'SSD', 'block')
             self.assertEqual(states.CLEANWAIT, result)
-            mock_power.assert_called_once_with(task, states.REBOOT)
+            mock_power.assert_called_once_with(task, states.REBOOT, None)
 
     @mock.patch.object(deploy_utils, 'build_agent_options',
                        autospec=True)
@@ -1746,7 +1746,7 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
             ilo_mock_object.do_disk_erase.assert_called_once_with(
                 'SSD', 'block')
             self.assertEqual(states.CLEANWAIT, result)
-            mock_power.assert_called_once_with(task, states.REBOOT)
+            mock_power.assert_called_once_with(task, states.REBOOT, None)
 
     @mock.patch.object(ilo_management.LOG, 'info', autospec=True)
     @mock.patch.object(ilo_management.Ilo5Management,
@@ -1802,7 +1802,7 @@ class Ilo5ManagementTestCase(db_base.DbTestCase):
             ilo_mock_object.do_disk_erase.assert_called_once_with(
                 'HDD', 'zero')
             self.assertEqual(states.CLEANWAIT, result)
-            mock_power.assert_called_once_with(task, states.REBOOT)
+            mock_power.assert_called_once_with(task, states.REBOOT, None)
 
     @mock.patch.object(ilo_management.LOG, 'info', autospec=True)
     @mock.patch.object(ilo_common, 'get_ilo_object', autospec=True)

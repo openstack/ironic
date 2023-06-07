@@ -33,7 +33,8 @@ class RedfishHardwareTestCase(db_base.DbTestCase):
                     enabled_boot_interfaces=['redfish-virtual-media'],
                     enabled_management_interfaces=['redfish'],
                     enabled_inspect_interfaces=['redfish'],
-                    enabled_bios_interfaces=['redfish'])
+                    enabled_bios_interfaces=['redfish'],
+                    enabled_firmware_interfaces=['redfish'])
 
     def test_default_interfaces(self):
         node = obj_utils.create_test_node(self.context, driver='redfish')

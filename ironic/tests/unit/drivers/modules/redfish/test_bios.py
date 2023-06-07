@@ -203,10 +203,11 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             if fast_track:
                 mock_power_action.assert_has_calls([
                     mock.call(task, states.POWER_OFF),
-                    mock.call(task, states.REBOOT),
+                    mock.call(task, states.REBOOT, None),
                 ])
             else:
-                mock_power_action.assert_called_once_with(task, states.REBOOT)
+                mock_power_action.assert_called_once_with(
+                    task, states.REBOOT, None)
             if step == 'factory_reset':
                 bios.reset_bios.assert_called_once()
             if step == 'apply_configuration':

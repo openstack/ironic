@@ -21,6 +21,7 @@ from ironic.drivers.modules import noop_mgmt
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules.redfish import bios as redfish_bios
 from ironic.drivers.modules.redfish import boot as redfish_boot
+from ironic.drivers.modules.redfish import firmware as redfish_firmware
 from ironic.drivers.modules.redfish import inspect as redfish_inspect
 from ironic.drivers.modules.redfish import management as redfish_mgmt
 from ironic.drivers.modules.redfish import power as redfish_power
@@ -69,3 +70,7 @@ class RedfishHardware(generic.GenericHardware):
     def supported_raid_interfaces(self):
         """List of supported raid interfaces."""
         return [redfish_raid.RedfishRAID, noop.NoRAID, agent.AgentRAID]
+
+    @property
+    def supported_firmware_interfaces(self):
+        return [redfish_firmware.RedfishFirmware, noop.NoFirmware]

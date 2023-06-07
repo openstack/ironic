@@ -475,3 +475,39 @@ def wait_until_get_system_ready(node):
     driver_info = parse_driver_info(node)
     system_id = driver_info['system_id']
     return _get_system(driver_info, system_id)
+
+
+def get_manager(node, system, manager_id=None):
+    """Get a node's manager.
+
+    :param system: a Sushy system object
+    :param manager_id: the id of the manager
+    :return: a sushy Manager
+    :raises: RedfishError when the System doesn't have Managers associated
+    """
+
+    try:
+        sushy_manager = None
+        available_managers = system.managers
+        if available_managers:
+            if manager_id is None:
+                sushy_manager = available_managers[0]
+            else:
+                for manager in available_managers:
+                    if manager.identity == manager_id:
+                        sushy_manager = manager
+        if sushy_manager is None:
+            raise Exception("Couldn't find any Sushy Manager")
+        return sushy_manager
+    except sushy.exceptions.MissingAttributeError as e:
+        LOG.error('Redfish Managers for node %(node)s are not associated '
+                  'with system %(system)s. Error %(error)s',
+                  {'system': system.identity,
+                   'node': node.uuid, 'error': e})
+        raise exception.RedfishError(error=e)
+    except Exception as exc:
+        LOG.error('Redfish Manager was not found for '
+                  'node %(node)s under system %(system)s. Error %(error)s',
+                  {'system': system.identity,
+                   'node': node.uuid, 'error': exc})
+        raise exception.RedfishError(error=exc)

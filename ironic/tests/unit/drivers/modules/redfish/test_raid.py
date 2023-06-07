@@ -406,7 +406,8 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                 task.node, reboot=True, skip_current_step=True, polling=True)
             mock_get_async_step_return_state.assert_called_once_with(
                 task.node)
-            mock_node_power_action.assert_called_once_with(task, states.REBOOT)
+            mock_node_power_action.assert_called_once_with(
+                task, states.REBOOT, None)
             mock_build_agent_options.assert_called_once_with(task.node)
             self.assertEqual(mock_prepare_ramdisk.call_count, 1)
             # Async operation, raid_config shouldn't be updated yet
@@ -1123,7 +1124,8 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                 task.node, reboot=True, skip_current_step=True, polling=True)
             mock_get_async_step_return_state.assert_called_once_with(
                 task.node)
-            mock_node_power_action.assert_called_once_with(task, states.REBOOT)
+            mock_node_power_action.assert_called_once_with(
+                task, states.REBOOT, None)
             mock_build_agent_options.assert_called_once_with(task.node)
             self.assertEqual(mock_prepare_ramdisk.call_count, 1)
             self.assertEqual(

@@ -1536,10 +1536,12 @@ def prepare_agent_boot(task):
     task.driver.boot.prepare_ramdisk(task, deploy_opts)
 
 
-def reboot_to_finish_step(task):
+def reboot_to_finish_step(task, timeout=None):
     """Reboot the node into IPA to finish a deploy/clean step.
 
     :param task: a TaskManager instance.
+    :param timeout: timeout (in seconds) positive integer (> 0) for any
+      power state. ``None`` indicates to use default timeout.
     :returns: states.CLEANWAIT if cleaning operation in progress
               or states.DEPLOYWAIT if deploy operation in progress.
     """
@@ -1552,7 +1554,7 @@ def reboot_to_finish_step(task):
             manager_utils.node_power_action(task, states.POWER_OFF)
         prepare_agent_boot(task)
 
-    manager_utils.node_power_action(task, states.REBOOT)
+    manager_utils.node_power_action(task, states.REBOOT, timeout)
     return get_async_step_return_state(task.node)
 
 

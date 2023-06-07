@@ -585,6 +585,11 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
             'abortable': False, 'argsinfo': None, 'interface': 'vendor',
             'priority': 1, 'requires_ramdisk': True,
             'step': 'log_passthrough'}
+        self.firmware_step = {
+            'abortable': False, 'argsinfo': {}, 'interface': 'firmware',
+            'priority': 0, 'requires_ramdisk': True,
+            'step': 'update'
+        }
 
         # Automated cleaning should be executed in this order
         self.clean_steps = [self.deploy_erase, self.power_update,
@@ -595,6 +600,8 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
             'argsinfo': {'arg1': {'description': 'desc1', 'required': True},
                          'arg2': {'description': 'desc2'}}}
 
+    @mock.patch('ironic.drivers.modules.fake.FakeFirmware.get_clean_steps',
+                lambda self, taks: [])
     @mock.patch('ironic.drivers.modules.fake.FakeBIOS.get_clean_steps',
                 lambda self, task: [])
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_clean_steps',
@@ -619,6 +626,8 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
 
         self.assertEqual(self.clean_steps, steps)
 
+    @mock.patch('ironic.drivers.modules.fake.FakeFirmware.get_clean_steps',
+                lambda self, task: [])
     @mock.patch('ironic.drivers.modules.fake.FakeVendorB.get_clean_steps',
                 lambda self, task: [])
     @mock.patch('ironic.drivers.modules.fake.FakeBIOS.get_clean_steps',

@@ -84,7 +84,7 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
                 self.assertFalse(
                     task.node.driver_internal_info.get(
                         'skip_current_deploy_step'))
-            mock_reboot.assert_called_once_with(task, states.REBOOT)
+            mock_reboot.assert_called_once_with(task, states.REBOOT, None)
 
     def test__prepare_for_read_raid_create_raid_cleaning(self):
         self.node.clean_step = {'step': 'create_configuration',
@@ -122,7 +122,7 @@ class Ilo5RAIDTestCase(db_base.DbTestCase):
                 self.assertEqual(
                     task.node.driver_internal_info.get(
                         'skip_current_deploy_step'), False)
-            mock_reboot.assert_called_once_with(task, states.REBOOT)
+            mock_reboot.assert_called_once_with(task, states.REBOOT, None)
 
     def test__prepare_for_read_raid_delete_raid_cleaning(self):
         self.node.clean_step = {'step': 'create_configuration',

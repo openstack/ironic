@@ -31,9 +31,10 @@ CLEANING_INTERFACE_PRIORITY = {
     # by which interface is implementing the clean step. The clean step of the
     # interface with the highest value here, will be executed first in that
     # case.
-    'vendor': 6,
-    'power': 5,
-    'management': 4,
+    'vendor': 7,
+    'power': 6,
+    'management': 5,
+    'firmware': 4,
     'deploy': 3,
     'bios': 2,
     'raid': 1,
@@ -46,9 +47,10 @@ DEPLOYING_INTERFACE_PRIORITY = {
     # TODO(rloo): If we think it makes sense to have the interface priorities
     # the same for cleaning & deploying, replace the two with one e.g.
     # 'INTERFACE_PRIORITIES'.
-    'vendor': 6,
-    'power': 5,
-    'management': 4,
+    'vendor': 7,
+    'power': 6,
+    'management': 5,
+    'firmware': 4,
     'deploy': 3,
     'bios': 2,
     'raid': 1,
@@ -61,11 +63,12 @@ VERIFYING_INTERFACE_PRIORITY = {
     # by which interface is implementing the verify step. The verifying step of
     # the interface with the highest value here, will be executed first in
     # that case.
-    'power': 12,
-    'management': 11,
-    'boot': 8,
+    'power': 13,
+    'management': 12,
+    'firmware': 11,
     'inspect': 10,
     'deploy': 9,
+    'boot': 8,
     'bios': 7,
     'raid': 6,
     'vendor': 5,
