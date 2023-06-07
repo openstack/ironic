@@ -349,7 +349,6 @@ opts = [
                       'is a global setting applying to all requests this '
                       'conductor receives, regardless of access rights. '
                       'The concurrent clean limit cannot be disabled.')),
-
     cfg.BoolOpt('poweroff_in_cleanfail',
                 default=False,
                 help=_('If True power off nodes in the ``clean failed`` '
@@ -357,6 +356,16 @@ opts = [
                        'when using Cleaning to perform '
                        'hardware-transformative actions such as '
                        'firmware upgrade.')),
+    cfg.BoolOpt('permit_child_node_step_async_result',
+                default=False,
+                mutable=True,
+                help=_('This option allows child node steps to not error if '
+                       'the resulting step execution returned a "wait" '
+                       'state. Under normal conditions, child nodes are not '
+                       'expected to request a wait state. This option exists '
+                       'for operators to use if needed to perform specific '
+                       'tasks where this is known acceptable. Use at your'
+                       'own risk!')),
 ]
 
 

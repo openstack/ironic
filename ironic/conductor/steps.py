@@ -18,6 +18,7 @@ from oslo_log import log
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
+from ironic.conductor import utils
 from ironic.objects import deploy_template
 
 LOG = log.getLogger(__name__)
@@ -67,6 +68,16 @@ VERIFYING_INTERFACE_PRIORITY = {
     'storage': 3,
     'console': 2,
     'rescue': 1,
+}
+
+# Reserved step names to to map to methods which need to be
+# called, where node conductor logic wraps a driver's internal
+# logic. Example, removing tokens based upon state before
+# rebooting the node.
+RESERVED_STEP_HANDLER_MAPPING = {
+    'power_on': [utils.node_power_action, states.POWER_ON],
+    'power_off': [utils.node_power_action, states.POWER_OFF],
+    'reboot': [utils.node_power_action, states.REBOOT],
 }
 
 
@@ -646,6 +657,15 @@ def _validate_user_steps(task, user_steps, driver_steps, step_type,
     result = []
 
     for user_step in user_steps:
+        if user_step.get('execute_on_child_nodes'):
+            # NOTE(TheJulia): This input is validated on the API side
+            # as we have the original API request context to leverage
+            # for RBAC validation.
+            continue
+        if user_step.get('step') in ['power_on', 'power_off', 'reboot']:
+            # NOTE(TheJulia): These are flow related steps the conductor
+            # resolves internally.
+            continue
         # Check if this user-specified step isn't supported by the driver
         try:
             driver_step = driver_steps[step_id(user_step)]
@@ -788,3 +808,19 @@ def validate_user_deploy_steps_and_templates(task, deploy_steps=None,
     _get_validated_steps_from_templates(task, skip_missing=skip_missing)
     # Validate steps from passed argument or stored on the node.
     _get_validated_user_deploy_steps(task, deploy_steps, skip_missing)
+
+
+def use_reserved_step_handler(task, step):
+    """Returns True if reserved step execution is used, otherwise False.
+
+    :param task: a TaskManager object.
+    :param step: The requested step.
+    """
+    step_name = step.get('step')
+    if step_name and step_name in RESERVED_STEP_HANDLER_MAPPING.keys():
+        call_to_use = RESERVED_STEP_HANDLER_MAPPING[step_name]
+        method = call_to_use[0]
+        parameter = call_to_use[1]
+        method(task, parameter)
+        return True
+    return False

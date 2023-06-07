@@ -80,6 +80,16 @@ _CLEAN_STEPS_SCHEMA = {
                 "type": "object",
                 "properties": {}
             },
+            "execute_on_child_nodes": {
+                "description": "Boolean if the step should be executed "
+                               "on child nodes.",
+                "type": "boolean",
+            },
+            "limit_child_node_execution": {
+                "description": "List of nodes upon which to execute child "
+                               "node steps on.",
+                "type": "array",
+            }
         },
         # interface, step and args are the only expected keys
         "additionalProperties": False
@@ -1166,6 +1176,25 @@ def _check_steps(steps, step_type, schema):
     except jsonschema.ValidationError as exc:
         raise exception.InvalidParameterValue(_('Invalid %s_steps: %s') %
                                               (step_type, exc))
+    for step in steps:
+        eocn = step.get('execute_on_child_nodes')
+        child_nodes = step.get('limit_child_node_execution')
+        if eocn and type(child_nodes) == list:
+            # Extract each element, validate permission to access node.
+            for entry in child_nodes:
+                if not uuidutils.is_uuid_like(entry):
+                    raise exception.InvalidParameterValue(_(
+                        'Invalid entry detected for execute_on_child_node '
+                        'parameter in step %s.' % entry.get('step')))
+                api_utils.check_node_policy_and_retrieve(
+                    'baremetal:node:set_provision_state', entry)
+        elif eocn:
+            # Validate looks like a bool, if not raise exception
+            if not strutils.is_valid_boolstr(eocn):
+                raise exception.InvalidParameterValue(_(
+                    'Invalid entry detected for execute_on_child_node '
+                    'parameter in step %s. A boolean or a UUID value is '
+                    'expected.' % step.get('step')))
 
 
 def _get_chassis_uuid(node):

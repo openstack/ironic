@@ -395,6 +395,55 @@ interrupted, such as BIOS or Firmware updates. As a result, operators are
 forbidden from changing power state via the ironic API while a node is
 cleaning.
 
+Advanced topics
+===============
+
+Parent Nodes
+------------
+
+The concept of a ``parent_node`` is where a node is configured to have a
+"parent", and allows for actions upon the parent, to in some cases take into
+account child nodes. Mainly, the concept of executing clean steps in relation
+to child nodes.
+
+In this context, a child node is primarily intended to be an embedded device
+with it's own management controller. For example "SmartNIC's" or Data
+Processing Units (DPUs) which may have their own management controller and
+power control.
+
+Child Node Clean Step Execution
+-------------------------------
+
+You can execute steps which perform actions on child nodes. For example,
+turn them on (via step ``power_on``), off (via step ``power_off``), or to
+signal a BMC controlled reboot (via step ``reboot``).
+
+For example, if you need to explicitly power off child node power, before
+performing another step, you can articulate it with a step such as::
+
+    [{
+      "interface": "power",
+      "step": "power_off",
+      "execute_on_child_nodes": True,
+      "limit_child_node_execution": ['f96c8601-0a62-4e99-97d6-1e0d8daf6dce']
+    },
+    {
+      "interface": "deploy",
+      "step": "erase_devices"
+    }]
+
+As one would imagine, this step will power off a singular child node, as
+a limit has been expressed to a singular known node, and that child node's
+power will be turned off via the management interface. Afterwards, the
+``erase_devices`` step will be executed on the parent node.
+
+.. NOTE::
+   While the deployment step framework also supports the
+   ``execute_on_child_nodes`` and ``limit_child_node_execution`` parameters,
+   all of the step frameworks have a fundamental limitation in that child node
+   step execution is indended for syncronous actions which do not rely upon
+   the ``ironic-python-agent`` running on any child nodes. This constraint may
+   be changed in the future.
 
 Troubleshooting
 ===============

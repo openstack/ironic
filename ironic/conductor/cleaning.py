@@ -22,6 +22,7 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils
 from ironic.conf import CONF
 from ironic.drivers import utils as driver_utils
+from ironic import objects
 
 LOG = log.getLogger(__name__)
 
@@ -166,11 +167,21 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
         node.clean_step = step
         node.set_driver_internal_info('clean_step_index', step_index + ind)
         node.save()
-        interface = getattr(task.driver, step.get('interface'))
-        LOG.info('Executing %(step)s on node %(node)s',
-                 {'step': step, 'node': node.uuid})
+        eocn = step.get('execute_on_child_nodes', False)
+        result = None
         try:
-            result = interface.execute_clean_step(task, step)
+            if not eocn:
+                interface = getattr(task.driver, step.get('interface'))
+                LOG.info('Executing %(step)s on node %(node)s',
+                         {'step': step, 'node': node.uuid})
+                if not conductor_steps.use_reserved_step_handler(task, step):
+                    result = interface.execute_clean_step(task, step)
+            else:
+                LOG.info('Executing %(step)s on child nodes for node '
+                         '%(node)s.',
+                         {'step': step, 'node': node.uuid})
+                result = execute_step_on_child_nodes(task, step)
+
         except Exception as e:
             if isinstance(e, exception.AgentConnectionFailed):
                 if task.node.driver_internal_info.get('cleaning_reboot'):
@@ -241,11 +252,67 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
             return utils.cleaning_error_handler(task, msg,
                                                 traceback=True,
                                                 tear_down_cleaning=False)
-
     LOG.info('Node %s cleaning complete', node.uuid)
     event = 'manage' if manual_clean or node.retired else 'done'
     # NOTE(rloo): No need to specify target prov. state; we're done
     task.process_event(event)
+
+
+def execute_step_on_child_nodes(task, step):
+    """Execute a requested step against a child node.
+
+    :param task: The TaskManager object for the parent node.
+    :param step: The requested step to be executed.
+    :returns: None on Success, the resulting error message if a
+              failure has occured.
+    """
+    # NOTE(TheJulia): We could just use nodeinfo list calls against
+    # dbapi.
+    # NOTE(TheJulia): We validate the data in advance in the API
+    # with the original request context.
+    eocn = step.get('execute_on_child_nodes')
+    child_nodes = step.get('limit_child_node_execution', [])
+    filters = {'parent_node': task.node.uuid}
+    if eocn and len(child_nodes) >= 1:
+        filters['uuid_in'] = child_nodes
+    child_nodes = objects.Node.list(
+        task.context,
+        filters=filters,
+        fields=['uuid']
+    )
+    for child_node in child_nodes:
+        result = None
+        LOG.info('Executing step %(step)s on child node %(node)s for parent '
+                 'node %(parent_node)s',
+                 {'step': step,
+                  'node': child_node.uuid,
+                  'parent_node': task.node.uuid})
+        with task_manager.acquire(task.context,
+                                  child_node.uuid,
+                                  purpose='execute step') as child_task:
+            interface = getattr(child_task.driver, step.get('interface'))
+            LOG.info('Executing %(step)s on node %(node)s',
+                     {'step': step, 'node': child_task.node.uuid})
+            if not conductor_steps.use_reserved_step_handler(child_task, step):
+                result = interface.execute_clean_step(child_task, step)
+            if result is not None:
+                if (result == states.CLEANWAIT
+                    and CONF.conductor.permit_child_node_step_async_result):
+                    # Operator has chosen to permit this due to some reason
+                    # NOTE(TheJulia): This is where we would likely wire agent
+                    # error handling if we ever implicitly allowed child node
+                    # deploys to take place with the agent from a parent node
+                    # being deployed.
+                    continue
+                msg = (_('While executing step %(step)s on child node '
+                         '%(node)s, step returned invalid value: %(val)s')
+                       % {'step': step, 'node': child_task.node.uuid,
+                          'val': result})
+                LOG.error(msg)
+                # Only None or states.CLEANWAIT are possible paths forward
+                # in the parent step execution code, so returning the message
+                # means it will be logged.
+                return msg
 
 
 def get_last_error(node):
