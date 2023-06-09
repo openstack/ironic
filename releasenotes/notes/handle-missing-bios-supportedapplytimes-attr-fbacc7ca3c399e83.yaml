@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes the bug where provisioning a Redfish managed node fails if changing
+    BIOS settings is attempted on a BMC that doesn't provide
+    supportedApplyTime information. This is done by adding handling of
+    AttributeError exception in apply_configuration() method.

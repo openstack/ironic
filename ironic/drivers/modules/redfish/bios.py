@@ -230,12 +230,16 @@ class RedfishBIOS(base.BIOSInterface):
             LOG.debug('Apply BIOS configuration for node %(node_uuid)s: '
                       '%(settings)r', {'node_uuid': task.node.uuid,
                                        'settings': settings})
-
-            if bios.supported_apply_times and (
-                    sushy.APPLY_TIME_ON_RESET in bios.supported_apply_times):
-                apply_time = sushy.APPLY_TIME_ON_RESET
-            else:
-                apply_time = None
+            apply_time = None
+            try:
+                if bios.supported_apply_times and (
+                        sushy.APPLY_TIME_ON_RESET in
+                        bios.supported_apply_times):
+                    apply_time = sushy.APPLY_TIME_ON_RESET
+            except AttributeError:
+                LOG.warning('SupportedApplyTimes attribute missing for BIOS'
+                            ' configuration on node %(node_uuid)s: ',
+                            {'node_uuid': task.node.uuid})
 
             try:
                 bios.set_attributes(attributes, apply_time=apply_time)
