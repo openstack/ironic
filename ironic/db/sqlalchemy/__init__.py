@@ -12,8 +12,8 @@
 
 from oslo_config import cfg
 from oslo_db.sqlalchemy import enginefacade
-from sqlalchemy.engine import Engine
 from sqlalchemy import event
+from sqlalchemy.events import ConnectionEvents
 
 CONF = cfg.CONF
 
@@ -25,8 +25,8 @@ enginefacade.configure(sqlite_fk=True)
 # log to be utilized to permit concurrent access, which is needed
 # as we can get read requests while we are writing via the API
 # surface *when* we're using sqlite as the database backend.
-@event.listens_for(Engine, "connect")
-def _setup_journal_mode(dbapi_connection, connection_record):
+@event.listens_for(ConnectionEvents, "engine_connect")
+def _setup_journal_mode(dbapi_connection):
     # NOTE(TheJulia): The string may not be loaded in some unit
     # tests so handle whatever the output is as a string so we
     # can lower/compare it and send the appropriate command to
