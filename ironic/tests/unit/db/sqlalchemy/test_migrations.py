@@ -37,6 +37,7 @@ For postgres on Ubuntu this can be done with the following commands:
 import collections
 import contextlib
 import json
+import os
 from unittest import mock
 
 from alembic import script
@@ -61,7 +62,8 @@ LOG = logging.getLogger(__name__)
 
 # NOTE(vdrok): This was introduced after migration tests started taking more
 # time in gate. Timeout value in seconds for tests performing migrations.
-MIGRATIONS_TIMEOUT = 300
+# Can be modified in tox.ini as env variable.
+MIGRATIONS_TIMEOUT = os.getenv('MIGRATIONS_TIMEOUT', 60)
 
 
 @contextlib.contextmanager
@@ -188,8 +190,8 @@ class MigrationCheckersMixin(object):
         self.engine = enginefacade.writer.get_engine()
         self.config = migration._alembic_config()
         self.migration_api = migration
-        self.useFixture(fixtures.Timeout(MIGRATIONS_TIMEOUT,
-                                         gentle=True))
+        self.useFixture(fixtures.Timeout(int(MIGRATIONS_TIMEOUT),
+                                         gentle=False))
 
     def test_walk_versions(self):
         self._walk_versions(self.engine, self.config)
@@ -1439,8 +1441,8 @@ class ModelsMigrationSyncMixin(object):
     def setUp(self):
         super(ModelsMigrationSyncMixin, self).setUp()
         self.engine = enginefacade.writer.get_engine()
-        self.useFixture(fixtures.Timeout(MIGRATIONS_TIMEOUT,
-                                         gentle=True))
+        self.useFixture(fixtures.Timeout(int(MIGRATIONS_TIMEOUT),
+                                         gentle=False))
 
     def get_metadata(self):
         return models.Base.metadata
