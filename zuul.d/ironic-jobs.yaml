@@ -686,6 +686,24 @@
     vars:
       tox_envlist: unit-with-driver-libs
 
+# TODO(stephenfin): Remove this when we raise the upper-constraint globally
+- job:
+    name: ironic-tox-unit-with-sqlalchemy-2x
+    parent: openstack-tox
+    description: |
+      Run unit tests with main branch of SQLAlchemy, alembic and oslo.db.
+      Takes advantage of the base tox job's install-siblings feature.
+    vars:
+      tox_envlist: py3
+    # The job only tests the latest and shouldn't be run on the stable branches
+    branches: ^(?!stable)
+    required-projects:
+      - name: github.com/sqlalchemy/sqlalchemy
+        override-checkout: main
+      - name: github.com/sqlalchemy/alembic
+        override-checkout: main
+      - name: openstack/oslo.db
+
 - job:
     name: ironic-tox-unit-mysql-migrations
     parent: openstack-tox

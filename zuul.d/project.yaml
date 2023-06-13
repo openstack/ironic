@@ -10,6 +10,7 @@
     check:
       jobs:
         - ironic-tox-unit-mysql-migrations
+        - ironic-tox-unit-with-sqlalchemy-2x
         - ironic-tox-unit-with-driver-libs
         - ironic-cross-sushy:
             voting: false
@@ -67,6 +68,7 @@
     gate:
       jobs:
         - ironic-tox-unit-mysql-migrations
+        - ironic-tox-unit-with-sqlalchemy-2x
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
         # NOTE(rpittau) disabled until we fix the tests
