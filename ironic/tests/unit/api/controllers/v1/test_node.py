@@ -8025,7 +8025,9 @@ class TestNodeHistory(test_api_base.BaseApiTest):
 
 
 class TestNodeInventory(test_api_base.BaseApiTest):
-    fake_inventory_data = {"cpu": "amd"}
+    fake_inventory_data = {'cpu': {'count': 1,
+                                   'model_name': 'qemu64',
+                                   'architecture': 'x86_64'}}
     fake_plugin_data = {"disks": [{"name": "/dev/vda"}]}
 
     def setUp(self):

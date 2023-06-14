@@ -743,7 +743,7 @@ def get_test_inventory(**kw):
 def create_test_inventory(**kw):
     """Create test inventory entry in DB and return NodeInventory DB object.
 
-    :param kw: kwargs with overriding values for port's attributes.
+    :param kw: kwargs with overriding values for inventory attributes.
     :returns: Test NodeInventory DB object.
     """
     inventory = get_test_inventory(**kw)
