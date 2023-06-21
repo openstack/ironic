@@ -13,14 +13,16 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-
+import socket
 from unittest import mock
 
 from oslo_utils import importutils
+from oslo_utils import uuidutils
 import swiftclient.exceptions
 
 from ironic.common import context as ironic_context
 from ironic.common import exception
+from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import task_manager
 from ironic.conf import CONF
@@ -293,3 +295,210 @@ class IntrospectionDataStorageFunctionsTestCase(db_base.DbTestCase):
         self.assertRaises(exception.SwiftObjectNotFoundError,
                           utils._get_inspection_data_from_swift,
                           self.node.uuid)
+
+
+class LookupNodeTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.bmc = '192.0.2.1'
+        self.node = obj_utils.create_test_node(
+            self.context,
+            driver_internal_info={utils.LOOKUP_CACHE_FIELD: [self.bmc]},
+            provision_state=states.INSPECTWAIT)
+
+        self.macs = ['11:22:33:44:55:66', '12:34:56:78:90:ab']
+        self.unknown_mac = '66:55:44:33:22:11'
+        self.ports = [
+            obj_utils.create_test_port(self.context,
+                                       uuid=uuidutils.generate_uuid(),
+                                       node_id=self.node.id,
+                                       address=addr)
+            for addr in self.macs
+        ]
+
+        self.bmc2 = '1.2.1.2'
+        self.mac2 = '00:11:00:11:00:11'
+        self.node2 = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver_internal_info={utils.LOOKUP_CACHE_FIELD: [self.bmc2]},
+            provision_state=states.INSPECTWAIT)
+        obj_utils.create_test_port(self.context,
+                                   node_id=self.node2.id,
+                                   address=self.mac2)
+
+    def test_no_input(self):
+        self.assertRaises(exception.NotFound, utils.lookup_node,
+                          self.context, [], [], None)
+
+    def test_by_macs(self):
+        result = utils.lookup_node(self.context, self.macs[::-1], [], None)
+        self.assertEqual(self.node.uuid, result.uuid)
+
+    def test_by_macs_partial(self):
+        macs = [self.macs[1], self.unknown_mac]
+        result = utils.lookup_node(self.context, macs, [], None)
+        self.assertEqual(self.node.uuid, result.uuid)
+
+    def test_by_mac_not_found(self):
+        self.assertRaises(exception.NotFound, utils.lookup_node,
+                          self.context, [self.unknown_mac], [], None)
+
+    def test_by_mac_wrong_state(self):
+        self.node.provision_state = states.AVAILABLE
+        self.node.save()
+        self.assertRaises(exception.NotFound, utils.lookup_node,
+                          self.context, self.macs, [], None)
+
+    def test_conflicting_macs(self):
+        self.assertRaises(exception.NotFound, utils.lookup_node,
+                          self.context, [self.macs[0], self.mac2], [], None)
+
+    def test_by_bmc(self):
+        result = utils.lookup_node(self.context, [], ['192.0.2.1'], None)
+        self.assertEqual(self.node.uuid, result.uuid)
+
+    def test_by_bmc_and_mac(self):
+        result = utils.lookup_node(
+            self.context, [self.macs[0]], [self.bmc], None)
+        self.assertEqual(self.node.uuid, result.uuid)
+
+    def test_by_unknown_bmc_and_mac(self):
+        result = utils.lookup_node(
+            self.context, [self.unknown_mac], [self.bmc], None)
+        self.assertEqual(self.node.uuid, result.uuid)
+
+    def test_by_bmc_and_mac_and_uuid(self):
+        result = utils.lookup_node(
+            self.context, [self.macs[0]], [self.bmc], self.node.uuid)
+        self.assertEqual(self.node.uuid, result.uuid)
+
+    def test_by_bmc_not_found(self):
+        self.assertRaises(exception.NotFound, utils.lookup_node,
+                          self.context, [], ['192.168.1.1'], None)
+
+    def test_by_bmc_wrong_state(self):
+        self.node.provision_state = states.AVAILABLE
+        self.node.save()
+        self.assertRaises(exception.NotFound, utils.lookup_node,
+                          self.context, [], [self.bmc], None)
+
+    def test_conflicting_macs_and_bmc(self):
+        self.assertRaises(exception.NotFound, utils.lookup_node,
+                          self.context, self.macs, [self.bmc2], None)
+
+    def test_by_uuid(self):
+        result = utils.lookup_node(self.context, [], [], self.node.uuid)
+        self.assertEqual(self.node.uuid, result.uuid)
+
+    def test_by_uuid_and_unknown_macs(self):
+        result = utils.lookup_node(
+            self.context, [self.unknown_mac], [], self.node.uuid)
+        self.assertEqual(self.node.uuid, result.uuid)
+
+    def test_by_uuid_not_found(self):
+        self.assertRaises(exception.NotFound, utils.lookup_node,
+                          self.context, [], [], uuidutils.generate_uuid())
+
+    def test_by_uuid_wrong_state(self):
+        self.node.provision_state = states.AVAILABLE
+        self.node.save()
+        self.assertRaises(exception.NotFound, utils.lookup_node,
+                          self.context, [], [], self.node.uuid)
+
+    def test_conflicting_macs_and_uuid(self):
+        self.assertRaises(exception.NotFound, utils.lookup_node,
+                          self.context, self.macs, [], self.node2.uuid)
+
+    def test_conflicting_bmc_and_uuid(self):
+        self.assertRaises(exception.NotFound, utils.lookup_node,
+                          self.context, self.macs, [self.bmc], self.node2.uuid)
+
+
+class GetBMCAddressesTestCase(db_base.DbTestCase):
+
+    def test_localhost_ignored(self):
+        node = obj_utils.create_test_node(
+            self.context,
+            driver_info={'ipmi_address': '127.0.0.1'})
+        self.assertEqual(set(), utils._get_bmc_addresses(node))
+
+    def test_localhost_as_url_ignored(self):
+        node = obj_utils.create_test_node(
+            self.context,
+            driver_info={'redfish_address': 'https://localhost/redfish'})
+        self.assertEqual(set(), utils._get_bmc_addresses(node))
+
+    def test_normal_ip(self):
+        node = obj_utils.create_test_node(
+            self.context,
+            driver_info={'ipmi_address': '192.0.2.1'})
+        self.assertEqual({'192.0.2.1'}, utils._get_bmc_addresses(node))
+
+    def test_normal_ip_as_url(self):
+        node = obj_utils.create_test_node(
+            self.context,
+            driver_info={'redfish_address': 'https://192.0.2.1/redfish'})
+        self.assertEqual({'192.0.2.1'}, utils._get_bmc_addresses(node))
+
+    @mock.patch.object(socket, 'getaddrinfo', autospec=True)
+    def test_resolved_host(self, mock_getaddrinfo):
+        mock_getaddrinfo.return_value = [
+            (socket.AF_INET6, socket.SOCK_STREAM, socket.SOL_TCP,
+             '', ('2001:db8::42', None)),
+            (socket.AF_INET, socket.SOCK_STREAM, socket.SOL_TCP,
+             '', ('192.0.2.1', None)),
+        ]
+        node = obj_utils.create_test_node(
+            self.context,
+            driver_info={'ipmi_address': 'example.com'})
+        self.assertEqual({'example.com', '192.0.2.1', '2001:db8::42'},
+                         utils._get_bmc_addresses(node))
+        mock_getaddrinfo.assert_called_once_with(
+            'example.com', None, proto=socket.SOL_TCP)
+
+    @mock.patch.object(socket, 'getaddrinfo', autospec=True)
+    def test_resolved_host_in_url(self, mock_getaddrinfo):
+        mock_getaddrinfo.return_value = [
+            (socket.AF_INET6, socket.SOCK_STREAM, socket.SOL_TCP,
+             '', ('2001:db8::42', None)),
+            (socket.AF_INET, socket.SOCK_STREAM, socket.SOL_TCP,
+             '', ('192.0.2.1', None)),
+        ]
+        node = obj_utils.create_test_node(
+            self.context,
+            driver_info={'redfish_address': 'https://example.com:8080/v1'})
+        self.assertEqual({'example.com', '192.0.2.1', '2001:db8::42'},
+                         utils._get_bmc_addresses(node))
+        mock_getaddrinfo.assert_called_once_with(
+            'example.com', None, proto=socket.SOL_TCP)
+
+
+class LookupCacheTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.bmc = '192.0.2.1'
+        self.node = obj_utils.create_test_node(
+            self.context,
+            driver_internal_info={utils.LOOKUP_CACHE_FIELD: [self.bmc]},
+            provision_state=states.INSPECTWAIT)
+
+    def test_clear(self):
+        result = utils.clear_lookup_addresses(self.node)
+        self.assertEqual([self.bmc], result)
+        self.assertEqual({}, self.node.driver_internal_info)
+
+    @mock.patch.object(utils, '_get_bmc_addresses', autospec=True)
+    def test_new_value(self, mock_get_addr):
+        mock_get_addr.return_value = {'192.0.2.42'}
+        utils.cache_lookup_addresses(self.node)
+        self.assertEqual({utils.LOOKUP_CACHE_FIELD: ['192.0.2.42']},
+                         self.node.driver_internal_info)
+
+    @mock.patch.object(utils, '_get_bmc_addresses', autospec=True)
+    def test_replace_with_empty(self, mock_get_addr):
+        mock_get_addr.return_value = set()
+        utils.cache_lookup_addresses(self.node)
+        self.assertEqual({}, self.node.driver_internal_info)

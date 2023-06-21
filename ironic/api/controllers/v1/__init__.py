@@ -77,6 +77,11 @@ VERSIONED_CONTROLLERS = {
     'events': utils.allow_expose_events,
     'deploy_templates': utils.allow_deploy_templates,
     'shards': utils.allow_shards_endpoint,
+    # NOTE(dtantsur): continue_inspection is available in 1.1 as a
+    # compatibility hack to make it usable with IPA without changes.
+    # Hide this fact from consumers since it was not actually available
+    # back in Kilo.
+    'continue_inspection': utils.new_continue_inspection_endpoint,
 }
 
 
@@ -125,6 +130,7 @@ class Controller(object):
         'events': event.EventsController(),
         'deploy_templates': deploy_template.DeployTemplatesController(),
         'shards': shard.ShardController(),
+        'continue_inspection': ramdisk.ContinueInspectionController(),
     }
 
     @method.expose()

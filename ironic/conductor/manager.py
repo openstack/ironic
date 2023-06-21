@@ -93,7 +93,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.55'
+    RPC_API_VERSION = '1.56'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -3651,6 +3651,41 @@ class ConductorManager(base_manager.BaseConductorManager):
             if node_count >= CONF.conductor.max_concurrent_clean:
                 raise exception.ConcurrentActionLimit(
                     task_type=action)
+
+    @METRICS.timer('ConductorManager.continue_inspection')
+    @messaging.expected_exceptions(exception.NodeLocked,
+                                   exception.NotFound,
+                                   exception.Invalid)
+    def continue_inspection(self, context, node_id, inventory,
+                            plugin_data=None):
+        """Continue in-band inspection.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param inventory: hardware inventory from the node.
+        :param plugin_data: optional plugin-specific data.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NotFound if node is in invalid state.
+        """
+        LOG.debug("RPC continue_inspection called for the node %(node_id)s",
+                  {'node_id': node_id})
+        with task_manager.acquire(context, node_id,
+                                  purpose='continue inspection',
+                                  shared=False) as task:
+            # TODO(dtantsur): support active state (re-)inspection
+            if task.node.provision_state != states.INSPECTWAIT:
+                LOG.error('Refusing to process inspection data for node '
+                          '%(node)s in invalid state %(state)s',
+                          {'node': task.node.uuid,
+                           'state': task.node.provision_state})
+                raise exception.NotFound()
+
+            task.process_event(
+                'resume',
+                callback=self._spawn_worker,
+                call_args=(inspection.continue_inspection,
+                           task, inventory, plugin_data),
+                err_handler=utils.provisioning_error_handler)
 
 
 @METRICS.timer('get_vendor_passthru_metadata')

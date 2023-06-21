@@ -213,6 +213,10 @@ class Inspector(base.InspectInterface):
         utils.set_node_nested_field(task.node, 'driver_internal_info',
                                     _IRONIC_MANAGES_BOOT,
                                     ironic_manages_boot)
+        # Make this interface work with the Ironic own /continue_inspection
+        # endpoint to simplify migration to the new in-band inspection
+        # implementation.
+        inspect_utils.cache_lookup_addresses(task.node)
         task.node.save()
 
         LOG.debug('Starting inspection for node %(uuid)s using '
@@ -239,6 +243,8 @@ class Inspector(base.InspectInterface):
         LOG.debug('Aborting inspection for node %(uuid)s using '
                   'ironic-inspector', {'uuid': node_uuid})
         client.get_client(task.context).abort_introspection(node_uuid)
+        if inspect_utils.clear_lookup_addresses(task.node):
+            task.node.save()
 
     @periodics.node_periodic(
         purpose='checking hardware inspection status',
@@ -248,6 +254,24 @@ class Inspector(base.InspectInterface):
     def _periodic_check_result(self, task, manager, context):
         """Periodic task checking results of inspection."""
         _check_status(task)
+
+    def continue_inspection(self, task, inventory, plugin_data=None):
+        """Continue in-band hardware inspection.
+
+        This implementation simply defers to ironic-inspector. It only exists
+        to simplify the transition to Ironic-native in-band inspection.
+
+        :param task: a task from TaskManager.
+        :param inventory: hardware inventory from the node.
+        :param plugin_data: optional plugin-specific data.
+        """
+        cli = client.get_client(task.context)
+        endpoint = _get_callback_endpoint(cli)
+        data = dict(plugin_data, inventory=inventory)  # older format
+        task.process_event('wait')
+        task.downgrade_lock()
+        cli.post(endpoint, json=data)
+        return states.INSPECTWAIT
 
 
 def _start_inspection(node_uuid, context):
@@ -299,6 +323,8 @@ def _check_status(task):
     # upgrade our lock to an exclusive one.
     task.upgrade_lock()
     node = task.node
+
+    inspect_utils.clear_lookup_addresses(node)
 
     if status.error:
         LOG.error('Inspection failed for node %(uuid)s with error: %(err)s',

@@ -152,12 +152,13 @@ class ConductorAPI(object):
     |    1.54 - Added optional agent_status and agent_status_message to
                 heartbeat
     |    1.55 - Added change_node_boot_mode
+    |    1.56 - Added continue_inspection
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.55'
+    RPC_API_VERSION = '1.56'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -1393,3 +1394,18 @@ class ConductorAPI(object):
         """
         cctxt = self._prepare_call(topic=topic, version='1.49')
         return cctxt.call(context, 'get_node_with_token', node_id=node_id)
+
+    def continue_inspection(self, context, node_id, inventory,
+                            plugin_data=None, topic=None):
+        """Continue in-band inspection.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param inventory: hardware inventory from the node.
+        :param plugin_data: optional plugin-specific data.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: NodeLocked if node is locked by another conductor.
+        """
+        cctxt = self._prepare_call(topic=topic, version='1.56')
+        return cctxt.call(context, 'continue_inspection', node_id=node_id,
+                          inventory=inventory, plugin_data=plugin_data)

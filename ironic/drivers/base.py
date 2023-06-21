@@ -1257,6 +1257,20 @@ class InspectInterface(BaseInterface):
         raise exception.UnsupportedDriverExtension(
             driver=task.node.driver, extension='abort')
 
+    def continue_inspection(self, task, inventory, plugin_data=None):
+        """Continue in-band hardware inspection.
+
+        Should not be implemented for purely out-of-band implementations.
+
+        :param task: a task from TaskManager.
+        :param inventory: hardware inventory from the node.
+        :param plugin_data: optional plugin-specific data.
+        :raises: UnsupportedDriverExtension, if the method is not implemented
+                 by specific inspect interface.
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='abort')
+
 
 def cache_bios_settings(func):
     """A decorator to cache bios settings after running the function.

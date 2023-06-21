@@ -2,8 +2,14 @@
 REST API Version History
 ========================
 
+1.84 (Bobcat)
+-------------
+
+Add callback endpoint for in-band inspection ``/v1/continue_inspection``.
+This endpoint is not designed to be used by regular users.
+
 1.83 (Bobcat)
-----------------------
+-------------
 
 This version adds a concept of child nodes through the use of a
 ``parent_node`` field which can be set on a node.

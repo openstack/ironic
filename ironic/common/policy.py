@@ -1443,6 +1443,12 @@ utility_policies = [
         operations=[{'path': '/lookup', 'method': 'GET'}],
         deprecated_rule=deprecated_ipa_lookup
     ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:driver:ipa_continue_inspection',
+        check_str='',
+        description='Receive inspection data from the ramdisk',
+        operations=[{'path': '/continue_inspection', 'method': 'POST'}],
+    ),
 ]
 
 
@@ -1720,7 +1726,7 @@ allocation_policies = [
         # The latter is more for projects and services using admin project
         # rights. Specific checking because of the expanded rights of
         # this functionality.
-        check_str=('(rule:is_member and role:baremetal_admin) or (is_admin_project:True and role:admin)'),  # noqa 
+        check_str=('(rule:is_member and role:baremetal_admin) or (is_admin_project:True and role:admin)'),  # noqa
         scope_types=['project'],
         description=('Logical restrictor to prevent legacy allocation rule '
                      'missuse - Requires blank allocations to originate from '

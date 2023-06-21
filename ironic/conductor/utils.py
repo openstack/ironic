@@ -411,7 +411,12 @@ def provisioning_error_handler(e, node, provision_state,
         node.provision_state = provision_state
         node.target_provision_state = target_provision_state
         error = (_("No free conductor workers available"))
-        node_history_record(node, event=error, event_type=states.PROVISIONING,
+        if provision_state in (states.INSPECTING, states.INSPECTWAIT,
+                               states.INSPECTFAIL):
+            event_type = states.INTROSPECTION
+        else:
+            event_type = states.PROVISIONING
+        node_history_record(node, event=error, event_type=event_type,
                             error=True)
         node.save()
         LOG.warning("No free conductor workers available to perform "
