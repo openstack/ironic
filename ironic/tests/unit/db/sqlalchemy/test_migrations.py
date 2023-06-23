@@ -719,7 +719,9 @@ class MigrationCheckersMixin(object):
                 models.Node.uuid == data['uuid']
             )
             node = connection.execute(node_stmt).first()
-            data['id'] = node.id
+            # WARNING: Always copy, never directly return a db object or
+            # piece of a db object. It is a sqlalchemy thing.
+            data['id'] = int(node.id)
         return data
 
     def _check_b4130a7fc904(self, engine, data):
@@ -755,7 +757,9 @@ class MigrationCheckersMixin(object):
                 models.Node.id
             ).where(models.Node.uuid == data['uuid'])
             node = connection.execute(node_stmt).first()
-            data['id'] = node.id
+            # WARNING: Always copy, never directly return a db object or
+            # piece of a db object. It is a sqlalchemy thing.
+            data['id'] = int(node.id)
         return data
 
     def _check_82c315d60161(self, engine, data):
@@ -1274,7 +1278,9 @@ class MigrationCheckersMixin(object):
                 models.Node.id
             ).where(models.Node.uuid == data['uuid'])
             node = connection.execute(node_stmt).first()
-            data['id'] = node.id
+            # WARNING: Always copy, never directly return a db object or
+            # piece of a db object. It is a sqlalchemy thing.
+            data['id'] = int(node.id)
 
         return data
 
@@ -1324,6 +1330,12 @@ class MigrationCheckersMixin(object):
             )
             fw_component = connection.execute(fw_cmp_stmt).first()
             self.assertEqual('v1.0.0', fw_component['initial_version'])
+            del_stmt = (
+                sqlalchemy.delete(
+                    models.FirmwareInformation
+                ).where(models.FirmwareInformation.node_id == data['id'])
+            )
+            connection.execute(del_stmt)
 
     def test_upgrade_and_version(self):
         with patch_with_engine(self.engine):
