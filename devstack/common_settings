@@ -16,7 +16,9 @@ CIRROS_VERSION=${CIRROS_VERSION:-$CIRROS_VERSION_DEVSTACK}
 
 IRONIC_DEFAULT_IMAGE_NAME=cirros-${CIRROS_VERSION}-x86_64-uec
 
-IRONIC_IMAGE_NAME=${DEFAULT_IMAGE_NAME:-$IRONIC_DEFAULT_IMAGE_NAME}
+# TODO (iurygregory): change to the normal order after the discussion
+# with openstack-qa https://review.opendev.org/c/openstack/tempest/+/831018
+IRONIC_IMAGE_NAME=${IRONIC_DEFAULT_IMAGE_NAME:-$DEFAULT_IMAGE_NAME}
 
 # Add link to download queue, ignore if already exist.
 # TODO(vsaienko) Move to devstack https://review.opendev.org/420656
