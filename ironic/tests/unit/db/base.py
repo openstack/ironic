@@ -20,6 +20,7 @@ from oslo_config import cfg
 from oslo_db.sqlalchemy import enginefacade
 
 from ironic.db import api as dbapi
+from ironic.db import sqlalchemy as dbapi_parent
 from ironic.db.sqlalchemy import migration
 from ironic.db.sqlalchemy import models
 from ironic.tests import base
@@ -34,7 +35,7 @@ class Database(fixtures.Fixture):
 
     def __init__(self, engine, db_migrate, sql_connection):
         self.sql_connection = sql_connection
-
+        dbapi_parent.LOAD_JOURNAL_MODE = False
         self.engine = engine
         self.engine.dispose()
         conn = self.engine.connect()
