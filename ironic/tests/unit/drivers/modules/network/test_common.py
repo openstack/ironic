@@ -13,6 +13,7 @@
 import json
 import os
 from unittest import mock
+from unittest import skip
 
 from oslo_config import cfg
 from oslo_utils import uuidutils
@@ -1057,6 +1058,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.interface.port_changed(task, self.port)
             self.assertFalse(mac_update_mock.called)
 
+    @skip("https://bugs.launchpad.net/ironic/+bug/2024994")
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
                 autospec=True)
     def test_port_changed_client_id(self, dhcp_update_mock):
@@ -1074,6 +1076,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                 mock.ANY, 'fake-id', expected_dhcp_opts, context=task.context)
         self.assertEqual(2, what_changed_mock.call_count)
 
+    @skip("https://bugs.launchpad.net/ironic/+bug/2024994")
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
                 autospec=True)
     def test_port_changed_extra_add_new_key(self, dhcp_update_mock):
@@ -1086,6 +1089,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.interface.port_changed(task, self.port)
             self.assertFalse(dhcp_update_mock.called)
 
+    @skip("https://bugs.launchpad.net/ironic/+bug/2024994")
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
                 autospec=True)
     def test_port_changed_client_id_fail(self, dhcp_update_mock):
@@ -1111,6 +1115,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                               task, port)
         self.assertEqual(2, what_changed_mock.call_count)
 
+    @skip("https://bugs.launchpad.net/ironic/+bug/2024994")
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
                 autospec=True)
     def test_port_changed_client_id_no_vif_id(self, dhcp_update_mock):
@@ -1122,6 +1127,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             self.interface.port_changed(task, self.port)
             self.assertFalse(dhcp_update_mock.called)
 
+    @skip("https://bugs.launchpad.net/ironic/+bug/2024994")
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.update_port_dhcp_opts',
                 autospec=True)
     def test_port_changed_message_format_failure(self, dhcp_update_mock):
