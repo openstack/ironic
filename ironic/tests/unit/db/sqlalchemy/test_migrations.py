@@ -527,8 +527,8 @@ class MigrationCheckersMixin(object):
         return data
 
     def _check_c14cef6dfedf(self, engine, data):
-        counts = collections.defaultdict(int)
         with engine.begin() as connection:
+            counts = collections.defaultdict(int)
             result = connection.execute(
                 sqlalchemy.select(
                     models.Node.uuid,
