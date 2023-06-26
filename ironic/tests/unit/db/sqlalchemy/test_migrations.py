@@ -1353,16 +1353,13 @@ class MigrationCheckersMixin(object):
             self.assertRaises(db_exc.DBMigrationError,
                               self.migration_api.create_schema)
 
-# NOTE(JayF): bug2023316 means we need to disable this for now. We need
-#             to fix the hangs in this test then re-enable it as quickly
-#             as possible
-#    def test_upgrade_twice(self):
-#        with patch_with_engine(self.engine):
-#            self.migration_api.upgrade('31baaf680d2b')
-#            v1 = self.migration_api.version()
-#            self.migration_api.upgrade('head')
-#            v2 = self.migration_api.version()
-#            self.assertNotEqual(v1, v2)
+    def test_upgrade_twice(self):
+        with patch_with_engine(self.engine):
+            self.migration_api.upgrade('31baaf680d2b')
+            v1 = self.migration_api.version()
+            self.migration_api.upgrade('head')
+            v2 = self.migration_api.version()
+            self.assertNotEqual(v1, v2)
 
 
 class TestMigrationsMySQL(MigrationCheckersMixin,
