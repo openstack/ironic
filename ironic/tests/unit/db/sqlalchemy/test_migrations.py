@@ -543,10 +543,10 @@ class MigrationCheckersMixin(object):
                 if _was_inserted(row['uuid']):
                     counts[row['network_interface']] += 1
 
-        # using default config values, we should have 2 flat and one neutron
-        self.assertEqual(2, counts['flat'])
-        self.assertEqual(1, counts['neutron'])
-        self.assertEqual(0, counts[None])
+            # using default conf values, we should have 2 flat and one neutron
+            self.assertEqual(2, counts['flat'])
+            self.assertEqual(1, counts['neutron'])
+            self.assertEqual(0, counts[None])
 
     def _check_60cf717201bc(self, engine, data):
         portgroups = db_utils.get_table(engine, 'portgroups')
@@ -642,8 +642,8 @@ class MigrationCheckersMixin(object):
             result = connection.execute(
                 sqlalchemy.select(models.Portgroup.mode)
             )
-        for row in result:
-            self.assertEqual(CONF.default_portgroup_mode, row['mode'])
+            for row in result:
+                self.assertEqual(CONF.default_portgroup_mode, row['mode'])
 
     def _check_1d6951876d68(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
