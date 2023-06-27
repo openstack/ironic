@@ -26,7 +26,6 @@ import os
 import subprocess
 import sys
 import tempfile
-from unittest import mock
 import warnings
 
 import eventlet
@@ -55,21 +54,6 @@ from ironic.tests.unit import policy_fixture
 
 logging.register_options(CONF)
 logging.setup(CONF, 'ironic')
-
-
-# NOTE(rpittau) this function allows autospec for classmethods and
-# staticmethods in Python 3.6, while no issue occurs in Python 3.7.4
-# and later.
-# For more info please see: http://bugs.python.org/issue23078
-def _patch_mock_callable(obj):
-    if isinstance(obj, type):
-        return True
-    if getattr(obj, '__call__', None) is not None:
-        return True
-    if (isinstance(obj, (staticmethod, classmethod))
-            and mock._callable(obj.__func__)):
-        return True
-    return False
 
 
 BASE_TEST_TIMEOUT = os.environ.get('BASE_TEST_TIMEOUT', 60)
