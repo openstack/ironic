@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    This release removes two internal foreign key constraints which were
+    redundant and which SQLAlchemy indicated may result in an error at some
+    point in time. No action is required by an operator for this.

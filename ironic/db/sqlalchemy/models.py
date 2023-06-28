@@ -412,7 +412,7 @@ class Allocation(Base):
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36), nullable=False)
     name = Column(String(255), nullable=True)
-    node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
+    node_id = Column(Integer, nullable=True)
     state = Column(String(15), nullable=False)
     owner = Column(String(255), nullable=True)
     last_error = Column(Text, nullable=True)
@@ -421,8 +421,7 @@ class Allocation(Base):
     candidate_nodes = Column(db_types.JsonEncodedList)
     extra = Column(db_types.JsonEncodedDict)
     # The last conductor to handle this allocation (internal field).
-    conductor_affinity = Column(Integer, ForeignKey('conductors.id'),
-                                nullable=True)
+    conductor_affinity = Column(Integer, nullable=True)
 
 
 class DeployTemplate(Base):
