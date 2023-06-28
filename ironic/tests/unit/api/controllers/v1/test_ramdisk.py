@@ -28,6 +28,7 @@ from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import ramdisk
 from ironic.common import states
 from ironic.conductor import rpcapi
+from ironic.drivers.modules import inspect_utils
 from ironic.tests.unit.api import base as test_api_base
 from ironic.tests.unit.objects import utils as obj_utils
 
@@ -411,6 +412,113 @@ class TestHeartbeatScopedRBAC(TestHeartbeat):
     """Test class to execute the Heartbeat tests with RBAC enforcement."""
     def setUp(self):
         super(TestHeartbeatScopedRBAC, self).setUp()
+
+        cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
+        cfg.CONF.set_override('enforce_new_defaults', True,
+                              group='oslo_policy')
+        cfg.CONF.set_override('auth_strategy', 'keystone')
+
+
+@mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                   lambda *n: 'test-topic')
+@mock.patch.object(rpcapi.ConductorAPI, 'continue_inspection', autospec=True)
+@mock.patch.object(inspect_utils, 'lookup_node', autospec=True)
+class TestContinueInspection(test_api_base.BaseApiTest):
+
+    def setUp(self):
+        super().setUp()
+        self.addresses = ['11:22:33:44:55:66', '66:55:44:33:22:11']
+        self.bmcs = ['192.0.2.42', '2001:db8::42']
+        self.inventory = {
+            'bmc_address': self.bmcs[0],
+            'bmc_v6address': self.bmcs[1],
+            'interfaces': [
+                {'mac_address': mac, 'name': f'em{i}'}
+                for i, mac in enumerate(self.addresses)
+            ],
+        }
+        self.data = {
+            'inventory': self.inventory,
+            'test': 42,
+        }
+        self.node = obj_utils.create_test_node(self.context,
+                                               uuid=uuidutils.generate_uuid(),
+                                               provision_state='inspect wait')
+
+    def test_inspector_compatibility(self, mock_lookup, mock_continue):
+        mock_lookup.return_value = self.node
+        response = self.post_json('/continue_inspection', self.data)
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
+        self.assertEqual({'uuid': self.node.uuid}, response.json)
+        mock_lookup.assert_called_once_with(
+            mock.ANY, self.addresses, self.bmcs, node_uuid=None)
+        mock_continue.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid, inventory=self.inventory,
+            plugin_data={'test': 42}, topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_node_with_token',
+                       autospec=True)
+    def test_new_api(self, mock_get_node, mock_lookup, mock_continue):
+        mock_lookup.return_value = self.node
+        mock_get_node.return_value = self.node
+        response = self.post_json(
+            '/continue_inspection', self.data,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
+        self.assertEqual(self.node.uuid, response.json['node']['uuid'])
+        self.assertEqual(set(ramdisk._LOOKUP_RETURN_FIELDS) | {'links'},
+                         set(response.json['node']))
+        mock_lookup.assert_called_once_with(
+            mock.ANY, self.addresses, self.bmcs, node_uuid=None)
+        mock_continue.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid, inventory=self.inventory,
+            plugin_data={'test': 42}, topic='test-topic')
+        mock_get_node.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid, topic='test-topic')
+
+    def test_old_api_version(self, mock_lookup, mock_continue):
+        response = self.post_json(
+            '/continue_inspection', self.data,
+            headers={api_base.Version.string: '1.83'},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, response.status_int)
+        self.assertIn("API version", response.text)
+        mock_lookup.assert_not_called()
+        mock_continue.assert_not_called()
+
+    def test_invalid_schema(self, mock_lookup, mock_continue):
+        del self.data['inventory']['interfaces']
+        response = self.post_json(
+            '/continue_inspection', self.data,
+            headers={api_base.Version.string: str(api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        # JSON schema errors can change between versions, so only make sure
+        # it mentions the required field.
+        self.assertIn("interfaces", response.text)
+        mock_lookup.assert_not_called()
+        mock_continue.assert_not_called()
+
+    def test_no_usable_lookup_data(self, mock_lookup, mock_continue):
+        self.data['inventory']['interfaces'] = [{'mac_address': 'meow'}]
+        del self.data['inventory']['bmc_address']
+        del self.data['inventory']['bmc_v6address']
+        response = self.post_json(
+            '/continue_inspection', self.data,
+            headers={api_base.Version.string: str(api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertIn("No lookup information", response.text)
+        mock_lookup.assert_not_called()
+        mock_continue.assert_not_called()
+
+
+@mock.patch.object(auth_token.AuthProtocol, 'process_request',
+                   lambda *_: None)
+class TestContinueInspectionScopedRBAC(TestContinueInspection):
+
+    def setUp(self):
+        super().setUp()
 
         cfg.CONF.set_override('enforce_scope', True, group='oslo_policy')
         cfg.CONF.set_override('enforce_new_defaults', True,

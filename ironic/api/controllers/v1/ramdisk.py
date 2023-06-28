@@ -318,9 +318,9 @@ class ContinueInspectionController(rest.RestController):
                 # This is a small lie: 1.1 is accepted as well, but no need
                 # to really advertise this fact, it's only for compatibility.
                 _('API version 1.%d or newer is required')
-                % versions.MINOR_83_CONTINUE_INSPECTION)
+                % versions.MINOR_84_CONTINUE_INSPECTION)
 
-        api_utils.check_policy('baremetal:node:ipa_continue_inspection')
+        api_utils.check_policy('baremetal:driver:ipa_continue_inspection')
 
         inventory = data.pop('inventory')
         macs = get_valid_mac_addresses(
