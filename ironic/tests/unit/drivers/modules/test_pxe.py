@@ -786,11 +786,13 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
             task.driver.deploy.prepare(task)
             mock_prepare_instance.assert_called_once_with(mock.ANY, task)
 
+    @mock.patch.object(dhcp_factory.DHCPFactory, 'clean_dhcp', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_env', autospec=True)
     @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     def test_reboot_to_instance(self, mock_set_boot_dev, mock_image_info,
-                                mock_cleanup_pxe_env):
+                                mock_cleanup_pxe_env,
+                                mock_dhcp):
         image_info = {'kernel': ('', '/path/to/kernel'),
                       'ramdisk': ('', '/path/to/ramdisk'),
                       'stage2': ('', '/path/to/stage2'),
@@ -804,6 +806,8 @@ class PXEAnacondaDeployTestCase(db_base.DbTestCase):
             mock_set_boot_dev.assert_called_once_with(task, boot_devices.DISK)
             mock_cleanup_pxe_env.assert_called_once_with(task, image_info,
                                                          ipxe_enabled=False)
+            mock_dhcp.assert_has_calls([
+                mock.call(mock.ANY, task)])
 
     @mock.patch.object(objects.node.Node, 'touch_provisioning', autospec=True)
     def test_heartbeat_deploy_start(self, mock_touch):
