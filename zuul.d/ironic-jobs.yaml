@@ -684,6 +684,14 @@
       tox_envlist: unit-with-driver-libs
 
 - job:
+    name: ironic-tox-unit-mysql-migrations
+    parent: openstack-tox
+    description: |
+      Run MySQL based data model migrations separate to isolate failures.
+    vars:
+      tox_envlist: mysql-migrations
+
+- job:
     name: ironic-inspector-tempest-discovery-fast-track
     description: ironic-inspector-tempest-discovery-fast-track
     parent: ironic-inspector-tempest-discovery
