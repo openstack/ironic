@@ -1312,12 +1312,14 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
             mock_configure_vmedia_boot.assert_called_once_with(mock.ANY, task,
                                                                "12312642")
 
+    @mock.patch.object(irmc_boot, '_remove_share_file', autospec=True)
     @mock.patch.object(irmc_common, 'set_secure_boot_mode', spec_set=True,
                        autospec=True)
     @mock.patch.object(irmc_boot, '_cleanup_vmedia_boot', spec_set=True,
                        autospec=True)
     def test_clean_up_instance_with_secure_boot(self, mock_cleanup_vmedia_boot,
                                                 mock_set_secure_boot_mode,
+                                                mock_remove_share_file,
                                                 check_share_fs_mounted_mock):
         self.node.provision_state = states.DELETING
         self.node.target_provision_state = states.AVAILABLE
@@ -1333,6 +1335,8 @@ class IRMCVirtualMediaBootTestCase(test_common.BaseIRMCTest):
             mock_set_secure_boot_mode.assert_called_once_with(task.node,
                                                               enable=False)
             mock_cleanup_vmedia_boot.assert_called_once_with(task)
+            mock_remove_share_file.assert_called_once_with(
+                'boot-%s.iso' % task.node.uuid)
 
     @mock.patch.object(irmc_common, 'set_secure_boot_mode', spec_set=True,
                        autospec=True)
