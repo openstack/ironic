@@ -311,7 +311,7 @@ class MigrationCheckersMixin(object):
 
             for row in result:
                 old = _get_state(row.uuid)
-                new = row['provision_state']
+                new = row.provision_state
                 if old is None:
                     self.assertEqual('available', new)
                 else:
@@ -483,8 +483,8 @@ class MigrationCheckersMixin(object):
                         return True
 
             for row in result:
-                if _was_inserted(row['uuid']):
-                    self.assertTrue(row['pxe_enabled'])
+                if _was_inserted(row.uuid):
+                    self.assertTrue(row.pxe_enabled)
 
     def _check_e294876e8028(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
@@ -540,8 +540,8 @@ class MigrationCheckersMixin(object):
                         return True
 
             for row in result:
-                if _was_inserted(row['uuid']):
-                    counts[row['network_interface']] += 1
+                if _was_inserted(row.uuid):
+                    counts[row.network_interface] += 1
 
             # using default conf values, we should have 2 flat and one neutron
             self.assertEqual(2, counts['flat'])
@@ -643,7 +643,7 @@ class MigrationCheckersMixin(object):
                 sqlalchemy.select(models.Portgroup.mode)
             )
             for row in result:
-                self.assertEqual(CONF.default_portgroup_mode, row['mode'])
+                self.assertEqual(CONF.default_portgroup_mode, row.mode)
 
     def _check_1d6951876d68(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
@@ -794,7 +794,7 @@ class MigrationCheckersMixin(object):
                 models.BIOSSetting.name == setting['name']
             )
             setting = connection.execute(setting_stmt).first()
-            self.assertEqual('on', setting['value'])
+            self.assertEqual('on', setting[0])
 
     def _check_2bbd96b6ccb9(self, engine, data):
         bios_settings = db_utils.get_table(engine, 'bios_settings')
@@ -1329,7 +1329,7 @@ class MigrationCheckersMixin(object):
                 models.FirmwareInformation.component == fw_data['component']
             )
             fw_component = connection.execute(fw_cmp_stmt).first()
-            self.assertEqual('v1.0.0', fw_component['initial_version'])
+            self.assertEqual('v1.0.0', fw_component[0])
             del_stmt = (
                 sqlalchemy.delete(
                     models.FirmwareInformation
