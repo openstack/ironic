@@ -38,11 +38,10 @@ class Database(fixtures.Fixture):
         dbapi_parent.LOAD_JOURNAL_MODE = False
         self.engine = engine
         self.engine.dispose()
-        conn = self.engine.connect()
-        self.setup_sqlite(db_migrate)
-
-        self.post_migrations()
-        self._DB = "".join(line for line in conn.connection.iterdump())
+        with self.engine.connect() as conn:
+            self.setup_sqlite(db_migrate)
+            self.post_migrations()
+            self._DB = "".join(line for line in conn.connection.iterdump())
         self.engine.dispose()
 
     def setup_sqlite(self, db_migrate):
@@ -53,9 +52,8 @@ class Database(fixtures.Fixture):
 
     def setUp(self):
         super(Database, self).setUp()
-
-        conn = self.engine.connect()
-        conn.connection.executescript(self._DB)
+        with self.engine.connect() as conn:
+            conn.connection.executescript(self._DB)
         self.addCleanup(self.engine.dispose)
 
     def post_migrations(self):
@@ -74,4 +72,5 @@ class DbTestCase(base.TestCase):
             engine = enginefacade.writer.get_engine()
             _DB_CACHE = Database(engine, migration,
                                  sql_connection=CONF.database.connection)
+            engine.dispose()
         self.useFixture(_DB_CACHE)

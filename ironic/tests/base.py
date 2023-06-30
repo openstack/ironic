@@ -72,6 +72,9 @@ def _patch_mock_callable(obj):
     return False
 
 
+BASE_TEST_TIMEOUT = os.environ.get('BASE_TEST_TIMEOUT', 60)
+
+
 class WarningsFixture(fixtures.Fixture):
     """Filters out warnings during test runs."""
 
@@ -189,6 +192,9 @@ class TestCase(oslo_test_base.BaseTestCase):
         self.useFixture(fixtures.EnvironmentVariable('http_proxy'))
         self.policy = self.useFixture(policy_fixture.PolicyFixture())
         self.useFixture(WarningsFixture())
+
+        self.useFixture(fixtures.Timeout(int(BASE_TEST_TIMEOUT),
+                                         gentle=False))
 
         driver_factory.HardwareTypesFactory._extension_manager = None
         for factory in driver_factory._INTERFACE_LOADERS.values():
