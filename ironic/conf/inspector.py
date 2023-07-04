@@ -69,6 +69,20 @@ opts = [
                 default=True,
                 help=_('Whether to update the ports\' pxe_enabled field '
                        'according to the inspection data.')),
+    cfg.StrOpt('default_hooks',
+               default='ramdisk-error,validate-interfaces,ports,architecture',
+               help=_('A comma-separated lists of inspection hooks that are '
+                      'run by default. In most cases, the operators will not '
+                      'modify this. The default (somewhat conservative) hooks '
+                      'will raise an exception in case the ramdisk reports an '
+                      'error, validate interfaces in the inventory, and create'
+                      ' ports.')),
+    cfg.StrOpt('hooks',
+               default='$default_hooks',
+               help=_('Comma-separated list of enabled hooks for processing '
+                      'pipeline. The default for this is $default_hooks. '
+                      'Hooks can be added before or after the defaults '
+                      'like this: "prehook,$default_hooks,posthook".')),
 ]
 
 
