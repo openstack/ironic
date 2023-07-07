@@ -336,6 +336,9 @@ def _free_disk_space_for(path):
 def _fetch(context, image_href, path, force_raw=False):
     """Fetch image and convert to raw format if needed."""
     path_tmp = "%s.part" % path
+    if os.path.exists(path_tmp):
+        LOG.warning("%s exist, assuming it's stale", path_tmp)
+        os.remove(path_tmp)
     images.fetch(context, image_href, path_tmp, force_raw=False)
     # Notes(yjiang5): If glance can provide the virtual size information,
     # then we can firstly clean cache and then invoke images.fetch().
