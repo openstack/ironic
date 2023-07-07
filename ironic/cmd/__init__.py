@@ -23,7 +23,7 @@ os.environ['EVENTLET_NO_GREENDNS'] = 'yes'
 
 import eventlet
 
-eventlet.monkey_patch(os=False)
+eventlet.monkey_patch()
 # Monkey patch the original current_thread to use the up-to-date _active
 # global variable. See https://bugs.launchpad.net/bugs/1863021 and
 # https://github.com/eventlet/eventlet/issues/592
