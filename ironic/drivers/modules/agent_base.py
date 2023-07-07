@@ -84,19 +84,22 @@ VENDOR_PROPERTIES = {
 }
 
 __HEARTBEAT_RECORD_ONLY = (states.ENROLL, states.MANAGEABLE, states.AVAILABLE,
-                           states.CLEANING, states.DEPLOYING, states.RESCUING)
+                           states.CLEANING, states.DEPLOYING, states.RESCUING,
+                           states.DEPLOYHOLD, states.CLEANHOLD)
 _HEARTBEAT_RECORD_ONLY = frozenset(__HEARTBEAT_RECORD_ONLY)
 
 _HEARTBEAT_ALLOWED = (states.DEPLOYWAIT, states.CLEANWAIT, states.RESCUEWAIT,
                       # These are allowed but don't cause any actions since
                       # they're also in HEARTBEAT_RECORD_ONLY.
-                      states.DEPLOYING, states.CLEANING, states.RESCUING)
+                      states.DEPLOYING, states.CLEANING, states.RESCUING,
+                      states.DEPLOYHOLD, states.CLEANHOLD)
 HEARTBEAT_ALLOWED = frozenset(_HEARTBEAT_ALLOWED)
 
 _FASTTRACK_HEARTBEAT_ALLOWED = (states.DEPLOYWAIT, states.CLEANWAIT,
                                 states.RESCUEWAIT, states.ENROLL,
                                 states.MANAGEABLE, states.AVAILABLE,
-                                states.DEPLOYING)
+                                states.DEPLOYING, states.CLEANHOLD,
+                                states.DEPLOYHOLD)
 FASTTRACK_HEARTBEAT_ALLOWED = frozenset(_FASTTRACK_HEARTBEAT_ALLOWED)
 
 

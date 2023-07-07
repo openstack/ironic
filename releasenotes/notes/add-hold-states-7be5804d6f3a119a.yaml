@@ -1,0 +1,18 @@
+---
+features:
+  - |
+    Adds a ``clean hold`` and a ``deploy hold`` provision state in which
+    baremetal nodes can be put in utilizing specialed ``hold`` cleaning
+    and deployment steps. Allowing for patterns and processes where
+    Ironic's work is intentionally paused to allow for any external or
+    operator processes to take place. In these new states, a ``unhold``
+    provision state verb can be used to inform Ironic to proceed.
+    The ``abort`` verb is also a possible option should operators wish
+    to start over.
+  - |
+    Adds the ability to send an ``unhold`` provision state verb utilizing
+    API version *1.84*.
+other:
+  - |
+    Fixes the generated state machine diagram and updates it to match the
+    current state of the code.

@@ -80,6 +80,10 @@ RESERVED_STEP_HANDLER_MAPPING = {
     'reboot': [utils.node_power_action, states.REBOOT],
 }
 
+# values to enable declariation of how to handle reserved step names
+USED_HANDLER = 'used_handler'
+EXIT_STEPS = 'exit_steps'
+
 
 def _clean_step_key(step):
     """Sort by priority, then interface priority in event of tie.
@@ -811,7 +815,11 @@ def validate_user_deploy_steps_and_templates(task, deploy_steps=None,
 
 
 def use_reserved_step_handler(task, step):
-    """Returns True if reserved step execution is used, otherwise False.
+    """Returns guidance for reserved step execution or process is used.
+
+    This method is utilized to handle some specific cases with the execution
+    of steps. For example, reserved step names, or reserved names which
+    have specific meaning in the state machine.
 
     :param task: a TaskManager object.
     :param step: The requested step.
@@ -822,5 +830,10 @@ def use_reserved_step_handler(task, step):
         method = call_to_use[0]
         parameter = call_to_use[1]
         method(task, parameter)
-        return True
-    return False
+        return USED_HANDLER
+    if step_name == 'hold':
+        task.process_event('hold')
+        return EXIT_STEPS
+    # If we've reached this point, we're going to return None as
+    # there is no work for us to do. This allows the caller to
+    # take its normal path.

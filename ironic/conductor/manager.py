@@ -1304,8 +1304,19 @@ class ConductorManager(base_manager.BaseConductorManager):
             if (action == states.VERBS['abort']
                     and node.provision_state in (states.CLEANWAIT,
                                                  states.RESCUEWAIT,
-                                                 states.INSPECTWAIT)):
+                                                 states.INSPECTWAIT,
+                                                 states.CLEANHOLD,
+                                                 states.DEPLOYHOLD)):
                 self._do_abort(task)
+                return
+
+            if (action == states.VERBS['unhold']
+                    and node.provision_state in (states.CLEANHOLD,
+                                                 states.DEPLOYHOLD)):
+                # NOTE(TheJulia): Release the node from the hold, which
+                # allows the next heartbeat action to pick the node back
+                # up and it continue it's operation.
+                task.process_event('unhold')
                 return
 
             try:
@@ -1319,7 +1330,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         """Handle node abort for certain states."""
         node = task.node
 
-        if node.provision_state == states.CLEANWAIT:
+        if node.provision_state in (states.CLEANWAIT, states.CLEANHOLD):
             # Check if the clean step is abortable; if so abort it.
             # Otherwise, indicate in that clean step, that cleaning
             # should be aborted after that step is done.
@@ -1367,6 +1378,18 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         if node.provision_state == states.INSPECTWAIT:
             return inspection.abort_inspection(task)
+
+        if node.provision_state == states.DEPLOYHOLD:
+            # Immediately break agent API interaction
+            # and align with do_node_tear_down
+            utils.remove_agent_url(task.node)
+            # And then call the teardown
+            task.process_event(
+                'abort',
+                callback=self._spawn_worker,
+                call_args=(self._do_node_tear_down, task,
+                           task.node.provision_state),
+                err_handler=utils.provisioning_error_handler)
 
     @METRICS.timer('ConductorManager._sync_power_states')
     @periodics.periodic(spacing=CONF.conductor.sync_power_state_interval,
