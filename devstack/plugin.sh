@@ -21,6 +21,7 @@ if is_service_enabled ir-api ir-cond; then
             install_ironic
             install_ironicclient
             cleanup_ironic_config_files
+            downgrade_dnsmasq
 
         elif [[ "$2" == "post-config" ]]; then
         # stack/post-config - Called after the layer 1 and 2 services have been

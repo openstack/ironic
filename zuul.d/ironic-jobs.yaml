@@ -106,7 +106,6 @@
       Test ironic standalone configured with ipmi hardware type, ramdisk and
       direct deploy interfaces, rescue enabled.
     parent: ironic-base
-    nodeset: openstack-single-node-focal
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -160,7 +159,6 @@
 - job:
     name: ironic-standalone-redfish
     parent: ironic-base
-    nodeset: openstack-single-node-focal
     description:
       Test ironic standalone configured with redfish hardware type, ansible and
       direct and ansible deploy interfaces, rescue it's not enabled.
