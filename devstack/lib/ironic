@@ -3349,6 +3349,18 @@ function setup_vxlan_network {
     sudo ovs-vsctl set interface phy-brbm-infra options:peer=phy-infra-brbm
 }
 
+function downgrade_dnsmasq {
+    # NOTE(TheJulia): The intent here is to downgrade dnsmasq to the version
+    # shipped with Ubuntu focal, so we can have stable CI.
+    # https://bugs.launchpad.net/ubuntu/+source/dnsmasq/+bug/2026757
+    wget http://archive.ubuntu.com/ubuntu/pool/main/d/dnsmasq/dnsmasq-base_2.80-1.1ubuntu1.7_amd64.deb
+    wget http://archive.ubuntu.com/ubuntu/pool/main/libi/libidn/libidn11_1.33-2.2ubuntu2_amd64.deb
+    wget http://archive.ubuntu.com/ubuntu/pool/main/n/nettle/libhogweed5_3.5.1+really3.5.1-2ubuntu0.2_amd64.deb
+    wget http://archive.ubuntu.com/ubuntu/pool/main/n/nettle/libnettle7_3.5.1+really3.5.1-2ubuntu0.2_amd64.deb
+    sudo dpkg -i dnsmasq-base_2.80-1.1ubuntu1.7_amd64.deb libidn11_1.33-2.2ubuntu2_amd64.deb libhogweed5_3.5.1+really3.5.1-2ubuntu0.2_amd64.deb  libnettle7_3.5.1+really3.5.1-2ubuntu0.2_amd64.deb || true
+    rm *.deb
+}
+
 # Restore xtrace + pipefail
 $_XTRACE_IRONIC
 $_PIPEFAIL_IRONIC
