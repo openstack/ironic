@@ -174,24 +174,24 @@ class DbNodeTestCase(base.DbTestCase):
         self.assertEqual([node2.id], [r[0] for r in res])
 
         res = self.dbapi.get_nodeinfo_list(filters={'maintenance': True})
-        self.assertEqual([node2.id], [r.id for r in res])
+        self.assertEqual([node2.id], [r[0] for r in res])
 
         res = self.dbapi.get_nodeinfo_list(filters={'maintenance': False})
         self.assertEqual(sorted([node1.id, node3.id]),
-                         sorted([r.id for r in res]))
+                         sorted([r[0] for r in res]))
 
         res = self.dbapi.get_nodeinfo_list(filters={'fault': 'boom'})
-        self.assertEqual([node2.id], [r.id for r in res])
+        self.assertEqual([node2.id], [r[0] for r in res])
 
         res = self.dbapi.get_nodeinfo_list(filters={'fault': 'moob'})
         self.assertEqual([], [r.id for r in res])
 
         res = self.dbapi.get_nodeinfo_list(filters={'resource_class': 'foo'})
-        self.assertEqual([node2.id], [r.id for r in res])
+        self.assertEqual([node2.id], [r[0] for r in res])
 
         res = self.dbapi.get_nodeinfo_list(
             filters={'conductor_group': 'group1'})
-        self.assertEqual([node2.id], [r.id for r in res])
+        self.assertEqual([node2.id], [r[0] for r in res])
 
         res = self.dbapi.get_nodeinfo_list(
             filters={'conductor_group': 'group2'})
@@ -201,13 +201,13 @@ class DbNodeTestCase(base.DbTestCase):
             filters={'reserved_by_any_of': ['fake-host',
                                             'another-fake-host']})
         self.assertEqual(sorted([node1.id, node3.id]),
-                         sorted([r.id for r in res]))
+                         sorted([r[0] for r in res]))
 
         res = self.dbapi.get_nodeinfo_list(filters={'id': node1.id})
-        self.assertEqual([node1.id], [r.id for r in res])
+        self.assertEqual([node1.id], [r[0] for r in res])
 
         res = self.dbapi.get_nodeinfo_list(filters={'uuid': node1.uuid})
-        self.assertEqual([node1.id], [r.id for r in res])
+        self.assertEqual([node1.id], [r[0] for r in res])
 
         # ensure unknown filters explode
         filters = {'bad_filter': 'foo'}
