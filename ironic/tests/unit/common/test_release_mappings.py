@@ -101,7 +101,7 @@ class ReleaseMappingsTestCase(base.TestCase):
         # NodeBase is also excluded as it is covered by Node.
         exceptions = set(['NodeTag', 'ConductorHardwareInterfaces',
                           'NodeTrait', 'DeployTemplateStep',
-                          'NodeBase', 'FirmwareInformation'])
+                          'NodeBase'])
         model_names -= exceptions
         # NodeTrait maps to two objects
         model_names |= set(['Trait', 'TraitList'])

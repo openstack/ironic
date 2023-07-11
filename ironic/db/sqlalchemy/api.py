@@ -892,6 +892,11 @@ class Connection(api.Connection):
                 models.NodeInventory).filter_by(node_id=node_id)
             inventory_query.delete()
 
+            # delete all firmware components attached to the node
+            firmware_component_query = session.query(
+                models.FirmwareComponent).filter_by(node_id=node_id)
+            firmware_component_query.delete()
+
             query.delete()
 
     def update_node(self, node_id, values):
@@ -2721,3 +2726,103 @@ class Connection(api.Connection):
                     )
 
         return shard_list
+
+    def create_firmware_component(self, values):
+        """Create a FirmwareComponent record for a given node.
+
+        :param values: a dictionary with the necessary information to create
+            a FirmwareComponent.
+
+                     ::
+
+                      {
+                        'component': String,
+                        'initial_version': String,
+                        'current_version': String,
+                        'last_version_flashed': String
+                      }
+        :returns: A FirmwareComponent object.
+        :raises: FirmwareComponentAlreadyExists if any  of the component
+            records already exists.
+        """
+
+        fw_component = models.FirmwareComponent()
+        fw_component.update(values)
+
+        try:
+            with _session_for_write() as session:
+                session.add(fw_component)
+                session.flush()
+        except db_exc.DBDuplicateEntry:
+            raise exception.FirmwareComponentAlreadyExists(
+                name=values['component'], node=values['node_id'])
+        return fw_component
+
+    def update_firmware_component(self, node_id, component, values):
+        """Update a FirmwareComponent record.
+
+        :param node_id: The node id.
+        :param component: The component of the node to update.
+        :param values: A dictionary with the new information about the
+            FirmwareComponent.
+
+                     ::
+
+                      {
+                        'current_version': String,
+                        'last_version_flashed': String
+                      }
+        :returns: A FirmwareComponent object.
+        :raises: FirmwareComponentNotFound the component
+            is not found.
+        """
+        with _session_for_write() as session:
+            query = session.query(models.FirmwareComponent)
+            query = query.filter_by(node_id=node_id, component=component)
+
+            try:
+                ref = query.with_for_update().one()
+            except NoResultFound:
+                raise exception.FirmwareComponentNotFound(
+                    node=node_id, name=component)
+
+            ref.update(values)
+            session.flush()
+        return ref
+
+    def get_firmware_component(self, node_id, name):
+        """Retrieve Firmware Component.
+
+        :param node_id: The node id.
+        :param name: name of Firmware component.
+        :returns: The FirmwareComponent object.
+        :raises: NodeNotFound if the node is not found.
+        :raises: FirmwareComponentNotFound if the FirmwareComponent
+            is not found.
+        """
+
+        with _session_for_read() as session:
+            self._check_node_exists(session, node_id)
+            query = session.query(models.FirmwareComponent).filter_by(
+                node_id=node_id, component=name)
+            try:
+                ref = query.one()
+            except NoResultFound:
+                raise exception.FirmwareComponentNotFound(
+                    node=node_id, name=name)
+        return ref
+
+    def get_firmware_component_list(self, node_id):
+        """Retrieve Firmware Components of a given node.
+
+        :param node_id: The node id.
+        :returns: A list of FirmwareComponent objects.
+        :raises: NodeNotFound if the node is not found.
+        """
+
+        with _session_for_read() as session:
+            self._check_node_exists(session, node_id)
+            result = (session.query(models.FirmwareComponent)
+                      .filter_by(node_id=node_id)
+                      .all())
+        return result

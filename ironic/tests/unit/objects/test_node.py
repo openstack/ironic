@@ -35,7 +35,7 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         super(TestNodeObject, self).setUp()
         self.ctxt = context.get_admin_context()
         self.fake_node = db_utils.get_test_node()
-        self.node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
+        self.node = obj_utils.get_test_node(self.context, **self.fake_node)
 
     def test_as_dict_insecure(self):
         self.node.driver_info['ipmi_password'] = 'fake'

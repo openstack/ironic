@@ -392,3 +392,35 @@ def create_test_inventory(ctxt, node, **kw):
         setattr(inv, key, value)
     inv.create()
     return inv
+
+
+def get_test_firmware_component(ctxt, **kw):
+    """Return a FirmwareComponent object with appropriate attributes.
+
+    NOTE: The object leaves the attributes marked as changed, such
+    that a create() could be used to commit it to the DB.
+    """
+    kw['object_type'] = 'firmware'
+    get_db_fw_checked = check_keyword_arguments(
+        db_utils.get_test_firmware_component)
+    db_fw_cmp = get_db_fw_checked(**kw)
+
+    if 'id' not in kw:
+        del db_fw_cmp['id']
+
+    fw_cmp = objects.FirmwareComponent(ctxt)
+    for key in db_fw_cmp:
+        setattr(fw_cmp, key, db_fw_cmp[key])
+
+    return fw_cmp
+
+
+def create_test_firmware_component(ctxt, **kw):
+    """Create and return a test Firmware Component object.
+
+    Create a Firmware Component in the DB and return a FirmwareComponent
+    object with appropriate attributes.
+    """
+    fw_cmp = get_test_firmware_component(ctxt, **kw)
+    fw_cmp.create()
+    return fw_cmp

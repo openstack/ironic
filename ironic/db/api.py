@@ -1454,3 +1454,64 @@ class Connection(object, metaclass=abc.ABCMeta):
 
         :returns: list of dicts containing shard names and count
         """
+
+    @abc.abstractclassmethod
+    def create_firmware_component(self, values):
+        """Create a FirmwareComponent record for a given node.
+
+        :param values: a dictionary with the necessary information to create
+            a FirmwareComponent.
+
+                     ::
+
+                      {
+                        'component': String,
+                        'initial_version': String,
+                        'current_version': String,
+                        'last_version_flashed': String
+                      }
+        :returns: A FirmwareComponent object.
+        :raises: FirmwareComponentAlreadyExists if any  of the component
+            records already exists.
+        """
+
+    @abc.abstractclassmethod
+    def update_firmware_component(self, node_id, component, values):
+        """Update a FirmwareComponent record.
+
+        :param node_id: The node id.
+        :param component: The component of the node to update.
+        :param values: A dictionary with the new information about the
+            FirmwareComponent.
+
+                     ::
+
+                      {
+                        'current_version': String,
+                        'last_version_flashed': String
+                      }
+        :returns: A FirmwareComponent object.
+        :raises: FirmwareComponentNotFound the component
+            is not found.
+        """
+
+    @abc.abstractmethod
+    def get_firmware_component(self, node_id, name):
+        """Retrieve Firmware Component.
+
+        :param node_id: The node id.
+        :param name: name of Firmware component.
+        :returns: The FirmwareComponent object.
+        :raises: NodeNotFound if the node is not found.
+        :raises: FirmwareComponentNotFound if the Firmware component
+            is not found.
+        """
+
+    @abc.abstractclassmethod
+    def get_firmware_component_list(self, node_id):
+        """Retrieve a list Firmware Components of a given node.
+
+        :param node_id: The node id.
+        :returns: A list of FirmwareComponent objects.
+        :raises: NodeNotFound if the node is not found.
+        """
