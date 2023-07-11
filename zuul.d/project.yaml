@@ -21,7 +21,10 @@
         # see also https://review.opendev.org/c/openstack/ironic-tempest-plugin/+/882312
         - ironic-tempest-functional-rbac-scope-enforced:
             voting: false
-        - ironic-grenade
+        # NOTE(TheJulia): Disabling grenade job on 20240227 from voting
+        # because we need to backport the same fix to the prior release branch.
+        - ironic-grenade:
+            voting: false
         - ironic-grenade-skip-level:
             voting: false
         - ironic-standalone
@@ -73,7 +76,8 @@
         # NOTE(rpittau) disabled until we fix the tests
         # see also https://review.opendev.org/c/openstack/ironic-tempest-plugin/+/882312
         # - ironic-tempest-functional-rbac-scope-enforced
-        - ironic-grenade
+        # NOTE(TheJulia): Disabling until we get a dnsmasq handling fix backported.
+        # - ironic-grenade
         - ironic-standalone
         - ironic-standalone-redfish
         - ironic-tempest-bios-redfish-pxe
