@@ -59,6 +59,9 @@ logging.setup(CONF, 'ironic')
 BASE_TEST_TIMEOUT = os.environ.get('BASE_TEST_TIMEOUT', 60)
 
 
+BASE_TEST_TIMEOUT = os.environ.get('BASE_TEST_TIMEOUT', 60)
+
+
 class WarningsFixture(fixtures.Fixture):
     """Filters out warnings during test runs."""
 
