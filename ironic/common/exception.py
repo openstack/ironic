@@ -425,8 +425,8 @@ class Forbidden(IronicException):
     _msg_fmt = _("Requested OpenStack Images API is forbidden")
 
 
-class BadRequest(IronicException):
-    pass
+# TODO(dtantsur): leave only one variant
+BadRequest = Invalid
 
 
 class InvalidEndpoint(IronicException):
@@ -441,12 +441,8 @@ class HTTPForbidden(NotAuthorized):
     _msg_fmt = _("Access was denied to the following resource: %(resource)s")
 
 
-class Unauthorized(IronicException):
-    pass
-
-
-class HTTPNotFound(NotFound):
-    pass
+# TODO(dtantsur): leave only one variant
+HTTPNotFound = NotFound
 
 
 class ConfigNotFound(IronicException):
