@@ -73,6 +73,25 @@ class IloPowerInternalMethodsTestCase(test_common.BaseIloTest):
                           self.node)
         ilo_mock_object.get_host_power_status.assert_called_once_with()
 
+    @mock.patch.object(manager_utils, 'node_history_record', autospec=True)
+    def test__get_power_state_ilo6_redirect(self, record_history_mock,
+                                            get_ilo_object_mock):
+        ilo_mock_object = get_ilo_object_mock.return_value
+        exc = ilo_error.IloError('Error: RIBCLI is disabled.')
+        ilo_mock_object.get_host_power_status.side_effect = exc
+        self.assertRaisesRegex(exception.IloOperationError,
+                               'appears to have a disabled API required',
+                               ilo_power._get_power_state,
+                               self.node)
+        ilo_mock_object.get_host_power_status.assert_called_once_with()
+        record_history_mock.assert_called_once_with(
+            mock.ANY,
+            event=('Node %s appears to have a disabled API required for the '
+                   '\'ilo\' hardware type to function. Please consider using '
+                   'the \'redfish\' hardware type.' % self.node.uuid),
+            event_type='available',
+            error=True)
+
     def test__set_power_state_invalid_state(self, get_ilo_object_mock):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:

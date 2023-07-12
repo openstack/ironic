@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes a vague error when attempting to use the ``ilo`` hardware type with
+    iLO6 hardware, by returning a more specific error suggesting action to
+    take in order to remedy the issue. Specifically, one of the API's
+    used by the ``ilo`` hardware type is disabled in iLO6 BMCs in favor
+    of users utilizing Redfish. Operators are advised to utilize the
+    ``redfish`` hardware type for these machines.
