@@ -355,10 +355,14 @@ def _paginate_query(model, limit=None, marker=None, sort_key=None,
 def _filter_active_conductors(query, interval=None):
     if interval is None:
         interval = CONF.conductor.heartbeat_timeout
-    limit = timeutils.utcnow() - datetime.timedelta(seconds=interval)
-
-    query = (query.filter(models.Conductor.online.is_(True))
-             .filter(models.Conductor.updated_at >= limit))
+    if not utils.is_ironic_using_sqlite() and interval > 0:
+        # Check for greater than zero becaues if the value is zero,
+        # then the logic makes no sense.
+        limit = timeutils.utcnow() - datetime.timedelta(seconds=interval)
+        query = (query.filter(models.Conductor.online.is_(True))
+                 .filter(models.Conductor.updated_at >= limit))
+    else:
+        query = query.filter(models.Conductor.online.is_(True))
     return query
 
 
@@ -1433,10 +1437,16 @@ class Connection(api.Connection):
     def get_offline_conductors(self, field='hostname'):
         with _session_for_read() as session:
             field = getattr(models.Conductor, field)
-            interval = CONF.conductor.heartbeat_timeout
-            limit = timeutils.utcnow() - datetime.timedelta(seconds=interval)
-            result = (session.query(field)
-                      .filter(models.Conductor.updated_at < limit))
+            if not utils.is_ironic_using_sqlite():
+                interval = CONF.conductor.heartbeat_timeout
+                limit = (timeutils.utcnow()
+                         - datetime.timedelta(seconds=interval))
+                result = (session.query(field)
+                          .filter(models.Conductor.updated_at < limit))
+            else:
+                result = session.query(
+                    field
+                ).filter(models.Conductor.online.is_(False))
         return [row[0] for row in result]
 
     def get_online_conductors(self):

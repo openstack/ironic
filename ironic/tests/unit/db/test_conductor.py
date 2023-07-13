@@ -21,6 +21,7 @@ from unittest import mock
 from oslo_utils import timeutils
 
 from ironic.common import exception
+from ironic.common import utils as common_utils
 from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils
 
@@ -295,9 +296,11 @@ class DbConductorTestCase(base.DbTestCase):
         result = self.dbapi.get_active_hardware_type_dict()
         self.assertEqual(expected, result)
 
+    @mock.patch.object(common_utils, 'is_ironic_using_sqlite', autospec=True)
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_get_active_hardware_type_dict_with_old_conductor(self,
-                                                              mock_utcnow):
+    def test_get_active_hardware_type_dict_with_old_conductor(
+            self, mock_utcnow, mock_is_sqlite):
+        mock_is_sqlite.return_value = False
         past = datetime.datetime(2000, 1, 1, 0, 0)
         present = past + datetime.timedelta(minutes=2)
 
@@ -326,9 +329,12 @@ class DbConductorTestCase(base.DbTestCase):
         expected = {ht: {h1, h2}, ht1: {h1}, ht2: {h2}}
         result = self.dbapi.get_active_hardware_type_dict()
         self.assertEqual(expected, result)
+        self.assertEqual(2, mock_is_sqlite.call_count)
 
+    @mock.patch.object(common_utils, 'is_ironic_using_sqlite', autospec=True)
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_get_offline_conductors(self, mock_utcnow):
+    def test_get_offline_conductors(self, mock_utcnow, mock_is_sqlite):
+        mock_is_sqlite.return_value = False
         self.config(heartbeat_timeout=60, group='conductor')
         time_ = datetime.datetime(2000, 1, 1, 0, 0)
 
@@ -344,9 +350,34 @@ class DbConductorTestCase(base.DbTestCase):
         mock_utcnow.return_value = time_ + datetime.timedelta(seconds=61)
         self.assertEqual([c.hostname], self.dbapi.get_offline_conductors())
         self.assertEqual([c.id], self.dbapi.get_offline_conductors(field='id'))
+        self.assertEqual(3, mock_is_sqlite.call_count)
 
+    @mock.patch.object(common_utils, 'is_ironic_using_sqlite', autospec=True)
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
-    def test_get_online_conductors(self, mock_utcnow):
+    def test_get_offline_conductors_with_sqlite(self, mock_utcnow,
+                                                mock_is_sqlite):
+        mock_is_sqlite.return_value = True
+        self.config(heartbeat_timeout=60, group='conductor')
+        time_ = datetime.datetime(2000, 1, 1, 0, 0)
+
+        mock_utcnow.return_value = time_
+        self._create_test_cdr()
+
+        # Only 30 seconds passed since last heartbeat, it's still
+        # considered alive
+        mock_utcnow.return_value = time_ + datetime.timedelta(seconds=30)
+        self.assertEqual([], self.dbapi.get_offline_conductors())
+
+        # 61 seconds passed since last heartbeat, it's dead
+        mock_utcnow.return_value = time_ + datetime.timedelta(seconds=61)
+        self.assertEqual([], self.dbapi.get_offline_conductors())
+        self.assertEqual([], self.dbapi.get_offline_conductors(field='id'))
+        self.assertEqual(3, mock_is_sqlite.call_count)
+
+    @mock.patch.object(common_utils, 'is_ironic_using_sqlite', autospec=True)
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_get_online_conductors(self, mock_utcnow, mock_is_sqlite):
+        mock_is_sqlite.return_value = False
         self.config(heartbeat_timeout=60, group='conductor')
         time_ = datetime.datetime(2000, 1, 1, 0, 0)
 
@@ -361,6 +392,26 @@ class DbConductorTestCase(base.DbTestCase):
         # 61 seconds passed since last heartbeat, it's dead
         mock_utcnow.return_value = time_ + datetime.timedelta(seconds=61)
         self.assertEqual([], self.dbapi.get_online_conductors())
+        self.assertEqual(2, mock_is_sqlite.call_count)
+
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_get_online_conductors_with_sqlite(self, mock_utcnow):
+        # NOTE(TheJulia): Explicitly skipping the mock so the underlying
+        # code on the test is 'tested'.
+        self.config(heartbeat_timeout=60, group='conductor')
+        time_ = datetime.datetime(2000, 1, 1, 0, 0)
+
+        mock_utcnow.return_value = time_
+        c = self._create_test_cdr()
+
+        # Only 30 seconds passed since last heartbeat, it's still
+        # considered alive
+        mock_utcnow.return_value = time_ + datetime.timedelta(seconds=30)
+        self.assertEqual([c.hostname], self.dbapi.get_online_conductors())
+
+        # 61 seconds passed since last heartbeat, it's dead
+        mock_utcnow.return_value = time_ + datetime.timedelta(seconds=61)
+        self.assertEqual([c.hostname], self.dbapi.get_online_conductors())
 
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_list_hardware_type_interfaces(self, mock_utcnow):
@@ -415,5 +466,14 @@ class DbConductorTestCase(base.DbTestCase):
 
         # 61 seconds passed since last heartbeat, it's dead
         mock_utcnow.return_value = time_ + datetime.timedelta(seconds=61)
-        result = self.dbapi.list_hardware_type_interfaces([ht1, ht2])
+        with mock.patch.object(common_utils, 'is_ironic_using_sqlite',
+                               autospec=True) as mock_is_sqlite:
+            mock_is_sqlite.return_value = False
+            result = self.dbapi.list_hardware_type_interfaces([ht1, ht2])
+            self.assertEqual(1, mock_is_sqlite.call_count)
         self.assertEqual([], result)
+
+        # Validate we still have four entries with SQLite, which is the
+        # default for all unit tests running.
+        result = self.dbapi.list_hardware_type_interfaces([ht1, ht2])
+        self.assertEqual(4, len(result))

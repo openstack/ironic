@@ -34,6 +34,7 @@ from ironic.common.i18n import _
 from ironic.common import release_mappings as versions
 from ironic.common import rpc
 from ironic.common import states
+from ironic.common import utils as common_utils
 from ironic.conductor import allocations
 from ironic.conductor import notification_utils as notify_utils
 from ironic.conductor import task_manager
@@ -440,6 +441,10 @@ class BaseConductorManager(object):
             raise exception.NoFreeConductorWorker()
 
     def _conductor_service_record_keepalive(self):
+        if common_utils.is_ironic_using_sqlite():
+            # Exit this keepalive heartbeats are disabled and not
+            # considered.
+            return
         while not self._keepalive_evt.is_set():
             try:
                 self.conductor.touch()

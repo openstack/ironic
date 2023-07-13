@@ -57,6 +57,8 @@ TZ_RE = r'((?P<tz_sign>[+-])(?P<tz_hour>\d{2}):(?P<tz_min>\d{2}))' + \
 DATETIME_RE = re.compile(
     '%sT%s(%s)?' % (DATE_RE, TIME_RE, TZ_RE))
 
+USING_SQLITE = None
+
 
 def _get_root_helper():
     # NOTE(jlvillal): This function has been moved to ironic-lib. And is
@@ -724,3 +726,15 @@ def parse_kernel_params(params):
         else:
             result[key] = value
     return result
+
+
+def is_ironic_using_sqlite():
+    """Return True if Ironic is configured to use SQLite"""
+    global USING_SQLITE
+    if USING_SQLITE is not None:
+        return USING_SQLITE
+
+    # We're being called for the first time, lets cache and
+    # return the value.
+    USING_SQLITE = 'sqlite' in CONF.database.connection.lower()
+    return USING_SQLITE

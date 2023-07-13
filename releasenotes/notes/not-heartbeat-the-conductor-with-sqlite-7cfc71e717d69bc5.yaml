@@ -1,0 +1,13 @@
+---
+deprecations:
+  - |
+    The use of a SQLite database with mutli-process (i.e. ``ironic-api`` and
+    ``ironic-conductor`` services) is not supported, and the ability to launch
+    a dedicated ``ironic-api`` process with a SQLite database backend will
+    be an error in the future. In this case, the single process combined
+    API and Conductor service should be utilized.
+fixes:
+  - |
+    Database locks with a ``sqlite`` database backend should now be lessened
+    as the conductor will no longer perform a keepalive heartbeat operation
+    when the use of SQLite has been detected.

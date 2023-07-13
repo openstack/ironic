@@ -27,6 +27,7 @@ from oslo_utils import uuidutils
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import states
+from ironic.common import utils as common_utils
 from ironic.conductor import base_manager
 from ironic.conductor import manager
 from ironic.conductor import notification_utils
@@ -322,12 +323,24 @@ class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                    'is_set', autospec=True) as mock_is_set:
                 mock_is_set.side_effect = [False, True]
                 self.service._conductor_service_record_keepalive()
+            mock_touch.assert_not_called()
+            with mock.patch.object(self.service._keepalive_evt,
+                                   'is_set', autospec=True) as mock_is_set:
+                mock_is_set.side_effect = [False, True]
+                with mock.patch.object(common_utils, 'is_ironic_using_sqlite',
+                                       autospec=True) as mock_is_sqlite:
+                    mock_is_sqlite.return_value = False
+                    self.service._conductor_service_record_keepalive()
+                    self.assertEqual(1, mock_is_sqlite.call_count)
             mock_touch.assert_called_once_with(self.hostname)
 
-    def test__conductor_service_record_keepalive_failed_db_conn(self):
+    @mock.patch.object(common_utils, 'is_ironic_using_sqlite', autospec=True)
+    def test__conductor_service_record_keepalive_failed_db_conn(
+            self, is_sqlite_mock):
         self._start_service()
         # avoid wasting time at the event.wait()
         CONF.set_override('heartbeat_interval', 0, 'conductor')
+        is_sqlite_mock.return_value = False
         with mock.patch.object(self.dbapi, 'touch_conductor',
                                autospec=True) as mock_touch:
             mock_touch.side_effect = [None, db_exception.DBConnectionError(),
@@ -337,11 +350,15 @@ class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 mock_is_set.side_effect = [False, False, False, True]
                 self.service._conductor_service_record_keepalive()
             self.assertEqual(3, mock_touch.call_count)
+        self.assertEqual(1, is_sqlite_mock.call_count)
 
-    def test__conductor_service_record_keepalive_failed_error(self):
+    @mock.patch.object(common_utils, 'is_ironic_using_sqlite', autospec=True)
+    def test__conductor_service_record_keepalive_failed_error(self,
+                                                              is_sqlite_mock):
         self._start_service()
-        # avoid wasting time at the event.wait()
+        # minimal time at the event.wait()
         CONF.set_override('heartbeat_interval', 0, 'conductor')
+        is_sqlite_mock.return_value = False
         with mock.patch.object(self.dbapi, 'touch_conductor',
                                autospec=True) as mock_touch:
             mock_touch.side_effect = [None, Exception(),
@@ -351,6 +368,7 @@ class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 mock_is_set.side_effect = [False, False, False, True]
                 self.service._conductor_service_record_keepalive()
             self.assertEqual(3, mock_touch.call_count)
+        self.assertEqual(1, is_sqlite_mock.call_count)
 
 
 class ManagerSpawnWorkerTestCase(tests_base.TestCase):

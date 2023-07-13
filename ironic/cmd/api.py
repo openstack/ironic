@@ -30,6 +30,17 @@ CONF = cfg.CONF
 LOG = log.getLogger(__name__)
 
 
+def _error_about_sqlite_usage():
+    if 'sqlite' in CONF.database.connection.lower():
+        # TODO(TheJulia): Make this a hard error in C*
+        LOG.error('We have detected the API is being launched with a SQLite '
+                  'database backend. This is unsupported, and will be a hard '
+                  'error in the future. This is becaues multi-process use of '
+                  'a single SQLite database is problematic in terms of '
+                  'locking. A single process ironic model exists for use with '
+                  'SQLite.')
+
+
 def main():
     # Parse config file and command line options, then start logging
     ironic_service.prepare_service('ironic_api', sys.argv)
@@ -43,4 +54,5 @@ def main():
 
 
 if __name__ == '__main__':
+    _error_about_sqlite_usage()
     sys.exit(main())

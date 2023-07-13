@@ -14,11 +14,13 @@
 #    under the License.
 
 import time
+from unittest import mock
 
 from oslo_config import cfg
 
 from ironic.common import exception
 from ironic.common import hash_ring
+from ironic.common import utils
 from ironic.tests.unit.db import base as db_base
 
 CONF = cfg.CONF
@@ -92,7 +94,9 @@ class HashRingManagerTestCase(db_base.DbTestCase):
         self.register_conductors()
         self.ring_manager.get_ring('hardware-type', '')
 
-    def test_hash_ring_manager_reset_interval(self):
+    @mock.patch.object(utils, 'is_ironic_using_sqlite', autospec=True)
+    def test_hash_ring_manager_reset_interval(self, is_sqlite_mock):
+        is_sqlite_mock.return_value = False
         CONF.set_override('hash_ring_reset_interval', 30)
         # Just to simplify calculations
         CONF.set_override('hash_partition_exponent', 0)
@@ -133,6 +137,53 @@ class HashRingManagerTestCase(db_base.DbTestCase):
         )
         ring = self.ring_manager.get_ring('hardware-type', '')
         self.assertEqual(2, len(ring))
+        self.assertEqual(3, is_sqlite_mock.call_count)
+
+    @mock.patch.object(utils, 'is_ironic_using_sqlite', autospec=True)
+    def test_hash_ring_manager_reset_interval_not_happen_sqlite(
+            self, is_sqlite_mock):
+        is_sqlite_mock.return_value = True
+        CONF.set_override('hash_ring_reset_interval', 30)
+        # Just to simplify calculations
+        CONF.set_override('hash_partition_exponent', 0)
+        c1 = self.dbapi.register_conductor({
+            'hostname': 'host1',
+            'drivers': ['driver1', 'driver2'],
+        })
+        c2 = self.dbapi.register_conductor({
+            'hostname': 'host2',
+            'drivers': ['driver1'],
+        })
+        self.dbapi.register_conductor_hardware_interfaces(
+            c1.id,
+            [{'hardware_type': 'hardware-type', 'interface_type': 'deploy',
+              'interface_name': 'ansible', 'default': True},
+             {'hardware_type': 'hardware-type', 'interface_type': 'deploy',
+              'interface_name': 'direct', 'default': False}]
+        )
+
+        ring = self.ring_manager.get_ring('hardware-type', '')
+        self.assertEqual(1, len(ring))
+
+        self.dbapi.register_conductor_hardware_interfaces(
+            c2.id,
+            [{'hardware_type': 'hardware-type', 'interface_type': 'deploy',
+              'interface_name': 'ansible', 'default': True},
+             {'hardware_type': 'hardware-type', 'interface_type': 'deploy',
+              'interface_name': 'direct', 'default': False}]
+        )
+        ring = self.ring_manager.get_ring('hardware-type', '')
+        # The new conductor is not known yet. Automatic retry does not kick in,
+        # since there is an active conductor for the requested hardware type.
+        self.assertEqual(1, len(ring))
+
+        self.ring_manager.__class__._hash_rings = (
+            self.ring_manager.__class__._hash_rings[0],
+            time.monotonic() - 31
+        )
+        ring = self.ring_manager.get_ring('hardware-type', '')
+        self.assertEqual(1, len(ring))
+        self.assertEqual(2, is_sqlite_mock.call_count)
 
     def test_hash_ring_manager_uncached(self):
         ring_mgr = hash_ring.HashRingManager(cache=False,

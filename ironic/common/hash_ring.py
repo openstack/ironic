@@ -21,6 +21,7 @@ from tooz import hashring
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import utils
 from ironic.conf import CONF
 from ironic.db import api as dbapi
 
@@ -48,7 +49,11 @@ class HashRingManager(object):
         # Hot path, no lock. Using a local variable to avoid races with code
         # changing the class variable.
         hash_rings, updated_at = self.__class__._hash_rings
-        if hash_rings is not None and updated_at >= limit:
+        if (hash_rings is not None
+            and (updated_at >= limit
+                 or utils.is_ironic_using_sqlite())):
+            # Returning the hash ring for us, if it is still valid,
+            # or if we're using sqlite.
             return hash_rings
 
         with self._lock:
