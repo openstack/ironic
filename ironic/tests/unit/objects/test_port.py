@@ -21,6 +21,7 @@ from oslo_config import cfg
 from testtools import matchers
 
 from ironic.common import exception
+from ironic.db.sqlalchemy.api import Connection as db_conn
 from ironic import objects
 from ironic.objects import base as obj_base
 from ironic.tests.unit.db import base as db_base
@@ -86,9 +87,9 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
     def test_create(self):
         port = objects.Port(self.context, **self.fake_port)
-        with mock.patch.object(self.dbapi, 'create_port',
+        with mock.patch.object(db_conn, 'create_port',
                                autospec=True) as mock_create_port:
-            with mock.patch.object(self.dbapi, 'get_port_by_id',
+            with mock.patch.object(db_conn, 'get_port_by_id',
                                    autospec=True) as mock_get_port:
                 test_port = db_utils.get_test_port()
                 mock_create_port.return_value = test_port
@@ -97,7 +98,7 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
                 port.create()
 
                 args, _kwargs = mock_create_port.call_args
-                self.assertEqual(objects.Port.VERSION, args[0]['version'])
+                self.assertEqual(objects.Port.VERSION, args[1]['version'])
 
     def test_save(self):
         uuid = self.fake_port['uuid']
@@ -106,7 +107,7 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         with mock.patch.object(self.dbapi, 'get_port_by_uuid',
                                autospec=True) as mock_get_port:
             mock_get_port.return_value = self.fake_port
-            with mock.patch.object(self.dbapi, 'update_port',
+            with mock.patch.object(db_conn, 'update_port',
                                    autospec=True) as mock_update_port:
                 mock_update_port.return_value = (
                     db_utils.get_test_port(address=address,
@@ -117,8 +118,10 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
                 mock_get_port.assert_called_once_with(uuid)
                 mock_update_port.assert_called_once_with(
-                    uuid, {'version': objects.Port.VERSION,
-                           'address': "b2:54:00:cf:2d:40"})
+                    mock.ANY,
+                    uuid,
+                    {'version': objects.Port.VERSION,
+                     'address': "b2:54:00:cf:2d:40"})
                 self.assertEqual(self.context, p._context)
                 res_updated_at = (p.updated_at).replace(tzinfo=None)
                 self.assertEqual(test_time, res_updated_at)

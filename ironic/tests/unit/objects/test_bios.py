@@ -15,6 +15,7 @@ from unittest import mock
 
 from ironic.common import context
 from ironic.db import api as dbapi
+from ironic.db.sqlalchemy.api import Connection as db_conn
 from ironic import objects
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
@@ -71,7 +72,7 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertEqual(bios_setting2['name'], bios_obj_list[1].name)
         self.assertEqual(bios_setting2['value'], bios_obj_list[1].value)
 
-    @mock.patch.object(dbapi.IMPL, 'create_bios_setting_list', autospec=True)
+    @mock.patch.object(db_conn, 'create_bios_setting_list', autospec=True)
     def test_create(self, mock_create_list):
         fake_call_args = {'node_id': self.bios_setting['node_id'],
                           'name': self.bios_setting['name'],
@@ -97,7 +98,8 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         mock_create_list.return_value = [self.bios_setting]
         mock_create_list.call_args
         bios_obj.create()
-        mock_create_list.assert_called_once_with(self.bios_setting['node_id'],
+        mock_create_list.assert_called_once_with(mock.ANY,
+                                                 self.bios_setting['node_id'],
                                                  setting,
                                                  self.bios_setting['version'])
         self.assertEqual(self.bios_setting['node_id'], bios_obj.node_id)
@@ -113,7 +115,7 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
                          bios_obj.reset_required)
         self.assertEqual(self.bios_setting['unique'], bios_obj.unique)
 
-    @mock.patch.object(dbapi.IMPL, 'update_bios_setting_list', autospec=True)
+    @mock.patch.object(db_conn, 'update_bios_setting_list', autospec=True)
     def test_save(self, mock_update_list):
         fake_call_args = {'node_id': self.bios_setting['node_id'],
                           'name': self.bios_setting['name'],
@@ -131,14 +133,15 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         mock_update_list.return_value = [self.bios_setting]
         mock_update_list.call_args
         bios_obj.save()
-        mock_update_list.assert_called_once_with(self.bios_setting['node_id'],
+        mock_update_list.assert_called_once_with(mock.ANY,
+                                                 self.bios_setting['node_id'],
                                                  setting,
                                                  self.bios_setting['version'])
         self.assertEqual(self.bios_setting['node_id'], bios_obj.node_id)
         self.assertEqual(self.bios_setting['name'], bios_obj.name)
         self.assertEqual(self.bios_setting['value'], bios_obj.value)
 
-    @mock.patch.object(dbapi.IMPL, 'create_bios_setting_list', autospec=True)
+    @mock.patch.object(db_conn, 'create_bios_setting_list', autospec=True)
     def test_list_create(self, mock_create_list):
         bios_setting2 = db_utils.get_test_bios_setting(name='hyperthread',
                                                        value='enabled')
@@ -147,7 +150,8 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         bios_obj_list = objects.BIOSSettingList.create(
             self.context, self.node_id, settings)
 
-        mock_create_list.assert_called_once_with(self.node_id, settings, '1.1')
+        mock_create_list.assert_called_once_with(mock.ANY, self.node_id,
+                                                 settings, '1.1')
         self.assertEqual(self.context, bios_obj_list._context)
         self.assertEqual(2, len(bios_obj_list))
         self.assertEqual(self.bios_setting['node_id'],
@@ -157,7 +161,7 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertEqual(bios_setting2['node_id'], bios_obj_list[1].node_id)
         self.assertEqual(bios_setting2['name'], bios_obj_list[1].name)
 
-    @mock.patch.object(dbapi.IMPL, 'update_bios_setting_list', autospec=True)
+    @mock.patch.object(db_conn, 'update_bios_setting_list', autospec=True)
     def test_list_save(self, mock_update_list):
         bios_setting2 = db_utils.get_test_bios_setting(name='hyperthread',
                                                        value='enabled')
@@ -166,7 +170,8 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         bios_obj_list = objects.BIOSSettingList.save(
             self.context, self.node_id, settings)
 
-        mock_update_list.assert_called_once_with(self.node_id, settings, '1.1')
+        mock_update_list.assert_called_once_with(mock.ANY, self.node_id,
+                                                 settings, '1.1')
         self.assertEqual(self.context, bios_obj_list._context)
         self.assertEqual(2, len(bios_obj_list))
         self.assertEqual(self.bios_setting['node_id'],
@@ -177,19 +182,20 @@ class TestBIOSSettingObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
         self.assertEqual(bios_setting2['name'], bios_obj_list[1].name)
         self.assertEqual(bios_setting2['value'], bios_obj_list[1].value)
 
-    @mock.patch.object(dbapi.IMPL, 'delete_bios_setting_list', autospec=True)
+    @mock.patch.object(db_conn, 'delete_bios_setting_list', autospec=True)
     def test_delete(self, mock_delete):
         objects.BIOSSetting.delete(self.context, self.node_id,
                                    self.bios_setting['name'])
-        mock_delete.assert_called_once_with(self.node_id,
+        mock_delete.assert_called_once_with(mock.ANY,
+                                            self.node_id,
                                             [self.bios_setting['name']])
 
-    @mock.patch.object(dbapi.IMPL, 'delete_bios_setting_list', autospec=True)
+    @mock.patch.object(db_conn, 'delete_bios_setting_list', autospec=True)
     def test_list_delete(self, mock_delete):
         bios_setting2 = db_utils.get_test_bios_setting(name='hyperthread')
         name_list = [self.bios_setting['name'], bios_setting2['name']]
         objects.BIOSSettingList.delete(self.context, self.node_id, name_list)
-        mock_delete.assert_called_once_with(self.node_id, name_list)
+        mock_delete.assert_called_once_with(mock.ANY, self.node_id, name_list)
 
     @mock.patch('ironic.objects.bios.BIOSSettingList.get_by_node_id',
                 spec_set=types.FunctionType)

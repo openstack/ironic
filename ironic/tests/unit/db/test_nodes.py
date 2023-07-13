@@ -18,15 +18,25 @@
 import datetime
 from unittest import mock
 
+from oslo_config import cfg
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
-from sqlalchemy.orm import exc as sa_exc
+from sqlalchemy import exc as sa_exc
+# NOTE(TheJulia): At some point, we should drop the line below,
+# as I understand the ORM exceptions are going to move completely
+# after SQLAlchemy 2.0 to just the base exception class.
+from sqlalchemy.orm import exc as sa_orm_exc
 
 from ironic.common import exception
 from ironic.common import states
+from ironic.db.sqlalchemy import api as dbapi
+from ironic.db.sqlalchemy.api import Connection as db_conn
 from ironic.db.sqlalchemy.models import NodeInventory
 from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils
+
+
+CONF = cfg.CONF
 
 
 class DbNodeTestCase(base.DbTestCase):
@@ -535,7 +545,7 @@ class DbNodeTestCase(base.DbTestCase):
                           'deploy_interface', 'boot_interface',
                           'driver', 'extra']:
                 try:
-                    self.assertRaises(sa_exc.DetachedInstanceError,
+                    self.assertRaises(sa_orm_exc.DetachedInstanceError,
                                       _attempt_field_access, r, field)
                 except AttributeError:
                     pass
@@ -592,7 +602,7 @@ class DbNodeTestCase(base.DbTestCase):
                           'driver', 'extra', 'power_state',
                           'traits']:
                 try:
-                    self.assertRaises(sa_exc.DetachedInstanceError,
+                    self.assertRaises(sa_orm_exc.DetachedInstanceError,
                                       _attempt_field_access, r, field)
                 except AttributeError:
                     # We expect an AttributeError, in addition to
@@ -846,6 +856,28 @@ class DbNodeTestCase(base.DbTestCase):
         new_extra = {'foo': 'bar'}
         self.assertRaises(exception.NodeNotFound, self.dbapi.update_node,
                           node_uuid, {'extra': new_extra})
+
+    @mock.patch.object(dbapi, 'LOG', autospec=True)
+    def test_update_node_retries(self, log_mock):
+        """Test retry logic to ensure it works."""
+        node = utils.create_test_node()
+        CONF.set_override('sqlite_retries', True, group='database')
+        # NOTE(TheJulia): Update is an ideal place to test retries
+        # as the underlying work is done by _do_update_node.
+        with mock.patch.object(db_conn, '_do_update_node',
+                               autospec=True) as mock_update:
+            sa_err = sa_exc.OperationalError(
+                statement=None,
+                params=None,
+                orig=Exception('database is locked'))
+            mock_update.side_effect = [
+                sa_err,
+                sa_err,
+                node
+            ]
+            self.dbapi.update_node(node.id, {'extra': {'foo': 'bar'}})
+            self.assertEqual(3, mock_update.call_count)
+            self.assertEqual(2, log_mock.log.call_count)
 
     def test_update_node_uuid(self):
         node = utils.create_test_node()

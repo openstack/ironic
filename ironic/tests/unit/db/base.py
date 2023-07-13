@@ -43,6 +43,8 @@ class Database(fixtures.Fixture):
             self.post_migrations()
             self._DB = "".join(line for line in conn.connection.iterdump())
         self.engine.dispose()
+        # Disable retry logic for unit testing, to minimize overhead.
+        CONF.set_override('sqlite_retries', False, group='database')
 
     def setup_sqlite(self, db_migrate):
         if db_migrate.version():

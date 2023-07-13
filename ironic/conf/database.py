@@ -20,7 +20,15 @@ from ironic.common.i18n import _
 opts = [
     cfg.StrOpt('mysql_engine',
                default='InnoDB',
-               help=_('MySQL engine to use.'))
+               help=_('MySQL engine to use.')),
+    cfg.BoolOpt('sqlite_retries',
+                default=True,
+                help=_('If SQLite database operation retry logic is enabled '
+                       'or not. Enabled by default.')),
+    cfg.IntOpt('sqlite_max_wait_for_retry',
+               default=30,
+               help=_('Maximum number of seconds to retry SQLite database '
+                      'locks.')),
 ]
 
 

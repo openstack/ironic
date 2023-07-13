@@ -22,6 +22,7 @@ from testtools import matchers
 
 from ironic.common import context
 from ironic.common import exception
+from ironic.db.sqlalchemy.api import Connection as db_conn
 from ironic import objects
 from ironic.objects import node as node_objects
 from ironic.tests.unit.db import base as db_base
@@ -479,15 +480,15 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
                               node_id)
 
     def test_release(self):
-        with mock.patch.object(self.dbapi, 'release_node',
+        with mock.patch.object(db_conn, 'release_node',
                                autospec=True) as mock_release:
             node_id = self.fake_node['id']
             fake_tag = 'fake-tag'
             objects.Node.release(self.context, fake_tag, node_id)
-            mock_release.assert_called_once_with(fake_tag, node_id)
+            mock_release.assert_called_once_with(mock.ANY, fake_tag, node_id)
 
     def test_release_node_not_found(self):
-        with mock.patch.object(self.dbapi, 'release_node',
+        with mock.patch.object(db_conn, 'release_node',
                                autospec=True) as mock_release:
             node_id = 'non-existent'
             mock_release.side_effect = exception.NodeNotFound(node=node_id)
@@ -496,25 +497,25 @@ class TestNodeObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
                               'fake-tag', node_id)
 
     def test_touch_provisioning(self):
-        with mock.patch.object(self.dbapi, 'get_node_by_uuid',
+        with mock.patch.object(db_conn, 'get_node_by_uuid',
                                autospec=True) as mock_get_node:
             mock_get_node.return_value = self.fake_node
-            with mock.patch.object(self.dbapi, 'touch_node_provisioning',
+            with mock.patch.object(db_conn, 'touch_node_provisioning',
                                    autospec=True) as mock_touch:
                 node = objects.Node.get(self.context, self.fake_node['uuid'])
                 node.touch_provisioning()
-                mock_touch.assert_called_once_with(node.id)
+                mock_touch.assert_called_once_with(mock.ANY, node.id)
 
     def test_create(self):
         node = obj_utils.get_test_node(self.ctxt, **self.fake_node)
-        with mock.patch.object(self.dbapi, 'create_node',
+        with mock.patch.object(db_conn, 'create_node',
                                autospec=True) as mock_create_node:
             mock_create_node.return_value = db_utils.get_test_node()
 
             node.create()
 
             args, _kwargs = mock_create_node.call_args
-            self.assertEqual(objects.Node.VERSION, args[0]['version'])
+            self.assertEqual(objects.Node.VERSION, args[1]['version'])
             self.assertEqual(1, mock_create_node.call_count)
 
     def test_create_with_invalid_properties(self):

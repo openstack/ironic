@@ -16,7 +16,9 @@
 
 import collections
 import datetime
+import functools
 import json
+import logging
 import threading
 
 from oslo_concurrency import lockutils
@@ -37,6 +39,7 @@ from sqlalchemy.exc import NoResultFound, MultipleResultsFound
 from sqlalchemy.orm import Load
 from sqlalchemy.orm import selectinload
 from sqlalchemy import sql
+import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -61,6 +64,33 @@ synchronized = lockutils.synchronized_with_prefix('ironic-')
 # NOTE(mgoddard): We limit the number of traits per node to 50 as this is the
 # maximum number of traits per resource provider allowed in placement.
 MAX_TRAITS_PER_NODE = 50
+
+
+def wrap_sqlite_retry(f):
+
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        if (CONF.database.sqlite_retries
+                and not utils.is_ironic_using_sqlite()):
+            return f(*args, **kwargs)
+        else:
+            for attempt in tenacity.Retrying(
+                retry=(
+                    tenacity.retry_if_exception_type(
+                        sa.exc.OperationalError)
+                    & tenacity.retry_if_exception(
+                        lambda e: 'database is locked' in str(e))
+                ),
+                wait=tenacity.wait_full_jitter(
+                    multiplier=0.25,
+                    max=CONF.database.sqlite_max_wait_for_retry),
+                before_sleep=(
+                    tenacity.before_sleep_log(LOG, logging.debug)
+                ),
+                reraise=True):
+                with attempt:
+                    return f(*args, **kwargs)
+    return wrapper
 
 
 def get_backend():
@@ -653,6 +683,7 @@ class Connection(api.Connection):
         return mapping
 
     @synchronized(RESERVATION_SEMAPHORE, fair=True)
+    @wrap_sqlite_retry
     def _reserve_node_place_lock(self, tag, node_id, node):
         try:
             # NOTE(TheJulia): We explicitly do *not* synch the session
@@ -705,6 +736,7 @@ class Connection(api.Connection):
         # Return a node object as that is the contract for this method.
         return self.get_node_by_id(node.id)
 
+    @wrap_sqlite_retry
     @oslo_db_api.retry_on_deadlock
     def release_node(self, tag, node_id):
         with _session_for_read() as session:
@@ -734,6 +766,7 @@ class Connection(api.Connection):
             except NoResultFound:
                 raise exception.NodeNotFound(node=node_id)
 
+    @wrap_sqlite_retry
     @oslo_db_api.retry_on_deadlock
     def create_node(self, values):
         # ensure defaults are present for new nodes
@@ -839,6 +872,7 @@ class Connection(api.Connection):
             raise exception.InstanceNotFound(instance_uuid=instance)
         return res
 
+    @wrap_sqlite_retry
     @oslo_db_api.retry_on_deadlock
     def destroy_node(self, node_id):
         with _session_for_write() as session:
@@ -914,6 +948,7 @@ class Connection(api.Connection):
 
             query.delete()
 
+    @wrap_sqlite_retry
     def update_node(self, node_id, values):
         # NOTE(dtantsur): this can lead to very strange errors
         if 'uuid' in values:
@@ -1059,6 +1094,7 @@ class Connection(api.Connection):
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir, query)
 
+    @wrap_sqlite_retry
     @oslo_db_api.retry_on_deadlock
     def create_port(self, values):
         if not values.get('uuid'):
@@ -1076,6 +1112,7 @@ class Connection(api.Connection):
             raise exception.PortAlreadyExists(uuid=values['uuid'])
         return port
 
+    @wrap_sqlite_retry
     @oslo_db_api.retry_on_deadlock
     def update_port(self, port_id, values):
         # NOTE(dtantsur): this can lead to very strange errors
@@ -1098,6 +1135,7 @@ class Connection(api.Connection):
                 raise exception.MACAlreadyExists(mac=values['address'])
         return ref
 
+    @wrap_sqlite_retry
     @oslo_db_api.retry_on_deadlock
     def destroy_port(self, port_id):
         with _session_for_write() as session:
@@ -1498,6 +1536,7 @@ class Connection(api.Connection):
                      .filter_by(conductor_id=conductor_id))
             query.delete()
 
+    @wrap_sqlite_retry
     @oslo_db_api.retry_on_deadlock
     def touch_node_provisioning(self, node_id):
         with _session_for_write() as session:
@@ -2049,6 +2088,7 @@ class Connection(api.Connection):
                 models.NodeTrait).filter_by(node_id=node_id, trait=trait)
             return session.query(q.exists()).scalar()
 
+    @wrap_sqlite_retry
     @oslo_db_api.retry_on_deadlock
     def create_bios_setting_list(self, node_id, settings, version):
         bios_settings = []
@@ -2078,6 +2118,7 @@ class Connection(api.Connection):
                     node=node_id, name=setting['name'])
         return bios_settings
 
+    @wrap_sqlite_retry
     @oslo_db_api.retry_on_deadlock
     def update_bios_setting_list(self, node_id, settings, version):
         bios_settings = []
@@ -2109,6 +2150,7 @@ class Connection(api.Connection):
                     node=node_id, name=setting['name'])
         return bios_settings
 
+    @wrap_sqlite_retry
     @oslo_db_api.retry_on_deadlock
     def delete_bios_setting_list(self, node_id, names):
         missing_bios_settings = []
@@ -2635,6 +2677,7 @@ class Connection(api.Connection):
                         # ordered ascending originally.
             return final_set
 
+    @wrap_sqlite_retry
     def bulk_delete_node_history_records(self, entries):
         with _session_for_write() as session:
             # Uses input entry list, selects entries matching those ids
@@ -2672,6 +2715,7 @@ class Connection(api.Connection):
             )
         return res
 
+    @wrap_sqlite_retry
     @oslo_db_api.retry_on_deadlock
     def create_node_inventory(self, values):
         inventory = models.NodeInventory()
@@ -2686,6 +2730,7 @@ class Connection(api.Connection):
             session.flush()
         return inventory
 
+    @wrap_sqlite_retry
     @oslo_db_api.retry_on_deadlock
     def destroy_node_inventory_by_node_id(self, node_id):
         with _session_for_write() as session:
@@ -2748,6 +2793,7 @@ class Connection(api.Connection):
 
         return shard_list
 
+    @wrap_sqlite_retry
     def create_firmware_component(self, values):
         """Create a FirmwareComponent record for a given node.
 
@@ -2779,6 +2825,7 @@ class Connection(api.Connection):
                 name=values['component'], node=values['node_id'])
         return fw_component
 
+    @wrap_sqlite_retry
     def update_firmware_component(self, node_id, component, values):
         """Update a FirmwareComponent record.
 
