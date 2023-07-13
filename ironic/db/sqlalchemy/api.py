@@ -532,9 +532,20 @@ class Connection(api.Connection):
 
         query = sa.select(*columns)
         query = self._add_nodes_filters(query, filters)
-        return _paginate_query(models.Node, limit, marker,
-                               sort_key, sort_dir, query,
-                               return_base_tuple=True)
+        # TODO(TheJulia): Why are we paginating this?!?!?!
+        # If we are not using sorting, or any other query magic,
+        # we could likely just do a query execution and
+        # prepare the tuple responses.
+        results = _paginate_query(models.Node, limit, marker,
+                                  sort_key, sort_dir, query,
+                                  return_base_tuple=True)
+        # Need to copy the data to close out the _paginate_query
+        # object.
+        new_result = [tuple([ent for ent in r]) for r in results]
+        # Explicitly free results so we don't hang on to it.
+        del results
+
+        return new_result
 
     def get_node_list(self, filters=None, limit=None, marker=None,
                       sort_key=None, sort_dir=None, fields=None):

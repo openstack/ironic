@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes issues with locks related to the execution of periodic tasks where
+    the task has a lingering transaction. For more information please see
+    `bug 2027405 <https://bugs.launchpad.net/ironic/+bug/2027405>`_.
