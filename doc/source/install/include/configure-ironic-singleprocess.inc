@@ -27,22 +27,22 @@ resources and low number of nodes to handle.
 
 #. Stop existing services if they are already started:
 
-   Fedora/RHEL/CentOS/SUSE::
+   RHEL/CentOS/SUSE::
 
        sudo systemctl stop openstack-ironic-api
        sudo systemctl stop openstack-ironic-conductor
 
-   Ubuntu::
+   Ubuntu/Debian::
 
        sudo service ironic-api stop
        sudo service ironic-conductor stop
 
 #. Start or restart the ironic service:
 
-   Fedora/RHEL8/CentOS8/SUSE::
+   RHEL/CentOS/SUSE::
 
        sudo systemctl restart openstack-ironic
 
-   Ubuntu::
+   Ubuntu/Debian::
 
        sudo service ironic restart

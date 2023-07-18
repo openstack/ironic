@@ -212,11 +212,11 @@ Configuring ironic-conductor service
 
 #. Restart the ironic-conductor service:
 
-   Fedora/RHEL7/CentOS7/SUSE::
+   RHEL/CentOS/SUSE::
 
        sudo systemctl restart openstack-ironic-conductor
 
-   Ubuntu::
+   Ubuntu/Debian::
 
        sudo service ironic-conductor restart
 

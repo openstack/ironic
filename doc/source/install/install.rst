@@ -1,3 +1,4 @@
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Install and configure the Bare Metal service
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -26,12 +27,49 @@ More installation projects are developed by other OpenStack teams:
    **Ironic guide**, not to the generic page. If a separate Ironic guide does
    not exist yet, create it first.
 
-Contents
---------
-
 .. toctree::
-   :maxdepth: 2
+   :hidden:
 
    install-rdo.rst
    install-ubuntu.rst
    install-obs.rst
+
+.. include:: include/common-prerequisites.inc
+
+Install and configure components
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Using DNF on RHEL/CentOS Stream and RDO_ packages:
+
+.. code-block:: console
+
+   # dnf install openstack-ironic-api openstack-ironic-conductor python3-ironicclient
+
+.. _rdo: https://www.rdoproject.org/
+
+On Ubuntu_/Debian:
+
+.. code-block:: console
+
+   # apt-get install ironic-api ironic-conductor python3-ironicclient
+
+.. _ubuntu: https://docs.openstack.org/install-guide/environment-packages-ubuntu.html
+
+On openSUSE/SLES:
+
+.. code-block:: console
+
+   # zypper install openstack-ironic-api openstack-ironic-conductor python3-ironicclient
+
+.. warning::
+   Support for SUSE systems is best effort, it is not tested in the CI.
+
+.. include:: include/common-configure.inc
+
+.. include:: include/configure-ironic-api.inc
+
+.. include:: include/configure-ironic-api-mod_wsgi.inc
+
+.. include:: include/configure-ironic-conductor.inc
+
+.. include:: include/configure-ironic-singleprocess.inc
