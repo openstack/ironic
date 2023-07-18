@@ -183,10 +183,27 @@ def _insert_vmedia(task, managers, boot_url, boot_device):
     :raises: InvalidParameterValue, if no suitable virtual CD or DVD is
         found on the node.
     """
+    err_msg = None
     for manager in managers:
         for v_media in manager.virtual_media.get_members():
             if boot_device not in v_media.media_types:
-                continue
+                # NOTE(janders): this conditional allows v_media that only
+                # support DVD MediaType and NOT CD to also be used.
+                # if v_media.media_types contains sushy.VIRTUAL_MEDIA_DVD
+                # we follow the usual steps of checking if v_media is inserted
+                # and if not, attempt to insert it. Otherwise we skip to the
+                # next v_media device, if any
+                # This is needed to add support to Cisco UCSB and UCSX blades
+                # reference: https://bugs.launchpad.net/ironic/+bug/2031595
+                if (boot_device == sushy.VIRTUAL_MEDIA_CD
+                    and sushy.VIRTUAL_MEDIA_DVD in v_media.media_types):
+                    LOG.debug("While looking for %(requested_device)s virtual "
+                              "media device, found %(available_device)s "
+                              "instead. Attempting to configure it.",
+                              {'requested_device': sushy.VIRTUAL_MEDIA_CD,
+                               'available_device': sushy.VIRTUAL_MEDIA_DVD})
+                else:
+                    continue
 
             if v_media.inserted:
                 if v_media.image == boot_url:
@@ -202,6 +219,19 @@ def _insert_vmedia(task, managers, boot_url, boot_device):
             try:
                 v_media.insert_media(boot_url, inserted=True,
                                      write_protected=True)
+            # NOTE(janders): On Cisco UCSB and UCSX blades there are several
+            # vMedia devices. Some of those are only meant for internal use
+            # by CIMC vKVM - attempts to InsertMedia into those will result
+            # in BadRequestError. We catch the exception here so that we don't
+            # fail out and try the next available device instead, if available.
+            except sushy.exceptions.BadRequestError:
+                err_msg = ("Inserting virtual media into %(boot_device)s "
+                           "failed for node %(node)s, moving to next virtual "
+                           "media device, if available",
+                           {'node': task.node.uuid,
+                            'boot_device': boot_device})
+                LOG.warning(err_msg)
+                continue
             except sushy.exceptions.ServerSideError as e:
                 e.node_uuid = task.node.uuid
                 raise
@@ -212,9 +242,12 @@ def _insert_vmedia(task, managers, boot_url, boot_device):
                                   'boot_url': boot_url,
                                   'boot_device': boot_device})
             return
-
-    raise exception.InvalidParameterValue(
-        _('No suitable virtual media device found'))
+    if (err_msg is not None):
+        exc_msg = ("All virtual media mount attempts failed. "
+                   "Most recent error: ", err_msg)
+    else:
+        exc_msg = 'No suitable virtual media device found'
+    raise exception.InvalidParameterValue(exc_msg)
 
 
 def _eject_vmedia(task, managers, boot_device=None):

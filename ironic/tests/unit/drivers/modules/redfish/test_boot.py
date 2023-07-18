@@ -1251,6 +1251,53 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             self.assertFalse(mock_vmedia_floppy.insert_media.call_count)
 
+    def test__insert_vmedia_anew_dvd(self):
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_dvd = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_DVD])
+
+            mock_manager = mock.MagicMock()
+
+            mock_manager.virtual_media.get_members.return_value = [
+                mock_vmedia_dvd]
+
+            redfish_boot._insert_vmedia(
+                task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            mock_vmedia_dvd.insert_media.assert_called_once_with(
+                'img-url', inserted=True, write_protected=True)
+
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
+    def test__insert_vmedia_anew_dvd_retry(self):
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_dvd_1 = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_DVD])
+
+            mock_vmedia_dvd_2 = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_DVD])
+
+            mock_manager = mock.MagicMock()
+
+            def clear_and_raise(*args, **kwargs):
+                mock_vmedia_dvd_1.insert_media.side_effect = None
+                raise sushy.exceptions.BadRequestError(
+                    "POST", 'img-url', mock.MagicMock())
+            mock_vmedia_dvd_1.insert_media.side_effect = clear_and_raise
+            mock_manager.virtual_media.get_members.return_value = [
+                mock_vmedia_dvd_1, mock_vmedia_dvd_2]
+
+            redfish_boot._insert_vmedia(
+                task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            self.assertEqual(mock_vmedia_dvd_2.insert_media.call_count, 1)
+
     def test__insert_vmedia_already_inserted(self):
 
         with task_manager.acquire(self.context, self.node.uuid,

@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes the bug where provisioning a Redfish managed node fails if the BMC
+    only supports virtual media devices limited to MediaType of DVD (and not
+    CD). Also ddds handling of BadRequest exceptions while iterating through
+    the list of virtual media devices. This fix is needed to successfully
+    provision machines such as Cisco UCSB and UCSX.
