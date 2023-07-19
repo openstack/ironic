@@ -1,0 +1,25 @@
+---
+fixes:
+  - |
+    Adds a database write retry decorate for SQLite failures reporting
+    "database is locked". By default, through the new configuration
+    parameter ``[database]sqlite_max_wait_for_retry``, retries will
+    be performed on failing write operations for up to *30* seconds.
+
+    This value can be tuned, but be warned it is an expotential
+    backoff retry model, and HTTP requests can give up if no
+    response is received in a reasonable time, thus *30* seconds
+    was deemed a reasonable default.
+
+    The retry logic can be disabled using the
+    ``[database]sqlite_retries`` option, which defaults to
+    *True*. Users of other, mutli-threaded/concurrent-write database
+    platforms are not impacted by this change, as the retry logic
+    recognizes if another database is in use and bypasses the retry
+    logic in that case. A similar retry logic concept already exists
+    with other databases in the form of a "Database Deadlock" retry
+    where two writers conflict on the same row or table. The database
+    abstraction layer already handles such deadlock conditions.
+    The SQLite file based locking issue is unfortunately more common
+    with file based write locking as the entire file, in other words
+    the entire database, to perform the write operation.
