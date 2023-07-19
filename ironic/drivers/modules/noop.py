@@ -81,3 +81,13 @@ class NoBIOS(FailMixin, base.BIOSInterface):
 
     def cache_bios_settings(self, task):
         pass
+
+
+class NoFirmware(FailMixin, base.FirmwareInterface):
+    """Firmware interface implementation that raises errors on all requests"""
+
+    def update(self, task, settings):
+        _fail(self, task, settings)
+
+    def cache_firmware_components(self, task):
+        pass

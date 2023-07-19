@@ -1009,6 +1009,15 @@ node_policies = [
                     'the API clients.',
         operations=[{'path': '/nodes/{node_ident}', 'method': 'PATCH'}],
     ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:firmware:get',
+        check_str=SYSTEM_OR_PROJECT_READER,
+        scope_types=['system', 'project'],
+        description='Retrieve Node Firmware components information',
+        operations=[
+            {'path': '/nodes/{node_ident}/firmware', 'method': 'GET'}
+        ],
+    ),
 ]
 
 deprecated_port_reason = """

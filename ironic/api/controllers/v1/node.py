@@ -32,6 +32,7 @@ from ironic.api.controllers import link
 from ironic.api.controllers.v1 import allocation
 from ironic.api.controllers.v1 import bios
 from ironic.api.controllers.v1 import collection
+from ironic.api.controllers.v1 import firmware
 from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import portgroup
@@ -169,6 +170,7 @@ def node_schema():
             'driver': {'type': 'string'},
             'driver_info': {'type': ['object', 'null']},
             'extra': {'type': ['object', 'null']},
+            'firmware_interface': {'type': ['string', 'null']},
             'inspect_interface': {'type': ['string', 'null']},
             'instance_info': {'type': ['object', 'null']},
             'instance_uuid': {'type': ['string', 'null']},
@@ -283,7 +285,8 @@ PATCH_ALLOWED_FIELDS = [
     'shard',
     'storage_interface',
     'vendor_interface',
-    'parent_node'
+    'parent_node',
+    'firmware_interface'
 ]
 
 TRAITS_SCHEMA = {
@@ -1395,6 +1398,7 @@ def _get_fields_for_node_query(fields=None):
                     'driver_internal_info',
                     'extra',
                     'fault',
+                    'firmware_interface',
                     'inspection_finished_at',
                     'inspection_started_at',
                     'inspect_interface',
@@ -2114,6 +2118,7 @@ class NodesController(rest.RestController):
         'history': NodeHistoryController,
         'inventory': NodeInventoryController,
         'children': NodeChildrenController,
+        'firmware': firmware.NodeFirmwareController,
     }
 
     @pecan.expose()
@@ -2139,7 +2144,9 @@ class NodesController(rest.RestController):
             or (remainder[0] == 'history'
                 and not api_utils.allow_node_history())
             or (remainder[0] == 'inventory'
-                and not api_utils.allow_node_inventory())):
+                and not api_utils.allow_node_inventory())
+            or (remainder[0] == 'firmware'
+                and not api_utils.allow_firmware_interface())):
             pecan.abort(http_client.NOT_FOUND)
         if remainder[0] == 'traits' and not api_utils.allow_traits():
             # NOTE(mgoddard): Returning here will ensure we exhibit the

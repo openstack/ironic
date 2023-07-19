@@ -80,6 +80,10 @@ def hide_fields_in_newer_versions(driver):
         driver.pop('default_bios_interface', None)
         driver.pop('enabled_bios_interfaces', None)
 
+    if not api_utils.allow_firmware_interface():
+        driver.pop('default_firmware_interface', None)
+        driver.pop('enabled_firmware_interfaces', None)
+
 
 def convert_with_links(name, hosts, detail=False, interface_info=None,
                        fields=None, sanitize=True):

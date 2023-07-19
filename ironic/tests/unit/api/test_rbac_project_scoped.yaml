@@ -3946,3 +3946,35 @@ lessee_cannot_get_a_nodes_children:
   method: get
   headers: *lessee_reader_headers
   assert_status: 404
+
+# Node Firmware
+
+owner_reader_can_get_firmware_components:
+  path: '/v1/nodes/{owner_node_ident}/firmware'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+
+lessee_reader_can_get_firmware_components:
+  path: '/v1/nodes/{lessee_node_ident}/firmware'
+  method: get
+  headers: *lessee_reader_headers
+  assert_status: 200
+
+third_party_admin_cannot_get_firmware_components:
+  path: '/v1/nodes/{owner_node_ident}/firmware'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 404
+
+service_can_get_firmware_components_owner_project:
+  path: '/v1/nodes/{owner_node_ident}/firmware'
+  method: get
+  headers: *service_headers_owner_project
+  assert_status: 200
+
+service_cannot_get_firmware_components:
+  path: '/v1/nodes/{owner_node_ident}/firmware'
+  method: get
+  headers: *service_headers
+  assert_status: 404

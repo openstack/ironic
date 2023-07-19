@@ -379,6 +379,11 @@ class TestFakeHardware(hardware_type.AbstractHardwareType):
         return [fake.FakeDeploy]
 
     @property
+    def supported_firmware_interfaces(self):
+        """List of supported firmware interfaces."""
+        return [fake.FakeFirmware]
+
+    @property
     def supported_inspect_interfaces(self):
         """List of supported inspect interfaces."""
         return [fake.FakeInspect]
@@ -586,6 +591,7 @@ class HardwareTypeLoadTestCase(db_base.DbTestCase):
             'boot': set(['fake']),
             'console': set(['fake', 'no-console']),
             'deploy': set(['fake']),
+            'firmware': set(['fake', 'no-firmware']),
             'inspect': set(['fake', 'no-inspect']),
             'management': set(['fake']),
             'network': set(['noop']),

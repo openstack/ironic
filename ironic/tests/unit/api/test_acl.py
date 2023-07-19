@@ -285,6 +285,10 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
             value=fake_setting)
         db_utils.create_test_node_trait(
             node_id=fake_db_node['id'])
+        # Create a Fake Firmware Component BMC
+        db_utils.create_test_firmware_component(
+            node_id=fake_db_node['id'],
+        )
         fake_history = db_utils.create_test_history(node_id=fake_db_node.id)
         fake_inventory = db_utils.create_test_inventory(
             node_id=fake_db_node.id)

@@ -103,6 +103,11 @@ class AbstractHardwareType(object, metaclass=abc.ABCMeta):
         """List of supported vendor interfaces."""
         return [noop.NoVendor]
 
+    @property
+    def supported_firmware_interfaces(self):
+        """List of supported firmware interfaces."""
+        return [noop.NoFirmware]
+
     def get_properties(self):
         """Get the properties of the hardware type.
 

@@ -86,3 +86,8 @@ class FakeHardware(generic.GenericHardware):
         return [
             fake.FakeVendorB, fake.FakeVendorA
         ] + super().supported_vendor_interfaces
+
+    @property
+    def supported_firmware_interfaces(self):
+        """List of classes of supported bios interfaces."""
+        return [fake.FakeFirmware] + super().supported_firmware_interfaces
