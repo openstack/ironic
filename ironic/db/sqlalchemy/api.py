@@ -85,7 +85,7 @@ def wrap_sqlite_retry(f):
                     multiplier=0.25,
                     max=CONF.database.sqlite_max_wait_for_retry),
                 before_sleep=(
-                    tenacity.before_sleep_log(LOG, logging.debug)
+                    tenacity.before_sleep_log(LOG, logging.DEBUG)
                 ),
                 reraise=True):
                 with attempt:

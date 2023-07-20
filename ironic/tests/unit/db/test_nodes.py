@@ -879,6 +879,26 @@ class DbNodeTestCase(base.DbTestCase):
             self.assertEqual(3, mock_update.call_count)
             self.assertEqual(2, log_mock.log.call_count)
 
+    def test_update_node_retries_without_log_mock(self):
+        """Test retry logic to ensure it works."""
+        node = utils.create_test_node()
+        CONF.set_override('sqlite_retries', True, group='database')
+        # NOTE(TheJulia): Update is an ideal place to test retries
+        # as the underlying work is done by _do_update_node.
+        with mock.patch.object(db_conn, '_do_update_node',
+                               autospec=True) as mock_update:
+            sa_err = sa_exc.OperationalError(
+                statement=None,
+                params=None,
+                orig=Exception('database is locked'))
+            mock_update.side_effect = [
+                sa_err,
+                sa_err,
+                node
+            ]
+            self.dbapi.update_node(node.id, {'extra': {'foo': 'bar'}})
+            self.assertEqual(3, mock_update.call_count)
+
     def test_update_node_uuid(self):
         node = utils.create_test_node()
         self.assertRaises(exception.InvalidParameterValue,
