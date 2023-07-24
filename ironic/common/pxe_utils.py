@@ -664,11 +664,12 @@ def get_instance_image_info(task, ipxe_enabled=False):
     """
     ctx = task.context
     node = task.node
+    boot_option = deploy_utils.get_boot_option(node)
     image_info = {}
     # NOTE(pas-ha) do not report image kernel and ramdisk for
     # local boot or whole disk images so that they are not cached
     if (node.driver_internal_info.get('is_whole_disk_image')
-            or deploy_utils.get_boot_option(node) == 'local'):
+            or boot_option == 'local'):
         return image_info
     root_dir = _get_root_dir(ipxe_enabled)
     i_info = node.instance_info
@@ -697,7 +698,9 @@ def get_instance_image_info(task, ipxe_enabled=False):
         # like is done with basically Glance.
 
     labels = ('kernel', 'ramdisk')
-    if not isap:
+    if boot_option != 'kickstart':
+        anaconda_labels = ()
+    elif not isap:
         anaconda_labels = ('stage2', 'ks_template', 'ks_cfg')
     else:
         # When a path is used, a stage2 ramdisk can be determiend
@@ -744,30 +747,32 @@ def get_instance_image_info(task, ipxe_enabled=False):
                 else:
                     node.set_driver_internal_info(
                         'stage2', str(image_properties['stage2_id']))
-    # NOTE(TheJulia): A kickstart template is entirely independent
-    # of the stage2 ramdisk. In the end, it was the configuration which
-    # told anaconda how to execute.
-    if i_info.get('ks_template'):
-        # If the value is set, we always overwrite it, in the event
-        # a rebuild is occuring or something along those lines.
-        node.set_driver_internal_info('ks_template',
-                                      i_info['ks_template'])
-    else:
-        _get_image_properties()
-        # ks_template is an optional property on the image
-        if image_properties and 'ks_template' in image_properties:
-            node.set_driver_internal_info(
-                'ks_template', str(image_properties['ks_template']))
+
+    if 'ks_template' in anaconda_labels:
+        # NOTE(TheJulia): A kickstart template is entirely independent
+        # of the stage2 ramdisk. In the end, it was the configuration which
+        # told anaconda how to execute.
+        if i_info.get('ks_template'):
+            # If the value is set, we always overwrite it, in the event
+            # a rebuild is occuring or something along those lines.
+            node.set_driver_internal_info('ks_template',
+                                          i_info['ks_template'])
         else:
-            # If not defined, default to the overall system default
-            # kickstart template, as opposed to a user supplied
-            # template.
-            node.set_driver_internal_info(
-                'ks_template',
-                'file://' + os.path.abspath(
-                    CONF.anaconda.default_ks_template
+            _get_image_properties()
+            # ks_template is an optional property on the image
+            if image_properties and 'ks_template' in image_properties:
+                node.set_driver_internal_info(
+                    'ks_template', str(image_properties['ks_template']))
+            else:
+                # If not defined, default to the overall system default
+                # kickstart template, as opposed to a user supplied
+                # template.
+                node.set_driver_internal_info(
+                    'ks_template',
+                    'file://' + os.path.abspath(
+                        CONF.anaconda.default_ks_template
+                    )
                 )
-            )
 
     node.save()
 
