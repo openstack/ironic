@@ -16,17 +16,17 @@ Set up the database for Bare Metal
 The Bare Metal service stores information in a database. This guide uses the
 MySQL database that is used by other OpenStack services.
 
-#. In MySQL, create an ``ironic`` database that is accessible by the
-   ``ironic`` user. Replace ``IRONIC_DBPASSWORD`` with a suitable password:
+In MySQL, create an ``ironic`` database that is accessible by the
+``ironic`` user. Replace ``IRONIC_DBPASSWORD`` with a suitable password:
 
-   .. code-block:: console
+.. code-block:: console
 
-      # mysql -u root -p
-      mysql> CREATE DATABASE ironic CHARACTER SET utf8mb3;
-      mysql> GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'localhost' \
-             IDENTIFIED BY 'IRONIC_DBPASSWORD';
-      mysql> GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'%' \
-             IDENTIFIED BY 'IRONIC_DBPASSWORD';
+   # mysql -u root -p
+   mysql> CREATE DATABASE ironic CHARACTER SET utf8mb3;
+   mysql> GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'localhost' \
+          IDENTIFIED BY 'IRONIC_DBPASSWORD';
+   mysql> GRANT ALL PRIVILEGES ON ironic.* TO 'ironic'@'%' \
+          IDENTIFIED BY 'IRONIC_DBPASSWORD';
 
 .. note::
    When creating the database to house Ironic, specifically on MySQL/MariaDB,
@@ -35,3 +35,38 @@ MySQL database that is used by other OpenStack services.
    has traditionally meant ``utf8mb3``, short for "UTF-8, 3 byte encoding",
    however the platforms are expected to move to ``utf8mb4`` which is
    incompatible with Ironic.
+
+Running on SQLite
+^^^^^^^^^^^^^^^^^
+
+It is possible to run the Bare Metal service with SQLite_ as the database
+backend. However, take into account the following limitations:
+
+* You have to run Ironic in the all-in-one mode (see `configuring
+  single-process ironic`_). You cannot have multiple conductors this way.
+
+* You should use `WAL mode`_ for the database. Ironic will try to enable
+  it for you, but it can only be done for a fresh database.
+
+* Even in the WAL mode, SQLite has limited write concurrency. If you
+  experience "database is locked" errors, try reducing the frequency
+  of periodic tasks. If that still does not help, you may need to use
+  a server-based database.
+
+* Not all database migrations are supported on SQLite. You may need
+  to re-create the database on upgrades.
+
+To use SQLite, configure your connection like this:
+
+.. code-block:: ini
+
+   [database]
+   connection = sqlite:////full/path/to/ironic.sqlite
+
+.. note::
+   This is not a typo! A full path requires 4 slashes.
+
+If in doubt, use MySQL/MariaDB instead.
+
+.. _sqlite: https://www.sqlite.org
+.. _WAL mode: https://www.sqlite.org/wal.html
