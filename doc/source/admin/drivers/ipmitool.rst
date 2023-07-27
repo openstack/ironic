@@ -290,6 +290,27 @@ Example::
     ipmitool -I lanplus -H <BMC ADDRESS> -U <Username> -P <Password> \
         chassis bootparam get 5
 
+send_raw clean/deploy step
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``send_raw`` vendor passthru method is available to be invoked as a
+clean or deployment step should raw bytes need to be transmitted to the
+remote BMC in order to facilitate some sort of action or specific state.
+In this case, the raw bytes to be set are conveyed with a ``raw_bytes``
+argument on the requested clean or deploy step.
+
+Example::
+
+  {
+    "interface": "vendor",
+    "step": "send_raw",
+    "args": {
+      "raw_bytes": "0x00 0x00 0x00 0x00"
+    }
+  }
+
+
+
 .. _IPMItool: https://sourceforge.net/projects/ipmitool/
 .. _IPMI: https://en.wikipedia.org/wiki/Intelligent_Platform_Management_Interface
 .. _BMC: https://en.wikipedia.org/wiki/Intelligent_Platform_Management_Interface#Baseboard_management_controller

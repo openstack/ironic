@@ -237,6 +237,10 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
             task.process_event('wait', target_state=target_state)
             return
         elif result is not None:
+            # NOTE(TheJulia): If your here debugging a step which fails,
+            # part of the constraint is that a value *cannot* be returned.
+            # to the runner. The step has to either succeed and return
+            # None, or raise an exception.
             msg = (_('While executing step %(step)s on node '
                      '%(node)s, step returned invalid value: %(val)s')
                    % {'step': step, 'node': node.uuid, 'val': result})
