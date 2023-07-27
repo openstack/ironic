@@ -2266,7 +2266,11 @@ class Connection(api.Connection):
             query = add_identity_filter(query, allocation_id)
 
             try:
-                ref = query.one()
+                # NOTE(TheJulia): We explicitly need to indicate we intend
+                # to update the record so we block until the other users of
+                # the row are free, such as the process to match the
+                # allocation to a node.
+                ref = query.with_for_update().one()
             except NoResultFound:
                 raise exception.AllocationNotFound(allocation=allocation_id)
 
