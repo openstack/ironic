@@ -63,6 +63,13 @@ perform specific actions.
 |           | driver specific code may request an CPU interrupt based  |
 |           | reset. This step can be executed on child nodes.         |
 +-----------+----------------------------------------------------------+
+| wait      | Causes a brief pause in the overall step execution which |
+|           | pauses until the next heartbeat operation, unless a      |
+|           | seconds argument is provided. If a *seconds* argument is |
+|           | provided, then the step execution will pause for the     |
+|           | requested amount of time.                                |
++-----------+----------------------------------------------------------+
+
 
 In the these cases, the interface upon which the method is expected is
 ignored, and the step is acted upon based upon just the step's name.

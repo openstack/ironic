@@ -59,9 +59,28 @@ def warn_about_sqlite():
                     'autocommit support.')
 
 
+def warn_about_max_wait_parameters(conf):
+    max_wait = conf.conductor.max_conductor_wait_step_seconds
+    max_deploy_timeout = conf.conductor.deploy_callback_timeout
+    max_clean_timeout = conf.conductor.clean_callback_timeout
+    error_with = None
+    if max_wait >= max_deploy_timeout:
+        error_with = 'deploy_callback_timeout'
+    if max_wait >= max_clean_timeout:
+        error_with = 'clean_callback_timeout'
+    if error_with:
+        LOG.warning('The [conductor]max_conductor_wait_step_seconds '
+                    'configuration parameter exceeds the value of '
+                    '[conductor]%s, which could create a condition where '
+                    'tasks may timeout. Ironic recommends a low default '
+                    'value for [conductor]max_conductor_wait_step_seconds ',
+                    'please re-evaluate your configuration.', error_with)
+
+
 def issue_startup_warnings(conf):
     warn_about_unsafe_shred_parameters(conf)
     warn_about_sqlite()
+    warn_about_max_wait_parameters(conf)
 
 
 def main():
