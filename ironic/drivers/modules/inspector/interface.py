@@ -62,7 +62,7 @@ def _get_callback_endpoint(client):
                                 parts.query, parts.fragment))
 
 
-def _tear_down_managed_boot(task):
+def tear_down_managed_boot(task):
     errors = []
 
     ironic_manages_boot = utils.pop_node_nested_field(
@@ -94,9 +94,9 @@ def _tear_down_managed_boot(task):
     return errors
 
 
-def _inspection_error_handler(task, error, raise_exc=False, clean_up=True):
+def inspection_error_handler(task, error, raise_exc=False, clean_up=True):
     if clean_up:
-        _tear_down_managed_boot(task)
+        tear_down_managed_boot(task)
 
     task.node.last_error = error
     if raise_exc:
@@ -106,7 +106,7 @@ def _inspection_error_handler(task, error, raise_exc=False, clean_up=True):
         task.process_event('fail')
 
 
-def _ironic_manages_boot(task, raise_exc=False):
+def ironic_manages_boot(task, raise_exc=False):
     """Whether ironic should manage boot for this node."""
     try:
         task.driver.boot.validate_inspection(task)
@@ -137,32 +137,21 @@ def _ironic_manages_boot(task, raise_exc=False):
     return True
 
 
-def _start_managed_inspection(task):
-    """Start inspection managed by ironic."""
-    try:
-        cli = client.get_client(task.context)
-        endpoint = _get_callback_endpoint(cli)
-        params = dict(
-            utils.parse_kernel_params(CONF.inspector.extra_kernel_params),
-            **{'ipa-inspection-callback-url': endpoint})
-        if utils.fast_track_enabled(task.node):
-            params['ipa-api-url'] = deploy_utils.get_ironic_api_url()
+def prepare_managed_inspection(task, endpoint):
+    """Prepare the boot interface for managed inspection."""
+    params = dict(
+        utils.parse_kernel_params(CONF.inspector.extra_kernel_params),
+        **{'ipa-inspection-callback-url': endpoint})
+    if utils.fast_track_enabled(task.node):
+        params['ipa-api-url'] = deploy_utils.get_ironic_api_url()
 
-        cond_utils.node_power_action(task, states.POWER_OFF)
-        with cond_utils.power_state_for_network_configuration(task):
-            task.driver.network.add_inspection_network(task)
-        task.driver.boot.prepare_ramdisk(task, ramdisk_params=params)
-        cli.start_introspection(task.node.uuid, manage_boot=False)
-        cond_utils.node_power_action(task, states.POWER_ON)
-    except Exception as exc:
-        LOG.exception('Unable to start managed inspection for node %(uuid)s: '
-                      '%(err)s', {'uuid': task.node.uuid, 'err': exc})
-        error = _('unable to start inspection: %s') % exc
-        _inspection_error_handler(task, error, raise_exc=True)
+    cond_utils.node_power_action(task, states.POWER_OFF)
+    with cond_utils.power_state_for_network_configuration(task):
+        task.driver.network.add_inspection_network(task)
+    task.driver.boot.prepare_ramdisk(task, ramdisk_params=params)
 
 
-class Inspector(base.InspectInterface):
-    """In-band inspection via ironic-inspector project."""
+class Common(base.InspectInterface):
 
     def __init__(self):
         super().__init__()
@@ -189,7 +178,7 @@ class Inspector(base.InspectInterface):
         """
         utils.parse_kernel_params(CONF.inspector.extra_kernel_params)
         if CONF.inspector.require_managed_boot:
-            _ironic_manages_boot(task, raise_exc=True)
+            ironic_manages_boot(task, raise_exc=True)
 
     def inspect_hardware(self, task):
         """Inspect hardware to obtain the hardware properties.
@@ -207,12 +196,11 @@ class Inspector(base.InspectInterface):
             LOG.debug('Pre-creating ports prior to inspection not supported'
                       ' on node %s.', task.node.uuid)
 
-        ironic_manages_boot = _ironic_manages_boot(
+        manage_boot = ironic_manages_boot(
             task, raise_exc=CONF.inspector.require_managed_boot)
 
         utils.set_node_nested_field(task.node, 'driver_internal_info',
-                                    _IRONIC_MANAGES_BOOT,
-                                    ironic_manages_boot)
+                                    _IRONIC_MANAGES_BOOT, manage_boot)
         # Make this interface work with the Ironic own /continue_inspection
         # endpoint to simplify migration to the new in-band inspection
         # implementation.
@@ -222,17 +210,39 @@ class Inspector(base.InspectInterface):
         LOG.debug('Starting inspection for node %(uuid)s using '
                   'ironic-inspector, booting is managed by %(project)s',
                   {'uuid': task.node.uuid,
-                   'project': 'ironic' if ironic_manages_boot
-                   else 'ironic-inspector'})
+                   'project': 'ironic' if manage_boot else 'ironic-inspector'})
 
-        if ironic_manages_boot:
-            _start_managed_inspection(task)
+        if manage_boot:
+            try:
+                self._start_managed_inspection(task)
+            except Exception as exc:
+                LOG.exception('Unable to start managed inspection for node '
+                              '%(uuid)s: %(err)s',
+                              {'uuid': task.node.uuid, 'err': exc})
+                error = _('unable to start inspection: %s') % exc
+                inspection_error_handler(task, error, raise_exc=True)
         else:
-            # NOTE(dtantsur): spawning a short-living green thread so that
-            # we can release a lock as soon as possible and allow
-            # ironic-inspector to operate on the node.
-            eventlet.spawn_n(_start_inspection, task.node.uuid, task.context)
+            self._start_unmanaged_inspection(task)
         return states.INSPECTWAIT
+
+
+class Inspector(Common):
+    """In-band inspection via ironic-inspector project."""
+
+    def _start_managed_inspection(self, task):
+        """Start inspection managed by ironic."""
+        cli = client.get_client(task.context)
+        endpoint = _get_callback_endpoint(cli)
+        prepare_managed_inspection(task, endpoint)
+        cli.start_introspection(task.node.uuid, manage_boot=False)
+        cond_utils.node_power_action(task, states.POWER_ON)
+
+    def _start_unmanaged_inspection(self, task):
+        """Call to inspector to start inspection."""
+        # NOTE(dtantsur): spawning a short-living green thread so that
+        # we can release a lock as soon as possible and allow
+        # ironic-inspector to operate on the node.
+        eventlet.spawn_n(_start_inspection, task.node.uuid, task.context)
 
     def abort(self, task):
         """Abort hardware inspection.
@@ -253,7 +263,8 @@ class Inspector(base.InspectInterface):
     )
     def _periodic_check_result(self, task, manager, context):
         """Periodic task checking results of inspection."""
-        _check_status(task)
+        if isinstance(task.driver.inspect, self.__class__):
+            _check_status(task)
 
     def continue_inspection(self, task, inventory, plugin_data=None):
         """Continue in-band hardware inspection.
@@ -288,7 +299,7 @@ def _start_inspection(node_uuid, context):
         with task_manager.acquire(context, node_uuid,
                                   purpose=lock_purpose) as task:
             error = _('Failed to start inspection: %s') % exc
-            _inspection_error_handler(task, error)
+            inspection_error_handler(task, error)
     else:
         LOG.info('Node %s was sent to inspection to ironic-inspector',
                  node_uuid)
@@ -330,9 +341,9 @@ def _check_status(task):
         LOG.error('Inspection failed for node %(uuid)s with error: %(err)s',
                   {'uuid': node.uuid, 'err': status.error})
         error = _('ironic-inspector inspection failed: %s') % status.error
-        _inspection_error_handler(task, error)
+        inspection_error_handler(task, error)
     elif status.is_finished:
-        _clean_up(task)
+        clean_up(task)
         if CONF.inventory.data_backend == 'none':
             LOG.debug('Inspection data storage is disabled, the data will '
                       'not be saved for node %s', node.uuid)
@@ -346,15 +357,15 @@ def _check_status(task):
                                             task.context)
 
 
-def _clean_up(task):
-    errors = _tear_down_managed_boot(task)
+def clean_up(task, finish=True):
+    errors = tear_down_managed_boot(task)
     if errors:
         errors = ', '.join(errors)
         LOG.error('Inspection clean up failed for node %(uuid)s: %(err)s',
                   {'uuid': task.node.uuid, 'err': errors})
         msg = _('Inspection clean up failed: %s') % errors
-        _inspection_error_handler(task, msg, raise_exc=False, clean_up=False)
-    else:
+        inspection_error_handler(task, msg, raise_exc=False, clean_up=False)
+    elif finish:
         LOG.info('Inspection finished successfully for node %s',
                  task.node.uuid)
         task.process_event('done')

@@ -10,6 +10,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from ironic.drivers.modules.inspector.agent import AgentInspect
 from ironic.drivers.modules.inspector.interface import Inspector
 
-__all__ = ['Inspector']
+__all__ = ['AgentInspect', 'Inspector']

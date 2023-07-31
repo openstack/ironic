@@ -18,7 +18,6 @@ of FUJITSU PRIMERGY servers, and above servers.
 
 from ironic.drivers import generic
 from ironic.drivers.modules import agent
-from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules.irmc import bios
@@ -61,8 +60,7 @@ class IRMCHardware(generic.GenericHardware):
     @property
     def supported_inspect_interfaces(self):
         """List of supported inspect interfaces."""
-        return [inspect.IRMCInspect, inspector.Inspector,
-                noop.NoInspect]
+        return [inspect.IRMCInspect] + super().supported_inspect_interfaces
 
     @property
     def supported_management_interfaces(self):
