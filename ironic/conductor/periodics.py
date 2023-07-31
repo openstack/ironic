@@ -171,6 +171,7 @@ def node_periodic(purpose, spacing, enabled=True, filters=None,
                 METRICS.send_gauge(
                     node_count_metric_name,
                     node_count)
+            LOG.debug('Completed periodic task for purpose %s.', purpose)
 
         return wrapper
 
