@@ -879,3 +879,7 @@ class FirmwareComponentAlreadyExists(Conflict):
 
 class FirmwareComponentNotFound(NotFound):
     _msg_fmt = _("Node %(node)s doesn't have Firmware component %(name)s")
+
+
+class InvalidNodeInventory(Invalid):
+    _msg_fmt = _("Inventory for node %(node)s is invalid: %(reason)s")

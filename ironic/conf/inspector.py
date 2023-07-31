@@ -55,6 +55,20 @@ opts = [
                        'to False if you need to inspect nodes that are not '
                        'supported by boot interfaces (e.g. because they '
                        'don\'t have ports).')),
+    cfg.StrOpt('add_ports',
+               default='pxe',
+               help=_('Which MAC addresses to add as ports during '
+                      'inspection.'),
+               choices=list(VALID_ADD_PORTS_VALUES.items())),
+    cfg.StrOpt('keep_ports',
+               default='all',
+               help=_('Which ports (already present on a node) to keep after '
+                      'inspection.'),
+               choices=list(VALID_KEEP_PORTS_VALUES.items())),
+    cfg.BoolOpt('update_pxe_enabled',
+                default=True,
+                help=_('Whether to update the ports\' pxe_enabled field '
+                       'according to the inspection data.')),
 ]
 
 
