@@ -213,7 +213,7 @@ Response
 Delete Deploy Template
 ======================
 
-.. rest_method::  DELETE /v1/deploy_template/{deploy_template_id}
+.. rest_method::  DELETE /v1/deploy_templates/{deploy_template_id}
 
 Deletes a deploy template.
 
