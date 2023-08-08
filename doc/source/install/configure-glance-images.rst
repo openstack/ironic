@@ -83,7 +83,8 @@ Deploy ramdisk images
         --disk-format aki --container-format aki \
         --file ironic-python-agent.vmlinuz
 
-   Store the image UUID obtained from the above step as ``DEPLOY_VMLINUZ_UUID``.
+   Store the image UUID obtained from the above step as ``DEPLOY_VMLINUZ_UUID``
+   (or a different name when using the parameter specified by node architecture).
 
    .. code-block:: console
 
@@ -91,14 +92,29 @@ Deploy ramdisk images
         --disk-format ari --container-format ari \
         --file ironic-python-agent.initramfs
 
-   Store the image UUID obtained from the above step as ``DEPLOY_INITRD_UUID``.
+   Store the image UUID obtained from the above step as ``DEPLOY_INITRD_UUID``
+   (or a different name when using the parameter specified by node architecture).
 
 #. Configure the Bare Metal service to use the produced images. It can be done
-   per node as described in :doc:`enrollment` or globally in the configuration
-   file:
+   per node as described in :doc:`enrollment` or in the configuration
+   file either using a dictionary to specify them by architecture as follows:
+
+   .. code-block:: ini
+
+    [conductor]
+    deploy_kernel_by_arch = {'x86_64': <insert DEPLOY_VMLINUZ_X86_64_UUID>,
+                             'aarch64': <insert DEPLOY_VMLINUZ_AARCH64_UUID>}
+    deploy_ramdisk_by_arch = {'x86_64': <insert DEPLOY_INITRD_X86_64_UUID>,
+                              'aarch64': <insert DEPLOY_INITRD_AARCH64_UUID>}
+
+   or globally using the general configuration parameters:
 
    .. code-block:: ini
 
     [conductor]
     deploy_kernel = <insert DEPLOY_VMLINUZ_UUID>
     deploy_ramdisk = <insert DEPLOY_INITRD_UUID>
+
+   In the case when both general parameters and parameters specified by
+   architecture are defined, the parameters specified by architecture take
+   priority.

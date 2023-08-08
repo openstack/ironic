@@ -447,9 +447,24 @@ def get_agent_kernel_ramdisk(node, mode='deploy', deprecated_prefix=None):
     # from driver_info but deploy_ramdisk comes from configuration,
     # since it's a sign of a potential operator's mistake.
     if not kernel or not ramdisk:
+        # NOTE(kubajj): If kernel and/or ramdisk are specified by architecture,
+        # prioritise them, otherwise use the default.
+        kernel_dict_param_name = f'{mode}_kernel_by_arch'
+        ramdisk_dict_param_name = f'{mode}_ramdisk_by_arch'
+        kernel_dict = getattr(CONF.conductor, kernel_dict_param_name)
+        ramdisk_dict = getattr(CONF.conductor, ramdisk_dict_param_name)
+        cpu_arch = node.properties.get('cpu_arch')
+        kernel_for_this_arch = kernel_dict.get(cpu_arch)
+        ramdisk_for_this_arch = ramdisk_dict.get(cpu_arch)
+        if kernel_for_this_arch and ramdisk_for_this_arch:
+            kernel = kernel_for_this_arch
+            ramdisk = ramdisk_for_this_arch
+        else:
+            kernel = getattr(CONF.conductor, kernel_name)
+            ramdisk = getattr(CONF.conductor, ramdisk_name)
         return {
-            kernel_name: getattr(CONF.conductor, kernel_name),
-            ramdisk_name: getattr(CONF.conductor, ramdisk_name),
+            kernel_name: kernel,
+            ramdisk_name: ramdisk,
         }
     else:
         return {

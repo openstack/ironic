@@ -158,18 +158,32 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                               redfish_boot._parse_driver_info,
                               task.node)
 
-    def _test_parse_driver_info_from_conf(self, mode='deploy'):
+    def _test_parse_driver_info_from_conf(self, mode='deploy', by_arch=False):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             if mode == 'rescue':
                 task.node.provision_state = states.RESCUING
 
-            expected = {
-                '%s_ramdisk' % mode: 'glance://%s_ramdisk_uuid' % mode,
-                '%s_kernel' % mode: 'glance://%s_kernel_uuid' % mode
-            }
+            if by_arch:
+                ramdisk = 'glance://%s_ramdisk_uuid' % mode
+                kernel = 'glance://%s_kernel_uuid' % mode
 
-            self.config(group='conductor', **expected)
+                config = {
+                    '%s_ramdisk_by_arch' % mode: {'x86_64': ramdisk},
+                    '%s_kernel_by_arch' % mode: {'x86_64': kernel}
+                }
+                expected = {
+                    '%s_ramdisk' % mode: ramdisk,
+                    '%s_kernel' % mode: kernel
+                }
+            else:
+                expected = {
+                    '%s_ramdisk' % mode: 'glance://%s_ramdisk_uuid' % mode,
+                    '%s_kernel' % mode: 'glance://%s_kernel_uuid' % mode
+                }
+                config = expected
+
+            self.config(group='conductor', **config)
 
             image_info = redfish_boot._parse_driver_info(task.node)
 
@@ -182,15 +196,29 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
     def test_parse_driver_info_from_conf_rescue(self):
         self._test_parse_driver_info_from_conf(mode='rescue')
 
-    def _test_parse_driver_info_mixed_source(self, mode='deploy'):
+    def test_parse_driver_info_from_conf_deploy_by_arch(self):
+        self._test_parse_driver_info_from_conf(by_arch=True)
+
+    def test_parse_driver_info_from_conf_rescue_by_arch(self):
+        self._test_parse_driver_info_from_conf(mode='rescue', by_arch=True)
+
+    def _test_parse_driver_info_mixed_source(self, mode='deploy',
+                                             by_arch=False):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             if mode == 'rescue':
                 task.node.provision_state = states.RESCUING
 
-            kernel_config = {
-                '%s_kernel' % mode: 'glance://%s_kernel_uuid' % mode
-            }
+            if by_arch:
+                kernel_config = {
+                    '%s_kernel_by_arch' % mode: {
+                        'x86': 'glance://%s_kernel_uuid' % mode
+                    }
+                }
+            else:
+                kernel_config = {
+                    '%s_kernel' % mode: 'glance://%s_kernel_uuid' % mode
+                }
 
             ramdisk_config = {
                 '%s_ramdisk' % mode: 'glance://%s_ramdisk_uuid' % mode,
@@ -208,6 +236,98 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
     def test_parse_driver_info_mixed_source_rescue(self):
         self._test_parse_driver_info_mixed_source(mode='rescue')
+
+    def test_parse_driver_info_mixed_source_deploy_by_arch(self):
+        self._test_parse_driver_info_mixed_source(by_arch=True)
+
+    def test_parse_driver_info_mixed_source_rescue_by_arch(self):
+        self._test_parse_driver_info_mixed_source(mode='rescue', by_arch=True)
+
+    def _test_parse_driver_info_choose_by_arch(self, mode='deploy'):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            if mode == 'rescue':
+                task.node.provision_state = states.RESCUING
+            task.node.properties['cpu_arch'] = 'aarch64'
+            wrong_ramdisk = 'glance://wrong_%s_ramdisk_uuid' % mode
+            wrong_kernel = 'glance://wrong_%s_kernel_uuid' % mode
+            ramdisk = 'glance://%s_ramdisk_uuid' % mode
+            kernel = 'glance://%s_kernel_uuid' % mode
+
+            config = {
+                '%s_ramdisk_by_arch' % mode: {
+                    'x86_64': wrong_ramdisk, 'aarch64': ramdisk},
+                '%s_kernel_by_arch' % mode: {
+                    'x86_64': wrong_kernel, 'aarch64': kernel}
+            }
+            expected = {
+                '%s_ramdisk' % mode: ramdisk,
+                '%s_kernel' % mode: kernel
+            }
+
+            self.config(group='conductor', **config)
+
+            image_info = redfish_boot._parse_driver_info(task.node)
+
+            for key, value in expected.items():
+                self.assertEqual(value, image_info[key])
+
+    def test_parse_driver_info_choose_by_arch_deploy(self):
+        self._test_parse_driver_info_choose_by_arch()
+
+    def test_parse_driver_info_choose_by_arch_rescue(self):
+        self._test_parse_driver_info_choose_by_arch(mode='rescue')
+
+    def _test_parse_driver_info_choose_by_hierarchy(self, mode='deploy',
+                                                    ramdisk_missing=False):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            if mode == 'rescue':
+                task.node.provision_state = states.RESCUING
+
+            ramdisk = 'glance://def_%s_ramdisk_uuid' % mode
+            kernel = 'glance://def_%s_kernel_uuid' % mode
+            ramdisk_by_arch = 'glance://%s_ramdisk_by_arch_uuid' % mode
+            kernel_by_arch = 'glance://%s_kernel_by_arch_uuid' % mode
+
+            config = {
+                '%s_kernel_by_arch' % mode: {
+                    'x86_64': kernel_by_arch},
+                '%s_ramdisk' % mode: ramdisk,
+                '%s_kernel' % mode: kernel
+            }
+            if not ramdisk_missing:
+                config['%s_ramdisk_by_arch' % mode] = {
+                    'x86_64': ramdisk_by_arch}
+                expected = {
+                    '%s_ramdisk' % mode: ramdisk_by_arch,
+                    '%s_kernel' % mode: kernel_by_arch
+                }
+            else:
+                expected = {
+                    '%s_ramdisk' % mode: ramdisk,
+                    '%s_kernel' % mode: kernel
+                }
+
+            self.config(group='conductor', **config)
+
+            image_info = redfish_boot._parse_driver_info(task.node)
+
+            for key, value in expected.items():
+                self.assertEqual(value, image_info[key])
+
+    def test_parse_driver_info_choose_by_hierarchy_deploy(self):
+        self._test_parse_driver_info_choose_by_hierarchy()
+
+    def test_parse_driver_info_choose_by_hierarchy_rescue(self):
+        self._test_parse_driver_info_choose_by_hierarchy(mode='rescue')
+
+    def test_parse_driver_info_choose_by_hierarchy_missing_param_deploy(self):
+        self._test_parse_driver_info_choose_by_hierarchy(ramdisk_missing=True)
+
+    def test_parse_driver_info_choose_by_hierarchy_missing_param_rescue(self):
+        self._test_parse_driver_info_choose_by_hierarchy(
+            mode='rescue', ramdisk_missing=True)
 
     def test_parse_deploy_info(self):
         with task_manager.acquire(self.context, self.node.uuid,
