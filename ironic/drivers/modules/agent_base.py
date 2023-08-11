@@ -809,17 +809,16 @@ class AgentBaseMixin(object):
 
     @METRICS.timer('AgentBaseMixin.prepare_cleaning')
     def prepare_service(self, task):
-        """Boot into the agent to prepare for cleaning.
+        """Boot into the agent to prepare for service.
 
         :param task: a TaskManager object containing the node
-        :raises: NodeCleaningFailure, NetworkError if the previous cleaning
+        :raises: NodeCleaningFailure, NetworkError if: the previous cleaning
             ports cannot be removed or if new cleaning ports cannot be created.
         :raises: InvalidParameterValue if cleaning network UUID config option
             has an invalid value.
         :returns: states.CLEANWAIT to signify an asynchronous prepare
         """
-        result = deploy_utils.prepare_inband_service(
-            task, manage_boot=self.should_manage_boot(task))
+        result = deploy_utils.prepare_inband_service(task)
         if result is None:
             # Fast-track, ensure the steps are available.
             self.refresh_steps(task, 'service')
@@ -834,7 +833,7 @@ class AgentBaseMixin(object):
             be removed
         """
         deploy_utils.tear_down_inband_service(
-            task, manage_boot=self.should_manage_boot(task))
+            task)
 
     @METRICS.timer('AgentBaseMixin.get_clean_steps')
     def get_clean_steps(self, task):
@@ -853,6 +852,23 @@ class AgentBaseMixin(object):
         }
         return get_steps(
             task, 'clean', interface='deploy',
+            override_priorities=new_priorities)
+
+    @METRICS.timer('AgentBaseMixin.get_service_steps')
+    def get_service_steps(self, task):
+        """Get the list of clean steps from the agent.
+
+        :param task: a TaskManager object containing the node
+        :returns: A list of service step dictionaries, if an error
+                  occurs, then an emtpy list is returned.
+        """
+        new_priorities = {
+            'erase_devices': CONF.deploy.erase_devices_priority,
+            'erase_devices_metadata':
+                CONF.deploy.erase_devices_metadata_priority,
+        }
+        return get_steps(
+            task, 'service',
             override_priorities=new_priorities)
 
     @METRICS.timer('AgentBaseMixin.refresh_steps')

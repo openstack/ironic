@@ -12,8 +12,3 @@ features:
     exactly like the existing ``base.clean_step`` and ``base.deploy_step``
     decorators. Driver methods which are decorated *can* be invoked utilizing
     the service steps.
-issues:
-  - |
-    The ``service_steps`` functionality does not understand how to poll and
-    communicate with the ``ironic-python-agent``. This is anticipated to be
-    addressed in a future release.

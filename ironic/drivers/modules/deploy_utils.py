@@ -771,7 +771,7 @@ def tear_down_inband_cleaning(task, manage_boot=True):
             task, power_state_to_restore)
 
 
-def prepare_inband_service(self, task):
+def prepare_inband_service(task):
     """Boot a service ramdisk on the node.
 
     :param task: a TaskManager instance.
@@ -796,7 +796,7 @@ def prepare_inband_service(self, task):
     task.driver.boot.clean_up_instance(task)
     with manager_utils.power_state_for_network_configuration(task):
         task.driver.network.unconfigure_tenant_networks(task)
-        task.driver.network.add_service_network(task)
+        task.driver.network.add_servicing_network(task)
     if CONF.agent.manage_agent_boot:
         # prepare_ramdisk will set the boot device
         prepare_agent_boot(task)
@@ -805,7 +805,7 @@ def prepare_inband_service(self, task):
     return states.SERVICEWAIT
 
 
-def tear_down_inband_service(task, manage_boot=True):
+def tear_down_inband_service(task):
     """Tears down the environment setup for in-band service.
 
     This method does the following:
@@ -818,9 +818,6 @@ def tear_down_inband_service(task, manage_boot=True):
     of cleaning.
 
     :param task: a TaskManager object containing the node
-    :param manage_boot: If this is set to True, this method calls the
-        'clean_up_ramdisk' method of boot interface to boot the agent
-        ramdisk. If False, it skips this step.
     :raises: NetworkError, NodeServiceFailure if the cleaning ports cannot be
         removed.
     """
@@ -830,18 +827,16 @@ def tear_down_inband_service(task, manage_boot=True):
     if not service_failure:
         manager_utils.node_power_action(task, states.POWER_OFF)
 
-    if manage_boot:
-        task.driver.boot.clean_up_ramdisk(task)
+    task.driver.boot.clean_up_ramdisk(task)
 
     power_state_to_restore = manager_utils.power_on_node_if_needed(task)
-    task.driver.network.remove_service_network(task)
 
     if not service_failure:
         manager_utils.restore_power_state_if_needed(
             task, power_state_to_restore)
 
         with manager_utils.power_state_for_network_configuration(task):
-            task.driver.network.remove_service_network(task)
+            task.driver.network.remove_servicing_network(task)
             task.driver.network.configure_tenant_networks(task)
         task.driver.boot.prepare_instance(task)
         manager_utils.restore_power_state_if_needed(

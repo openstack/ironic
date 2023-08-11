@@ -987,6 +987,35 @@ class AgentMethodsTestCase(db_base.DbTestCase):
             build_options_mock.assert_called_once_with(task.node)
             self.assertFalse(power_on_if_needed_mock.called)
 
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    @mock.patch.object(utils, 'build_agent_options', autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+                'add_servicing_network', autospec=True)
+    def _test_prepare_inband_service(
+            self, add_service_network_mock,
+            build_options_mock, power_mock, prepare_ramdisk_mock,
+            clean_up_instance_mock,
+            manage_boot=True):
+        build_options_mock.return_value = {'a': 'b'}
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            result = utils.prepare_inband_service(task)
+            add_service_network_mock.assert_called_once_with(
+                task.driver.network, task)
+            self.assertEqual(states.SERVICEWAIT, result)
+            power_mock.assert_has_calls([
+                mock.call(task, states.POWER_OFF),
+                mock.call(task, states.POWER_ON)])
+            prepare_ramdisk_mock.assert_called_once_with(
+                mock.ANY, mock.ANY, {'a': 'b'})
+            build_options_mock.assert_called_once_with(task.node)
+            clean_up_instance_mock.assert_called_once_with(mock.ANY, task)
+
+    def test_prepare_inband_service(self):
+        self._test_prepare_inband_service()
+
     @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
@@ -1025,6 +1054,46 @@ class AgentMethodsTestCase(db_base.DbTestCase):
 
     def test_tear_down_inband_cleaning_cleaning_error(self):
         self._test_tear_down_inband_cleaning(cleaning_error=True)
+
+    @mock.patch.object(pxe.PXEBoot, 'prepare_instance', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+                'remove_servicing_network', autospec=True)
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    def test_tear_down_inband_service(
+            self, power_mock, remove_service_network_mock,
+            clean_up_ramdisk_mock, prepare_instance_mock):
+        # NOTE(TheJulia): This should be back to servicing upon a heartbeat
+        # operation, before we go back to WAIT. We wouldn't know to teardown
+        # in a wait state anyway.
+        self.node.provision_state = states.SERVICING
+        self.node.save()
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            utils.tear_down_inband_service(task)
+            power_mock.assert_called_once_with(task, states.POWER_OFF)
+            remove_service_network_mock.assert_called_once_with(
+                task.driver.network, task)
+            clean_up_ramdisk_mock.assert_called_once_with(
+                task.driver.boot, task)
+            prepare_instance_mock.assert_called_once_with(task.driver.boot,
+                                                          task)
+
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
+    @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.'
+                'remove_servicing_network', autospec=True)
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    def test_tear_down_inband_service_service_error(
+            self, power_mock, remove_service_network_mock,
+            clean_up_ramdisk_mock):
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            task.node.fault = faults.SERVICE_FAILURE
+            utils.tear_down_inband_service(task)
+            self.assertFalse(power_mock.called)
+            remove_service_network_mock.assert_not_called()
+            clean_up_ramdisk_mock.assert_called_once_with(
+                task.driver.boot, task)
 
     def test_build_agent_options_conf(self):
         self.config(endpoint_override='https://api-url',
