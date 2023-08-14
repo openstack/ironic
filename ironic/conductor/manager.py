@@ -1440,6 +1440,9 @@ class ConductorManager(base_manager.BaseConductorManager):
             'ConductorManager.PowerSyncNodesCount',
             len(nodes))
 
+        LOG.debug('Completed power state sync operation, evaluated %s '
+                  'nodes.', len(futures))
+
     def _sync_power_state_nodes_task(self, context, nodes):
         """Invokes power state sync on nodes from synchronized queue.
 
