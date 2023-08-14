@@ -26,9 +26,12 @@ opts = [
                 help=_('If SQLite database operation retry logic is enabled '
                        'or not. Enabled by default.')),
     cfg.IntOpt('sqlite_max_wait_for_retry',
-               default=30,
+               default=10,
                help=_('Maximum number of seconds to retry SQLite database '
-                      'locks.')),
+                      'locks, after which the original exception will be '
+                      'returned to the caller. This does not presently apply '
+                      'to internal node lock release actions and DB actions '
+                      'centered around the completion of tasks.')),
 ]
 
 
