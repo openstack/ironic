@@ -1170,6 +1170,30 @@ class IloCommonMethodsTestCase(BaseIloTest):
         # | THEN |
         # no any exception thrown
 
+    @mock.patch.object(builtins, 'open', autospec=True)
+    def test_verify_image_checksum_sha256(self, open_mock):
+        # | GIVEN |
+        data = b'Yankee Doodle went to town riding on a pony;'
+        file_like_object = io.BytesIO(data)
+        open_mock().__enter__.return_value = file_like_object
+        actual_hash = hashlib.sha256(data).hexdigest()
+        # | WHEN |
+        ilo_common.verify_image_checksum(file_like_object, actual_hash)
+        # | THEN |
+        # no any exception thrown
+
+    @mock.patch.object(builtins, 'open', autospec=True)
+    def test_verify_image_checksum_sha512(self, open_mock):
+        # | GIVEN |
+        data = b'Yankee Doodle went to town riding on a pony;'
+        file_like_object = io.BytesIO(data)
+        open_mock().__enter__.return_value = file_like_object
+        actual_hash = hashlib.sha512(data).hexdigest()
+        # | WHEN |
+        ilo_common.verify_image_checksum(file_like_object, actual_hash)
+        # | THEN |
+        # no any exception thrown
+
     def test_verify_image_checksum_throws_for_nonexistent_file(self):
         # | GIVEN |
         invalid_file_path = '/some/invalid/file/path'

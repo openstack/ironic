@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    The ``ilo`` hardware type firmware upgrade steps, now support checksum
+    determination by legnth in order to allow SHA256 and SHA512 checksums
+    to be supplied by the step caller.
