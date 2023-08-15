@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    Removes support for pre-SQLAlchemy 2.0 query objects from the internal
+    database API. Downstream plug-ins must be adjusted to use the new-style
+    queries.

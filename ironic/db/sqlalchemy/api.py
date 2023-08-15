@@ -362,6 +362,8 @@ def _paginate_query(model, limit=None, marker=None, sort_key=None,
     # populated, so we need to ask if it is None.
     if query is None:
         query = sa.select(model)
+    elif isinstance(query, sa_orm.Query):
+        raise TypeError("Use SQLAlchemy 2.0 queries")
     sort_keys = ['id']
     if sort_key and sort_key not in sort_keys:
         sort_keys.insert(0, sort_key)
@@ -373,35 +375,19 @@ def _paginate_query(model, limit=None, marker=None, sort_key=None,
             _('The sort_key value "%(key)s" is an invalid field for sorting')
             % {'key': sort_key})
     with _session_for_read() as session:
-        # NOTE(TheJulia): SQLAlchemy 2.0 no longer returns pre-uniqued result
-        # sets in ORM mode, so we need to explicitly ask for it to be unique
-        # before returning it to the caller.
-        if isinstance(query, sa_orm.Query):
-            # The classic "Legacy" ORM query object result set which is
-            # deprecated in advance of SQLAlchemy 2.0.
-            # TODO(TheJulia): Calls of this style basically need to be
-            # eliminated in ironic as returning this way does not allow
-            # commit or rollback in enginefacade to occur until the returned
-            # object is garbage collected as ORM Query objects allow
-            # for DB interactions to occur after the fact, so it remains
-            # connected to the DB..
-            # Save the query.all() results, but don't return yet, so we
-            # begin to exit and unwind the session.
-            ref = query.all()
-        else:
-            # In this case, we have a sqlalchemy.sql.selectable.Select
-            # (most likely) which utilizes the unified select interface.
-            res = session.execute(query).fetchall()
-            if len(res) == 0:
-                # Return an empty list instead of a class with no objects.
-                return []
-            if return_base_tuple:
-                # The caller expects a tuple, lets just give it to them.
-                return [tuple(r) for r in res]
-            # Everything is a tuple in a resultset from the unified interface
-            # but for objects, our model expects just object access,
-            # so we extract and return them.
-            ref = [r[0] for r in res]
+        # We have a sqlalchemy.sql.selectable.Select
+        # (most likely) which utilizes the unified select interface.
+        res = session.execute(query).fetchall()
+        if len(res) == 0:
+            # Return an empty list instead of a class with no objects.
+            return []
+        if return_base_tuple:
+            # The caller expects a tuple, lets just give it to them.
+            return [tuple(r) for r in res]
+        # Everything is a tuple in a resultset from the unified interface
+        # but for objects, our model expects just object access,
+        # so we extract and return them.
+        ref = [r[0] for r in res]
     # Return the results to the caller, outside of the session context
     # if an ORM object, because we want the session to close.
     return ref
@@ -1098,12 +1084,10 @@ class Connection(api.Connection):
         shard_node_ids = sa.select(models.Node) \
             .where(models.Node.shard.in_(shards)) \
             .with_only_columns(models.Node.id)
-        with _session_for_read() as session:
-            query = session.query(models.Port).filter(
-                models.Port.node_id.in_(shard_node_ids))
-            ports = _paginate_query(
-                models.Port, limit, marker, sort_key, sort_dir, query)
-        return ports
+        query = sa.select(models.Port) \
+            .where(models.Port.node_id.in_(shard_node_ids))
+        return _paginate_query(
+            models.Port, limit, marker, sort_key, sort_dir, query)
 
     def get_ports_by_node_id(self, node_id, limit=None, marker=None,
                              sort_key=None, sort_dir=None, owner=None,
@@ -2654,9 +2638,8 @@ class Connection(api.Connection):
 
     def get_deploy_template_list(self, limit=None, marker=None,
                                  sort_key=None, sort_dir=None):
-        with _session_for_read() as session:
-            query = session.query(models.DeployTemplate).options(
-                selectinload(models.DeployTemplate.steps))
+        query = sa.select(models.DeployTemplate).options(
+            selectinload(models.DeployTemplate.steps))
         return _paginate_query(models.DeployTemplate, limit, marker,
                                sort_key, sort_dir, query)
 
@@ -2885,9 +2868,8 @@ class Connection(api.Connection):
 
     def get_node_history_by_node_id(self, node_id, limit=None, marker=None,
                                     sort_key=None, sort_dir=None):
-        with _session_for_read() as session:
-            query = session.query(models.NodeHistory)
-            query = query.where(models.NodeHistory.node_id == node_id)
+        query = sa.select(models.NodeHistory) \
+            .where(models.NodeHistory.node_id == node_id)
         return _paginate_query(models.NodeHistory, limit, marker,
                                sort_key, sort_dir, query)
 
