@@ -90,6 +90,14 @@ if sushy:
         v: k for k, v in INDICATOR_MAP.items()}
 
 
+_FIRMWARE_UPDATE_ARGS = {
+    'firmware_images': {
+        'description': (
+            'A list of firmware images to apply.'),
+        'required': True
+    }}
+
+
 def _set_boot_device(task, system, device, persistent=False):
     """An internal routine to set the boot device.
 
@@ -746,13 +754,10 @@ class RedfishManagement(base.ManagementInterface):
         return redfish_utils.get_system(task.node).manufacturer
 
     @METRICS.timer('RedfishManagement.update_firmware')
-    @base.clean_step(priority=0, abortable=False, argsinfo={
-        'firmware_images': {
-            'description': (
-                'A list of firmware images to apply.'
-            ),
-            'required': True
-        }})
+    @base.clean_step(priority=0, abortable=False,
+                     argsinfo=_FIRMWARE_UPDATE_ARGS)
+    @base.service_step(priority=0, abortable=False,
+                       argsinfo=_FIRMWARE_UPDATE_ARGS)
     def update_firmware(self, task, firmware_images):
         """Updates the firmware on the node.
 

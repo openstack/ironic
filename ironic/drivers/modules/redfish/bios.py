@@ -197,6 +197,7 @@ class RedfishBIOS(base.BIOSInterface):
                       {'node_uuid': node.uuid, 'attrs': current_attrs})
             self._clear_reboot_requested(task)
 
+    @base.service_step(priority=0, argsinfo=_APPLY_CONFIGURATION_ARGSINFO)
     @base.clean_step(priority=0, argsinfo=_APPLY_CONFIGURATION_ARGSINFO)
     @base.deploy_step(priority=0, argsinfo=_APPLY_CONFIGURATION_ARGSINFO)
     @base.cache_bios_settings

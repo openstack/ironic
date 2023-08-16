@@ -657,6 +657,8 @@ class AgentRAID(base.RAIDInterface):
         return agent_base.get_steps(task, 'deploy', interface='raid')
 
     @METRICS.timer('AgentRAID.apply_configuration')
+    @base.service_step(priority=0,
+                       argsinfo=_RAID_APPLY_CONFIGURATION_ARGSINFO)
     @base.deploy_step(priority=0,
                       argsinfo=_RAID_APPLY_CONFIGURATION_ARGSINFO)
     def apply_configuration(self, task, raid_config,
