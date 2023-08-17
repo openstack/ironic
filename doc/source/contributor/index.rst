@@ -47,6 +47,9 @@ reviewers.
    :hidden:
 
    states
+   bifrost-dev-guide
+   local-dev-guide
+   devstack-guide
 
 Writing Drivers
 ---------------

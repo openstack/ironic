@@ -13,6 +13,7 @@ This scenario shows how to setup Devstack to use Ironic/Neutron integration
 with VMs as baremetal servers and ML2 ``networking-generic-switch``
 that interacts with OVS.
 
+.. _DevstackMTNetwork:
 
 DevStack Configuration
 ----------------------
