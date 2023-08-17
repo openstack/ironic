@@ -8372,6 +8372,16 @@ class TestNodeChildrenTestCase(test_api_base.BaseApiTest):
             '/nodes/?parent_node={}'.format(node.uuid), headers=self.headers)
         self.assertEqual(0, len(response['nodes']))
 
+    def test_list_node_children_by_single_node(self):
+        obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            name='kryze',
+            parent_node=self.node.uuid)
+        response = self.get_json(
+            '/nodes/{}/children'.format(self.node.uuid), headers=self.headers)
+        self.assertEqual(2, len(response['children']))
+
 
 @mock.patch.object(rpcapi.ConductorAPI, 'create_node',
                    lambda _api, _ctx, node, _topic: _create_node_locally(node))
