@@ -34,6 +34,10 @@ GLOBAL_REQ_ID = 'openstack.global_request_id'
 ID_FORMAT = (r'^req-[a-f0-9]{8}-[a-f0-9]{4}-'
              r'[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$')
 
+# Call once, don't call on each request because it is
+# a ton of extra overhead.
+DBAPI = dbapi.get_instance()
+
 
 def policy_deprecation_check():
     global CHECKED_DEPRECATED_POLICY_ARGS
@@ -77,7 +81,12 @@ class DBHook(hooks.PecanHook):
     """Attach the dbapi object to the request so controllers can get to it."""
 
     def before(self, state):
-        state.request.dbapi = dbapi.get_instance()
+        state.request.dbapi = DBAPI
+
+    def after(self, state):
+        # Explicitly set to None since we don't need the DB connection
+        # after we're done processing the request.
+        state.request.dbapi = None
 
 
 class ContextHook(hooks.PecanHook):
