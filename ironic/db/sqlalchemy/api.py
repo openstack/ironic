@@ -70,10 +70,22 @@ def wrap_sqlite_retry(f):
 
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
-        if (CONF.database.sqlite_retries
-                and not utils.is_ironic_using_sqlite()):
+        if (not CONF.database.sqlite_retries
+                or not utils.is_ironic_using_sqlite()):
             return f(*args, **kwargs)
         else:
+            # NOTE(TheJulia): We likely need to see if we can separate
+            # update_node in API from the final actions of task manager
+            # actions, but that would also be an internal API change
+            # because we would likely need a special object method to
+            # call for update_node to delineate an internal save versus
+            # an external save.
+            if f.__name__ in ['update_node', 'release_node']:
+                stop = tenacity.stop_never
+            else:
+                stop = tenacity.stop_after_delay(
+                    max_delay=CONF.database.sqlite_max_wait_for_retry
+                )
             for attempt in tenacity.Retrying(
                 retry=(
                     tenacity.retry_if_exception_type(
@@ -81,13 +93,16 @@ def wrap_sqlite_retry(f):
                     & tenacity.retry_if_exception(
                         lambda e: 'database is locked' in str(e))
                 ),
-                wait=tenacity.wait_full_jitter(
-                    multiplier=0.25,
-                    max=CONF.database.sqlite_max_wait_for_retry),
+                wait=tenacity.wait_random(
+                    min=0.1,
+                    max=1,
+                ),
                 before_sleep=(
                     tenacity.before_sleep_log(LOG, logging.DEBUG)
                 ),
-                reraise=True):
+                stop=stop,
+                reraise=False,
+                retry_error_cls=exception.TemporaryFailure):
                 with attempt:
                     return f(*args, **kwargs)
     return wrapper
