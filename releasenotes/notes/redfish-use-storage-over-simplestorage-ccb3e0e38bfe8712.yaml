@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes issue of changing or getting state of indicator LED of attached disk
+    caused by misunderstanding SimpleStorage provides this functionality but
+    actually Storage resource does.
