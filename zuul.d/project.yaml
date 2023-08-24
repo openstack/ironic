@@ -38,7 +38,7 @@
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
-        - metalsmith-integration-glance-centos8-legacy
+        - metalsmith-integration-glance-centos9-legacy
         # NOTE(rpittau): NV until it's fixed
         - metal3-integration:
             voting: false
