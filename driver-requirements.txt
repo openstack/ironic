@@ -8,7 +8,7 @@ proliantutils>=2.14.0
 pysnmp-lextudio>=5.0.0 # BSD
 pyasn1-lextudio>=1.1.0 # BSD
 pyasn1-modules-lextudio>=0.2.0 # BSD
-python-scciclient>=0.12.2
+python-scciclient>=0.15.0
 python-dracclient>=5.1.0,<9.0.0
 python-xclarityclient>=0.1.6
 
