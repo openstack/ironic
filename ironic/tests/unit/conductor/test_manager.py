@@ -3717,6 +3717,16 @@ class MiscTestCase(mgr_utils.ServiceSetUpMixin, mgr_utils.CommonMixIn,
         self.assertEqual('******',
                          res.driver_internal_info['agent_secret_token'])
 
+    def test_node_with_token_already_locked(self):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            network_interface='noop',
+            reservation='meow')
+        exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                self.service.get_node_with_token,
+                                self.context, node.id)
+        self.assertEqual(exception.NodeLocked, exc.exc_info[0])
+
 
 @mgr_utils.mock_record_keepalive
 class ConsoleTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):

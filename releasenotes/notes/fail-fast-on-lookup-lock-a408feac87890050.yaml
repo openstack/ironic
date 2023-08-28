@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue where lookups to generate an agent token would stack up as
+    the internal lock upgrade logic silently holds on to the request while trying
+    to obtain a lock. The task creation will now immediately fail with a
+    ``NodeLocked`` exception, which the agent will retry.

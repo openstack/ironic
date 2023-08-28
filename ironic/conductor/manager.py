@@ -3585,7 +3585,10 @@ class ConductorManager(base_manager.BaseConductorManager):
                 # pre-generation of tokens with virtual media usage.
                 node.set_driver_internal_info('agent_secret_token', "******")
                 return node
-            task.upgrade_lock()
+            # Do not retry the lock, fail immediately otherwise
+            # we can cause these requests to stack up on the API,
+            # all thinking they can process the node.
+            task.upgrade_lock(retry=False)
             LOG.debug('Generating agent token for node %(node)s',
                       {'node': task.node.uuid})
             utils.add_secret_token(task.node)
