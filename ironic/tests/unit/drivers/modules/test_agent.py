@@ -1400,7 +1400,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             mock_build_configdrive.assert_called_once_with(
                 task.node, {'meta_data': {}})
 
-    @mock.patch.object(deploy_utils, 'remove_http_instance_symlink',
+    @mock.patch.object(deploy_utils, 'destroy_http_instance_images',
                        autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_partition_uuids',
@@ -1408,7 +1408,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
     @mock.patch.object(agent.AgentDeploy, 'prepare_instance_to_boot',
                        autospec=True)
     def test_prepare_instance_boot(self, prepare_instance_mock,
-                                   uuid_mock, log_mock, remove_symlink_mock):
+                                   uuid_mock, log_mock, destroy_image_mock):
         self.config(manage_agent_boot=True, group='agent')
         self.config(image_download_source='http', group='agent')
         uuid_mock.return_value = {}
@@ -1427,8 +1427,9 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                                                           None, None, None)
             self.assertEqual(states.DEPLOYING, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
-            self.assertTrue(remove_symlink_mock.called)
+            destroy_image_mock.assert_called_once_with(task.node)
 
+    @mock.patch.object(deploy_utils, 'destroy_images', autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(agent_client.AgentClient, 'get_partition_uuids',
@@ -1437,7 +1438,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                        autospec=True)
     def test_prepare_instance_boot_no_manage_agent_boot(
             self, prepare_instance_mock, uuid_mock,
-            bootdev_mock, log_mock):
+            bootdev_mock, log_mock, destroy_image_mock):
         self.config(manage_agent_boot=False, group='agent')
         uuid_mock.return_value = {}
         self.node.provision_state = states.DEPLOYING
@@ -1456,6 +1457,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             self.assertEqual(states.DEPLOYING, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 
+    @mock.patch.object(deploy_utils, 'destroy_images', autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        autospec=True)
@@ -1465,7 +1467,8 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                        autospec=True)
     def test_prepare_instance_boot_partition_image(self, prepare_instance_mock,
                                                    uuid_mock, boot_mode_mock,
-                                                   log_mock):
+                                                   log_mock,
+                                                   destroy_image_mock):
         uuid_mock.return_value = {
             'command_result': {'root uuid': 'root_uuid'}
         }
@@ -1492,6 +1495,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             self.assertEqual(states.DEPLOYING, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 
+    @mock.patch.object(deploy_utils, 'destroy_images', autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        autospec=True)
@@ -1501,7 +1505,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                        autospec=True)
     def test_prepare_instance_boot_partition_localboot_ppc64(
             self, prepare_instance_mock,
-            uuid_mock, boot_mode_mock, log_mock):
+            uuid_mock, boot_mode_mock, log_mock, destroy_image_mock):
         uuid_mock.return_value = {
             'command_result': {
                 'root uuid': 'root_uuid',
@@ -1536,6 +1540,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             self.assertEqual(states.DEPLOYING, task.node.provision_state)
             self.assertEqual(states.ACTIVE, task.node.target_provision_state)
 
+    @mock.patch.object(deploy_utils, 'destroy_images', autospec=True)
     @mock.patch.object(agent.LOG, 'warning', spec_set=True, autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode_for_deploy',
                        autospec=True)
@@ -1545,7 +1550,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                        autospec=True)
     def test_prepare_instance_boot_localboot(self, prepare_instance_mock,
                                              uuid_mock, boot_mode_mock,
-                                             log_mock):
+                                             log_mock, destroy_image_mock):
         uuid_mock.return_value = {
             'command_result': {
                 'root uuid': 'root_uuid',
