@@ -759,6 +759,18 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.instance_info[key] = value
         self._changed_fields.add('instance_info')
 
+    def set_property(self, key, value):
+        """Set a `properties` value.
+
+        Setting a `properties` dict value via this method ensures that this
+        field will be flagged for saving.
+
+        :param key: Key of item to set
+        :param value: Value of item to set
+        """
+        self.properties[key] = value
+        self._changed_fields.add('properties')
+
 
 @base.IronicObjectRegistry.register
 class NodePayload(notification.NotificationPayloadBase):

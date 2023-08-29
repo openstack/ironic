@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds inspection hooks in the agent inspect interface for processing data
+    received from the ramdisk at the /v1/continue_inspection endpoint. The
+    four default configuration hooks `ramdisk-error`, `validate-interfaces`,
+    `ports` and `architecture` are added. Two new configuration options
+    `default_hooks` and `hooks` are added in the `inspector` configuration
+    section to allow configuring the default enabled hooks and optional
+    additional hooks, respectively.
