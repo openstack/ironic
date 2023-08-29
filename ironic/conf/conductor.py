@@ -205,20 +205,56 @@ opts = [
                        'endpoint via multicast DNS.')),
     cfg.StrOpt('deploy_kernel',
                mutable=True,
-               help=_('Glance ID, http:// or file:// URL of the kernel of '
-                      'the default deploy image.')),
+               deprecated_for_removal=True,
+               deprecated_reason=_('Replaced by deploy_kernel_by_arch which '
+                                   'provides more configuration options.'),
+               help=_('DEPRECATED: Glance ID, http:// or file:// URL of the '
+                      'kernel of the default deploy image.')),
     cfg.StrOpt('deploy_ramdisk',
                mutable=True,
-               help=_('Glance ID, http:// or file:// URL of the initramfs of '
-                      'the default deploy image.')),
+               deprecated_for_removal=True,
+               deprecated_reason=_('Replaced by deploy_ramdisk_by_arch which '
+                                   'provides more configuration options.'),
+               help=_('DEPRECATED: Glance ID, http:// or file:// URL of the '
+                      'initramfs of the default deploy image.')),
+    cfg.DictOpt('deploy_kernel_by_arch',
+                default={},
+                mutable=True,
+                help=_('A dictionary of key-value pairs of each architecture '
+                       'with the Glance ID, http:// or file:// URL of the '
+                       'kernel of the default deploy image.')),
+    cfg.DictOpt('deploy_ramdisk_by_arch',
+                default={},
+                mutable=True,
+                help=_('A dictionary of key-value pairs of each architecture '
+                       'with the Glance ID, http:// or file:// URL of the '
+                       'initramfs of the default deploy image.')),
     cfg.StrOpt('rescue_kernel',
                mutable=True,
-               help=_('Glance ID, http:// or file:// URL of the kernel of '
-                      'the default rescue image.')),
+               deprecated_for_removal=True,
+               deprecated_reason=_('Replaced by rescue_kernel_by_arch which '
+                                   'provides more configuration options.'),
+               help=_('DEPRECATED: Glance ID, http:// or file:// URL of the '
+                      'kernel of the default rescue image.')),
     cfg.StrOpt('rescue_ramdisk',
                mutable=True,
-               help=_('Glance ID, http:// or file:// URL of the initramfs of '
-                      'the default rescue image.')),
+               deprecated_for_removal=True,
+               deprecated_reason=_('Replaced by rescue_ramdisk_by_arch which '
+                                   'provides more configuration options.'),
+               help=_('DEPRECATED: Glance ID, http:// or file:// URL of the '
+                      'initramfs of the default rescue image.')),
+    cfg.DictOpt('rescue_kernel_by_arch',
+                default={},
+                mutable=True,
+                help=_('A dictionary of key-value pairs of each architecture '
+                       'with the Glance ID, http:// or file:// URL of the '
+                       'kernel of the default rescue image.')),
+    cfg.DictOpt('rescue_ramdisk_by_arch',
+                default={},
+                mutable=True,
+                help=_('A dictionary of key-value pairs of each architecture '
+                       'with the Glance ID, http:// or file:// URL of the '
+                       'initramfs of the default rescue image.')),
     cfg.StrOpt('rescue_password_hash_algorithm',
                default='sha256',
                choices=['sha256', 'sha512'],

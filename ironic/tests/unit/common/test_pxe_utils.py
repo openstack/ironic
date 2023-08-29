@@ -1197,12 +1197,21 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
     def test_parse_driver_info_rescue(self):
         self._test_parse_driver_info(mode='rescue')
 
-    def _test_parse_driver_info_from_conf(self, mode='deploy'):
-        del self.node.driver_info['%s_kernel' % mode]
-        del self.node.driver_info['%s_ramdisk' % mode]
-        exp_info = {'%s_ramdisk' % mode: 'glance://%s_ramdisk_uuid' % mode,
-                    '%s_kernel' % mode: 'glance://%s_kernel_uuid' % mode}
-        self.config(group='conductor', **exp_info)
+    def _test_parse_driver_info_from_conf(self, mode='deploy', by_arch=False):
+        ramdisk = 'glance://%s_ramdisk_uuid' % mode
+        kernel = 'glance://%s_kernel_uuid' % mode
+        if by_arch:
+            exp_info = {'%s_ramdisk' % mode: ramdisk,
+                        '%s_kernel' % mode: kernel}
+            config = {'%s_ramdisk_by_arch' % mode: ramdisk,
+                      '%s_kernel_by_arch' % mode: kernel}
+        else:
+            del self.node.driver_info['%s_kernel' % mode]
+            del self.node.driver_info['%s_ramdisk' % mode]
+            exp_info = {'%s_ramdisk' % mode: ramdisk,
+                        '%s_kernel' % mode: kernel}
+            config = exp_info
+        self.config(group='conductor', **config)
         image_info = pxe_utils.parse_driver_info(self.node, mode=mode)
         self.assertEqual(exp_info, image_info)
 
@@ -1212,9 +1221,21 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
     def test_parse_driver_info_from_conf_rescue(self):
         self._test_parse_driver_info_from_conf(mode='rescue')
 
+    def test_parse_driver_info_from_conf_deploy_by_arch(self):
+        self._test_parse_driver_info_from_conf(by_arch=True)
+
+    def test_parse_driver_info_from_conf_rescue_by_arch(self):
+        self._test_parse_driver_info_from_conf(mode='rescue', by_arch=True)
+
     def test_parse_driver_info_mixed_source_deploy(self):
         self.config(deploy_kernel='file:///image',
                     deploy_ramdisk='file:///image',
+                    group='conductor')
+        self._test_parse_driver_info_missing_ramdisk()
+
+    def test_parse_driver_info_mixed_source_deploy_by_arch(self):
+        self.config(deploy_kernel_by_arch={'x86_64': 'file:///image'},
+                    deploy_ramdisk_by_arch={'x86_64': 'file:///image'},
                     group='conductor')
         self._test_parse_driver_info_missing_ramdisk()
 

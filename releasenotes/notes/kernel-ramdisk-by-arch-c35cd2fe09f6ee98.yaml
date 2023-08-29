@@ -1,0 +1,13 @@
+---
+features:
+  - |
+    Introduce new config parameters in the conductor group.
+    The `deploy_kernel_by_arch`, `deploy_ramdisk_by_arch`,
+    `rescue_kernel_by_arch`, and `rescue_ramdisk_by_arch` are dictionaries
+    allowing operators to specify parameters of kernel and ramdisk by the
+    architecture of the node.
+deprecations:
+  - |
+    The `deploy_kernel`, `deploy_ramdisk`, `rescue_kernel`, and
+    `rescue_ramdisk` parameters have been marked as deprecated as the new
+    parameters allow more configuration options.
