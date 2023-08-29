@@ -625,6 +625,89 @@ class AgentClient(object):
                              method='deploy.execute_deploy_step',
                              params=params)
 
+    @METRICS.timer('AgentClient.get_service_steps')
+    def get_service_steps(self, node, ports):
+        """Get service steps from agent.
+
+        :param node: A node object.
+        :param ports: Ports associated with the node.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
+        :returns: A dict containing command response from agent.
+            See :func:`get_commands_status` for a command result sample.
+            The value of key command_result is in the form of:
+
+            ::
+
+              {
+                'service_steps': <a list of service steps>,
+                'hardware_manager_version': <manager version>
+              }
+
+        """
+        params = {
+            'node': node.as_dict(secure=True),
+            'ports': [port.as_dict() for port in ports]
+        }
+        try:
+            response = self._command(node=node,
+                                     method='service.get_service_steps',
+                                     params=params,
+                                     wait=True)
+        except exception.AgentAPIError:
+            # NOTE(TheJulia): This seems logical to do to handle an
+            # older ironic-python-agent, since the net-effect will be
+            # "there is nothing we can issue to the agent".
+            # TODO(TheJulia): Once we know the version where this *is*
+            # supported, we should actually update this log message.
+            # We won't know that until after the initial merge.
+            LOG.warning('Unable to retrieve service steps for node %s.'
+                        'Please upgrade your ironic-python-agent.',
+                        node.uuid)
+            response = {
+                'service_steps': [],
+                'hardware_manager_version': 0,
+            }
+        return response
+
+    @METRICS.timer('AgentClient.execute_service_step')
+    def execute_service_step(self, step, node, ports):
+        """Execute specified service step.
+
+        :param step: A service step dictionary to execute.
+        :param node: A Node object.
+        :param ports: Ports associated with the node.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
+        :returns: A dict containing command response from agent.
+            See :func:`get_commands_status` for a command result sample.
+            The value of key command_result is in the form of:
+
+            ::
+
+              {
+                'service_result': <the result of execution, step specific>,
+                'service_step': <the service step issued to agent>
+              }
+
+        """
+        params = {
+            'step': step,
+            'node': node.as_dict(secure=True),
+            'ports': [port.as_dict() for port in ports],
+            'service_version': node.driver_internal_info.get(
+                'hardware_manager_version')
+        }
+        return self._command(node=node,
+                             method='service.execute_service_step',
+                             params=params)
+
     @METRICS.timer('AgentClient.get_partition_uuids')
     def get_partition_uuids(self, node):
         """Get deploy steps from agent.

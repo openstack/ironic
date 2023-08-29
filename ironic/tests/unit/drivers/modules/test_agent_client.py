@@ -667,6 +667,53 @@ class TestAgentClient(base.TestCase):
             node=self.node, method='clean.execute_clean_step',
             params=expected_params)
 
+    def test_get_service_steps(self):
+        self.client._command = mock.MagicMock(spec_set=[])
+        ports = []
+        expected_params = {
+            'node': self.node.as_dict(secure=True),
+            'ports': []
+        }
+
+        self.client.get_service_steps(self.node,
+                                      ports)
+        self.client._command.assert_called_once_with(
+            node=self.node, method='service.get_service_steps',
+            params=expected_params, wait=True)
+
+    def test_get_service_steps_older_client(self):
+        self.client._command = mock.MagicMock(spec_set=[])
+        self.client._command.side_effect = exception.AgentAPIError('meow')
+        ports = []
+        expected_params = {
+            'node': self.node.as_dict(secure=True),
+            'ports': []
+        }
+
+        self.client.get_service_steps(self.node,
+                                      ports)
+        self.client._command.assert_called_once_with(
+            node=self.node, method='service.get_service_steps',
+            params=expected_params, wait=True)
+
+    def test_execute_service_step(self):
+        self.client._command = mock.MagicMock(spec_set=[])
+        ports = []
+        step = {'priority': 10, 'step': 'erase_devices', 'interface': 'deploy'}
+        expected_params = {
+            'step': step,
+            'node': self.node.as_dict(secure=True),
+            'ports': [],
+            'service_version':
+                self.node.driver_internal_info['hardware_manager_version']
+        }
+        self.client.execute_service_step(step,
+                                         self.node,
+                                         ports)
+        self.client._command.assert_called_once_with(
+            node=self.node, method='service.execute_service_step',
+            params=expected_params)
+
     def test_power_off(self):
         self.client._command = mock.MagicMock(spec_set=[])
         self.client.power_off(self.node)

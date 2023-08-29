@@ -1103,6 +1103,20 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
         self.assertEqual(mock_steps, steps)
 
     @mock.patch.object(agent_base, 'get_steps', autospec=True)
+    def test_get_service_steps(self, mock_get_steps):
+        # Test getting service steps
+        mock_steps = [{'priority': 10, 'interface': 'deploy',
+                       'step': 'erase_devices'}]
+        mock_get_steps.return_value = mock_steps
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            steps = self.driver.get_service_steps(task)
+            mock_get_steps.assert_called_once_with(
+                task, 'service',
+                override_priorities={'erase_devices': None,
+                                     'erase_devices_metadata': None})
+        self.assertEqual(mock_steps, steps)
+
+    @mock.patch.object(agent_base, 'get_steps', autospec=True)
     def test_get_clean_steps_config_priority(self, mock_get_steps):
         # Test that we can override the priority of get clean steps
         # Use 0 because it is an edge case (false-y) and used in devstack
@@ -1127,6 +1141,14 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                 states.CLEANWAIT, self.driver.prepare_cleaning(task))
             prepare_inband_cleaning_mock.assert_called_once_with(
                 task, manage_boot=True)
+
+    @mock.patch.object(deploy_utils, 'prepare_inband_service', autospec=True)
+    def test_prepare_service(self, prepare_inband_service_mock):
+        prepare_inband_service_mock.return_value = states.SERVICEWAIT
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.assertEqual(
+                states.SERVICEWAIT, self.driver.prepare_service(task))
+            prepare_inband_service_mock.assert_called_once_with(task)
 
     @mock.patch.object(deploy_utils, 'prepare_inband_cleaning', autospec=True)
     def test_prepare_cleaning_manage_agent_boot_false(
@@ -1158,6 +1180,14 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             self.driver.tear_down_cleaning(task)
             tear_down_cleaning_mock.assert_called_once_with(
                 task, manage_boot=True)
+
+    @mock.patch.object(deploy_utils, 'tear_down_inband_service',
+                       autospec=True)
+    def test_tear_down_service(self, tear_down_service_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            self.driver.tear_down_service(task)
+            tear_down_service_mock.assert_called_once_with(
+                task)
 
     @mock.patch.object(deploy_utils, 'tear_down_inband_cleaning',
                        autospec=True)
