@@ -224,6 +224,7 @@ class FakeVendorB(base.VendorInterface):
         sleep(CONF.fake.vendor_delay)
         return True if bar == 'woof' else False
 
+    @base.service_step(requires_ramdisk=False)
     @base.clean_step(priority=1)
     @base.passthru(['POST'],
                    description=_("Test pass-through to wait."))
@@ -233,6 +234,10 @@ class FakeVendorB(base.VendorInterface):
         sleep(CONF.fake.vendor_delay)
         # NOTE(TheJulia): Step methods invoked via an API *cannot*
         # have return values
+
+    @base.service_step()
+    def trigger_servicewait(self, task, **kwargs):
+        return states.SERVICEWAIT
 
 
 class FakeConsole(base.ConsoleInterface):

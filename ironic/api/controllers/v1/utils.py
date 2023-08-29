@@ -808,7 +808,8 @@ VERSIONED_FIELDS = {
     'secure_boot': versions.MINOR_75_NODE_BOOT_MODE,
     'shard': versions.MINOR_82_NODE_SHARD,
     'parent_node': versions.MINOR_83_PARENT_CHILD_NODES,
-    'firmware_interface': versions.MINOR_86_FIRMWARE_INTERFACE
+    'firmware_interface': versions.MINOR_86_FIRMWARE_INTERFACE,
+    'service_step': versions.MINOR_87_SERVICE
 }
 
 for field in V31_FIELDS:
@@ -1955,6 +1956,11 @@ def allow_status_in_heartbeat():
 def allow_unhold_verb():
     """Check if the unhold verb may be passed to the API"""
     return api.request.version.minor >= versions.MINOR_85_UNHOLD_VERB
+
+
+def allow_service_verb():
+    """Check if the service verb may be passed to the API."""
+    return api.request.version.minor >= versions.MINOR_87_SERVICE
 
 
 def check_allow_deploy_steps(target, deploy_steps):

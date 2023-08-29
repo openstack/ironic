@@ -989,3 +989,12 @@ class NeutronNetworkInterfaceMixin(object):
             # Fall back to non-managed in-band inspection
             raise exception.UnsupportedDriverExtension(
                 driver=task.node.driver, extension='inspection')
+
+    def get_servicing_network_uuid(self, task):
+        servicing_network = (
+            task.node.driver_info.get('servicing_network')
+            or CONF.neutron.servicing_network
+        )
+        return validate_network(
+            servicing_network, _('servicing network'),
+            context=task.context)

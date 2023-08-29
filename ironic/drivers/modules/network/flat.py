@@ -217,3 +217,28 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
         """
         return self._remove_service_network(
             task, self.get_inspection_network_uuid(task), 'inspection')
+
+    def add_servicing_network(self, task):
+        """Add the rescuing network to a node.
+
+        Flat network does not use the servicing network.
+        Bind the port again since unconfigure_tenant_network() unbound it.
+
+        :param task: A TaskManager instance.
+        :returns: a dictionary in the form {port.uuid: neutron_port['id']}
+        :raises: NetworkError, InvalidParameterValue
+        """
+        LOG.info('Bind ports for servicing node %s', task.node.uuid)
+        self._bind_flat_ports(task)
+
+    def remove_servicing_network(self, task):
+        """Remove the servicing network from a node.
+
+        Flat network does not use the servicing network.
+        Unbind the port again since add_rescuing_network() bound it.
+
+        :param task: A TaskManager instance.
+        :raises: NetworkError
+        """
+        LOG.info('Unbind ports for servicing node %s', task.node.uuid)
+        self._unbind_flat_ports(task)

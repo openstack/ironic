@@ -722,6 +722,14 @@ class RPCAPITestCase(db_base.DbTestCase):
                           allocation='fake-allocation',
                           version='1.48')
 
+    def test_do_node_service(self):
+        self._test_rpcapi('do_node_service',
+                          'call',
+                          node_id='fake-node',
+                          service_steps={'foo': 'bar'},
+                          disable_ramdisk=False,
+                          version='1.57')
+
     @mock.patch.object(rpc, 'GLOBAL_MANAGER',
                        spec_set=conductor_manager.ConductorManager)
     def test_local_call(self, mock_manager):

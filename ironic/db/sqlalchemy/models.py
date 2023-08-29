@@ -217,6 +217,7 @@ class NodeBase(Base):
     secure_boot = Column(Boolean, nullable=True)
     shard = Column(String(255), nullable=True)
     parent_node = Column(String(36), nullable=True)
+    service_step = Column(db_types.JsonEncodedDict)
 
 
 class Node(NodeBase):

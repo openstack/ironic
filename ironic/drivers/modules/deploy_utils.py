@@ -771,6 +771,86 @@ def tear_down_inband_cleaning(task, manage_boot=True):
             task, power_state_to_restore)
 
 
+def prepare_inband_service(self, task):
+    """Boot a service ramdisk on the node.
+
+    :param task: a TaskManager instance.
+    :raises: NetworkError if the tenant ports cannot be removed.
+    :raises: InvalidParameterValue when the wrong power state is specified
+         or the wrong driver info is specified for power management.
+    :raises: other exceptions by the node's power driver if something
+            wrong occurred during the power action.
+    :raises: any boot interface's prepare_ramdisk exceptions.
+    :returns: Returns states.SERVICEWAIT
+    """
+    manager_utils.node_power_action(task, states.POWER_OFF)
+    # NOTE(TheJulia): Revealing that the power is off at any time can
+    # cause external power sync to decide that the node must be off.
+    # This may result in a post-rescued instance being turned off
+    # unexpectedly after rescue has started.
+    # TODO(TheJulia): Once we have power/state callbacks to nova,
+    # the reset of the power_state can be removed.
+    task.node.power_state = states.POWER_ON
+    task.node.save()
+
+    task.driver.boot.clean_up_instance(task)
+    with manager_utils.power_state_for_network_configuration(task):
+        task.driver.network.unconfigure_tenant_networks(task)
+        task.driver.network.add_service_network(task)
+    if CONF.agent.manage_agent_boot:
+        # prepare_ramdisk will set the boot device
+        prepare_agent_boot(task)
+    manager_utils.node_power_action(task, states.POWER_ON)
+
+    return states.SERVICEWAIT
+
+
+def tear_down_inband_service(task, manage_boot=True):
+    """Tears down the environment setup for in-band service.
+
+    This method does the following:
+    1. Powers off the bare metal node (unless the node is fast
+    tracked or there was a service failure).
+    2. If 'manage_boot' parameter is set to true, it also calls
+    the 'clean_up_ramdisk' method of boot interface to clean
+    up the environment that was set for booting agent ramdisk.
+    3. Deletes the cleaning ports which were setup as part
+    of cleaning.
+
+    :param task: a TaskManager object containing the node
+    :param manage_boot: If this is set to True, this method calls the
+        'clean_up_ramdisk' method of boot interface to boot the agent
+        ramdisk. If False, it skips this step.
+    :raises: NetworkError, NodeServiceFailure if the cleaning ports cannot be
+        removed.
+    """
+    node = task.node
+    service_failure = (node.fault == faults.SERVICE_FAILURE)
+
+    if not service_failure:
+        manager_utils.node_power_action(task, states.POWER_OFF)
+
+    if manage_boot:
+        task.driver.boot.clean_up_ramdisk(task)
+
+    power_state_to_restore = manager_utils.power_on_node_if_needed(task)
+    task.driver.network.remove_service_network(task)
+
+    if not service_failure:
+        manager_utils.restore_power_state_if_needed(
+            task, power_state_to_restore)
+
+        with manager_utils.power_state_for_network_configuration(task):
+            task.driver.network.remove_service_network(task)
+            task.driver.network.configure_tenant_networks(task)
+        task.driver.boot.prepare_instance(task)
+        manager_utils.restore_power_state_if_needed(
+            task, power_state_to_restore)
+
+        # Change the task instead of return the state.
+        task.process_event('done')
+
+
 def get_image_instance_info(node):
     """Gets the image information from the node.
 

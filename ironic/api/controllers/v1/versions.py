@@ -123,6 +123,8 @@ BASE_VERSION = 1
 # v1.83: Add child node modeling
 # v1.84: Add ramdisk callback to continue inspection.
 # v1.85: Add unhold verb
+# v1.86: Add firmware interface
+# v1.87: Add service verb
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
 MINOR_2_AVAILABLE_STATE = 2
@@ -210,6 +212,8 @@ MINOR_83_PARENT_CHILD_NODES = 83
 MINOR_84_CONTINUE_INSPECTION = 84
 MINOR_85_UNHOLD_VERB = 85
 MINOR_86_FIRMWARE_INTERFACE = 86
+MINOR_87_SERVICE = 87
+
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -217,7 +221,7 @@ MINOR_86_FIRMWARE_INTERFACE = 86
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_86_FIRMWARE_INTERFACE
+MINOR_MAX_VERSION = MINOR_87_SERVICE
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

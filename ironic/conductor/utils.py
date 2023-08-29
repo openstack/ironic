@@ -574,6 +574,20 @@ def wipe_cleaning_internal_info(task):
     node.del_driver_internal_info('steps_validated')
 
 
+def wipe_service_internal_info(task):
+    """Remove temporary servicing fields from driver_internal_info."""
+    wipe_token_and_url(task)
+    node = task.node
+    node.set_driver_internal_info('service_steps', None)
+    node.del_driver_internal_info('agent_cached_service_steps')
+    node.del_driver_internal_info('service_step_index')
+    node.del_driver_internal_info('service_reboot')
+    node.del_driver_internal_info('service_polling')
+    node.del_driver_internal_info('service_disable_ramdisk')
+    node.del_driver_internal_info('skip_current_service_step')
+    node.del_driver_internal_info('steps_validated')
+
+
 def deploying_error_handler(task, logmsg, errmsg=None, traceback=False,
                             clean_up=True):
     """Put a failed node in DEPLOYFAIL.
@@ -1209,7 +1223,7 @@ def _get_node_next_steps(task, step_type, skip_current_step=True):
     :returns: index of the next step; None if there are none to execute.
 
     """
-    valid_types = set(['clean', 'deploy'])
+    valid_types = set(['clean', 'deploy', 'service'])
     if step_type not in valid_types:
         # NOTE(rloo): No need to i18n this, since this would be a
         # developer error; it isn't user-facing.
@@ -1745,3 +1759,72 @@ def get_token_project_from_request(ctx):
     except AttributeError:
         LOG.warning('Attempted to identify requestor project ID value, '
                     'however we were unable to do so. Possible older API?')
+
+
+def servicing_error_handler(task, logmsg, errmsg=None, traceback=False,
+                            tear_down_service=True, set_fail_state=True,
+                            set_maintenance=None):
+    """Put a failed node in SERVICEFAIL and maintenance (if needed).
+
+    :param task: a TaskManager instance.
+    :param logmsg: Message to be logged.
+    :param errmsg: Message for the user. Optional, if not provided `logmsg` is
+        used.
+    :param traceback: Whether to log a traceback. Defaults to False.
+    :param tear_down_service: Whether to clean up the PXE and DHCP files after
+        servie. Default to True.
+    :param set_fail_state: Whether to set node to failed state. Default to
+        True.
+    :param set_maintenance: Whether to set maintenance mode. If None,
+        maintenance mode will be set if and only if a clean step is being
+        executed on a node.
+    """
+    if set_maintenance is None:
+        set_maintenance = bool(task.node.service_step)
+
+    errmsg = errmsg or logmsg
+    LOG.error(logmsg, exc_info=traceback)
+    node = task.node
+    if set_maintenance:
+        node.fault = faults.SERVICE_FAILURE
+        node.maintenance = True
+
+    if tear_down_service:
+        try:
+            task.driver.deploy.tear_down_service(task)
+        except Exception as e:
+            msg2 = ('Failed to tear down servicing on node %(uuid)s, '
+                    'reason: %(err)s' % {'err': e, 'uuid': node.uuid})
+            LOG.exception(msg2)
+            errmsg = _('%s. Also failed to tear down servicing.') % errmsg
+
+    if node.provision_state in (
+            states.SERVICING,
+            states.SERVICEWAIT,
+            states.SERVICEFAIL):
+        # Clear clean step, msg should already include current step
+        node.service_step = {}
+        # Clear any leftover metadata about cleaning
+        node.del_driver_internal_info('service_step_index')
+        node.del_driver_internal_info('servicing_reboot')
+        node.del_driver_internal_info('servicing_polling')
+        node.del_driver_internal_info('skip_current_service_step')
+        # We don't need to keep the old agent URL, or token
+        # as it should change upon the next cleaning attempt.
+        wipe_token_and_url(task)
+    # For manual cleaning, the target provision state is MANAGEABLE, whereas
+    # for automated cleaning, it is AVAILABLE.
+    node_history_record(node, event=errmsg, event_type=states.SERVICING,
+                        error=True)
+    # NOTE(dtantsur): avoid overwriting existing maintenance_reason
+    if not node.maintenance_reason and set_maintenance:
+        node.maintenance_reason = errmsg
+
+    if CONF.conductor.poweroff_in_servicefail:
+        # NOTE(NobodyCam): Power off node in service fail
+        node_power_action(task, states.POWER_OFF)
+
+    node.save()
+
+    if set_fail_state and node.provision_state != states.SERVICEFAIL:
+        task.process_event('fail')

@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Adds a new Ironic capability called ``service_steps`` which allows a
+    deployed ``ACTIVE`` node to be modified utilizing a new API provision
+    state verb of ``service`` which can include a list of ``service_steps``
+    to be performed. This work is inspired by ``clean_steps`` and
+    ``deploy_steps`` and similar to those efforts, this functionality will
+    continue to evolve as new features, functionality, and capabilities
+    are added.
+  - Adds a new driver method decorator ``base.service_step`` which operates
+    exactly like the existing ``base.clean_step`` and ``base.deploy_step``
+    decorators. Driver methods which are decorated *can* be invoked utilizing
+    the service steps.
+issues:
+  - |
+    The ``service_steps`` functionality does not understand how to poll and
+    communicate with the ``ironic-python-agent``. This is anticipated to be
+    addressed in a future release.

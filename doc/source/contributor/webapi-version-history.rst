@@ -2,6 +2,19 @@
 REST API Version History
 ========================
 
+1.87 (Bobcat)
+-------------
+
+Adds the ``service`` provision state verb to allow modifications
+via the "steps" interface to occur with a baremetal node. With this
+functionality comes a ``service_step`` field on the ``/v1/nodes``
+based resources, which indicates the current step.
+
+1.86 (Bobcat)
+-------------
+
+Adds a ``firmware_interface`` field to the ``/v1/nodes`` resources.
+
 1.85 (Bobcat)
 -------------
 

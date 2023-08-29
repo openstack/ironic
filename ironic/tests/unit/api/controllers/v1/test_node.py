@@ -145,6 +145,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('retired_reason', data['nodes'][0])
         self.assertNotIn('lessee', data['nodes'][0])
         self.assertNotIn('network_data', data['nodes'][0])
+        self.assertNotIn('service_steps', data['nodes'][0])
 
     @mock.patch.object(policy, 'check', autospec=True)
     @mock.patch.object(policy, 'check_policy', autospec=True)
@@ -223,6 +224,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('lessee', data)
         self.assertNotIn('allocation_id', data)
         self.assertIn('allocation_uuid', data)
+        self.assertIn('service_step', data)
 
     def test_get_one_configdrive_dict(self):
         fake_instance_info = {
@@ -6489,6 +6491,54 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual(http_client.NOT_ACCEPTABLE, ret.status_code)
         mock_dpa.assert_not_called()
 
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
+                       autospec=True)
+    def test_unhold_servicehold(self, mock_dpa):
+        self.node.provision_state = states.SERVICEHOLD
+        self.node.save()
+
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['unhold']},
+                            headers={api_base.Version.string: "1.86"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        mock_dpa.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
+                                         states.VERBS['unhold'],
+                                         'test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_service',
+                       autospec=True)
+    def test_service(self, mock_dns):
+        self.node.provision_state = states.SERVICEHOLD
+        self.node.save()
+
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['service'],
+                             'service_steps': [{
+                                 'interface': 'deploy',
+                                 'step': 'meow'}]},
+                            headers={api_base.Version.string: "1.87"})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        mock_dns.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid,
+            [{'interface': 'deploy', 'step': 'meow'}],
+            None, topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_service',
+                       autospec=True)
+    def test_service_args_required(self, mock_dns):
+        self.node.provision_state = states.SERVICEHOLD
+        self.node.save()
+
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['service']},
+                            headers={api_base.Version.string: "1.87"},
+                            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertIn('error_message', ret.json)
+        mock_dns.assert_not_called()
+
     def test_set_console_mode_enabled(self):
         with mock.patch.object(rpcapi.ConductorAPI,
                                'set_console_mode',
@@ -6975,10 +7025,27 @@ class TestCheckCleanSteps(db_base.DbTestCase):
 
         step1 = {"step": "upgrade_firmware", "interface": "deploy",
                  "args": {"arg1": "value1", "arg2": "value2"}}
+        # NOTE(TheJulia): _check_service_steps and _check_deploy_steps
+        # both route back to _check_steps which is what backs _check
+        # clean steps. It is needful duplication for cases, but it doesn't
+        # make a ton of sense to copy/paste everything over and over unless
+        # there is a specific case. In any case, do the needful here.
         api_node._check_clean_steps([step1])
 
-        step2 = {"step": "configure raid", "interface": "raid"}
+        step2 = {"step": "configure raid", "interface": "raid",
+                 "args": {}}
         api_node._check_clean_steps([step1, step2])
+
+        api_node._check_service_steps([step1])
+        api_node._check_service_steps([step1, step2])
+        # Schema differences exist, cleaning doesn't have a schema for
+        # priority when validated.
+
+        step1['priority'] = 10
+        step2['priority'] = 12
+        api_node._check_deploy_steps([step1])
+
+        api_node._check_deploy_steps([step1, step2])
 
     @mock.patch.object(api_utils, 'check_node_policy_and_retrieve',
                        autospec=True)
@@ -7028,6 +7095,15 @@ class TestCheckCleanSteps(db_base.DbTestCase):
                       child_node_1.uuid),
             mock.call('baremetal:node:set_provision_state',
                       child_node_2.uuid)])
+
+    @mock.patch.object(api_node, '_check_steps', autospec=True)
+    def test_check__check_steps_wrappers(self, check_mock):
+        api_node._check_clean_steps({})
+        self.assertEqual(1, check_mock.call_count)
+        api_node._check_deploy_steps({})
+        self.assertEqual(2, check_mock.call_count)
+        api_node._check_service_steps({})
+        self.assertEqual(3, check_mock.call_count)
 
 
 class TestAttachDetachVif(test_api_base.BaseApiTest):

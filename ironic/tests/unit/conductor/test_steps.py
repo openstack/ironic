@@ -1059,8 +1059,8 @@ class GetValidatedStepsFromTemplatesTestCase(db_base.DbTestCase):
                                      mock_templates):
         mock_templates.return_value = [self.template]
         mock_validate.side_effect = exception.InstanceDeployFailure('foo')
-        with task_manager.acquire(
-                self.context, self.node.uuid, shared=False) as task:
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
             self.assertRaises(
                 exception.InstanceDeployFailure,
                 conductor_steps._get_validated_steps_from_templates, task)
@@ -1399,3 +1399,87 @@ class ReservedStepHandlerByNameTestCase(db_base.DbTestCase):
 
     def test_reserved_step_wait_time(self):
         self._test_reserved_step({'step': 'wait', 'args': {'seconds': 1}})
+
+
+class NodeServiceStepsTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(NodeServiceStepsTestCase, self).setUp()
+
+        self.deploy_start = {
+            'step': 'deploy_start', 'priority': 50, 'interface': 'deploy'}
+        self.power_one = {
+            'step': 'power_one', 'priority': 40, 'interface': 'power'}
+        self.deploy_middle = {
+            'step': 'deploy_middle', 'priority': 40, 'interface': 'deploy'}
+        self.deploy_end = {
+            'step': 'deploy_end', 'priority': 20, 'interface': 'deploy'}
+        self.power_disable = {
+            'step': 'power_disable', 'priority': 0, 'interface': 'power'}
+        self.deploy_core = {
+            'step': 'deploy', 'priority': 100, 'interface': 'deploy'}
+        # enabled steps
+        self.service_steps = [self.deploy_start, self.power_one,
+                              self.deploy_middle, self.deploy_end]
+        # Deploy step with argsinfo.
+        self.deploy_raid = {
+            'step': 'build_raid', 'priority': 0, 'interface': 'deploy',
+            'argsinfo': {'arg1': {'description': 'desc1', 'required': True},
+                         'arg2': {'description': 'desc2'}}}
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware')
+
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.get_service_steps',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_service_steps',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeManagement.get_service_steps',
+                autospec=True)
+    def test__get_service_steps(self, mock_mgt_steps, mock_power_steps,
+                                mock_deploy_steps):
+        # Test getting deploy steps, with one driver returning None, two
+        # conflicting priorities, and asserting they are ordered properly.
+
+        mock_power_steps.return_value = [self.power_disable, self.power_one]
+        mock_deploy_steps.return_value = [
+            self.deploy_start, self.deploy_middle, self.deploy_end]
+        # These next steps are actually present on the FakeVendorB interface,
+        # and instead of just mock everything, we're actually exercising the
+        # rest of the way down including the decorator to get here.
+        fake_log_passthrough = {
+            'abortable': False, 'argsinfo': None, 'interface': 'vendor',
+            'priority': 0, 'requires_ramdisk': False,
+            'step': 'log_passthrough'
+        }
+        fake_trigger_servicewait = {
+            'abortable': False, 'argsinfo': None, 'interface': 'vendor',
+            'priority': 0, 'requires_ramdisk': True,
+            'step': 'trigger_servicewait'
+        }
+
+        expected = self.service_steps + [fake_log_passthrough,
+                                         fake_trigger_servicewait,
+                                         self.power_disable]
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            steps = conductor_steps._get_service_steps(task, enabled=False)
+
+            self.assertEqual(expected, steps)
+            mock_mgt_steps.assert_called_once_with(mock.ANY, task)
+            mock_power_steps.assert_called_once_with(mock.ANY, task)
+            mock_deploy_steps.assert_called_once_with(mock.ANY, task)
+
+    @mock.patch.object(conductor_steps, '_validate_user_service_steps',
+                       autospec=True)
+    def test_set_node_service_steps(self, mock_steps):
+        mock_steps.return_value = self.service_steps
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            conductor_steps.set_node_service_steps(task)
+            self.node.refresh()
+            self.assertEqual(self.service_steps,
+                             self.node.driver_internal_info['service_steps'])
+            self.assertEqual({}, self.node.service_step)
+            self.assertIsNone(
+                self.node.driver_internal_info['service_step_index'])
+            mock_steps.assert_called_once_with(task, [], disable_ramdisk=False)

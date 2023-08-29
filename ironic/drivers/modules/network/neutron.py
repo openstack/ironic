@@ -265,3 +265,33 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         """
         return self._remove_network(
             task, self.get_inspection_network_uuid(task), 'inspection')
+
+    def validate_servicing(self, task):
+        """Validates the network interface for servicing operation.
+
+        :param task: a TaskManager instance.
+        :raises: InvalidParameterValue, if the network interface configuration
+            is invalid.
+        :raises: MissingParameterValue, if some parameters are missing.
+        """
+        self.get_servicing_network_uuid(task)
+
+    def add_servicing_network(self, task):
+        """Create neutron ports for each port to boot the servicing ramdisk.
+
+        :param task: a TaskManager instance.
+        :returns: a dictionary in the form {port.uuid: neutron_port['id']}
+        """
+        return self._add_network(
+            task, self.get_servicing_network_uuid(task),
+            CONF.neutron.servicing_network_security_groups,
+            'servicing')
+
+    def remove_servicing_network(self, task):
+        """Deletes neutron port created for booting the servicing ramdisk.
+
+        :param task: a TaskManager instance.
+        :raises: NetworkError
+        """
+        return self._remove_network(
+            task, self.get_servicing_network_uuid(task), 'servicing')
