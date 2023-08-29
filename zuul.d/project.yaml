@@ -39,9 +39,7 @@
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-centos9-legacy
-        # NOTE(rpittau): NV until it's fixed
-        - metal3-integration:
-            voting: false
+        - metal3-integration
         # Non-voting jobs
         - ironic-tox-bandit:
             voting: false
@@ -89,8 +87,8 @@
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
-        - metalsmith-integration-glance-centos8-legacy
-        #- metal3-integration
+        - metalsmith-integration-glance-centos9-legacy
+        - metal3-integration
     experimental:
       jobs:
         # TODO(dtantsur): these jobs are useful but currently hopelessly
