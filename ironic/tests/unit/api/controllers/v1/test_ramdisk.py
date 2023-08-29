@@ -80,6 +80,7 @@ class TestLookup(test_api_base.BaseApiTest):
             'heartbeat_timeout': CONF.api.ramdisk_heartbeat_timeout,
             'agent_token': mock.ANY,
             'agent_token_required': True,
+            'agent_md5_checksum_enable': CONF.agent.allow_md5_checksum,
         }
         self.assertEqual(expected_config, data['config'])
         self.assertIsNotNone(data['config']['agent_token'])

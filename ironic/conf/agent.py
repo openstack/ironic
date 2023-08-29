@@ -163,6 +163,12 @@ opts = [
                help=_('Path to the TLS CA that is used to start the bare '
                       'metal API. In some boot methods this file can be '
                       'passed to the ramdisk.')),
+    cfg.BoolOpt('allow_md5_checksum',
+                default=True,
+                help=_('When enabled, the agent will be notified it is '
+                       'permitted to consider MD5 checksums. This option '
+                       'is expected to change to a default of False in a '
+                       '2024 release of Ironic.')),
 ]
 
 
