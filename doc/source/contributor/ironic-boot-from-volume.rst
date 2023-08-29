@@ -8,6 +8,8 @@ which has been supported from the Pike release.
 This scenario shows how to setup DevStack to enable nodes to boot from volumes
 managed by cinder with VMs as baremetal servers.
 
+.. _BFVDevstack:
+
 DevStack Configuration
 ======================
 
