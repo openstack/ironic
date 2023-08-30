@@ -1,0 +1,9 @@
+---
+other:
+  - |
+    While investigating `bug 2033430 <https://bugs.launchpad.net/ironic/+bug/2033430>`_
+    we discovered we were emitting DHCP option 210 *only* with OVN, and never
+    emitted it with dnsmasq because it was not being set previously. Our
+    internal notes also indicated this was for PXELinux support, but was
+    never actually needed. As it was excess, and redundant configuration
+    being provided to Neutron, it has been removed.

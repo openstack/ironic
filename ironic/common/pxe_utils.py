@@ -58,7 +58,6 @@ DHCPV6_BOOTFILE_NAME = '59'  # rfc5970
 # DHCPV6_BOOTFILE_PARAMS = '60'  # rfc5970
 DHCP_TFTP_SERVER_ADDRESS = '150'  # rfc5859
 DHCP_IPXE_ENCAP_OPTS = '175'  # Tentatively Assigned
-DHCP_TFTP_PATH_PREFIX = '210'  # rfc5071
 DHCP_SERVER_IP_ADDRESS = '255'  # dnsmasq server-ip-address
 
 DEPLOY_KERNEL_RAMDISK_LABELS = ['deploy_kernel', 'deploy_ramdisk']
@@ -562,16 +561,6 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False,
     else:
         dhcp_opts.append({'opt_name': boot_file_param,
                           'opt_value': boot_file})
-        # 210 == tftp server path-prefix or tftp root, will be used to find
-        # pxelinux.cfg directory. The pxelinux.0 loader infers this information
-        # from it's own path, but Petitboot needs it to be specified by this
-        # option since it doesn't use pxelinux.0 loader.
-        if not url_boot:
-            # Enforce trailing slash
-            prefix = os.path.join(CONF.pxe.tftp_root, '')
-            dhcp_opts.append(
-                {'opt_name': DHCP_TFTP_PATH_PREFIX,
-                 'opt_value': prefix})
 
     if not url_boot:
         dhcp_opts.append({'opt_name': DHCP_TFTP_SERVER_NAME,
