@@ -651,6 +651,10 @@ class HeartbeatMixin(object):
                         'processing (will retry on the next heartbeat)',
                         task.node.uuid)
             return
+        except Exception as e:
+            LOG.warning('Node %s failed to lock for a heartbeat operation '
+                        'with an unknown cause. Error: %s', task.node.uuid, e)
+            return
 
         node = task.node
         LOG.debug('Heartbeat from node %s in state %s (target state %s)',
