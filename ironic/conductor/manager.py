@@ -94,7 +94,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.57'
+    RPC_API_VERSION = '1.58'
 
     target = messaging.Target(version=RPC_API_VERSION)
 

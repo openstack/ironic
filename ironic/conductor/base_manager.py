@@ -24,6 +24,7 @@ from ironic_lib import mdns
 from oslo_db import exception as db_exception
 from oslo_log import log
 from oslo_utils import excutils
+from oslo_utils import netutils
 from oslo_utils import versionutils
 
 from ironic.common import context as ironic_context
@@ -73,6 +74,15 @@ class BaseConductorManager(object):
         Under normal operation, this is also when the initial database
         connectivity is established for the conductor's normal operation.
         """
+        # Determine the hostname to utilize/register
+        if (CONF.rpc_transport == 'json-rpc'
+                and CONF.json_rpc.port != 8089
+                and self._use_jsonrpc_port()):
+            # in the event someone configures self.host
+            # as an ipv6 address...
+            host = netutils.escape_ipv6(self.host)
+            self.host = f'{host}:{CONF.json_rpc.port}'
+
         # NOTE(TheJulia) We need to clear locks early on in the process
         # of starting where the database shows we still hold them.
         # This must be done before we re-register our existence in the
@@ -223,6 +233,13 @@ class BaseConductorManager(object):
             self._publish_endpoint()
 
         self._started = True
+
+    def _use_jsonrpc_port(self):
+        """Determines if the JSON-RPC port can be used."""
+        release_ver = versions.RELEASE_MAPPING.get(CONF.pin_release_version)
+        version_cap = (release_ver['rpc'] if release_ver
+                       else self.RPC_API_VERSION)
+        return versionutils.is_compatible('1.58', version_cap)
 
     def _use_groups(self):
         release_ver = versions.RELEASE_MAPPING.get(CONF.pin_release_version)

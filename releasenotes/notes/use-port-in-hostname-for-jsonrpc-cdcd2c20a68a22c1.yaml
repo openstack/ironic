@@ -1,0 +1,16 @@
+features:
+  - |
+    Adds the storage of the ``[json_rpc]port`` configuration value to the
+    internal conductor hostname field when the ``[DEFAULT]rpc_transport``
+    setting is set to "json-rpc". This allows deployments to utilize varying
+    port configurations for JSON-RPC. As a result of this change, the RPC
+    API version has been incremented to ``1.57`` and the feature is not
+    available until any ``[DEFAULT]pin_release_version`` setting is removed.
+upgrade:
+  - |
+    Operators utilizing JSON-RPC transport to conductors with a non-default
+    port configuration should expect to see the hash ring layout change as
+    the port number is now included in the hash ring calculation. This will
+    only occur once the hash ring pin has been removed.
+  - Requires ``ironic-lib`` version *5.5.0* for the json-rpc port to be
+    properly set and utilized.
