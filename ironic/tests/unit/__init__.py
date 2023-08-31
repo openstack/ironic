@@ -30,7 +30,7 @@ from oslo_log import log
 
 from ironic import objects
 
-eventlet.monkey_patch(os=False)
+eventlet.monkey_patch()
 
 log.register_options(cfg.CONF)
 log.setup(cfg.CONF, 'ironic')
