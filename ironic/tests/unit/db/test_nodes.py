@@ -15,6 +15,7 @@
 
 """Tests for manipulating Nodes via the DB API"""
 
+import copy
 import datetime
 from unittest import mock
 
@@ -29,6 +30,7 @@ from sqlalchemy.orm import exc as sa_orm_exc
 
 from ironic.common import exception
 from ironic.common import states
+from ironic.common import utils as common_utils
 from ironic.db.sqlalchemy import api as dbapi
 from ironic.db.sqlalchemy.api import Connection as db_conn
 from ironic.db.sqlalchemy.models import NodeInventory
@@ -1036,6 +1038,39 @@ class DbNodeTestCase(base.DbTestCase):
         # check reservation
         res = self.dbapi.get_node_by_uuid(uuid)
         self.assertEqual(r1, res.reservation)
+
+    def test_reserve_node_reads_reservation_once_sqlite(self):
+        node = utils.create_test_node()
+        uuid = node.uuid
+
+        r1 = 'fake-reservation'
+
+        with mock.patch.object(db_conn, '_get_node_reservation',
+                               autospec=True) as mock_get_res:
+            mock_get_res.return_value = node
+            self.dbapi.reserve_node(r1, uuid)
+            mock_get_res.assert_called_once_with(mock.ANY, node.uuid)
+
+    @mock.patch.object(common_utils, 'is_ironic_using_sqlite', autospec=True)
+    def test_reserve_node_reads_reservation_twice(self, is_sqlite_mock):
+        # Ensure we re-query for who holds the reservation *when* lock fails
+        # to trigger.
+        node = utils.create_test_node()
+        uuid = node.uuid
+        is_sqlite_mock.return_value = False
+        r1 = 'fake-reservation'
+        self.dbapi.update_node(node.id, {'reservation': r1})
+        locked_node = copy.copy(node)
+        locked_node.reservation = r1
+        with mock.patch.object(db_conn, '_get_node_reservation',
+                               autospec=True) as mock_get_res:
+            mock_get_res.side_effect = [node, locked_node]
+            self.assertRaisesRegex(exception.NodeLocked,
+                                   'locked by host fake-reservation',
+                                   self.dbapi.reserve_node, r1, uuid)
+            mock_get_res.assert_has_calls([
+                mock.call(mock.ANY, node.uuid),
+                mock.call(mock.ANY, node.id)])
 
     def test_release_reservation(self):
         node = utils.create_test_node()
