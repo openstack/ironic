@@ -1390,6 +1390,8 @@ class VendorPassthru(base.VendorInterface):
     }
 
     @METRICS.timer('VendorPassthru.send_raw')
+    @base.service_step(priority=0,
+                       argsinfo=_send_raw_step_args)
     @base.deploy_step(priority=0,
                       argsinfo=_send_raw_step_args)
     @base.clean_step(priority=0, abortable=False,

@@ -498,7 +498,7 @@ def set_node_service_steps(task, disable_ramdisk=False):
     :raises: InvalidParameterValue if there is a problem with the user's
              clean steps.
     :raises: NodeCleaningFailure if there was a problem getting the
-             clean steps.
+             service steps.
     """
     node = task.node
     steps = _validate_user_service_steps(
@@ -848,7 +848,7 @@ def _validate_user_service_steps(task, user_steps, disable_ramdisk=False):
     :raises: InvalidParameterValue if validation of clean steps fails.
     :raises: NodeCleaningFailure if there was a problem getting the
         clean steps from the driver.
-    :return: validated clean steps update with information from the driver
+    :return: validated service steps update with information from the driver
     """
     # We call with enabled = False below so we pickup auto-disabled
     # steps, since service steps are not automagic like cleaning can be.

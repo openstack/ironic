@@ -752,6 +752,8 @@ class RedfishRAID(base.RAIDInterface):
             raise exception.InvalidParameterValue(
                 _('interface type `scsi` not supported by Redfish RAID'))
 
+    @base.service_step(priority=0,
+                       argsinfo=base.RAID_APPLY_CONFIGURATION_ARGSINFO)
     @base.deploy_step(priority=0,
                       argsinfo=base.RAID_APPLY_CONFIGURATION_ARGSINFO)
     def apply_configuration(self, task, raid_config, create_root_volume=True,
@@ -850,6 +852,7 @@ class RedfishRAID(base.RAIDInterface):
 
     @base.clean_step(priority=0)
     @base.deploy_step(priority=0)
+    @base.service_step(priority=0)
     def delete_configuration(self, task):
         """Delete RAID configuration on the node.
 

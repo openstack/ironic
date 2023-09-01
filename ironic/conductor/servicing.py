@@ -322,7 +322,7 @@ def do_node_service_abort(task):
         return
 
     last_error = get_last_error(node)
-    info_message = _('Clean operation aborted for node %s') % node.uuid
+    info_message = _('Service operation aborted for node %s') % node.uuid
     if node.service_step:
         info_message += (
             _(' during or after the completion of step "%s"')

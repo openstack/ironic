@@ -816,11 +816,11 @@ class AgentBaseMixin(object):
         """Boot into the agent to prepare for service.
 
         :param task: a TaskManager object containing the node
-        :raises: NodeCleaningFailure, NetworkError if: the previous cleaning
-            ports cannot be removed or if new cleaning ports cannot be created.
+        :raises: NodeServiceFailure, NetworkError if: the previous service
+            ports cannot be removed or if new service ports cannot be created.
         :raises: InvalidParameterValue if cleaning network UUID config option
             has an invalid value.
-        :returns: states.CLEANWAIT to signify an asynchronous prepare
+        :returns: states.SERVICEWAIT to signify an asynchronous prepare
         """
         result = deploy_utils.prepare_inband_service(task)
         if result is None:
@@ -830,11 +830,11 @@ class AgentBaseMixin(object):
 
     @METRICS.timer('AgentBaseMixin.tear_down_service')
     def tear_down_service(self, task):
-        """Clean up the PXE and DHCP files after cleaning.
+        """Clean up the PXE and DHCP files after service.
 
         :param task: a TaskManager object containing the node
-        :raises: NodeServiceFailure, NetworkError if the cleaning ports cannot
-            be removed
+        :raises: NodeServiceFailure, NetworkError if the servicing ports
+            cannot be removed
         """
         deploy_utils.tear_down_inband_service(
             task)
