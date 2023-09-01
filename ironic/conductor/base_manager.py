@@ -45,7 +45,7 @@ from ironic.db import api as dbapi
 from ironic.drivers.modules import deploy_utils
 from ironic import objects
 from ironic.objects import fields as obj_fields
-
+from ironic import version
 
 LOG = log.getLogger(__name__)
 
@@ -233,6 +233,8 @@ class BaseConductorManager(object):
             self._publish_endpoint()
 
         self._started = True
+        LOG.debug('Started Ironic Conductor - %s',
+                  version.version_info.release_string())
 
     def _use_jsonrpc_port(self):
         """Determines if the JSON-RPC port can be used."""
