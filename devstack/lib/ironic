@@ -382,6 +382,7 @@ IRONIC_UWSGI=$IRONIC_BIN_DIR/ironic-api-wsgi
 
 # Lets support IPv6 testing!
 IRONIC_IP_VERSION=${IRONIC_IP_VERSION:-${IP_VERSION:-4}}
+IRONIC_IPV6_ADDRESS_MODE=${IRONIC_IPV6_ADDRESS_MODE:-dhcpv6-stateless}
 
 # Ironic connection info.  Note the port must be specified.
 if is_service_enabled tls-proxy; then
@@ -1424,11 +1425,9 @@ function configure_ironic_provision_network {
                 --subnet-range $IRONIC_PROVISION_SUBNET_PREFIX \
                 --dns-nameserver 8.8.8.8 -f value -c id)"
         else
-            # NOTE(TheJulia): Consider changing this to stateful to support UEFI once we move
-            # CI to Ubuntu Jammy as it will support v6 and v4 UEFI firmware driven boot ops.
             subnet_id="$(openstack --os-cloud $OS_CLOUD subnet create --ip-version 6 \
-                --ipv6-address-mode dhcpv6-stateless \
-                --ipv6-ra-mode dhcpv6-stateless \
+                --ipv6-address-mode $IRONIC_IPV6_ADDRESS_MODE \
+                --ipv6-ra-mode $IRONIC_IPV6_ADDRESS_MODE \
                 --dns-nameserver 2001:4860:4860::8888 \
                 ${net_segment_id:+--network-segment $net_segment_id} \
                 $IRONIC_PROVISION_PROVIDER_SUBNET_NAME \
