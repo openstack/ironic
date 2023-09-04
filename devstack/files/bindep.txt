@@ -21,6 +21,9 @@ tftp-server [platform:rpm]
 pxelinux [platform:dpkg]
 syslinux
 syslinux-common [platform:dpkg]
+# On CentOS Stream pxelinux.0 boot loader is in the syslinux-nonlinux
+# package.
+syslinux-nonlinux [platform:rpm]
 isolinux [platform:dpkg]
 socat [default]
 # Grub2 files for boot loadingusing PXE/GRUB2
@@ -85,6 +88,7 @@ kpartx
 libguestfs0 [platform:dpkg imagebuild]
 libguestfs [platform:rpm imagebuild]
 libguestfs-tools [platform:dpkg]
+guestfs-tools [platform:rpm imagebuild]
 python-guestfs [platform:dpkg imagebuild]
 qemu-img [platform:rpm]
 # for TinyIPA build
