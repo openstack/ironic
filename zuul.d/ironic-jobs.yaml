@@ -696,7 +696,7 @@
     vars:
       tox_envlist: py3
     # The job only tests the latest and shouldn't be run on the stable branches
-    branches: ^(?!stable)
+    branches: ^master$
     required-projects:
       - name: github.com/sqlalchemy/sqlalchemy
         override-checkout: main
