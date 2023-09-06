@@ -1359,6 +1359,7 @@ function configure_ironic_rescue_network {
 }
 
 function configure_ironic_provision_network {
+    configure_neutron_dhcp_enable_addr6_list
     if [[ "$IRONIC_IP_VERSION" == "6" ]]; then
         # NOTE(TheJulia): Ideally we should let this happen
         # with our global address, but iPXE seems to have in
@@ -1488,6 +1489,13 @@ function cleanup_ironic_provision_network {
 
 function configure_neutron_l3_lower_v6_ra {
     iniset $Q_L3_CONF_FILE DEFAULT min_rtr_adv_interval 5
+}
+
+function configure_neutron_dhcp_enable_addr6_list {
+    if is_service_enabled q-dhcp; then
+        iniset $Q_DHCP_CONF_FILE DEFAULT dnsmasq_enable_addr6_list true
+        restart_service devstack@q-dhcp.service
+    fi
 }
 
 # configure_ironic() - Set config files, create data dirs, etc
