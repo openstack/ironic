@@ -57,7 +57,7 @@
             voting: false
         - ironic-inspector-tempest-rbac-scope-enforced:
             voting: false
-        - bifrost-integration-tinyipa-ubuntu-focal:
+        - bifrost-integration-tinyipa-ubuntu-jammy:
             voting: false
         - bifrost-integration-redfish-vmedia-uefi-centos-9:
             voting: false
