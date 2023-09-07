@@ -126,7 +126,14 @@ opts = [
                 help=_('Mapping of IP subnet CIDR to physical network. When '
                        'the phyical-network inspection hook is enabled, the '
                        '"physical_network" property of corresponding '
-                       'baremetal ports is populated based on this mapping.'))
+                       'baremetal ports is populated based on this mapping.')),
+    cfg.BoolOpt('disk_partitioning_spacing',
+                default=True,
+                help=_('Whether to leave 1 GiB of disk size untouched for '
+                       'partitioning. Only has effect when used with the IPA '
+                       'as a ramdisk, for older ramdisk local_gb is '
+                       'calculated on the ramdisk side. This configuration '
+                       'option is used by the "root-device" inspection hook.'))
 ]
 
 
