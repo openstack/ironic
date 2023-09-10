@@ -111,6 +111,14 @@ IRONIC_HW_NODE_DISK=${IRONIC_HW_NODE_DISK:-10}
 IRONIC_HW_EPHEMERAL_DISK=${IRONIC_HW_EPHEMERAL_DISK:-0}
 IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
 
+# Deploy Ironic Nodes & configure n-cpu for sharding
+# Currently only supports 0 (old behavior) or 1 (adds all nodes
+# to the same shard). You can still use this with multinode to
+# get multiple shards in one Ironic install.
+# IRONIC_SHARD_1_NAME + IRONIC_SHARDS will also configure n-cpu
+IRONIC_SHARDS=${IRONIC_SHARDS:-0}
+IRONIC_SHARD_1_NAME=${IRONIC_SHARD_1_NAME:-ds_shard_1}
+
 # The file is composed of multiple lines, each line includes fields
 # separated by white space, in the format:
 #
@@ -697,6 +705,10 @@ if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
         IRONIC_GRUB2_SHIM_FILE=$(echo $IRONIC_GRUB2_SHIM_FILE | sed  "s|https://mirror.stream.centos.org|${CENTOS_MIRROR_HOST}|g")
         IRONIC_GRUB2_FILE=$(echo $IRONIC_GRUB2_FILE | sed  "s|https://mirror.stream.centos.org|${CENTOS_MIRROR_HOST}|g")
     fi
+fi
+
+if [[ "$IRONIC_SHARDS" != "0" ]] && [[ "$IRONIC_SHARDS" != "1" ]]; then
+    die $LINENO "Only support 0 or 1 shards at this time."
 fi
 
 # TODO(pas-ha) find a way to (cross-)sign the custom CA bundle used by tls-proxy
@@ -2641,6 +2653,10 @@ function enroll_nodes {
         if [[ "$ironic_node_disk" -lt "4" && is_deployed_by_agent ]]; then
             $IRONIC_CMD node set $node_id --property \
                 root_device='{"vendor": "0x1af4"}'
+        fi
+
+        if [[ $IRONIC_SHARDS == "1" ]]; then
+            openstack --os-cloud devstack-system-admin baremetal node set $node_id --shard $IRONIC_SHARD_1_NAME
         fi
 
         # In case we using portgroups, we should API version that support them.

@@ -274,6 +274,8 @@
         IRONIC_BOOT_MODE: bios
         # Make sure this feature works even with the minumum implementation
         IRONIC_REDFISH_EMULATOR_FEATURE_SET: minimum
+        # Test sharding support
+        IRONIC_SHARDS: 1
       devstack_services:
         # Parent job uses swift, this one does not, thus we can turn it off.
         s-account: False
@@ -731,6 +733,25 @@
           ovn-northd: False
           q-ovn-metadata-agent: False
           n-cpu: True
+
+- job:
+    # NOTE(JayF) This job sets up two nova-computes with two different shards
+    # TODO(JayF) Add a post-run validation to ensure the two n-cpus did not
+    #            see each others' nodes
+    name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode-shard
+    description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode-shard
+    parent: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
+    nodeset: openstack-two-node-jammy
+    vars:
+      tempest_test_regex: "BaremetalBasicOps"
+      devstack_localrc:
+        IRONIC_SHARDS: 1
+        IRONIC_SHARD_1_NAME: "main-node"
+    group-vars:
+      subnode:
+        devstack_localrc:
+          IRONIC_SHARDS: 1
+          IRONIC_SHARD_1_NAME: "subnode"
 
 - job:
     name: ironic-tox-unit-with-driver-libs
