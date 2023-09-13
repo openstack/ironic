@@ -57,8 +57,10 @@ from ironic.conductor import verify
 from ironic.db import api as dbapi
 from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import fake
+from ironic.drivers.modules import image_utils
 from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.network import flat as n_flat
+from ironic.drivers.modules import redfish
 from ironic import objects
 from ironic.objects import base as obj_base
 from ironic.objects import fields as obj_fields
@@ -68,6 +70,8 @@ from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 CONF = cfg.CONF
+
+INFO_DICT = db_utils.get_test_redfish_info()
 
 
 @mgr_utils.mock_record_keepalive
@@ -8658,3 +8662,55 @@ class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             call_args=(servicing.do_node_service, mock.ANY,
                        {'foo': 'bar'}, False),
             err_handler=mock.ANY, target_state='active')
+
+
+@mock.patch.object(
+    task_manager.TaskManager, 'spawn_after',
+    lambda self, _spawn, func, *args, **kwargs: func(*args, **kwargs))
+@mgr_utils.mock_record_keepalive
+class VirtualMediaTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.config(enabled_hardware_types=['redfish'],
+                    enabled_power_interfaces=['redfish'],
+                    enabled_boot_interfaces=['redfish-virtual-media'],
+                    enabled_management_interfaces=['redfish'],
+                    enabled_inspect_interfaces=['redfish'],
+                    enabled_bios_interfaces=['redfish'])
+        self.node = obj_utils.create_test_node(
+            self.context, driver='redfish', driver_info=INFO_DICT,
+            provision_state=states.ACTIVE)
+
+    @mock.patch.object(image_utils, 'ISOImageCache', autospec=True)
+    @mock.patch.object(redfish.management.RedfishManagement, 'validate',
+                       autospec=True)
+    @mock.patch.object(manager, 'do_attach_virtual_media',
+                       autospec=True)
+    def test_attach_virtual_media_local(self, mock_attach, mock_validate,
+                                        mock_cache):
+        CONF.set_override('use_swift', 'false', group='redfish')
+        self.service.attach_virtual_media(self.context, self.node.id,
+                                          boot_devices.CDROM,
+                                          'https://url')
+        mock_validate.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_attach.assert_called_once_with(
+            mock.ANY, device_type=boot_devices.CDROM,
+            image_url='https://url', image_download_source='local')
+        self.node.refresh()
+        self.assertIsNone(self.node.last_error)
+
+    @mock.patch.object(redfish.management.RedfishManagement, 'validate',
+                       autospec=True)
+    @mock.patch.object(manager, 'do_attach_virtual_media', autospec=True)
+    def test_attach_virtual_media_http(self, mock_attach, mock_validate):
+        self.service.attach_virtual_media(self.context, self.node.id,
+                                          boot_devices.CDROM,
+                                          'https://url',
+                                          image_download_source='http')
+        mock_validate.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_attach.assert_called_once_with(
+            mock.ANY, device_type=boot_devices.CDROM,
+            image_url='https://url', image_download_source='http')
+        self.node.refresh()
+        self.assertIsNone(self.node.last_error)

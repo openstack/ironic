@@ -126,6 +126,7 @@ BASE_VERSION = 1
 # v1.86: Add firmware interface
 # v1.87: Add service verb
 # v1.88: Add name field to port.
+# v1.89: Add API for attaching/detaching virtual media
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -216,6 +217,7 @@ MINOR_85_UNHOLD_VERB = 85
 MINOR_86_FIRMWARE_INTERFACE = 86
 MINOR_87_SERVICE = 87
 MINOR_88_PORT_NAME = 88
+MINOR_89_ATTACH_DETACH_VMEDIA = 89
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -223,7 +225,7 @@ MINOR_88_PORT_NAME = 88
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_88_PORT_NAME
+MINOR_MAX_VERSION = MINOR_89_ATTACH_DETACH_VMEDIA
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

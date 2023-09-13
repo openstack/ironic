@@ -17,6 +17,7 @@ import copy
 import datetime
 from http import client as http_client
 import json
+import urllib.parse
 
 from ironic_lib import metrics_utils
 import jsonschema
@@ -41,6 +42,7 @@ from ironic.api.controllers.v1 import versions
 from ironic.api.controllers.v1 import volume
 from ironic.api import method
 from ironic.common import args
+from ironic.common import boot_devices
 from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -316,6 +318,28 @@ VIF_VALIDATOR = args.and_valid(
     args.dict_valid(id=args.uuid_or_name)
 )
 
+VMEDIA_ATTACH_VALIDATOR = args.schema({
+    'type': 'object',
+    'properties': {
+        'device_type': {
+            'type': 'string',
+            'enum': boot_devices.VMEDIA_DEVICES,
+        },
+        'image_url': {'type': 'string'},
+        'image_download_source': {
+            'type': 'string',
+            'enum': ['http', 'local', 'swift'],
+        },
+        # TODO(dtantsur): these are useful additions in the future, but the
+        # ISO image code does not support them.
+        # 'username': {'type': 'string'},
+        # 'password': {'type': 'string'},
+        # 'insecure': {'type': 'boolean'},
+    },
+    'required': ['device_type', 'image_url'],
+    'additionalProperties': False,
+})
+
 
 def get_nodes_controller_reserved_names():
     global _NODES_CONTROLLER_RESERVED_WORDS
@@ -398,6 +422,18 @@ def validate_network_data(network_data):
         # said in jsonschema documentation to use this still.
         msg = _("Invalid network_data: %s ") % e.message
         raise exception.Invalid(msg)
+
+
+class GetNodeAndTopicMixin:
+
+    def _get_node_and_topic(self, policy_name):
+        rpc_node = api_utils.check_node_policy_and_retrieve(
+            policy_name, self.node_ident)
+        try:
+            return rpc_node, api.request.rpcapi.get_topic_for(rpc_node)
+        except exception.NoValidHost as e:
+            e.code = http_client.BAD_REQUEST
+            raise
 
 
 class BootDeviceController(rest.RestController):
@@ -1904,19 +1940,10 @@ class NodeMaintenanceController(rest.RestController):
         self._set_maintenance(rpc_node, False)
 
 
-class NodeVIFController(rest.RestController):
+class NodeVIFController(rest.RestController, GetNodeAndTopicMixin):
 
     def __init__(self, node_ident):
         self.node_ident = node_ident
-
-    def _get_node_and_topic(self, policy_name):
-        rpc_node = api_utils.check_node_policy_and_retrieve(
-            policy_name, self.node_ident)
-        try:
-            return rpc_node, api.request.rpcapi.get_topic_for(rpc_node)
-        except exception.NoValidHost as e:
-            e.code = http_client.BAD_REQUEST
-            raise
 
     @METRICS.timer('NodeVIFController.get_all')
     @method.expose()
@@ -2119,6 +2146,61 @@ class NodeChildrenController(rest.RestController):
                                     '?parent_node={}'.format(rpc_node.uuid))}
 
 
+class NodeVmediaController(rest.RestController, GetNodeAndTopicMixin):
+
+    def __init__(self, node_ident):
+        self.node_ident = node_ident
+
+    @METRICS.timer('NodeVmediaController.post')
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @method.body('vmedia')
+    @args.validate(vmedia=VMEDIA_ATTACH_VALIDATOR)
+    def post(self, vmedia):
+        """Attach a virtual media to this node
+
+        :param vmedia: a dictionary of information about the attachment.
+        """
+        parsed_url = urllib.parse.urlparse(vmedia['image_url'])
+        # NOTE(dtantsur): we may eventually support glance images, but for now
+        # let us reject everything that is not http/https.
+        if parsed_url.scheme not in ('http', 'https'):
+            raise exception.Invalid(_("Unsupported or missing URL scheme: %s")
+                                    % parsed_url.scheme)
+
+        rpc_node, topic = self._get_node_and_topic(
+            'baremetal:node:vmedia:attach')
+        api.request.rpcapi.attach_virtual_media(
+            api.request.context, rpc_node.uuid,
+            device_type=vmedia['device_type'],
+            image_url=vmedia['image_url'],
+            image_download_source=vmedia.get('image_download_source', 'local'),
+            topic=topic)
+
+    @METRICS.timer('NodeVmediaController.delete')
+    @method.expose(status_code=http_client.NO_CONTENT)
+    @args.validate(device_types=args.string_list)
+    def delete(self, device_types=None):
+        """Detach a virtual media from this node
+
+        :param device_types: A collection of device types.
+        """
+        if device_types:
+            invalid = [item for item in device_types
+                       if item not in boot_devices.VMEDIA_DEVICES]
+            if invalid:
+                raise exception.Invalid(
+                    _("Invalid device type(s) %(invalid)s "
+                      "(valid are %(valid)s)")
+                    % {'invalid': ', '.join(invalid),
+                       'valid': ', '.join(boot_devices.VMEDIA_DEVICES)})
+
+        rpc_node, topic = self._get_node_and_topic(
+            'baremetal:node:vmedia:detach')
+        api.request.rpcapi.detach_virtual_media(
+            api.request.context, rpc_node.uuid,
+            device_types=device_types, topic=topic)
+
+
 class NodesController(rest.RestController):
     """REST controller for Nodes."""
 
@@ -2172,6 +2254,7 @@ class NodesController(rest.RestController):
         'inventory': NodeInventoryController,
         'children': NodeChildrenController,
         'firmware': firmware.NodeFirmwareController,
+        'vmedia': NodeVmediaController,
     }
 
     @pecan.expose()
@@ -2199,7 +2282,9 @@ class NodesController(rest.RestController):
             or (remainder[0] == 'inventory'
                 and not api_utils.allow_node_inventory())
             or (remainder[0] == 'firmware'
-                and not api_utils.allow_firmware_interface())):
+                and not api_utils.allow_firmware_interface())
+            or (remainder[0] == 'vmedia'
+                and not api_utils.allow_attach_detach_vmedia())):
             pecan.abort(http_client.NOT_FOUND)
         if remainder[0] == 'traits' and not api_utils.allow_traits():
             # NOTE(mgoddard): Returning here will ensure we exhibit the

@@ -1840,3 +1840,28 @@ def node_cache_firmware_components(task):
     except exception.UnsupportedDriverExtension:
         LOG.warning('Firmware Components are not supported for node %s, '
                     'skipping', task.node.uuid)
+
+
+def run_node_action(task, call, error_msg, success_msg=None, **kwargs):
+    """Run a node action and report any errors via last_error.
+
+    :param task: A TaskManager instance containing the node to act on.
+    :param call: A callable object to invoke.
+    :param error_msg: A template for a failure message. Can use %(node)s,
+        %(exc)s and any variables from kwargs.
+    :param success_msg: A template for a success message. Can use %(node)s
+        and any variables from kwargs.
+    :param kwargs: Arguments to pass to the call.
+    """
+    error = None
+    try:
+        call(task, **kwargs)
+    except Exception as exc:
+        error = error_msg % dict(kwargs, node=task.node.uuid, exc=exc)
+        node_history_record(task.node, event=error, error=True)
+        LOG.error(
+            error, exc_info=not isinstance(exc, exception.IronicException))
+
+    task.node.save()
+    if not error and success_msg:
+        LOG.info(success_msg, dict(kwargs, node=task.node.uuid))

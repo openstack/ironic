@@ -52,6 +52,7 @@ import oslo_messaging as messaging
 from oslo_utils import excutils
 from oslo_utils import uuidutils
 
+from ironic.common import boot_devices
 from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import faults
@@ -75,6 +76,7 @@ from ironic.conf import CONF
 from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import image_cache
+from ironic.drivers.modules import image_utils
 from ironic.drivers.modules import inspect_utils
 from ironic import objects
 from ironic.objects import base as objects_base
@@ -94,7 +96,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.58'
+    RPC_API_VERSION = '1.59'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -3785,6 +3787,86 @@ class ConductorManager(base_manager.BaseConductorManager):
                     action='service', node=node.uuid,
                     state=node.provision_state)
 
+    @METRICS.timer('ConductorManager.attach_virtual_media')
+    @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.NoFreeConductorWorker,
+                                   exception.NodeLocked,
+                                   exception.UnsupportedDriverExtension)
+    def attach_virtual_media(self, context, node_id, device_type, image_url,
+                             image_download_source='local'):
+        """Attach a virtual media device to the node.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param image_url: URL of the image to attach, HTTP or HTTPS.
+        :param image_download_source: Which way to serve the image to the BMC:
+            "http" to serve it from the provided location, "local" to serve
+            it from the local web server.
+        :raises: UnsupportedDriverExtension if the driver does not support
+                 this call.
+        :raises: InvalidParameterValue if validation of management driver
+                 interface failed.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+
+        """
+        LOG.debug("RPC attach_virtual_media called for node %(node)s "
+                  "for device type %(type)s",
+                  {'node': node_id, 'type': device_type})
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='attaching virtual media') as task:
+            task.driver.management.validate(task)
+            # Starting new operation, so clear the previous error.
+            # We'll be putting an error here soon if we fail task.
+            task.node.last_error = None
+            task.node.save()
+            task.set_spawn_error_hook(utils._spawn_error_handler,
+                                      task.node, "attaching virtual media")
+            task.spawn_after(self._spawn_worker,
+                             do_attach_virtual_media, task,
+                             device_type=device_type,
+                             image_url=image_url,
+                             image_download_source=image_download_source)
+
+    def detach_virtual_media(self, context, node_id, device_types=None):
+        """Detach some or all virtual media devices from the node.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param device_types: A collection of device type, ones from
+            :data:`ironic.common.boot_devices.VMEDIA_DEVICES`.
+            If not provided, all devices are detached.
+        :raises: UnsupportedDriverExtension if the driver does not support
+                 this call.
+        :raises: InvalidParameterValue if validation of management driver
+                 interface failed.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+
+        """
+        LOG.debug("RPC detach_virtual_media called for node %(node)s "
+                  "for device types %(type)s",
+                  {'node': node_id, 'type': device_types})
+        with task_manager.acquire(context, node_id, shared=False,
+                                  purpose='detaching virtual media') as task:
+            task.driver.management.validate(task)
+            # Starting new operation, so clear the previous error.
+            # We'll be putting an error here soon if we fail task.
+            task.node.last_error = None
+            task.node.save()
+            task.set_spawn_error_hook(utils._spawn_error_handler,
+                                      task.node, "detaching virtual media")
+            task.spawn_after(self._spawn_worker,
+                             utils.run_node_action,
+                             task, task.driver.management.detach_virtual_media,
+                             success_msg="Device(s) %(device_types)s detached "
+                             "from node %(node)s",
+                             error_msg="Could not detach device(s) "
+                             "%(device_types)s from node %(node)s: %(exc)s",
+                             device_types=device_types)
+
 
 # NOTE(TheJulia): This is the end of the class definition for the
 # conductor manager. Methods for RPC and stuffs should go above this
@@ -3971,3 +4053,35 @@ def do_sync_power_state(task, count):
             task, old_power_state)
 
     return count
+
+
+def do_attach_virtual_media(task, device_type, image_url,
+                            image_download_source):
+    assert device_type in boot_devices.VMEDIA_DEVICES
+    file_name = "%s.%s" % (
+        device_type.lower(),
+        'iso' if device_type == boot_devices.CDROM else 'img'
+    )
+    image_url = image_utils.prepare_remote_image(
+        task, image_url, file_name=file_name,
+        download_source=image_download_source)
+    utils.run_node_action(
+        task, task.driver.management.attach_virtual_media,
+        success_msg="Device %(device_type)s attached to node %(node)s",
+        error_msg="Could not attach device %(device_type)s "
+        "to node %(node)s: %(exc)s",
+        device_type=device_type,
+        image_url=image_url)
+
+
+def do_detach_virtual_media(task, device_types):
+    utils.run_node_action(task, task.driver.management.detach_virtual_media,
+                          success_msg="Device(s) %(device_types)s detached "
+                          "from node %(node)s",
+                          error_msg="Could not detach device(s) "
+                          "%(device_types)s from node %(node)s: %(exc)s",
+                          device_types=device_types)
+    for device_type in device_types:
+        suffix = '.iso' if device_type == boot_devices.CDROM else '.img'
+        image_utils.ImageHandler.unpublish_image_for_node(
+            task.node, prefix=device_type.lower(), suffix=suffix)

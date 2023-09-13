@@ -8625,3 +8625,128 @@ class TestNodeFirmwareComponent(test_api_base.BaseApiTest):
                             expect_errors=True)
 
         self.assertEqual(http_client.NOT_FOUND, ret.status_int)
+
+
+@mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for',
+                   lambda *_: 'test-topic')
+class TestNodeVmedia(test_api_base.BaseApiTest):
+
+    def setUp(self):
+        super().setUp()
+        self.version = "1.89"
+        self.node = obj_utils.create_test_node(self.context)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'attach_virtual_media',
+                       autospec=True)
+    def test_attach(self, mock_attach):
+        vmedia = {'device_type': boot_devices.CDROM,
+                  'image_url': 'https://image',
+                  'image_download_source': 'http'}
+        ret = self.post_json('/nodes/%s/vmedia' % self.node.uuid, vmedia,
+                             headers={api_base.Version.string: self.version})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_int)
+        mock_attach.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid,
+            device_type=boot_devices.CDROM, image_url='https://image',
+            image_download_source='http', topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'attach_virtual_media',
+                       autospec=True)
+    def test_attach_required_only(self, mock_attach):
+        vmedia = {'device_type': boot_devices.CDROM,
+                  'image_url': 'http://image'}
+        ret = self.post_json('/nodes/%s/vmedia' % self.node.uuid, vmedia,
+                             headers={api_base.Version.string: self.version})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_int)
+        mock_attach.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid,
+            device_type=boot_devices.CDROM, image_url='http://image',
+            image_download_source='local', topic='test-topic')
+
+    def test_attach_missing_device_type(self):
+        vmedia = {'image_url': 'http://image'}
+        ret = self.post_json('/nodes/%s/vmedia' % self.node.uuid, vmedia,
+                             headers={api_base.Version.string: self.version},
+                             expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
+        self.assertIn(b"device_type", ret.body)
+
+    def test_attach_invalid_device_type(self):
+        vmedia = {'device_type': 'cat',
+                  'image_url': 'http://image'}
+        ret = self.post_json('/nodes/%s/vmedia' % self.node.uuid, vmedia,
+                             headers={api_base.Version.string: self.version},
+                             expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
+        self.assertIn(b"cat", ret.body)
+
+    def test_attach_missing_image_url(self):
+        vmedia = {'device_type': boot_devices.CDROM}
+        ret = self.post_json('/nodes/%s/vmedia' % self.node.uuid, vmedia,
+                             headers={api_base.Version.string: self.version},
+                             expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
+        self.assertIn(b"image_url", ret.body)
+
+    def test_attach_invalid_image_url(self):
+        vmedia = {'device_type': boot_devices.CDROM,
+                  'image_url': 'abcd'}
+        ret = self.post_json('/nodes/%s/vmedia' % self.node.uuid, vmedia,
+                             headers={api_base.Version.string: self.version},
+                             expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
+        self.assertIn(b"URL scheme", ret.body)
+
+    def test_attach_wrong_version(self):
+        vmedia = {'device_type': boot_devices.CDROM,
+                  'image_url': 'http://image'}
+        ret = self.post_json('/nodes/%s/vmedia' % self.node.uuid, vmedia,
+                             headers={api_base.Version.string: "1.87"},
+                             expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_int)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'detach_virtual_media',
+                       autospec=True)
+    def test_detach_everything(self, mock_detach):
+        ret = self.delete('/nodes/%s/vmedia' % self.node.uuid,
+                          headers={api_base.Version.string: self.version})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_int)
+        mock_detach.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid,
+            device_types=None, topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'detach_virtual_media',
+                       autospec=True)
+    def test_detach_specific_via_url(self, mock_detach):
+        ret = self.delete('/nodes/%s/vmedia/%s'
+                          % (self.node.uuid, boot_devices.CDROM),
+                          headers={api_base.Version.string: self.version})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_int)
+        mock_detach.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid,
+            device_types=[boot_devices.CDROM], topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'detach_virtual_media',
+                       autospec=True)
+    def test_detach_specific_via_argument(self, mock_detach):
+        ret = self.delete('/nodes/%s/vmedia?device_types=%s'
+                          % (self.node.uuid, boot_devices.CDROM),
+                          headers={api_base.Version.string: self.version})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_int)
+        mock_detach.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid,
+            device_types=[boot_devices.CDROM], topic='test-topic')
+
+    def test_detach_wrong_device_types(self):
+        ret = self.delete('/nodes/%s/vmedia?device_types=cdrom,cat'
+                          % self.node.uuid,
+                          headers={api_base.Version.string: self.version},
+                          expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
+        self.assertIn(b"cat", ret.body)
+
+    def test_detach_wrong_version(self):
+        ret = self.delete('/nodes/%s/vmedia' % self.node.uuid,
+                          headers={api_base.Version.string: "1.87"},
+                          expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_int)

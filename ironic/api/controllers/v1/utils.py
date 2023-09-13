@@ -2030,3 +2030,8 @@ def allow_port_name():
     Version 1.88 of the API added name field to the port object.
     """
     return api.request.version.minor >= versions.MINOR_88_PORT_NAME
+
+
+def allow_attach_detach_vmedia():
+    """Check if we should support virtual media actions."""
+    return api.request.version.minor >= versions.MINOR_89_ATTACH_DETACH_VMEDIA
