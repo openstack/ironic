@@ -1,0 +1,17 @@
+---
+prelude: |
+    Ironic is proud to announce the release of 23.0, the capstone release of a
+    six month OpenStack 2023.2 (Bobcat) cycle.
+
+    Our focus this cycle has been on improving the ability for operators to
+    secure and service their Ironic nodes. There are also, as always, a myriad
+    of quality of life fixes, including improvements to sqlite support,
+    and graceful shutdown of conductors.
+
+    We hope the latest release of Ironic serves you well!
+upgrade: |
+    Ironic 23.0 is part of the OpenStack 2023.2 (Bobcat) release. This a
+    non-SLURP release, meaning users of a 2023.1 (Antelope) cycle Ironic release
+    can upgrade directly to the release accompanying 2024.1 (Caracal) when
+    available. For more information, please visit
+    `Release Cadence Adjustment <https://governance.openstack.org/tc/resolutions/20220210-release-cadence-adjustment.html?_ga=2.126966605.1175089434.1694620440-1981816456.1685478379>`_.
