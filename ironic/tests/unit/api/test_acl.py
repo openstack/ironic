@@ -102,7 +102,6 @@ class TestACLBase(base.BaseApiTest):
         # in troubleshooting ACL testing. This is a pattern
         # followed in API unit testing in ironic, and
         # really does help.
-        print('API ACL Testing Path %s %s' % (method, path))
         if headers:
             for k, v in headers.items():
                 rheaders[k] = v.format(**self.format_data)
@@ -185,8 +184,6 @@ class TestACLBase(base.BaseApiTest):
         if assert_dict_contains:
             for k, v in assert_dict_contains.items():
                 self.assertIn(k, response)
-                print(k)
-                print(v)
                 if str(v) == "None":
                     # Compare since the variable loaded from the
                     # json ends up being null in json or None.
@@ -218,13 +215,6 @@ class TestACLBase(base.BaseApiTest):
                     # views, such as "other" admins being subjected to
                     # a filtered view in these cases.
                     self.assertEqual(0, len(items))
-
-        # NOTE(TheJulia): API tests in Ironic tend to have a pattern
-        # to print request and response data to aid in development
-        # and troubleshooting. As such the prints should remain,
-        # at least until we are through primary development of the
-        # this test suite.
-        print('ACL Test GOT %s' % response)
 
 
 @ddt.ddt

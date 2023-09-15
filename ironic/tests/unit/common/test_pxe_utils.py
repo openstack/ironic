@@ -2162,8 +2162,6 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
         if iso_boot:
             self.node.instance_info = {'boot_iso': 'http://test.url/file.iso'}
             self.node.save()
-            print(expected_options)
-            print(image_info)
             iso_url = os.path.join(http_url, self.node.uuid, 'boot_iso')
             expected_options.update(
                 {

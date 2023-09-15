@@ -1114,7 +1114,6 @@ class TestListPortsByShard(test_api_base.BaseApiTest):
 
         res = self.get_json('/ports?shard=shard1,shard2', headers=self.headers)
         self.assertEqual(2, len(res['ports']))
-        print(res['ports'][0])
         self.assertNotEqual(res['ports'][0]['address'], bad_shard_address)
         self.assertNotEqual(res['ports'][1]['address'], bad_shard_address)
 

@@ -678,7 +678,6 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
 
         network_data = neutron.get_neutron_port_data('port1', 'vif1')
 
-        print(network_data)
         expected_port = {
             'id': 'port1',
             'type': 'vif',
