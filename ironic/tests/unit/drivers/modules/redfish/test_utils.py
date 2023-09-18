@@ -168,6 +168,14 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         response = redfish_utils.parse_driver_info(self.node)
         self.assertEqual(self.parsed_driver_info, response)
 
+    def test_parse_driver_info_default_scheme_ipv6_brackets_added(self):
+        test_redfish_address = '2001:DB8::1'
+        self.node.driver_info['redfish_address'] = test_redfish_address
+        response = redfish_utils.parse_driver_info(self.node)
+        self.parsed_driver_info['address'] = ("https://[%s]"
+                                              % test_redfish_address)
+        self.assertEqual(self.parsed_driver_info, response)
+
     @mock.patch.object(sushy, 'Sushy', autospec=True)
     @mock.patch('ironic.drivers.modules.redfish.utils.'
                 'SessionCache._sessions', {})

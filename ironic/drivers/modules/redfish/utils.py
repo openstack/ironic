@@ -27,6 +27,7 @@ import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import utils
 from ironic.conf import CONF
 
 sushy = importutils.try_import('sushy')
@@ -96,7 +97,7 @@ def parse_driver_info(node):
                                                  'info': missing_info})
 
     # Validate the Redfish address
-    address = driver_info['redfish_address']
+    address = utils.wrap_ipv6(driver_info['redfish_address'])
     try:
         parsed = rfc3986.uri_reference(address)
     except TypeError:
