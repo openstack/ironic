@@ -578,8 +578,12 @@ def pop_node_nested_field(node, collection, field, default=None):
 
 def wrap_ipv6(ip):
     """Wrap the address in square brackets if it's an IPv6 address."""
-    if ipaddress.ip_address(ip).version == 6:
-        return "[%s]" % ip
+    try:
+        if ipaddress.ip_address(ip).version == 6:
+            return "[%s]" % ip
+    except ValueError:
+        pass
+
     return ip
 
 
