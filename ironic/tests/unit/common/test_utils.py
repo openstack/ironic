@@ -321,6 +321,12 @@ class GenericUtilsTestCase(base.TestCase):
             self.assertFalse(utils.is_fips_enabled())
             m.assert_called_once_with('/proc/sys/crypto/fips_enabled', 'r')
 
+    def test_wrap_ipv6(self):
+        self.assertEqual('[2001:DB8::1]', utils.wrap_ipv6('2001:DB8::1'))
+        self.assertEqual('example.com', utils.wrap_ipv6('example.com'))
+        self.assertEqual('192.168.24.1', utils.wrap_ipv6('192.168.24.1'))
+        self.assertEqual('[2001:DB8::1]', utils.wrap_ipv6('[2001:DB8::1]'))
+
 
 class TempFilesTestCase(base.TestCase):
 
