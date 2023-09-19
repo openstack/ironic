@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue where inspection would fail if an IPv6 address wrapped in
+    brackets is used for the redfish BMC address. See bug:
+    `2036455 <https://bugs.launchpad.net/ironic/+bug/2036455>`_.
