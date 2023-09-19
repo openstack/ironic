@@ -442,6 +442,12 @@ class GetBMCAddressesTestCase(db_base.DbTestCase):
             driver_info={'redfish_address': 'https://192.0.2.1/redfish'})
         self.assertEqual({'192.0.2.1'}, utils._get_bmc_addresses(node))
 
+    def test_normal_ipv6_as_url(self):
+        node = obj_utils.create_test_node(
+            self.context,
+            driver_info={'redfish_address': 'https://[2001:db8::42]/redfish'})
+        self.assertEqual({'2001:db8::42'}, utils._get_bmc_addresses(node))
+
     @mock.patch.object(socket, 'getaddrinfo', autospec=True)
     def test_resolved_host(self, mock_getaddrinfo):
         mock_getaddrinfo.return_value = [
@@ -473,6 +479,12 @@ class GetBMCAddressesTestCase(db_base.DbTestCase):
                          utils._get_bmc_addresses(node))
         mock_getaddrinfo.assert_called_once_with(
             'example.com', None, proto=socket.SOL_TCP)
+
+    def test_redfish_bmc_address_ipv6_brackets_no_scheme(self):
+        node = obj_utils.create_test_node(
+            self.context,
+            driver_info={'redfish_address': '[2001:db8::42]'})
+        self.assertEqual({'2001:db8::42'}, utils._get_bmc_addresses(node))
 
 
 class LookupCacheTestCase(db_base.DbTestCase):

@@ -342,6 +342,9 @@ def _get_bmc_addresses(node):
         if '//' in address:
             address = urllib.parse.urlparse(address).hostname
 
+        # Strip brackets in case used on IPv6 address.
+        address = address.strip('[').strip(']')
+
         try:
             addrinfo = socket.getaddrinfo(address, None, proto=socket.SOL_TCP)
         except socket.gaierror as exc:
