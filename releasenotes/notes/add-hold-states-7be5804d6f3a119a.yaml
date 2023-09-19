@@ -11,7 +11,7 @@ features:
     to start over.
   - |
     Adds the ability to send an ``unhold`` provision state verb utilizing
-    API version *1.84*.
+    API version *1.85*.
 other:
   - |
     Fixes the generated state machine diagram and updates it to match the
