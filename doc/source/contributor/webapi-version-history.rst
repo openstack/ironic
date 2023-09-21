@@ -15,8 +15,8 @@ based resources, which indicates the current step.
 
 Adds a ``firmware_interface`` field to the ``/v1/nodes`` resources.
 
-1.85 (Bobcat)
--------------
+1.85 (Bobcat, 22.1)
+-------------------
 
 This version adds a new provision state change verb called ``unhold``
 to be utilized with the new ``provision_state`` values ``clean hold``
@@ -24,14 +24,14 @@ and ``deploy hold``. The verb instructs Ironic to remove the node
 from it's present hold and to resume it's prior cleaning or
 deployment process.
 
-1.84 (Bobcat)
--------------
+1.84 (Bobcat, 22.1)
+-------------------
 
 Add callback endpoint for in-band inspection ``/v1/continue_inspection``.
 This endpoint is not designed to be used by regular users.
 
-1.83 (Bobcat)
--------------
+1.83 (Bobcat, 22.0)
+-------------------
 
 This version adds a concept of child nodes through the use of a
 ``parent_node`` field which can be set on a node.
@@ -51,8 +51,8 @@ Additionally:
 - Adds ``GET /v1/nodes?parent_node={node_ident}`` to explicitly request
   a detailed list of nodes by parent relationship.
 
-1.82 (Antelope)
-----------------------
+1.82 (Antelope, 21.4)
+---------------------
 
 This version signifies the addition of node sharding endpoints.
 
@@ -60,8 +60,8 @@ This version signifies the addition of node sharding endpoints.
 - Adds support for ``GET /v1/shards`` which returns a list of all shards and
   the count of nodes assigned to each.
 
-1.81 (Antelope)
-----------------------
+1.81 (Antelope, 21.3)
+---------------------
 
 Add endpoint to retrieve introspection data for nodes via the REST API.
 
