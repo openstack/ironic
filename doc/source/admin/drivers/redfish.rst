@@ -140,6 +140,22 @@ Two clean and deploy steps are provided for key management:
 ``management.clear_secure_boot_keys``
     removes all secure boot keys from the node.
 
+Rebooting on boot mode changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+While some hardware is able to change the boot mode or the `UEFI secure boot`_
+state immediately, other models may require a reboot for such a change to be
+applied. Furthermore, some hardware models cannot change the boot mode and the
+secure boot state simultaneously, requiring several reboots.
+
+The Bare Metal service refreshes the System resource after issuing a PATCH
+request against it. If the expected change is not observed, the node is
+rebooted, and the Bare Metal service waits until the change is applied. In the
+end, the previous power state is restored.
+
+This logic makes changing boot configuration more robust at the expense of
+several reboots in the worst case.
+
 Out-Of-Band inspection
 ======================
 

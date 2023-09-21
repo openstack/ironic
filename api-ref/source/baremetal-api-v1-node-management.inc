@@ -306,6 +306,10 @@ Change Node Boot Mode
 
 Request a change to the Node's boot mode.
 
+.. note::
+   Depending on the driver and the underlying hardware, changing boot mode may
+   result in an automatic reboot.
+
 .. versionadded:: 1.76
    A change in node's boot mode can be requested.
 
@@ -340,6 +344,10 @@ Change Node Secure Boot
 .. rest_method:: PUT /v1/nodes/{node_ident}/states/secure_boot
 
 Request a change to the Node's secure boot state.
+
+.. note::
+   Depending on the driver and the underlying hardware, changing the secure
+   boot state may result in an automatic reboot.
 
 .. versionadded:: 1.76
    A change in node's secure boot state can be requested.

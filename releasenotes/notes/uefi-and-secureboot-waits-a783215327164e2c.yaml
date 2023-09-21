@@ -1,0 +1,20 @@
+---
+fixes:
+  - |
+    While updating boot mode or secure boot state in the Redfish driver,
+    the node is now rebooted if the change is not detected on the System
+    resource refresh. Ironic then waits up to
+    ``[redfish]boot_mode_config_timeout`` seconds until the change is applied.
+upgrade:
+  - |
+    Changing the boot mode or the secure boot state via the direct API
+    (``/v1/nodes/{node_ident}/states/boot_mode`` and
+    ``/v1/nodes/{node_ident}/states/secure_boot`` accordingly) may now
+    result in a reboot. This happens when the change cannot be applied
+    immediately. Previously, the change would be applied whenever the next
+    reboot happens for any unrelated reason, causing inconsistent behavior.
+issues:
+  - |
+    When boot mode needs to be changed during provisioning, an additional
+    reboot may happen on certain hardware. This is to ensure consistent
+    behavior when any boot setting change results in a separate internal job.

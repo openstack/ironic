@@ -115,6 +115,12 @@ opts = [
                default=60,
                help=_('Number of seconds to wait between checking for '
                       'failed raid config tasks')),
+    cfg.IntOpt('boot_mode_config_timeout',
+               min=0,
+               default=900,
+               help=_('Number of seconds to wait for boot mode or secure '
+                      'boot status change to take effect after a reboot. '
+                      'Set to 0 to disable waiting.')),
 ]
 
 
