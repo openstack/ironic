@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    Fixes the power handling flow as it relates to ``child nodes``, i.e.
+    bare metal nodes which have a ``parent_node`` set, such that power is
+    turned off on those nodes when the parent node is powered off, and that
+    power is turned on for the parent node when the child node is explicitly
+    requested to be in a ``power on`` state. This does not apply if the child
+    node device has a dedicated power supply, as indicated through a
+    ``driver_info`` parameter named ``has_dedicated_power_supply`` which
+    can be set to a value of "true".

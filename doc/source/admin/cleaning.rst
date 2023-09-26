@@ -478,6 +478,23 @@ power will be turned off via the management interface. Afterwards, the
    the ``ironic-python-agent`` running on any child nodes. This constraint may
    be changed in the future.
 
+Power Management with Child Nodes
+---------------------------------
+
+The mix of child nodes and parent nodes has special power considerations,
+and these devices are evolving in the industry. That being said, the Ironic
+project has taken an approach of explicitly attempting to "power on" any
+parent node when a request comes in to "power on" a child node. This can be
+bypassed by setting a ``driver_info`` parameter ``has_dedicated_power_supply``
+set to ``True``, in recognition that some hardware vendors are working on
+supplying independent power to these classes of devices to meet their customer
+use cases.
+
+Similarly to the case of a "power on" request for a child node, when power
+is requested to be turned off for a "parent node", Ironic will issue
+"power off" commands for all child nodes unless the child node has the
+``has_dedicated_power_supply`` option set in the node's ``driver_info`` field.
+
 Troubleshooting
 ===============
 If cleaning fails on a node, the node will be put into ``clean failed`` state.

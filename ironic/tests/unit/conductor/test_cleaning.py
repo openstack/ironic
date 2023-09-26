@@ -1289,8 +1289,8 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
     def setUp(self):
         super(DoNodeCleanTestChildNodes, self).setUp()
         self.config(automated_clean=True, group='conductor')
-        self.power_off_parent = {
-            'step': 'power_off', 'priority': 4, 'interface': 'power'}
+        self.power_on_parent = {
+            'step': 'power_on', 'priority': 4, 'interface': 'power'}
         self.power_on_children = {
             'step': 'power_on', 'priority': 5, 'interface': 'power',
             'execute_on_child_nodes': True}
@@ -1303,7 +1303,7 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
         self.power_on_parent = {
             'step': 'power_on', 'priority': 15, 'interface': 'power'}
         self.clean_steps = [
-            self.power_off_parent,
+            self.power_on_parent,
             self.power_on_children,
             self.update_firmware_on_children,
             self.reboot_children,
@@ -1317,6 +1317,8 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
             driver_internal_info={'agent_secret_token': 'old',
                                   'clean_steps': self.clean_steps})
 
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state',
+                autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.reboot',
                 autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.set_power_state',
@@ -1333,7 +1335,7 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
                 autospec=True)
     def test_do_next_clean_step_with_children(
             self, mock_deploy, mock_mgmt, mock_power, mock_pv, mock_nv,
-            mock_sps, mock_reboot):
+            mock_sps, mock_reboot, mock_gps):
         child_node1 = obj_utils.create_test_node(
             self.context,
             uuid=uuidutils.generate_uuid(),
@@ -1348,7 +1350,12 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
             last_error=None,
             power_state=states.POWER_OFF,
             parent_node=self.node.uuid)
-
+        mock_gps.side_effect = [states.POWER_OFF,
+                                states.POWER_ON,
+                                states.POWER_OFF,
+                                states.POWER_ON,
+                                states.POWER_OFF,
+                                states.POWER_ON]
         mock_deploy.return_value = None
         mock_mgmt.return_value = None
         mock_power.return_value = None
@@ -1380,13 +1387,15 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
         self.assertEqual(0, mock_power.call_count)
         self.assertEqual(0, mock_nv.call_count)
         self.assertEqual(0, mock_pv.call_count)
-        self.assertEqual(4, mock_sps.call_count)
+        self.assertEqual(3, mock_sps.call_count)
         self.assertEqual(2, mock_reboot.call_count)
         mock_sps.assert_has_calls([
-            mock.call(mock.ANY, mock.ANY, 'power off', timeout=None),
+            mock.call(mock.ANY, mock.ANY, 'power on', timeout=None),
             mock.call(mock.ANY, mock.ANY, 'power on', timeout=None),
             mock.call(mock.ANY, mock.ANY, 'power on', timeout=None)])
 
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state',
+                autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.set_power_state',
                 autospec=True)
     @mock.patch('ironic.drivers.modules.network.flat.FlatNetwork.validate',
@@ -1401,7 +1410,7 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
                 autospec=True)
     def test_do_next_clean_step_with_children_by_uuid(
             self, mock_deploy, mock_mgmt, mock_power, mock_pv, mock_nv,
-            mock_sps):
+            mock_sps, mock_gps):
         child_node1 = obj_utils.create_test_node(
             self.context,
             uuid=uuidutils.generate_uuid(),
@@ -1414,6 +1423,10 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
             driver='fake-hardware',
             last_error=None,
             parent_node=self.node.uuid)
+        # NOTE(TheJulia): This sets the stage for the test,
+        # child node power is off, parent node power is on.
+        mock_gps.side_effect = [states.POWER_OFF,
+                                states.POWER_ON]
         power_on_children = {
             'step': 'power_on', 'priority': 5, 'interface': 'power',
             'execute_on_child_nodes': True,

@@ -773,6 +773,17 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         self.properties[key] = value
         self._changed_fields.add('properties')
 
+    def list_child_node_ids(self, exclude_dedicated_power=False):
+        """Returns a list of node IDs for child nodes, if any.
+
+        :param exclude_dedicated_power: Boolean, Default False, if the list
+            should exclude nodes which are independently powered.
+        :returns: A list of any node_id values discovered in the database.
+        """
+        return self.dbapi.get_child_node_ids_by_parent_uuid(
+            self.uuid,
+            exclude_dedicated_power=exclude_dedicated_power)
+
 
 @base.IronicObjectRegistry.register
 class NodePayload(notification.NotificationPayloadBase):

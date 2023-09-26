@@ -774,6 +774,238 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertIsNone(node['target_power_state'])
         self.assertIsNone(node['last_error'])
 
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_power_on_with_parent(self, get_power_mock):
+        """Test node_power_action to turns on a parent node"""
+        parent = obj_utils.create_test_node(self.context,
+                                            uuid=uuidutils.generate_uuid(),
+                                            driver='fake-hardware',
+                                            power_state=states.POWER_OFF)
+
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake-hardware',
+                                          power_state=states.POWER_OFF,
+                                          last_error='failed before',
+                                          parent_node=parent.uuid)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        get_power_mock.side_effect = states.POWER_OFF
+
+        conductor_utils.node_power_action(task, states.POWER_ON)
+
+        node.refresh()
+        parent.refresh()
+        # NOTE(TheJulia): We independently check power state
+        # in this code path so we end up with 3 calls, parent,
+        # parent as part of node_power_action, and then child.
+        self.assertEqual(3, get_power_mock.call_count)
+        self.assertEqual(states.POWER_ON, parent['power_state'])
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(parent['target_power_state'])
+        self.assertIsNone(parent['last_error'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
+
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_power_on_parent_off(self, get_power_mock):
+        """Test node_power_action to turns on a parent node"""
+        parent = obj_utils.create_test_node(
+            self.context,
+            name="parent_node",
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            power_state=states.POWER_OFF)
+
+        node = obj_utils.create_test_node(
+            self.context,
+            name='child_node',
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            power_state=states.POWER_OFF,
+            last_error='failed before',
+            parent_node=parent.uuid,
+            driver_info={'has_dedicated_power_supply': True})
+
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        get_power_mock.side_effect = states.POWER_OFF
+
+        conductor_utils.node_power_action(task, states.POWER_ON)
+
+        node.refresh()
+        parent.refresh()
+        self.assertEqual(1, get_power_mock.call_count)
+        self.assertEqual(states.POWER_OFF, parent['power_state'])
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(parent['target_power_state'])
+        self.assertIsNone(parent['last_error'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
+
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_power_off_parent(self, get_power_mock):
+        """Test node_power_action to turns on a parent node"""
+        parent = obj_utils.create_test_node(
+            self.context,
+            name="parent",
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            power_state=states.POWER_ON)
+
+        node = obj_utils.create_test_node(
+            self.context,
+            name="child",
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            power_state=states.POWER_ON,
+            last_error='failed before',
+            parent_node=parent.uuid,
+            driver_info={'has_dedicated_power_supply': False})
+
+        task = task_manager.TaskManager(self.context, parent.uuid)
+
+        get_power_mock.side_effect = states.POWER_ON
+
+        conductor_utils.node_power_action(task, states.POWER_OFF)
+
+        node.refresh()
+        parent.refresh()
+        self.assertEqual(3, get_power_mock.call_count)
+        self.assertEqual(states.POWER_OFF, parent['power_state'])
+        self.assertEqual(states.POWER_OFF, node['power_state'])
+        self.assertIsNone(parent['target_power_state'])
+        self.assertIsNone(parent['last_error'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
+
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_power_off_parent_child_remains(
+            self, get_power_mock):
+        """Test node_power_action to turns on a parent node"""
+        parent = obj_utils.create_test_node(
+            self.context,
+            name="parent",
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            power_state=states.POWER_ON)
+
+        node = obj_utils.create_test_node(
+            self.context,
+            name="child",
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            power_state=states.POWER_ON,
+            last_error='failed before',
+            parent_node=parent.uuid,
+            driver_info={'has_dedicated_power_supply': True})
+
+        task = task_manager.TaskManager(self.context, parent.uuid)
+
+        get_power_mock.side_effect = states.POWER_ON
+
+        conductor_utils.node_power_action(task, states.POWER_OFF)
+
+        node.refresh()
+        parent.refresh()
+        self.assertEqual(1, get_power_mock.call_count)
+        self.assertEqual(states.POWER_OFF, parent['power_state'])
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(parent['target_power_state'])
+        self.assertIsNone(parent['last_error'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNotNone(node['last_error'])
+
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_power_on_exception_if_parent_locked(
+            self,
+            get_power_mock):
+        """Test node_power_action to turns on a parent node"""
+        parent = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            power_state=states.POWER_OFF,
+            reservation='meow')
+
+        node = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            power_state=states.POWER_OFF,
+            last_error='failed before',
+            parent_node=parent.uuid)
+
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        get_power_mock.side_effect = states.POWER_OFF
+
+        self.assertRaises(exception.ParentNodeLocked,
+                          conductor_utils.node_power_action,
+                          task, states.POWER_ON)
+        node.refresh()
+        parent.refresh()
+        self.assertEqual(2, get_power_mock.call_count)
+        self.assertEqual(states.POWER_OFF, parent['power_state'])
+        self.assertEqual(states.POWER_OFF, node['power_state'])
+        self.assertIsNone(parent['target_power_state'])
+        self.assertIsNone(parent['last_error'])
+        self.assertIn('is presently locked', node['last_error'])
+        self.assertIsNone(node['target_power_state'])
+
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_power_off_exception_if_child_locked(
+            self,
+            get_power_mock):
+        """Test node_power_action to turns on a parent node"""
+        parent = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            power_state=states.POWER_ON)
+
+        node = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            power_state=states.POWER_ON,
+            last_error='failed before',
+            parent_node=parent.uuid)
+
+        locked_node = obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver='fake-hardware',
+            power_state=states.POWER_ON,
+            last_error='failed before',
+            parent_node=parent.uuid,
+            reservation='foo')
+
+        task = task_manager.TaskManager(self.context, parent.uuid)
+
+        get_power_mock.side_effect = states.POWER_ON
+
+        self.assertRaises(exception.ChildNodeLocked,
+                          conductor_utils.node_power_action,
+                          task, states.POWER_OFF)
+        # Since we launched the task this way, we need to explicitly
+        # release it.
+        task.release_resources()
+        node.refresh()
+        parent.refresh()
+        self.assertEqual(3, get_power_mock.call_count)
+        self.assertEqual(states.POWER_ON, parent['power_state'])
+        self.assertEqual(states.POWER_ON, locked_node['power_state'])
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(parent['target_power_state'])
+        self.assertEqual('failed before', node['last_error'])
+        self.assertIn('is presently locked', parent['last_error'])
+        self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(parent['target_power_state'])
+        self.assertIsNone(locked_node['target_power_state'])
+        self.assertIsNone(node['reservation'])
+        self.assertIsNone(parent['reservation'])
+
     def test__calculate_target_state(self):
         for new_state in (states.POWER_ON, states.REBOOT, states.SOFT_REBOOT):
             self.assertEqual(
