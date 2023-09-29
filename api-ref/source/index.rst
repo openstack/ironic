@@ -23,6 +23,7 @@
 .. include:: baremetal-api-v1-drivers.inc
 .. include:: baremetal-api-v1-driver-passthru.inc
 .. include:: baremetal-api-v1-nodes-bios.inc
+.. include:: baremetal-api-v1-nodes-firmware.inc
 .. include:: baremetal-api-v1-conductors.inc
 .. include:: baremetal-api-v1-allocation.inc
 .. include:: baremetal-api-v1-node-allocation.inc
