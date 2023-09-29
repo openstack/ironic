@@ -129,7 +129,7 @@ class TestContinueInspection(db_base.DbTestCase):
         self.node = obj_utils.create_test_node(
             self.context, provision_state=states.INSPECTING)
         self.inventory = {"test": "inventory"}
-        self.plugin_data = {"plugin": "data"}
+        self.plugin_data = {"plugin": "data", "logs": "delete me"}
 
     @mock.patch.object(inspect_utils, 'store_inspection_data', autospec=True)
     def test_ok(self, mock_store, mock_continue):
@@ -141,6 +141,7 @@ class TestContinueInspection(db_base.DbTestCase):
                                                   self.plugin_data)
             mock_store.assert_called_once_with(task.node, self.inventory,
                                                self.plugin_data, self.context)
+            self.assertNotIn("logs", self.plugin_data)
         self.node.refresh()
         self.assertEqual(states.MANAGEABLE, self.node.provision_state)
 
@@ -166,6 +167,7 @@ class TestContinueInspection(db_base.DbTestCase):
             mock_continue.assert_called_once_with(task.driver.inspect,
                                                   task, self.inventory,
                                                   self.plugin_data)
+            mock_store.assert_not_called()
 
         mock_store.assert_not_called()
         self.node.refresh()
