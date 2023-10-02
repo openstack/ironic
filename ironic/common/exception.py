@@ -857,7 +857,7 @@ class ImageRefIsARedirect(IronicException):
             redirect_url=redirect_url)
 
 
-class ConcurrentActionLimit(IronicException):
+class ConcurrentActionLimit(TemporaryFailure):
     # NOTE(TheJulia): We explicitly don't report the concurrent
     # action limit configuration value as a security guard since
     # if informed of the limit, an attacker can tailor their attack.

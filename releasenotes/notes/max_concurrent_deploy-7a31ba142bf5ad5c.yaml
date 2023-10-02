@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    When Ironic hits the limit on the number of the concurrent deploys
+    (specified in the ``[conductor]max_concurrent_deploy`` option), the
+    resulting HTTP code is now 503 instead of the more generic 500.
