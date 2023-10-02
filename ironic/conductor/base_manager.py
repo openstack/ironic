@@ -125,9 +125,12 @@ class BaseConductorManager(object):
         self._keepalive_evt = threading.Event()
         """Event for the keepalive thread."""
 
-        # TODO(dtantsur): make the threshold configurable?
-        rejection_func = rejection.reject_when_reached(
-            CONF.conductor.workers_pool_size)
+        # NOTE(dtantsur): do not allow queuing work. Given our model, it's
+        # better to reject an incoming request with HTTP 503 or reschedule
+        # a periodic task that end up with hidden backlog that is hard
+        # to track and debug. Using 1 instead of 0 because of how things are
+        # ordered in futurist (it checks for rejection first).
+        rejection_func = rejection.reject_when_reached(1)
         self._executor = futurist.GreenThreadPoolExecutor(
             max_workers=CONF.conductor.workers_pool_size,
             check_and_reject=rejection_func)
