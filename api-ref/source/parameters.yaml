@@ -1009,6 +1009,38 @@ fault:
   in: body
   required: false
   type: string
+firmware_component:
+  description: |
+    The Firmware Component of a Node, eg. "bios".
+  in: body
+  required: true
+  type: string
+firmware_component_current_version:
+  description: |
+    The current version of a Firmware Component.
+  in: body
+  required: true
+  type: string
+firmware_component_initial_version:
+  description: |
+    The initial version of a Firmware Component.
+  in: body
+  required: true
+  type: string
+firmware_component_last_version_flashed:
+  description: |
+    The last version flashed of a Firmware Component.
+  in: body
+  required: true
+  type: string
+firmware_components:
+  description: |
+    List of Firmware Components of the node. It includes following fields
+    "created_at", "updated_at", "component", "initial_version",
+    "current_version", "last_version_flashed"
+  in: body
+  required: true
+  type: array
 history_event:
   description: |
     The event message body which has been logged related to the node for
