@@ -51,6 +51,7 @@ PORT_SCHEMA = {
         'portgroup_uuid': {'type': ['string', 'null']},
         'pxe_enabled': {'type': ['string', 'boolean', 'null']},
         'uuid': {'type': ['string', 'null']},
+        'name': {'type': ['string', 'null']},
     },
     'required': ['address', 'node_uuid'],
     'additionalProperties': False,
@@ -67,7 +68,8 @@ PATCH_ALLOWED_FIELDS = [
     'node_uuid',
     'physical_network',
     'portgroup_uuid',
-    'pxe_enabled'
+    'pxe_enabled',
+    'name',
 ]
 
 PORT_VALIDATOR_EXTRA = args.dict_valid(
@@ -109,6 +111,9 @@ def hide_fields_in_newer_versions(port):
     # if requested version is < 1.53, hide is_smartnic field.
     if not api_utils.allow_port_is_smartnic():
         port.pop('is_smartnic', None)
+    # if requested version is < 1.69, hide name field.
+    if not api_utils.allow_port_name():
+        port.pop('name', None)
 
 
 def convert_with_links(rpc_port, fields=None, sanitize=True):
@@ -124,6 +129,7 @@ def convert_with_links(rpc_port, fields=None, sanitize=True):
             'physical_network',
             'pxe_enabled',
             'node_uuid',
+            'name',
         )
     )
     if rpc_port.portgroup_id:
@@ -344,6 +350,9 @@ class PortsController(rest.RestController):
             if (not api_utils.allow_local_link_connection_network_type()
                     and 'network_type' in fields['local_link_connection']):
                 raise exception.NotAcceptable()
+        if ('name' in fields
+                and not api_utils.allow_port_name()):
+            raise exception.NotAcceptable()
 
     @METRICS.timer('PortsController.get_all')
     @method.expose()
@@ -484,11 +493,11 @@ class PortsController(rest.RestController):
 
     @METRICS.timer('PortsController.get_one')
     @method.expose()
-    @args.validate(port_uuid=args.uuid, fields=args.string_list)
-    def get_one(self, port_uuid, fields=None):
+    @args.validate(port_ident=args.uuid_or_name, fields=args.string_list)
+    def get_one(self, port_ident, fields=None):
         """Retrieve information about the given port.
 
-        :param port_uuid: UUID of a port.
+        :param port_ident: UUID or name of a port.
         :param fields: Optional, a list with a specified set of fields
             of the resource to be returned.
         :raises: NotAcceptable, HTTPNotFound
@@ -497,7 +506,7 @@ class PortsController(rest.RestController):
             raise exception.OperationNotPermitted()
 
         rpc_port, rpc_node = api_utils.check_port_policy_and_retrieve(
-            'baremetal:port:get', port_uuid)
+            'baremetal:port:get', port_ident)
 
         api_utils.check_allow_specify_fields(fields)
         self._check_allowed_port_fields(fields)
@@ -619,11 +628,11 @@ class PortsController(rest.RestController):
     @METRICS.timer('PortsController.patch')
     @method.expose()
     @method.body('patch')
-    @args.validate(port_uuid=args.uuid, patch=args.patch)
-    def patch(self, port_uuid, patch):
+    @args.validate(port_ident=args.uuid_or_name, patch=args.patch)
+    def patch(self, port_ident, patch):
         """Update an existing port.
 
-        :param port_uuid: UUID of a port.
+        :param port_ident: UUID or name of a port.
         :param patch: a json PATCH document to apply to this port.
         :raises: NotAcceptable, HTTPNotFound
         """
@@ -644,7 +653,7 @@ class PortsController(rest.RestController):
         self._check_allowed_port_fields(fields_to_check)
 
         rpc_port, rpc_node = api_utils.check_port_policy_and_retrieve(
-            'baremetal:port:update', port_uuid)
+            'baremetal:port:update', port_ident)
 
         port_dict = rpc_port.as_dict()
         # NOTE(lucasagomes):

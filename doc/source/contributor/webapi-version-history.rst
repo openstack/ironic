@@ -2,6 +2,12 @@
 REST API Version History
 ========================
 
+1.88 (Bobcat)
+-----------------------
+
+Added the ``name`` field to the port API. It should be unique when set,
+and can be used to identify a port resource.
+
 1.87 (Bobcat)
 -------------
 
