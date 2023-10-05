@@ -321,13 +321,16 @@ class BaseConductorManager(object):
         # This is only used in tests currently. Delete it?
         self._periodic_task_callables = periodic_task_callables
 
+    def keepalive_halt(self):
+        self._keepalive_evt.set()
+
     def del_host(self, deregister=True, clear_node_reservations=True):
         # Conductor deregistration fails if called on non-initialized
         # conductor (e.g. when rpc server is unreachable).
         if not hasattr(self, 'conductor'):
             return
         self._shutdown = True
-        self._keepalive_evt.set()
+        self.keepalive_halt()
 
         if clear_node_reservations:
             # clear all locks held by this conductor before deregistering
@@ -469,7 +472,7 @@ class BaseConductorManager(object):
             return
         while not self._keepalive_evt.is_set():
             try:
-                self.conductor.touch()
+                self.conductor.touch(online=not self._shutdown)
             except db_exception.DBConnectionError:
                 LOG.warning('Conductor could not connect to database '
                             'while heartbeating.')

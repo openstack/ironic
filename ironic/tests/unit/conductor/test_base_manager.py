@@ -359,7 +359,7 @@ class KeepAliveTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                     mock_is_sqlite.return_value = False
                     self.service._conductor_service_record_keepalive()
                     self.assertEqual(1, mock_is_sqlite.call_count)
-            mock_touch.assert_called_once_with(self.hostname)
+            mock_touch.assert_called_once_with(self.hostname, online=True)
 
     @mock.patch.object(common_utils, 'is_ironic_using_sqlite', autospec=True)
     def test__conductor_service_record_keepalive_failed_db_conn(

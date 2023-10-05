@@ -585,10 +585,16 @@ class Connection(object, metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
-    def touch_conductor(self, hostname):
+    def touch_conductor(self, hostname, online=True):
         """Mark a conductor as active by updating its 'updated_at' property.
 
+        Calling periodically with ``online=False`` will result in the conductor
+        appearing unregistered, but recently enough to prevent other conductors
+        failing orphan nodes. This improves the behaviour of graceful and drain
+        shutdown.
+
         :param hostname: The hostname of this conductor service.
+        :param online: Whether the conductor is online.
         :raises: ConductorNotFound
         """
 
