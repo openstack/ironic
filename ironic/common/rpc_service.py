@@ -48,6 +48,7 @@ class RPCService(service.Service):
         self.deregister = True
         self._failure = None
         self._started = False
+        self.draining = False
 
     def wait_for_start(self):
         while not self._started and not self._failure:
@@ -130,31 +131,54 @@ class RPCService(service.Service):
                  {'service': self.topic, 'host': self.host})
 
         # Wait for reservation locks held by this conductor.
-        # The conductor process will end when:
+        # The conductor process will end when one of the following occurs:
         # - All reservations for this conductor are released
-        # - CONF.graceful_shutdown_timeout has elapsed
+        # - shutdown_timeout has elapsed
         # - The process manager (systemd, kubernetes) sends SIGKILL after the
-        #   configured graceful period
-        graceful_time = initial_time + datetime.timedelta(
-            seconds=CONF.graceful_shutdown_timeout)
+        #   configured timeout period
         while (self.manager.has_reserved()
-               and graceful_time > timeutils.utcnow()):
+               and not self._shutdown_timeout_reached(initial_time)):
             LOG.info('Waiting for reserved nodes to clear on host %(host)s',
                      {'host': self.host})
             time.sleep(1)
 
+        # Stop the keepalive heartbeat greenthread sending touch(online=False)
+        self.manager.keepalive_halt()
+
         rpc.set_global_manager(None)
 
-    def _handle_signal(self, signo, frame):
+    def _shutdown_timeout_reached(self, initial_time):
+        if self.draining:
+            shutdown_timeout = CONF.drain_shutdown_timeout
+        else:
+            shutdown_timeout = CONF.graceful_shutdown_timeout
+        if shutdown_timeout == 0:
+            # No timeout, run until no nodes are reserved
+            return False
+        shutdown_time = initial_time + datetime.timedelta(
+            seconds=shutdown_timeout)
+        return shutdown_time < timeutils.utcnow()
+
+    def _handle_no_deregister(self, signo, frame):
         LOG.info('Got signal SIGUSR1. Not deregistering on next shutdown '
                  'of service %(service)s on host %(host)s.',
                  {'service': self.topic, 'host': self.host})
         self.deregister = False
 
-    def handle_signal(self):
-        """Add a signal handler for SIGUSR1.
+    def _handle_drain(self, signo, frame):
+        LOG.info('Got signal SIGUSR2. Starting drain shutdown'
+                 'of service %(service)s on host %(host)s.',
+                 {'service': self.topic, 'host': self.host})
+        self.draining = True
+        self.stop()
 
-        The handler ensures that the manager is not deregistered when it is
-        shutdown.
+    def handle_signal(self):
+        """Add a signal handler for SIGUSR1, SIGUSR2.
+
+        The SIGUSR1 handler ensures that the manager is not deregistered when
+        it is shutdown.
+
+        The SIGUSR2 handler starts a drain shutdown.
         """
-        signal.signal(signal.SIGUSR1, self._handle_signal)
+        signal.signal(signal.SIGUSR1, self._handle_no_deregister)
+        signal.signal(signal.SIGUSR2, self._handle_drain)

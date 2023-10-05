@@ -322,6 +322,8 @@ class BaseConductorManager(object):
         self._periodic_task_callables = periodic_task_callables
 
     def keepalive_halt(self):
+        if not hasattr(self, '_keepalive_evt'):
+            return
         self._keepalive_evt.set()
 
     def del_host(self, deregister=True, clear_node_reservations=True):
@@ -329,8 +331,10 @@ class BaseConductorManager(object):
         # conductor (e.g. when rpc server is unreachable).
         if not hasattr(self, 'conductor'):
             return
+
+        # the keepalive heartbeat greenthread will continue to run, but will
+        # now be setting online=False
         self._shutdown = True
-        self.keepalive_halt()
 
         if clear_node_reservations:
             # clear all locks held by this conductor before deregistering

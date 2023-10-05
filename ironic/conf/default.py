@@ -397,6 +397,14 @@ service_opts = [
                help=_('Number of retries to hold onto the worker before '
                       'failing or returning the thread to the pool if '
                       'the conductor can automatically retry.')),
+    cfg.IntOpt('drain_shutdown_timeout',
+               mutable=True,
+               default=1800,
+               help=_('Timeout (seconds) after which a server will exit '
+                      'from a drain shutdown. Drain shutdowns are '
+                      'triggered by sending the signal SIGUSR2. '
+                      'Zero value means shutdown will never be triggered by '
+                      'a timeout.')),
 ]
 
 utils_opts = [

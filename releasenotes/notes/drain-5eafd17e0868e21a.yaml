@@ -1,0 +1,14 @@
+---
+features:
+  - |
+    Sending signal ``SIGUSR2`` to a conductor process will now trigger a drain
+    shutdown. This is similar to a ``SIGTERM`` graceful shutdown but the timeout
+    is determined by ``[DEFAULT]drain_shutdown_timeout`` which defaults to
+    ``1800`` seconds. This is enough time for running tasks on existing reserved
+    nodes to either complete or reach their own failure timeout.
+
+    During the drain period the conductor will be removed from the hash ring to
+    prevent new tasks from starting. Other conductors will no longer fail
+    reserved nodes on the draining conductor, which previously appeared to be
+    orphaned. This is achieved by running the conductor keepalive heartbeat for
+    this period, but setting the ``online`` state to ``False``.
