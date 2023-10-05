@@ -22,7 +22,7 @@ from ironic.common.i18n import _
 
 opts = [
     cfg.IntOpt('workers_pool_size',
-               default=100, min=3,
+               default=300, min=3,
                help=_('The size of the workers greenthread pool. '
                       'Note that 2 threads will be reserved by the conductor '
                       'itself for handling heart beats and periodic tasks. '

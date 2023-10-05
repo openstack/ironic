@@ -1,0 +1,25 @@
+---
+issues:
+  - |
+    When configuring a single-conductor environment, make sure the number
+    of worker pools (``[conductor]worker_pool_size``) is larger than the
+    maximum parallel deployments (``[conductor]max_concurrent_deploy``).
+    This was not the case by default previously (the options used to be set
+    to 100 and 250 accordingly).
+upgrade:
+  - |
+    Because of a fix in the internal worker pool handling, you may now start
+    seeing requests rejected with HTTP 503 under a very high load earlier than
+    before. In this case, try increasing the ``[conductor]worker_pool_size``
+    option or consider adding more conductors.
+  - |
+    The default worker pool size (the ``[conductor]worker_pool_size`` option)
+    has been increased from 100 to 300. You may want to consider increasing
+    it even further if your environment allows that.
+fixes:
+  - |
+    Fixes handling new requests when the maximum number of internal workers
+    is reached. Previously, after reaching the maximum number of workers
+    (100 by default), we would queue the same number of requests (100 again).
+    This was not intentional, and now Ironic no longer queues requests if
+    there are no free threads to run them.
