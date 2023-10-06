@@ -411,6 +411,10 @@ with it's own management controller. For example "SmartNIC's" or Data
 Processing Units (DPUs) which may have their own management controller and
 power control.
 
+The relationship between a parent node and a child node is established on the child node. Example::
+
+  baremetal node set --parent-node <parent_node_uuid> <child_node_uuid>
+
 Child Node Clean Step Execution
 -------------------------------
 
