@@ -66,11 +66,24 @@ class RedfishInspectTestCase(db_base.DbTestCase):
 
         system_mock.processors.summary = '8', sushy.PROCESSOR_ARCH_x86
 
-        mock_simple_storage_device = mock.Mock()
+        mock_storage_drive = mock.Mock(
+            spec=sushy.resources.system.storage.drive.Drive)
+        mock_storage_drive.name = 'storage-drive'
+        mock_storage_drive.capacity_bytes = '128'
+
+        mock_storage = mock.Mock(
+            spec=sushy.resources.system.storage.storage.Storage)
+        mock_storage.drives = [mock_storage_drive]
+        system_mock.storage.get_members.return_value = [
+            mock_storage]
+
+        mock_simple_storage_device = mock.Mock(
+            spec=sushy.resources.system.simple_storage.DeviceListField)
         mock_simple_storage_device.name = 'test-name'
         mock_simple_storage_device.capacity_bytes = '123'
 
-        mock_simple_storage = mock.Mock()
+        mock_simple_storage = mock.Mock(
+            spec=sushy.resources.system.simple_storage.SimpleStorage)
         mock_simple_storage.devices = [mock_simple_storage_device]
         system_mock.simple_storage.get_members.return_value = [
             mock_simple_storage]
@@ -150,7 +163,7 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self.assertEqual(expected_cpu,
                              inventory['inventory']['cpu'])
 
-            expected_disks = [{'name': 'test-name', 'size': '123'}]
+            expected_disks = [{'name': 'storage-drive', 'size': '128'}]
             self.assertEqual(expected_disks,
                              inventory["inventory"]['disks'])
 
@@ -277,10 +290,31 @@ class RedfishInspectTestCase(db_base.DbTestCase):
             self.assertEqual(expected_properties, task.node.properties)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_inspect_hardware_ignore_missing_simple_storage_and_storage(
+            self, mock_get_system):
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        system_mock.simple_storage = {}
+        system_mock.storage = {}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            expected_properties = {
+                'capabilities': 'boot_mode:uefi',
+                'cpu_arch': 'x86_64', 'cpus': '8',
+                'local_gb': '0', 'memory_mb': 2048
+            }
+            task.driver.inspect.inspect_hardware(task)
+            self.assertEqual(expected_properties, task.node.properties)
+
+            inventory = inspect_utils.get_inspection_data(task.node,
+                                                          self.context)
+            self.assertNotIn('disks', inventory['inventory'])
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_ignore_missing_simple_storage(self,
                                                             mock_get_system):
         system_mock = self.init_system_mock(mock_get_system.return_value)
-        system_mock.simple_storage = None
+        system_mock.simple_storage = {}
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -294,7 +328,26 @@ class RedfishInspectTestCase(db_base.DbTestCase):
 
             inventory = inspect_utils.get_inspection_data(task.node,
                                                           self.context)
-            self.assertNotIn('disks', inventory['inventory'])
+            self.assertIn('disks', inventory['inventory'])
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_inspect_hardware_ignore_missing_storage(self, mock_get_system):
+        system_mock = self.init_system_mock(mock_get_system.return_value)
+        system_mock.storage = {}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            expected_properties = {
+                'capabilities': 'boot_mode:uefi',
+                'cpu_arch': 'x86_64', 'cpus': '8',
+                'local_gb': '4', 'memory_mb': 2048
+            }
+            task.driver.inspect.inspect_hardware(task)
+            self.assertEqual(expected_properties, task.node.properties)
+
+            inventory = inspect_utils.get_inspection_data(task.node,
+                                                          self.context)
+            self.assertIn('disks', inventory['inventory'])
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_inspect_hardware_fail_missing_memory_mb(self, mock_get_system):

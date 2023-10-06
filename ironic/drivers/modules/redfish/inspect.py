@@ -134,15 +134,15 @@ class RedfishInspect(base.InspectInterface):
                         {'node': task.node.uuid})
             inspected_properties['local_gb'] = '0'
 
-        if system.simple_storage:
-            simple_storage_list = system.simple_storage.get_members()
+        if storages := system.storage or system.simple_storage:
             disks = list()
-
-            for simple_storage in simple_storage_list:
-                for simple_storage_device in simple_storage.devices:
+            for storage in storages.get_members():
+                drives = storage.drives if hasattr(
+                    storage, 'drives') else storage.devices
+                for drive in drives:
                     disk = {}
-                    disk['name'] = simple_storage_device.name
-                    disk['size'] = simple_storage_device.capacity_bytes
+                    disk['name'] = drive.name
+                    disk['size'] = drive.capacity_bytes
                     disks.append(disk)
 
             inventory['disks'] = disks

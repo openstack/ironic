@@ -59,7 +59,6 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
         self.system_uuid = 'ZZZ--XXX-YYY'
         self.chassis_uuid = 'XXX-YYY-ZZZ'
-        self.drive_uuid = 'ZZZ-YYY-XXX'
 
     def init_system_mock(self, system_mock, **properties):
 
@@ -670,7 +669,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
         self.assertEqual(expected, sensors)
 
-    def test__get_sensors_data_drive(self):
+    def test__get_sensors_data_drive_simple_storage(self):
         attributes = {
             'name': '32ADF365C6C1B7BD',
             'manufacturer': 'IBM',
@@ -682,14 +681,58 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             }
         }
 
-        mock_system = mock.MagicMock(identity='ZZZ-YYY-XXX')
+        mock_system = mock.MagicMock(spec=sushy.resources.system.system.System)
+        mock_system.identity = 'ZZZ-YYY-XXX'
         mock_drive = mock.MagicMock(**attributes)
         mock_drive.name = attributes['name']
         mock_drive.status = mock.MagicMock(**attributes['status'])
-        mock_storage = mock.MagicMock()
-        mock_storage.devices = [mock_drive]
+        mock_storage = mock.MagicMock(
+            spec=sushy.resources.system.storage.storage.Storage)
+        mock_storage.drives = [mock_drive]
         mock_storage.identity = 'XXX-YYY-ZZZ'
-        mock_system.simple_storage.get_members.return_value = [mock_storage]
+        mock_system.storage.get_members.return_value = [mock_storage]
+        mock_system.simple_storage = {}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            sensors = task.driver.management._get_sensors_drive(mock_system)
+
+        expected = {
+            '32ADF365C6C1B7BD:XXX-YYY-ZZZ@ZZZ-YYY-XXX': {
+                'capacity_bytes': 3750000000,
+                'health': 'OK',
+                'name': '32ADF365C6C1B7BD',
+                'model': 'IBM 350A',
+                'state': 'enabled'
+            }
+        }
+
+        self.assertEqual(expected, sensors)
+
+    def test__get_sensors_data_drive_storage(self):
+        attributes = {
+            'name': '32ADF365C6C1B7BD',
+            'manufacturer': 'IBM',
+            'model': 'IBM 350A',
+            'capacity_bytes': 3750000000,
+            'status': {
+                'health': 'OK',
+                'state': 'enabled'
+            }
+        }
+
+        mock_system = mock.MagicMock(spec=sushy.resources.system.system.System)
+        mock_system.identity = 'ZZZ-YYY-XXX'
+        mock_drive = mock.MagicMock(**attributes)
+        mock_drive.name = attributes['name']
+        mock_drive.status = mock.MagicMock(**attributes['status'])
+        mock_simple_storage = mock.MagicMock(
+            spec=sushy.resources.system.simple_storage.SimpleStorage)
+        mock_simple_storage.devices = [mock_drive]
+        mock_simple_storage.identity = 'XXX-YYY-ZZZ'
+        mock_system.simple_storage.get_members.return_value = [
+            mock_simple_storage]
+        mock_system.storage = {}
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
@@ -757,13 +800,17 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             uuid=self.chassis_uuid,
             indicator_led=sushy.INDICATOR_LED_LIT)
         fake_drive = mock.Mock(
-            uuid=self.drive_uuid,
+            identity='drive1',
             indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_storage = mock.Mock(
+            identity='storage1',
+            drives=[fake_drive])
         fake_system = mock.Mock(
             uuid=self.system_uuid,
             chassis=[fake_chassis],
-            simple_storage=mock.MagicMock(drives=[fake_drive]),
+            storage=mock.MagicMock(),
             indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_system.storage.get_members.return_value = [fake_storage]
 
         mock_get_system.return_value = fake_system
 
@@ -795,7 +842,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                     }
                 },
                 components.DISK: {
-                    'ZZZ-YYY-XXX': {
+                    'storage1:drive1': {
                         "readonly": False,
                         "states": [
                             indicator_states.BLINKING,
@@ -814,13 +861,17 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             uuid=self.chassis_uuid,
             indicator_led=sushy.INDICATOR_LED_LIT)
         fake_drive = mock.Mock(
-            uuid=self.drive_uuid,
+            identity='drive1',
             indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_storage = mock.Mock(
+            identity='storage1',
+            drives=[fake_drive])
         fake_system = mock.Mock(
             uuid=self.system_uuid,
             chassis=[fake_chassis],
-            simple_storage=mock.MagicMock(drives=[fake_drive]),
+            storage=mock.MagicMock(),
             indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_system.storage.get_members.return_value = [fake_storage]
 
         mock_get_system.return_value = fake_system
 
@@ -835,18 +886,52 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             mock_get_system.assert_called_once_with(task.node)
 
     @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_indicator_state_disk(self, mock_get_system):
+        fake_chassis = mock.Mock(
+            uuid=self.chassis_uuid,
+            indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_drive = mock.Mock(
+            identity='drive1',
+            indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_storage = mock.Mock(
+            identity='storage1',
+            drives=[fake_drive])
+        fake_system = mock.Mock(
+            uuid=self.system_uuid,
+            chassis=[fake_chassis],
+            storage=mock.MagicMock(),
+            indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_system.storage.get_members.return_value = [fake_storage]
+
+        mock_get_system.return_value = fake_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.set_indicator_state(
+                task, components.DISK, 'storage1:drive1', indicator_states.ON)
+
+            fake_drive.set_indicator_led.assert_called_once_with(
+                sushy.INDICATOR_LED_LIT)
+
+            mock_get_system.assert_called_once_with(task.node)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
     def test_get_indicator_state(self, mock_get_system):
         fake_chassis = mock.Mock(
             uuid=self.chassis_uuid,
             indicator_led=sushy.INDICATOR_LED_LIT)
         fake_drive = mock.Mock(
-            uuid=self.drive_uuid,
+            identity='drive1',
             indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_storage = mock.Mock(
+            identity='storage1',
+            drives=[fake_drive])
         fake_system = mock.Mock(
             uuid=self.system_uuid,
             chassis=[fake_chassis],
-            simple_storage=mock.MagicMock(drives=[fake_drive]),
+            storage=mock.MagicMock(),
             indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_system.storage.get_members.return_value = [fake_storage]
 
         mock_get_system.return_value = fake_system
 
@@ -855,6 +940,36 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
             state = task.driver.management.get_indicator_state(
                 task, components.SYSTEM, self.system_uuid)
+
+            mock_get_system.assert_called_once_with(task.node)
+
+            self.assertEqual(indicator_states.ON, state)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_get_indicator_state_disk(self, mock_get_system):
+        fake_chassis = mock.Mock(
+            uuid=self.chassis_uuid,
+            indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_drive = mock.Mock(
+            identity='drive1',
+            indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_storage = mock.Mock(
+            identity='storage1',
+            drives=[fake_drive])
+        fake_system = mock.Mock(
+            uuid=self.system_uuid,
+            chassis=[fake_chassis],
+            storage=mock.MagicMock(),
+            indicator_led=sushy.INDICATOR_LED_LIT)
+        fake_system.storage.get_members.return_value = [fake_storage]
+
+        mock_get_system.return_value = fake_system
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+
+            state = task.driver.management.get_indicator_state(
+                task, components.DISK, 'storage1:drive1')
 
             mock_get_system.assert_called_once_with(task.node)
 

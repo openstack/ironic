@@ -516,15 +516,18 @@ class RedfishManagement(base.ManagementInterface):
         """
         sensors = {}
 
-        for storage in system.simple_storage.get_members():
-            for drive in storage.devices:
-                sensor = cls._sensor2dict(
-                    drive, 'name', 'model', 'capacity_bytes')
-                sensor.update(
-                    cls._sensor2dict(drive.status, 'state', 'health'))
-                unique_name = '%s:%s@%s' % (
-                    drive.name, storage.identity, system.identity)
-                sensors[unique_name] = sensor
+        if storages := system.storage or system.simple_storage:
+            for storage in storages.get_members():
+                drives = storage.drives if hasattr(
+                    storage, 'drives') else storage.devices
+                for drive in drives:
+                    sensor = cls._sensor2dict(
+                        drive, 'name', 'model', 'capacity_bytes')
+                    sensor.update(
+                        cls._sensor2dict(drive.status, 'state', 'health'))
+                    unique_name = '%s:%s@%s' % (
+                        drive.name, storage.identity, system.identity)
+                    sensors[unique_name] = sensor
 
         return sensors
 
@@ -685,11 +688,14 @@ class RedfishManagement(base.ManagementInterface):
 
         try:
             if (component in (None, components.DISK)
-                    and system.simple_storage
-                    and system.simple_storage.drives):
+                    and system.storage):
                 indicators[components.DISK] = {
-                    drive.uuid: properties
-                    for drive in system.simple_storage.drives
+                    # NOTE(vanou) There is no uuid property in Drive resource.
+                    # There is no guarantee Id property of Drive is unique
+                    # across all drives attached to server.
+                    ':'.join([storage.identity, drive.identity]): properties
+                    for storage in system.storage.get_members()
+                    for drive in storage.drives
                     if drive.indicator_led
                 }
 
@@ -731,13 +737,14 @@ class RedfishManagement(base.ManagementInterface):
                         return
 
             elif (component == components.DISK
-                  and system.simple_storage
-                  and system.simple_storage.drives):
-                for drive in system.simple_storage.drives:
-                    if drive.uuid == indicator:
-                        drive.set_indicator_led(
-                            INDICATOR_MAP_REV[state])
-                        return
+                  and system.storage and len(indicator.split(':')) == 2):
+                for storage in system.storage.get_members():
+                    if storage.identity == indicator.split(':')[0]:
+                        for drive in storage.drives:
+                            if drive.identity == indicator.split(':')[1]:
+                                drive.set_indicator_led(
+                                    INDICATOR_MAP_REV[state])
+                                return
 
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Redfish set %(component)s indicator %(indicator)s '
@@ -783,11 +790,12 @@ class RedfishManagement(base.ManagementInterface):
                         return INDICATOR_MAP[chassis.indicator_led]
 
             if (component == components.DISK
-                    and system.simple_storage
-                    and system.simple_storage.drives):
-                for drive in system.simple_storage.drives:
-                    if drive.uuid == indicator:
-                        return INDICATOR_MAP[drive.indicator_led]
+                    and system.storage and len(indicator.split(':')) == 2):
+                for storage in system.storage.get_members():
+                    if storage.identity == indicator.split(':')[0]:
+                        for drive in storage.drives:
+                            if drive.identity == indicator.split(':')[1]:
+                                return INDICATOR_MAP[drive.indicator_led]
 
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Redfish get %(component)s indicator %(indicator)s '
