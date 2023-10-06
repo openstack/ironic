@@ -76,22 +76,16 @@ function early_create {
     net_id=$(openstack network create --share $NEUTRON_NET -f value -c id)
     resource_save network net_id $net_id
 
-    local subnet_params=""
-    subnet_params+="--ip_version 4 "
-    subnet_params+="--gateway $RESOURCES_NETWORK_GATEWAY "
-    subnet_params+="--name $NEUTRON_NET "
-    subnet_params+="$net_id $RESOURCES_FIXED_RANGE"
-
     local subnet_id
-    subnet_id=$(neutron subnet-create $subnet_params | grep ' id ' | get_field 2)
+    subnet_id=$(openstack subnet create -f value -c id --ip-version 4 --gateway $RESOURCES_NETWORK_GATEWAY --network $net_id --subnet-range $RESOURCES_FIXED_RANGE $NEUTRON_NET)
     resource_save network subnet_id $subnet_id
 
     local router_id
     router_id=$(openstack router create $NEUTRON_NET -f value -c id)
     resource_save network router_id $router_id
 
-    neutron router-interface-add $NEUTRON_NET $subnet_id
-    neutron router-gateway-set $NEUTRON_NET public
+    openstack router add subnet $NEUTRON_NET $subnet_id
+    openstack router set --external-gateway public $NEUTRON_NET
 
     # Add a route to the baremetal network via the Neutron public router.
     # ironic-conductor will be able to access the ironic nodes via this new
@@ -142,10 +136,10 @@ function destroy {
     # in ironic_grenade network instead of neutron_grenade during resources phase. As result
     # during neutron/resources.sh destroy phase ironic_grenade router|subnet|network were deleted.
     # Make sure that we removed neutron resources here.
-    neutron router-gateway-clear neutron_grenade || /bin/true
-    neutron router-interface-delete neutron_grenade neutron_grenade || /bin/true
-    neutron router-delete neutron_grenade || /bin/true
-    neutron net-delete neutron_grenade || /bin/true
+    openstack router unset --external-gateway neutron_grenade || /bin/true
+    openstack router remove subnet neutron_grenade neutron_grenade || /bin/true
+    openstack router delete neutron_grenade || /bin/true
+    openstack network neutron_grenade || /bin/true
 }
 
 # Dispatcher
