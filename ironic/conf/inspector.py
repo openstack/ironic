@@ -12,6 +12,8 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import os
+
 from oslo_config import cfg
 
 from ironic.common.i18n import _
@@ -30,6 +32,14 @@ VALID_KEEP_PORTS_VALUES = {
     'present': _('keep only ports with MAC addresses present in '
                  'the inventory'),
     'added': _('keep only ports determined by the add_ports option'),
+}
+DEFAULT_CPU_FLAGS_MAPPING = {
+    'vmx': 'cpu_vt',
+    'svm': 'cpu_vt',
+    'aes': 'cpu_aes',
+    'pse': 'cpu_hugepages',
+    'pdpe1gb': 'cpu_hugepages_1g',
+    'smx': 'cpu_txt',
 }
 
 opts = [
@@ -77,14 +87,33 @@ opts = [
                       'run by default. In most cases, the operators will not '
                       'modify this. The default (somewhat conservative) hooks '
                       'will raise an exception in case the ramdisk reports an '
-                      'error, validate interfaces in the inventory, and create'
-                      ' ports.')),
+                      'error, validate interfaces in the inventory, create '
+                      'ports and set the node\'s cpu architecture property.')),
     cfg.StrOpt('hooks',
                default='$default_hooks',
                help=_('Comma-separated list of enabled hooks for processing '
                       'pipeline. The default for this is $default_hooks. '
                       'Hooks can be added before or after the defaults '
                       'like this: "prehook,$default_hooks,posthook".')),
+    cfg.StrOpt('known_accelerators',
+               default=os.path.join(
+                   '$pybasedir',
+                   'drivers/modules/inspector/hooks/known_accelerators.yaml'),
+               help=_('Path to the file which contains the known accelerator '
+                      'devices, to be used by the "accelerators" inspection '
+                      'hook.')),
+    cfg.DictOpt('cpu_capabilities',
+                default=DEFAULT_CPU_FLAGS_MAPPING,
+                help='Mapping between a CPU flag and a node capability to set '
+                     'if this CPU flag is present. This configuration option '
+                     'is used by the "cpu-capabilities" inspection hook.'),
+    cfg.BoolOpt('extra_hardware_strict',
+                default=False,
+                help=_('If True, refuse to parse extra data (in plugin_data) '
+                       'if at least one record is too short. Additionally, '
+                       'remove the incoming "data" even if parsing failed. '
+                       'This configuration option is used by the '
+                       '"extra-hardware" inspection hook.'))
 ]
 
 
