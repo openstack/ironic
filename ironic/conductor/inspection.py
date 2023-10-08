@@ -128,6 +128,9 @@ def continue_inspection(task, inventory, plugin_data):
                       'asynchronously for node %s', node.uuid)
             return
 
+        # NOTE(dtantsur): logs can be huge and are stored separately
+        plugin_data.pop('logs', None)
+
         # NOTE(dtantsur): this is done *after* processing to allow
         # modifications, especially to plugin_data.
         inspect_utils.store_inspection_data(
