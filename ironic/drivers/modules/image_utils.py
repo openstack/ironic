@@ -81,6 +81,10 @@ class ImageHandler(object):
             },
         }
 
+        if driver not in _SWIFT_MAP:
+            raise exception.UnsupportedDriverExtension(
+                _("Publishing images is not supported for driver %s") % driver)
+
         if _SWIFT_MAP[driver].get("swift_enabled"):
             self._publisher = image_publisher.SwiftPublisher(
                 container=_SWIFT_MAP[driver].get("container"),
@@ -322,6 +326,62 @@ def cleanup_disk_image(task, prefix=None):
     ImageHandler.unpublish_image_for_node(task.node, prefix=prefix)
 
 
+def prepare_remote_image(task, image_url, file_name='boot.iso',
+                         download_source='local', cache=None):
+    """Generic function for publishing remote images.
+
+    Given the image provided by the user, generate a URL to pass to the BMC
+    or a remote agent.
+
+    :param task: TaskManager instance.
+    :param image_url: The original URL or a glance UUID.
+    :param file_name: File name to use when publishing.
+    :param download_source: How the image will be published:
+        'http' (via a plain HTTP link, preverving remote links),
+        'local' (via the local HTTP server even if the remote link is HTTP),
+        'swift' (same as 'http', but Glance images are published via Swift
+        temporary URLs).
+    :param cache: Image cache to use. Defaults to the ISO image cache.
+    :return: The new URL (possibly the same as the old one).
+    """
+    scheme = urlparse.urlparse(image_url).scheme.lower()
+    if scheme == 'swift':
+        # FIXME(dtantsur): iLO supports swift: scheme. In the long run we
+        # should support it for all boot interfaces by using temporary
+        # URLs. Until it's done, return image_url as it is.
+        return image_url
+
+    if (download_source == 'swift'
+            and service_utils.is_glance_image(image_url)):
+        image_url = (
+            images.get_temp_url_for_glance_image(task.context, image_url))
+        # get_temp_url_for_glance_image return an HTTP (or HTTPS - doesn't
+        # matter here) image.
+        scheme = 'http'
+
+    if download_source != 'local':
+        if scheme in ('http', 'https'):
+            return image_url
+        LOG.debug("image_download_source set to %(download_source)s but "
+                  "the image is not an HTTP URL: %(image_url)s",
+                  {"image_url": image_url, "download_source": download_source})
+
+    img_handler = ImageHandler(task.node.driver)
+    if cache is None:
+        cache = ISOImageCache()
+
+    with tempfile.TemporaryDirectory(dir=CONF.tempdir) as temp_dir:
+        tmp_file = os.path.join(temp_dir, file_name)
+        cache.fetch_image(image_url, tmp_file,
+                          ctx=task.context, force_raw=False)
+        return img_handler.publish_image(tmp_file, file_name)
+
+
+def cleanup_remote_image(task, file_name):
+    """Cleanup image created via prepare_remote_image."""
+    ImageHandler(task.node.driver).unpublish_image(file_name)
+
+
 def _prepare_iso_image(task, kernel_href, ramdisk_href,
                        bootloader_href=None, root_uuid=None, params=None,
                        base_iso=None, inject_files=None):
@@ -366,83 +426,57 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
     else:
         download_source = CONF.deploy.ramdisk_image_download_source
 
-    # NOTE(rpittau): if base_iso is defined as http address, we just access
-    # it directly.
+    boot_mode = boot_mode_utils.get_boot_mode(task.node)
+    iso_object_name = _get_name(task.node, prefix='boot', suffix='.iso')
+
     if base_iso:
-        scheme = urlparse.urlparse(base_iso).scheme.lower()
-        if scheme == 'swift':
-            # FIXME(dtantsur): iLO supports swift: scheme. In the long run we
-            # should support it for all boot interfaces by using temporary
-            # URLs. Until it's done, return base_iso as it is.
-            return base_iso
-
-        if (download_source == 'swift'
-                and service_utils.is_glance_image(base_iso)):
-            base_iso = (
-                images.get_temp_url_for_glance_image(task.context, base_iso))
-            # get_temp_url_for_glance_image return an HTTP (or HTTPS - doesn't
-            # matter here) image.
-            scheme = 'http'
-
-        if download_source != 'local':
-            if scheme in ('http', 'https'):
-                return base_iso
-            LOG.debug("ramdisk_image_download_source set to http but "
-                      "boot_iso is not an HTTP URL: %(boot_iso)s",
-                      {"boot_iso": base_iso})
+        # NOTE(dtantsur): this should be "params or inject_files", but
+        # params are always populated in the calling code.
+        log_func = LOG.warning if inject_files else LOG.debug
+        log_func('Using pre-built %(boot_mode)s ISO %(iso)s for node '
+                 '%(node)s, custom configuration will not be available',
+                 {'boot_mode': boot_mode, 'node': task.node.uuid,
+                  'iso': base_iso})
+        return prepare_remote_image(task, base_iso,
+                                    file_name=iso_object_name,
+                                    download_source=download_source)
 
     img_handler = ImageHandler(task.node.driver)
-
-    boot_mode = boot_mode_utils.get_boot_mode(task.node)
 
     with tempfile.TemporaryDirectory(dir=CONF.tempdir) as boot_file_dir:
 
         boot_iso_tmp_file = os.path.join(boot_file_dir, 'boot.iso')
-        if base_iso:
-            # NOTE(dtantsur): this should be "params or inject_files", but
-            # params are always populated in the calling code.
-            log_func = LOG.warning if inject_files else LOG.debug
-            log_func('Using pre-built %(boot_mode)s ISO %(iso)s for node '
-                     '%(node)s, custom configuration will not be available',
-                     {'boot_mode': boot_mode, 'node': task.node.uuid,
-                      'iso': base_iso})
-
-            ISOImageCache().fetch_image(base_iso, boot_iso_tmp_file,
-                                        ctx=task.context, force_raw=False)
+        if is_ramdisk_boot:
+            kernel_params = "root=/dev/ram0 text "
+            kernel_params += i_info.get("ramdisk_kernel_arguments", "")
         else:
-            if is_ramdisk_boot:
-                kernel_params = "root=/dev/ram0 text "
-                kernel_params += i_info.get("ramdisk_kernel_arguments", "")
-            else:
-                kernel_params = driver_utils.get_kernel_append_params(
-                    task.node, default=img_handler.kernel_params)
+            kernel_params = driver_utils.get_kernel_append_params(
+                task.node, default=img_handler.kernel_params)
 
-            if params:
-                kernel_params = ' '.join(
-                    (kernel_params, ' '.join(
-                        ('%s=%s' % kv) if kv[1] is not None else kv[0]
-                        for kv in params.items())))
+        if params:
+            kernel_params = ' '.join(
+                (kernel_params, ' '.join(
+                    ('%s=%s' % kv) if kv[1] is not None else kv[0]
+                    for kv in params.items())))
 
-            LOG.debug(
-                "Trying to create %(boot_mode)s ISO image for node %(node)s "
-                "with kernel %(kernel_href)s, ramdisk %(ramdisk_href)s, "
-                "bootloader %(bootloader_href)s and kernel params %(params)s",
-                {'node': task.node.uuid,
-                 'boot_mode': boot_mode,
-                 'kernel_href': kernel_href,
-                 'ramdisk_href': ramdisk_href,
-                 'bootloader_href': bootloader_href,
-                 'params': kernel_params})
-            images.create_boot_iso(
-                task.context, boot_iso_tmp_file,
-                kernel_href, ramdisk_href,
-                esp_image_href=bootloader_href,
-                root_uuid=root_uuid,
-                kernel_params=kernel_params,
-                boot_mode=boot_mode,
-                inject_files=inject_files)
-
-        iso_object_name = _get_name(task.node, prefix='boot', suffix='.iso')
+        LOG.debug(
+            "Trying to create %(boot_mode)s ISO image for node %(node)s "
+            "with kernel %(kernel_href)s, ramdisk %(ramdisk_href)s, "
+            "bootloader %(bootloader_href)s and kernel params %(params)s",
+            {'node': task.node.uuid,
+                'boot_mode': boot_mode,
+                'kernel_href': kernel_href,
+                'ramdisk_href': ramdisk_href,
+                'bootloader_href': bootloader_href,
+                'params': kernel_params})
+        images.create_boot_iso(
+            task.context, boot_iso_tmp_file,
+            kernel_href, ramdisk_href,
+            esp_image_href=bootloader_href,
+            root_uuid=root_uuid,
+            kernel_params=kernel_params,
+            boot_mode=boot_mode,
+            inject_files=inject_files)
 
         image_url = img_handler.publish_image(
             boot_iso_tmp_file, iso_object_name)

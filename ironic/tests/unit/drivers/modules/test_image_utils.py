@@ -646,7 +646,10 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                 root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
                 inject_files=None)
 
-    def test__prepare_iso_image_bootable_iso(self):
+    @mock.patch.object(images, 'create_boot_iso', autospec=True)
+    @mock.patch.object(image_utils, 'prepare_remote_image', autospec=True)
+    def test__prepare_iso_image_bootable_iso(self, mock_prepare_remote,
+                                             mock_create_boot_iso):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             base_image_url = 'http://bearmetal.net/boot.iso'
@@ -654,10 +657,17 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             url = image_utils._prepare_iso_image(
                 task, None, None, bootloader_href=None, root_uuid=None,
                 base_iso=base_image_url)
-            self.assertEqual(url, base_image_url)
+            self.assertEqual(mock_prepare_remote.return_value, url)
+            mock_prepare_remote.assert_called_once_with(
+                task, base_image_url, file_name=f'boot-{self.node.uuid}.iso',
+                download_source='http')
+            mock_create_boot_iso.assert_not_called()
 
     @mock.patch.object(deploy_utils, 'get_boot_option', lambda node: 'ramdisk')
-    def test__prepare_iso_image_bootable_iso_with_instance_info(self):
+    @mock.patch.object(images, 'create_boot_iso', autospec=True)
+    @mock.patch.object(image_utils, 'prepare_remote_image', autospec=True)
+    def test__prepare_iso_image_bootable_iso_with_instance_info(
+            self, mock_prepare_remote, mock_create_boot_iso):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             base_image_url = 'http://bearmetal.net/boot.iso'
@@ -665,58 +675,11 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             url = image_utils._prepare_iso_image(
                 task, None, None, bootloader_href=None, root_uuid=None,
                 base_iso=base_image_url)
-            self.assertEqual(url, base_image_url)
-
-    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
-                       autospec=True)
-    @mock.patch.object(image_utils, 'ISOImageCache', autospec=True)
-    @mock.patch.object(images, 'create_boot_iso', autospec=True)
-    def test__prepare_iso_image_bootable_iso_file(self, mock_create_boot_iso,
-                                                  mock_cache,
-                                                  mock_publish_image):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            base_image_url = '/path/to/baseiso'
-            self.config(ramdisk_image_download_source='http', group='deploy')
-            image_utils._prepare_iso_image(
-                task, 'http://kernel/img', 'http://ramdisk/img',
-                bootloader_href=None, root_uuid=task.node.uuid,
-                base_iso=base_image_url)
-            mock_cache.return_value.fetch_image.assert_called_once_with(
-                base_image_url, mock.ANY, ctx=task.context, force_raw=False)
+            self.assertEqual(mock_prepare_remote.return_value, url)
+            mock_prepare_remote.assert_called_once_with(
+                task, base_image_url, file_name=f'boot-{self.node.uuid}.iso',
+                download_source='http')
             mock_create_boot_iso.assert_not_called()
-
-    @mock.patch.object(images, 'get_temp_url_for_glance_image',
-                       autospec=True)
-    def test__prepare_iso_image_bootable_iso_from_swift(self, mock_temp_url):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            base_image_url = uuidutils.generate_uuid()
-            self.config(ramdisk_image_download_source='swift', group='deploy')
-            url = image_utils._prepare_iso_image(
-                task, None, None, bootloader_href=None, root_uuid=None,
-                base_iso=base_image_url)
-            self.assertEqual(mock_temp_url.return_value, url)
-            mock_temp_url.assert_called_once_with(task.context, base_image_url)
-
-    def test__prepare_iso_image_bootable_iso_swift_noop(self):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            base_image_url = 'http://bearmetal.net/boot.iso'
-            self.config(ramdisk_image_download_source='swift', group='deploy')
-            url = image_utils._prepare_iso_image(
-                task, None, None, bootloader_href=None, root_uuid=None,
-                base_iso=base_image_url)
-            self.assertEqual(url, base_image_url)
-
-    def test__prepare_iso_image_bootable_iso_swift_schema(self):
-        with task_manager.acquire(self.context, self.node.uuid,
-                                  shared=True) as task:
-            base_image_url = 'swift://bearmetal.net/boot.iso'
-            url = image_utils._prepare_iso_image(
-                task, None, None, bootloader_href=None, root_uuid=None,
-                base_iso=base_image_url)
-            self.assertEqual(url, base_image_url)
 
     def test__find_param(self):
         param_dict = {
@@ -955,3 +918,75 @@ cafile = /etc/ironic-python-agent/ironic.crt
                 base_iso='http://boot/iso')
 
             find_mock.assert_has_calls(find_call_list)
+
+    def test_prepare_remote_image(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            base_image_url = 'http://bearmetal.net/boot.iso'
+            url = image_utils.prepare_remote_image(task, base_image_url,
+                                                   download_source='http')
+            self.assertEqual(url, base_image_url)
+
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    @mock.patch.object(image_utils, 'ISOImageCache', autospec=True)
+    def test_prepare_remote_image_local(self, mock_cache, mock_publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            base_image_url = 'http://bearmetal.net/boot.iso'
+            url = image_utils.prepare_remote_image(task, base_image_url)
+            self.assertEqual(mock_publish_image.return_value, url)
+            mock_cache.return_value.fetch_image.assert_called_once_with(
+                base_image_url, mock.ANY, ctx=task.context, force_raw=False)
+
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    def test_prepare_remote_image_custom_cache(self, mock_publish_image):
+        mock_cache = mock.Mock(spec=image_utils.ISOImageCache)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            base_image_url = 'http://bearmetal.net/boot.iso'
+            url = image_utils.prepare_remote_image(task, base_image_url,
+                                                   cache=mock_cache)
+            self.assertEqual(mock_publish_image.return_value, url)
+            mock_cache.fetch_image.assert_called_once_with(
+                base_image_url, mock.ANY, ctx=task.context, force_raw=False)
+
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    @mock.patch.object(image_utils, 'ISOImageCache', autospec=True)
+    def test_prepare_remote_image_file(self, mock_cache, mock_publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            base_image_url = '/path/to/baseiso'
+            url = image_utils.prepare_remote_image(task, base_image_url,
+                                                   download_source='http')
+            self.assertEqual(mock_publish_image.return_value, url)
+            mock_cache.return_value.fetch_image.assert_called_once_with(
+                base_image_url, mock.ANY, ctx=task.context, force_raw=False)
+
+    @mock.patch.object(images, 'get_temp_url_for_glance_image',
+                       autospec=True)
+    def test_prepare_remote_image_from_swift(self, mock_temp_url):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            base_image_url = uuidutils.generate_uuid()
+            url = image_utils.prepare_remote_image(task, base_image_url,
+                                                   download_source='swift')
+            self.assertEqual(mock_temp_url.return_value, url)
+            mock_temp_url.assert_called_once_with(task.context, base_image_url)
+
+    def test_prepare_remote_image_swift_noop(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            base_image_url = 'http://bearmetal.net/boot.iso'
+            url = image_utils.prepare_remote_image(task, base_image_url,
+                                                   download_source='swift')
+            self.assertEqual(url, base_image_url)
+
+    def test_prepare_remote_image_swift_schema(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            base_image_url = 'swift://bearmetal.net/boot.iso'
+            url = image_utils.prepare_remote_image(task, base_image_url)
+            self.assertEqual(url, base_image_url)
