@@ -36,6 +36,8 @@ from ironic.objects import base as objects_base
 
 LOG = log.getLogger(__name__)
 
+DBAPI = dbapi.get_instance()
+
 
 class LocalContext:
     """Context to make calls to a local conductor."""
@@ -250,7 +252,7 @@ class ConductorAPI(object):
 
     def get_random_topic(self):
         """Get an RPC topic for a random conductor service."""
-        conductors = dbapi.get_instance().get_online_conductors()
+        conductors = DBAPI.get_online_conductors()
         try:
             hostname = random.choice(conductors)
         except IndexError:
