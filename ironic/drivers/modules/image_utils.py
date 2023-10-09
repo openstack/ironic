@@ -22,15 +22,14 @@ import shutil
 import tempfile
 from urllib import parse as urlparse
 
-from ironic_lib import utils as ironic_utils
 from oslo_log import log
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
+from ironic.common import image_publisher
 from ironic.common import images
 from ironic.common import states
-from ironic.common import swift
 from ironic.common import utils
 from ironic.conf import CONF
 from ironic.drivers.modules import boot_mode_utils
@@ -82,12 +81,15 @@ class ImageHandler(object):
             },
         }
 
-        self._driver = driver
-        self.swift_enabled = _SWIFT_MAP[driver].get("swift_enabled")
-        self._container = _SWIFT_MAP[driver].get("container")
-        self._timeout = _SWIFT_MAP[driver].get("timeout")
-        self._image_subdir = _SWIFT_MAP[driver].get("image_subdir")
-        self._file_permission = _SWIFT_MAP[driver].get("file_permission")
+        if _SWIFT_MAP[driver].get("swift_enabled"):
+            self._publisher = image_publisher.SwiftPublisher(
+                container=_SWIFT_MAP[driver].get("container"),
+                delete_after=_SWIFT_MAP[driver].get("timeout"))
+        else:
+            self._publisher = image_publisher.LocalPublisher(
+                image_subdir=_SWIFT_MAP[driver].get("image_subdir"),
+                file_permission=_SWIFT_MAP[driver].get("file_permission"))
+
         # To get the kernel parameters
         self.kernel_params = _SWIFT_MAP[driver].get("kernel_params")
 
@@ -100,28 +102,7 @@ class ImageHandler(object):
 
         :param object_name: name of the published file (optional)
         """
-        if self.swift_enabled:
-            container = self._container
-
-            swift_api = swift.SwiftAPI()
-
-            LOG.debug("Cleaning up image %(name)s from Swift container "
-                      "%(container)s", {'name': object_name,
-                                        'container': container})
-
-            try:
-                swift_api.delete_object(container, object_name)
-
-            except exception.SwiftOperationError as exc:
-                LOG.warning("Failed to clean up image %(image)s. Error: "
-                            "%(error)s.", {'image': object_name,
-                                           'error': exc})
-
-        else:
-            published_file = os.path.join(
-                CONF.deploy.http_root, self._image_subdir, object_name)
-
-            ironic_utils.unlink_without_raise(published_file)
+        self._publisher.unpublish(object_name)
 
     @classmethod
     def unpublish_image_for_node(cls, node, prefix='', suffix=''):
@@ -140,35 +121,6 @@ class ImageHandler(object):
         LOG.debug('Removed image %(name)s for node %(node)s',
                   {'node': node.uuid, 'name': name})
 
-    def _append_filename_param(self, url, filename):
-        """Append 'filename=<file>' parameter to given URL.
-
-        Some BMCs seem to validate boot image URL requiring the URL to end
-        with something resembling ISO image file name.
-
-        This function tries to add, hopefully, meaningless 'filename'
-        parameter to URL's query string in hope to make the entire boot image
-        URL looking more convincing to the BMC.
-
-        However, `url` with fragments might not get cured by this hack.
-
-        :param url: a URL to work on
-        :param filename: name of the file to append to the URL
-        :returns: original URL with 'filename' parameter appended
-        """
-        parsed_url = urlparse.urlparse(url)
-        parsed_qs = urlparse.parse_qsl(parsed_url.query)
-
-        has_filename = [x for x in parsed_qs if x[0].lower() == 'filename']
-        if has_filename:
-            return url
-
-        parsed_qs.append(('filename', filename))
-        parsed_url = list(parsed_url)
-        parsed_url[4] = urlparse.urlencode(parsed_qs)
-
-        return urlparse.urlunparse(parsed_url)
-
     def publish_image(self, image_file, object_name, node_http_url=None):
         """Make image file downloadable.
 
@@ -183,61 +135,9 @@ class ImageHandler(object):
                               from CONF.deploy won't be used.
         :return: a URL to download published file
         """
-
-        if self.swift_enabled:
-            container = self._container
-            timeout = self._timeout
-
-            object_headers = {'X-Delete-After': str(timeout)}
-
-            swift_api = swift.SwiftAPI()
-
-            swift_api.create_object(container, object_name, image_file,
-                                    object_headers=object_headers)
-
-            image_url = swift_api.get_temp_url(container, object_name, timeout)
-            image_url = self._append_filename_param(
-                image_url, os.path.basename(image_file))
-
-        else:
-            public_dir = os.path.join(CONF.deploy.http_root,
-                                      self._image_subdir)
-
-            if not os.path.exists(public_dir):
-                os.mkdir(public_dir, 0o755)
-
-            published_file = os.path.join(public_dir, object_name)
-
-            try:
-                os.link(image_file, published_file)
-                os.chmod(image_file, self._file_permission)
-                try:
-                    utils.execute(
-                        '/usr/sbin/restorecon', '-i', '-R', 'v', public_dir)
-                except FileNotFoundError as exc:
-                    LOG.debug(
-                        "Could not restore SELinux context on "
-                        "%(public_dir)s, restorecon command not found.\n"
-                        "Error: %(error)s",
-                        {'public_dir': public_dir,
-                         'error': exc})
-
-            except OSError as exc:
-                LOG.debug(
-                    "Could not hardlink image file %(image)s to public "
-                    "location %(public)s (will copy it over): "
-                    "%(error)s", {'image': image_file,
-                                  'public': published_file,
-                                  'error': exc})
-
-                shutil.copyfile(image_file, published_file)
-                os.chmod(published_file, self._file_permission)
-
-            http_url = (node_http_url or CONF.deploy.external_http_url
-                        or CONF.deploy.http_url)
-            image_url = os.path.join(http_url, self._image_subdir, object_name)
-
-        return image_url
+        if node_http_url:
+            self._publisher.root_url = node_http_url
+        return self._publisher.publish(image_file, object_name)
 
 
 @image_cache.cleanup(priority=75)
