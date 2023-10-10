@@ -37,7 +37,25 @@ if is_service_enabled ir-api ir-cond; then
 
             if [[ "$IRONIC_BAREMETAL_BASIC_OPS" == "True" && "$IRONIC_IS_HARDWARE" == "False" ]]; then
                 echo_summary "Precreating bridge: $IRONIC_VM_NETWORK_BRIDGE"
-                install_package openvswitch-switch
+                if [[ "$Q_BUILD_OVS_FROM_GIT" == "True" ]]; then
+                    if [[ "$Q_AGENT" == "ovn" ]]; then
+                        # If we're here, we were requested to install from git
+                        # for OVN *and* OVS, but that means basic setup has not been
+                        # performed yet. As such, we need to do that and start
+                        # OVN/OVS where as if we just need to ensure OVS is present,
+                        # vendor packaging does that for us. We start early here,
+                        # because neutron setup for this is deferred until too late
+                        # for our plugin to setup the test environment.
+                        echo_summary "Setting up OVN..."
+                        init_ovn
+                        start_ovn
+                    fi
+                else
+                    # NOTE(TheJulia): We are likely doing this to ensure
+                    # OVS is running.
+                    echo_summary "Installing OVS to pre-create bridge"
+                    install_package openvswitch-switch
+                fi
                 sudo ovs-vsctl -- --may-exist add-br $IRONIC_VM_NETWORK_BRIDGE
             fi
 

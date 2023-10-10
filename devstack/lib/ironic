@@ -2031,20 +2031,36 @@ function create_ovs_taps {
     # Work around: No netns exists on host until a Neutron port is created.  We
     # need to create one in Neutron to know what netns to tap into prior to the
     # first node booting.
-    # NOTE(TheJulia): So.. Neutron doesn't allow a port to be created as a
-    # system scoped admin, which makes sense.
-    local port_id
-    port_id=$(openstack --os-cloud devstack-admin port create --network ${ironic_net_id} temp_port -c id -f value)
-    die_if_not_set $LINENO port_id "Failed to create neutron port"
+    if [[ "$Q_AGENT" != "ovn" ]]; then
+        # NOTE(TheJulia): So.. Neutron doesn't allow a port to be created as a
+        # system scoped admin, which makes sense.
+        local port_id
+        port_id=$(openstack --os-cloud devstack-admin port create --network ${ironic_net_id} temp_port -c id -f value)
+        die_if_not_set $LINENO port_id "Failed to create neutron port"
+        local tapdev
+        local tapdev_cmd="sudo ip netns exec qdhcp-${ironic_net_id} ip link list | grep ' tap' | cut -d':' -f2 | cut -d'@' -f1 | cut -b2-  | grep '^tap'"
+        # retry tap device discovery to make sure the tag has been set to port
+        tapdev=$(test_with_retry "$tapdev_cmd" "Failed to get tap device id" 20 1)
+        local tag_id
+        tag_id=$(sudo ovs-vsctl get port ${tapdev} tag)
+        die_if_not_set $LINENO tag_id "Failed to get tag id"
 
-    local tapdev
-    local tapdev_cmd="sudo ip netns exec qdhcp-${ironic_net_id} ip link list | grep ' tap' | cut -d':' -f2 | cut -d'@' -f1 | cut -b2-  | grep '^tap'"
-    # retry tap device discovery to make sure the tag has been set to port
-    tapdev=$(test_with_retry "$tapdev_cmd" "Failed to get tap device id" 20 1)
-    local tag_id
-    tag_id=$(sudo ovs-vsctl get port ${tapdev} tag)
-    die_if_not_set $LINENO tag_id "Failed to get tag id"
+        # Remove the port needed only for workaround.
+        openstack --os-cloud $OS_CLOUD port delete $port_id
+    else
+        # ovs-vsctl set Open_vSwitch . external-ids:ovn-cms-options=\"enable-chassis-as-gw\"
+        # should already be set -> external-ids:ovn-bridge-mappings=\"public:br-ex\"
+        # so the tl;dr is that the tag in this port, based on ovn config
+        # may be something like 841 on public, which in default devstack is
+        # br-ex. We don't care though, it is a vlan tag and previously we
+        # just used the integration bridge to make the connection with the
+        # tag. Basically the same.
 
+        # NOTE(TheJulia): Show the network data to ease troubleshooting,
+        # Normally, this will be the private network for devstack.
+        tag_id=$(openstack --os-cloud $OS_CLOUD network show $ironic_net_id -c "provider:segmentation_id" -f value)
+        die_if_not_set $LINENO tag_id "Failed to get tag id"
+    fi
     local ovs_tap=ovs-tap
     local brbm_tap=brbm-tap
     # make sure veth pair is not existing, otherwise delete its links
@@ -2054,12 +2070,18 @@ function create_ovs_taps {
     sudo ip link add $brbm_tap type veth peer name $ovs_tap
     sudo ip link set dev $brbm_tap up
     sudo ip link set dev $ovs_tap up
+    sudo ip link set dev br-int up
+    sudo ip link set dev br-ex up
 
-    sudo ovs-vsctl -- --if-exists del-port $ovs_tap -- add-port br-int $ovs_tap tag=$tag_id
+
+    if [[ "$Q_AGENT" != "ovn" ]]; then
+        sudo ovs-vsctl -- --if-exists del-port $ovs_tap -- add-port br-int $ovs_tap tag=$tag_id
+    else
+        # OVN defaults to everything on "public" which is br-ex
+        sudo ovs-vsctl -- --if-exists del-port $ovs_tap -- add-port br-ex $ovs_tap tag=$tag_id
+    fi
     sudo ovs-vsctl -- --if-exists del-port $brbm_tap -- add-port $IRONIC_VM_NETWORK_BRIDGE $brbm_tap
 
-    # Remove the port needed only for workaround.
-    openstack --os-cloud $OS_CLOUD port delete $port_id
 
     # Finally, share the fixed tenant network across all tenants.  This allows the host
     # to serve TFTP to a single network namespace via the tap device created above.
@@ -2208,10 +2230,54 @@ SUBSHELL
                 replace_range=${SUBNETPOOL_PREFIX_V6}
             fi
         fi
-        pub_router_id=$(openstack --os-cloud $OS_CLOUD router show $Q_ROUTER_NAME -f value -c id)
-        # Select the text starting at "src ", and grabbing the following field.
-        r_net_gateway=$(sudo ip netns exec qrouter-$pub_router_id ip -$IRONIC_IP_VERSION route get $dns_server |grep dev | sed s/^.*src\ // |awk '{ print $1 }')
-        sudo ip route replace $replace_range via $r_net_gateway
+        if [[ "$Q_AGENT" != "ovn" ]]; then
+            pub_router_id=$(openstack --os-cloud $OS_CLOUD router show $Q_ROUTER_NAME -f value -c id)
+            # Select the text starting at "src ", and grabbing the following field.
+            r_net_gateway=$(sudo ip netns exec qrouter-$pub_router_id ip -$IRONIC_IP_VERSION route get $dns_server |grep dev | sed s/^.*src\ // |awk '{ print $1 }')
+            sudo ip route replace $replace_range via $r_net_gateway
+        else
+            openstack router set --disable-snat --external-gateway public $Q_ROUTER_NAME
+            # Need to handle the json dict we get from the API (yeah, wut?!)
+            # and transform that so jq can do the needful. We also can't store
+            # it as a variable in ram, otherwise bash tries to escape it.
+            # Example gw_info (wrapped for readability)
+            #   {'network_id': '3caae040-c0ac-4e8a-883b-12470f3fdeae',
+            #    'external_fixed_ips': [
+            #        {'subnet_id': 'a8b6641e-53e1-4156-aa2f-2cda79dd4f4a',
+            #         'ip_address': '172.24.5.36'},
+            #        {'subnet_id': 'bddf41dc-47f6-4124-9afd-744fa7343320',
+            #         'ip_address': '2001:db8::4d'}], 'enable_snat': False}
+            # Transform to json jq can parse, which includes replacing Python
+            # boolean strings.
+            external_gw_v4=$(openstack router show $Q_ROUTER_NAME -c external_gateway_info -f json | jq -r .external_gateway_info.external_fixed_ips[0].ip_address)
+            sudo ip addr
+            sudo ip link set dev br-ex up || true
+            # This route is only used *if* we actually provision with a
+            # dedicated ironic provisioning network which does not *always*
+            # happen. i.e. job specific config.
+            mtu=$(($PUBLIC_BRIDGE_MTU - 30))
+            v4mss=$(($PUBLIC_BRIDGE_MTU - 40 ))
+            # FIXME(TheJulia): We have a conundrum with MTUs.
+            # 1) OVN mtu handling is not great
+            #    (https://bugs.launchpad.net/neutron/+bug/2032817)
+            # 2) We previously restricted the MTU down 100 bytes for
+            #    VXLAN tunnel overhead for multinode jobs. This sort
+            #    of conflicts. If we use the stock public bridge mtu,
+            #    We would likely be okay, in the grand scheme of the
+            #    world, but until we figure out that path, we need
+            #    to clamp things, for now.
+            # NOTE(TheJulia): v6mss should be -60 once it is supported.
+            # NOTE(TheJulia): The route commands below set *and* lock a
+            # default MTU (disable PMTU discovery) and sets an Maximum Segment
+            # Size to advertise for packets to be sent along the path. Normally
+            # it is derived from the outbound interface MTU, which is wrong in
+            # this scenario. We're tracking this as LP#2032817.
+            sudo ip route add $IRONIC_PROVISION_SUBNET_PREFIX via $external_gw_v4 mtu lock $mtu advmss $v4mss
+            # This is the default space fallback for all neutron networking,
+            # since this is only if we create a dedicated provisioning
+            # network in the job config.
+            sudo ip route add $IPV4_ADDRS_SAFE_TO_USE via $external_gw_v4 mtu lock $mtu advmss $v4mss
+        fi
     fi
     # Here is a good place to restart tcpdump to begin capturing packets.
     # See: https://docs.openstack.org/devstack/latest/debugging.html

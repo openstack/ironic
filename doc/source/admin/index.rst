@@ -60,6 +60,7 @@ Advanced Topics
    Role Based Access Control <secure-rbac>
    Deploying with Anaconda <anaconda-deploy-interface>
    Steps <steps>
+   OVN Networking <ovn-networking>
 
 .. toctree::
   :hidden:
