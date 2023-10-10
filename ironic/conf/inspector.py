@@ -113,7 +113,22 @@ opts = [
                        'if at least one record is too short. Additionally, '
                        'remove the incoming "data" even if parsing failed. '
                        'This configuration option is used by the '
-                       '"extra-hardware" inspection hook.'))
+                       '"extra-hardware" inspection hook.')),
+    cfg.MultiStrOpt('pci_device_alias',
+                    default=[],
+                    help=_('An alias for a PCI device identified by '
+                           '\'vendor_id\' and \'product_id\' fields. Format: '
+                           '{"vendor_id": "1234", "product_id": "5678", '
+                           '"name": "pci_dev1"}. Use double quotes for the '
+                           'keys and values.')),
+    cfg.ListOpt('physical_network_cidr_map',
+                default=[],
+                sample_default=('10.10.10.0/24:physnet_a,'
+                                '2001:db8::/64:physnet_b'),
+                help=_('Mapping of IP subnet CIDR to physical network. When '
+                       'the phyical-network inspection hook is enabled, the '
+                       '"physical_network" property of corresponding '
+                       'baremetal ports is populated based on this mapping.'))
 ]
 
 
