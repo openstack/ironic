@@ -1373,11 +1373,14 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_vmedia_floppy = mock.MagicMock(
                 inserted=True,
                 media_types=[sushy.VIRTUAL_MEDIA_FLOPPY])
+            mock_vmedia_dvd = mock.MagicMock(
+                inserted=True,
+                media_types=[sushy.VIRTUAL_MEDIA_DVD])
 
             mock_manager = mock.MagicMock()
 
             mock_manager.virtual_media.get_members.return_value = [
-                mock_vmedia_cd, mock_vmedia_floppy]
+                mock_vmedia_cd, mock_vmedia_floppy, mock_vmedia_dvd]
 
             mock_redfish_utils.get_system.return_value.managers = [
                 mock_manager]
@@ -1386,6 +1389,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock_vmedia_cd.eject_media.assert_called_once_with()
             mock_vmedia_floppy.eject_media.assert_called_once_with()
+            mock_vmedia_dvd.eject_media.assert_called_once_with()
             mock_cleanup_iso.assert_called_once_with(task)
             mock_cleanup_disk.assert_called_once_with(task,
                                                       prefix='configdrive')
@@ -1417,6 +1421,44 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock_vmedia_cd.eject_media.assert_called_once_with()
             self.assertFalse(mock_vmedia_floppy.eject_media.call_count)
+            mock_cleanup_iso.assert_called_once_with(task)
+            mock_cleanup_disk.assert_not_called()
+
+    @mock.patch.object(image_utils, 'cleanup_disk_image', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
+    @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
+    @mock.patch.object(redfish_boot.LOG, 'debug', autospec=True)
+    @mock.patch.object(redfish_boot.LOG, 'info', autospec=True)
+    def test_eject_vmedia_with_dvd_cisco_ucs(self, mock_log_info,
+                                             mock_log_debug,
+                                             mock_redfish_utils,
+                                             mock_cleanup_iso,
+                                             mock_cleanup_disk):
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_dvd_1 = mock.MagicMock(
+                inserted=True,
+                media_types=[sushy.VIRTUAL_MEDIA_DVD])
+            mock_vmedia_dvd_2 = mock.MagicMock(
+                inserted=True,
+                media_types=[sushy.VIRTUAL_MEDIA_DVD])
+
+            mock_manager = mock.MagicMock()
+
+            mock_manager.virtual_media.get_members.return_value = [
+                mock_vmedia_dvd_1, mock_vmedia_dvd_2]
+
+            mock_redfish_utils.get_system.return_value.managers = [
+                mock_manager]
+
+            redfish_boot.eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
+
+            mock_vmedia_dvd_1.eject_media.assert_called_once_with()
+            mock_vmedia_dvd_2.eject_media.assert_called_once_with()
+
+            self.assertEqual(mock_log_info.call_count, 2)
+            self.assertEqual(mock_log_debug.call_count, 3)
             mock_cleanup_iso.assert_called_once_with(task)
             mock_cleanup_disk.assert_not_called()
 
