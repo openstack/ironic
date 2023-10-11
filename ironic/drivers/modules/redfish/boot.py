@@ -233,8 +233,23 @@ def _eject_vmedia(task, managers, boot_device=None):
     for manager in managers:
         for v_media in manager.virtual_media.get_members():
             if boot_device and boot_device not in v_media.media_types:
-                continue
-
+                # NOTE(iurygregory): this conditional allows v_media that only
+                # support DVD MediaType and NOT CD to also be used.
+                # if v_media.media_types contains sushy.VIRTUAL_MEDIA_DVD
+                # we follow the usual steps of checking if v_media is inserted
+                # and eject it. Otherwise we skip to the
+                # next v_media device, if any.
+                # This is needed to add support to Cisco UCSB and UCSX blades
+                # reference: https://bugs.launchpad.net/ironic/+bug/2039042
+                if (boot_device == sushy.VIRTUAL_MEDIA_CD
+                    and sushy.VIRTUAL_MEDIA_DVD in v_media.media_types):
+                    LOG.debug('While looking for %(requested_device)s virtual '
+                              'media device, found %(available_device)s '
+                              'instead. Attempting to use it to eject media.',
+                              {'requested_device': sushy.VIRTUAL_MEDIA_CD,
+                               'available_device': sushy.VIRTUAL_MEDIA_DVD})
+                else:
+                    continue
             inserted = v_media.inserted
 
             if inserted:
