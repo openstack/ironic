@@ -77,7 +77,7 @@ class TestConductorObject(db_base.DbTestCase):
                 c = objects.Conductor.get_by_hostname(self.context, host)
                 c.touch(self.context)
                 mock_get_cdr.assert_called_once_with(host, online=True)
-                mock_touch_cdr.assert_called_once_with(host)
+                mock_touch_cdr.assert_called_once_with(host, online=True)
 
     def test_refresh(self):
         host = self.fake_conductor['hostname']

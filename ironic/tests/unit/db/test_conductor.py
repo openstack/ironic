@@ -156,6 +156,21 @@ class DbConductorTestCase(base.DbTestCase):
         c = self.dbapi.get_conductor(c.hostname)
         self.assertEqual(test_time, timeutils.normalize_time(c.updated_at))
 
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test_touch_conductor_offline(self, mock_utcnow):
+        test_time = datetime.datetime(2000, 1, 1, 0, 0)
+        mock_utcnow.return_value = test_time
+        c = self._create_test_cdr()
+        self.assertEqual(test_time, timeutils.normalize_time(c.updated_at))
+
+        test_time = datetime.datetime(2000, 1, 1, 0, 1)
+        mock_utcnow.return_value = test_time
+        self.dbapi.touch_conductor(c.hostname, online=False)
+        self.assertRaises(
+            exception.ConductorNotFound,
+            self.dbapi.get_conductor,
+            c.hostname)
+
     def test_touch_conductor_not_found(self):
         # A conductor's heartbeat will not create a new record,
         # it will only update existing ones

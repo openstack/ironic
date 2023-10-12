@@ -1392,13 +1392,13 @@ class Connection(api.Connection):
                 raise exception.ConductorNotFound(conductor=hostname)
 
     @oslo_db_api.retry_on_deadlock
-    def touch_conductor(self, hostname):
+    def touch_conductor(self, hostname, online=True):
         with _session_for_write() as session:
             query = sa.update(models.Conductor).where(
                 models.Conductor.hostname == hostname
             ).values({
                 'updated_at': timeutils.utcnow(),
-                'online': True}
+                'online': online}
             ).execution_options(synchronize_session=False)
             res = session.execute(query)
             count = res.rowcount
