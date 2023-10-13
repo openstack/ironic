@@ -695,9 +695,9 @@ Add node ``clean_step`` field.
 1.6 (Kilo)
 ----------
 
-Add :ref:`inspection` process: introduce ``inspecting`` and ``inspectfail``
-provision states, and ``inspect`` action that can be used when a node is in
-``manageable`` provision state.
+Add :doc:`inspection </admin/inspection>` process: introduce ``inspecting`` and
+``inspectfail`` provision states, and ``inspect`` action that can be used when
+a node is in ``manageable`` provision state.
 
 1.5 (Kilo)
 ----------
