@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    The ``parent_node`` field, a newly added API field, has been constrained
+    to store UUIDs over the names of nodes. When names are used, the value is
+    changed to the UUID of the node.

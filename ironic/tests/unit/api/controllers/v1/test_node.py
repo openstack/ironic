@@ -8495,6 +8495,16 @@ class TestNodeParentNodePost(test_api_base.BaseApiTest):
             '/nodes', ndict, expect_errors=True, headers=headers)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
 
+    def test_create_node_with_named_parent_node_succeeds(self):
+        ndict = test_api_utils.post_get_test_node(
+            uuid=uuidutils.generate_uuid())
+        ndict['parent_node'] = 'din'
+        headers = {api_base.Version.string: '1.83'}
+        response = self.post_json('/nodes', ndict, expect_errors=True,
+                                  headers=headers)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        self.assertEqual(self.node.uuid, response.json['parent_node'])
+
 
 class TestNodeParentNodePatch(test_api_base.BaseApiTest):
     def setUp(self):
@@ -8547,6 +8557,20 @@ class TestNodeParentNodePatch(test_api_base.BaseApiTest):
                                    body, expect_errors=True, headers=headers)
         self.mock_update_node.assert_not_called()
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+
+    def test_node_add_parent_node_not_uuid(self):
+        headers = {api_base.Version.string: '1.83'}
+        body = [{
+            'path': '/parent_node',
+            'value': 'djarin',
+            'op': 'add',
+        }]
+
+        self.patch_json('/nodes/%s' % self.child_node.uuid,
+                        body, expect_errors=True, headers=headers)
+        self.mock_update_node.assert_called_once()
+        test_node = self.mock_update_node.call_args.args[2]
+        self.assertEqual(self.node.uuid, test_node.parent_node)
 
     def test_node_remove_parent(self):
         self.mock_update_node.return_value = self.node

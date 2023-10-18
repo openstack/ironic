@@ -2748,6 +2748,13 @@ class NodesController(rest.RestController):
         chassis = _replace_chassis_uuid_with_id(node)
         chassis_uuid = chassis and chassis.uuid or None
 
+        if ('parent_node' in node
+            and not uuidutils.is_uuid_like(node['parent_node'])):
+
+            parent_node = api_utils.check_node_policy_and_retrieve(
+                'baremetal:node:get', node['parent_node'])
+            node['parent_node'] = parent_node.uuid
+
         new_node = objects.Node(context, **node)
 
         try:
@@ -2774,6 +2781,7 @@ class NodesController(rest.RestController):
         return api_node
 
     def _validate_patch(self, patch, reset_interfaces):
+        corrected_values = {}
         if self.from_chassis:
             raise exception.OperationNotPermitted()
 
@@ -2804,17 +2812,21 @@ class NodesController(rest.RestController):
 
         for network_data in network_data_fields:
             validate_network_data(network_data)
-
         parent_node = api_utils.get_patch_values(patch, '/parent_node')
         if parent_node:
+            # At this point, if there *is* a parent_node, there is a value
+            # in the patch value list.
             try:
                 # Verify we can see the parent node
-                api_utils.check_node_policy_and_retrieve(
+                req_parent_node = api_utils.check_node_policy_and_retrieve(
                     'baremetal:node:get', parent_node[0])
+                # If we can't see the node, an exception gets raised.
             except Exception:
                 msg = _("Unable to apply the requested parent_node. "
                         "Requested value was invalid.")
                 raise exception.Invalid(msg)
+            corrected_values['parent_node'] = req_parent_node.uuid
+        return corrected_values
 
     def _authorize_patch_and_get_node(self, node_ident, patch):
         # deal with attribute-specific policy rules
@@ -2896,7 +2908,7 @@ class NodesController(rest.RestController):
                 api_utils.allow_reset_interfaces()):
             raise exception.NotAcceptable()
 
-        self._validate_patch(patch, reset_interfaces)
+        corrected_values = self._validate_patch(patch, reset_interfaces)
 
         context = api.request.context
         rpc_node = self._authorize_patch_and_get_node(node_ident, patch)
@@ -2952,7 +2964,6 @@ class NodesController(rest.RestController):
                             msg, status_code=http_client.CONFLICT)
                 except exception.AllocationNotFound:
                     pass
-
         names = api_utils.get_patch_values(patch, '/name')
         if len(names):
             error_msg = (_("Node %s: Cannot change name to invalid name ")
@@ -2968,6 +2979,12 @@ class NodesController(rest.RestController):
         node_dict['chassis_uuid'] = _get_chassis_uuid(rpc_node)
 
         node_dict = api_utils.apply_jsonpatch(node_dict, patch)
+        if corrected_values:
+            # If we determined in our schema validation that someone
+            # provided non-fatal, but incorrect input, that we correct
+            # it here from the output returned from validation.
+            for key in corrected_values.keys():
+                node_dict[key] = corrected_values[key]
 
         api_utils.patched_validate_with_schema(
             node_dict, node_patch_schema(), node_patch_validator)
@@ -2995,7 +3012,6 @@ class NodesController(rest.RestController):
             new_node = api.request.rpcapi.update_node(context,
                                                       rpc_node, topic,
                                                       reset_interfaces)
-
         api_node = node_convert_with_links(new_node)
         chassis_uuid = api_node.get('chassis_uuid')
         notify.emit_end_notification(context, new_node, 'update',
