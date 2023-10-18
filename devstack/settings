@@ -2,11 +2,25 @@ enable_service ironic ir-api ir-cond
 
 source $DEST/ironic/devstack/common_settings
 
+# Set a default, so we can overwrite it if we need to.
+PUBLIC_BRIDGE_MTU=${PUBLIC_BRIDGE_MTU:-1500}
+
 # NOTE(vsaienko) mtu calculation has been changed recently to 1450
 # https://github.com/openstack/neutron/commit/51a697
 # and caused https://bugs.launchpad.net/ironic/+bug/1631875
 # Get the smallest local MTU
 local_mtu=$(ip link show | sed -ne 's/.*mtu \([0-9]\+\).*/\1/p' | sort -n | head -1)
+
+# At some point, devstack started pre-populating a public bridge mtu,
+# which is fine, but that also got set and used in neutron as the MTU,
+# which is fine, but if our MTU is lower, then that can create headaches,
+# unless we *need* it lower for specific multinode testing.
+# so if the calculated local_mtu *is* higher, then we are wrong, and trust
+# a prepopulated variable (1500-40-30=1430 bytes)
+if [ $local_mtu -gt $PUBLIC_BRIDGE_MTU ]; then
+    local_mtu=$PUBLIC_BRIDGE_MTU
+fi
+
 # 50 bytes is overhead for vxlan (which is greater than GRE
 # allowing us to use either overlay option with this MTU.
 # However, if traffic is flowing over IPv6 tunnels, then
