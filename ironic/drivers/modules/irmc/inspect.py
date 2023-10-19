@@ -103,11 +103,16 @@ def _get_mac_addresses(node):
     :returns: a list of mac addresses.
     """
     d_info = irmc_common.parse_driver_info(node)
-    snmp_client = snmp.SNMPClient(d_info['irmc_address'],
-                                  d_info['irmc_snmp_port'],
-                                  d_info['irmc_snmp_version'],
-                                  d_info['irmc_snmp_community'],
-                                  d_info['irmc_snmp_security'])
+    snmp_client = snmp.SNMPClient(
+        address=d_info['irmc_address'],
+        port=d_info['irmc_snmp_port'],
+        version=d_info['irmc_snmp_version'],
+        read_community=d_info['irmc_snmp_community'],
+        user=d_info.get('irmc_snmp_user'),
+        auth_proto=d_info.get('irmc_snmp_auth_proto'),
+        auth_key=d_info.get('irmc_snmp_auth_password'),
+        priv_proto=d_info.get('irmc_snmp_priv_proto'),
+        priv_key=d_info.get('irmc_snmp_priv_password'))
 
     node_classes = snmp_client.get_next(NODE_CLASS_OID)
     mac_addresses = [':'.join(['%02x' % x for x in mac])
@@ -186,9 +191,14 @@ def _inspect_hardware(node, existing_traits=None, **kwargs):
     except (scci.SCCIInvalidInputError,
             scci.SCCIClientError,
             exception.SNMPFailure) as e:
+        advice = ""
+        if ("SNMP operation" in str(e)):
+            advice = ("The SNMP related parameters' value may be different "
+                      "with the server, please check if you have set them "
+                      "correctly.")
         error = (_("Inspection failed for node %(node_id)s "
-                   "with the following error: %(error)s") %
-                 {'node_id': node.uuid, 'error': e})
+                   "with the following error: %(error)s. (advice)s") %
+                 {'node_id': node.uuid, 'error': e, 'advice': advice})
         raise exception.HardwareInspectionFailure(error=error)
 
     return props, macs, new_traits

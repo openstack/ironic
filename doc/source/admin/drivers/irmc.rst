@@ -111,6 +111,9 @@ Here is a command example to enroll a node with ``irmc`` hardware type.
 Node configuration
 ^^^^^^^^^^^^^^^^^^
 
+Configuration via ``driver_info``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 * Each node is configured for ``irmc`` hardware type by setting the following
   ironic node object's properties:
 
@@ -126,6 +129,44 @@ Node configuration
     UEFI Secure Boot is required. Please refer to `UEFI Secure Boot Support`_
     for more information.
 
+* If ``port`` in ``[irmc]`` section of ``/etc/ironic/ironic.conf`` or
+  ``driver_info/irmc_port`` is set to 443, ``driver_info/irmc_verify_ca``
+  will take effect:
+
+  ``driver_info/irmc_verify_ca`` property takes one of 4 value (default value
+  is ``True``):
+
+  - ``True``: When set to ``True``, which certification file iRMC driver uses
+    is determined by ``requests`` Python module.
+
+    Value of ``driver_info/irmc_verify_ca`` is passed to ``verify`` argument
+    of functions defined in ``requests`` Python module. So which certification
+    will be used is depend on behavior of ``requests`` module.
+    (maybe certification provided by ``certifi`` Python module)
+
+  - ``False``: When set to ``False``, iRMC driver won't verify server
+    certification with certification file during HTTPS connection with iRMC.
+    Just stop to verify server certification, but does HTTPS.
+
+    .. warning::
+       When set to ``False``, user must notice that it can result in
+       vulnerable situation. Stopping verification of server certification
+       during HTTPS connection means it cannot prevent Man-in-the-middle
+       attack. When set to ``False``, Ironic user must take enough care
+       around infrastructure environment in terms of security.
+       (e.g. make sure network between Ironic conductor and iRMC is secure)
+
+  - string representing filesystem path to directory which contains
+    certification file:  In this case, iRMC driver uses certification file
+    stored at specified directory. Ironic conductor must be able to access
+    that directory. For iRMC to recongnize certification file, Ironic user
+    must run ``openssl rehash <path_to_dir>``.
+
+  - string representing filesystem path to certification file: In this case,
+    iRMC driver uses certification file specified. Ironic conductor must have
+    access to that file.
+
+
 * The following properties are also required if ``irmc-virtual-media`` boot
   interface is used:
 
@@ -139,6 +180,29 @@ Node configuration
      The ``deploy_iso`` and ``boot_iso`` properties used to be called
      ``irmc_deploy_iso`` and ``irmc_boot_iso`` accordingly before the Xena
      release.
+
+* The following properties are also required if ``irmc`` inspect interface is
+  enabled and SNMPv3 inspection is desired.
+
+  - ``driver_info/irmc_snmp_user`` property to be the SNMPv3 username. SNMPv3
+    functionality should be enabled for this user on iRMC server side.
+  - ``driver_info/irmc_snmp_auth_password`` property to be the auth protocol
+    pass phrase. The length of pass phrase should be at least 8 characters.
+  - ``driver_info/irmc_snmp_priv_password`` property to be the privacy protocol
+    pass phrase. The length of pass phrase should be at least 8 characters.
+
+  .. note::
+     When using SNMPv3, python-scciclient in old version (before 0.11.3) can
+     only interact with iRMC with no authentication protocol setted. This means
+     the passwords and protocol settings of the snmp user in iRMC side should
+     all be blank, otherwise python-scciclient will encounter an communication
+     error. If you are using such old version python-scciclient, the
+     ``irmc_snmp_auth_password`` and ``irmc_snmp_priv_password`` properties
+     will be ignored. If you want to set passwords, please update
+     python-scciclient to some newer version (>= 0.11.3).
+
+Configuration via ``ironic.conf``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * All of the nodes are configured by setting the following configuration
   options in the ``[irmc]`` section of ``/etc/ironic/ironic.conf``:
@@ -175,6 +239,22 @@ Node configuration
     and ``v2c``. The default value is ``public``. Optional.
   - ``snmp_security``: SNMP security name required for version ``v3``.
     Optional.
+  - ``snmp_auth_proto``: The SNMPv3 auth protocol. If using iRMC S4 or S5, the
+    valid value of this option is only ``sha``. If using iRMC S6, the valid
+    values are ``sha256``, ``sha384`` and ``sha512``. The default value is
+    ``sha``. Optional.
+  - ``snmp_priv_proto``: The SNMPv3 privacy protocol. The valid value and
+    the default value are both ``aes``. We will add more supported valid values
+    in the future. Optional.
+
+  .. note::
+     ``snmp_security`` will be ignored if ``driver_info/irmc_snmp_user`` is
+     set. ``snmp_auth_proto`` and ``snmp_priv_proto`` will be ignored if the
+     version of python-scciclient is before 0.11.3.
+
+
+Override ``ironic.conf`` configuration via ``driver_info``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 * Each node can be further configured by setting the following ironic
   node object's properties which override the parameter values in
@@ -188,6 +268,11 @@ Node configuration
   - ``driver_info/irmc_snmp_port`` property overrides ``snmp_port``.
   - ``driver_info/irmc_snmp_community`` property overrides ``snmp_community``.
   - ``driver_info/irmc_snmp_security`` property overrides ``snmp_security``.
+  - ``driver_info/irmc_snmp_auth_proto`` property overrides
+    ``snmp_auth_proto``.
+  - ``driver_info/irmc_snmp_priv_proto`` property overrides
+    ``snmp_priv_proto``.
+
 
 Optional functionalities for the ``irmc`` hardware type
 =======================================================

@@ -69,7 +69,7 @@ class DracRedfishVirtualMediaBoot(redfish_boot.RedfishVirtualMediaBoot):
             boot_devices.CDROM: sushy.VIRTUAL_MEDIA_CD
         }
 
-    def _validate_vendor(self, task):
+    def _validate_vendor(self, task, managers):
         pass  # assume people are doing the right thing
 
     @classmethod

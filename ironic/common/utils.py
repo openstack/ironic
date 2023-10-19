@@ -572,8 +572,12 @@ def pop_node_nested_field(node, collection, field, default=None):
 
 def wrap_ipv6(ip):
     """Wrap the address in square brackets if it's an IPv6 address."""
-    if ipaddress.ip_address(ip).version == 6:
-        return "[%s]" % ip
+    try:
+        if ipaddress.ip_address(ip).version == 6:
+            return "[%s]" % ip
+    except ValueError:
+        pass
+
     return ip
 
 
@@ -654,3 +658,15 @@ def remove_large_keys(var):
         return var.__class__(map(remove_large_keys, var))
     else:
         return var
+
+
+def is_fips_enabled():
+    """Check if FIPS mode is enabled in the system."""
+    try:
+        with open('/proc/sys/crypto/fips_enabled', 'r') as f:
+            content = f.read()
+            if content == "1\n":
+                return True
+    except Exception:
+        pass
+    return False

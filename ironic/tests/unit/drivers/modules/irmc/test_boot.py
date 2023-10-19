@@ -41,6 +41,7 @@ from ironic.drivers.modules.irmc import common as irmc_common
 from ironic.drivers.modules.irmc import management as irmc_management
 from ironic.drivers.modules import pxe
 from ironic.drivers.modules import pxe_base
+from ironic.drivers.modules import snmp
 from ironic.tests import base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.drivers.modules.irmc import test_common
@@ -60,9 +61,10 @@ PARSED_IFNO = {
     'irmc_client_timeout': 60,
     'irmc_snmp_community': 'public',
     'irmc_snmp_port': 161,
-    'irmc_snmp_version': 'v2c',
-    'irmc_snmp_security': None,
+    'irmc_snmp_version': snmp.SNMP_V2C,
     'irmc_sensor_method': 'ipmitool',
+    'irmc_verify_ca': True,
+    'irmc_snmp_security': None,
 }
 
 
@@ -74,13 +76,14 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     def setUp(self):
         super(IRMCDeployPrivateMethodsTestCase, self).setUp()
 
-        CONF.irmc.remote_image_share_root = '/remote_image_share_root'
-        CONF.irmc.remote_image_server = '10.20.30.40'
-        CONF.irmc.remote_image_share_type = 'NFS'
-        CONF.irmc.remote_image_share_name = 'share'
-        CONF.irmc.remote_image_user_name = 'admin'
-        CONF.irmc.remote_image_user_password = 'admin0'
-        CONF.irmc.remote_image_user_domain = 'local'
+        CONF.set_override('remote_image_share_root',
+                          '/remote_image_share_root', 'irmc')
+        CONF.set_override('remote_image_server', '10.20.30.40', 'irmc')
+        CONF.set_override('remote_image_share_type', 'NFS', 'irmc')
+        CONF.set_override('remote_image_share_name', 'share', 'irmc')
+        CONF.set_override('remote_image_user_name', 'admin', 'irmc')
+        CONF.set_override('remote_image_user_password', 'admin0', 'irmc')
+        CONF.set_override('remote_image_user_domain', 'local', 'irmc')
 
     @mock.patch.object(os.path, 'isdir', spec_set=True, autospec=True)
     def test__parse_config_option(self, isdir_mock,
@@ -95,7 +98,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     @mock.patch.object(os.path, 'isdir', spec_set=True, autospec=True)
     def test__parse_config_option_non_existed_root(
             self, isdir_mock, check_share_fs_mounted_mock):
-        CONF.irmc.remote_image_share_root = '/non_existed_root'
+        CONF.set_override('remote_image_share_root', '/non_existed_root',
+                          'irmc')
         isdir_mock.return_value = False
 
         self.assertRaises(exception.InvalidParameterValue,
@@ -248,7 +252,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     def test__parse_instance_info_with_boot_iso_file_name_ok(
             self, check_share_fs_mounted_mock):
         """With optional 'boot_iso' file name."""
-        CONF.irmc.remote_image_share_root = '/etc'
+        CONF.set_override('remote_image_share_root', '/etc', 'irmc')
         self.node.instance_info['boot_iso'] = 'hosts'
         instance_info_expected = {'boot_iso': 'hosts'}
         instance_info_actual = irmc_boot._parse_instance_info(self.node)
@@ -258,7 +262,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     def test__parse_instance_info_with_boot_iso_deprecated(
             self, check_share_fs_mounted_mock):
         """With optional 'irmc_boot_iso' file name."""
-        CONF.irmc.remote_image_share_root = '/etc'
+        CONF.set_override('remote_image_share_root', '/etc', 'irmc')
         self.node.instance_info['irmc_boot_iso'] = 'hosts'
         instance_info_expected = {'boot_iso': 'hosts'}
         instance_info_actual = irmc_boot._parse_instance_info(self.node)
@@ -268,7 +272,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     def test__parse_instance_info_without_boot_iso_ok(
             self, check_share_fs_mounted_mock):
         """With optional no 'boot_iso' file name."""
-        CONF.irmc.remote_image_share_root = '/etc'
+        CONF.set_override('remote_image_share_root', '/etc', 'irmc')
 
         self.node.instance_info['boot_iso'] = None
         instance_info_expected = {}
@@ -335,7 +339,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     @mock.patch.object(os.path, 'isfile', spec_set=True, autospec=True)
     def test__parse_instance_info_with_boot_iso_invalid(
             self, isfile_mock, check_share_fs_mounted_mock):
-        CONF.irmc.remote_image_share_root = '/etc'
+        CONF.set_override('remote_image_share_root', '/etc', 'irmc')
         isfile_mock.return_value = False
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
@@ -357,7 +361,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     def test_parse_deploy_info_ok(self, mock_isfile,
                                   get_image_instance_info_mock,
                                   check_share_fs_mounted_mock):
-        CONF.irmc.remote_image_share_root = '/etc'
+        CONF.set_override('remote_image_share_root', '/etc', 'irmc')
         get_image_instance_info_mock.return_value = {'a': 'b'}
         driver_info_expected = {
             'a': 'b',
@@ -443,7 +447,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
             setup_vmedia_mock,
             set_boot_device_mock,
             check_share_fs_mounted_mock):
-        CONF.irmc.remote_image_share_root = '/'
+        CONF.set_override('remote_image_share_root', '/', 'irmc')
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -476,7 +480,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
             setup_vmedia_mock,
             set_boot_device_mock,
             check_share_fs_mounted_mock):
-        CONF.irmc.remote_image_share_root = '/'
+        CONF.set_override('remote_image_share_root', '/', 'irmc')
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -550,7 +554,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                                         boot_mode_mock,
                                         create_boot_iso_mock,
                                         check_share_fs_mounted_mock):
-        CONF.irmc.remote_image_share_root = '/'
+        CONF.set_override('remote_image_share_root', '/', 'irmc')
         image = '733d1c44-a2ea-414b-aca7-69decf20d810'
         is_image_href_ordinary_file_name_mock.return_value = False
         deploy_info_mock.return_value = {'boot_iso': image}
@@ -828,7 +832,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                        autospec=True)
     def test__remove_share_file(self, unlink_without_raise_mock,
                                 check_share_fs_mounted_mock):
-        CONF.irmc.remote_image_share_root = '/share'
+        CONF.set_override('remote_image_share_root', '/share', 'irmc')
 
         irmc_boot._remove_share_file("boot.iso")
 
@@ -844,12 +848,12 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         cd_set_params = (irmc_boot.scci
                          .get_virtual_cd_set_params_cmd.return_value)
 
-        CONF.irmc.remote_image_server = '10.20.30.40'
-        CONF.irmc.remote_image_user_domain = 'local'
-        CONF.irmc.remote_image_share_type = 'NFS'
-        CONF.irmc.remote_image_share_name = 'share'
-        CONF.irmc.remote_image_user_name = 'admin'
-        CONF.irmc.remote_image_user_password = 'admin0'
+        CONF.set_override('remote_image_server', '10.20.30.40', 'irmc')
+        CONF.set_override('remote_image_share_type', 'NFS', 'irmc')
+        CONF.set_override('remote_image_share_name', 'share', 'irmc')
+        CONF.set_override('remote_image_user_name', 'admin', 'irmc')
+        CONF.set_override('remote_image_user_password', 'admin0', 'irmc')
+        CONF.set_override('remote_image_user_domain', 'local', 'irmc')
 
         irmc_boot.scci.get_share_type.return_value = 0
 
@@ -926,12 +930,12 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         fd_set_params = (irmc_boot.scci
                          .get_virtual_fd_set_params_cmd.return_value)
 
-        CONF.irmc.remote_image_server = '10.20.30.40'
-        CONF.irmc.remote_image_user_domain = 'local'
-        CONF.irmc.remote_image_share_type = 'NFS'
-        CONF.irmc.remote_image_share_name = 'share'
-        CONF.irmc.remote_image_user_name = 'admin'
-        CONF.irmc.remote_image_user_password = 'admin0'
+        CONF.set_override('remote_image_server', '10.20.30.40', 'irmc')
+        CONF.set_override('remote_image_share_type', 'NFS', 'irmc')
+        CONF.set_override('remote_image_share_name', 'share', 'irmc')
+        CONF.set_override('remote_image_user_name', 'admin', 'irmc')
+        CONF.set_override('remote_image_user_password', 'admin0', 'irmc')
+        CONF.set_override('remote_image_user_domain', 'local', 'irmc')
 
         irmc_boot.scci.get_share_type.return_value = 0
 
@@ -1009,8 +1013,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         # irmc_boot.check_share_fs_mounted is mocked in
         # third_party_driver_mocks.py.
         # irmc_boot.check_share_fs_mounted_orig is the real function.
-        CONF.irmc.remote_image_share_root = '/'
-        CONF.irmc.remote_image_share_type = 'nfs'
+        CONF.set_override('remote_image_share_root', '/', 'irmc')
+        CONF.set_override('remote_image_share_type', 'nfs', 'irmc')
         result = irmc_boot.check_share_fs_mounted_orig()
 
         parse_conf_mock.assert_called_once_with()
@@ -1026,8 +1030,8 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
         # irmc_boot.check_share_fs_mounted is mocked in
         # third_party_driver_mocks.py.
         # irmc_boot.check_share_fs_mounted_orig is the real function.
-        CONF.irmc.remote_image_share_root = '/etc'
-        CONF.irmc.remote_image_share_type = 'cifs'
+        CONF.set_override('remote_image_share_root', '/etc', 'irmc')
+        CONF.set_override('remote_image_share_type', 'cifs', 'irmc')
 
         self.assertRaises(exception.IRMCSharedFileSystemNotMounted,
                           irmc_boot.check_share_fs_mounted_orig)

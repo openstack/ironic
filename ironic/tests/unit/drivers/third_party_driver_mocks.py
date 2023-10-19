@@ -241,12 +241,17 @@ if not sushy:
         TASK_STATE_COMPLETED='completed',
         HEALTH_OK='ok',
         HEALTH_WARNING='warning',
+        HEALTH_CRITICAL='critical',
         SECURE_BOOT_RESET_KEYS_TO_DEFAULT="ResetAllKeysToDefault",
         SECURE_BOOT_RESET_KEYS_DELETE_ALL="DeleteAllKeys",
         VOLUME_TYPE_RAW_DEVICE='rawdevice',
         SEVERITY_OK='ok',
         SEVERITY_WARNING='warning',
-        SEVERITY_CRITICAL='critical'
+        SEVERITY_CRITICAL='critical',
+        MANAGER_TYPE_BMC='bmc',
+        RAID_TYPE_RAID1='RAID1',
+        RAID_TYPE_RAID5='RAID5',
+        RAID_TYPE_RAID10='RAID10',
     )
 
     sys.modules['sushy'] = sushy

@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import itertools
 import math
 
 from futurist import periodics
@@ -23,6 +24,7 @@ from oslo_utils import units
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import raid as raid_common
 from ironic.common import raid
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -685,6 +687,38 @@ def create_virtual_disk(task, raid_controller, physical_disks, raid_level,
         raise exception.RedfishError(error=exc)
 
 
+def update_raid_config(node):
+    """Updates node's raid_config field with current logical disks.
+
+    :param node: node for which to update the raid_config field
+    """
+    system = redfish_utils.get_system(node)
+    logical_disks = []
+    vol_no_raid_type = []
+    for stor in system.storage.get_members():
+        for vol in stor.volumes.get_members():
+            if vol.raid_type:
+                logical_disk = {
+                    'id': vol.identity,
+                    'name': vol.name,
+                    'controller': stor.identity,
+                    'size_gb': int(vol.capacity_bytes / units.Gi),
+                    'raid_level': next(
+                        key for key, value in RAID_LEVELS.items()
+                        if value['raid_type'] == vol.raid_type)
+                }
+                logical_disks.append(logical_disk)
+            else:
+                vol_no_raid_type.append(vol.identity)
+
+    if vol_no_raid_type:
+        LOG.warning("Unable to update raid_config for volumes missing RAID "
+                    "type: %(vol_no_raid_type)s",
+                    {'vol_no_raid_type': ", ".join(vol_no_raid_type)})
+
+    raid_common.update_raid_info(node, {'logical_disks': logical_disks})
+
+
 class RedfishRAID(base.RAIDInterface):
 
     def __init__(self):
@@ -700,32 +734,6 @@ class RedfishRAID(base.RAIDInterface):
         :returns: dictionary of <property name>:<property description> entries.
         """
         return redfish_utils.COMMON_PROPERTIES.copy()
-
-    def _validate_vendor(self, task):
-        vendor = task.node.properties.get('vendor')
-        if not vendor:
-            return
-
-        if 'dell' in vendor.lower().split():
-            raise exception.InvalidParameterValue(
-                _("The %(iface)s raid interface is not suitable for node "
-                  "%(node)s with vendor %(vendor)s, use idrac-redfish instead")
-                % {'iface': task.node.raid_interface,
-                   'node': task.node.uuid, 'vendor': vendor})
-
-    def validate(self, task):
-        """Validates the RAID Interface.
-
-        This method validates the properties defined by Ironic for RAID
-        configuration. Driver implementations of this interface can override
-        this method for doing more validations (such as BMC's credentials).
-
-        :param task: A TaskManager instance.
-        :raises: InvalidParameterValue, if the RAID configuration is invalid.
-        :raises: MissingParameterValue, if some parameters are missing.
-        """
-        self._validate_vendor(task)
-        super(RedfishRAID, self).validate(task)
 
     def validate_raid_config(self, task, raid_config):
         """Validates the given RAID configuration.
@@ -818,33 +826,14 @@ class RedfishRAID(base.RAIDInterface):
         logical_disks_to_create = self.pre_create_configuration(
             task, logical_disks_to_create)
 
-        reboot_required = False
-        raid_configs = list()
-        for logical_disk in logical_disks_to_create:
-            raid_config = dict()
-            response = create_virtual_disk(
-                task,
-                raid_controller=logical_disk.get('controller'),
-                physical_disks=logical_disk['physical_disks'],
-                raid_level=logical_disk['raid_level'],
-                size_bytes=logical_disk['size_bytes'],
-                disk_name=logical_disk.get('name'),
-                span_length=logical_disk.get('span_length'),
-                span_depth=logical_disk.get('span_depth'),
-                error_handler=self.volume_create_error_handler)
-            # only save the async tasks (task_monitors) in raid_config
-            if (response is not None
-                    and hasattr(response, 'task_monitor_uri')):
-                raid_config['operation'] = 'create'
-                raid_config['raid_controller'] = logical_disk.get(
-                    'controller')
-                raid_config['task_monitor_uri'] = response.task_monitor_uri
-                reboot_required = True
-                raid_configs.append(raid_config)
-
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['raid_configs'] = raid_configs
-        node.driver_internal_info = driver_internal_info
+        # Group logical disks by controller
+        def gb_key(x):
+            return x.get('controller')
+        gb_list = itertools.groupby(
+            sorted(logical_disks_to_create, key=gb_key), gb_key)
+        ld_grouped = {k: list(g) for k, g in gb_list}
+        raid_configs, reboot_required = self._submit_create_configuration(
+            task, ld_grouped)
 
         return_state = None
         deploy_utils.set_async_step_flags(
@@ -857,6 +846,8 @@ class RedfishRAID(base.RAIDInterface):
             deploy_opts = deploy_utils.build_agent_options(task.node)
             task.driver.boot.prepare_ramdisk(task, deploy_opts)
             manager_utils.node_power_action(task, states.REBOOT)
+        else:
+            update_raid_config(node)
 
         return self.post_create_configuration(
             task, raid_configs, return_state=return_state)
@@ -872,55 +863,8 @@ class RedfishRAID(base.RAIDInterface):
             complete.
         """
         node = task.node
-        system = redfish_utils.get_system(node)
-        vols_to_delete = []
-        try:
-            for storage in system.storage.get_members():
-                controller = (storage.storage_controllers[0]
-                              if storage.storage_controllers else None)
-                controller_id = None
-                if controller:
-                    controller_id = storage.identity
-                for volume in storage.volumes.get_members():
-                    if (volume.raid_type or volume.volume_type not in
-                            [None, sushy.VOLUME_TYPE_RAW_DEVICE]):
-                        vols_to_delete.append((storage.volumes, volume,
-                                               controller_id))
-        except sushy.exceptions.SushyError as exc:
-            error_msg = _('Cannot get the list of volumes to delete for node '
-                          '%(node_uuid)s. Reason: %(error)s.' %
-                          {'node_uuid': node.uuid, 'error': exc})
-            LOG.error(error_msg)
-            raise exception.RedfishError(error=exc)
-
-        self.pre_delete_configuration(task, vols_to_delete)
-
-        reboot_required = False
-        raid_configs = list()
-        for vol_coll, volume, controller_id in vols_to_delete:
-            raid_config = dict()
-            apply_time = None
-            apply_time_support = vol_coll.operation_apply_time_support
-            if (apply_time_support
-                    and apply_time_support.mapped_supported_values):
-                supported_values = apply_time_support.mapped_supported_values
-                if sushy.APPLY_TIME_IMMEDIATE in supported_values:
-                    apply_time = sushy.APPLY_TIME_IMMEDIATE
-                elif sushy.APPLY_TIME_ON_RESET in supported_values:
-                    apply_time = sushy.APPLY_TIME_ON_RESET
-            response = volume.delete(apply_time=apply_time)
-            # only save the async tasks (task_monitors) in raid_config
-            if (response is not None
-                    and hasattr(response, 'task_monitor_uri')):
-                raid_config['operation'] = 'delete'
-                raid_config['raid_controller'] = controller_id
-                raid_config['task_monitor_uri'] = response.task_monitor_uri
-                reboot_required = True
-                raid_configs.append(raid_config)
-
-        driver_internal_info = node.driver_internal_info
-        driver_internal_info['raid_configs'] = raid_configs
-        node.driver_internal_info = driver_internal_info
+        raid_configs, reboot_required = self._submit_delete_configuration(
+            task)
 
         return_state = None
         deploy_utils.set_async_step_flags(
@@ -933,6 +877,8 @@ class RedfishRAID(base.RAIDInterface):
             deploy_opts = deploy_utils.build_agent_options(task.node)
             task.driver.boot.prepare_ramdisk(task, deploy_opts)
             manager_utils.node_power_action(task, states.REBOOT)
+        else:
+            update_raid_config(node)
 
         return self.post_delete_configuration(
             task, raid_configs, return_state=return_state)
@@ -1063,6 +1009,7 @@ class RedfishRAID(base.RAIDInterface):
 
                     task.upgrade_lock()
                     self._clear_raid_configs(node)
+                    update_raid_config(node)
 
             except exception.NodeNotFound:
                 LOG.info('During _query_raid_config_failed, node '
@@ -1113,74 +1060,221 @@ class RedfishRAID(base.RAIDInterface):
                          '%(node)s was already locked by another process. '
                          'Skip.', {'node': node_uuid})
 
-    def _get_error_messages(self, response):
-        try:
-            body = response.json()
-        except ValueError:
-            return []
-        else:
-            error = body.get('error', {})
-            code = error.get('code', '')
-            message = error.get('message', code)
-            ext_info = error.get('@Message.ExtendedInfo', [{}])
-            messages = [m.get('Message') for m in ext_info if 'Message' in m]
-            if not messages and message:
-                messages = [message]
-            return messages
+    def _raid_config_in_progress(self, task, task_monitor_uri, operation):
+        """Check if this RAID configuration operation is still in progress.
 
-    def _raid_config_in_progress(self, task, raid_config):
-        """Check if this RAID configuration operation is still in progress."""
-        task_monitor_uri = raid_config['task_monitor_uri']
+        :param task: TaskManager object containing the node.
+        :param task_monitor_uri: Redfish task monitor URI
+        :param operation: 'create' or 'delete' operation for given task.
+            Used in log messages.
+        :returns: True, if still in progress, otherwise False.
+        """
         try:
             task_monitor = redfish_utils.get_task_monitor(task.node,
                                                           task_monitor_uri)
         except exception.RedfishError:
-            LOG.info('Unable to get status of RAID %(operation)s task to node '
-                     '%(node_uuid)s; assuming task completed successfully',
-                     {'operation': raid_config['operation'],
+            LOG.info('Unable to get status of RAID %(operation)s task '
+                     '%(task_mon_uri)s to node %(node_uuid)s; assuming task '
+                     'completed successfully',
+                     {'operation': operation,
+                      'task_mon_uri': task_monitor_uri,
                       'node_uuid': task.node.uuid})
             return False
         if task_monitor.is_processing:
-            LOG.debug('RAID %(operation)s task %(task_mon)s to node '
+            LOG.debug('RAID %(operation)s task %(task_mon_uri)s to node '
                       '%(node_uuid)s still in progress',
-                      {'operation': raid_config['operation'],
-                       'task_mon': task_monitor.task_monitor_uri,
+                      {'operation': operation,
+                       'task_mon_uri': task_monitor.task_monitor_uri,
                        'node_uuid': task.node.uuid})
             return True
         else:
-            response = task_monitor.response
-            if response is not None:
-                status_code = response.status_code
-                if status_code >= 400:
-                    messages = self._get_error_messages(response)
-                    LOG.error('RAID %(operation)s task to node '
-                              '%(node_uuid)s failed with status '
-                              '%(status_code)s; messages: %(messages)s',
-                              {'operation': raid_config['operation'],
-                               'node_uuid': task.node.uuid,
-                               'status_code': status_code,
-                               'messages': ", ".join(messages)})
-                else:
-                    LOG.info('RAID %(operation)s task to node '
-                             '%(node_uuid)s completed with status '
-                             '%(status_code)s',
-                             {'operation': raid_config['operation'],
-                              'node_uuid': task.node.uuid,
-                              'status_code': status_code})
+            sushy_task = task_monitor.get_task()
+            messages = []
+            if sushy_task.messages and not sushy_task.messages[0].message:
+                sushy_task.parse_messages()
+
+            messages = [m.message for m in sushy_task.messages]
+
+            if (sushy_task.task_state == sushy.TASK_STATE_COMPLETED
+                    and sushy_task.task_status in
+                    [sushy.HEALTH_OK, sushy.HEALTH_WARNING]):
+                LOG.info('RAID %(operation)s task %(task_mon_uri)s to node '
+                         '%(node_uuid)s completed.',
+                         {'operation': operation,
+                          'task_mon_uri': task_monitor.task_monitor_uri,
+                          'node_uuid': task.node.uuid})
+            else:
+                LOG.error('RAID %(operation)s task %(task_mon_uri)s to node '
+                          '%(node_uuid)s failed; messages: %(messages)s',
+                          {'operation': operation,
+                           'task_mon_uri': task_monitor.task_monitor_uri,
+                           'node_uuid': task.node.uuid,
+                           'messages': ", ".join(messages)})
         return False
 
     @METRICS.timer('RedfishRAID._check_node_raid_config')
     def _check_node_raid_config(self, task):
-        """Check the progress of running RAID config on a node."""
+        """Check the progress of running RAID config on a node.
+
+        :param task: TaskManager object containing the node.
+        """
         node = task.node
         raid_configs = node.driver_internal_info['raid_configs']
 
         task.upgrade_lock()
-        raid_configs[:] = [i for i in raid_configs
-                           if self._raid_config_in_progress(task, i)]
+        raid_configs['task_monitor_uri'] =\
+            [i for i in raid_configs.get('task_monitor_uri')
+             if self._raid_config_in_progress(
+                task, i, raid_configs.get('operation'))]
+        info = node.driver_internal_info
+        info['raid_configs'] = raid_configs
+        node.driver_internal_info = info
 
-        if not raid_configs:
-            self._clear_raid_configs(node)
-            LOG.info('RAID configuration completed for node %(node)s',
-                     {'node': node.uuid})
-            manager_utils.notify_conductor_resume_clean(task)
+        if not raid_configs['task_monitor_uri']:
+            if raid_configs.get('pending'):
+                if raid_configs.get('operation') == 'create':
+                    reboot_required = self._submit_create_configuration(
+                        task, raid_configs.get('pending'))[1]
+                else:
+                    reboot_required = self._submit_delete_configuration(
+                        task)[1]
+                if reboot_required:
+                    deploy_utils.get_async_step_return_state(task.node)
+                    deploy_opts = deploy_utils.build_agent_options(task.node)
+                    task.driver.boot.prepare_ramdisk(task, deploy_opts)
+                    manager_utils.node_power_action(task, states.REBOOT)
+            else:
+                self._clear_raid_configs(node)
+                LOG.info('RAID configuration completed for node %(node)s',
+                         {'node': node.uuid})
+                update_raid_config(task.node)
+                if task.node.clean_step:
+                    manager_utils.notify_conductor_resume_clean(task)
+                else:
+                    manager_utils.notify_conductor_resume_deploy(task)
+
+    def _submit_create_configuration(self, task, ld_grouped):
+        """Processes and submits requests for creating RAID configuration.
+
+        :param task: TaskManager object containing the node.
+        :param ld_grouped: Dictionary of logical disks, grouped by controller.
+
+        :returns: tuple of 1) dictionary containing operation name (create),
+            pending items, and task monitor URIs, and 2) flag indicating if
+            reboot is required.
+        """
+        node = task.node
+        reboot_required = False
+        raid_configs = {'operation': 'create', 'pending': {}}
+        for controller, logical_disks in ld_grouped.items():
+            iter_logical_disks = iter(logical_disks)
+            for logical_disk in iter_logical_disks:
+                response = create_virtual_disk(
+                    task,
+                    raid_controller=logical_disk.get('controller'),
+                    physical_disks=logical_disk['physical_disks'],
+                    raid_level=logical_disk['raid_level'],
+                    size_bytes=logical_disk['size_bytes'],
+                    disk_name=logical_disk.get('name'),
+                    span_length=logical_disk.get('span_length'),
+                    span_depth=logical_disk.get('span_depth'),
+                    error_handler=self.volume_create_error_handler)
+                if (response is not None
+                        and hasattr(response, 'task_monitor_uri')):
+                    raid_configs.setdefault('task_monitor_uri', []).append(
+                        response.task_monitor_uri)
+                    reboot_required = True
+                    # Don't process any on this controller until these
+                    # created to avoid failures where only 1 request
+                    # per controller can be submitted for non-immediate
+                    break
+            # Append remaining disks for this controller, if any left
+            for logical_disk in iter_logical_disks:
+                raid_configs['pending'].setdefault(controller, []).append(
+                    logical_disk)
+
+        info = node.driver_internal_info
+        info['raid_configs'] = raid_configs
+        node.driver_internal_info = info
+
+        return raid_configs, reboot_required
+
+    def _submit_delete_configuration(self, task):
+        """Processes and submits requests for deleting virtual disks.
+
+        :param task: TaskManager object containing the node.
+
+        :returns: tuple of 1) dictionary containing operation name (delete),
+            flag to indicate if any disks remaining, and task monitor URIs,
+            and 2) flag indicating if reboot is required
+        :raises RedfishError: if fails to get list of virtual disks
+        """
+        node = task.node
+        system = redfish_utils.get_system(node)
+        vols_to_delete = {}
+        any_left = False
+        try:
+            for storage in system.storage.get_members():
+                controller = (storage.storage_controllers[0]
+                              if storage.storage_controllers else None)
+                controller_id = None
+                if controller:
+                    controller_id = storage.identity
+                iter_volumes = iter(storage.volumes.get_members())
+                for volume in iter_volumes:
+                    if (volume.raid_type or volume.volume_type not in
+                            [None, sushy.VOLUME_TYPE_RAW_DEVICE]):
+                        if controller_id not in vols_to_delete:
+                            vols_to_delete[controller_id] = []
+                        apply_time = self._get_apply_time(
+                            storage.volumes.operation_apply_time_support)
+                        vols_to_delete[controller_id].append((
+                            apply_time, volume))
+                        if apply_time == sushy.APPLY_TIME_ON_RESET:
+                            # Don't process any on this controller until these
+                            # deleted to avoid failures where only 1 request
+                            # per controller can be submitted for non-immediate
+                            break
+                any_left = any(iter_volumes)
+        except sushy.exceptions.SushyError as exc:
+            error_msg = _('Cannot get the list of volumes to delete for node '
+                          '%(node_uuid)s. Reason: %(error)s.' %
+                          {'node_uuid': node.uuid, 'error': exc})
+            LOG.error(error_msg)
+            raise exception.RedfishError(error=exc)
+
+        self.pre_delete_configuration(task, vols_to_delete)
+
+        reboot_required = False
+        raid_configs = {'operation': 'delete', 'pending': any_left}
+        for controller, vols_to_delete in vols_to_delete.items():
+            for apply_time, volume in vols_to_delete:
+                response = volume.delete(apply_time=apply_time)
+                # only save the async tasks (task_monitors) in raid_config
+                if (response is not None
+                        and hasattr(response, 'task_monitor_uri')):
+                    raid_configs.setdefault('task_monitor_uri', []).append(
+                        response.task_monitor_uri)
+                    reboot_required = True
+
+        info = node.driver_internal_info
+        info['raid_configs'] = raid_configs
+        node.driver_internal_info = info
+
+        return raid_configs, reboot_required
+
+    def _get_apply_time(self, apply_time_support):
+        """Gets apply time for RAID operations
+
+        :param apply_time_support: Supported apply times
+        :returns: None, if supported apply times not specified. Otherwise
+            Immediate when available, or OnReset that will require rebooting.
+        """
+        apply_time = None
+        if apply_time_support and apply_time_support.mapped_supported_values:
+            supported_values = apply_time_support.mapped_supported_values
+            if sushy.APPLY_TIME_IMMEDIATE in supported_values:
+                apply_time = sushy.APPLY_TIME_IMMEDIATE
+            elif sushy.APPLY_TIME_ON_RESET in supported_values:
+                apply_time = sushy.APPLY_TIME_ON_RESET
+        return apply_time

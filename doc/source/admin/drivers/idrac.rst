@@ -460,6 +460,15 @@ RAID Interface
 
 See :doc:`/admin/raid` for more information on Ironic RAID support.
 
+RAID interface of ``redfish`` hardware type can be used on iDRAC systems.
+Compared to ``redfish`` RAID interface, using ``idrac-redfish`` adds:
+
+* Waiting for real-time operations to be available on RAID controllers. When
+  using ``redfish`` this is not guaranteed and reboots might be intermittently
+  required to complete,
+* Converting non-RAID disks to RAID mode if there are any,
+* Clearing foreign configuration, if any, after deleting virtual disks.
+
 The following properties are supported by the iDRAC WSMAN and Redfish RAID
 interface implementation:
 

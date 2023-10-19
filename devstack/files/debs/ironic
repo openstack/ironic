@@ -9,7 +9,6 @@
 # In the mean time, new Debian-based release codenames will have to be added
 # as distros can not be pinned with 'if-later-than' specified.
 apparmor
-docker.io
 gnupg
 ipmitool
 iptables

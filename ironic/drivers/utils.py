@@ -23,6 +23,7 @@ from oslo_utils import timeutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import utils
 from ironic.drivers import base
@@ -460,3 +461,23 @@ def get_agent_kernel_ramdisk(node, mode='deploy', deprecated_prefix=None):
 def get_agent_iso(node, mode='deploy', deprecated_prefix=None):
     """Get the agent ISO image."""
     return get_field(node, f'{mode}_iso', deprecated_prefix)
+
+
+def need_prepare_ramdisk(node):
+    """Check if node needs preparing ramdisk
+
+    :param node: Node to check for
+    :returns: True if need to prepare ramdisk, otherwise False
+    """
+    # NOTE(TheJulia): If current node provisioning is something aside from
+    # deployment, clean, rescue or inspect such as conductor takeover,
+    # we should treat this as a no-op and move on otherwise we would
+    # modify the state of the node due to virtual media operations.
+    return node.provision_state in (states.DEPLOYING,
+                                    states.DEPLOYWAIT,
+                                    states.CLEANING,
+                                    states.CLEANWAIT,
+                                    states.RESCUING,
+                                    states.RESCUEWAIT,
+                                    states.INSPECTING,
+                                    states.INSPECTWAIT)

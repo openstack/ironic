@@ -82,7 +82,7 @@ def _get_raid_adapter(node):
     :returns: RAID adapter dictionary, None otherwise.
     :raises: IRMCOperationError on an error from python-scciclient.
     """
-    irmc_info = node.driver_info
+    irmc_info = irmc_common.parse_driver_info(node)
     LOG.info('iRMC driver is gathering RAID adapter info for node %s',
              node.uuid)
     try:
