@@ -82,12 +82,17 @@ drivers supported by this Ironic service.
   If the request has the "detail" URL parameter set to true, each
   driver will also include the following fields.
 
+.. versionadded:: 1.86
+  Introduced the ``default_firmware_interface`` and
+  ``enabled_firmware_interfaces`` fields.
+
 .. rest_parameters:: parameters.yaml
 
    - default_bios_interface: default_bios_interface
    - default_boot_interface: default_boot_interface
    - default_console_interface: default_console_interface
    - default_deploy_interface: default_deploy_interface
+   - default_firmware_interface: default_firmware_interface
    - default_inspect_interface: default_inspect_interface
    - default_management_interface: default_management_interface
    - default_network_interface: default_network_interface
@@ -100,6 +105,7 @@ drivers supported by this Ironic service.
    - enabled_boot_interfaces: enabled_boot_interfaces
    - enabled_console_interfaces: enabled_console_interfaces
    - enabled_deploy_interfaces: enabled_deploy_interfaces
+   - enabled_firmware_interfaces: enabled_firmware_interfaces
    - enabled_inspect_interfaces: enabled_inspect_interfaces
    - enabled_management_interfaces: enabled_management_interfaces
    - enabled_network_interfaces: enabled_network_interfaces
@@ -132,6 +138,10 @@ Shows details for a driver.
 .. versionadded:: 1.77
   Added ``fields`` selector to query for particular fields.
 
+.. versionadded:: 1.86
+  Introduced the ``default_firmware_interface`` and
+  ``enabled_firmware_interfaces`` fields.
+
 Normal response codes: 200
 
 Request
@@ -154,6 +164,7 @@ Response Parameters
    - default_boot_interface: default_boot_interface
    - default_console_interface: default_console_interface
    - default_deploy_interface: default_deploy_interface
+   - default_firmware_interface: default_firmware_interface
    - default_inspect_interface: default_inspect_interface
    - default_management_interface: default_management_interface
    - default_network_interface: default_network_interface
@@ -166,6 +177,7 @@ Response Parameters
    - enabled_boot_interfaces: enabled_boot_interfaces
    - enabled_console_interfaces: enabled_console_interfaces
    - enabled_deploy_interfaces: enabled_deploy_interfaces
+   - enabled_firmware_interfaces: enabled_firmware_interfaces
    - enabled_inspect_interfaces: enabled_inspect_interfaces
    - enabled_management_interfaces: enabled_management_interfaces
    - enabled_network_interfaces: enabled_network_interfaces

@@ -760,6 +760,13 @@ default_deploy_interface:
   in: body
   required: true
   type: string
+default_firmware_interface:
+  description: |
+    The default firmware interface used for a node with a dynamic driver, if no
+    firmware interface is specified for the node.
+  in: body
+  required: true
+  type: string
 default_inspect_interface:
   description: |
     The default inspection interface used for a node with a dynamic driver, if
@@ -941,6 +948,12 @@ enabled_console_interfaces:
 enabled_deploy_interfaces:
   description: |
     The enabled deploy interfaces for this driver.
+  in: body
+  required: true
+  type: list
+enabled_firmware_interfaces:
+  description: |
+    The enabled firmware interfaces for this driver.
   in: body
   required: true
   type: list

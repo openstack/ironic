@@ -5,6 +5,7 @@
       "default_boot_interface": null,
       "default_console_interface": null,
       "default_deploy_interface": null,
+      "default_firmware_interface": null,
       "default_inspect_interface": null,
       "default_management_interface": null,
       "default_network_interface": null,
@@ -17,6 +18,7 @@
       "enabled_boot_interfaces": null,
       "enabled_console_interfaces": null,
       "enabled_deploy_interfaces": null,
+      "enabled_firmware_interfaces": null,
       "enabled_inspect_interfaces": null,
       "enabled_management_interfaces": null,
       "enabled_network_interfaces": null,
@@ -56,6 +58,7 @@
       "default_boot_interface": null,
       "default_console_interface": null,
       "default_deploy_interface": null,
+      "default_firmware_interface": null,
       "default_inspect_interface": null,
       "default_management_interface": null,
       "default_network_interface": null,
@@ -68,6 +71,7 @@
       "enabled_boot_interfaces": null,
       "enabled_console_interfaces": null,
       "enabled_deploy_interfaces": null,
+      "enabled_firmware_interfaces": null,
       "enabled_inspect_interfaces": null,
       "enabled_management_interfaces": null,
       "enabled_network_interfaces": null,
@@ -107,6 +111,7 @@
       "default_boot_interface": "pxe",
       "default_console_interface": "no-console",
       "default_deploy_interface": "direct",
+      "default_firmware_interface": "no-firmware",
       "default_inspect_interface": "no-inspect",
       "default_management_interface": "ipmitool",
       "default_network_interface": "flat",
@@ -127,6 +132,9 @@
       "enabled_deploy_interfaces": [
         "ansible",
         "direct"
+      ],
+      "enabled_firmware_interface": [
+        "no-firmware"
       ],
       "enabled_inspect_interfaces": [
         "no-inspect"
