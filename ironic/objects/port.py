@@ -491,6 +491,18 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         """
         return cls.supports_version((1, 9))
 
+    def set_local_link_connection(self, key, value):
+        """Set a `local_link_connection` value.
+
+        Setting a `local_link_connection` dict value via this method ensures
+        that this field will be flagged for saving.
+
+        :param key: Key of item to set
+        :param value: Value of item to set
+        """
+        self.local_link_connection[key] = value
+        self._changed_fields.add('local_link_connection')
+
 
 @base.IronicObjectRegistry.register
 class PortCRUDNotification(notification.NotificationBase):
