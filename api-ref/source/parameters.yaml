@@ -106,7 +106,7 @@ node_ident:
   type: string
 port_ident:
   description: |
-    The UUID of the port.
+    The UUID or Name of the port.
   in: path
   required: true
   type: string
@@ -1419,6 +1419,12 @@ port_address:
   in: body
   required: true
   type: string
+port_name:
+  description: |
+    The name assigned to the network Port.
+  in: body
+  required: false
+  type: string
 portgroup_address:
   description: |
     Physical hardware address of this Portgroup, typically the hardware
@@ -1785,6 +1791,12 @@ req_port_address:
     MAC address.
   in: body
   required: true
+  type: string
+req_port_name:
+  description: |
+    The name assigned to the network Port.
+  in: body
+  required: false
   type: string
 req_portgroup_address:
   description: |

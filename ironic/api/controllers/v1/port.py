@@ -111,7 +111,7 @@ def hide_fields_in_newer_versions(port):
     # if requested version is < 1.53, hide is_smartnic field.
     if not api_utils.allow_port_is_smartnic():
         port.pop('is_smartnic', None)
-    # if requested version is < 1.69, hide name field.
+    # if requested version is < 1.88, hide name field.
     if not api_utils.allow_port_name():
         port.pop('name', None)
 
