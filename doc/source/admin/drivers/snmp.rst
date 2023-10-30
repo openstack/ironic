@@ -68,8 +68,8 @@ ServerTech       C2WG24SN         Yes          servertech_sentry4
 Software Requirements
 =====================
 
-- The PySNMP package must be installed, variously referred to as ``pysnmp``
-  or ``python-pysnmp``
+Additional python libraries to communicate with SNMP are required. Please see
+``driver-requirements.txt`` for an updated list for your release.
 
 Enabling the SNMP Hardware Type
 ===============================
