@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Properly eject the virtual media from a DVD device in case this is the
+    only MediaType available from the Hardware, and Ironic requested CD as
+    the device to be used.
+    See `bug 2039042 <https://bugs.launchpad.net/ironic/+bug/2039042>`_
+    for details.
