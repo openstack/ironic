@@ -273,9 +273,24 @@ Deploying to Ironic node using Nova
 This section assumes you already have a working, deployed Ironic with Nova
 configured as laid out above.
 
-Source credentials, create a key, and spawn an instance as the ``demo`` user::
+We need to gather two more pieces of information before performing the
+deploy, we need to determine what image to use, and what network to use.
 
-    . ~/devstack/openrc
+Determine the network::
+
+    net_id=$(openstack network list | egrep "$PRIVATE_NETWORK_NAME"'[^-]' | awk '{ print $2 }')
+
+
+We also need to choose an image to deploy. Devstack has both cirros partition
+and whole disk images by default. For this example, we'll use the whole disk
+image::
+
+    image=$(openstack image list | grep -- '-disk' | awk '{ print $2 }')
+
+Source credentials and create a key, and spawn an instance as the ``demo``
+user::
+
+    . ~/devstack/openrc demo
 
     # query the image id of the default cirros image
     image=$(openstack image show $DEFAULT_IMAGE_NAME -f value -c id)
@@ -284,16 +299,6 @@ Source credentials, create a key, and spawn an instance as the ``demo`` user::
     ssh-keygen
     openstack keypair create --public-key ~/.ssh/id_rsa.pub default
 
-    # spawn instance
-    openstack server create --flavor baremetal --image $image --key-name default testing
-
-.. note::
-    Because devstack create multiple networks, we need to pass an additional parameter
-    ``--nic net-id`` to the nova boot command when using the admin account, for example::
-
-      net_id=$(openstack network list | egrep "$PRIVATE_NETWORK_NAME"'[^-]' | awk '{ print $2 }')
-
-      openstack server create --flavor baremetal --nic net-id=$net_id --image $image --key-name default testing
 
 You should now see a Nova instance building::
 
