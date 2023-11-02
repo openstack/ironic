@@ -22,15 +22,20 @@
    :platform: Unix
 """
 
-# TODO(tenbrae): move eventlet imports to ironic.__init__ once we move to PBR
-
 import eventlet
-from oslo_config import cfg
-from oslo_log import log
 
-from ironic import objects
 
-eventlet.monkey_patch()
+# NOTE(JayF): We must green all python stdlib modules before anything else
+#             is imported for consistent behavior. For instance, sqlalchemy
+#             creates a threading.RLock early, and if it was imported before
+eventlet.monkey_patch() # noqa
+
+
+from oslo_config import cfg # noqa E402
+from oslo_log import log # noqa E402
+
+from ironic import objects # noqa E402
+
 
 log.register_options(cfg.CONF)
 log.setup(cfg.CONF, 'ironic')
