@@ -12,155 +12,159 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import builtins
-from http import client as http_client
-import io
 from unittest import mock
 
-from oslo_config import cfg
-from swiftclient import client as swift_client
-from swiftclient import exceptions as swift_exception
-from swiftclient import utils as swift_utils
+import openstack
+from openstack.connection import exceptions as openstack_exc
 
 from ironic.common import exception
+from ironic.common import keystone
 from ironic.common import swift
+from ironic.conf import CONF
 from ironic.tests import base
-
-CONF = cfg.CONF
 
 
 @mock.patch.object(swift, 'get_swift_session', autospec=True,
-                   return_value=mock.Mock(verify=False, cert=('spam', 'ham'),
-                                          timeout=42))
-@mock.patch.object(swift_client, 'Connection', autospec=True)
+                   return_value=mock.MagicMock(verify=False,
+                                               cert=('spam', 'ham'),
+                                               timeout=42))
+@mock.patch.object(openstack.connection, 'Connection', autospec=True)
 class SwiftTestCase(base.TestCase):
 
     def setUp(self):
         super(SwiftTestCase, self).setUp()
-        self.swift_exception = swift_exception.ClientException('', '')
+        self.swift_exception = openstack_exc.OpenStackCloudException()
 
-    def test___init__(self, connection_mock, keystone_mock):
+    @mock.patch.object(keystone, 'get_auth', autospec=True,
+                       return_value=mock.Mock())
+    @mock.patch.object(keystone, 'get_endpoint', autospec=True,
+                       return_value='http://example.com/v1')
+    def test___init__(self, get_endpoint_mock, get_auth_mock, connection_mock,
+                      session_mock):
         """Check if client is properly initialized with swift"""
-        self.config(group='swift',
-                    endpoint_override='http://example.com/objects')
-        swift.SwiftAPI()
-        connection_mock.assert_called_once_with(
-            retries=2,
-            session=keystone_mock.return_value,
-            timeout=42,
-            insecure=True,
-            cert='spam',
-            cert_key='ham',
-            os_options={'object_storage_url': 'http://example.com/objects'}
-        )
-
-    @mock.patch.object(builtins, 'open', autospec=True)
-    def test_create_object(self, open_mock, connection_mock, keystone_mock):
         swiftapi = swift.SwiftAPI()
-        connection_obj_mock = connection_mock.return_value
-        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
-        mock_file_handle.__enter__.return_value = 'file-object'
-        open_mock.return_value = mock_file_handle
+        connection_mock.assert_called_once_with(
+            session=session_mock.return_value,
+            oslo_conf=CONF
+        )
+        self.assertEqual(connection_mock.return_value, swiftapi.connection)
 
-        connection_obj_mock.put_object.return_value = 'object-uuid'
+    def test_create_object(self, connection_mock, session_mock):
+        swiftapi = swift.SwiftAPI()
+        connection = connection_mock.return_value
+        connection.create_object.return_value = 'object-uuid'
 
         object_uuid = swiftapi.create_object('container', 'object',
-                                             'some-file-location')
+                                             'some-file-location',
+                                             object_headers={'foo': 'bar'})
 
-        connection_obj_mock.put_container.assert_called_once_with('container')
-        connection_obj_mock.put_object.assert_called_once_with(
-            'container', 'object', 'file-object', headers=None)
+        connection.create_container.assert_called_once_with('container')
+        connection.create_object.assert_called_once_with(
+            'container', 'object', filename='some-file-location', foo='bar')
         self.assertEqual('object-uuid', object_uuid)
 
-    @mock.patch.object(builtins, 'open', autospec=True)
-    def test_create_object_create_container_fails(self, open_mock,
-                                                  connection_mock,
-                                                  keystone_mock):
+    def test_create_object_create_container_fails(self, connection_mock,
+                                                  session_mock):
         swiftapi = swift.SwiftAPI()
-        connection_obj_mock = connection_mock.return_value
-        connection_obj_mock.put_container.side_effect = self.swift_exception
+        connection = connection_mock.return_value
+        connection.create_container.side_effect = self.swift_exception
         self.assertRaises(exception.SwiftOperationError,
                           swiftapi.create_object, 'container',
                           'object', 'some-file-location')
-        connection_obj_mock.put_container.assert_called_once_with('container')
-        self.assertFalse(connection_obj_mock.put_object.called)
+        connection.create_container.assert_called_once_with('container')
+        self.assertFalse(connection.create_object.called)
 
-    @mock.patch.object(builtins, 'open', autospec=True)
-    def test_create_object_put_object_fails(self, open_mock, connection_mock,
-                                            keystone_mock):
+    def test_create_object_create_object_fails(self, connection_mock,
+                                               session_mock):
         swiftapi = swift.SwiftAPI()
-        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
-        mock_file_handle.__enter__.return_value = 'file-object'
-        open_mock.return_value = mock_file_handle
-        connection_obj_mock = connection_mock.return_value
-        connection_obj_mock.head_account.side_effect = None
-        connection_obj_mock.put_object.side_effect = self.swift_exception
+        connection = connection_mock.return_value
+        connection.create_object.side_effect = self.swift_exception
         self.assertRaises(exception.SwiftOperationError,
                           swiftapi.create_object, 'container',
                           'object', 'some-file-location')
-        connection_obj_mock.put_container.assert_called_once_with('container')
-        connection_obj_mock.put_object.assert_called_once_with(
-            'container', 'object', 'file-object', headers=None)
+        connection.create_container.assert_called_once_with('container')
+        connection.create_object.assert_called_once_with(
+            'container', 'object', filename='some-file-location')
 
-    @mock.patch.object(swift_utils, 'generate_temp_url', autospec=True)
-    def test_get_temp_url(self, gen_temp_url_mock, connection_mock,
-                          keystone_mock):
+    def test_create_object_from_data(self, connection_mock, session_mock):
         swiftapi = swift.SwiftAPI()
-        connection_obj_mock = connection_mock.return_value
-        connection_obj_mock.url = 'http://host/v1/AUTH_tenant_id'
-        head_ret_val = {'x-account-meta-temp-url-key': 'secretkey'}
-        connection_obj_mock.head_account.return_value = head_ret_val
-        gen_temp_url_mock.return_value = 'temp-url-path'
+        connection = connection_mock.return_value
+        connection.create_object.return_value = 'object-uuid'
+
+        object_uuid = swiftapi.create_object_from_data(
+            'object', 'some-data', 'container')
+
+        connection.create_container.assert_called_once_with('container')
+        connection.create_object.assert_called_once_with(
+            'container', 'object', data='some-data')
+        self.assertEqual('object-uuid', object_uuid)
+
+    def test_create_object_from_data_create_container_fails(
+            self, connection_mock, session_mock):
+        swiftapi = swift.SwiftAPI()
+        connection = connection_mock.return_value
+        connection.create_container.side_effect = self.swift_exception
+        self.assertRaises(exception.SwiftOperationError,
+                          swiftapi.create_object_from_data,
+                          'object', 'some-data', 'container')
+        connection.create_container.assert_called_once_with('container')
+        self.assertFalse(connection.create_object.called)
+
+    def test_create_object_from_data_create_object_fails(self, connection_mock,
+                                                         session_mock):
+        swiftapi = swift.SwiftAPI()
+        connection = connection_mock.return_value
+        connection.create_object.side_effect = self.swift_exception
+        self.assertRaises(exception.SwiftOperationError,
+                          swiftapi.create_object_from_data,
+                          'object', 'some-data', 'container')
+        connection.create_container.assert_called_once_with('container')
+        connection.create_object.assert_called_once_with(
+            'container', 'object', data='some-data')
+
+    @mock.patch.object(keystone, 'get_auth', autospec=True)
+    @mock.patch.object(keystone, 'get_endpoint', autospec=True)
+    def test_get_temp_url(self, get_endpoint_mock, get_auth_mock,
+                          connection_mock, session_mock):
+        swiftapi = swift.SwiftAPI()
+        connection = connection_mock.return_value
+        get_endpoint_mock.return_value = 'http://example.com/v1/AUTH_tenant_id'
+        object_store = connection.object_store
+        object_store.get_temp_url_key.return_value = 'secretkey'
+
+        object_store.generate_temp_url.return_value = \
+            '/v1/AUTH_tenant_id/temp-url-path'
         temp_url_returned = swiftapi.get_temp_url('container', 'object', 10)
-        connection_obj_mock.head_account.assert_called_once_with()
         object_path_expected = '/v1/AUTH_tenant_id/container/object'
-        gen_temp_url_mock.assert_called_once_with(object_path_expected, 10,
-                                                  'secretkey', 'GET')
-        self.assertEqual('http://host/temp-url-path', temp_url_returned)
+        object_store.generate_temp_url.assert_called_once_with(
+            object_path_expected, 10, 'GET', temp_url_key='secretkey')
+        self.assertEqual('http://example.com/v1/AUTH_tenant_id/temp-url-path',
+                         temp_url_returned)
 
-    def test_delete_object(self, connection_mock, keystone_mock):
+    def test_delete_object(self, connection_mock, session_mock):
         swiftapi = swift.SwiftAPI()
-        connection_obj_mock = connection_mock.return_value
+        connection = connection_mock.return_value
         swiftapi.delete_object('container', 'object')
-        connection_obj_mock.delete_object.assert_called_once_with('container',
-                                                                  'object')
+        connection.delete_object.assert_called_once_with('container',
+                                                         'object')
 
     def test_delete_object_exc_resource_not_found(self, connection_mock,
-                                                  keystone_mock):
+                                                  session_mock):
         swiftapi = swift.SwiftAPI()
-        exc = swift_exception.ClientException(
-            "Resource not found", http_status=http_client.NOT_FOUND)
-        connection_obj_mock = connection_mock.return_value
-        connection_obj_mock.delete_object.side_effect = exc
+        exc = openstack_exc.ResourceNotFound(message="Resource not found")
+        connection = connection_mock.return_value
+        connection.delete_object.side_effect = exc
         self.assertRaises(exception.SwiftObjectNotFoundError,
                           swiftapi.delete_object, 'container', 'object')
-        connection_obj_mock.delete_object.assert_called_once_with('container',
-                                                                  'object')
+        connection.delete_object.assert_called_once_with('container',
+                                                         'object')
 
-    def test_delete_object_exc(self, connection_mock, keystone_mock):
+    def test_delete_object_exc(self, connection_mock, session_mock):
         swiftapi = swift.SwiftAPI()
-        exc = swift_exception.ClientException("Operation error")
-        connection_obj_mock = connection_mock.return_value
-        connection_obj_mock.delete_object.side_effect = exc
+        exc = self.swift_exception
+        connection = connection_mock.return_value
+        connection.delete_object.side_effect = exc
         self.assertRaises(exception.SwiftOperationError,
                           swiftapi.delete_object, 'container', 'object')
-        connection_obj_mock.delete_object.assert_called_once_with('container',
-                                                                  'object')
-
-    def test_head_object(self, connection_mock, keystone_mock):
-        swiftapi = swift.SwiftAPI()
-        connection_obj_mock = connection_mock.return_value
-        expected_head_result = {'a': 'b'}
-        connection_obj_mock.head_object.return_value = expected_head_result
-        actual_head_result = swiftapi.head_object('container', 'object')
-        connection_obj_mock.head_object.assert_called_once_with('container',
-                                                                'object')
-        self.assertEqual(expected_head_result, actual_head_result)
-
-    def test_update_object_meta(self, connection_mock, keystone_mock):
-        swiftapi = swift.SwiftAPI()
-        connection_obj_mock = connection_mock.return_value
-        headers = {'a': 'b'}
-        swiftapi.update_object_meta('container', 'object', headers)
-        connection_obj_mock.post_object.assert_called_once_with(
-            'container', 'object', headers)
+        connection.delete_object.assert_called_once_with('container',
+                                                         'object')

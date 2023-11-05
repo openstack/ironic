@@ -302,14 +302,13 @@ def cleanup(node):
         LOG.debug('For node %(node)s cleaning up files from Swift container '
                   '%(container)s.',
                   {'node': node.uuid, 'container': container})
-        _, objects = swift_api.connection.get_container(container)
+        objects = swift_api.connection.list_objects(container)
         for o in objects:
-            name = o.get('name')
-            if name and name.startswith(node.uuid):
+            if o.name and o.name.startswith(node.uuid):
                 try:
-                    swift_api.delete_object(container, name)
+                    swift_api.delete_object(container, o.name)
                 except exception.SwiftOperationError as error:
                     LOG.warning('For node %(node)s failed to clean up '
                                 '%(object)s. Error: %(error)s',
-                                {'node': node.uuid, 'object': name,
+                                {'node': node.uuid, 'object': o.name,
                                  'error': error})

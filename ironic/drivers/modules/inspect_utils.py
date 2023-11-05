@@ -18,7 +18,6 @@ import urllib
 
 from oslo_log import log as logging
 from oslo_utils import netutils
-import swiftclient.exceptions
 
 from ironic.common import exception
 from ironic.common import states
@@ -91,8 +90,8 @@ def clean_up_swift_entries(task):
     plugin_obj_name = f'{_OBJECT_NAME_PREFIX}-{task.node.uuid}-plugin'
     try:
         swift_api.delete_object(inventory_obj_name, container)
-    except swiftclient.exceptions.ClientException as e:
-        if e.http_status != 404:
+    except exception.SwiftOperationError as e:
+        if not isinstance(e, exception.SwiftObjectNotFoundError):
             LOG.error("Object %(obj)s in container %(cont)s with inventory "
                       "for node %(node)s failed to be deleted: %(e)s",
                       {'obj': inventory_obj_name, 'node': task.node.uuid,
@@ -101,8 +100,8 @@ def clean_up_swift_entries(task):
                                                    node=task.node.uuid)
     try:
         swift_api.delete_object(plugin_obj_name, container)
-    except swiftclient.exceptions.ClientException as e:
-        if e.http_status != 404:
+    except exception.SwiftOperationError as e:
+        if not isinstance(e, exception.SwiftObjectNotFoundError):
             LOG.error("Object %(obj)s in container %(cont)s with plugin data "
                       "for node %(node)s failed to be deleted: %(e)s",
                       {'obj': plugin_obj_name, 'node': task.node.uuid,

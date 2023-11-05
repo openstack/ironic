@@ -431,8 +431,12 @@ class FirmwareUtilsTestCase(base.TestCase):
             uuid='55cdaba0-1123-4622-8b37-bb52dd6285d3',
             driver_internal_info={'firmware_cleanup': ['http', 'swift']})
         object_name = '55cdaba0-1123-4622-8b37-bb52dd6285d3/file.exe'
-        get_container = mock_swift_api.return_value.connection.get_container
-        get_container.return_value = (mock.Mock(), [{'name': object_name}])
+        obj = mock.Mock()
+        obj.name = object_name
+
+        connection = mock.MagicMock()
+        mock_swift_api.return_value.connection = connection
+        connection.list_objects.return_value = [obj]
 
         firmware_utils.cleanup(node)
 
@@ -470,8 +474,12 @@ class FirmwareUtilsTestCase(base.TestCase):
             uuid='55cdaba0-1123-4622-8b37-bb52dd6285d3',
             driver_internal_info={'firmware_cleanup': ['swift']})
         object_name = '55cdaba0-1123-4622-8b37-bb52dd6285d3/file.exe'
-        get_container = mock_swift_api.return_value.connection.get_container
-        get_container.return_value = (mock.Mock(), [{'name': object_name}])
+        obj = mock.Mock()
+        obj.name = object_name
+
+        connection = mock.MagicMock()
+        mock_swift_api.return_value.connection = connection
+        connection.list_objects.return_value = [obj]
         mock_swift_api.return_value.delete_object.side_effect =\
             exception.SwiftOperationError
 

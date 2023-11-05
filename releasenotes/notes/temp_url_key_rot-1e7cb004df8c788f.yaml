@@ -1,0 +1,25 @@
+---
+features:
+  - |
+    Previously the key for building temporary URLs from Swift was taken from the
+    `x-account-meta-temp-url-key` header in the object store account. Now the
+    header `x-account-meta-temp-url-key-2` is also checked, which allows
+    password rotation to occur without breaking old URLs.
+
+    This applies to the following temporary URL scenarios:
+
+    * Temp URL image transfer from Glance
+      (when `[glance]swift_temp_url_key` is not set)
+    * Publishing an image with the Swift publisher
+      (`[redfish]use_swift=True` or `[ilo]use_web_server_for_images=False`)
+    * Storing the config drive in Swift
+      (`[deploy]configdrive_use_object_store=True`)
+    * Fetching Swift stored firmware update payloads.
+upgrade:
+  - |
+    `python-swiftclient` is no longer a dependency, all OpenStack Swift
+    operations are now down using `openstacksdk`.
+
+    Configuration option `[swift]swift_max_retries` has been removed and any
+    custom value will no longer have any effect on failed object-store
+    operations.

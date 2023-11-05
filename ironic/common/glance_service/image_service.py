@@ -25,7 +25,6 @@ from glanceclient import client
 from glanceclient import exc as glance_exc
 from oslo_log import log
 from oslo_utils import uuidutils
-from swiftclient import utils as swift_utils
 import tenacity
 
 from ironic.common import exception
@@ -236,8 +235,9 @@ class GlanceImageService(object):
             if image_id in self._cache:
                 return self._cache[image_id].url
 
-        path = swift_utils.generate_temp_url(
-            path=path, seconds=seconds, key=key, method=method)
+        swiftapi = swift.SwiftAPI()
+        path = swiftapi.generate_temp_url(
+            path=path, timeout=seconds, temp_url_key=key, method=method)
 
         temp_url = '{endpoint_url}{url_path}'.format(
             endpoint_url=endpoint, url_path=path)
@@ -321,8 +321,7 @@ class GlanceImageService(object):
 
         if not key:
             swift_api = swift.SwiftAPI()
-            key_header = 'x-account-meta-temp-url-key'
-            key = swift_api.connection.head_account().get(key_header)
+            key = swift_api.get_temp_url_key()
 
         if not key:
             raise exception.MissingParameterValue(_(

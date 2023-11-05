@@ -18,7 +18,6 @@ from unittest import mock
 
 from oslo_utils import importutils
 from oslo_utils import uuidutils
-import swiftclient.exceptions
 
 from ironic.common import context as ironic_context
 from ironic.common import exception
@@ -125,10 +124,8 @@ class SwiftCleanUp(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             swift_obj_mock.delete_object.side_effect = [
-                swiftclient.exceptions.ClientException("not found",
-                                                       http_status=404),
-                swiftclient.exceptions.ClientException("not found",
-                                                       http_status=404)]
+                exception.SwiftObjectNotFoundError("not found"),
+                exception.SwiftObjectNotFoundError("not found")]
             utils.clean_up_swift_entries(task)
 
     @mock.patch.object(swift, 'SwiftAPI', autospec=True)
@@ -140,10 +137,8 @@ class SwiftCleanUp(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             swift_obj_mock.delete_object.side_effect = [
-                swiftclient.exceptions.ClientException("failed",
-                                                       http_status=417),
-                swiftclient.exceptions.ClientException("not found",
-                                                       http_status=404)]
+                exception.SwiftOperationError("failed"),
+                exception.SwiftObjectNotFoundError("not found")]
             self.assertRaises(exception.SwiftObjectStillExists,
                               utils.clean_up_swift_entries, task)
 
@@ -156,10 +151,8 @@ class SwiftCleanUp(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             swift_obj_mock.delete_object.side_effect = [
-                swiftclient.exceptions.ClientException("failed",
-                                                       http_status=417),
-                swiftclient.exceptions.ClientException("failed",
-                                                       http_status=417)]
+                exception.SwiftOperationError("failed"),
+                exception.SwiftOperationError("failed")]
             self.assertRaises((exception.SwiftObjectStillExists,
                                exception.SwiftObjectStillExists),
                               utils.clean_up_swift_entries, task)

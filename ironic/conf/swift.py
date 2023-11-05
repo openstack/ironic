@@ -14,23 +14,12 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from oslo_config import cfg
-
-from ironic.common.i18n import _
 from ironic.conf import auth
-
-opts = [
-    cfg.IntOpt('swift_max_retries',
-               default=2,
-               help=_('Maximum number of times to retry a Swift request, '
-                      'before failing.'))
-]
 
 
 def register_opts(conf):
-    conf.register_opts(opts, group='swift')
     auth.register_auth_opts(conf, 'swift', service_type='object-store')
 
 
 def list_opts():
-    return auth.add_auth_opts(opts, service_type='object-store')
+    return auth.add_auth_opts([], service_type='object-store')
