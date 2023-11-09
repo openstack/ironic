@@ -980,6 +980,7 @@ class TestObjectSerializer(test_base.TestCase):
 class TestRegistry(test_base.TestCase):
     @mock.patch('ironic.objects.base.objects', autospec=True)
     def test_hook_chooses_newer_properly(self, mock_objects):
+        del mock_objects.MyObj
         reg = base.IronicObjectRegistry()
         reg.registration_hook(MyObj, 0)
 
@@ -996,6 +997,7 @@ class TestRegistry(test_base.TestCase):
 
     @mock.patch('ironic.objects.base.objects', autospec=True)
     def test_hook_keeps_newer_properly(self, mock_objects):
+        del mock_objects.MyObj
         reg = base.IronicObjectRegistry()
         reg.registration_hook(MyObj, 0)
 
