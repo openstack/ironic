@@ -114,6 +114,20 @@ def hide_fields_in_newer_versions(port):
     # if requested version is < 1.88, hide name field.
     if not api_utils.allow_port_name():
         port.pop('name', None)
+    # note(JayF): if requested version is < 1.90, hide new
+    # local_link_connection schema but only check it if we allow advanced
+    # net fields, since otherwise we removed local_link_connection above
+    # and don't want to re-add it here
+    if (not api_utils.allow_ovn_vtep_version()
+            and api_utils.allow_port_advanced_net_fields):
+        local_link_connection = port.get('local_link_connection', {})
+        if any(key for key in local_link_connection.keys()
+               if key in api_utils.LOCAL_LINK_OVN_90_FIELDS):
+            # note(JayF): In this case, the field *should* exist but should be
+            # set to empty. This is because api version clients in this branch
+            # expect the key port.local_link_connection to exist even if we
+            # cannot set a valid value
+            port['local_link_connection'] = {}
 
 
 def convert_with_links(rpc_port, fields=None, sanitize=True):
@@ -349,6 +363,10 @@ class PortsController(rest.RestController):
                 and fields.get('local_link_connection') is not None):
             if (not api_utils.allow_local_link_connection_network_type()
                     and 'network_type' in fields['local_link_connection']):
+                raise exception.NotAcceptable()
+            if (not api_utils.allow_ovn_vtep_version()
+                    and 'vtep-logical-switch'
+                    in fields['local_link_connection']):
                 raise exception.NotAcceptable()
         if ('name' in fields
                 and not api_utils.allow_port_name()):

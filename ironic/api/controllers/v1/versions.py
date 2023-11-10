@@ -127,6 +127,7 @@ BASE_VERSION = 1
 # v1.87: Add service verb
 # v1.88: Add name field to port.
 # v1.89: Add API for attaching/detaching virtual media
+# v1.90: Accept ovn vtep switch metadata schema to port.local_link_connection
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -218,6 +219,7 @@ MINOR_86_FIRMWARE_INTERFACE = 86
 MINOR_87_SERVICE = 87
 MINOR_88_PORT_NAME = 88
 MINOR_89_ATTACH_DETACH_VMEDIA = 89
+MINOR_90_OVN_VTEP = 90
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -225,7 +227,7 @@ MINOR_89_ATTACH_DETACH_VMEDIA = 89
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_89_ATTACH_DETACH_VMEDIA
+MINOR_MAX_VERSION = MINOR_90_OVN_VTEP
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

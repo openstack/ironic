@@ -114,6 +114,11 @@ This method requires a Node UUID and the physical hardware address for the Port
 .. versionadded:: 1.88
   Added the ``name`` field.
 
+.. versionadded:: 1.90
+  ``local_link_connection`` fields now accepts a dictionary
+  of ``vtep-logical-switch``, ``vtep-physical-switch`` and ``port_id``
+  to identify ovn vtep switches.
+
 Normal response code: 201
 
 Request
@@ -322,6 +327,11 @@ Update a Port.
 
 .. versionadded:: 1.88
   Added the ``name``
+
+.. versionadded:: 1.90
+  ``local_link_connection`` fields now accepts a dictionary
+  of ``vtep-logical-switch``, ``vtep-physical-switch`` and ``port_id``
+  to identify ovn vtep switches.
 
 
 Normal response code: 200

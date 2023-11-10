@@ -384,6 +384,34 @@ class TestListPorts(test_api_base.BaseApiTest):
                              headers={api_base.Version.string: "1.53"})
         self.assertTrue(data['is_smartnic'])
 
+    def test_hide_fields_in_newer_versions_ovn_vtep(self):
+        llc = {'port_id': '42',
+               'vtep-logical-switch': 'lswitch',
+               'vtep-physical-switch': 'jswitch'}
+        port = obj_utils.create_test_port(self.context, node_id=self.node.id,
+                                          local_link_connection=llc)
+
+        # note(JayF): Version older than 1.19, older than 1.90,
+        # this means port.llc key does not exist at all.
+        data = self.get_json(
+            '/ports/%s' % port.uuid,
+            headers={api_base.Version.string: "1.18"})
+        self.assertNotIn('local_link_connection', data)
+
+        # note(JayF): Version newer than 1.19, older than 1.90,
+        # this means port.llc key must exist, value is empty dict
+        data = self.get_json(
+            '/ports/%s' % port.uuid,
+            headers={api_base.Version.string: "1.89"})
+        self.assertIn('local_link_connection', data)
+        self.assertEqual({}, data['local_link_connection'])
+
+        # note(JayF): Version 1.90+, key exists, value is passed
+        data = self.get_json('/ports/%s' % port.uuid,
+                             headers={api_base.Version.string: "1.90"})
+        self.assertIn('local_link_connection', data)
+        self.assertEqual(llc, data['local_link_connection'])
+
     def test_get_collection_custom_fields(self):
         fields = 'uuid,extra'
         for i in range(3):

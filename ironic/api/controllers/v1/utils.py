@@ -103,8 +103,14 @@ LOCAL_LINK_BASE_SCHEMA = {
         'switch_info': {'type': 'string'},
         'network_type': {'type': 'string',
                          'enum': ['managed', 'unmanaged']},
+        'vtep-logical-switch': {'type': 'string'},
+        'vtep-physical-switch': {'type': 'string'},
     },
-    'additionalProperties': False
+    'additionalProperties': False,
+    'dependentRequired': {
+        'vtep-logical-switch': ['vtep-physical-switch'],
+        'vtep-physical-switch': ['vtep-logical-switch']
+    }
 }
 
 LOCAL_LINK_SCHEMA = copy.deepcopy(LOCAL_LINK_BASE_SCHEMA)
@@ -114,6 +120,11 @@ LOCAL_LINK_SCHEMA['required'] = ['port_id', 'switch_id']
 LOCAL_LINK_SMART_NIC_SCHEMA = copy.deepcopy(LOCAL_LINK_BASE_SCHEMA)
 # set mandatory fields for a smart nic
 LOCAL_LINK_SMART_NIC_SCHEMA['required'] = ['port_id', 'hostname']
+
+LOCAL_LINK_OVN_SCHEMA = copy.deepcopy(LOCAL_LINK_BASE_SCHEMA)
+LOCAL_LINK_OVN_SCHEMA['required'] = ['port_id', 'vtep-logical-switch',
+                                     'vtep-physical-switch']
+LOCAL_LINK_OVN_90_FIELDS = ['vtep-logical-switch', 'vtep-physical-switch']
 
 # no other mandatory fields for a network_type=unmanaged link
 LOCAL_LINK_UNMANAGED_SCHEMA = copy.deepcopy(LOCAL_LINK_BASE_SCHEMA)
@@ -125,6 +136,7 @@ LOCAL_LINK_CONN_SCHEMA = {'anyOf': [
     LOCAL_LINK_SCHEMA,
     LOCAL_LINK_SMART_NIC_SCHEMA,
     LOCAL_LINK_UNMANAGED_SCHEMA,
+    LOCAL_LINK_OVN_SCHEMA,
     {'type': 'object', 'additionalProperties': False},
 ]}
 
@@ -163,7 +175,7 @@ def local_link_normalize(name, value):
         except exception.InvalidDatapathID:
             raise exception.InvalidSwitchID(switch_id=value['switch_id'])
     except KeyError:
-        # In Smart NIC case 'switch_id' is optional.
+        # In Smart NIC or OVN VTEP case 'switch_id' is optional.
         pass
 
     return value
@@ -1885,6 +1897,15 @@ def check_volume_policy_and_retrieve(policy_name, vol_ident, target=False):
     policy.authorize(policy_name, target_dict, context)
 
     return rpc_vol, rpc_node
+
+
+def allow_ovn_vtep_version():
+    """Check if ovn vtep version is allowed.
+
+    Version 1.90 of the API added support for ovn
+    vtep switches in port.local_link_connection.
+    """
+    return api.request.version.minor >= versions.MINOR_90_OVN_VTEP
 
 
 def allow_build_configdrive():
