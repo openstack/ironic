@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Ironic now stops any active IPMI Serial-Over-LAN console sessions when
+    initializing a console session. This resolves and issue where console support
+    would fail if a previous console session was not properly disconnected.
