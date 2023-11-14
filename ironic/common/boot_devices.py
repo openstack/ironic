@@ -52,3 +52,6 @@ FLOPPY = 'floppy'
 
 VMEDIA_DEVICES = [DISK, CDROM, FLOPPY]
 """Devices that make sense for virtual media attachment."""
+
+UEFIHTTP = "uefihttp"
+"Boot from a UEFI HTTP(s) URL"

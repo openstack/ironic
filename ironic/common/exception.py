@@ -883,3 +883,9 @@ class FirmwareComponentNotFound(NotFound):
 
 class InvalidNodeInventory(Invalid):
     _msg_fmt = _("Inventory for node %(node)s is invalid: %(reason)s")
+
+
+class UnsupportedHardwareFeature(Invalid):
+    _msg_fmt = _("Node %(node)s hardware does not support feature "
+                 "%(feature)s, which is required based upon the "
+                 "requested configuration.")

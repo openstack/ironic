@@ -23,13 +23,14 @@ Enabling the Redfish driver
 #. Add ``redfish`` to the list of ``enabled_hardware_types``,
    ``enabled_power_interfaces``, ``enabled_management_interfaces`` and
    ``enabled_inspect_interfaces`` as well as ``redfish-virtual-media``
-   to ``enabled_boot_interfaces`` in ``/etc/ironic/ironic.conf``.
+   and ``redfish-https`` to ``enabled_boot_interfaces`` in
+   ``/etc/ironic/ironic.conf``.
    For example::
 
     [DEFAULT]
     ...
     enabled_hardware_types = ipmi,redfish
-    enabled_boot_interfaces = ipxe,redfish-virtual-media
+    enabled_boot_interfaces = ipxe,redfish-virtual-media,redfish-https
     enabled_power_interfaces = ipmitool,redfish
     enabled_management_interfaces = ipmitool,redfish
     enabled_inspect_interfaces = inspector,redfish
@@ -385,6 +386,41 @@ Layer 3 or DHCP-less ramdisk booting
 
 DHCP-less deploy is supported by the Redfish virtual media boot. See
 :doc:`/admin/dhcp-less` for more information.
+
+Redfish HTTP(s) Boot
+====================
+
+The ``redfish-https`` boot interface is very similar to the
+``redfish-virtual-media`` boot interface. In this driver, we compose an ISO
+image, and request the BMC to inform the UEFI firmware to boot the Ironic
+ramdisk, or a other ramdisk image. This approach is intended to allow a
+pattern of engagement where we have minimal reliance on addressing and
+discovery of the Ironic deployment through autoconfiguration like DHCP,
+and somewhat mirrors vendor examples of booting from an HTTP URL.
+
+This interface has some basic constraints.
+
+* There is no configuration drive functionality, while Virtual Media did
+  help provide such functionality.
+* This interface *is* dependent upon BMC, EFI Firmware, and Bootloader,
+  which means we may not see additional embedded files an contents in
+  an ISO image. This is the same basic constraint over the ``ramdisk``
+  deploy interface when using Network Booting.
+* This is a UEFI-Only boot interface. No legacy boot is possible with
+  this interface.
+
+A good starting point for this interface, is to think of it as
+higher security network boot, as we are explicitly telling the BMC
+where the node should boot from.
+
+Like the ``redfish-virtual-media`` boot interface, you will need
+to create an EFI System Partition image (ESP_), see
+`Configuring an ESP image`_ for details on how to do this.
+
+Additionally, if you would like to use the ``ramdisk`` deployment
+interface, the same basic instructions covered in `Virtual Media Ramdisk`_
+apply, just use ``redfish-https`` as the boot_interface, and keep in mind,
+no configuration drives exist with the ``redfish-https`` boot interface.
 
 Firmware update using manual cleaning
 =====================================
