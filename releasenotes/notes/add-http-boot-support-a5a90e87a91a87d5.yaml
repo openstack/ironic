@@ -1,0 +1,21 @@
+---
+features:
+  - |
+    Adds a ``http`` boot interface, based upon the ``pxe`` boot interface
+    which informs the DHCP server of an HTTP URL to boot the machine from,
+    and then requests the BMC boot the machine in UEFI HTTP mode.
+  - |
+    Adds a ``http-ipxe`` boot interface, based upon the ``ipxe`` boot interface
+    which informs the DHCP server of an HTTP URL to boot the machine from,
+    and then requests the BMC boot the machine in UEFI HTTP mode.
+issues:
+  - |
+    Testing of the ``http`` boot interface with Ubuntu 22.04 provided Grub2
+    yielded some intermittent failures which appear to be more environmental
+    in nature as the signed Shim loader would start, then load the GRUB
+    loader, and then some of the expected files might be attempted to be
+    accessed, and then fail due to an apparent transfer timeout. Consultation
+    with some grub developers concur this is likely environmental, meaning
+    the specific grub build or CI performance related. If you encounter any
+    issues, please do not hestitate to reach out to the Ironic developer
+    community.

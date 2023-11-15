@@ -39,6 +39,27 @@ their specific implementations of the PXE boot interface.
 Additional configuration is required for this boot interface - see
 :doc:`/install/configure-pxe` for details.
 
+HTTP Boot
+---------
+
+The ``http`` and ``http-ipxe`` boot interfaces are based upon the Ironic
+implementation of the ``pxe`` and ``ipxe`` boot interfaces, respectively,
+and utilize HTTP in the transmission of the location to start the
+boot sequence from. These interfaces are specific to UEFI as they are rooted
+in the UEFI standard v2.5's support for booting from an HTTP URL.
+
+One caveat to keep in mind is that these interfaces require hardware support
+and the ability to signal to the remote BMC that the node should boot
+utilizing ``UEFIHTTP``. If a hardware type does not support that as an option,
+we will fallback and request ``PXE`` boot, but that realistically may only
+work if the firmware on the machine is smart enough to check and evaluate
+for an HTTP Boot URL instead of a PXE boot server and file name.
+
+It should be noted, that these boot interfaces are available for the vendor
+independent, generic hardware types of ``ipmi`` and ``redfish``. Hardware
+vendors typically only include additional interfaces after they have performed
+their own verification and qualification testing.
+
 Kernel parameters
 ~~~~~~~~~~~~~~~~~
 

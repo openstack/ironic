@@ -48,6 +48,13 @@ is being worked in Neutron
 `change 890683 <https://review.opendev.org/c/openstack/neutron/+/890683>`_ and
 `bug 20305201 <https://bugs.launchpad.net/neutron/+bug/20305201>`_.
 
+.. warning::
+   Use of OVN with HTTPBoot interfaces has not been explicitly tested by the
+   Ironic project, and is unlikely to take place until after integrated IPv6
+   support with Neutron is ready for use. The project does not expect any
+   specific issues, but the OVN DHCP server is an entirely different server
+   than the interfaces were tested upon.
+
 Maxmium Transmission Units
 --------------------------
 

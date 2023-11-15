@@ -31,9 +31,9 @@ components.
   * The conductor needs access to the `management controller`_ of each node
     it manages.
 
-  * The conductor co-exists with TFTP (for PXE) and/or HTTP (for iPXE) services
-    that provide the kernel and ramdisk to boot the nodes. The conductor
-    manages them by writing files to their root directories.
+  * The conductor co-exists with TFTP (for PXE) and/or HTTP (for HTTPBoot and
+    iPXE) services that provide the kernel and ramdisk to boot the nodes.
+    The conductor manages them by writing files to their root directories.
 
   * If serial console is used, the conductor launches console processes
     locally. If the ``nova-serialproxy`` service (part of the Compute service)

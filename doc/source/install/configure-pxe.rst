@@ -1,10 +1,28 @@
-Configuring PXE and iPXE
+Configuring Network Boot
 ========================
+
+Ironic's primary means of booting hardware to perform actions or work on a
+baremetal node is to perform network booting. Traditionally, this has meant
+the use of Preboot Execution Environment, or PXE. This support and
+and functionality has evolve as time has gone on to include support for not
+just the ``pxe`` ``boot_interface`` in concert with hardware vendor specific
+variations, but also a distinct ``ipxe`` setting for ``boot_interface`` with
+default values to enable use of `iPXE <https://ipxe.org/>`_.
+
+As time passed, ``http`` and ``http-ipxe`` values were also added as valid
+``boot_interface`` options which may be used, which are functionally identical
+in behavior to ``pxe`` and ``ipxe``, except HTTP is used as the transport
+mechanism. Not all hardware supports HTTPBoot, as it is often referred.
+
+.. note::
+   Support for HTTPBoot interfaces was added during the 2024.1 development
+   cycle. Prior versions of Ironic does not contain the ``http`` and
+   ``http-ipxe`` boot interfaces.
 
 DHCP server setup
 -----------------
 
-A DHCP server is required by PXE/iPXE client. You need to follow steps below.
+A DHCP server is required for network boot clients. You need to follow steps below.
 
 #. Set the ``[dhcp]/dhcp_provider`` to ``neutron`` in the Bare Metal Service's
    configuration file (``/etc/ironic/ironic.conf``):
@@ -15,7 +33,8 @@ A DHCP server is required by PXE/iPXE client. You need to follow steps below.
     defaults, and when you create subnet, DHCP is also enabled if you do not add
     any dhcp options at "openstack subnet create" command.
 
-#. Enable DHCP in the subnet of PXE network.
+#. Enable DHCP in the subnet of provisioning network to be used for network
+   boot (PXE, iPXE, HTTPBoot) operations.
 
 #. Set the ip address range in the subnet for DHCP.
 
@@ -591,3 +610,47 @@ an up-to-date iPXE firmware, you need to bootstrap it from TFTP. The
 
 Finally, put ``ironic-python-agent.kernel`` and
 ``ironic-python-agent.initramfs`` to ``/httpboot``.
+
+HTTPBoot
+--------
+
+HTTPBoot interfaces in Ironic are built upon the underlying network boot
+substrate. This means much of the configuration in the ``[pxe]`` and
+``[deploy]`` impacts the use of HTTPBoot, except when Ironic is setting
+DHCP parameters, it populates a HTTP(S) URL to the DHCP server, which is
+then transmitted to the client attempting to Network Boot. In large part,
+this is because HTTPBoot is an evolution of PXE Boot technique and
+technology.
+
+This means a TFTP server is *not* required, but the HTTP server is
+required as if your utilizing iPXE. This is largely because iPXE
+has traditionally been leveraged by Operators to limit the TFTP
+packets being transmitted via UDP across a network.
+
+One aspect to keep in mind, is HTTPBoot is relatively new when compared
+to PXE boot, and not all bootloaders may support HTTPBoot, as the underlying
+UEFI standard upon which it was largely based, UEFI v2.5, was published in
+2015.
+
+Ironic contains two distinct flavors of HTTPBoot, largely based
+upon what configuration defaults are used in terms of boot loader, templates,
+and overall mechanism style.
+
+* ``http`` is the boot interface based upon the ``pxe`` boot interface.
+  This is the interface you would want to use if you had, for example, a
+  signed GRUB2 bootloader chain to utilize. In this case it is up to the
+  boot loader to understand how to extract and run with the URL, and then
+  retrieves any additional configuration loader files and configuration
+  templates created on disk.
+* ``http-ipxe`` is the boot interface based upon the ``ipxe`` boot interface.
+  This interface signals to the client to utilize the configured iPXE loader
+  binary over HTTP, and then the boot sequence proceeds with the pattern and
+  capabilities of iPXE.
+
+To enable the boot interfaces, you will need to add them to your
+``[DEFAULT]enabled_boot_interfaces`` configuration entry.
+
+.. code-block:: ini
+
+   [DEFAULT]
+   enabled_boot_interfaces=ipxe,http-ipxe,pxe,http
