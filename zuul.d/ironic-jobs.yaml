@@ -101,6 +101,12 @@
         s-object: False
         s-proxy: False
 
+# NOTE(TheJulia): This job is being phased out as it ends up executing
+# the wholedisk standalone deploy, the partition standalone deploy,
+# software raid tests, and ramdisk iso boot tests. All of this while in
+# UEFI mode. Although the redfish test runs the exact same tests and *more*.
+# On top of that, there really is not a good variation which would be
+# impacted through IPMI while we keep other ipmi jobs in our CI config.
 - job:
     name: ironic-standalone
     description:
@@ -183,7 +189,7 @@
         IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEPLOY_DRIVER: redfish
-        IRONIC_ENABLED_BOOT_INTERFACES: "ipxe,redfish-virtual-media"
+        IRONIC_ENABLED_BOOT_INTERFACES: "ipxe,redfish-virtual-media,http-ipxe,pxe,http"
         IRONIC_ENABLED_HARDWARE_TYPES: redfish
         IRONIC_ENABLED_POWER_INTERFACES: redfish
         IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
@@ -255,6 +261,10 @@
         IRONIC_DEPLOY_CALLBACK_WAIT_TIMEOUT: 3600
         IRONIC_PXE_BOOT_RETRY_TIMEOUT: 3600
 
+# NOTE(TheJulia): This job should likely be phased out as the standalone
+# job mostly checks the related code paths, the overlap pertinant here is
+# BIOS mode, which is not commonly deployed, and the minimum feature set
+# flag for the emulator.
 - job:
     name: ironic-tempest-bios-redfish-pxe
     description: "Deploy ironic node over PXE using BIOS boot mode"
@@ -420,8 +430,8 @@
         s-proxy: False
 
 - job:
-    name: ironic-tempest-partition-uefi-ipmi-pxe
-    description: IPMI power, UEFI, iPXE, OVN, partition image.
+    name: ironic-tempest-ovn-uefi-ipmi-pxe
+    description: IPMI power, UEFI, iPXE, OVN image.
     parent: ironic-base
     vars:
       devstack_localrc:
@@ -459,8 +469,8 @@
       devstack_localrc:
         IRONIC_ENABLED_STORAGE_INTERFACES: cinder,noop
         IRONIC_STORAGE_INTERFACE: cinder
-        IRONIC_ENABLED_BOOT_INTERFACES: ipxe,pxe,fake
-        IRONIC_DEFAULT_BOOT_INTERFACE: ipxe
+        IRONIC_ENABLED_BOOT_INTERFACES: http-ipxe,ipxe,pxe,fake
+        IRONIC_DEFAULT_BOOT_INTERFACE: http-ipxe
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_VM_COUNT: 3
