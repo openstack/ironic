@@ -29,6 +29,10 @@ LOG = log.getLogger(__name__)
 
 class IBMCVendor(base.VendorInterface):
 
+    # NOTE(TheJulia): Deprecating November 2023 in favor of Redfish
+    # and due to a lack of active driver maintenance.
+    supported = False
+
     def __init__(self):
         """Initialize the iBMC vendor interface.
 

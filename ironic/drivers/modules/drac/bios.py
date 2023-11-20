@@ -55,6 +55,10 @@ class DracRedfishBIOS(redfish_bios.RedfishBIOS):
 class DracWSManBIOS(base.BIOSInterface):
     """BIOSInterface Implementation for iDRAC."""
 
+    # NOTE(TheJulia): Deprecating November 2023 in favor of Redfish
+    # and due to a lack of active driver maintenance.
+    supported = False
+
     # argsinfo dict for BIOS clean/deploy steps
     _args_info = {
         "settings": {

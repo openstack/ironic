@@ -40,6 +40,10 @@ EXPECT_POWER_STATE_MAP = {
 
 class IBMCPower(base.PowerInterface):
 
+    # NOTE(TheJulia): Deprecating November 2023 in favor of Redfish
+    # and due to a lack of active driver maintenance.
+    supported = False
+
     def __init__(self):
         """Initialize the iBMC power interface.
 

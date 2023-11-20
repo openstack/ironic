@@ -5,6 +5,12 @@ iBMC driver
 Overview
 ========
 
+.. warning::
+   The ``ibmc`` driver has been deprecated and is anticipated to be removed
+   from Ironic at some point during or after the 2024.2 development cycle.
+   The anticipated forward management path is to migrate to the ``redfish``
+   hardware type.
+
 The ``ibmc`` driver is targeted for Huawei V5 series rack server such as
 2288H V5, CH121 V5. The iBMC hardware type enables the user to take advantage
 of features of `Huawei iBMC`_ to control Huawei server.

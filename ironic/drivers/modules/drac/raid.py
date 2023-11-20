@@ -1645,6 +1645,10 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
 
 class DracWSManRAID(base.RAIDInterface):
 
+    # NOTE(TheJulia): Deprecating November 2023 in favor of Redfish
+    # and due to a lack of active driver maintenance.
+    supported = False
+
     def get_properties(self):
         """Return the properties of the interface."""
         return drac_common.COMMON_PROPERTIES

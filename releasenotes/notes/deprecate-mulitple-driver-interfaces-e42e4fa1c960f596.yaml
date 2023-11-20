@@ -1,0 +1,24 @@
+---
+deprecations:
+  - |
+    The ``ibmc`` hardware type is deprecated due to a lack of upstream
+    communication, driver maintenance, and a recognition that the Redfish
+    hardware type likely works for the users at this point. This driver is
+    expected to be removed during the ``2024.2`` development cycle.
+  - The ``xclarity`` hardware type is deprecated due to a lack of upstream
+    communication, driver maintenance, and a recognition that the Redfish
+    hardware type is suitable for Lenovo hardware users moving forward.
+    This driver is expected to be removed during the ``2024.2`` development
+    cycle.
+  - The ``idrac-wsman`` interfaces on the ``idrac`` hardware type are
+    deprecated due to a lack of upstream communiation, and the decision of
+    the driver's maintainer in the past to move in to the direction of
+    using Redfish for driver interactions.
+    These driver interfaces are expected to be removed during the
+    ``2024.2`` development cycle.
+other:
+  - The classic ``ilo`` hardware types may be deprecated in the future for
+    removal or major changes, however our last communication with the
+    maintainers as of the ``2024.1`` Project Teams Gathering sessions
+    indiated they were still working to determine their own forward
+    path with a strong emphasis on the use of Redfish.
