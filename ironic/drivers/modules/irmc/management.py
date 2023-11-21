@@ -27,9 +27,9 @@ from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic import conf
 from ironic.drivers import base
+from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules.irmc import common as irmc_common
-from ironic.drivers import utils as driver_utils
 
 irmc = importutils.try_import('scciclient.irmc')
 
@@ -255,7 +255,7 @@ class IRMCManagement(ipmitool.IPMIManagement):
                 "Invalid boot device %s specified.") % device)
 
         uefi_mode = (
-            driver_utils.get_node_capability(task.node, 'boot_mode') == 'uefi')
+            boot_mode_utils.get_boot_mode(task.node) == 'uefi')
 
         # disable 60 secs timer
         timeout_disable = "0x00 0x08 0x03 0x08"
