@@ -111,6 +111,9 @@ This method requires a Node UUID and the physical hardware address for the Port
 .. versionadded:: 1.53
   Added the ``is_smartnic`` request and response fields.
 
+.. versionadded:: 1.88
+  Added the ``name`` field.
+
 Normal response code: 201
 
 Request
@@ -121,6 +124,7 @@ Request
     - node_uuid: req_node_uuid
     - address: req_port_address
     - portgroup_uuid: req_portgroup_uuid
+    - name: req_port_name
     - local_link_connection: req_local_link_connection
     - pxe_enabled: req_pxe_enabled
     - physical_network: req_physical_network
@@ -142,6 +146,7 @@ Response
     - address: port_address
     - node_uuid: node_uuid
     - portgroup_uuid: portgroup_uuid
+    - name: port_name
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
     - physical_network: physical_network
@@ -182,6 +187,13 @@ Return a list of bare metal Ports, with detailed information.
 .. versionadded:: 1.53
   Added the ``is_smartnic`` response fields.
 
+.. versionadded:: 1.82
+  Added the ability to filter ports based on the shard of the node they are
+  associated with.
+
+.. versionadded:: 1.88
+  Added the ``name`` field.
+
 Normal response code: 200
 
 Request
@@ -193,6 +205,7 @@ Request
     - node_uuid: r_port_node_uuid
     - portgroup: r_port_portgroup_ident
     - address: r_port_address
+    - shard: r_port_shard
     - limit: limit
     - marker: marker
     - sort_dir: sort_dir
@@ -208,6 +221,7 @@ Response
     - address: port_address
     - node_uuid: node_uuid
     - portgroup_uuid: portgroup_uuid
+    - name: port_name
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
     - physical_network: physical_network
@@ -248,6 +262,9 @@ Show details for the given Port.
 .. versionadded:: 1.53
   Added the ``is_smartnic`` response fields.
 
+.. versionadded:: 1.88
+  Added the ``name``
+
 Normal response code: 200
 
 Request
@@ -267,6 +284,7 @@ Response
     - address: port_address
     - node_uuid: node_uuid
     - portgroup_uuid: portgroup_uuid
+    - name: port_name
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
     - physical_network: physical_network
@@ -302,6 +320,10 @@ Update a Port.
 .. versionadded:: 1.53
   Added the ``is_smartnic`` fields.
 
+.. versionadded:: 1.88
+  Added the ``name``
+
+
 Normal response code: 200
 
 Request
@@ -328,6 +350,7 @@ Response
     - address: port_address
     - node_uuid: node_uuid
     - portgroup_uuid: portgroup_uuid
+    - name: port_name
     - local_link_connection: local_link_connection
     - pxe_enabled: pxe_enabled
     - physical_network: physical_network
