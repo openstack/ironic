@@ -374,7 +374,8 @@ def prepare_remote_image(task, image_url, file_name='boot.iso',
         tmp_file = os.path.join(temp_dir, file_name)
         cache.fetch_image(image_url, tmp_file,
                           ctx=task.context, force_raw=False)
-        return img_handler.publish_image(tmp_file, file_name)
+        node_http_url = task.node.driver_info.get("external_http_url")
+        return img_handler.publish_image(tmp_file, file_name, node_http_url)
 
 
 def cleanup_remote_image(task, file_name):
@@ -478,8 +479,9 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
             boot_mode=boot_mode,
             inject_files=inject_files)
 
+        node_http_url = task.node.driver_info.get("external_http_url")
         image_url = img_handler.publish_image(
-            boot_iso_tmp_file, iso_object_name)
+            boot_iso_tmp_file, iso_object_name, node_http_url)
 
     LOG.debug("Created ISO %(name)s in object store for node %(node)s, "
               "exposed as temporary URL "

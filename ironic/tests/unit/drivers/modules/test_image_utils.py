@@ -401,7 +401,7 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             object_name = 'boot-%s.iso' % task.node.uuid
 
             mock_publish_image.assert_called_once_with(
-                mock.ANY, mock.ANY, object_name)
+                mock.ANY, mock.ANY, object_name, None)
 
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
@@ -434,6 +434,38 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
     @mock.patch.object(image_utils.ImageHandler, 'publish_image',
                        autospec=True)
     @mock.patch.object(images, 'create_boot_iso', autospec=True)
+    def test__prepare_iso_image_with_node_external_http_url(
+            self, mock_create_boot_iso, mock_publish_image):
+        self.config(default_boot_mode='uefi', group='deploy')
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            override_url = 'https://node.external/'
+            task.node.driver_info.update(external_http_url=override_url)
+
+            expected_url = 'https://node.external/c.f?e=f'
+            mock_publish_image.return_value = expected_url
+
+            url = image_utils._prepare_iso_image(
+                task, 'http://kernel/img', 'http://ramdisk/img',
+                'http://bootloader/img', root_uuid=task.node.uuid)
+
+            object_name = 'boot-%s.iso' % task.node.uuid
+
+            mock_publish_image.assert_called_once_with(
+                mock.ANY, mock.ANY, object_name, override_url)
+
+            mock_create_boot_iso.assert_called_once_with(
+                mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
+                boot_mode='uefi', esp_image_href='http://bootloader/img',
+                kernel_params='nofb vga=normal',
+                root_uuid='1be26c0b-03f2-4d2e-ae87-c02d7f33c123',
+                inject_files=None)
+
+            self.assertEqual(expected_url, url)
+
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    @mock.patch.object(images, 'create_boot_iso', autospec=True)
     def test__prepare_iso_image_bios(
             self, mock_create_boot_iso, mock_publish_image):
         self.config(default_boot_mode='bios', group='deploy')
@@ -451,7 +483,7 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
             object_name = 'boot-%s.iso' % task.node.uuid
 
             mock_publish_image.assert_called_once_with(
-                mock.ANY, mock.ANY, object_name)
+                mock.ANY, mock.ANY, object_name, None)
 
             mock_create_boot_iso.assert_called_once_with(
                 mock.ANY, mock.ANY, 'http://kernel/img', 'http://ramdisk/img',
@@ -938,6 +970,25 @@ cafile = /etc/ironic-python-agent/ironic.crt
             self.assertEqual(mock_publish_image.return_value, url)
             mock_cache.return_value.fetch_image.assert_called_once_with(
                 base_image_url, mock.ANY, ctx=task.context, force_raw=False)
+
+    @mock.patch.object(image_utils.ImageHandler, 'publish_image',
+                       autospec=True)
+    @mock.patch.object(image_utils, 'ISOImageCache', autospec=True)
+    def test_prepare_remote_image_local_external_http_url(self,
+                                                          mock_cache,
+                                                          mock_publish_image):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            override_url = 'https://node.external/'
+            task.node.driver_info.update(external_http_url=override_url)
+
+            base_image_url = 'http://bearmetal.net/boot.iso'
+            url = image_utils.prepare_remote_image(task, base_image_url)
+            self.assertEqual(mock_publish_image.return_value, url)
+            mock_cache.return_value.fetch_image.assert_called_once_with(
+                base_image_url, mock.ANY, ctx=task.context, force_raw=False)
+            mock_publish_image.assert_called_once_with(
+                mock.ANY, mock.ANY, mock.ANY, override_url)
 
     @mock.patch.object(image_utils.ImageHandler, 'publish_image',
                        autospec=True)
