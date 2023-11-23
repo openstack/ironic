@@ -3,6 +3,7 @@
   "default_boot_interface": "pxe",
   "default_console_interface": "no-console",
   "default_deploy_interface": "direct",
+  "default_firmware_interface": "no-firmware",
   "default_inspect_interface": "no-inspect",
   "default_management_interface": "ipmitool",
   "default_network_interface": "flat",
@@ -23,6 +24,9 @@
   "enabled_deploy_interfaces": [
     "ansible",
     "direct"
+  ],
+  "enabled_firmware_interface": [
+    "no-firmware"
   ],
   "enabled_inspect_interfaces": [
     "no-inspect"
