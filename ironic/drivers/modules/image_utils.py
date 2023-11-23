@@ -544,8 +544,9 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
 
         iso_object_name = _get_name(task.node, prefix='boot', suffix='.iso')
 
+        node_http_url = task.node.driver_info.get("external_http_url")
         image_url = img_handler.publish_image(
-            boot_iso_tmp_file, iso_object_name)
+            boot_iso_tmp_file, iso_object_name, node_http_url)
 
     LOG.debug("Created ISO %(name)s in object store for node %(node)s, "
               "exposed as temporary URL "
