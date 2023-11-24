@@ -14,6 +14,7 @@ project.
   Bare Metal Community <community>
   Developer Contribution Guide <contributing>
   Bugs Reporting and Triaging Guide <bugs>
+  Bug Deputy Guide <bug-deputy>
   Setting Up Your Development Environment <dev-quickstart>
   Priorities <https://specs.openstack.org/openstack/ironic-specs/#priorities>
   Specifications <https://specs.openstack.org/openstack/ironic-specs/>
