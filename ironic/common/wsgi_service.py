@@ -76,7 +76,7 @@ class WSGIService(service.ServiceBase):
         """
         self.server.stop()
         if CONF.api.unix_socket:
-            il_utils.unlink_without_raise(CONF.unix_socket)
+            il_utils.unlink_without_raise(CONF.api.unix_socket)
 
     def wait(self):
         """Wait for the service to stop serving this API.
