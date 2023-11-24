@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    The per-node ``external_http_url`` setting in the driver info is now used
+    for a boot ISO. Previously this setting was only used for a config floppy.
