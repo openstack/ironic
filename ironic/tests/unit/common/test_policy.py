@@ -174,7 +174,7 @@ class PolicyInCodeTestCase(base.TestCase):
             }]),
         dict(
             rule='baremetal:node:get',
-            check=True,
+            check=False,
             targets=[],
             creds=[{
                 'roles': ['baremetal_observer'],
@@ -188,7 +188,7 @@ class PolicyInCodeTestCase(base.TestCase):
             creds=[{'roles': ['generic_user'], 'tenant': 'demo'}]),
         dict(
             rule='baremetal:node:create',
-            check=True,
+            check=False,
             targets=[],
             creds=[{
                 'roles': ['baremetal_admin'],

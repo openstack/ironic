@@ -13,13 +13,13 @@ unauthenticated_user_cannot_get_node:
   path: &node_path '/v1/nodes/{node_uuid}'
   assert_status: 404
 
+# With new defaults, by default admin rights don't let you see
+# everything without rights. Since this is default/basic behavior
+# it doesn't make sense to mock it out.
 project_admin_can_get_node:
   path: *node_path
   headers: *project_admin_headers
-  assert_dict_contains:
-    uuid: '{node_uuid}'
-    driver: 'fake-hardware'
-  assert_status: 200
+  assert_status: 404
 
 project_member_cannot_get_node:
   path: *node_path

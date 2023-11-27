@@ -144,7 +144,7 @@ ensure_services_started $ensure_started
 # internal tag, that was assigned to network will be the same. As result we need to update
 # tag on link between br-int and brbm to new value after restart.
 if [[ -z "${IRONIC_PROVISION_NETWORK_NAME}" ]]; then
-    net_id=$(openstack network show ironic_grenade -f value -c id)
+    net_id=$(openstack --os-cloud devstack-admin network show ironic_grenade -f value -c id)
     create_ovs_taps $net_id
 fi
 

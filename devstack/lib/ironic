@@ -184,10 +184,8 @@ if [[ "$hostdomain" =~ "rax" ]] || [[ "$hostdomain" =~ "iweb" ]]; then
 fi
 
 
-# Oslo Policy, as of Wallaby defaults to not enforcing request scope
-# against requestors. This is anticipated to change in Xena or after
-# the Xena release of OpenStack.
-IRONIC_ENFORCE_SCOPE=$(trueorfalse False IRONIC_ENFORCE_SCOPE)
+# Oslo Policy enforcement for Scope and new policy enforcement.
+IRONIC_ENFORCE_SCOPE=$(trueorfalse True IRONIC_ENFORCE_SCOPE)
 
 if [[ "$IRONIC_ENFORCE_SCOPE" == "True" ]]; then
     IRONIC_OS_CLOUD=devstack-system-admin
@@ -201,6 +199,12 @@ fi
 # occurs. We navigate this just fine for yoga with fixes, however
 # we need this variable for Xena and possibly Wallaby grenade.
 OS_CLOUD=${OS_CLOUD:-devstack-admin}
+
+# If the node owner needs to be set on nodes, for example, jobs
+# such as metalsmith have hardcoded OS_CLOUD variables which mean
+# an ironic in a full system scope enforced mode can't find nodes
+# for an allocation as suddenly the owner is applied.
+IRONIC_SET_NODE_OWNER=${IRONIC_SET_NODE_OWNER:-}
 
 # Versions and command line for API client
 IRONIC_DEFAULT_API_VERSION=${IRONIC_DEFAULT_API_VERSION:-}
@@ -1529,9 +1533,9 @@ function configure_ironic {
     if [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" == "" ]] || [[ "$IRONIC_JSON_RPC_AUTH_STRATEGY" == "keystone" ]]; then
         configure_client_for json_rpc
     fi
-    if [[ "$IRONIC_ENFORCE_SCOPE" == "True" ]]; then
-        iniset $IRONIC_CONF_FILE oslo_policy enforce_scope true
-        iniset $IRONIC_CONF_FILE oslo_policy enforce_new_defaults true
+    if [[ "$IRONIC_ENFORCE_SCOPE" == "False" ]]; then
+        iniset $IRONIC_CONF_FILE oslo_policy enforce_scope false
+        iniset $IRONIC_CONF_FILE oslo_policy enforce_new_defaults false
     fi
 
     # Set fast track options
@@ -1878,11 +1882,11 @@ function create_ironic_cache_dir {
 
 # create_ironic_accounts() - Set up common required ironic accounts
 
-# Project              User       Roles
+# Project     User       Roles
 # ------------------------------------------------------------------
-# service              ironic     admin
-# service              nova       baremetal_admin
-# demo                 demo       baremetal_observer
+# service     ironic     admin
+# service     nova       baremetal_admin # Legacy, Pre-SRBAC effort
+# demo        demo       baremetal_observer # Legacy, Pre-SRBAC effort
 function create_ironic_accounts {
     if [[ "$ENABLED_SERVICES" =~ "ir-api" && "$ENABLED_SERVICES" =~ "key" ]]; then
         # Define service and endpoints in Keystone
@@ -1897,6 +1901,7 @@ function create_ironic_accounts {
         create_service_user "ironic" "admin"
 
         # Create additional bare metal tenant and roles
+        # TODO(TheJulia): Remove when we remove the legacy RBAC policies.
         get_or_create_role baremetal_admin
         get_or_create_role baremetal_observer
         if is_service_enabled nova; then
@@ -1992,6 +1997,14 @@ function start_ironic_api {
 # Starts Ironic conductor.
 function start_ironic_conductor {
     run_process ir-cond "$IRONIC_BIN_DIR/ironic-conductor --config-file=$IRONIC_CONF_FILE"
+
+    # Unset variables which we shouldn't have... Grenade resets these :\
+    # in grenade/projects/60_nova/resources.sh as part of the resource
+    # creation tests.
+    unset OS_TENANT_NAME
+    unset OS_USERNAME
+    unset OS_PROJECT_NAME
+    unset OS_PASSWORD
 
     # Wait up to 30 seconds for ironic-conductor to start and register itself
     local attempt
@@ -2302,10 +2315,12 @@ function wait_for_nova_resources {
     local resource_class=${IRONIC_DEFAULT_RESOURCE_CLASS^^}
 
     # TODO(dtantsur): switch to Placement OSC plugin, once it exists
+    # Normally, we would want to use IRONIC_OS_CLOUD, but tokens need to be
+    # scoped. In this case, devstack-admin is the appropriate os-cloud to use.
     local token
-    token=$(openstack --os-cloud $IRONIC_OS_CLOUD token issue -f value -c id)
+    token=$(openstack --os-cloud devstack-admin token issue -f value -c id)
     local endpoint
-    endpoint=$(openstack --os-cloud $IRONIC_OS_CLOUD endpoint list --service placement --interface public -f value -c URL)
+    endpoint=$(openstack --os-cloud devstack-admin endpoint list --service placement --interface public -f value -c URL)
     die_if_not_set $LINENO endpoint "Cannot find Placement API endpoint"
 
     local i
@@ -2624,6 +2639,14 @@ function enroll_nodes {
 
         if [[ -n $IRONIC_DEFAULT_TRAITS ]]; then
             $IRONIC_CMD node add trait $node_id $IRONIC_DEFAULT_TRAITS
+        fi
+
+        if [[ -n "$IRONIC_SET_NODE_OWNER" ]]; then
+            # If set, apply an owner project project ID to the node,
+            # to allow tools like metalsmith to be abel to view and
+            # allocate the node.
+            owner_project_id=$(openstack project show $IRONIC_SET_NODE_OWNER -f value -c id)
+            $IRONIC_CMD node set --owner $owner_project_id $node_id
         fi
 
         $IRONIC_CMD node manage $node_id --wait $IRONIC_MANAGE_TIMEOUT || \
