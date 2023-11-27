@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    The ``deploy_kernel``, ``deploy_ramdisk``, ``rescue_kernel`` and
+    ``rescue_ramdisk`` configuration options, incorrectly deprecated in the
+    2023.2 release series, are no longer deprecated.

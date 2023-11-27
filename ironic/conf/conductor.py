@@ -205,17 +205,11 @@ opts = [
                        'endpoint via multicast DNS.')),
     cfg.StrOpt('deploy_kernel',
                mutable=True,
-               deprecated_for_removal=True,
-               deprecated_reason=_('Replaced by deploy_kernel_by_arch which '
-                                   'provides more configuration options.'),
-               help=_('DEPRECATED: Glance ID, http:// or file:// URL of the '
+               help=_('Glance ID, http:// or file:// URL of the '
                       'kernel of the default deploy image.')),
     cfg.StrOpt('deploy_ramdisk',
                mutable=True,
-               deprecated_for_removal=True,
-               deprecated_reason=_('Replaced by deploy_ramdisk_by_arch which '
-                                   'provides more configuration options.'),
-               help=_('DEPRECATED: Glance ID, http:// or file:// URL of the '
+               help=_('Glance ID, http:// or file:// URL of the '
                       'initramfs of the default deploy image.')),
     cfg.DictOpt('deploy_kernel_by_arch',
                 default={},
@@ -231,17 +225,11 @@ opts = [
                        'initramfs of the default deploy image.')),
     cfg.StrOpt('rescue_kernel',
                mutable=True,
-               deprecated_for_removal=True,
-               deprecated_reason=_('Replaced by rescue_kernel_by_arch which '
-                                   'provides more configuration options.'),
-               help=_('DEPRECATED: Glance ID, http:// or file:// URL of the '
+               help=_('Glance ID, http:// or file:// URL of the '
                       'kernel of the default rescue image.')),
     cfg.StrOpt('rescue_ramdisk',
                mutable=True,
-               deprecated_for_removal=True,
-               deprecated_reason=_('Replaced by rescue_ramdisk_by_arch which '
-                                   'provides more configuration options.'),
-               help=_('DEPRECATED: Glance ID, http:// or file:// URL of the '
+               help=_('Glance ID, http:// or file:// URL of the '
                       'initramfs of the default rescue image.')),
     cfg.DictOpt('rescue_kernel_by_arch',
                 default={},

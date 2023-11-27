@@ -463,12 +463,9 @@ def get_agent_kernel_ramdisk(node, mode='deploy', deprecated_prefix=None):
         kernel_dict = getattr(CONF.conductor, kernel_dict_param_name)
         ramdisk_dict = getattr(CONF.conductor, ramdisk_dict_param_name)
         cpu_arch = node.properties.get('cpu_arch')
-        kernel_for_this_arch = kernel_dict.get(cpu_arch)
-        ramdisk_for_this_arch = ramdisk_dict.get(cpu_arch)
-        if kernel_for_this_arch and ramdisk_for_this_arch:
-            kernel = kernel_for_this_arch
-            ramdisk = ramdisk_for_this_arch
-        else:
+        kernel = kernel_dict.get(cpu_arch) if cpu_arch else None
+        ramdisk = ramdisk_dict.get(cpu_arch) if cpu_arch else None
+        if not kernel or not ramdisk:
             kernel = getattr(CONF.conductor, kernel_name)
             ramdisk = getattr(CONF.conductor, ramdisk_name)
         return {

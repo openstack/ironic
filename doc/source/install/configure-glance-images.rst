@@ -97,15 +97,14 @@ Deploy ramdisk images
 
 #. Configure the Bare Metal service to use the produced images. It can be done
    per node as described in :doc:`enrollment` or in the configuration
-   file either using a dictionary to specify them by architecture as follows:
+   file either using a dictionary to specify them by architecture (matching
+   the node's ``cpu_arch`` property) as follows:
 
    .. code-block:: ini
 
     [conductor]
-    deploy_kernel_by_arch = {'x86_64': <insert DEPLOY_VMLINUZ_X86_64_UUID>,
-                             'aarch64': <insert DEPLOY_VMLINUZ_AARCH64_UUID>}
-    deploy_ramdisk_by_arch = {'x86_64': <insert DEPLOY_INITRD_X86_64_UUID>,
-                              'aarch64': <insert DEPLOY_INITRD_AARCH64_UUID>}
+    deploy_kernel_by_arch = x86_64:<DEPLOY_VMLINUZ_X86_64_UUID>,aarch64:<DEPLOY_VMLINUZ_AARCH64_UUID>
+    deploy_ramdisk_by_arch = x86_64:<DEPLOY_INITRD_X86_64_UUID>,aarch64:<DEPLOY_INITRD_AARCH64_UUID>
 
    or globally using the general configuration parameters:
 
