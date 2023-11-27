@@ -36,6 +36,10 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 class IbmcRAID(base.RAIDInterface):
     """Implementation of RAIDInterface for iBMC."""
 
+    # NOTE(TheJulia): Deprecating November 2023 in favor of Redfish
+    # and due to a lack of active driver maintenance.
+    supported = False
+
     RAID_APPLY_CONFIGURATION_ARGSINFO = {
         "raid_config": {
             "description": "The RAID configuration to apply.",

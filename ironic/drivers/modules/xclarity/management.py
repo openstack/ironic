@@ -51,6 +51,10 @@ SUPPORTED_BOOT_DEVICES = [
 
 class XClarityManagement(base.ManagementInterface):
 
+    # NOTE(TheJulia): Deprecating November 2023 in favor of Redfish
+    # and due to a lack of active driver maintenance.
+    supported = False
+
     def get_properties(self):
         return common.COMMON_PROPERTIES
 

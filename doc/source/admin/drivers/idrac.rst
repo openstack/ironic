@@ -5,6 +5,12 @@ iDRAC driver
 Overview
 ========
 
+.. warning::
+   The ``-wsman`` driver interfaces have been deprecated and are anticipated
+   to be removed from Ironic at some point during or after the 2024.2
+   development cycle. The anticipated forward management path is to migrate
+   to the ``-redfish`` driver interfaces or the ``redfish`` hardware type.
+
 The integrated Dell Remote Access Controller (iDRAC_) is an out-of-band
 management platform on Dell EMC servers, and is supported directly by
 the ``idrac`` hardware type. This driver uses the Dell Web Services for

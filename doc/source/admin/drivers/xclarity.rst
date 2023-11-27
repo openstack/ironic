@@ -5,6 +5,12 @@ XClarity driver
 Overview
 ========
 
+.. warning::
+   The ``xlcarity`` driver has been deprecated and is anticipated to be removed
+   from Ironic at some point during or after the 2024.2 development cycle.
+   The anticipated forward management path is to migrate to the ``redfish``
+   hardware type.
+
 The ``xclarity`` driver is targeted for IMM 2.0 and IMM 3.0 managed Lenovo
 servers. The xclarity hardware type enables the user to take advantage of
 `XClarity Manager`_ by using the `XClarity Python Client`_.

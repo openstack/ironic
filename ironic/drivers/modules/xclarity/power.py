@@ -32,6 +32,10 @@ xclarity_client_exceptions = importutils.try_import(
 
 class XClarityPower(base.PowerInterface):
 
+    # NOTE(TheJulia): Deprecating November 2023 in favor of Redfish
+    # and due to a lack of active driver maintenance.
+    supported = False
+
     def get_properties(self):
         return common.get_properties()
 
