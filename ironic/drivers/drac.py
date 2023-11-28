@@ -28,6 +28,7 @@ from ironic.drivers.modules.drac import vendor_passthru
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import pxe
+from ironic.drivers.modules.redfish import firmware as redfish_firmware
 
 
 CONF = cfg.CONF
@@ -60,6 +61,10 @@ class IDRACHardware(generic.GenericHardware):
     def supported_bios_interfaces(self):
         """List of supported bios interfaces."""
         return [bios.DracWSManBIOS, bios.DracRedfishBIOS, noop.NoBIOS]
+
+    @property
+    def supported_firmware_interfaces(self):
+        return [redfish_firmware.RedfishFirmware, noop.NoFirmware]
 
     @property
     def supported_inspect_interfaces(self):
