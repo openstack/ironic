@@ -2387,6 +2387,41 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
                 os.path.join(CONF.deploy.http_root, self.node.uuid))
 
 
+@mock.patch.object(ipxe.iPXEBoot, '__init__', lambda self: None)
+class iPXEBuildServicePXEConfigTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super(iPXEBuildServicePXEConfigTestCase, self).setUp()
+        n = {
+            'driver': 'fake-hardware',
+            'boot_interface': 'ipxe',
+            'instance_info': INST_INFO_DICT,
+            'driver_info': DRV_INFO_DICT,
+            'driver_internal_info': DRV_INTERNAL_INFO_DICT,
+        }
+        self.config(enabled_boot_interfaces=['ipxe'])
+        self.node = object_utils.create_test_node(self.context, **n)
+
+    @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
+    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
+    def test_build_service_pxe_config_adopt(self, mock_switch, mock_pxe_utils):
+        self.node.provision_state = states.ADOPTING
+
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['is_whole_disk_image'] = True
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        image_info = {}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            pxe_utils.build_service_pxe_config(task, image_info, 'id',
+                                               is_whole_disk_image=True)
+
+        mock_pxe_utils.assert_called()
+        mock_switch.assert_called()
+
+
 @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
 @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
 @mock.patch.object(pxe_utils, 'TFTPImageCache', autospec=True)
