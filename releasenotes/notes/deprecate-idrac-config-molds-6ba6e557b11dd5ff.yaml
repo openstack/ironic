@@ -1,0 +1,10 @@
+---
+deprecations:
+  - |
+    The ``idrac`` hardware type management interface steps
+    ``import_configuration`` and ``export_configuration`` steps are
+    deprecated, and will be removed once a formalized generic step
+    templating mechanism has been created within Ironic. The Ironic
+    community is open to reconsidering this decision should the
+    overall bulk configuration reset/templating model become adopted
+    by DMTF Redfish as a standardized cross-vendor feature.

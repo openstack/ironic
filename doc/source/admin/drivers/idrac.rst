@@ -286,6 +286,11 @@ The management interface for ``idrac-redfish`` supports:
 Import and export configuration
 -------------------------------
 
+.. warning::
+   This feature has been deprecated and is anticipated to be removed once
+   Ironic has a generalized interface for doing step template articulation
+   for aspects beyond just "deployment" of baremetal nodes.
+
 The clean and deploy steps provided in this section allow to configure the
 system and collect the system inventory using configuration mold files.
 

@@ -366,7 +366,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
     @base.clean_step(priority=0, argsinfo=EXPORT_CONFIGURATION_ARGSINFO,
                      requires_ramdisk=False)
     def export_configuration(self, task, export_configuration_location):
-        """Export the configuration of the server.
+        """(Deprecated) Export the configuration of the server.
 
         Exports the configuration of the server against which the step is run
         and stores it in specific format in indicated location.
@@ -416,7 +416,7 @@ class DracRedfishManagement(redfish_management.RedfishManagement):
     @base.clean_step(priority=0, argsinfo=IMPORT_CONFIGURATION_ARGSINFO,
                      requires_ramdisk=False)
     def import_configuration(self, task, import_configuration_location):
-        """Import and apply the configuration to the server.
+        """(Deprecated) Import and apply the configuration to the server.
 
         Gets pre-created configuration from storage by given location and
         imports that into given server. Uses Dell's Server Configuration
