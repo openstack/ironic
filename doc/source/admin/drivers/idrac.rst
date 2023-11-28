@@ -81,6 +81,7 @@ following configuration:
     [DEFAULT]
     enabled_hardware_types=idrac
     enabled_bios_interfaces=idrac-redfish
+    enabled_firmware_interfaces=redfish
     enabled_inspect_interfaces=idrac-redfish
     enabled_management_interfaces=idrac-redfish
     enabled_power_interfaces=idrac-redfish
@@ -97,6 +98,7 @@ Interface            Supported Implementations
 ``boot``             ``ipxe``, ``pxe``, ``idrac-redfish-virtual-media``
 ``console``          ``no-console``
 ``deploy``           ``direct``, ``ansible``, ``ramdisk``
+``firmware``         ``redfish``, ``no-firmware``
 ``inspect``          ``idrac-wsman``, ``idrac``, ``idrac-redfish``,
                      ``inspector``, ``no-inspect``
 ``management``       ``idrac-wsman``, ``idrac``, ``idrac-redfish``
