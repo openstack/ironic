@@ -27,6 +27,27 @@ opts = [
     cfg.StrOpt('http_root',
                default='/httpboot',
                help=_("ironic-conductor node's HTTP root path.")),
+    cfg.StrOpt('image_server_auth_strategy',
+               default='noauth',
+               mutable=True,
+               help=_("Used to select authentication strategy against the "
+                       "image hosting HTTP(S) server. When set to http_basic "
+                       "it enables HTTP(S) Basic Authentication. "
+                       "Exception is thrown in case of missing credentials. "
+                       "When this option has a valid value such as http_basic"
+                       ", the same single set of credentials will be used "
+                       "against all user-image sources! Currently only the "
+                       "http_basic option has any functionality.")),
+    cfg.StrOpt('image_server_user',
+               mutable=True,
+               help=_("Can be used by any authentication strategy that "
+                      "requires username credential. Currently utilized by "
+                      "the http_basic authentication strategy.")),
+    cfg.StrOpt('image_server_password',
+               mutable=True,
+               help=_("Can be used by any authentication strategy that "
+                      "requires password credential. Currently utilized by "
+                      "the http_basic authentication strategy.")),
     cfg.StrOpt('external_http_url',
                help=_("URL of the ironic-conductor node's HTTP server for "
                       "boot methods such as virtual media, "

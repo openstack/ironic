@@ -74,6 +74,60 @@ class BaseImageService(object, metaclass=abc.ABCMeta):
 class HttpImageService(BaseImageService):
     """Provides retrieval of disk images using HTTP."""
 
+    @staticmethod
+    def gen_auth_from_conf_user_pass(image_href):
+        """This function is used to pass the credentials to the chosen
+
+           credential verifier and in case the verification is successful
+           generate the compatible authentication object that will be used
+           with the request(s). This function handles the authentication object
+           generation for authentication strategies that are username+password
+           based. Credentials are collected from the oslo.config framework.
+
+        :param image_href: href of the image that is being acted upon
+
+        :return: Authentication object used directly by the request library
+        :rtype: requests.auth.HTTPBasicAuth
+        """
+
+        image_server_user = None
+        image_server_password = None
+
+        if CONF.deploy.image_server_auth_strategy == 'http_basic':
+            HttpImageService.verify_basic_auth_cred_format(
+                CONF.deploy.image_server_user,
+                CONF.deploy.image_server_password,
+                image_href)
+            image_server_user = CONF.deploy.image_server_user
+            image_server_password = CONF.deploy.image_server_password
+        else:
+            return None
+
+        return requests.auth.HTTPBasicAuth(image_server_user,
+                                           image_server_password)
+
+    @staticmethod
+    def verify_basic_auth_cred_format(image_href, user=None, password=None):
+        """Verify basic auth credentials used for image head request.
+
+        :param user: auth username
+        :param password: auth password
+        :raises: exception.ImageRefValidationFailed if the credentials are not
+            present
+        """
+        expected_creds = {'image_server_user': user,
+                          'image_server_password': password}
+        missing_creds = []
+        for key, value in expected_creds.items():
+            if not value:
+                missing_creds.append(key)
+        if missing_creds:
+            raise exception.ImageRefValidationFailed(
+                image_href=image_href,
+                reason=_("Missing %s fields from HTTP(S) "
+                         "basic auth config") % missing_creds
+            )
+
     def validate_href(self, image_href, secret=False):
         """Validate HTTP image reference.
 
@@ -96,6 +150,7 @@ class HttpImageService(BaseImageService):
             verify = CONF.webserver_verify_ca
 
         try:
+            auth = HttpImageService.gen_auth_from_conf_user_pass(image_href)
             # NOTE(TheJulia): Head requests do not work on things that are not
             # files, but they can be responded with redirects or a 200 OK....
             # We don't want to permit endless redirects either, thus not
@@ -104,8 +159,8 @@ class HttpImageService(BaseImageService):
             # HTTPForbidden or a list of files. Both should be okay to at
             # least know things are okay in a limited fashion.
             response = requests.head(image_href, verify=verify,
-                                     timeout=CONF.webserver_connection_timeout)
-
+                                     timeout=CONF.webserver_connection_timeout,
+                                     auth=auth)
             if response.status_code == http_client.MOVED_PERMANENTLY:
                 # NOTE(TheJulia): In the event we receive a redirect, we need
                 # to notify the caller. Before this we would just fail,
@@ -161,14 +216,17 @@ class HttpImageService(BaseImageService):
         """
 
         try:
+
             verify = strutils.bool_from_string(CONF.webserver_verify_ca,
                                                strict=True)
         except ValueError:
             verify = CONF.webserver_verify_ca
 
         try:
+            auth = HttpImageService.gen_auth_from_conf_user_pass(image_href)
             response = requests.get(image_href, stream=True, verify=verify,
-                                    timeout=CONF.webserver_connection_timeout)
+                                    timeout=CONF.webserver_connection_timeout,
+                                    auth=auth)
             if response.status_code != http_client.OK:
                 raise exception.ImageRefValidationFailed(
                     image_href=image_href,

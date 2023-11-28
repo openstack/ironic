@@ -1259,6 +1259,33 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                 'no_proxy': '.eggs.com'}
         )
 
+    def test_wirte_image_basic_auth_success(self):
+        cfg.CONF.set_override('image_server_auth_strategy',
+                              'http_basic',
+                              'deploy')
+        cfg.CONF.set_override('image_server_user',
+                              'SpongeBob',
+                              'deploy')
+        cfg.CONF.set_override('image_server_password',
+                              'SquarePants',
+                              'deploy')
+        self._test_write_image(
+            additional_expected_image_info={
+                'image_server_auth_strategy': 'http_basic',
+                'image_server_user': 'SpongeBob',
+                'image_server_password': 'SquarePants'
+            }
+        )
+
+    def test_wirte_image_basic_auth_success_blocked(self):
+        cfg.CONF.set_override('image_server_user',
+                              'SpongeBob',
+                              'deploy')
+        cfg.CONF.set_override('image_server_password',
+                              'SquarePants',
+                              'deploy')
+        self._test_write_image()
+
     def test_write_image_with_no_proxy_without_proxies(self):
         self._test_write_image(
             additional_driver_info={'image_no_proxy': '.eggs.com'}
