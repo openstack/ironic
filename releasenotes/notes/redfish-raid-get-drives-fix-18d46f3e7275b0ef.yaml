@@ -1,0 +1,5 @@
+---
+fixes:
+  - Fixes the payload format required to query physical storage drives 
+    using redfish, when configuring RAID using redfish.
+
