@@ -1,0 +1,3 @@
+fixes:
+  - When configured to listen on a unix socket, Ironic will now properly cleanup
+    the unix socket on a clean service stop.
