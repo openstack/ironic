@@ -617,8 +617,8 @@ RELEASE_MAPPING = {
         }
     },
     'master': {
-        'api': '1.88',
-        'rpc': '1.58',
+        'api': '1.89',
+        'rpc': '1.59',
         'objects': {
             'Allocation': ['1.1'],
             'BIOSSetting': ['1.1'],

@@ -2190,7 +2190,25 @@ versions:
   in: body
   required: true
   type: array
-
+vmedia_device_type:
+  description: |
+    The type of the virtual media device used, e.g. CDROM
+  in: body
+  required: true
+  type: string
+vmedia_image_download_source:
+  description: |
+    How the image is served to the BMC, "http" for a remote location or
+    "local" to use the local web server.
+  in: body
+  required: false
+  type: string
+vmedia_image_url:
+  description: |
+    The url of the image to attach to a virtual media device.
+  in: body
+  required: true
+  type: string
 # variables returned from volume-connector
 volume_connector_connector_id:
   description: |

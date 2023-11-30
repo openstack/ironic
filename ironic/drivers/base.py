@@ -1302,6 +1302,32 @@ class ManagementInterface(BaseInterface):
         raise exception.UnsupportedDriverExtension(
             driver=task.node.driver, extension='get_mac_addresses')
 
+    def attach_virtual_media(self, task, device_type, image_url):
+        """Attach a virtual media device to the node.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :param device_type: Device type, one of
+            :data:`ironic.common.boot_devices.VMEDIA_DEVICES`.
+        :param image_url: URL of the image to attach, HTTP or HTTPS.
+        :raises: UnsupportedDriverExtension
+
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='attach_virtual_media')
+
+    def detach_virtual_media(self, task, device_types=None):
+        """Detach some or all virtual media devices from the node.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :param device_types: A collection of device type, ones from
+            :data:`ironic.common.boot_devices.VMEDIA_DEVICES`.
+            If not provided, all devices are detached.
+        :raises: UnsupportedDriverExtension
+
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='detach_virtual_media')
+
 
 class InspectInterface(BaseInterface):
     """Interface for inspection-related actions."""

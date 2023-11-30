@@ -157,12 +157,13 @@ class ConductorAPI(object):
     |    1.56 - Added continue_inspection
     |    1.57 - Added do_node_service
     |    1.58 - Added support for json-rpc port usage
+    |    1.59 - Added support for attaching/detaching virtual media
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.58'
+    RPC_API_VERSION = '1.59'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -1437,3 +1438,55 @@ class ConductorAPI(object):
             node_id=node_id,
             service_steps=service_steps,
             disable_ramdisk=disable_ramdisk)
+
+    def attach_virtual_media(self, context, node_id, device_type, image_url,
+                             image_download_source=None, topic=None):
+        """Attach a virtual media device to the node.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param image_url: URL of the image to attach, HTTP or HTTPS.
+        :param image_download_source: Which way to serve the image to the BMC:
+            "http" to serve it from the provided location, "local" to serve
+            it from the local web server.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: UnsupportedDriverExtension if the driver does not support
+                 this call.
+        :raises: InvalidParameterValue if validation of management driver
+                 interface failed.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+
+        """
+        cctxt = self._prepare_call(topic=topic, version='1.59')
+        return cctxt.call(
+            context, 'attach_virtual_media',
+            node_id=node_id,
+            device_type=device_type,
+            image_url=image_url)
+
+    def detach_virtual_media(self, context, node_id, device_types=None,
+                             topic=None):
+        """Detach some or all virtual media devices from the node.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param device_types: A collection of device type, ones from
+            :data:`ironic.common.boot_devices.VMEDIA_DEVICES`.
+            If not provided, all devices are detached.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: UnsupportedDriverExtension if the driver does not support
+                 this call.
+        :raises: InvalidParameterValue if validation of management driver
+                 interface failed.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+
+        """
+        cctxt = self._prepare_call(topic=topic, version='1.59')
+        return cctxt.call(
+            context, 'detach_virtual_media',
+            node_id=node_id,
+            device_types=device_types)

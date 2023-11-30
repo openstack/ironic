@@ -1018,6 +1018,24 @@ node_policies = [
             {'path': '/nodes/{node_ident}/firmware', 'method': 'GET'}
         ],
     ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:vmedia:attach',
+        check_str=SYSTEM_OR_PROJECT_MEMBER,
+        scope_types=['system', 'project'],
+        description='Attach a virtual media device to a node',
+        operations=[
+            {'path': '/nodes/{node_ident}/vmedia', 'method': 'POST'}\
+        ],
+    ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:vmedia:detach',
+        check_str=SYSTEM_OR_PROJECT_MEMBER,
+        scope_types=['system', 'project'],
+        description='Detach a virtual media device from a node',
+        operations=[
+            {'path': '/nodes/{node_ident}/vmedia', 'method': 'DELETE'}
+        ],
+    ),
 ]
 
 deprecated_port_reason = """

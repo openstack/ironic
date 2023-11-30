@@ -49,3 +49,6 @@ ISCSIBOOT = 'iscsiboot'
 
 FLOPPY = 'floppy'
 "Boot from a floppy drive"
+
+VMEDIA_DEVICES = [DISK, CDROM, FLOPPY]
+"""Devices that make sense for virtual media attachment."""

@@ -1,0 +1,5 @@
+---
+features:
+  Adds a new capability allowing to attach or detach
+  generic iso images as virtual media devices after
+  a node has been provisioned.

@@ -96,6 +96,8 @@ class RedfishVendorPassthru(base.VendorInterface):
     def eject_vmedia(self, task, **kwargs):
         """Eject a virtual media device.
 
+        Deprecated in favour of the generic API.
+
         :param task: A TaskManager object.
         :param kwargs: The arguments sent with vendor passthru. The optional
             kwargs are::
