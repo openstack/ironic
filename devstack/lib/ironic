@@ -746,17 +746,6 @@ IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE=${IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE:-$IRONIC
 # ---------
 
 # UEFI related functions
-# get_uefi_ipxe_boot_file - Deprecated
-function get_uefi_ipxe_boot_file {
-    if is_ubuntu; then
-        # NOTE(TheJulia): This *should* be snponly.efi, however
-        # ubuntu only started shipping it in hirtuse.
-        echo /usr/lib/ipxe/ipxe.efi
-    elif is_fedora; then
-        echo /usr/share/ipxe/ipxe-snponly-x86_64.efi
-    fi
-}
-
 function get_uefi_loader {
     if is_ubuntu; then
         echo /usr/share/OVMF/OVMF_CODE.fd
