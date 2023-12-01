@@ -50,35 +50,41 @@ class DnsmasqDHCPApi(base.BaseDHCP):
         node = task.node
         macs = set(self._pxe_enabled_macs(task.ports))
 
-        opt_file = self._opt_file_path(node)
         tag = node.driver_internal_info.get('dnsmasq_tag')
         if not tag:
             tag = uuidutils.generate_uuid()
             node.set_driver_internal_info('dnsmasq_tag', tag)
             node.save()
 
-        LOG.debug('Writing to %s:', opt_file)
+        option_entries = []
+
+        for option in options:
+            try:
+                option_entries.append(
+                    f'tag:{tag},{option["opt_name"]},{option["opt_value"]}')
+            except KeyError as missing:
+                LOG.warning('Ignoring option %(opt)s for node %(node)s: '
+                            'missing %(missing)s',
+                            {'opt': option, 'node': node.uuid,
+                             'missing': missing})
+
+        opt_file = self._opt_file_path(node)
+        LOG.debug('Writing DHCP options for node %(node)s to %(dest)s: '
+                  '%(opts)s', {'node': node.uuid, 'dest': opt_file,
+                               'opts': '; '.join(option_entries)})
         with open(opt_file, 'w') as f:
-            # Apply each option by tag
-            for option in options:
-                entry = 'tag:{tag},{opt_name},{opt_value}\n'.format(
-                    tag=tag,
-                    opt_name=option.get('opt_name'),
-                    opt_value=option.get('opt_value'),
-                )
-                LOG.debug(entry)
-                f.write(entry)
+            f.write('\n'.join(option_entries) + '\n')
 
         for mac in macs:
+            # Tag each address with the unique uuid scoped to
+            # this node and DHCP transaction
             host_file = self._host_file_path(mac)
-            LOG.debug('Writing to %s:', host_file)
+            entry = f'{mac},set:{tag},set:ironic'
+            LOG.debug('Writing DHCP host file for node %(node)s to %(dest)s: '
+                      '%(entry)s', {'node': node.uuid, 'dest': host_file,
+                                    'entry': entry})
             with open(host_file, 'w') as f:
-                # Tag each address with the unique uuid scoped to
-                # this node and DHCP transaction
-                entry = '{mac},set:{tag},set:ironic\n'.format(
-                    mac=mac, tag=tag)
-                LOG.debug(entry)
-                f.write(entry)
+                f.write(entry + '\n')
 
     def _opt_file_path(self, node):
         return os.path.join(CONF.dnsmasq.dhcp_optsdir,
@@ -131,15 +137,20 @@ class DnsmasqDHCPApi(base.BaseDHCP):
         macs = set(self._pxe_enabled_macs(task.ports))
         for mac in macs:
             host_file = self._host_file_path(mac)
+            entry = f'{mac},ignore'
+            LOG.debug('Writing DHCP host file for node %(node)s to %(dest)s: '
+                      '%(entry)s', {'node': node.uuid, 'dest': host_file,
+                                    'entry': entry})
             with open(host_file, 'w') as f:
-                entry = '{mac},ignore\n'.format(mac=mac)
-                f.write(entry)
+                f.write(entry + '\n')
 
         # Deleting the file containing dhcp-option won't remove the rules from
         # dnsmasq but no requests will be tagged with the dnsmasq_tag uuid so
         # these rules will not apply.
         opt_file = self._opt_file_path(node)
         if os.path.exists(opt_file):
+            LOG.debug('Removing DHCP options file for node %(node)s at '
+                      '%(dest)s', {'node': node.uuid, 'dest': opt_file})
             os.remove(opt_file)
 
     def supports_ipxe_tag(self):
