@@ -1217,8 +1217,16 @@ class RedfishManagement(base.ManagementInterface):
     def _wait_for_secure_boot(self, task, sb, state):
         # NOTE(dtantsur): at least Dell machines change secure boot status via
         # a BIOS configuration job. A reboot is needed to apply it.
-        sb.refresh(force=True)
-        if sb.enabled == state:
+
+        def _try_refresh():
+            try:
+                sb.refresh(force=True)
+            except sushy.exceptions.ServerSideError:
+                return False  # sushy already does logging, just return
+            else:
+                return True
+
+        if _try_refresh() and sb.enabled == state:
             return
 
         LOG.info('Rebooting node %(node)s to change secure boot state to '
@@ -1236,7 +1244,7 @@ class RedfishManagement(base.ManagementInterface):
                     {'node': task.node.uuid, 'value': state,
                      'current': sb.enabled})
                 time.sleep(BOOT_MODE_CONFIG_INTERVAL)
-                sb.refresh(force=True)
+                _try_refresh()
 
             if sb.enabled != state:
                 msg = (_('Timeout reached while waiting for secure boot state '
