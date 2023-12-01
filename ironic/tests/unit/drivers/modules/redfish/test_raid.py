@@ -48,7 +48,7 @@ def _mock_drive(identity, block_size_bytes=None, capacity_bytes=None,
 
 
 def _mock_volume(identity, volume_type=None, raid_type=None,
-                 capacity_bytes=units.Gi):
+                 capacity_bytes=units.Gi, volume_name=None):
     volume = mock.MagicMock(
         _path='/redfish/v1/Systems/1/Storage/1/Volumes/' + identity,
         identity=identity,
@@ -56,7 +56,10 @@ def _mock_volume(identity, volume_type=None, raid_type=None,
         raid_type=raid_type,
         capacity_bytes=capacity_bytes
     )
-    volume.name = 'Volume ' + identity
+    if volume_name:
+        volume.name = volume_name
+    else:
+        volume.name = 'Volume ' + identity
     # Mocking Immediate that does not return anything
     volume.delete.return_value = None
     return volume
@@ -287,13 +290,14 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                 {
                     'size_gb': 100,
                     'raid_level': '5',
-                    'is_root_volume': True
+                    'is_root_volume': True,
+                    'volume_name': 'test-volume'
                 }
             ]
         }
-        created_volumes = [_mock_volume(
-            '1', raid_type=sushy.RAIDType.RAID5,
-            capacity_bytes=100 * units.Gi)]
+        created_volumes = [_mock_volume('1', raid_type=sushy.RAIDType.RAID5,
+                                        capacity_bytes=100 * units.Gi,
+                                        volume_name='test-volume')]
         volumes = mock.MagicMock()
         # Called after volumes created
         volumes.get_members.return_value = created_volumes
@@ -337,7 +341,7 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             self.assertEqual(
                 [{'controller': 'RAID controller 1',
                   'id': '1',
-                  'name': 'Volume 1',
+                  'name': 'test-volume',
                   'raid_level': '5',
                   'size_gb': 100}],
                 task.node.raid_config['logical_disks'])
