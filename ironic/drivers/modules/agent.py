@@ -508,8 +508,7 @@ class AgentDeploy(CustomAgentDeploy):
             'stream_raw_images': CONF.agent.stream_raw_images,
         }
 
-        if (CONF.deploy.image_server_auth_strategy != 'noauth'
-            and CONF.deploy.image_server_auth_strategy is not None):
+        if (CONF.deploy.image_server_auth_strategy != 'noauth'):
             image_info['image_server_auth_strategy'] = \
                 CONF.deploy.image_server_auth_strategy
             image_info['image_server_user'] = CONF.deploy.image_server_user

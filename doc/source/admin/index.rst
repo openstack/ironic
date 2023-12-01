@@ -33,7 +33,7 @@ the services.
    Hardware Burn-in <hardware-burn-in>
    Vendor Passthru <vendor-passthru>
    Servicing <servicing>
-   Basic Auth Support For User-image Servers <user-image-basic-auth>
+   Authentication Support for Instance Images <user-image-basic-auth>
 
 Drivers, Hardware Types and Hardware Interfaces
 -----------------------------------------------
