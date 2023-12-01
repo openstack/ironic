@@ -365,17 +365,18 @@
         s-object: True
         s-proxy: True
 
-# NOTE(rpittau): the snmp job fails on ubuntu jammy so we pin it to
-# ubuntu focal for the time being.
 - job:
-    name: ironic-tempest-wholedisk-bios-snmp-pxe
+    name: ironic-tempest-ramdisk-bios-snmp-pxe
     description: SNMP power, iPXE, OVN, no-op management and whole disk images.
     parent: ironic-base
-    nodeset: openstack-single-node-focal
     vars:
+      # NOTE(TheJulia): No reason to go much further than the network boot,
+      # Hence the use of the ramdisk test scenario as opposed to the others.
+      tempest_test_regex: test_ramdisk_iso
       devstack_localrc:
         IRONIC_ENABLED_HARDWARE_TYPES: snmp
         IRONIC_DEPLOY_DRIVER: snmp
+        IRONIC_ENABLED_DEPLOY_INTERFACES: "ramdisk"
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
@@ -403,6 +404,20 @@
         ovn-controller: True
         ovn-northd: True
         q-ovn-metadata-agent: True
+        n-api: False
+        n-api-meta: False
+        n-cauth: False
+        n-cond: False
+        n-cpu: False
+        n-novnc: False
+        n-obj: False
+        n-sch: False
+        nova: False
+        placement-api: False
+        s-account: False
+        s-container: False
+        s-object: False
+        s-proxy: False
 
 - job:
     name: ironic-tempest-partition-uefi-ipmi-pxe

@@ -28,8 +28,7 @@
         - ironic-tempest-uefi-redfish-vmedia
         # NOTE(TheJulia): Moving to not-voting due to bug
         # https://bugs.launchpad.net/ironic/+bug/2034588
-        - ironic-tempest-wholedisk-bios-snmp-pxe:
-            voting: false
+        - ironic-tempest-ramdisk-bios-snmp-pxe
         - ironic-tempest-partition-uefi-ipmi-pxe
         # NOTE(TheJulia) Marking multinode non-voting on 20210311
         # Due to a high failure rate on limestone where the compute1
@@ -82,9 +81,7 @@
         - ironic-standalone-redfish
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
-        # NOTE(stevebaker): Disabled due to bug
-        # https://bugs.launchpad.net/ironic/+bug/2034588
-        # - ironic-tempest-wholedisk-bios-snmp-pxe
+        - ironic-tempest-ramdisk-bios-snmp-pxe
         - ironic-tempest-partition-uefi-ipmi-pxe
         # NOTE(TheJulia): Disabled multinode on 20210311 due to Limestone
         # seeming to be 
