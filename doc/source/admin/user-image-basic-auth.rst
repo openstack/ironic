@@ -26,13 +26,15 @@ string. The variables belong to the ``deploy`` configuration group and could be
 configured via the global Ironic configuration file.
 
 The authentication strategy configuration affects the download process
-for ``disk`` images, ``live ISO`` images and the ``deploy`` images.
+for images downloaded by the conductor or the ironic-python-agent.
 
 Example
 -------
 
 Example of activating the ``http-basic`` strategy via
-``/etc/ironic/ironic.conf``::
+``/etc/ironic/ironic.conf``:
+
+.. code-block:: ini
 
   [deploy]
   ...
@@ -45,8 +47,8 @@ Known limitations
 -----------------
 
 This implementation of the authentication strategy for user image handling is
-implemented via the global Ironic configuration process thus it doesn't
-provide node specific customization options.
+implemented via the global Ironic configuration thus it doesn't provide node
+specific customization options.
 
 When ``image_server_auth_strategy`` is set to any valid value all image
 sources will be treated with the same authentication strategy and Ironic will

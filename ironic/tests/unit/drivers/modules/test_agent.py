@@ -1259,7 +1259,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                 'no_proxy': '.eggs.com'}
         )
 
-    def test_wirte_image_basic_auth_success(self):
+    def test_write_image_basic_auth_success(self):
         cfg.CONF.set_override('image_server_auth_strategy',
                               'http_basic',
                               'deploy')
@@ -1277,7 +1277,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             }
         )
 
-    def test_wirte_image_basic_auth_success_blocked(self):
+    def test_write_image_basic_auth_success_blocked(self):
         cfg.CONF.set_override('image_server_user',
                               'SpongeBob',
                               'deploy')
