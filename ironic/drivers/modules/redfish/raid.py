@@ -626,7 +626,7 @@ def _construct_volume_payload(
         payload['Drives'] = [{"@odata.id": _drive_path(storage, d)} for d in
                              physical_disks]
     LOG.debug('Payload for RAID logical disk creation on node %(node_uuid)s: '
-              '%(payload)r', {'node': node.uuid, 'payload': payload})
+              '%(payload)r', {'node_uuid': node.uuid, 'payload': payload})
     return payload
 
 
