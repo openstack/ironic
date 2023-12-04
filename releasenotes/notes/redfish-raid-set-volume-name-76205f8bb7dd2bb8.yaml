@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Uses the volume_name provided in the target_raid_config field of a node to
+    set the storage volume name when configuring RAID with the redfish driver
+    (instead of discarding the volume_name given in target_raid_config)
