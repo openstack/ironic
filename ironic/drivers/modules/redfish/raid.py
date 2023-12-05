@@ -1105,7 +1105,7 @@ class RedfishRAID(base.RAIDInterface):
                     physical_disks=logical_disk['physical_disks'],
                     raid_level=logical_disk['raid_level'],
                     size_bytes=logical_disk['size_bytes'],
-                    disk_name=logical_disk.get('name'),
+                    disk_name=logical_disk.get('volume_name'),
                     span_length=logical_disk.get('span_length'),
                     span_depth=logical_disk.get('span_depth'),
                     error_handler=self.volume_create_error_handler)

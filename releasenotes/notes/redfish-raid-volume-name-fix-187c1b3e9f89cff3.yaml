@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Use the 'volume_name' field from the logical_disk in the
+    target_raid_config field of a node, instead of just 'name' (which
+    is incorrect as per the Ironic API expectation), to create the
+    RAID volume using the Redfish driver
