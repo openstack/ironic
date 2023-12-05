@@ -1745,6 +1745,9 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         def side_effect(force):
             nonlocal attempts
             attempts -= 1
+            if attempts >= 2:
+                raise sushy.exceptions.ServerSideError(
+                    "POST", 'img-url', mock.MagicMock())
             if attempts <= 0:
                 fake_sb.enabled = True
 

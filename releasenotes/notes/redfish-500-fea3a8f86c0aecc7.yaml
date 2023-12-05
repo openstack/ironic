@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    When configuring secure boot via Redfish, internal server errors are now
+    retried for a longer period than by default, accounting for the SecureBoot
+    resource unavailability during configuration on some hardware.
