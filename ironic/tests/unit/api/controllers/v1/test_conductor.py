@@ -85,6 +85,19 @@ class TestListConductors(test_api_base.BaseApiTest):
         self.assertEqual(data['hostname'], 'rocky.rocks')
         self.assertTrue(data['alive'])
 
+    def test_get_one_with_port_and_v6(self):
+        obj_utils.create_test_conductor(self.context, hostname='[::1]:8090')
+        data = self.get_json(
+            '/conductors/[::1]:8090',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertIn('hostname', data)
+        self.assertIn('drivers', data)
+        self.assertIn('conductor_group', data)
+        self.assertIn('alive', data)
+        self.assertIn('drivers', data)
+        self.assertEqual(data['hostname'], '[::1]:8090')
+        self.assertTrue(data['alive'])
+
     @mock.patch.object(timeutils, 'utcnow', autospec=True)
     def test_get_one_conductor_offline(self, mock_utcnow):
         self.config(heartbeat_timeout=10, group='conductor')

@@ -102,9 +102,9 @@ class ConductorsController(rest.RestController):
 
     @METRICS.timer('ConductorsController.get_all')
     @method.expose()
-    @args.validate(marker=args.name, limit=args.integer, sort_key=args.string,
-                   sort_dir=args.string, fields=args.string_list,
-                   detail=args.boolean)
+    @args.validate(marker=args.host_port, limit=args.integer,
+                   sort_key=args.string, sort_dir=args.string,
+                   fields=args.string_list, detail=args.boolean)
     def get_all(self, marker=None, limit=None, sort_key='id', sort_dir='asc',
                 fields=None, detail=None):
         """Retrieve a list of conductors.
@@ -139,7 +139,7 @@ class ConductorsController(rest.RestController):
 
     @METRICS.timer('ConductorsController.get_one')
     @method.expose()
-    @args.validate(hostname=args.name, fields=args.string_list)
+    @args.validate(hostname=args.host_port, fields=args.string_list)
     def get_one(self, hostname, fields=None):
         """Retrieve information about the given conductor.
 

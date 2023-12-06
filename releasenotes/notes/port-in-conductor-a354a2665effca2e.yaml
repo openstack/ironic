@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes getting details of a conductor if it uses a non-standard JSON RPC
+    port or an IPv6 address as the name, e.g.
+    ``GET /v1/conductors/[2001:db8::1]:8090``. Previously, it would result in
+    a HTTP error 400.
