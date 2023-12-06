@@ -3209,7 +3209,10 @@ class ConductorManager(base_manager.BaseConductorManager):
             task.spawn_after(
                 self._spawn_worker, task.driver.deploy.heartbeat,
                 task, callback_url, agent_version, agent_verify_ca,
-                agent_status, agent_status_message)
+                agent_status, agent_status_message,
+                # NOTE(dtantsur): heartbeats are not that critical to allow
+                # them to potentially overload the conductor.
+                _allow_reserved_pool=False)
 
     @METRICS.timer('ConductorManager.vif_list')
     @messaging.expected_exceptions(exception.NetworkError,

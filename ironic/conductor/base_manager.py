@@ -99,6 +99,29 @@ class BaseConductorManager(object):
         # clear all locks held by this conductor before registering
         self.dbapi.clear_node_reservations_for_conductor(self.host)
 
+    def _init_executors(self, total_workers, reserved_percentage):
+        # NOTE(dtantsur): do not allow queuing work. Given our model, it's
+        # better to reject an incoming request with HTTP 503 or reschedule
+        # a periodic task that end up with hidden backlog that is hard
+        # to track and debug. Using 1 instead of 0 because of how things are
+        # ordered in futurist (it checks for rejection first).
+        rejection_func = rejection.reject_when_reached(1)
+
+        reserved_workers = int(total_workers * reserved_percentage / 100)
+        remaining = total_workers - reserved_workers
+        LOG.info("Starting workers pool: %d normal workers + %d reserved",
+                 remaining, reserved_workers)
+
+        self._executor = futurist.GreenThreadPoolExecutor(
+            max_workers=remaining,
+            check_and_reject=rejection_func)
+        if reserved_workers:
+            self._reserved_executor = futurist.GreenThreadPoolExecutor(
+                max_workers=reserved_workers,
+                check_and_reject=rejection_func)
+        else:
+            self._reserved_executor = None
+
     def init_host(self, admin_context=None, start_consoles=True,
                   start_allocations=True):
         """Initialize the conductor host.
@@ -125,16 +148,8 @@ class BaseConductorManager(object):
         self._keepalive_evt = threading.Event()
         """Event for the keepalive thread."""
 
-        # NOTE(dtantsur): do not allow queuing work. Given our model, it's
-        # better to reject an incoming request with HTTP 503 or reschedule
-        # a periodic task that end up with hidden backlog that is hard
-        # to track and debug. Using 1 instead of 0 because of how things are
-        # ordered in futurist (it checks for rejection first).
-        rejection_func = rejection.reject_when_reached(1)
-        self._executor = futurist.GreenThreadPoolExecutor(
-            max_workers=CONF.conductor.workers_pool_size,
-            check_and_reject=rejection_func)
-        """Executor for performing tasks async."""
+        self._init_executors(CONF.conductor.workers_pool_size,
+                             CONF.conductor.reserved_workers_pool_percentage)
 
         # TODO(jroll) delete the use_groups argument and use the default
         # in Stein.
@@ -358,6 +373,8 @@ class BaseConductorManager(object):
         # having work complete normally.
         self._periodic_tasks.stop()
         self._periodic_tasks.wait()
+        if self._reserved_executor is not None:
+            self._reserved_executor.shutdown(wait=True)
         self._executor.shutdown(wait=True)
 
         if self._zeroconf is not None:
@@ -453,7 +470,8 @@ class BaseConductorManager(object):
             if self._mapped_to_this_conductor(*result[:3]):
                 yield result
 
-    def _spawn_worker(self, func, *args, **kwargs):
+    def _spawn_worker(self, func, *args, _allow_reserved_pool=True,
+                      **kwargs):
 
         """Create a greenthread to run func(*args, **kwargs).
 
@@ -466,6 +484,14 @@ class BaseConductorManager(object):
         """
         try:
             return self._executor.submit(func, *args, **kwargs)
+        except futurist.RejectedSubmission:
+            if not _allow_reserved_pool or self._reserved_executor is None:
+                raise exception.NoFreeConductorWorker()
+
+        LOG.debug('Normal workers pool is full, using reserved pool to run %s',
+                  func.__qualname__)
+        try:
+            return self._reserved_executor.submit(func, *args, **kwargs)
         except futurist.RejectedSubmission:
             raise exception.NoFreeConductorWorker()
 

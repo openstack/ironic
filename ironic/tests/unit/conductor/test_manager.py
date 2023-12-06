@@ -7609,6 +7609,15 @@ class DoNodeAdoptionTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertIsNone(node.last_error)
 
+
+@mgr_utils.mock_record_keepalive
+class HeartbeatTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
+
+    def _fake_spawn(self, conductor_obj, func, *args, **kwargs):
+        self.assertFalse(kwargs.pop('_allow_reserved_pool'))
+        func(*args, **kwargs)
+        return mock.MagicMock()
+
     # TODO(TheJulia): We should double check if these heartbeat tests need
     # to move. I have this strange feeling we were lacking rpc testing of
     # heartbeat until we did adoption testing....

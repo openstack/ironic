@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Each conductor now reserves a small proportion of its worker threads (5%
+    by default) for API requests and other critical tasks. This ensures that
+    the API stays responsive even under extreme internal load.

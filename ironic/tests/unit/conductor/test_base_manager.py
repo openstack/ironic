@@ -402,20 +402,55 @@ class ManagerSpawnWorkerTestCase(tests_base.TestCase):
     def setUp(self):
         super(ManagerSpawnWorkerTestCase, self).setUp()
         self.service = manager.ConductorManager('hostname', 'test-topic')
-        self.executor = mock.Mock(spec=futurist.GreenThreadPoolExecutor)
-        self.service._executor = self.executor
+        self.service._executor = mock.Mock(
+            spec=futurist.GreenThreadPoolExecutor)
+        self.service._reserved_executor = mock.Mock(
+            spec=futurist.GreenThreadPoolExecutor)
+
+        self.func = lambda: None
 
     def test__spawn_worker(self):
-        self.service._spawn_worker('fake', 1, 2, foo='bar', cat='meow')
+        self.service._spawn_worker(self.func, 1, 2, foo='bar', cat='meow')
 
-        self.executor.submit.assert_called_once_with(
-            'fake', 1, 2, foo='bar', cat='meow')
+        self.service._executor.submit.assert_called_once_with(
+            self.func, 1, 2, foo='bar', cat='meow')
+        self.service._reserved_executor.submit.assert_not_called()
 
-    def test__spawn_worker_none_free(self):
-        self.executor.submit.side_effect = futurist.RejectedSubmission()
+    def test__spawn_worker_reserved(self):
+        self.service._executor.submit.side_effect = \
+            futurist.RejectedSubmission()
+
+        self.service._spawn_worker(self.func, 1, 2, foo='bar', cat='meow')
+
+        self.service._executor.submit.assert_called_once_with(
+            self.func, 1, 2, foo='bar', cat='meow')
+        self.service._reserved_executor.submit.assert_called_once_with(
+            self.func, 1, 2, foo='bar', cat='meow')
+
+    def test__spawn_worker_cannot_use_reserved(self):
+        self.service._executor.submit.side_effect = \
+            futurist.RejectedSubmission()
 
         self.assertRaises(exception.NoFreeConductorWorker,
-                          self.service._spawn_worker, 'fake')
+                          self.service._spawn_worker, self.func,
+                          _allow_reserved_pool=False)
+
+    def test__spawn_worker_no_reserved(self):
+        self.service._executor.submit.side_effect = \
+            futurist.RejectedSubmission()
+        self.service._reserved_executor = None
+
+        self.assertRaises(exception.NoFreeConductorWorker,
+                          self.service._spawn_worker, self.func)
+
+    def test__spawn_worker_none_free(self):
+        self.service._executor.submit.side_effect = \
+            futurist.RejectedSubmission()
+        self.service._reserved_executor.submit.side_effect = \
+            futurist.RejectedSubmission()
+
+        self.assertRaises(exception.NoFreeConductorWorker,
+                          self.service._spawn_worker, self.func)
 
 
 @mock.patch.object(objects.Conductor, 'unregister_all_hardware_interfaces',
