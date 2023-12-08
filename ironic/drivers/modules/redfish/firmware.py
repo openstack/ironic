@@ -71,6 +71,7 @@ class RedfishFirmware(base.FirmwareInterface):
         """
         redfish_utils.parse_driver_info(task.node)
 
+    @METRICS.timer('RedfishFirmware.cache_firmware_components')
     def cache_firmware_components(self, task):
         """Store or update Firmware Components on the given node.
 
@@ -90,25 +91,27 @@ class RedfishFirmware(base.FirmwareInterface):
 
         system = redfish_utils.get_system(task.node)
 
-        bios_fw = {'component': 'bios',
-                   'current_version': system.bios_version}
-        settings.append(bios_fw)
+        if system.bios_version:
+            bios_fw = {'component': 'bios',
+                       'current_version': system.bios_version}
+            settings.append(bios_fw)
 
         # NOTE(iurygregory): normally we only relay on the System to
         # perform actions, but to retrieve the BMC Firmware we need to
         # access the Manager.
         try:
             manager = redfish_utils.get_manager(task.node, system)
-            bmc_fw = {'component': 'bmc',
-                      'current_version': manager.firmware_version}
-            settings.append(bmc_fw)
+            if manager.firmware_version:
+                bmc_fw = {'component': 'bmc',
+                          'current_version': manager.firmware_version}
+                settings.append(bmc_fw)
         except exception.RedfishError:
             LOG.warning('No manager available to retrieve Firmware '
                         'from the bmc of node %s', task.node.uuid)
 
         if not settings:
-            error_msg = (_('Cannot retrieve firmware for node %s.')
-                         % task.node.uuid)
+            error_msg = (_('Cannot retrieve firmware for node %s: no '
+                           'supported components') % task.node.uuid)
             LOG.error(error_msg)
             raise exception.UnsupportedDriverExtension(error_msg)
 
