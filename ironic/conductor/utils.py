@@ -1449,8 +1449,8 @@ def node_cache_bios_settings(task, node):
     except exception.UnsupportedDriverExtension:
         LOG.warning('BIOS settings are not supported for node %s, '
                     'skipping', node.uuid)
-    # TODO(zshi) remove this check when classic drivers are removed
     except Exception:
+        # NOTE(dtantsur): the caller expects this function to never fail
         msg = (_('Caching of bios settings failed on node %(node)s.')
                % {'node': node.uuid})
         LOG.exception(msg)
@@ -1474,6 +1474,7 @@ def node_cache_vendor(task):
     except exception.UnsupportedDriverExtension:
         return
     except Exception as exc:
+        # NOTE(dtantsur): the caller expects this function to never fail
         LOG.warning('Unexpected exception when trying to detect vendor '
                     'for node %(node)s. %(class)s: %(exc)s',
                     {'node': task.node.uuid,
@@ -1840,3 +1841,7 @@ def node_cache_firmware_components(task):
     except exception.UnsupportedDriverExtension:
         LOG.warning('Firmware Components are not supported for node %s, '
                     'skipping', task.node.uuid)
+    except Exception:
+        # NOTE(dtantsur): the caller expects this function to never fail
+        LOG.exception('Caching of firmware components failed on node %s',
+                      task.node.uuid)

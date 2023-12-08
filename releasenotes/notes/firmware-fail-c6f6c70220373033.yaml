@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Nodes no longer get stuck in cleaning when the firmware components caching
+    code raises an unexpected exception.
+  - |
+    Prevents a database constraints error on caching firmware components
+    when a supported component does not have the current version.
