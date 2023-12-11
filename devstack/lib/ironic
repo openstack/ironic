@@ -435,6 +435,7 @@ IRONIC_VPDU_SYSTEMD_SERVICE=devstack@virtualpdu.service
 IRONIC_REDFISH_EMULATOR_PORT=${IRONIC_REDFISH_EMULATOR_PORT:-9132}
 IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE="devstack@redfish-emulator.service"
 IRONIC_REDFISH_EMULATOR_CONFIG=${IRONIC_REDFISH_EMULATOR_CONFIG:-$IRONIC_CONF_DIR/redfish/emulator.conf}
+IRONIC_REDFISH_EMULATOR_FEATURE_SET=${IRONIC_REDFISH_EMULATOR_FEATURE_SET:-full}
 
 # To explicitly enable configuration of Glance with Swift
 # (which is required by some vendor drivers), set this
@@ -1063,7 +1064,8 @@ function install_redfish {
         git_clone_by_name "sushy-tools"
         setup_dev_lib "sushy-tools"
     else
-        pip_install "sushy-tools"
+        # 1.1.0 adds support for feature sets
+        pip_install "sushy-tools>=1.1.0"
     fi
 
     local cmd
@@ -1098,6 +1100,7 @@ SUSHY_EMULATOR_BOOT_LOADER_MAP = {
         'x86_64': None
     }
 }
+SUSHY_EMULATOR_FEATURE_SET = "$IRONIC_REDFISH_EMULATOR_FEATURE_SET"
 EOF
 }
 
