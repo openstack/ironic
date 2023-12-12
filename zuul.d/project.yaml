@@ -37,10 +37,7 @@
         - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
             voting: false
         - ironic-tempest-bios-ipmi-direct-tinyipa
-        # NOTE(iurygregory): Something on the nova-ironic probably broke
-        # BFV, marking as non-voting for time being to unblock gate.
-        - ironic-tempest-bfv:
-            voting: false
+        - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-centos9-legacy
         - metal3-integration
@@ -89,9 +86,7 @@
         # seeming to be
         # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
         - ironic-tempest-bios-ipmi-direct-tinyipa
-        # NOTE(iurygregory): Something on the nova-ironic probably broke
-        # BFV, removing from gate for time being.
-        # - ironic-tempest-bfv
+        - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         - metalsmith-integration-glance-centos9-legacy
         - metal3-integration
