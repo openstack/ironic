@@ -93,6 +93,13 @@ For example,
         --instance-info boot_iso=http://path/to/boot.iso
     baremetal node deploy <NODE>
 
+.. note::
+
+   While this interface example utilizes a HTTP URL, as with all fields
+   referencing file artifacts in the ``instance_info`` field, a user is
+   able to request a file path URL, or an HTTPS URL, or as a Glance Image
+   Service object UUID.
+
 .. warning::
    This feature, when utilized with the ``ipxe`` ``boot_interface``,
    will only allow a kernel and ramdisk to be booted from the
