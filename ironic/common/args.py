@@ -14,6 +14,7 @@ import functools
 import inspect
 
 import jsonschema
+from oslo_utils import netutils
 from oslo_utils import strutils
 from oslo_utils import uuidutils
 
@@ -85,6 +86,18 @@ def name(name, value):
     if not utils.is_valid_logical_name(value):
         raise exception.InvalidParameterValue(
             _('Expected name for %s: %s') % (name, value))
+    return value
+
+
+def host_port(name, value):
+    if value is None:
+        return
+    try:
+        host, port = netutils.parse_host_port(value)
+    except (ValueError, TypeError) as exc:
+        raise exception.InvalidParameterValue(f'{name}: {exc}')
+    if not host:
+        raise exception.InvalidParameterValue(_('Missing host in %s') % name)
     return value
 
 
