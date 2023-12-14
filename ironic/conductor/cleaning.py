@@ -82,11 +82,8 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False):
                                       disable_ramdisk)
     task.node.save()
 
-    # Retrieve BIOS config settings for this node
-    utils.node_cache_bios_settings(task, node)
+    utils.node_update_cache(task)
 
-    # Retrieve Firmware Components for this node if possible
-    utils.node_cache_firmware_components(task)
     # Allow the deploy driver to set up the ramdisk again (necessary for
     # IPA cleaning)
     try:

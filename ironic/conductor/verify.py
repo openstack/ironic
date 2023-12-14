@@ -73,12 +73,8 @@ def do_node_verify(task):
     if error is None:
         # NOTE(janders) this can eventually move to driver-specific
         # verify steps, will leave this for a follow-up change.
-        # Retrieve BIOS config settings for this node
-        utils.node_cache_bios_settings(task, node)
-        # Cache the vendor if possible
-        utils.node_cache_vendor(task)
-        # Cache also boot_mode and secure_boot states
-        utils.node_cache_boot_mode(task)
+        utils.node_update_cache(task)
+
         if power_state != node.power_state:
             old_power_state = node.power_state
             node.power_state = power_state

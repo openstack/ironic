@@ -1441,18 +1441,18 @@ def store_agent_certificate(node, agent_verify_ca):
         return fname
 
 
-def node_cache_bios_settings(task, node):
+def node_cache_bios_settings(task):
     """Do caching of bios settings if supported by driver"""
     try:
-        LOG.debug('Getting BIOS info for node %s', node.uuid)
+        LOG.debug('Getting BIOS info for node %s', task.node.uuid)
         task.driver.bios.cache_bios_settings(task)
     except exception.UnsupportedDriverExtension:
         LOG.warning('BIOS settings are not supported for node %s, '
-                    'skipping', node.uuid)
+                    'skipping', task.node.uuid)
     except Exception:
         # NOTE(dtantsur): the caller expects this function to never fail
         msg = (_('Caching of bios settings failed on node %(node)s.')
-               % {'node': node.uuid})
+               % {'node': task.node.uuid})
         LOG.exception(msg)
 
 
@@ -1870,3 +1870,19 @@ def run_node_action(task, call, error_msg, success_msg=None, **kwargs):
     task.node.save()
     if not error and success_msg:
         LOG.info(success_msg, dict(kwargs, node=task.node.uuid))
+
+
+def node_update_cache(task):
+    """Updates various cached information.
+
+    Includes vendor, boot mode, BIOS settings and firmware components.
+
+    :param task: A TaskManager instance containing the node to act on.
+    """
+    # FIXME(dtantsur): in case of Redfish, these 4 calls may result in the
+    # System object loaded at least 4 times. "Cache whatever you can" should
+    # probably be a driver call, just not clear in which interface.
+    node_cache_vendor(task)
+    node_cache_boot_mode(task)
+    node_cache_bios_settings(task)
+    node_cache_firmware_components(task)
