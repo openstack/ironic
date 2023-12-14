@@ -1526,9 +1526,7 @@ function configure_ironic {
     # Set fast track options
     iniset $IRONIC_CONF_FILE deploy fast_track $IRONIC_DEPLOY_FAST_TRACK
 
-    # FIXME(dtantsur): configdrive downloading code does not respect IPA TLS
-    # configuration, not even ipa-insecure.
-    if is_service_enabled swift && [[ "$SWIFT_ENABLE_TEMPURLS" == "True" ]] && ! is_service_enabled tls-proxy; then
+    if is_service_enabled swift && [[ "$SWIFT_ENABLE_TEMPURLS" == "True" ]]; then
         iniset $IRONIC_CONF_FILE deploy configdrive_use_object_store True
     fi
 
