@@ -74,7 +74,6 @@ IRONIC_STATE_PATH=/var/lib/ironic
 IRONIC_AUTH_CACHE_DIR=${IRONIC_AUTH_CACHE_DIR:-/var/cache/ironic}
 IRONIC_CONF_DIR=${IRONIC_CONF_DIR:-/etc/ironic}
 IRONIC_CONF_FILE=$IRONIC_CONF_DIR/ironic.conf
-IRONIC_ROOTWRAP_CONF=$IRONIC_CONF_DIR/rootwrap.conf
 # Deploy Ironic API under uwsgi (NOT mod_wsgi) server.
 # Devstack aims to remove mod_wsgi support, so ironic shouldn't use it too.
 # If set to False that will fall back to use the eventlet server that
@@ -1678,24 +1677,6 @@ function configure_ironic_conductor {
         configure_client_for $conf_section
     done
 
-    configure_rootwrap ironic
-
-    # additional rootwrap config from ironic-lib
-    local ironic_lib_prefix
-    if use_library_from_git "ironic-lib"; then
-        ironic_lib_prefix=${GITDIR["ironic-lib"]}
-    else
-        # pip uses default python 'data' path
-        ironic_lib_prefix=$(python3 -c "import sysconfig; \
-            print(sysconfig.get_path('data'))")
-
-        # on Centos7 the data is installed to /usr/local
-        if [ ! -d $ironic_lib_prefix/etc/ironic/rootwrap.d ]; then
-            ironic_lib_prefix=/usr/local
-        fi
-    fi
-    sudo install -o root -g root -m 644 $ironic_lib_prefix/etc/ironic/rootwrap.d/*.filters /etc/ironic/rootwrap.d
-
     # set up drivers / hardware types
     iniset $IRONIC_CONF_FILE DEFAULT enabled_hardware_types $IRONIC_ENABLED_HARDWARE_TYPES
 
@@ -1756,7 +1737,6 @@ function configure_ironic_conductor {
         iniset $IRONIC_CONF_FILE pxe loader_file_paths $IRONIC_LOADER_PATHS
     fi
 
-    iniset $IRONIC_CONF_FILE DEFAULT rootwrap_config $IRONIC_ROOTWRAP_CONF
     iniset $IRONIC_CONF_FILE service_catalog endpoint_override "$IRONIC_SERVICE_PROTOCOL://$([[ $IRONIC_HTTP_SERVER =~ : ]] && echo "[$IRONIC_HTTP_SERVER]" || echo $IRONIC_HTTP_SERVER)/baremetal"
     if [[ -n "$IRONIC_CALLBACK_TIMEOUT" ]]; then
         iniset $IRONIC_CONF_FILE conductor deploy_callback_timeout $IRONIC_CALLBACK_TIMEOUT
