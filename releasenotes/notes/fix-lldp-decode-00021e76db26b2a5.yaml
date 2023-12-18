@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    In case the lldp raw data collected by the inspection process
+    includes non utf-8 information, the parser fails breaking
+    the inspection process.
+    This patch works around that excluding the malformed data
+    and adding an entry in the logs to provide information
+    on the failed tlv.

@@ -55,7 +55,16 @@ class ParseLLDPHook(base.InspectionHook):
                                  'node': node_uuid})
                 continue
 
-            if parser.parse_tlv(tlv_type, data):
+            try:
+                parsed_tlv = parser.parse_tlv(tlv_type, data)
+            except UnicodeDecodeError as e:
+                LOG.warning("LLDP TLV type %(tlv_type)d from Node '%(node)s' "
+                            "can't be decoded: %(exc)s",
+                            {'tlv_type': tlv_type, 'exc': e,
+                             'node': node_uuid})
+                continue
+
+            if parsed_tlv:
                 LOG.debug("Handled TLV type %d. Node: %s", tlv_type, node_uuid)
             else:
                 LOG.debug("LLDP TLV type %d not handled. Node: %s", tlv_type,
