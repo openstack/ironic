@@ -53,6 +53,9 @@ trade-offs.
   as prior requests complete. In environments with long running synchronous
   calls, such as use of the vendor passthru interface, this can be very
   problematic.
+* As a combined ``ironic`` process. In this case, green threads_ are used,
+  which allows for a smaller memory footprint at the expense of only using
+  one CPU core.
 
 When the webserver is launched by the API process directly, the default is
 based upon the number of CPU sockets in your machine.
@@ -112,6 +115,41 @@ With a single nova-compute process talking to a single conductor, asked to
 perform ten concurrent deployments of images requiring conversion, the memory
 needed may exceed 10GB. This does however, entirely depend upon image block
 structure and layout, and what deploy interface is being used.
+
+.. _worker-threads:
+
+Threads
+-------
+
+The conductor uses green threads based on Eventlet_ project to allow a very
+high concurrency while keeping the memory footprint low. When a request comes
+from the API to the conductor over the RPC, the conductor verifies it, acquires
+a node-level lock (if needed) and launches a processing thread for further
+handling. The maximum number of such threads is limited to the value of
+:oslo.config:option:`conductor.workers_pool_size` configuration option.
+
+.. note::
+   Some workers are always or regularly occupied by internal processes, e.g.
+   :doc:`/admin/power-sync`.
+
+Once the limit is reached, any new requests will be denied with HTTP code 503
+(service unavailable). The clients are expected to be able to handle this code,
+most likely by retrying after a short delay or by throttling their requests.
+If you see a large number of this errors, you may try raising the limit
+gradually, while observing the conductor behavior and making sure the requests
+don't start to take longer because of switching between threads. A better
+alternative is to increase the number of conductors because it will also allow
+using more than one CPU core.
+
+.. note::
+   Running more than one conductor on the same machine is a somewhat uncharted
+   territory. You need to make sure they either have separate HTTP servers or
+   share the same HTTP server without conflicting.
+
+   If you use JSON RPC, you also need to make sure the ports don't conflict by
+   setting the :oslo.config:option:`json_rpc.port` option.
+
+.. _eventlet: https://eventlet.net/
 
 Database
 ========
