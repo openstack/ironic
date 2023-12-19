@@ -43,7 +43,6 @@ RAID_LEVELS = {
         'min_disks': 1,
         'max_disks': 1000,
         'type': 'simple',
-        'volume_type': 'NonRedundant',
         'raid_type': 'RAID0',
         'overhead': 0
     },
@@ -51,7 +50,6 @@ RAID_LEVELS = {
         'min_disks': 2,
         'max_disks': 2,
         'type': 'simple',
-        'volume_type': 'Mirrored',
         'raid_type': 'RAID1',
         'overhead': 1
     },
@@ -59,7 +57,6 @@ RAID_LEVELS = {
         'min_disks': 3,
         'max_disks': 1000,
         'type': 'simple',
-        'volume_type': 'StripedWithParity',
         'raid_type': 'RAID5',
         'overhead': 1
     },
@@ -67,25 +64,21 @@ RAID_LEVELS = {
         'min_disks': 4,
         'max_disks': 1000,
         'type': 'simple',
-        'volume_type': 'StripedWithParity',
         'raid_type': 'RAID6',
         'overhead': 2
     },
     '1+0': {
         'type': 'spanned',
-        'volume_type': 'SpannedMirrors',
         'raid_type': 'RAID10',
         'span_type': '1'
     },
     '5+0': {
         'type': 'spanned',
-        'volume_type': 'SpannedStripesWithParity',
         'raid_type': 'RAID50',
         'span_type': '5'
     },
     '6+0': {
         'type': 'spanned',
-        'volume_type': 'SpannedStripesWithParity',
         'raid_type': 'RAID60',
         'span_type': '6'
     }
@@ -618,13 +611,15 @@ def _drive_path(storage, drive_id):
 def _construct_volume_payload(
         node, storage, raid_controller, physical_disks, raid_level, size_bytes,
         disk_name=None, span_length=None, span_depth=None):
-    payload = {'Encrypted': False,
-               'VolumeType': RAID_LEVELS[raid_level]['volume_type'],
-               'RAIDType': RAID_LEVELS[raid_level]['raid_type'],
-               'CapacityBytes': size_bytes}
+    payload = {
+        'RAIDType': RAID_LEVELS[raid_level]['raid_type'],
+        'CapacityBytes': size_bytes
+    }
     if physical_disks:
-        payload['Drives'] = [{"@odata.id": _drive_path(storage, d)} for d in
-                             physical_disks]
+        payload['Links'] = {
+            "Drives": [{"@odata.id": _drive_path(storage, d)} for d in
+                       physical_disks]
+        }
     if disk_name:
         payload['Name'] = disk_name
     LOG.debug('Payload for RAID logical disk creation on node %(node_uuid)s: '
@@ -1152,8 +1147,7 @@ class RedfishRAID(base.RAIDInterface):
                     controller_id = storage.identity
                 iter_volumes = iter(storage.volumes.get_members())
                 for volume in iter_volumes:
-                    if (volume.raid_type or volume.volume_type not in
-                            [None, sushy.VOLUME_TYPE_RAW_DEVICE]):
+                    if volume.raid_type:
                         if controller_id not in vols_to_delete:
                             vols_to_delete[controller_id] = []
                         apply_time = self._get_apply_time(
