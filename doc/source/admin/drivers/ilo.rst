@@ -20,6 +20,11 @@ known issues, etc), please check the `iLO driver wiki page <https://wiki.opensta
 For enabling Gen10 systems and getting detailed information on Gen10 feature
 support in Ironic please check this `Gen10 wiki section`_.
 
+.. warning::
+   Starting from Gen11 servers and above (iLO6 and above) use ``redfish``
+   (see :doc:`redfish`) hardware type for baremetal provisioning and
+   management.
+
 Hardware type
 =============
 
@@ -29,9 +34,6 @@ hardware can be used with reference hardware type ``ipmi`` (see
 :doc:`ipmitool`) and ``redfish`` (see :doc:`redfish`). For information on how
 to enable the ``ilo`` and ``ilo5`` hardware type, see
 :ref:`enable-hardware-types`.
-
-.. note::
-   Only HPE ProLiant Gen10 servers supports hardware type ``redfish``.
 
 .. warning::
    It is important to note that while the HPE Edgeline series of servers may
