@@ -6,7 +6,7 @@ Overview
 ========
 
 .. warning::
-   The ``xlcarity`` driver has been deprecated and is anticipated to be removed
+   The ``xclarity`` driver has been deprecated and is anticipated to be removed
    from Ironic at some point during or after the 2024.2 development cycle.
    The anticipated forward management path is to migrate to the ``redfish``
    hardware type.
