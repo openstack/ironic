@@ -1278,7 +1278,7 @@ def _check_steps(steps, step_type, schema):
     for step in steps:
         eocn = step.get('execute_on_child_nodes')
         child_nodes = step.get('limit_child_node_execution')
-        if eocn and type(child_nodes) == list:
+        if eocn and isinstance(child_nodes, list):
             # Extract each element, validate permission to access node.
             for entry in child_nodes:
                 if not uuidutils.is_uuid_like(entry):
