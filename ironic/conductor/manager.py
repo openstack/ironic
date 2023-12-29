@@ -2624,7 +2624,11 @@ class ConductorManager(base_manager.BaseConductorManager):
                     sensors_data = task.driver.management.get_sensors_data(
                         task)
             except NotImplementedError:
-                LOG.warning(
+                # NOTE(JayF): In mixed deployments with some nodes supporting
+                # sensor data and others not, logging this at warning level
+                # creates unreasonable levels of logging noise.
+                # See https://bugs.launchpad.net/ironic/+bug/2047709
+                LOG.debug(
                     'get_sensors_data is not implemented for driver'
                     ' %(driver)s, node_uuid is %(node)s',
                     {'node': node_uuid, 'driver': driver})
