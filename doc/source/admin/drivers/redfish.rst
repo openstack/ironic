@@ -302,6 +302,14 @@ Then the following script can be used to build an ESP image:
    If you use an architecture other than x86-64, you'll need to adjust the
    destination paths.
 
+.. warning::
+   If you are using secure boot, you *must* utilize the same SHIM and GRUB
+   binaries matching your distribution's kernel and ramdisk, otherwise the
+   Secure Boot "chain of trust" will be broken.
+   Additionally, if you encounter odd issues UEFI booting with virtual media
+   which point to the bootloader, verify the appropriate distribution matching
+   binaries are in use.
+
 The resulting image should be provided via the ``driver_info/bootloader``
 ironic node property in form of an image UUID or a URL:
 
