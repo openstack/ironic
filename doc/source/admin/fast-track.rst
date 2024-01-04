@@ -48,23 +48,24 @@ node:
 Inspection
 ----------
 
-If using :ref:`in-band inspection`, you need to tell ironic-inspector not to
-power off nodes afterwards. Depending on the inspection mode (managed or
-unmanaged), you need to configure two places. In ``ironic.conf``:
+If using :ref:`in-band inspection`, you need to tell ironic or ironic-inspector
+not to power off nodes afterwards. Depending on the inspection mode (managed or
+unmanaged, with ironic-inspector or without), you need to configure two places.
+In ``ironic.conf``:
 
 .. code-block:: ini
 
    [inspector]
    power_off = false
 
-And in ``inspector.conf``:
+And in ``inspector.conf`` (if needed):
 
 .. code-block:: ini
 
    [processing]
    power_off = false
 
-Finally, you need to update the :ironic-inspector-doc:`inspection PXE
-configuration <install/index.html#configuration>` to include the
+Finally, you need to update the :ref:`inspection PXE/iPXE
+configuration <configure-unmanaged-inspection>` to include the
 ``ipa-api-url`` kernel parameter, pointing at the **ironic** endpoint, in
 addition to the existing ``ipa-inspection-callback-url``.
