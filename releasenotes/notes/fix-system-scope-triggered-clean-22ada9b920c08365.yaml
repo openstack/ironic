@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixes an issue where a System Scoped user could not trigger a node into
+    a ``manageable`` state with cleaning enabled, as the Neutron client would
+    attempt to utilize their user's token to create the Neutron port for the
+    cleaning operation, as designed. This is because with requests made in the
+    ``system`` scope, there is no associated project and the request fails.
+
+    Ironic now checks if the request has been made with a ``system`` scope,
+    and if so it utilizes the internal credential configuration to communicate
+    with Neutron.
