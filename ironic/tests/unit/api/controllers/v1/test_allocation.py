@@ -28,6 +28,7 @@ from oslo_utils import uuidutils
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import notification_utils
+from ironic.api.controllers.v1 import utils as v1_api_utils
 from ironic.common import exception
 from ironic.common import policy
 from ironic.conductor import rpcapi
@@ -415,6 +416,16 @@ class TestListAllocations(test_api_base.BaseApiTest):
     def test_get_all_by_owner_not_allowed(self):
         response = self.get_json("/allocations?owner=12345",
                                  headers={api_base.Version.string: '1.59'},
+                                 expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
+        self.assertTrue(response.json['error_message'])
+
+    @mock.patch.object(v1_api_utils, 'check_list_policy', autospec=True)
+    def test_get_all_by_owner_not_allowed_mismatch(self, mock_check):
+        mock_check.return_value = '54321'
+        response = self.get_json("/allocations?owner=12345",
+                                 headers={api_base.Version.string: '1.60'},
                                  expect_errors=True)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_code)
