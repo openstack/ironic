@@ -98,6 +98,8 @@
         - docker images
         - docker ps --all
         - systemctl
+        - df -h
+        - df -i
 
     - name: Copy libvirt logs
       copy:
