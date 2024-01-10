@@ -271,11 +271,22 @@ class AllocationsController(pecan.rest.RestController):
            :fields: fields
            :owner: r_owner
         """
-        owner = api_utils.check_list_policy('allocation', owner)
+        requestor = api_utils.check_list_policy('allocation', owner)
 
         self._check_allowed_allocation_fields(fields)
         if owner is not None and not api_utils.allow_allocation_owner():
+            # Requestor has asked for an owner field/column match, but
+            # their client version does not support it.
             raise exception.NotAcceptable()
+        if (owner is not None
+                and requestor is not None
+                and owner != requestor):
+            # The requestor is asking about other owner's records.
+            # Naughty!
+            raise exception.NotAcceptable()
+
+        if requestor is not None:
+            owner = requestor
 
         return self._get_allocations_collection(node, resource_class, state,
                                                 owner, marker, limit,
