@@ -45,8 +45,6 @@
         # Non-voting jobs
         - ironic-inspector-tempest:
             voting: false
-        - ironic-inspector-tempest-managed-non-standalone:
-            voting: false
         - ironic-inspector-tempest-uefi-redfish-vmedia:
             voting: false
         - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
