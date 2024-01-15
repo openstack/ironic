@@ -322,13 +322,21 @@ class FileImageService(BaseImageService):
             image_file.close()
             os.remove(dest_image_path)
 
+            # NOTE(dtantsur): os.link is supposed to follow symlinks, but it
+            # does not: https://github.com/python/cpython/issues/81793
+            real_image_path = os.path.realpath(source_image_path)
             try:
-                os.link(source_image_path, dest_image_path)
+                os.link(real_image_path, dest_image_path)
             except OSError as exc:
-                LOG.debug('Could not create a link from %(src)s to %(dest)s, '
-                          'will copy the content instead. Error: %(exc)s.',
+                orig = (f' (real path {real_image_path})'
+                        if real_image_path != source_image_path
+                        else '')
+
+                LOG.debug('Could not create a link from %(src)s%(orig)s to '
+                          '%(dest)s, will copy the content instead. '
+                          'Error: %(exc)s.',
                           {'src': source_image_path, 'dest': dest_image_path,
-                           'exc': exc})
+                           'orig': orig, 'exc': exc})
             else:
                 return
 
