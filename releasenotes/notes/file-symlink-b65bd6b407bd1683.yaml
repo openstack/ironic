@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes the behavior of ``file:///`` image URLs pointing at a symlink.
+    Ironic no longer creates a hard link to the symlink, which could cause
+    confusing FileNotFoundError to happen if the symlink is relative.
