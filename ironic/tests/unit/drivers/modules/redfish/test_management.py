@@ -121,7 +121,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 (boot_devices.PXE, sushy.BOOT_SOURCE_TARGET_PXE),
                 (boot_devices.DISK, sushy.BOOT_SOURCE_TARGET_HDD),
                 (boot_devices.CDROM, sushy.BOOT_SOURCE_TARGET_CD),
-                (boot_devices.BIOS, sushy.BOOT_SOURCE_TARGET_BIOS_SETUP)
+                (boot_devices.BIOS, sushy.BOOT_SOURCE_TARGET_BIOS_SETUP),
+                (boot_devices.UEFIHTTP, sushy.BOOT_SOURCE_TARGET_UEFI_HTTP)
             ]
 
             for target, expected in expected_values:
@@ -130,7 +131,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 # Asserts
                 fake_system.set_system_boot_options.assert_has_calls(
                     [mock.call(expected,
-                               enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)])
+                               enabled=sushy.BOOT_SOURCE_ENABLED_ONCE,
+                               http_boot_uri=None)])
                 mock_get_system.assert_called_with(task.node)
                 self.assertNotIn('redfish_boot_device',
                                  task.node.driver_internal_info)
@@ -156,7 +158,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
                 fake_system.set_system_boot_options.assert_has_calls(
                     [mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
-                               enabled=expected)])
+                               enabled=expected, http_boot_uri=None)])
                 mock_get_system.assert_called_with(task.node)
                 self.assertNotIn('redfish_boot_device',
                                  task.node.driver_internal_info)
@@ -183,7 +185,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                     task, boot_devices.PXE, persistent=target)
 
                 fake_system.set_system_boot_options.assert_has_calls(
-                    [mock.call(sushy.BOOT_SOURCE_TARGET_PXE, enabled=None)])
+                    [mock.call(sushy.BOOT_SOURCE_TARGET_PXE, enabled=None,
+                               http_boot_uri=None)])
                 mock_get_system.assert_called_with(task.node)
 
                 # Reset mocks
@@ -205,7 +208,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.driver.management.set_boot_device, task, boot_devices.PXE)
             fake_system.set_system_boot_options.assert_called_once_with(
                 sushy.BOOT_SOURCE_TARGET_PXE,
-                enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
+                enabled=sushy.BOOT_SOURCE_ENABLED_ONCE,
+                http_boot_uri=None)
             mock_get_system.assert_called_once_with(task.node)
             self.assertNotIn('redfish_boot_device',
                              task.node.driver_internal_info)
@@ -232,7 +236,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                     task.driver.management.set_boot_device, task,
                     boot_devices.PXE, persistent=target)
                 fake_system.set_system_boot_options.assert_called_once_with(
-                    sushy.BOOT_SOURCE_TARGET_PXE, enabled=None)
+                    sushy.BOOT_SOURCE_TARGET_PXE, enabled=None,
+                    http_boot_uri=None)
                 mock_get_system.assert_called_once_with(task.node)
                 self.assertNotIn('redfish_boot_device',
                                  task.node.driver_internal_info)
@@ -258,9 +263,11 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task, boot_devices.PXE, persistent=True)
             fake_system.set_system_boot_options.assert_has_calls([
                 mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
-                          enabled=sushy.BOOT_SOURCE_ENABLED_CONTINUOUS),
+                          enabled=sushy.BOOT_SOURCE_ENABLED_CONTINUOUS,
+                          http_boot_uri=None),
                 mock.call(sushy.BOOT_SOURCE_TARGET_PXE,
-                          enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
+                          enabled=sushy.BOOT_SOURCE_ENABLED_ONCE,
+                          http_boot_uri=None)
             ])
             mock_get_system.assert_called_with(task.node)
 
@@ -292,7 +299,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.driver.management.set_boot_device(
                     task, boot_devices.PXE, persistent=True)
                 fake_system.set_system_boot_options.assert_called_once_with(
-                    sushy.BOOT_SOURCE_TARGET_PXE, enabled=expected)
+                    sushy.BOOT_SOURCE_TARGET_PXE, enabled=expected,
+                    http_boot_uri=None)
                 if vendor == 'SuperMicro':
                     mock_sync_boot_mode.assert_called_once_with(task)
                 else:
@@ -302,6 +310,28 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 fake_system.set_system_boot_options.reset_mock()
                 mock_sync_boot_mode.reset_mock()
                 mock_get_system.reset_mock()
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test_set_boot_device_http_boot(self, mock_get_system):
+        fake_system = mock.Mock()
+        mock_get_system.return_value = fake_system
+        self.node.driver_internal_info = {
+            'redfish_uefi_http_url': 'http://foo.url'}
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            task.driver.management.set_boot_device(task,
+                                                   boot_devices.UEFIHTTP)
+            fake_system.set_system_boot_options.assert_has_calls(
+                [mock.call(sushy.BOOT_SOURCE_TARGET_UEFI_HTTP,
+                           enabled=sushy.BOOT_SOURCE_ENABLED_ONCE,
+                           http_boot_uri='http://foo.url')])
+            mock_get_system.assert_called_with(task.node)
+            self.assertNotIn('redfish_boot_device',
+                             task.node.driver_internal_info)
+            task.node.refresh()
+            self.assertNotIn('redfish_uefi_http_url',
+                             task.node.driver_internal_info)
 
     def test_restore_boot_device(self):
         fake_system = mock.Mock()
@@ -315,7 +345,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
             fake_system.set_system_boot_options.assert_called_once_with(
                 sushy.BOOT_SOURCE_TARGET_HDD,
-                enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
+                enabled=sushy.BOOT_SOURCE_ENABLED_ONCE,
+                http_boot_uri=None)
             # The stored boot device is kept intact
             self.assertEqual(
                 boot_devices.DISK,
@@ -332,7 +363,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
             fake_system.set_system_boot_options.assert_called_once_with(
                 sushy.BOOT_SOURCE_TARGET_HDD,
-                enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
+                enabled=sushy.BOOT_SOURCE_ENABLED_ONCE,
+                http_boot_uri=None)
             # The stored boot device is kept intact
             self.assertEqual(
                 "hdd",
@@ -362,7 +394,8 @@ class RedfishManagementTestCase(db_base.DbTestCase):
 
             fake_system.set_system_boot_options.assert_called_once_with(
                 sushy.BOOT_SOURCE_TARGET_HDD,
-                enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
+                enabled=sushy.BOOT_SOURCE_ENABLED_ONCE,
+                http_boot_uri=None)
             self.assertTrue(mock_log.called)
             # The stored boot device is kept intact
             self.assertEqual(

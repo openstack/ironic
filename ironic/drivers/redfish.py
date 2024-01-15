@@ -59,7 +59,8 @@ class RedfishHardware(generic.GenericHardware):
         # NOTE(dtantsur): virtual media goes last because of limited hardware
         # vendors support.
         return [ipxe.iPXEBoot, pxe.PXEBoot,
-                redfish_boot.RedfishVirtualMediaBoot]
+                redfish_boot.RedfishVirtualMediaBoot,
+                redfish_boot.RedfishHttpsBoot]
 
     @property
     def supported_vendor_interfaces(self):

@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds support for Redfish based HTTPBoot, which leveragings the DMTF Redfish
+    ``HttpBootUri`` ``ComputerSystem`` resource in a BMC, to assert the URL
+    for the next boot operation. This requires Sushy 4.7.0 as the minimum
+    version.

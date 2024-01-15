@@ -52,7 +52,8 @@ if sushy:
         sushy.BOOT_SOURCE_TARGET_PXE: boot_devices.PXE,
         sushy.BOOT_SOURCE_TARGET_HDD: boot_devices.DISK,
         sushy.BOOT_SOURCE_TARGET_CD: boot_devices.CDROM,
-        sushy.BOOT_SOURCE_TARGET_BIOS_SETUP: boot_devices.BIOS
+        sushy.BOOT_SOURCE_TARGET_BIOS_SETUP: boot_devices.BIOS,
+        sushy.BOOT_SOURCE_TARGET_UEFI_HTTP: boot_devices.UEFIHTTP
     }
 
     BOOT_DEVICE_MAP_REV = {v: k for k, v in BOOT_DEVICE_MAP.items()}
@@ -101,7 +102,8 @@ _FIRMWARE_UPDATE_ARGS = {
     }}
 
 
-def _set_boot_device(task, system, device, persistent=False):
+def _set_boot_device(task, system, device, persistent=False,
+                     http_boot_url=None):
     """An internal routine to set the boot device.
 
     :param task: a task from TaskManager.
@@ -110,6 +112,8 @@ def _set_boot_device(task, system, device, persistent=False):
     :param persistent: Boolean value. True if the boot device will
                        persist to all future boots, False if not.
                        Default: False.
+    :param http_boot_url: A string value to be sent to the sushy library,
+                          which is sent to the BMC as the url to boot from.
     :raises: SushyError on an error from the Sushy library
     """
 
@@ -133,7 +137,10 @@ def _set_boot_device(task, system, device, persistent=False):
         enabled = (desired_enabled
                    if desired_enabled != current_enabled else None)
     try:
-        system.set_system_boot_options(device, enabled=enabled)
+        # NOTE(TheJulia): In sushy, it is uri, due to the convention used
+        # in the standard. URL is used internally in ironic.
+        system.set_system_boot_options(device, enabled=enabled,
+                                       http_boot_uri=http_boot_url)
     except sushy.exceptions.SushyError as e:
         if enabled == sushy.BOOT_SOURCE_ENABLED_CONTINUOUS:
             # NOTE(dtantsur): continuous boot device settings have been
@@ -146,7 +153,8 @@ def _set_boot_device(task, system, device, persistent=False):
                       'falling back to one-time boot settings',
                       {'error': e, 'node': task.node.uuid})
             system.set_system_boot_options(
-                device, enabled=sushy.BOOT_SOURCE_ENABLED_ONCE)
+                device, enabled=sushy.BOOT_SOURCE_ENABLED_ONCE,
+                http_boot_uri=http_boot_url)
             LOG.warning('Could not set persistent boot device to '
                         '%(dev)s for node %(node)s, using one-time '
                         'boot device instead',
@@ -254,6 +262,8 @@ class RedfishManagement(base.ManagementInterface):
         """
         utils.pop_node_nested_field(
             task.node, 'driver_internal_info', 'redfish_boot_device')
+        http_boot_url = utils.pop_node_nested_field(
+            task.node, 'driver_internal_info', 'redfish_uefi_http_url')
         task.node.save()
 
         system = redfish_utils.get_system(task.node)
@@ -261,7 +271,7 @@ class RedfishManagement(base.ManagementInterface):
         try:
             _set_boot_device(
                 task, system, BOOT_DEVICE_MAP_REV[device],
-                persistent=persistent)
+                persistent=persistent, http_boot_url=http_boot_url)
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Redfish set boot device failed for node '
                            '%(node)s. Error: %(error)s') %
