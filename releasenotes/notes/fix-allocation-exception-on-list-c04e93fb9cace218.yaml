@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue when listing allocations as a project scoped user when
+    the legacy RBAC policies have been disabled which forced an HTTP 406
+    error being erroneously raised. Users attempting to list allocations
+    with a specific owner, different from their own, will now receive
+    an HTTP 403 error.
