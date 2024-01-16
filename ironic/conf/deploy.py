@@ -29,6 +29,8 @@ opts = [
                help=_("ironic-conductor node's HTTP root path.")),
     cfg.StrOpt('image_server_auth_strategy',
                default='noauth',
+               choices=[('noauth', _('No authentication')),
+                        ('http_basic', _('HTTP Basic authentication'))],
                mutable=True,
                help=_("Used to select authentication strategy against the "
                        "image hosting HTTP(S) server. When set to http_basic "
