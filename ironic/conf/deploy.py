@@ -45,6 +45,7 @@ opts = [
                       "the http_basic authentication strategy.")),
     cfg.StrOpt('image_server_password',
                mutable=True,
+               secret=True,
                help=_("Can be used by any authentication strategy that "
                       "requires password credential. Currently utilized by "
                       "the http_basic authentication strategy.")),
