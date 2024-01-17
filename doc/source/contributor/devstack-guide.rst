@@ -292,13 +292,13 @@ user::
 
     . ~/devstack/openrc demo
 
-    # query the image id of the default cirros image
-    image=$(openstack image show $DEFAULT_IMAGE_NAME -f value -c id)
-
     # create keypair
     ssh-keygen
     openstack keypair create --public-key ~/.ssh/id_rsa.pub default
 
+Now you're ready to build::
+
+    openstack server create --flavor baremetal --nic net-id=$net_id --image $image --key-name default testing
 
 You should now see a Nova instance building::
 
