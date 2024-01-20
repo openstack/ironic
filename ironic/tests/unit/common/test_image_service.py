@@ -612,6 +612,7 @@ class FileImageServiceTestCase(base.TestCase):
 
     @mock.patch.object(shutil, 'copyfile', autospec=True)
     @mock.patch.object(os, 'link', autospec=True)
+    @mock.patch.object(os.path, 'realpath', lambda p: p)
     @mock.patch.object(os, 'remove', autospec=True)
     @mock.patch.object(image_service.FileImageService, 'validate_href',
                        autospec=True)
@@ -641,6 +642,24 @@ class FileImageServiceTestCase(base.TestCase):
         _validate_mock.assert_called_once_with(mock.ANY, self.href)
         link_mock.assert_called_once_with(self.href_path, 'file')
         copy_mock.assert_called_once_with(self.href_path, 'file')
+
+    @mock.patch.object(shutil, 'copyfile', autospec=True)
+    @mock.patch.object(os, 'link', autospec=True)
+    @mock.patch.object(os.path, 'realpath', autospec=True)
+    @mock.patch.object(os, 'remove', autospec=True)
+    @mock.patch.object(image_service.FileImageService, 'validate_href',
+                       autospec=True)
+    def test_download_symlink(self, _validate_mock, remove_mock,
+                              realpath_mock, link_mock, copy_mock):
+        _validate_mock.return_value = self.href_path
+        realpath_mock.side_effect = lambda p: p + '.real'
+        file_mock = mock.MagicMock(spec=io.BytesIO)
+        file_mock.name = 'file'
+        self.service.download(self.href, file_mock)
+        _validate_mock.assert_called_once_with(mock.ANY, self.href)
+        realpath_mock.assert_called_once_with(self.href_path)
+        link_mock.assert_called_once_with(self.href_path + '.real', 'file')
+        copy_mock.assert_not_called()
 
     @mock.patch.object(shutil, 'copyfile', autospec=True)
     @mock.patch.object(os, 'link', autospec=True)
