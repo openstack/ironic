@@ -300,8 +300,8 @@
         # result and makes this job VERY sensitive to heavy disk IO of the
         # underlying hypervisor/cloud.
         IRONIC_CALLBACK_TIMEOUT: 800
-        IRONIC_GRUB2_SHIM_FILE: https://mirror.iad3.inmotion.opendev.org/centos-stream/9-stream/BaseOS/x86_64/os/EFI/BOOT/BOOTX64.EFI
-        IRONIC_GRUB2_FILE: https://mirror.iad3.inmotion.opendev.org/centos-stream/9-stream/BaseOS/x86_64/os/EFI/BOOT/grubx64.efi
+        IRONIC_GRUB2_SHIM_FILE: https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/EFI/BOOT/BOOTX64.EFI
+        IRONIC_GRUB2_FILE: https://mirror.stream.centos.org/9-stream/BaseOS/x86_64/os/EFI/BOOT/grubx64.efi
         IRONIC_GRUB2_CONFIG_PATH: EFI/BOOT/grub.cfg
       devstack_services:
         s-account: True
