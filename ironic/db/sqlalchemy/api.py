@@ -1621,7 +1621,7 @@ class Connection(api.Connection):
                 _('Node with port addresses %s was not found')
                 % addresses)
         except MultipleResultsFound:
-            raise exception.NodeNotFound(
+            raise exception.DuplicateNodeOnLookup(
                 _('Multiple nodes with port addresses %s were found')
                 % addresses)
 

@@ -8605,17 +8605,34 @@ class ContinueInspectionTestCase(mgr_utils.ServiceSetUpMixin,
             self.service, inspection.continue_inspection, mock.ANY,
             {"test": "inventory"}, ["plugin data"])
 
-    def test_wrong_state(self):
+    @mock.patch.object(manager.ConductorManager, '_spawn_worker',
+                       autospec=True)
+    def test_continue_with_discovery(self, mock_spawn):
+        CONF.set_override('enabled', True, group='auto_discovery')
         node = obj_utils.create_test_node(self.context,
-                                          provision_state=states.AVAILABLE)
-        exc = self.assertRaises(messaging.rpc.ExpectedException,
-                                self.service.continue_inspection,
-                                self.context, node.id,
-                                {"test": "inventory"},
-                                ["plugin data"])
-        self.assertEqual(exception.NotFound, exc.exc_info[0])
+                                          provision_state=states.ENROLL)
+        self.service.continue_inspection(self.context, node.id,
+                                         {"test": "inventory"},
+                                         ["plugin data"])
         node.refresh()
-        self.assertEqual(states.AVAILABLE, node.provision_state)
+        self.assertEqual(states.ENROLL, node.provision_state)
+        mock_spawn.assert_called_once_with(
+            self.service, inspection.continue_inspection, mock.ANY,
+            {"test": "inventory"}, ["plugin data"])
+
+    def test_wrong_state(self):
+        for state in (states.ENROLL, states.AVAILABLE, states.ACTIVE):
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              provision_state=state)
+            exc = self.assertRaises(messaging.rpc.ExpectedException,
+                                    self.service.continue_inspection,
+                                    self.context, node.id,
+                                    {"test": "inventory"},
+                                    ["plugin data"])
+            self.assertEqual(exception.NotFound, exc.exc_info[0])
+            node.refresh()
+            self.assertEqual(state, node.provision_state)
 
 
 @mgr_utils.mock_record_keepalive

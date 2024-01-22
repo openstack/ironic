@@ -273,6 +273,10 @@ class NodeNotFound(NotFound):
     _msg_fmt = _("Node %(node)s could not be found.")
 
 
+class DuplicateNodeOnLookup(NodeNotFound):
+    pass  # Same error message, the difference only matters internally
+
+
 class PortgroupNotFound(NotFound):
     _msg_fmt = _("Portgroup %(portgroup)s could not be found.")
 

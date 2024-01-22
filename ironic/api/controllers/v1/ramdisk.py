@@ -16,10 +16,12 @@ from http import client as http_client
 
 from oslo_config import cfg
 from oslo_log import log
+from oslo_utils import uuidutils
 from pecan import rest
 
 from ironic import api
 from ironic.api.controllers.v1 import node as node_ctl
+from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
 from ironic.api import method
@@ -298,6 +300,45 @@ DATA_VALIDATOR = args.schema({
 class ContinueInspectionController(rest.RestController):
     """Controller handling inspection data from deploy ramdisk."""
 
+    def _auto_enroll(self, macs, bmc_addresses):
+        context = api.request.context
+        new_node = objects.Node(
+            context,
+            conductor_group='',  # TODO(dtantsur): default_conductor_group
+            driver=CONF.auto_discovery.driver,
+            provision_state=states.ENROLL,
+            resource_class=CONF.default_resource_class,
+            uuid=uuidutils.generate_uuid())
+
+        try:
+            topic = api.request.rpcapi.get_topic_for(new_node)
+        except exception.NoValidHost as e:
+            LOG.error("Failed to find a conductor to handle the newly "
+                      "enrolled node with driver %s: %s", new_node.driver, e)
+            # NOTE(dtantsur): do not disclose any information to the caller
+            raise exception.IronicException()
+
+        LOG.info("Enrolling the newly discovered node %(uuid)s with driver "
+                 "%(driver)s, MAC addresses [%(macs)s] and BMC address(es) "
+                 "[%(bmc)s]",
+                 {'driver': new_node.driver,
+                  'uuid': new_node.uuid,
+                  'macs': ', '.join(macs or ()),
+                  'bmc': ', '.join(bmc_addresses or ())})
+
+        notify.emit_start_notification(context, new_node, 'create')
+        with notify.handle_error_notification(context, new_node, 'create'):
+            try:
+                node = api.request.rpcapi.create_node(
+                    context, new_node, topic=topic)
+            except exception.IronicException:
+                LOG.exception("Failed to enroll node with driver %s",
+                              new_node.driver)
+                # NOTE(dtantsur): do not disclose any information to the caller
+                raise exception.IronicException()
+
+        return node, topic
+
     @method.expose(status_code=http_client.ACCEPTED)
     @method.body('data')
     @args.validate(data=DATA_VALIDATOR, node_uuid=args.uuid)
@@ -333,14 +374,23 @@ class ContinueInspectionController(rest.RestController):
         if not macs and not bmc_addresses and not node_uuid:
             raise exception.BadRequest(_('No lookup information provided'))
 
-        rpc_node = inspect_utils.lookup_node(
-            api.request.context, macs, bmc_addresses, node_uuid=node_uuid)
-
         try:
-            topic = api.request.rpcapi.get_topic_for(rpc_node)
-        except exception.NoValidHost as e:
-            e.code = http_client.BAD_REQUEST
-            raise
+            rpc_node = inspect_utils.lookup_node(
+                api.request.context, macs, bmc_addresses, node_uuid=node_uuid)
+        except inspect_utils.AutoEnrollPossible:
+            if not CONF.auto_discovery.enabled:
+                raise exception.NotFound()
+            rpc_node, topic = self._auto_enroll(macs, bmc_addresses)
+            # TODO(dtantsur): consider adding a Node-level property to make
+            # newly discovered nodes searchable via API. The flag in
+            # plugin_data is for compatibility with ironic-inspector.
+            data[inspect_utils.AUTO_DISCOVERED_FLAG] = True
+        else:
+            try:
+                topic = api.request.rpcapi.get_topic_for(rpc_node)
+            except exception.NoValidHost as e:
+                e.code = http_client.BAD_REQUEST
+                raise
 
         if api_utils.new_continue_inspection_endpoint():
             # This has to happen before continue_inspection since processing

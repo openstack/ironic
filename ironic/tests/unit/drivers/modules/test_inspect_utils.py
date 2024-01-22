@@ -322,7 +322,7 @@ class LookupNodeTestCase(db_base.DbTestCase):
                                    address=self.mac2)
 
     def test_no_input(self):
-        self.assertRaises(exception.NotFound, utils.lookup_node,
+        self.assertRaises(exception.BadRequest, utils.lookup_node,
                           self.context, [], [], None)
 
     def test_by_macs(self):
@@ -335,7 +335,7 @@ class LookupNodeTestCase(db_base.DbTestCase):
         self.assertEqual(self.node.uuid, result.uuid)
 
     def test_by_mac_not_found(self):
-        self.assertRaises(exception.NotFound, utils.lookup_node,
+        self.assertRaises(utils.AutoEnrollPossible, utils.lookup_node,
                           self.context, [self.unknown_mac], [], None)
 
     def test_by_mac_wrong_state(self):
@@ -368,13 +368,21 @@ class LookupNodeTestCase(db_base.DbTestCase):
         self.assertEqual(self.node.uuid, result.uuid)
 
     def test_by_bmc_not_found(self):
-        self.assertRaises(exception.NotFound, utils.lookup_node,
+        self.assertRaises(utils.AutoEnrollPossible, utils.lookup_node,
                           self.context, [], ['192.168.1.1'], None)
+
+    def test_by_bmc_and_mac_not_found(self):
+        self.assertRaises(utils.AutoEnrollPossible, utils.lookup_node,
+                          self.context, [self.unknown_mac],
+                          ['192.168.1.1'], None)
 
     def test_by_bmc_wrong_state(self):
         self.node.provision_state = states.AVAILABLE
         self.node.save()
-        self.assertRaises(exception.NotFound, utils.lookup_node,
+        # Limitation of auto-discovery: cannot de-duplicate nodes by BMC
+        # addresses only. Should not happen too often in reality.
+        # If it does happen, auto-discovery will create a duplicate node.
+        self.assertRaises(utils.AutoEnrollPossible, utils.lookup_node,
                           self.context, [], [self.bmc], None)
 
     def test_conflicting_macs_and_bmc(self):

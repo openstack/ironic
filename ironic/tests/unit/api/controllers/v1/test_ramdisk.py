@@ -26,6 +26,7 @@ from oslo_utils import uuidutils
 from ironic.api.controllers import base as api_base
 from ironic.api.controllers import v1 as api_v1
 from ironic.api.controllers.v1 import ramdisk
+from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import rpcapi
 from ironic.drivers.modules import inspect_utils
@@ -525,3 +526,82 @@ class TestContinueInspectionScopedRBAC(TestContinueInspection):
         cfg.CONF.set_override('enforce_new_defaults', True,
                               group='oslo_policy')
         cfg.CONF.set_override('auth_strategy', 'keystone')
+
+
+@mock.patch.object(rpcapi.ConductorAPI, 'get_topic_for', autospec=True,
+                   return_value='test-topic')
+@mock.patch.object(rpcapi.ConductorAPI, 'create_node', autospec=True)
+@mock.patch.object(rpcapi.ConductorAPI, 'continue_inspection', autospec=True)
+@mock.patch.object(inspect_utils, 'lookup_node', autospec=True,
+                   side_effect=inspect_utils.AutoEnrollPossible)
+class TestContinueInspectionAutoDiscovery(test_api_base.BaseApiTest):
+
+    def setUp(self):
+        super().setUp()
+        CONF.set_override('enabled', True, group='auto_discovery')
+        CONF.set_override('driver', 'fake-hardware', group='auto_discovery')
+        self.addresses = ['11:22:33:44:55:66', '66:55:44:33:22:11']
+        self.bmcs = ['192.0.2.42']
+        self.inventory = {
+            'bmc_address': self.bmcs[0],
+            'interfaces': [
+                {'mac_address': mac, 'name': f'em{i}'}
+                for i, mac in enumerate(self.addresses)
+            ],
+        }
+        self.data = {
+            'inventory': self.inventory,
+            'test': 42,
+        }
+        self.node = obj_utils.get_test_node(self.context,
+                                            uuid=uuidutils.generate_uuid(),
+                                            provision_state='enroll')
+
+    def test_enroll(self, mock_lookup, mock_continue, mock_create,
+                    mock_get_topic):
+        mock_create.return_value = self.node
+        response = self.post_json('/continue_inspection', self.data)
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
+        self.assertEqual({'uuid': self.node.uuid}, response.json)
+        mock_lookup.assert_called_once_with(
+            mock.ANY, self.addresses, self.bmcs, node_uuid=None)
+        mock_continue.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid, inventory=self.inventory,
+            plugin_data={'test': 42, 'auto_discovered': True},
+            topic='test-topic')
+        new_node = mock_create.call_args.args[2]  # create(self, context, node)
+        self.assertEqual('fake-hardware', new_node.driver)
+        self.assertIsNone(new_node.resource_class)
+        self.assertEqual('', new_node.conductor_group)
+        self.assertEqual('enroll', new_node.provision_state)
+
+    def test_wrong_driver(self, mock_lookup, mock_continue, mock_create,
+                          mock_get_topic):
+        mock_get_topic.side_effect = exception.NoValidHost()
+        response = self.post_json(
+            '/continue_inspection', self.data,
+            expect_errors=True)
+        self.assertEqual(http_client.INTERNAL_SERVER_ERROR,
+                         response.status_int)
+        mock_lookup.assert_called_once_with(
+            mock.ANY, self.addresses, self.bmcs, node_uuid=None)
+        mock_create.assert_not_called()
+        mock_continue.assert_not_called()
+
+    def test_override_defaults(self, mock_lookup, mock_continue, mock_create,
+                               mock_get_topic):
+        CONF.set_override('default_resource_class', 'xlarge-1')
+        # TODO(dtantsur): default_conductor_group
+        mock_create.return_value = self.node
+        response = self.post_json('/continue_inspection', self.data)
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
+        mock_lookup.assert_called_once_with(
+            mock.ANY, self.addresses, self.bmcs, node_uuid=None)
+        mock_continue.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid, inventory=self.inventory,
+            plugin_data={'test': 42, 'auto_discovered': True},
+            topic='test-topic')
+        new_node = mock_create.call_args.args[2]  # create(self, context, node)
+        self.assertEqual('fake-hardware', new_node.driver)
+        self.assertEqual('xlarge-1', new_node.resource_class)
+        self.assertEqual('', new_node.conductor_group)

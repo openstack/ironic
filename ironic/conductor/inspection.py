@@ -149,7 +149,11 @@ def continue_inspection(task, inventory, plugin_data):
             utils.node_history_record(task.node, event=error,
                                       event_type=states.INTROSPECTION,
                                       error=True)
-            task.process_event('fail')
+            if node.provision_state != states.ENROLL:
+                task.process_event('fail')
 
-    task.process_event('done')
-    LOG.info('Successfully finished inspection of node %s', node.uuid)
+    if node.provision_state != states.ENROLL:
+        task.process_event('done')
+        LOG.info('Successfully finished inspection of node %s', node.uuid)
+    else:
+        LOG.info('Successfully finished auto-discovery of node %s', node.uuid)

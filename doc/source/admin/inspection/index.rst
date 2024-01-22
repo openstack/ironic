@@ -26,6 +26,7 @@ ironic-inspector_ service.
    managed
    data
    hooks
+   discovery
 
 Configuration
 -------------

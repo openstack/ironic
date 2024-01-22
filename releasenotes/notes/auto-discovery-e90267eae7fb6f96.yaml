@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds node auto-discovery support to the ``agent`` inspection
+    implementation.

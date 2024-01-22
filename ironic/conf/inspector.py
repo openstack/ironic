@@ -142,9 +142,25 @@ opts = [
                        'option is used by the "root-device" inspection hook.'))
 ]
 
+discovery_opts = [
+    cfg.BoolOpt('enabled',
+                default=False, mutable=True,
+                help=_("Setting this to True enables automatic enrollment "
+                       "of inspected nodes that are not recognized. "
+                       "When enabling this feature, keep in mind that any "
+                       "machine hitting the inspection callback endpoint "
+                       "will be automatically enrolled. The driver must be "
+                       "set when setting this to True.")),
+    cfg.StrOpt('driver',
+               mutable=True,
+               help=_("The default driver to use for newly enrolled nodes. "
+                      "Must be set when enabling auto-discovery.")),
+]
+
 
 def register_opts(conf):
     conf.register_opts(opts, group='inspector')
+    conf.register_opts(discovery_opts, group='auto_discovery')
     auth.register_auth_opts(conf, 'inspector',
                             service_type='baremetal-introspection')
 

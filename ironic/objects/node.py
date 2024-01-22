@@ -1102,7 +1102,7 @@ class NodeCRUDPayload(NodePayload):
         'driver_info': object_fields.FlexibleDictField(nullable=True)
     }
 
-    def __init__(self, node, chassis_uuid):
+    def __init__(self, node, chassis_uuid=None):
         super(NodeCRUDPayload, self).__init__(node, chassis_uuid=chassis_uuid)
 
 

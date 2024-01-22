@@ -3706,19 +3706,32 @@ class ConductorManager(base_manager.BaseConductorManager):
                                   purpose='continue inspection',
                                   shared=False) as task:
             # TODO(dtantsur): support active state (re-)inspection
-            if task.node.provision_state != states.INSPECTWAIT:
+            accepted_states = {states.INSPECTWAIT}
+            if CONF.auto_discovery.enabled:
+                accepted_states.add(states.ENROLL)
+
+            if task.node.provision_state not in accepted_states:
                 LOG.error('Refusing to process inspection data for node '
                           '%(node)s in invalid state %(state)s',
                           {'node': task.node.uuid,
                            'state': task.node.provision_state})
                 raise exception.NotFound()
 
-            task.process_event(
-                'resume',
-                callback=self._spawn_worker,
-                call_args=(inspection.continue_inspection,
-                           task, inventory, plugin_data),
-                err_handler=utils.provisioning_error_handler)
+            if task.node.provision_state == states.ENROLL:
+                task.set_spawn_error_hook(
+                    utils.provisioning_error_handler,
+                    task.node, states.ENROLL, None)
+                task.spawn_after(
+                    self._spawn_worker,
+                    inspection.continue_inspection,
+                    task, inventory, plugin_data)
+            else:
+                task.process_event(
+                    'resume',
+                    callback=self._spawn_worker,
+                    call_args=(inspection.continue_inspection,
+                               task, inventory, plugin_data),
+                    err_handler=utils.provisioning_error_handler)
 
     @METRICS.timer('ConductorManager.do_node_service')
     @messaging.expected_exceptions(exception.InvalidParameterValue,

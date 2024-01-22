@@ -50,6 +50,8 @@ Use `jq` to filter the parts you need, e.g. only the inventory itself:
      }
    }
 
+.. _plugin-data:
+
 Plugin data
 -----------
 
