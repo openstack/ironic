@@ -269,7 +269,17 @@ def lookup_node(context, mac_addresses, bmc_addresses, node_uuid=None):
                    'state': node.provision_state})
         raise exception.NotFound()
 
+    # NOTE(dtantsur): in theory, if the node is found at this point, we could
+    # short-circuit the lookup process and return it without considering BMC
+    # addresses. However, I've seen cases where users ended up enrolling nodes
+    # with BMC addresses from different nodes. Continuing to process BMC
+    # addresses allows us to catch these situations that otherwise can lead
+    # to updating wrong nodes.
+
     if bmc_addresses:
+        # NOTE(dtantsur): the same BMC hostname can be used by several nodes,
+        # e.g. in case of Redfish. Find all suitable nodes first.
+        nodes_by_bmc = set()
         for candidate in objects.Node.list(
                 context,
                 filters={'provision_state': states.INSPECTWAIT},
@@ -278,26 +288,41 @@ def lookup_node(context, mac_addresses, bmc_addresses, node_uuid=None):
             for addr in candidate.driver_internal_info.get(
                     LOOKUP_CACHE_FIELD) or ():
                 if addr in bmc_addresses:
-                    break
-            else:
-                continue
+                    nodes_by_bmc.add(candidate.uuid)
 
-            if node and candidate.uuid != node.uuid:
-                LOG.error('Conflict on inspection lookup: nodes %(node1)s '
-                          'and %(node2)s both satisfy MAC addresses '
-                          '(%(macs)s) and BMC address(s) (%(bmc)s). The cause '
-                          'may be ports attached to a wrong node.',
-                          {'node1': node.uuid,
-                           'node2': candidate.uuid,
+        # NOTE(dtantsur): if none of the nodes found by the BMC match the one
+        # found by the MACs, something is definitely wrong.
+        if node and nodes_by_bmc and node.uuid not in nodes_by_bmc:
+            LOG.error('Conflict on inspection lookup: nodes %(node1)s '
+                      'and %(node2)s both satisfy MAC addresses '
+                      '(%(macs)s) and BMC address(s) (%(bmc)s). The cause '
+                      'may be ports attached to a wrong node.',
+                      {'node1': ', '.join(nodes_by_bmc),
+                       'node2': node.uuid,
+                       'macs': ', '.join(mac_addresses),
+                       'bmc': ', '.join(bmc_addresses)})
+            raise exception.NotFound()
+
+        # NOTE(dtantsur): at this point, if the node was found by the MAC
+        # addresses, it also matches the BMC address. We only need to handle
+        # the case when the node was not found by the MAC addresses.
+        if not node and nodes_by_bmc:
+            if len(nodes_by_bmc) > 1:
+                LOG.error('Several nodes %(nodes)s satisfy BMC address(s) '
+                          '(%(bmc)s), but none of them satisfy MAC addresses '
+                          '(%(macs)s). Ports must be created for a successful '
+                          'inspection in this case.',
+                          {'nodes': ', '.join(nodes_by_bmc),
                            'macs': ', '.join(mac_addresses),
                            'bmc': ', '.join(bmc_addresses)})
                 raise exception.NotFound()
 
+            node_uuid = nodes_by_bmc.pop()
             try:
                 # Fetch the complete object now.
-                node = objects.Node.get_by_uuid(context, candidate.uuid)
+                node = objects.Node.get_by_uuid(context, node_uuid)
             except exception.NotFound:
-                pass  # Deleted in-between?
+                raise  # Deleted in-between?
 
     if not node:
         LOG.error('No nodes satisfy MAC addresses (%(macs)s) and BMC '
