@@ -686,6 +686,14 @@ if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
             die $LINENO "Grub2 Bootloader and Shim file missing."
         fi
     fi
+
+    # NOTE(tkajinam) Use local mirror in CI
+    if [ -f /etc/ci/mirror_info.sh ]; then
+        source /etc/ci/mirror_info.sh
+        CENTOS_MIRROR_HOST="http://${NODEPOOL_MIRROR_HOST}/centos-stream"
+        IRONIC_GRUB2_SHIM_FILE=$(echo $IRONIC_GRUB2_SHIM_FILE | sed  "s|https://mirror.stream.centos.org|${CENTOS_MIRROR_HOST}|g")
+        IRONIC_GRUB2_FILE=$(echo $IRONIC_GRUB2_FILE | sed  "s|https://mirror.stream.centos.org|${CENTOS_MIRROR_HOST}|g")
+    fi
 fi
 
 # TODO(pas-ha) find a way to (cross-)sign the custom CA bundle used by tls-proxy
