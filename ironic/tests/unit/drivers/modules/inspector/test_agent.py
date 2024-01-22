@@ -42,6 +42,7 @@ class InspectHardwareTestCase(db_base.DbTestCase):
         self.driver = self.task.driver
 
     def test_unmanaged_ok(self, mock_create_ports_if_not_exist):
+        CONF.set_override('require_managed_boot', False, group='inspector')
         self.driver.boot.validate_inspection.side_effect = (
             exception.UnsupportedDriverExtension(''))
         self.assertEqual(states.INSPECTWAIT,
@@ -57,6 +58,12 @@ class InspectHardwareTestCase(db_base.DbTestCase):
         ])
         self.assertFalse(self.driver.network.remove_inspection_network.called)
         self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+
+    def test_unmanaged_disallowed(self, mock_create_ports_if_not_exist):
+        self.driver.boot.validate_inspection.side_effect = (
+            exception.UnsupportedDriverExtension(''))
+        self.assertRaises(exception.UnsupportedDriverExtension,
+                          self.iface.inspect_hardware, self.task)
 
     @mock.patch.object(deploy_utils, 'get_ironic_api_url', autospec=True)
     def test_managed_ok(self, mock_get_url, mock_create_ports_if_not_exist):

@@ -59,14 +59,18 @@ opts = [
                help=_('endpoint to use as a callback for posting back '
                       'introspection data when boot is managed by ironic. '
                       'Standard keystoneauth options are used by default.')),
+    # TODO(dtantsur): change the default to True when ironic-inspector is no
+    # longer supported (and update the help string).
     cfg.BoolOpt('require_managed_boot', default=None,
                 help=_('require that the in-band inspection boot is fully '
                        'managed by the node\'s boot interface. Set this to '
-                       'True if your installation does not have a separate '
-                       '(i)PXE boot environment for node discovery. Set '
-                       'to False if you need to inspect nodes that are not '
-                       'supported by boot interfaces (e.g. because they '
-                       'don\'t have ports).')),
+                       'False if your installation has a separate (i)PXE boot '
+                       'environment for node discovery or unmanaged '
+                       'inspection. You may need to set it to False to '
+                       'inspect nodes that are not supported by boot '
+                       'interfaces (e.g. because they don\'t have ports). '
+                       'The default value depends on which inspect interface '
+                       'is used: inspector uses False, agent - True.')),
     cfg.StrOpt('add_ports',
                default='pxe',
                help=_('Which MAC addresses to add as ports during '

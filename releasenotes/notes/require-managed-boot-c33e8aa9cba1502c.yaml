@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The default value of the configuration option
+    ``[inspector]require_managed_boot`` is now ``True`` for the newer ``agent``
+    inspect interface. The older ``inspector`` implementation is not affected.
+    Operators with deployments that support unmanaged inspection must set
+    this value to ``False`` explicitly.

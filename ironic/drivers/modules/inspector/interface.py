@@ -153,6 +153,8 @@ def prepare_managed_inspection(task, endpoint):
 
 class Common(base.InspectInterface):
 
+    default_require_managed_boot = False
+
     def __init__(self):
         super().__init__()
         if CONF.inspector.require_managed_boot is None:
@@ -160,6 +162,11 @@ class Common(base.InspectInterface):
                         "change its default value to True in the future. "
                         "Set it to an explicit boolean value to avoid a "
                         "potential breakage.")
+
+    def _require_managed_boot(self):
+        return (CONF.inspector.require_managed_boot
+                if CONF.inspector.require_managed_boot is not None
+                else self.default_require_managed_boot)
 
     def get_properties(self):
         """Return the properties of the interface.
@@ -177,7 +184,7 @@ class Common(base.InspectInterface):
         :raises: UnsupportedDriverExtension
         """
         utils.parse_kernel_params(CONF.inspector.extra_kernel_params)
-        if CONF.inspector.require_managed_boot:
+        if self._require_managed_boot():
             ironic_manages_boot(task, raise_exc=True)
 
     def inspect_hardware(self, task):
@@ -197,7 +204,7 @@ class Common(base.InspectInterface):
                       ' on node %s.', task.node.uuid)
 
         manage_boot = ironic_manages_boot(
-            task, raise_exc=CONF.inspector.require_managed_boot)
+            task, raise_exc=self._require_managed_boot())
 
         utils.set_node_nested_field(task.node, 'driver_internal_info',
                                     _IRONIC_MANAGES_BOOT, manage_boot)

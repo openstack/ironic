@@ -57,8 +57,9 @@ Unmanaged inspection was the only inspection mode before the Ussuri release,
 and it is still used when the node's boot cannot be configured by the
 conductor. The options described above do not affect unmanaged inspection.
 
-Unmanaged inspection is currently enabled by default but will be disabled
-in the near future. To enable it, set ``require_managed_boot`` to ``False``:
+Because of the complex installation and operation requirements, unmanaged
+inspection is disabled by default. To enable it, set ``require_managed_boot``
+to ``False``:
 
 .. code-block:: ini
 
