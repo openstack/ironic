@@ -381,6 +381,36 @@ class LookupNodeTestCase(db_base.DbTestCase):
         self.assertRaises(exception.NotFound, utils.lookup_node,
                           self.context, self.macs, [self.bmc2], None)
 
+    def test_duplicate_bmc(self):
+        # This can happen with Redfish. There is no way to resolve the conflict
+        # other than by using MACs.
+        obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver_internal_info={utils.LOOKUP_CACHE_FIELD: [self.bmc]},
+            provision_state=states.INSPECTWAIT)
+        self.assertRaises(exception.NotFound, utils.lookup_node,
+                          self.context, [], [self.bmc], None)
+
+    def test_duplicate_bmc_and_unknown_mac(self):
+        obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver_internal_info={utils.LOOKUP_CACHE_FIELD: [self.bmc]},
+            provision_state=states.INSPECTWAIT)
+        self.assertRaises(exception.NotFound, utils.lookup_node,
+                          self.context, [self.unknown_mac], [self.bmc], None)
+
+    def test_duplicate_bmc_resolved_by_macs(self):
+        obj_utils.create_test_node(
+            self.context,
+            uuid=uuidutils.generate_uuid(),
+            driver_internal_info={utils.LOOKUP_CACHE_FIELD: [self.bmc]},
+            provision_state=states.INSPECTWAIT)
+        result = utils.lookup_node(
+            self.context, [self.macs[0]], [self.bmc], None)
+        self.assertEqual(self.node.uuid, result.uuid)
+
     def test_by_uuid(self):
         result = utils.lookup_node(self.context, [], [], self.node.uuid)
         self.assertEqual(self.node.uuid, result.uuid)

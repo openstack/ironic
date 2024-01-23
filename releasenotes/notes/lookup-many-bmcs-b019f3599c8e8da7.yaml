@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes the inspection lookup to consider all nodes with the same BMC
+    hostname, as can happen with Redfish. In this case, the nodes are
+    distinguished by MAC addresses.
