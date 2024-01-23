@@ -90,7 +90,7 @@ opts = [
                 default=True,
                 mutable=True,
                 help=_('If a project scoped administrative user is permitted '
-                       'to create/delte baremetal nodes in their project.')),
+                       'to create/delete baremetal nodes in their project.')),
 ]
 
 opt_group = cfg.OptGroup(name='api',
