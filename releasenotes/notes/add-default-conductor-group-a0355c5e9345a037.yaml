@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds the capability to define a ``default_conductor_group`` setting
+    which allows operators to assign a default conductor group to new nodes
+    created in Ironic if they do not otherwise have a ``conductor_group``
+    set upon creation. By default, this setting has no value.

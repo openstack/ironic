@@ -2798,7 +2798,7 @@ class NodesController(rest.RestController):
         # NOTE(jroll) this is special-cased to "" and not None,
         # because it is used in hash ring calculations
         if not node.get('conductor_group'):
-            node['conductor_group'] = ''
+            node['conductor_group'] = CONF.default_conductor_group
 
         if node.get('name') is not None:
             error_msg = _("Cannot create node with invalid name '%(name)s'")
