@@ -469,3 +469,125 @@ those paths will be created using configuration parameter
 the configuration parameter ``[pxe]file_permission``. Absolute destination
 paths are not supported and will result in ironic failing to start up as
 it is a misconfiguration of the deployment.
+
+.. _configure-unmanaged-inspection:
+
+Configuring unmanaged in-band inspection
+----------------------------------------
+
+This section must be followed if you intend to use :ref:`unmanaged-inspection`
+without ironic-inspector. For ironic-inspector support, check `its installation
+guide
+<https://docs.openstack.org/ironic-inspector/latest/install/index.html#configuration>`_.
+
+With PXE
+~~~~~~~~
+
+After you followed `TFTP Server Setup`_, you need to create the default PXE
+configuration. Populate ``/tftpboot/pxelinux.cfg/default`` with the following
+contents::
+
+    default introspect
+
+    label introspect
+    kernel ironic-python-agent.kernel
+    append initrd=ironic-python-agent.initramfs ipa-inspection-callback-url=http://{IP}:6385/v1/continue_inspection systemd.journald.forward_to_console=yes
+
+    ipappend 3
+
+Instead of ``http://{IP}:6385/v1/continue_inspection``, insert the correct Bare
+Metal API endpoint, keeping the mandatory ``/v1/continue_inspection`` suffix.
+You may also populate other IPA options (e.g. ``ipa-debug=1`` for detailed
+logging, ``ipa-inspection-collectors`` to customize the inspection process,
+or ``ipa-api-url`` to enable :doc:`/admin/fast-track`).
+
+Second, you need to configure DHCP for unknows hosts since the OpenStack
+Networking service won't be able to handle them. For instance, you can install
+**dnsmasq** and use the following ``/etc/dnsmasq.conf``:
+
+.. code-block:: ini
+
+    port=0
+    interface={INTERFACE}
+    bind-interfaces
+    dhcp-range={DHCP IP RANGE, e.g. 192.168.0.50,192.168.0.150}
+    enable-tftp
+    tftp-root=/tftpboot
+    dhcp-boot=pxelinux.0
+    dhcp-sequential-ip
+
+.. warning::
+   Ironic currently lacks `PXE filters
+   <https://docs.openstack.org/ironic-inspector/latest/admin/dnsmasq-pxe-filter.html>`_
+   used by ironic-inspector to allow its DHCP server to co-exist with
+   OpenStack Networking (neutron) on the same network. Unless you can
+   physically isolation the inspection network, you may want to stay with
+   ironic-inspector for the time being.
+
+Finally, build or download IPA images into
+``/tftpboot/ironic-python-agent.kernel`` and
+``/tftpboot/ironic-python-agent.initramfs``. These can be the same images that
+you use for deployment and cleaning.
+
+With iPXE
+~~~~~~~~~
+
+iPXE configuration is pretty similar to PXE above, but differs in details.
+Start with `iPXE Setup`_, then create a new file ``/httpboot/inspection.ipxe``
+with the following contents::
+
+    #!ipxe
+
+    :retry_dhcp
+    dhcp || goto retry_dhcp
+
+    :retry_boot
+    imgfree
+    kernel --timeout 30000 http://{IP}:8080/ironic-python-agent.kernel ipa-inspection-callback-url=http://{IP}:6385/v1/continue_inspection systemd.journald.forward_to_console=yes BOOTIF=${mac} initrd=ironic-python-agent.initramfs || goto retry_boot
+    initrd --timeout 30000 http://{IP}:8080/ironic-python-agent.initramfs || goto retry_boot
+    boot
+
+Just as `with PXE`_, adjust ``ipa-inspection-callback-url`` to match your
+deployment and add any required IPA options. You also need to fix ``{IP}:8080``
+to match the iPXE server you configured previously.
+
+The DHCP configuration is much more complex. Since most hardware does not have
+an up-to-date iPXE firmware, you need to bootstrap it from TFTP. The
+**dnsmasq** configuration may look roughly like this:
+
+.. code-block:: ini
+
+    port=0
+    interface={INTERFACE}
+    bind-interfaces
+    dhcp-range={DHCP IP RANGE, e.g. 192.168.0.50,192.168.0.150}
+    enable-tftp
+    tftp-root=/tftpboot
+    dhcp-sequential-ip
+    dhcp-match=ipxe,175
+    dhcp-match=set:efi,option:client-arch,7
+    dhcp-match=set:efi,option:client-arch,9
+    dhcp-match=set:efi,option:client-arch,11
+    # dhcpv6.option: Client System Architecture Type (61)
+    dhcp-match=set:efi6,option6:61,0007
+    dhcp-match=set:efi6,option6:61,0009
+    dhcp-match=set:efi6,option6:61,0011
+    dhcp-userclass=set:ipxe6,iPXE
+    # Client is already running iPXE; move to next stage of chainloading
+    dhcp-boot=tag:ipxe,http://{IP}:8080/inspection.ipxe
+    # Client is PXE booting over EFI without iPXE ROM,
+    # send EFI version of iPXE chainloader
+    dhcp-boot=tag:efi,tag:!ipxe,ipxe.efi
+    dhcp-option=tag:efi6,tag:!ipxe6,option6:bootfile-url,tftp://{IP}/ipxe.efi
+    # Client is running PXE over BIOS; send BIOS version of iPXE chainloader
+    dhcp-boot=undionly.kpxe,localhost.localdomain,{IP}
+
+.. note::
+   It's not trivial to write such a configuration from scratch. In addition to
+   this document, you may take some inspiration from `Bifrost
+   <https://opendev.org/openstack/bifrost/src/branch/master/playbooks/roles/bifrost-ironic-install/templates/dnsmasq.conf.j2>`_
+   and `Metal3
+   <https://github.com/metal3-io/ironic-image/blob/main/ironic-config/dnsmasq.conf.j2>`_.
+
+Finally, put ``ironic-python-agent.kernel`` and
+``ironic-python-agent.initramfs`` to ``/httpboot``.
