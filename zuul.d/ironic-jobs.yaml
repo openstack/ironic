@@ -144,11 +144,9 @@
       devstack_services:
         n-api: False
         n-api-meta: False
-        n-cauth: False
         n-cond: False
         n-cpu: False
         n-novnc: False
-        n-obj: False
         n-sch: False
         nova: False
         placement-api: False
@@ -204,11 +202,9 @@
       devstack_services:
         n-api: False
         n-api-meta: False
-        n-cauth: False
         n-cond: False
         n-cpu: False
         n-novnc: False
-        n-obj: False
         n-sch: False
         nova: False
         placement-api: False
@@ -410,11 +406,9 @@
         q-ovn-metadata-agent: True
         n-api: False
         n-api-meta: False
-        n-cauth: False
         n-cond: False
         n-cpu: False
         n-novnc: False
-        n-obj: False
         n-sch: False
         nova: False
         placement-api: False
@@ -547,14 +541,11 @@
       devstack_services:
         rabbit: False
         g-api: False
-        g-reg: False
         n-api: False
         n-api-meta: False
-        n-cauth: False
         n-cond: False
         n-cpu: False
         n-novnc: False
-        n-obj: False
         n-sch: False
         nova: False
         placement-api: False
@@ -676,16 +667,13 @@
 
         dstat: True
         g-api: True
-        g-reg: True
         key: True
         mysql: True
         n-api: True
         n-api-meta: True
-        n-cauth: True
         n-cond: True
         n-cpu: True
         n-novnc: True
-        n-obj: True
         n-sch: True
         placement-api: True
         q-agt: True
