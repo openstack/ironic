@@ -41,14 +41,6 @@ from ironic.drivers.modules import image_cache
 from ironic.drivers import utils as driver_utils
 from ironic import objects
 
-# TODO(Faizan): Move this logic to common/utils.py and deprecate
-# rootwrap_config.
-# This is required to set the default value of ironic_lib option
-# only if rootwrap_config does not contain the default value.
-
-if CONF.rootwrap_config != '/etc/ironic/rootwrap.conf':
-    root_helper = 'sudo ironic-rootwrap %s' % CONF.rootwrap_config
-    CONF.set_default('root_helper', root_helper, 'ironic_lib')
 
 LOG = logging.getLogger(__name__)
 

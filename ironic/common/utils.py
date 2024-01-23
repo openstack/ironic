@@ -60,13 +60,6 @@ DATETIME_RE = re.compile(
 USING_SQLITE = None
 
 
-def _get_root_helper():
-    # NOTE(jlvillal): This function has been moved to ironic-lib. And is
-    # planned to be deleted here. If need to modify this function, please
-    # also do the same modification in ironic-lib
-    return 'sudo ironic-rootwrap %s' % CONF.rootwrap_config
-
-
 def execute(*cmd, **kwargs):
     """Convenience wrapper around oslo's execute() method.
 
@@ -84,8 +77,6 @@ def execute(*cmd, **kwargs):
         env = kwargs.pop('env_variables', os.environ.copy())
         env['LC_ALL'] = 'C'
         kwargs['env_variables'] = env
-    if kwargs.get('run_as_root') and 'root_helper' not in kwargs:
-        kwargs['root_helper'] = _get_root_helper()
     result = processutils.execute(*cmd, **kwargs)
     LOG.debug('Execution completed, command line is "%s"',
               ' '.join(map(str, cmd)))
@@ -316,33 +307,6 @@ def safe_rstrip(value, chars=None):
         return value
 
     return value.rstrip(chars) or value
-
-
-def mount(src, dest, *args):
-    """Mounts a device/image file on specified location.
-
-    :param src: the path to the source file for mounting
-    :param dest: the path where it needs to be mounted.
-    :param args: a tuple containing the arguments to be
-        passed to mount command.
-    :raises: processutils.ProcessExecutionError if it failed
-        to run the process.
-    """
-    args = ('mount', ) + args + (src, dest)
-    execute(*args, run_as_root=True)
-
-
-def umount(loc, *args):
-    """Umounts a mounted location.
-
-    :param loc: the path to be unmounted.
-    :param args: a tuple containing the arguments to be
-        passed to the umount command.
-    :raises: processutils.ProcessExecutionError if it failed
-        to run the process.
-    """
-    args = ('umount', ) + args + (loc, )
-    execute(*args, run_as_root=True)
 
 
 def check_dir(directory_to_check=None, required_space=1):

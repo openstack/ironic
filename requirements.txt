@@ -21,6 +21,7 @@ oslo.concurrency>=4.2.0 # Apache-2.0
 oslo.config>=6.8.0 # Apache-2.0
 oslo.context>=2.22.0 # Apache-2.0
 oslo.db>=9.1.0 # Apache-2.0
+# TODO(dtantsur): remove rootwrap when we no longer provide ironic-rootwrap CLI
 oslo.rootwrap>=5.8.0 # Apache-2.0
 oslo.log>=4.3.0 # Apache-2.0
 oslo.middleware>=3.31.0 # Apache-2.0

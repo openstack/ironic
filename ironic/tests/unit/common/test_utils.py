@@ -76,20 +76,6 @@ class ExecuteTestCase(base.TestCase):
         execute_mock.assert_called_once_with('foo',
                                              env_variables={'foo': 'bar'})
 
-    def test_execute_get_root_helper(self):
-        with mock.patch.object(
-                processutils, 'execute', autospec=True) as execute_mock:
-            helper = utils._get_root_helper()
-            utils.execute('foo', run_as_root=True)
-            execute_mock.assert_called_once_with('foo', run_as_root=True,
-                                                 root_helper=helper)
-
-    def test_execute_without_root_helper(self):
-        with mock.patch.object(
-                processutils, 'execute', autospec=True) as execute_mock:
-            utils.execute('foo', run_as_root=False)
-            execute_mock.assert_called_once_with('foo', run_as_root=False)
-
 
 class GenericUtilsTestCase(base.TestCase):
     @mock.patch.object(utils, 'hashlib', autospec=True)

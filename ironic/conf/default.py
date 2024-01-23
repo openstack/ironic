@@ -413,10 +413,6 @@ service_opts = [
 ]
 
 utils_opts = [
-    cfg.StrOpt('rootwrap_config',
-               default="/etc/ironic/rootwrap.conf",
-               help=_('Path to the rootwrap configuration file to use for '
-                      'running commands as root.')),
     cfg.StrOpt('tempdir',
                default=tempfile.gettempdir(),
                sample_default=tempfile.gettempdir(),

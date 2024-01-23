@@ -1,0 +1,6 @@
+---
+deprecations:
+  - |
+    Rootwrap support is deprecated since Ironic no longer runs any commands as
+    root. Files ``/etc/ironic/rootwrap.conf``, ``/etc/ironic/rootwrap.d``
+    and the ``ironic-rootwrap`` command will be removed in a future release.

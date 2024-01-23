@@ -519,13 +519,11 @@ class FsImageTestCase(base.TestCase):
         walk_mock.assert_called_once_with('tmpdir1')
         rmtree_mock.assert_called_once_with('tmpdir1')
 
-    @mock.patch.object(utils, 'mount', autospec=True)
-    def test__get_deploy_iso_files_fail_with_ExecutionError(
-            self, get_iso_files_mock):
-        get_iso_files_mock.side_effect = processutils.ProcessExecutionError
-        self.assertRaises(exception.ImageCreationFailed,
-                          images._get_deploy_iso_files,
-                          'path/to/deployiso', 'tmpdir1')
+    def test__get_deploy_iso_files_fail_with_ExecutionError(self):
+        self.assertRaisesRegex(exception.ImageCreationFailed,
+                               'No such file or directory',
+                               images._get_deploy_iso_files,
+                               'path/to/deployiso', 'tmpdir1')
 
     @mock.patch.object(shutil, 'rmtree', autospec=True)
     @mock.patch.object(images, '_create_root_fs', autospec=True)

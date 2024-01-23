@@ -715,7 +715,7 @@ def _get_deploy_iso_files(deploy_iso, mountdir):
 
     :param deploy_iso: path to the deploy iso where its
                        contents are fetched to.
-    :raises: ImageCreationFailed if mount fails.
+    :raises: ImageCreationFailed if extraction fails.
     :returns: a tuple consisting of - 1. a dictionary containing
                                          the values as required
                                          by create_isolinux_image,
