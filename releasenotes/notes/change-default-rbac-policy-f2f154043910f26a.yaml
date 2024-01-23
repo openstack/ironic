@@ -1,0 +1,57 @@
+---
+upgrade:
+  - |
+    The Ironic service API Role Based Access Control policy has been updated
+    to disable the legacy RBAC policy by default. The effect of this is that
+    deprecated legacy roles of ``baremetal_admin`` and ``baremetal_observer``
+    are no longer functional by default, and policy checks may prevent actions
+    such as viewing nodes when access rights do not exist by default.
+
+    This change is a result of the new policy which was introduced as part of
+    `Secure Role Based Access Control`_ effort along with the
+    `Consistent and Secure RBAC`_ community goal and the underlying
+    ``[oslo_policy] enforce_scope`` and ``[oslo_policy] enforce_new_defaults``
+    settings being changed to ``True``.
+
+    The Ironic project believes most operators will observe no direct impact
+    from this change, unless they are specifically running legacy access
+    configurations utilizing the legacy roles for access.
+
+    Operators which are suddenly unable to list or deploy nodes may have
+    a misconfiguration in credentials, or need to allow the user's project
+    the ability to view and act upon the node through the node ``owner`` or
+    ``lessee`` fields. By default, the `Ironic API policy`_ permits
+    authenticated requests with a ``system`` scoped token to access
+    all resources, and applies a finer grained access model across the API
+    for project scoped users.
+
+    Ironic users who have not already changed their ``nova-compute`` service
+    settings for connecting to Ironic may also have issues scheduling
+    Bare Metal nodes. Use of a ``system`` scoped user is available, by
+    setting ``[ironic] system_scope`` to a value of ``all`` in your
+    nova-compute service configuration, which can be done independently
+    of other services, as long as the credentials supplied are also valid
+    with Keystone for system scoped authentication.
+
+    Heat users which encounter any issues after this upgrade, should check
+    their user's roles. Heat's execution and model is entirely project scoped,
+    which means users will need to have access granted through the ``owner``
+    or ``lessee`` field to work with a node.
+
+    Operators wishing to revert to the old policy configuration may do so
+    by setting the following values in ``ironic.conf``.::
+
+      [oslo_policy]
+      enforce_new_defaults=False
+      enforce_scope=False
+
+    Operators who revert the configuration are encourated to make the
+    necessary changes to their configuration, as the legacy RBAC policy
+    will be removed at some point in the future in alignment with
+    `2024.1-Release Timeline`_. Failure to do so will
+    may force operators to craft custom policy override configuration.
+
+    .. _`Secure Role Based Access Control`: https://specs.openstack.org/openstack/ironic-specs/specs/17.0/secure-rbac.html
+    .. _`Ironic API Policy`: https://docs.openstack.org/ironic/latest/configuration/sample-policy.html
+    .. _`Consistent and Secure RBAC`: https://governance.openstack.org/tc/goals/selected/consistent-and-secure-rbac.html
+    .. _`2024.1-Release Timeline`: https://governance.openstack.org/tc/goals/selected/consistent-and-secure-rbac.html#id3

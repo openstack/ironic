@@ -380,7 +380,9 @@
         IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
-        IRONIC_ENFORCE_SCOPE: True
+        # NOTE(TheJulia): Explicitly set scope enforcement to False until we
+        # remove the legacy policies.
+        IRONIC_ENFORCE_SCOPE: False
         IRONIC_BOOT_MODE: bios
         Q_AGENT: ovn
         Q_ML2_TENANT_NETWORK_TYPE: vlan
@@ -981,6 +983,9 @@
           INSTANCE_WAIT: 120
           MYSQL_GATHER_PERFORMANCE: False
           CIRROS_VERSION: 0.6.1
+          # Required as different access rights are used by default
+          # and the classic devstack config which is defaulted doesn't work.
+          IRONIC_ENFORCE_SCOPE: True
         old:
           IRONIC_VM_LOG_DIR: '{{ devstack_bases.old }}/ironic-bm-logs'
       grenade_localrc:
