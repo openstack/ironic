@@ -80,6 +80,17 @@ COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
 COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 
 
+# All available FIRMWARE COMPONENTS
+BIOS = 'bios'
+"BIOS Firmware Component"
+
+BMC = 'bmc'
+"BMC Firmware Component"
+
+FIRMWARE_COMPONENTS = [BIOS, BMC]
+"""Firmware Components available to update"""
+
+
 def parse_driver_info(node):
     """Parse the information required for Ironic to connect to Redfish.
 

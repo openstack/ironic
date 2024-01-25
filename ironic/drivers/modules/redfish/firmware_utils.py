@@ -25,6 +25,7 @@ from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import swift
 from ironic.conf import CONF
+from ironic.drivers.modules.redfish import utils as redfish_utils
 
 LOG = log.getLogger(__name__)
 
@@ -65,9 +66,10 @@ _UPDATE_FIRMWARE_SCHEMA = {
 }
 
 _FIRMWARE_INTERFACE_UPDATE_SCHEMA = {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "update_firmware clean step schema",
     "type": "array",
+    "minItems": 1,
     # list of firmware update images
     "items": {
         "type": "object",
@@ -76,7 +78,7 @@ _FIRMWARE_INTERFACE_UPDATE_SCHEMA = {
             "component": {
                 "description": "name of the firmware component to be updated",
                 "type": "string",
-                "minLenght": 1
+                "enum": redfish_utils.FIRMWARE_COMPONENTS
             },
             "url": {
                 "description": "URL for firmware file",
