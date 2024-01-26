@@ -34,7 +34,6 @@ sys.path.insert(0, os.path.join(os.path.abspath('.'), '_exts'))
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.viewcode',
               'sphinx.ext.graphviz',
-              'sphinxcontrib.seqdiag',
               'sphinxcontrib.apidoc',
               'sphinxcontrib.rsvgconverter',
               'oslo_config.sphinxext',
@@ -163,7 +162,3 @@ latex_documents = [
 
 # Allow deeper levels of nesting for \begin...\end stanzas
 latex_elements = {'maxlistdepth': 10}
-
-# -- Options for seqdiag ------------------------------------------------------
-
-seqdiag_html_image_format = "SVG"
