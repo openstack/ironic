@@ -550,6 +550,7 @@ class PXEBootTestCase(db_base.DbTestCase):
     def test_prepare_instance_ramdisk_pxe_conf_exists(self):
         self._test_prepare_instance_ramdisk(config_file_exits=False)
 
+    @mock.patch.object(os.path, 'isfile', autospec=True)
     @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
                        autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
@@ -569,7 +570,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             self, exec_mock, write_file_mock, render_mock, api_url_mock,
             boot_opt_mock, get_image_info_mock, cache_mock, dhcp_factory_mock,
             create_pxe_config_mock, switch_pxe_config_mock,
-            set_boot_device_mock, mock_conf_sec_boot):
+            set_boot_device_mock, mock_conf_sec_boot, mock_isfile):
         image_info = {'kernel': ['ins_kernel_id', '/path/to/kernel'],
                       'ramdisk': ['ins_ramdisk_id', '/path/to/ramdisk'],
                       'stage2': ['ins_stage2_id', '/path/to/stage2'],
@@ -580,6 +581,7 @@ class PXEBootTestCase(db_base.DbTestCase):
         dhcp_factory_mock.return_value = provider_mock
         self.node.provision_state = states.DEPLOYING
         self.config(http_url='http://fake_url', group='deploy')
+        mock_isfile.return_value = False
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
                 task, ipxe_enabled=False)
@@ -589,15 +591,11 @@ class PXEBootTestCase(db_base.DbTestCase):
                 task.node.uuid)
 
             task.driver.boot.prepare_instance(task)
-
+            self.assertEqual(2, mock_isfile.call_count)
             get_image_info_mock.assert_called_once_with(task,
                                                         ipxe_enabled=False)
             cache_mock.assert_called_once_with(
                 task, image_info, False)
-            if os.path.isfile('/usr/bin/ksvalidator'):
-                exec_mock.assert_called_once_with(
-                    'ksvalidator', mock.ANY, check_on_exit=[0], attempts=1
-                )
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             render_mock.assert_called()
             write_file_mock.assert_called_with(
@@ -614,7 +612,9 @@ class PXEBootTestCase(db_base.DbTestCase):
                                                          boot_devices.PXE,
                                                          persistent=True)
             self.assertFalse(mock_conf_sec_boot.called)
+            self.assertEqual(2, mock_isfile.call_count)
 
+    @mock.patch.object(os.path, 'isfile', autospec=True)
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
     @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
@@ -632,7 +632,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             self, exec_mock, write_file_mock, render_mock, api_url_mock,
             boot_opt_mock, get_image_info_mock, cache_mock, dhcp_factory_mock,
             create_pxe_config_mock, switch_pxe_config_mock,
-            set_boot_device_mock):
+            set_boot_device_mock, isfile_mock):
         image_info = {'kernel': ['ins_kernel_id', '/path/to/kernel'],
                       'ramdisk': ['ins_ramdisk_id', '/path/to/ramdisk'],
                       'stage2': ['ins_stage2_id', '/path/to/stage2'],
@@ -644,6 +644,7 @@ class PXEBootTestCase(db_base.DbTestCase):
         self.node.provision_state = states.DEPLOYING
         self.config(http_url='http://fake_url', group='deploy')
         self.config(default_boot_mode='bios', group='deploy')
+        isfile_mock.return_value = False
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             dhcp_opts = pxe_utils.dhcp_options_for_instance(
@@ -659,10 +660,6 @@ class PXEBootTestCase(db_base.DbTestCase):
                                                         ipxe_enabled=False)
             cache_mock.assert_called_once_with(
                 task, image_info, False)
-            if os.path.isfile('/usr/bin/ksvalidator'):
-                exec_mock.assert_called_once_with(
-                    'ksvalidator', mock.ANY, check_on_exit=[0], attempts=1
-                )
             provider_mock.update_dhcp.assert_called_once_with(task, dhcp_opts)
             render_mock.assert_called()
             write_file_mock.assert_called_with(
@@ -678,6 +675,7 @@ class PXEBootTestCase(db_base.DbTestCase):
             set_boot_device_mock.assert_called_once_with(task,
                                                          boot_devices.PXE,
                                                          persistent=True)
+            self.assertEqual(2, isfile_mock.call_count)
 
     @mock.patch.object(boot_mode_utils, 'deconfigure_secure_boot_if_needed',
                        autospec=True)
