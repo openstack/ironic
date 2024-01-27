@@ -40,7 +40,6 @@ from oslo_utils import netutils
 from oslo_utils import strutils
 from oslo_utils import timeutils
 import psutil
-import pytz
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -453,7 +452,7 @@ def unix_file_modification_datetime(file_name):
         # normalize time to be UTC without timezone
         datetime.datetime.fromtimestamp(
             # fromtimestamp will return local time by default, make it UTC
-            os.path.getmtime(file_name), tz=pytz.utc
+            os.path.getmtime(file_name), tz=datetime.timezone.utc
         )
     )
 
