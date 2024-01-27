@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Firmware components are now also cached on the transition to the
+    ``manageable`` state in addition to cleaning. This is consisent with how
+    BIOS settings, vendor and boot mode are cached.
