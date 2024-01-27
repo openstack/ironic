@@ -92,9 +92,13 @@ class RedfishFirmware(base.FirmwareInterface):
         system = redfish_utils.get_system(task.node)
 
         if system.bios_version:
-            bios_fw = {'component': 'bios',
+            bios_fw = {'component': redfish_utils.BIOS,
                        'current_version': system.bios_version}
             settings.append(bios_fw)
+        else:
+            LOG.debug('Could not retrieve BiosVersion in node %(node_uuid)s '
+                      'system %(system)s', {'node_uuid': task.node.uuid,
+                                            'system': system.identity})
 
         # NOTE(iurygregory): normally we only relay on the System to
         # perform actions, but to retrieve the BMC Firmware we need to
@@ -102,9 +106,14 @@ class RedfishFirmware(base.FirmwareInterface):
         try:
             manager = redfish_utils.get_manager(task.node, system)
             if manager.firmware_version:
-                bmc_fw = {'component': 'bmc',
+                bmc_fw = {'component': redfish_utils.BMC,
                           'current_version': manager.firmware_version}
                 settings.append(bmc_fw)
+            else:
+                LOG.debug('Could not retrieve FirmwareVersion in node '
+                          '%(node_uuid)s manager %(manager)s',
+                          {'node_uuid': task.node.uuid,
+                           'manager': manager.identity})
         except exception.RedfishError:
             LOG.warning('No manager available to retrieve Firmware '
                         'from the bmc of node %s', task.node.uuid)
@@ -160,19 +169,17 @@ class RedfishFirmware(base.FirmwareInterface):
         :returns: states.CLEANWAIT if Firmware update with the settings is in
             progress asynchronously of None if it is complete.
         """
+        firmware_utils.validate_firmware_interface_update_args(settings)
         node = task.node
-
         update_service = redfish_utils.get_update_service(node)
 
         LOG.debug('Updating Firmware on node %(node_uuid)s with settings '
                   '%(settings)s',
                   {'node_uuid': node.uuid, 'settings': settings})
-
         self._execute_firmware_update(node, update_service, settings)
 
         fw_upd = settings[0]
         wait_interval = fw_upd.get('wait')
-
         deploy_utils.set_async_step_flags(
             node,
             reboot=True,
@@ -199,8 +206,13 @@ class RedfishFirmware(base.FirmwareInterface):
                   '%(node_uuid)s',
                   {'url': fw_upd['url'], 'component': fw_upd['component'],
                    'node_uuid': node.uuid})
-
-        task_monitor = update_service.simple_update(component_url)
+        try:
+            task_monitor = update_service.simple_update(component_url)
+        except sushy.exceptions.MissingAttributeError as e:
+            LOG.error('The attribute #UpdateService.SimpleUpdate is missing '
+                      'on node %(node)s. Error: %(error)s',
+                      {'node': node.uuid, 'error': e.message})
+            raise exception.RedfishError(error=e)
 
         fw_upd['task_monitor'] = task_monitor.task_monitor_uri
         node.set_driver_internal_info('redfish_fw_updates', settings)
@@ -326,8 +338,7 @@ class RedfishFirmware(base.FirmwareInterface):
             LOG.warning('Unable to communicate with firmware update service '
                         'on node %(node)s. Will try again on the next poll. '
                         'Error: %(error)s',
-                        {'node': node.uuid,
-                         'error': e})
+                        {'node': node.uuid, 'error': e})
             return
 
         wait_start_time = current_update.get('wait_start_time')
@@ -453,3 +464,4 @@ class RedfishFirmware(base.FirmwareInterface):
 
         except exception.IronicException:
             firmware_utils.cleanup(node)
+            raise
