@@ -194,7 +194,7 @@ enabled and use the ``ipmi`` hardware type with this config::
     Q_USE_SECGROUP="False"
 
     # By default, devstack assumes you have IPv4 and IPv6 access. If you are on
-    # a v4-only network, set the value below.
+    # a host with IPv6 disabled, set the value below.
     # IP_VERSION=4
 
     # Swift temp URL's are required for the direct deploy interface
