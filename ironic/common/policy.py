@@ -49,15 +49,22 @@ SYSTEM_ADMIN = 'role:admin and system_scope:all'
 # authorization that system administrators typically have. This persona, or
 # check string, typically isn't used by default, but it's existence it useful
 # in the event a deployment wants to offload some administrative action from
-# system administrator to system members
-SYSTEM_MEMBER = 'role:member and system_scope:all'
+# system administrator to system members.
+# The rule:service_role match here is to enable an elevated level of API
+# access for a specialized service role and users with appropriate
+# service role access.
+SYSTEM_MEMBER = '(role:member and system_scope:all) or rule:service_role'  # noqa
 
-# Generic policy check string for read-only access to system-level resources.
-# This persona is useful for someone who needs access for auditing or even
-# support. These uses are also able to view project-specific resources where
-# applicable (e.g., listing all volumes in the deployment, regardless of the
-# project they belong to).
-SYSTEM_READER = '(role:reader and system_scope:all) or (role:service and system_scope:all)'  # noqa
+# Generic policy check string for read-only access to system-level
+# resources. This persona is useful for someone who needs access
+# for auditing or even support. These uses are also able to view
+# project-specific resources where applicable (e.g., listing all
+# volumes in the deployment, regardless of the project they belong to).
+# The rule:service_role match here is to enable an elevated level of API
+# access for a specialized service role and users with appropriate
+# role access, specifically because 'service" role is outside of the RBAC
+# model defaults and does not imply reader access.
+SYSTEM_READER = '(role:reader and system_scope:all) or (role:service and system_scope:all) or rule:service_role'  # noqa
 
 # This check string is reserved for actions that require the highest level of
 # authorization on a project or resources within the project (e.g., setting the
@@ -96,7 +103,7 @@ PROJECT_SERVICE = ('role:service and project_id:%(node.owner)s')
 # administrator should be able to delete any baremetal host in the deployment,
 # a project member should only be able to delete hosts in their project).
 SYSTEM_OR_PROJECT_MEMBER = (
-    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_MEMBER + ')'
+    '(' + SYSTEM_MEMBER + ') or (' + PROJECT_MEMBER + ') or (' + SYSTEM_SERVICE + ')'  # noqa
 )
 SYSTEM_OR_PROJECT_READER = (
     '(' + SYSTEM_READER + ') or (' + PROJECT_READER + ') or (' + PROJECT_SERVICE + ')'  # noqa
@@ -208,6 +215,13 @@ default_policies = [
     policy.RuleDefault('show_instance_secrets',
                        '!',
                        description='Show or mask secrets within instance information in API responses'),  # noqa
+    # NOTE(TheJulia): This is a special rule to allow customization of the
+    # service role check. The config.service_project_name is a reserved
+    # target check field which is loaded from configuration to the
+    # check context in ironic/common/context.py.
+    policy.RuleDefault('service_role',
+                       'role:service and project_name:%(config.service_project_name)s',  # noqa
+                       description='Rule to match service role usage with a service project, delineated as a separate rule to enable customization.'),  # noqa
     # Roles likely to be overridden by operator
     # TODO(TheJulia): Lets nuke demo from high orbit.
     policy.RuleDefault('is_member',
@@ -482,7 +496,7 @@ node_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:node:list_all',
         check_str=SYSTEM_READER,
-        scope_types=['system'],
+        scope_types=['system', 'project'],
         description='Retrieve multiple Node records',
         operations=[{'path': '/nodes', 'method': 'GET'},
                     {'path': '/nodes/detail', 'method': 'GET'}],

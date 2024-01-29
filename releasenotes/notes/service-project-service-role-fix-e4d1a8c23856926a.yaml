@@ -1,0 +1,41 @@
+---
+fixes:
+  - |
+    Provides a fix for ``service`` role support to enable the use
+    case where a dedicated service project is used for cloud service
+    operation to facilitate actions as part of the operation of the
+    cloud infrastructure.
+
+    OpenStack clouds can take a variety of configuration models
+    for service accounts. It is now possible to utilize the
+    ``[DEFAULT] rbac_service_role_elevated_access`` setting to
+    enable users with a ``service`` role in a dedicated ``service``
+    project to act upon the API similar to a "System" scoped
+    "Member" where resources regardless of ``owner`` or ``lessee``
+    settings are available. This is needed to enable synchronization
+    processes, such as ``nova-compute`` or the ``networking-baremetal``
+    ML2 plugin to perform actions across the whole of an Ironic
+    deployment, if desirable where a "System" scoped user is also
+    undesirable.
+
+    This functionality can be tuned to utilize a customized project
+    name aside from the default convention ``service``, for example
+    ``baremetal`` or ``admin``, utilizing the
+    ``[DEFAULT] rbac_service_project_name`` setting.
+
+    Operators can alternatively entirely override the
+    ``service_role`` RBAC policy rule, if so desired, however
+    Ironic feels the default is both reasonable and delineates
+    sufficiently for the variety of Role Based Access Control
+    usage cases which can exist with a running Ironic deployment.
+upgrades:
+  - |
+    This version of ironic includes an opt-in fix to the Role Based Access
+    Control logic where the "service" role in a "service" project is
+    able to be granted elevated access to the API surface of Ironic such that
+    all baremetal nodes are visible to that API consumer. This is for
+    deployments which have not moved to a "System" scoped user for connecting
+    to ironic for services like ``nova-compute`` and the
+    ``networking-baremetal`` Neutron plugin, and where it is desirable for
+    those services to be able to operate across the whole of the Ironic
+    deployment.
