@@ -1,0 +1,18 @@
+diagram {
+   API; Conductor; Baremetal; iPXE; IPA;
+   activation = none;
+   span_height = 1;
+   edge_length = 250;
+   default_note_color = white;
+   default_fontsize = 14;
+
+   Conductor -> Baremetal [label = "Conductor turns power on"];
+   Baremetal -> iPXE [label = "Baremetal reads kernel/ramdisk and starts boot"];
+   Baremetal -> Baremetal [label = "Boots IPA iPXE image"];
+   Baremetal -> Baremetal [label = "IPA is started"];
+   IPA -> Baremetal [label = "IPA loads configuration"];
+   IPA -> API [label = "Lookup node"];
+   API -> Conductor [label = "API requests conductor to generates a random token"];
+   API -> IPA [label = "API responds with node UUID and token value"];
+   IPA -> API [label = "Heartbeat with agent token"];
+}

@@ -1,0 +1,30 @@
+diagram {
+  Webserver; Conductor; Baremetal; Swift; IPA; iLO;
+  activation = none;
+  span_height = 1;
+  edge_length = 250;
+  default_note_color = white;
+  default_fontsize = 14;
+
+  Conductor -> iLO [label = "Powers off the node"];
+  Conductor -> Conductor [label = "Creates the FAT32 image containing ironic API URL and driver name"];
+  Conductor -> Swift [label = "Uploads the FAT32 image"];
+  Conductor -> Conductor [label = "Generates swift tempURL for FAT32 image"];
+  Conductor -> iLO [label = "Attaches the FAT32 image swift tempURL as virtual media floppy"];
+  Conductor -> iLO [label = "Attaches the deploy ISO URL as virtual media CDROM"];
+  Conductor -> iLO [label = "Sets one time boot to CDROM"];
+  Conductor -> iLO [label = "Reboot the node"];
+  iLO -> Webserver [label = "Downloads deploy ISO"];
+  Baremetal -> iLO [label = "Boots deploy kernel/ramdisk from iLO virtual media CDROM"];
+  IPA -> Conductor [label = "Lookup node"];
+  Conductor -> IPA [label = "Provides node UUID"];
+  IPA -> Conductor [label = "Heartbeat"];
+  Conductor -> IPA [label = "Sends the user image HTTP(S) URL"];
+  IPA -> Webserver [label = "Retrieves the user image on bare metal"];
+  IPA -> IPA [label = "Writes user image to disk"];
+  IPA -> Conductor [label = "Heartbeat"];
+  Conductor -> Baremetal [label = "Sets boot device to disk"];
+  Conductor -> IPA [label = "Power off the node"];
+  Conductor -> Baremetal [label = "Power on the node"];
+  Baremetal -> Baremetal [label = "Boot user image from disk"];
+}

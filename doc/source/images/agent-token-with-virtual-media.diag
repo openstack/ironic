@@ -1,0 +1,21 @@
+diagram {
+   API; Conductor; Baremetal; Swift; IPA;
+   activation = none;
+   span_height = 1;
+   edge_length = 250;
+   default_note_color = white;
+   default_fontsize = 14;
+
+   Conductor -> Conductor [label = "Generates a random token"];
+   Conductor -> Conductor [label = "Generates configuration for IPA ramdisk"];
+   Conductor -> Swift [label = "IPA image, with configuration is uploaded"];
+   Conductor -> Baremetal [label = "Attach IPA virtual media in Swift as virtual CD"];
+   Conductor -> Baremetal [label = "Conductor turns power on"];
+   Baremetal -> Swift [label = "Baremetal reads virtual media"];
+   Baremetal -> Baremetal [label = "Boots IPA virtual media image"];
+   Baremetal -> Baremetal [label = "IPA is started"];
+   IPA -> Baremetal [label = "IPA loads configuration and agent token into memory"];
+   IPA -> API [label = "Lookup node"];
+   API -> IPA [label = "API responds with node UUID and token value of '******'"];
+   IPA -> API [label = "Heartbeat with agent token"];
+}

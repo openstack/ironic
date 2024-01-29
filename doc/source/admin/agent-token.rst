@@ -61,55 +61,14 @@ token, allowing the agent to authenticate the caller.
 With Virtual Media
 ------------------
 
-.. seqdiag::
-   :scale: 80
-
-   diagram {
-      API; Conductor; Baremetal; Swift; IPA;
-      activation = none;
-      span_height = 1;
-      edge_length = 250;
-      default_note_color = white;
-      default_fontsize = 14;
-
-      Conductor -> Conductor [label = "Generates a random token"];
-      Conductor -> Conductor [label = "Generates configuration for IPA ramdisk"];
-      Conductor -> Swift [label = "IPA image, with configuration is uploaded"];
-      Conductor -> Baremetal [label = "Attach IPA virtual media in Swift as virtual CD"];
-      Conductor -> Baremetal [label = "Conductor turns power on"];
-      Baremetal -> Swift [label = "Baremetal reads virtual media"];
-      Baremetal -> Baremetal [label = "Boots IPA virtual media image"];
-      Baremetal -> Baremetal [label = "IPA is started"];
-      IPA -> Baremetal [label = "IPA loads configuration and agent token into memory"];
-      IPA -> API [label = "Lookup node"];
-      API -> IPA [label = "API responds with node UUID and token value of '******'"];
-      IPA -> API [label = "Heartbeat with agent token"];
-   }
+.. figure:: ./../images/agent-token-with-virtual-media.svg
+   :width: 100%
 
 With PXE/iPXE/etc.
 ------------------
 
-.. seqdiag::
-   :scale: 80
-
-   diagram {
-      API; Conductor; Baremetal; iPXE; IPA;
-      activation = none;
-      span_height = 1;
-      edge_length = 250;
-      default_note_color = white;
-      default_fontsize = 14;
-
-      Conductor -> Baremetal [label = "Conductor turns power on"];
-      Baremetal -> iPXE [label = "Baremetal reads kernel/ramdisk and starts boot"];
-      Baremetal -> Baremetal [label = "Boots IPA iPXE image"];
-      Baremetal -> Baremetal [label = "IPA is started"];
-      IPA -> Baremetal [label = "IPA loads configuration"];
-      IPA -> API [label = "Lookup node"];
-      API -> Conductor [label = "API requests conductor to generates a random token"];
-      API -> IPA [label = "API responds with node UUID and token value"];
-      IPA -> API [label = "Heartbeat with agent token"];
-   }
+.. figure:: ./../images/agent-token-with-pxe-ipxe.svg
+   :width: 100%
 
 Agent Configuration
 ===================

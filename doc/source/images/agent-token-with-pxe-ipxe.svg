@@ -1,0 +1,83 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg viewBox="0 0 1256 407" xmlns="http://www.w3.org/2000/svg" xmlns:inkspace="http://www.inkscape.org/namespaces/inkscape" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs id="defs_block">
+    <filter height="1.504" id="filter_blur" inkspace:collect="always" width="1.1575" x="-0.07875" y="-0.252">
+      <feGaussianBlur id="feGaussianBlur3780" inkspace:collect="always" stdDeviation="4.2" />
+    </filter>
+  </defs>
+  <title>blockdiag</title>
+  <desc>diagram {
+   API; Conductor; Baremetal; iPXE; IPA;
+   activation = none;
+   span_height = 1;
+   edge_length = 250;
+   default_note_color = white;
+   default_fontsize = 14;
+
+   Conductor -&gt; Baremetal [label = "Conductor turns power on"];
+   Baremetal -&gt; iPXE [label = "Baremetal reads kernel/ramdisk and starts boot"];
+   Baremetal -&gt; Baremetal [label = "Boots IPA iPXE image"];
+   Baremetal -&gt; Baremetal [label = "IPA is started"];
+   IPA -&gt; Baremetal [label = "IPA loads configuration"];
+   IPA -&gt; API [label = "Lookup node"];
+   API -&gt; Conductor [label = "API requests conductor to generates a random token"];
+   API -&gt; IPA [label = "API responds with node UUID and token value"];
+   IPA -&gt; API [label = "Heartbeat with agent token"];
+}
+</desc>
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="317" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="567" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="817" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="1067" y="7" />
+  <path d="M 128 41 L 128 414" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 378 41 L 378 414" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 628 41 L 628 414" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 878 41 L 878 414" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 1128 41 L 1128 414" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="22" x="128.0" y="28">API</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="314" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="378.0" y="28">Conductor</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="564" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="628.0" y="28">Baremetal</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="814" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="30" x="878.0" y="28">iPXE</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="1064" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="22" x="1128.0" y="28">IPA</text>
+  <path d="M 386 60 L 620 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="612,56 620,60 612,64" stroke="rgb(0,0,0)" />
+  <path d="M 636 105 L 870 105" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="862,101 870,105 862,109" stroke="rgb(0,0,0)" />
+  <path d="M 636 150 L 753 150" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 150 L 753 166" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 166 L 636 166" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="644,162 636,166 644,170" stroke="rgb(0,0,0)" />
+  <path d="M 636 195 L 753 195" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 195 L 753 211" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 211 L 636 211" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="644,207 636,211 644,215" stroke="rgb(0,0,0)" />
+  <path d="M 636 240 L 1120 240" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="644,236 636,240 644,244" stroke="rgb(0,0,0)" />
+  <path d="M 136 269 L 1120 269" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="144,265 136,269 144,273" stroke="rgb(0,0,0)" />
+  <path d="M 136 314 L 370 314" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="362,310 370,314 362,318" stroke="rgb(0,0,0)" />
+  <path d="M 136 343 L 1120 343" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1112,339 1120,343 1112,347" stroke="rgb(0,0,0)" />
+  <path d="M 136 372 L 1120 372" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="144,368 136,372 144,376" stroke="rgb(0,0,0)" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="183" x="485.5" y="56">Conductor turns power on</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="229" x="758.5" y="85">Baremetal reads kernel/ramdisk</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="122" x="705.0" y="101"> and starts boot</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="708.5" y="130">Boots IPA iPXE ima</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="15" x="647.5" y="146">ge</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="106" x="693.0" y="191">IPA is started</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="175" x="1028.5" y="236">IPA loads configuration</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="84" x="1074.0" y="265">Lookup node</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="229" x="258.5" y="294">API requests conductor to gene</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="152" x="220.0" y="310">rates a random token</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="328" x="308.0" y="339">API responds with node UUID and token value</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="198" x="1017.0" y="368">Heartbeat with agent token</text>
+</svg>

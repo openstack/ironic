@@ -21,25 +21,8 @@ In essence, ironic sets the stage for the process, by providing the required
 information to the boot interface to facilitate the configuration of the
 the node OR the iPXE boot templates such that the node CAN be booted.
 
-.. seqdiag::
-   :scale: 80
-
-   diagram {
-      User; API; Conductor; Storage; Boot; Network; Deploy;
-      activation = none;
-      span_height = 1;
-      edge_length = 250;
-      default_note_color = white;
-      default_fontsize = 14;
-
-      User -> API [label = "User or intermediate service such as nova supplies volume target configuration."];
-      User -> API [label = "Sends deployment request."];
-      API -> Conductor [label = "API transmits the action to the conductor service"];
-      Conductor -> Storage [label = "Conductor calls the storage_interface to perform attachment of volume to node"];
-      Conductor -> Boot [label = "Conductor calls the boot interface signaling preparation of an instance"];
-      Conductor -> Network [label = "Conductor attaches the machine to network requested by the user VIF"];
-      Conductor -> Deploy [label = "Conductor starts deployment steps which just turn the power on."];
-   }
+.. figure:: ./../images/boot-from-volume.svg
+   :width: 100%
 
 In this example, the boot interface does the heavy lifting. For drivers the
 ``irmc`` and ``ilo`` hardware types with hardware type specific boot

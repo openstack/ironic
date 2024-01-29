@@ -1,0 +1,237 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg viewBox="0 0 1756 1624" xmlns="http://www.w3.org/2000/svg" xmlns:inkspace="http://www.inkscape.org/namespaces/inkscape" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs id="defs_block">
+    <filter height="1.504" id="filter_blur" inkspace:collect="always" width="1.1575" x="-0.07875" y="-0.252">
+      <feGaussianBlur id="feGaussianBlur3780" inkspace:collect="always" stdDeviation="4.2" />
+    </filter>
+  </defs>
+  <title>blockdiag</title>
+  <desc>diagram {
+   Nova; API; Conductor; Neutron; HTTPStore; "TFTP/HTTPd"; Node;
+   activation = none;
+   edge_length = 250;
+   span_height = 1;
+   default_note_color = white;
+   default_fontsize = 14;
+
+   Nova -&gt; API [label = "Set instance_info\n(image_source,\nroot_gb, etc.)"];
+   Nova -&gt; API [label = "Validate power and deploy\ninterfaces"];
+   Nova -&gt; API [label = "Plug VIFs to the node"];
+   Nova -&gt; API [label = "Set provision_state,\noptionally pass configdrive"];
+   API -&gt; Conductor [label = "do_node_deploy()"];
+   Conductor -&gt; Conductor [label = "Validate power and deploy interfaces"];
+   Conductor -&gt; HTTPStore [label = "Store configdrive if configdrive_use_swift \noption is set"];
+   Conductor -&gt; Node [label = "POWER OFF"];
+   Conductor -&gt; Neutron [label = "Attach provisioning network to port(s)"];
+   Conductor -&gt; Neutron [label = "Update DHCP boot options"];
+   Conductor -&gt; Conductor [label = "Prepare PXE\nenvironment for\ndeployment"];
+   Conductor -&gt; Node [label = "Set PXE boot device \nthrough the BMC"];
+   Conductor -&gt; Conductor [label = "Cache deploy\nand instance\nkernel and ramdisk"];
+   Conductor -&gt; Node [label = "REBOOT"];
+   Node -&gt; Neutron [label = "DHCP request"];
+   Neutron -&gt; Node [label = "next-server = Conductor"];
+   Node -&gt; Node [label = "Runs agent\nramdisk"];
+   Node -&gt; API [label = "lookup()"];
+   API -&gt; Node [label = "Pass UUID"];
+   Node -&gt; API [label = "Heartbeat (UUID)"];
+   API -&gt; Conductor [label = "Heartbeat"];
+   Conductor -&gt; Node [label = "Continue deploy asynchronously: Pass image, disk info"];
+   Node -&gt; HTTPStore [label = "Downloads image, writes to disk, \nwrites configdrive if present"];
+   === Heartbeat periodically ===
+   Conductor -&gt; Node [label = "Is deploy done?"];
+   Node -&gt; Conductor [label = "Still working..."];
+   === ... ===
+   Node -&gt; Conductor [label = "Deploy is done"];
+   Conductor -&gt; Node [label = "Install boot loader, if requested"];
+   Conductor -&gt; Neutron [label = "Update DHCP boot options"];
+   Conductor -&gt; Conductor [label = "Prepare PXE\nenvironment for\ninstance image\nif needed"];
+   Conductor -&gt; Node [label = "Set boot device either to PXE or to disk"];
+   Conductor -&gt; Node [label = "Collect ramdisk logs"];
+   Conductor -&gt; Node [label = "POWER OFF"];
+   Conductor -&gt; Neutron [label = "Detach provisioning network\nfrom port(s)"];
+   Conductor -&gt; Neutron [label = "Bind tenant port"];
+   Conductor -&gt; Node [label = "POWER ON"];
+   Conductor -&gt; Conductor [label = "Mark node as\nACTIVE"];
+}
+</desc>
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="317" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="567" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="817" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="1067" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="1317" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="1567" y="7" />
+  <path d="M 128 41 L 128 1631" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 378 41 L 378 1631" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 628 41 L 628 1631" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 878 41 L 878 1631" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 1128 41 L 1128 1631" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 1378 41 L 1378 1631" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 1628 41 L 1628 1631" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="30" x="128.0" y="28">Nova</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="314" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="22" x="378.0" y="28">API</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="564" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="628.0" y="28">Conductor</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="814" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="53" x="878.5" y="28">Neutron</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="1064" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="1128.0" y="28">HTTPStore</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="1314" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="76" x="1378.0" y="28">TFTP/HTTPd</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="1564" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="30" x="1628.0" y="28">Node</text>
+  <path d="M 136 92 L 370 92" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="362,88 370,92 362,96" stroke="rgb(0,0,0)" />
+  <path d="M 136 137 L 370 137" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="362,133 370,137 362,141" stroke="rgb(0,0,0)" />
+  <path d="M 136 166 L 370 166" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="362,162 370,166 362,170" stroke="rgb(0,0,0)" />
+  <path d="M 136 211 L 370 211" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="362,207 370,211 362,215" stroke="rgb(0,0,0)" />
+  <path d="M 386 240 L 620 240" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="612,236 620,240 612,244" stroke="rgb(0,0,0)" />
+  <path d="M 636 301 L 753 301" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 301 L 753 317" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 317 L 636 317" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="644,313 636,317 644,321" stroke="rgb(0,0,0)" />
+  <path d="M 636 362 L 1120 362" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1112,358 1120,362 1112,366" stroke="rgb(0,0,0)" />
+  <path d="M 636 391 L 1620 391" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1612,387 1620,391 1612,395" stroke="rgb(0,0,0)" />
+  <path d="M 636 436 L 870 436" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="862,432 870,436 862,440" stroke="rgb(0,0,0)" />
+  <path d="M 636 465 L 870 465" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="862,461 870,465 862,469" stroke="rgb(0,0,0)" />
+  <path d="M 636 526 L 753 526" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 526 L 753 542" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 542 L 636 542" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="644,538 636,542 644,546" stroke="rgb(0,0,0)" />
+  <path d="M 636 587 L 1620 587" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1612,583 1620,587 1612,591" stroke="rgb(0,0,0)" />
+  <path d="M 636 664 L 753 664" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 664 L 753 680" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 680 L 636 680" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="644,676 636,680 644,684" stroke="rgb(0,0,0)" />
+  <path d="M 636 709 L 1620 709" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1612,705 1620,709 1612,713" stroke="rgb(0,0,0)" />
+  <path d="M 886 738 L 1620 738" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="894,734 886,738 894,742" stroke="rgb(0,0,0)" />
+  <path d="M 886 767 L 1620 767" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1612,763 1620,767 1612,771" stroke="rgb(0,0,0)" />
+  <path d="M 1636 812 L 1716 812" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 1716 812 L 1716 828" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 1716 828 L 1636 828" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1644,824 1636,828 1644,832" stroke="rgb(0,0,0)" />
+  <path d="M 386 857 L 1620 857" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="394,853 386,857 394,861" stroke="rgb(0,0,0)" />
+  <path d="M 386 886 L 1620 886" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1612,882 1620,886 1612,890" stroke="rgb(0,0,0)" />
+  <path d="M 386 915 L 1620 915" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="394,911 386,915 394,919" stroke="rgb(0,0,0)" />
+  <path d="M 386 944 L 620 944" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="612,940 620,944 612,948" stroke="rgb(0,0,0)" />
+  <path d="M 636 973 L 1620 973" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1612,969 1620,973 1612,977" stroke="rgb(0,0,0)" />
+  <path d="M 1136 1018 L 1620 1018" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1144,1014 1136,1018 1144,1022" stroke="rgb(0,0,0)" />
+  <path d="M 636 1088 L 1620 1088" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1612,1084 1620,1088 1612,1092" stroke="rgb(0,0,0)" />
+  <path d="M 636 1117 L 1620 1117" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="644,1113 636,1117 644,1121" stroke="rgb(0,0,0)" />
+  <path d="M 636 1187 L 1620 1187" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="644,1183 636,1187 644,1191" stroke="rgb(0,0,0)" />
+  <path d="M 636 1216 L 1620 1216" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1612,1212 1620,1216 1612,1220" stroke="rgb(0,0,0)" />
+  <path d="M 636 1245 L 870 1245" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="862,1241 870,1245 862,1249" stroke="rgb(0,0,0)" />
+  <path d="M 636 1322 L 753 1322" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 1322 L 753 1338" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 1338 L 636 1338" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="644,1334 636,1338 644,1342" stroke="rgb(0,0,0)" />
+  <path d="M 636 1367 L 1620 1367" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1612,1363 1620,1367 1612,1371" stroke="rgb(0,0,0)" />
+  <path d="M 636 1396 L 1620 1396" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1612,1392 1620,1396 1612,1400" stroke="rgb(0,0,0)" />
+  <path d="M 636 1425 L 1620 1425" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1612,1421 1620,1425 1612,1429" stroke="rgb(0,0,0)" />
+  <path d="M 636 1470 L 870 1470" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="862,1466 870,1470 862,1474" stroke="rgb(0,0,0)" />
+  <path d="M 636 1499 L 870 1499" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="862,1495 870,1499 862,1503" stroke="rgb(0,0,0)" />
+  <path d="M 636 1528 L 1620 1528" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1612,1524 1620,1528 1612,1532" stroke="rgb(0,0,0)" />
+  <path d="M 636 1573 L 753 1573" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 1573 L 753 1589" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 1589 L 636 1589" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="644,1585 636,1589 644,1593" stroke="rgb(0,0,0)" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="129" x="208.5" y="56">Set instance_info</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="106" x="197.0" y="72">(image_source,</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="106" x="197.0" y="88">root_gb, etc.)</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="190" x="239.0" y="117">Validate power and deploy</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="76" x="182.0" y="133">interfaces</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="160" x="224.0" y="162">Plug VIFs to the node</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="152" x="220.0" y="191">Set provision_state,</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="206" x="247.0" y="207">optionally pass configdrive</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="122" x="455.0" y="236">do_node_deploy()</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="708.5" y="273">Validate power and</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="708.5" y="289"> deploy interfaces</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="320" x="804.0" y="342">Store configdrive if configdrive_use_swift</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="99" x="693.5" y="358">option is set</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="678.0" y="387">POWER OFF</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="229" x="758.5" y="416">Attach provisioning network to</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="61" x="674.5" y="432"> port(s)</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="183" x="735.5" y="461">Update DHCP boot options</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="84" x="682.0" y="490">Prepare PXE</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="114" x="697.0" y="506">environment for</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="76" x="678.0" y="522">deployment</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="145" x="716.5" y="567">Set PXE boot device</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="114" x="701.0" y="583">through the BMC</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="91" x="685.5" y="620">Cache deploy</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="91" x="685.5" y="636">and instance</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="708.5" y="652">kernel and ramdisk</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="45" x="666.5" y="705">REBOOT</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="91" x="1570.5" y="734">DHCP request</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="175" x="981.5" y="763">next-server = Conductor</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="76" x="1678.0" y="792">Runs agent</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="53" x="1666.5" y="808">ramdisk</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="61" x="1585.5" y="853">lookup()</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="428.0" y="882">Pass UUID</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="122" x="1555.0" y="911">Heartbeat (UUID)</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="428.0" y="940">Heartbeat</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="404" x="846.0" y="969">Continue deploy asynchronously: Pass image, disk info</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="244" x="1494.0" y="998">Downloads image, writes to disk,</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="221" x="1505.5" y="1014">writes configdrive if present</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="114" x="701.0" y="1084">Is deploy done?</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="122" x="1555.0" y="1113">Still working...</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="106" x="1563.0" y="1183">Deploy is done</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="252" x="770.0" y="1212">Install boot loader, if requested</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="183" x="735.5" y="1241">Update DHCP boot options</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="84" x="682.0" y="1270">Prepare PXE</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="114" x="697.0" y="1286">environment for</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="106" x="693.0" y="1302">instance image</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="674.0" y="1318">if needed</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="305" x="796.5" y="1363">Set boot device either to PXE or to disk</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="152" x="720.0" y="1392">Collect ramdisk logs</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="678.0" y="1421">POWER OFF</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="206" x="747.0" y="1450">Detach provisioning network</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="91" x="689.5" y="1466">from port(s)</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="122" x="705.0" y="1495">Bind tenant port</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="61" x="674.5" y="1524">POWER ON</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="91" x="685.5" y="1553">Mark node as</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="45" x="662.5" y="1569">ACTIVE</text>
+  <path d="M 40 1047 L 784 1047" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 40 1051 L 784 1051" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 972 1047 L 1716 1047" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 972 1051 L 1716 1051" fill="none" stroke="rgb(0,0,0)" />
+  <rect fill="rgb(208,208,208)" height="22" stroke="rgb(0,0,0)" width="188" x="784" y="1038" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="168" x="878.0" y="1056">Heartbeat periodically</text>
+  <path d="M 40 1146 L 857 1146" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 40 1150 L 857 1150" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 899 1146 L 1716 1146" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 899 1150 L 1716 1150" fill="none" stroke="rgb(0,0,0)" />
+  <rect fill="rgb(208,208,208)" height="22" stroke="rgb(0,0,0)" width="42" x="857" y="1137" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="22" x="878.0" y="1155">...</text>
+</svg>

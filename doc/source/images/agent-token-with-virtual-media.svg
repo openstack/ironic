@@ -1,0 +1,101 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg viewBox="0 0 1256 574" xmlns="http://www.w3.org/2000/svg" xmlns:inkspace="http://www.inkscape.org/namespaces/inkscape" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs id="defs_block">
+    <filter height="1.504" id="filter_blur" inkspace:collect="always" width="1.1575" x="-0.07875" y="-0.252">
+      <feGaussianBlur id="feGaussianBlur3780" inkspace:collect="always" stdDeviation="4.2" />
+    </filter>
+  </defs>
+  <title>blockdiag</title>
+  <desc>diagram {
+   API; Conductor; Baremetal; Swift; IPA;
+   activation = none;
+   span_height = 1;
+   edge_length = 250;
+   default_note_color = white;
+   default_fontsize = 14;
+
+   Conductor -&gt; Conductor [label = "Generates a random token"];
+   Conductor -&gt; Conductor [label = "Generates configuration for IPA ramdisk"];
+   Conductor -&gt; Swift [label = "IPA image, with configuration is uploaded"];
+   Conductor -&gt; Baremetal [label = "Attach IPA virtual media in Swift as virtual CD"];
+   Conductor -&gt; Baremetal [label = "Conductor turns power on"];
+   Baremetal -&gt; Swift [label = "Baremetal reads virtual media"];
+   Baremetal -&gt; Baremetal [label = "Boots IPA virtual media image"];
+   Baremetal -&gt; Baremetal [label = "IPA is started"];
+   IPA -&gt; Baremetal [label = "IPA loads configuration and agent token into memory"];
+   IPA -&gt; API [label = "Lookup node"];
+   API -&gt; IPA [label = "API responds with node UUID and token value of '******'"];
+   IPA -&gt; API [label = "Heartbeat with agent token"];
+}
+</desc>
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="317" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="567" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="817" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="1067" y="7" />
+  <path d="M 128 41 L 128 581" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 378 41 L 378 581" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 628 41 L 628 581" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 878 41 L 878 581" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 1128 41 L 1128 581" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="22" x="128.0" y="28">API</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="314" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="378.0" y="28">Conductor</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="564" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="628.0" y="28">Baremetal</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="814" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="38" x="878.0" y="28">Swift</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="1064" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="22" x="1128.0" y="28">IPA</text>
+  <path d="M 386 76 L 503 76" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 503 76 L 503 92" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 503 92 L 386 92" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="394,88 386,92 394,96" stroke="rgb(0,0,0)" />
+  <path d="M 386 153 L 503 153" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 503 153 L 503 169" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 503 169 L 386 169" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="394,165 386,169 394,173" stroke="rgb(0,0,0)" />
+  <path d="M 386 198 L 870 198" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="862,194 870,198 862,202" stroke="rgb(0,0,0)" />
+  <path d="M 386 243 L 620 243" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="612,239 620,243 612,247" stroke="rgb(0,0,0)" />
+  <path d="M 386 272 L 620 272" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="612,268 620,272 612,276" stroke="rgb(0,0,0)" />
+  <path d="M 636 317 L 870 317" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="862,313 870,317 862,321" stroke="rgb(0,0,0)" />
+  <path d="M 636 362 L 753 362" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 362 L 753 378" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 378 L 636 378" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="644,374 636,378 644,382" stroke="rgb(0,0,0)" />
+  <path d="M 636 407 L 753 407" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 407 L 753 423" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 423 L 636 423" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="644,419 636,423 644,427" stroke="rgb(0,0,0)" />
+  <path d="M 636 452 L 1120 452" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="644,448 636,452 644,456" stroke="rgb(0,0,0)" />
+  <path d="M 136 481 L 1120 481" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="144,477 136,481 144,485" stroke="rgb(0,0,0)" />
+  <path d="M 136 510 L 1120 510" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1112,506 1120,510 1112,514" stroke="rgb(0,0,0)" />
+  <path d="M 136 539 L 1120 539" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="144,535 136,539 144,543" stroke="rgb(0,0,0)" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="458.5" y="56">Generates a random</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="45" x="412.5" y="72"> token</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="458.5" y="117">Generates configur</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="458.5" y="133">ation for IPA ramd</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="22" x="401.0" y="149">isk</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="313" x="550.5" y="194">IPA image, with configuration is uploaded</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="229" x="508.5" y="223">Attach IPA virtual media in Sw</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="129" x="458.5" y="239">ift as virtual CD</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="183" x="485.5" y="268">Conductor turns power on</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="221" x="754.5" y="305">Baremetal reads virtual media</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="708.5" y="342">Boots IPA virtual </text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="84" x="682.0" y="358">media image</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="106" x="693.0" y="403">IPA is started</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="389" x="921.5" y="448">IPA loads configuration and agent token into memory</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="84" x="1074.0" y="477">Lookup node</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="420" x="354.0" y="506">API responds with node UUID and token value of '******'</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="198" x="1017.0" y="535">Heartbeat with agent token</text>
+</svg>

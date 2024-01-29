@@ -1,0 +1,9 @@
+---
+upgrade:
+  - Removes the sphinxcontrib-seqdiag dependency as the Pillow upgrade to
+    version 10.x (from OpenStack upper constraints) breaks its usage. seqdiag
+    has not been maintained for the last 3 years, hence the upgrade causes it
+    to break.
+    In the ironic docs (source) rst files, adds references to svg files, and
+    keeps the svg files in the doc/source/images/ directory, alongside their
+    associated .diag files as backup.

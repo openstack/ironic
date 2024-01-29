@@ -1,0 +1,158 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg viewBox="0 0 1756 957" xmlns="http://www.w3.org/2000/svg" xmlns:inkspace="http://www.inkscape.org/namespaces/inkscape" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs id="defs_block">
+    <filter height="1.504" id="filter_blur" inkspace:collect="always" width="1.1575" x="-0.07875" y="-0.252">
+      <feGaussianBlur id="feGaussianBlur3780" inkspace:collect="always" stdDeviation="4.2" />
+    </filter>
+  </defs>
+  <title>blockdiag</title>
+  <desc>diagram {
+  Glance; Conductor; Baremetal; ConductorWebserver; IPA; iLO;
+  activation = none;
+  span_height = 1;
+  edge_length = 250;
+  default_note_color = white;
+  default_fontsize = 14;
+
+  Conductor -&gt; iLO [label = "Powers off the node"];
+  Conductor -&gt; Glance [label = "Get the metadata for deploy ISO"];
+  Glance -&gt; Conductor [label = "Returns the metadata for deploy ISO"];
+  Conductor -&gt; Conductor [label = "Generates swift tempURL for deploy ISO"];
+  Conductor -&gt; Conductor [label = "Creates the FAT32 image containing Ironic API URL and driver name"];
+  Conductor -&gt; ConductorWebserver [label = "Uploads the FAT32 image"];
+  Conductor -&gt; iLO [label = "Attaches the FAT32 image URL as virtual media floppy"];
+  Conductor -&gt; iLO [label = "Attaches the deploy ISO swift tempURL as virtual media CDROM"];
+  Conductor -&gt; iLO [label = "Sets one time boot to CDROM"];
+  Conductor -&gt; iLO [label = "Reboot the node"];
+  iLO -&gt; Swift [label = "Downloads deploy ISO"];
+  Baremetal -&gt; iLO [label = "Boots deploy kernel/ramdisk from iLO virtual media CDROM"];
+  IPA -&gt; Conductor [label = "Lookup node"];
+  Conductor -&gt; IPA [label = "Provides node UUID"];
+  IPA -&gt; Conductor [label = "Heartbeat"];
+  Conductor -&gt; IPA [label = "Sends the user image HTTP(S) URL"];
+  IPA -&gt; Swift [label = "Retrieves the user image on bare metal"];
+  IPA -&gt; IPA [label = "Writes user image to disk"];
+  IPA -&gt; Conductor [label = "Heartbeat"];
+  Conductor -&gt; Baremetal [label = "Sets boot device to disk"];
+  Conductor -&gt; IPA [label = "Power off the node"];
+  Conductor -&gt; Baremetal [label = "Power on the node"];
+  Baremetal -&gt; Baremetal [label = "Boot user image from disk"];
+}
+</desc>
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="67" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="317" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="567" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="817" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="1067" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="1317" y="7" />
+  <rect fill="rgb(0,0,0)" height="40" stroke="rgb(0,0,0)" style="filter:url(#filter_blur);opacity:0.7;fill-opacity:1" width="128" x="1567" y="7" />
+  <path d="M 128 41 L 128 964" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 378 41 L 378 964" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 628 41 L 628 964" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 878 41 L 878 964" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 1128 41 L 1128 964" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 1378 41 L 1378 964" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <path d="M 1628 41 L 1628 964" fill="none" stroke="rgb(0,0,0)" stroke-dasharray="8 4" />
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="64" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="45" x="128.5" y="28">Glance</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="314" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="378.0" y="28">Conductor</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="564" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="628.0" y="28">Baremetal</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="814" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="122" x="878.0" y="20">ConductorWebserv</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="15" x="878.5" y="36">er</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="1064" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="22" x="1128.0" y="28">IPA</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="1314" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="22" x="1378.0" y="28">iLO</text>
+  <rect fill="rgb(255,255,255)" height="40" stroke="rgb(0,0,0)" width="128" x="1564" y="1" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="38" x="1628.0" y="28">Swift</text>
+  <path d="M 386 60 L 1370 60" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1362,56 1370,60 1362,64" stroke="rgb(0,0,0)" />
+  <path d="M 136 105 L 370 105" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="144,101 136,105 144,109" stroke="rgb(0,0,0)" />
+  <path d="M 136 150 L 370 150" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="362,146 370,150 362,154" stroke="rgb(0,0,0)" />
+  <path d="M 386 211 L 503 211" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 503 211 L 503 227" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 503 227 L 386 227" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="394,223 386,227 394,231" stroke="rgb(0,0,0)" />
+  <path d="M 386 320 L 503 320" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 503 320 L 503 336" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 503 336 L 386 336" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="394,332 386,336 394,340" stroke="rgb(0,0,0)" />
+  <path d="M 386 365 L 870 365" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="862,361 870,365 862,369" stroke="rgb(0,0,0)" />
+  <path d="M 386 394 L 1370 394" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1362,390 1370,394 1362,398" stroke="rgb(0,0,0)" />
+  <path d="M 386 423 L 1370 423" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1362,419 1370,423 1362,427" stroke="rgb(0,0,0)" />
+  <path d="M 386 452 L 1370 452" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1362,448 1370,452 1362,456" stroke="rgb(0,0,0)" />
+  <path d="M 386 481 L 1370 481" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1362,477 1370,481 1362,485" stroke="rgb(0,0,0)" />
+  <path d="M 1386 510 L 1620 510" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1612,506 1620,510 1612,514" stroke="rgb(0,0,0)" />
+  <path d="M 636 539 L 1370 539" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1362,535 1370,539 1362,543" stroke="rgb(0,0,0)" />
+  <path d="M 386 568 L 1120 568" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="394,564 386,568 394,572" stroke="rgb(0,0,0)" />
+  <path d="M 386 597 L 1120 597" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1112,593 1120,597 1112,601" stroke="rgb(0,0,0)" />
+  <path d="M 386 626 L 1120 626" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="394,622 386,626 394,630" stroke="rgb(0,0,0)" />
+  <path d="M 386 655 L 1120 655" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1112,651 1120,655 1112,659" stroke="rgb(0,0,0)" />
+  <path d="M 1136 684 L 1620 684" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1612,680 1620,684 1612,688" stroke="rgb(0,0,0)" />
+  <path d="M 1136 729 L 1253 729" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 1253 729 L 1253 745" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 1253 745 L 1136 745" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1144,741 1136,745 1144,749" stroke="rgb(0,0,0)" />
+  <path d="M 386 774 L 1120 774" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="394,770 386,774 394,778" stroke="rgb(0,0,0)" />
+  <path d="M 386 803 L 620 803" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="612,799 620,803 612,807" stroke="rgb(0,0,0)" />
+  <path d="M 386 832 L 1120 832" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="1112,828 1120,832 1112,836" stroke="rgb(0,0,0)" />
+  <path d="M 386 861 L 620 861" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="612,857 620,861 612,865" stroke="rgb(0,0,0)" />
+  <path d="M 636 906 L 753 906" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 906 L 753 922" fill="none" stroke="rgb(0,0,0)" />
+  <path d="M 753 922 L 636 922" fill="none" stroke="rgb(0,0,0)" />
+  <polygon fill="rgb(0,0,0)" points="644,918 636,922 644,926" stroke="rgb(0,0,0)" />
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="145" x="466.5" y="56">Powers off the node</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="229" x="251.5" y="85">Get the metadata for deploy IS</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="7" x="362.5" y="101">O</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="229" x="258.5" y="130">Returns the metadata for deplo</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="38" x="163.0" y="146">y ISO</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="458.5" y="175">Generates swift te</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="458.5" y="191">mpURL for deploy I</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="15" x="397.5" y="207">SO</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="458.5" y="260">Creates the FAT32 </text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="458.5" y="276">image containing I</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="458.5" y="292">ronic API URL and </text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="84" x="432.0" y="308">driver name</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="175" x="481.5" y="361">Uploads the FAT32 image</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="397" x="592.5" y="390">Attaches the FAT32 image URL as virtual media floppy</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="458" x="623.0" y="419">Attaches the deploy ISO swift tempURL as virtual media CDROM</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="206" x="497.0" y="448">Sets one time boot to CDROM</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="114" x="451.0" y="477">Reboot the node</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="152" x="1470.0" y="506">Downloads deploy ISO</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="427" x="857.5" y="535">Boots deploy kernel/ramdisk from iLO virtual media CDROM</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="84" x="1074.0" y="564">Lookup node</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="462.5" y="593">Provides node UUID</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="1082.0" y="622">Heartbeat</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="244" x="516.0" y="651">Sends the user image HTTP(S) URL</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="290" x="1289.0" y="680">Retrieves the user image on bare metal</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="1208.5" y="709">Writes user image </text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="53" x="1166.5" y="725">to disk</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="68" x="1082.0" y="770">Heartbeat</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="183" x="485.5" y="799">Sets boot device to disk</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="462.5" y="828">Power off the node</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="129" x="458.5" y="857">Power on the node</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="137" x="708.5" y="886">Boot user image fr</text>
+  <text fill="rgb(0,0,0)" font-family="sans-serif" font-size="14" font-style="normal" font-weight="normal" text-anchor="middle" textLength="53" x="666.5" y="902">om disk</text>
+</svg>
