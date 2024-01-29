@@ -77,12 +77,14 @@ class TestACLBase(base.BaseApiTest):
     def _fake_process_request(self, request, auth_token_request):
         pass
 
-    def _test_request(self, path, params=None, headers=None, method='get',
+    def _test_request(self, path, params=None, headers=None, method='get',  # noqa: C901, E501
                       body=None, assert_status=None,
                       assert_dict_contains=None,
                       assert_list_length=None,
                       deprecated=None,
-                      self_manage_nodes=True):
+                      self_manage_nodes=True,
+                      enable_service_project=False,
+                      service_project='service'):
         path = path.format(**self.format_data)
         self.mock_auth.side_effect = self._fake_process_request
 
@@ -92,6 +94,13 @@ class TestACLBase(base.BaseApiTest):
                 'project_admin_can_manage_own_nodes',
                 False,
                 'api')
+        if enable_service_project:
+            cfg.CONF.set_override('rbac_service_role_elevated_access', True)
+        if service_project != 'service':
+            # Enable us to sort of gracefully test a name variation
+            # with existing ddt test modeling.
+            cfg.CONF.set_override('rbac_service_project_name',
+                                  service_project)
 
         # always request the latest api version
         version = api_versions.max_version_string()
