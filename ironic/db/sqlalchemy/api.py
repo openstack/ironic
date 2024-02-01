@@ -1992,6 +1992,68 @@ class Connection(api.Connection):
 
         return total_to_migrate, total_migrated
 
+    @oslo_db_api.retry_on_deadlock
+    def migrate_to_builtin_inspection(self, context, max_count):
+        """Handle the migration from "inspector" to "agent" inspection.
+
+        :param context: the admin context
+        :param max_count: The maximum number of objects to migrate. Must be
+                          >= 0. If zero, all the objects will be migrated.
+        :returns: A 2-tuple, 1. the total number of objects that need to be
+                  migrated (at the beginning of this call) and 2. the number
+                  of migrated objects.
+        """
+        # TODO(dtantsur): remove this check when removing inspector and just
+        # unconditionally migrate everything.
+        if ('agent' not in CONF.enabled_inspect_interfaces
+                or 'inspector' in CONF.enabled_inspect_interfaces):
+            return 0, 0
+
+        model = models.Node
+
+        with _session_for_read() as session:
+            # NOTE(dtantsur): this is the total number of objects, including
+            # the ones that are on inspection and cannot be migrated.
+            total_to_migrate = session.query(model).filter(
+                model.inspect_interface == 'inspector').count()
+
+        if not total_to_migrate:
+            return 0, 0
+
+        no_states = [states.INSPECTING, states.INSPECTWAIT, states.INSPECTFAIL]
+
+        with _session_for_write() as session:
+            query = session.query(model).filter(
+                sql.and_(model.inspect_interface == 'inspector',
+                         model.provision_state.not_in(no_states)))
+            # NOTE(rloo) Caution here; after doing query.count(), it is
+            #            possible that the value is different in the
+            #            next invocation of the query.
+            total_count = query.count()
+            if not total_count:
+                return 0, 0
+            elif max_count and max_count < total_count:
+                # Only want to update max_count objects; cannot use
+                # sql's limit(), so we generate a new query with
+                # max_count objects.
+                ids = [obj['id'] for obj in query.slice(0, max_count)]
+                num_migrated = (
+                    session.query(model).
+                    filter(sql.and_(model.id.in_(ids),
+                                    model.inspect_interface == 'inspector',
+                                    model.provision_state.not_in(no_states))).
+                    update({model.inspect_interface: 'agent'},
+                           synchronize_session=False))
+            else:
+                num_migrated = (
+                    session.query(model).
+                    filter(sql.and_(model.inspect_interface == 'inspector',
+                                    model.provision_state.not_in(no_states))).
+                    update({model.inspect_interface: 'agent'},
+                           synchronize_session=False))
+
+        return total_to_migrate, num_migrated
+
     @staticmethod
     def _verify_max_traits_per_node(node_id, num_traits):
         """Verify that an operation would not exceed the per-node trait limit.

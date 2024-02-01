@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    Adds an online migration to the `new inspection interface
+    <https://docs.openstack.org/ironic/latest/admin/inspection/index.html>`_.
+    If the ``agent`` inspection is enabled and the ``inspector`` inspection is
+    disabled, the ``inspect_interface`` field will be updated for all nodes
+    that use ``inspector`` and are currently not on inspection (i.e. not in the
+    ``inspect wait`` or ``inspecting`` states).
+
+    If some nodes may be inspecting during the upgrade, you may want to run
+    the online migrations several times with a delay to finish migrating all
+    nodes.

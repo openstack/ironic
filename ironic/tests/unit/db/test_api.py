@@ -13,6 +13,7 @@
 import random
 from unittest import mock
 
+from oslo_config import cfg
 from oslo_db.sqlalchemy import utils as db_utils
 from oslo_utils import uuidutils
 import sqlalchemy as sa
@@ -20,9 +21,13 @@ import sqlalchemy as sa
 from ironic.common import context
 from ironic.common import exception
 from ironic.common import release_mappings
+from ironic.common import states
 from ironic.db import api as db_api
 from ironic.tests.unit.db import base
 from ironic.tests.unit.db import utils
+
+
+CONF = cfg.CONF
 
 
 class UpgradingTestCase(base.DbTestCase):
@@ -236,3 +241,61 @@ class UpdateToLatestVersionsTestCase(base.DbTestCase):
         for uuid in nodes:
             node = self.dbapi.get_node_by_uuid(uuid)
             self.assertEqual(self.node_ver, node.version)
+
+
+class MigrateToBuiltinInspectionTestCase(base.DbTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.context = context.get_admin_context()
+        self.dbapi = db_api.get_instance()
+        CONF.set_override('enabled_inspect_interfaces', 'agent,no-inspect')
+
+        for _ in range(3):
+            utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                   inspect_interface='inspector')
+        for _ in range(2):
+            utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                   inspect_interface='agent')
+        utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                               inspect_interface='no-inspect')
+
+    def _check(self, migrated, left):
+        current = sorted(x[0] for x in self.dbapi.get_nodeinfo_list(
+            columns=['inspect_interface']))
+        self.assertEqual(['agent'] * migrated + ['inspector'] * left
+                         + ['no-inspect'], current)
+
+    def test_migrate_all(self):
+        total, migrated = self.dbapi.migrate_to_builtin_inspection(
+            self.context, 0)
+        self.assertEqual(3, total)
+        self.assertEqual(3, migrated)
+        self._check(5, 0)
+
+    def test_cannot_migrate(self):
+        CONF.set_override('enabled_inspect_interfaces', 'inspector,no-inspect')
+        total, migrated = self.dbapi.migrate_to_builtin_inspection(
+            self.context, 0)
+        self.assertEqual(0, total)
+        self.assertEqual(0, migrated)
+        self._check(2, 3)
+
+    def test_cannot_migrate_some(self):
+        for state in [states.INSPECTING, states.INSPECTWAIT,
+                      states.INSPECTFAIL]:
+            utils.create_test_node(uuid=uuidutils.generate_uuid(),
+                                   inspect_interface='inspector',
+                                   provision_state=state)
+        total, migrated = self.dbapi.migrate_to_builtin_inspection(
+            self.context, 0)
+        self.assertEqual(6, total)
+        self.assertEqual(3, migrated)
+        self._check(5, 3)
+
+    def test_migrate_with_limit(self):
+        total, migrated = self.dbapi.migrate_to_builtin_inspection(
+            self.context, 2)
+        self.assertEqual(3, total)
+        self.assertEqual(2, migrated)
+        self._check(4, 1)

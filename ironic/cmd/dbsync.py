@@ -64,6 +64,7 @@ dbapi = db_api.get_instance()
 # object, in case it is lazy loaded. The attribute will be accessed when needed
 # by doing getattr on the object
 ONLINE_MIGRATIONS = (
+    (dbapi, 'migrate_to_builtin_inspection'),
     # NOTE(rloo): Don't remove this; it should always be last
     (dbapi, 'update_to_latest_versions'),
 )
