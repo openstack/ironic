@@ -10,7 +10,8 @@
       - opendev.org/openstack/ironic
       - opendev.org/openstack/ironic-python-agent
       - opendev.org/openstack/ironic-python-agent-builder
-      - opendev.org/openstack/ironic-tempest-plugin
+      - name: opendev.org/openstack/ironic-tempest-plugin
+        override-checkout: 2.7.0
       - opendev.org/openstack/virtualbmc
     irrelevant-files:
       - ^.*\.rst$

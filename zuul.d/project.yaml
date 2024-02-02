@@ -11,7 +11,10 @@
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
-        - ironic-grenade
+        # Disable grenade, jobs are failing on networking,
+        # And we're long past release at this point so we don't
+        # need to keep running the job anymore.
+        # - ironic-grenade
         - ironic-standalone
         - ironic-standalone-redfish
         - ironic-tempest-partition-bios-redfish-pxe
@@ -51,7 +54,6 @@
       jobs:
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
-        - ironic-grenade
         - ironic-standalone
         - ironic-standalone-redfish
         - ironic-tempest-partition-bios-redfish-pxe
