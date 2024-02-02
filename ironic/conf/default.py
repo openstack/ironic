@@ -436,6 +436,40 @@ webserver_opts = [
                       'being accessed.')),
 ]
 
+rbac_opts = [
+    cfg.BoolOpt('rbac_service_role_elevated_access',
+                default=False,
+                help=_('Enable elevated access for users with service role '
+                       'belonging to the \'rbac_service_project_name\' '
+                       'project when using default policy. The default '
+                       'setting of disabled causes all service role '
+                       'requests to be scoped to the project the service '
+                       'account belongs to.')),
+    cfg.StrOpt('rbac_service_project_name',
+               default='service',
+               help=_('The project name utilized for Role Based Access '
+                      'Control checks for the reserved `service` project. '
+                      'This project is utilized for services to have '
+                      'accounts for cross-service communication. Often '
+                      'these accounts require higher levels of access, and '
+                      'effectively this permits accounts from the service '
+                      'to not be restricted to project scoping '
+                      'of responses. i.e. The service project user with a '
+                      '`service` role will be able to see nodes across all '
+                      'projects, similar to System scoped access. If not '
+                      'set to a value, and all service role access will '
+                      'be filtered matching an `owner` or `lessee`, if '
+                      'applicable. If an operator wishes to make behavior '
+                      'visible for all service role users across '
+                      'all projects, then a custom policy must be used '
+                      'to override the default "service_role" rule. '
+                      'It should be noted that the value of "service" '
+                      'is a default convention for OpenStack deployments, '
+                      'but the requsite access and details around '
+                      'end configuration are largely up to an operator '
+                      'if they are doing an OpenStack deployment manually.')),
+]
+
 
 def list_opts():
     _default_opt_lists = [
@@ -452,6 +486,7 @@ def list_opts():
         service_opts,
         utils_opts,
         webserver_opts,
+        rbac_opts
     ]
     full_opt_list = []
     for options in _default_opt_lists:
@@ -473,3 +508,4 @@ def register_opts(conf):
     conf.register_opts(service_opts)
     conf.register_opts(utils_opts)
     conf.register_opts(webserver_opts)
+    conf.register_opts(rbac_opts)

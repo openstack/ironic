@@ -12,7 +12,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+from oslo_config import cfg
 from oslo_context import context
+
+
+CONF = cfg.CONF
 
 
 class RequestContext(context.RequestContext):
@@ -44,6 +48,9 @@ class RequestContext(context.RequestContext):
             'project_name': self.project_name,
             'is_public_api': self.is_public_api,
         })
+        if (CONF.rbac_service_role_elevated_access
+                and CONF.rbac_service_project_name is not None):
+            policy_values['config.service_project_name'] = CONF.rbac_service_project_name  # noqa
         return policy_values
 
     def ensure_thread_contain_context(self):
