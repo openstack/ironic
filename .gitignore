@@ -12,6 +12,10 @@ _static
 # release notes build
 releasenotes/build
 
+# sample config files
+etc/ironic/ironic.conf.sample
+etc/ironic/policy.yaml.sample
+
 # Packages/installer info
 *.egg
 *.egg-info
