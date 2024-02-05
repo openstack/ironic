@@ -2,6 +2,31 @@
 REST API Version History
 ========================
 
+1.90 (Caracal)
+-----------------------
+
+API supports ovn vtep switches as a valid schema for
+``port.local_link_connection``. Ovn vtep switches are represented
+as the following:
+
+.. code-block:: json
+
+   {
+     "port_id": "exampleportid",
+     "vtep-logical-switch": "examplelogicalswitch",
+     "vtep-physical-switch": "examplephysicalswitch"
+   }
+
+1.89 (Caracal)
+---------------------------------
+
+Adds support to attaching or detaching images from a node's virtual
+media using the ``/v1/nodes/{node_ident}/vmedia`` endpoint. A ``POST``
+request containing ``device_type``, ``image_url``,
+and ``image_download_source`` will attach the requested image to the
+node's virtual media. A later ``DELETE`` request to the same endpoint
+will detach it.
+
 1.88 (Bobcat)
 -----------------------
 

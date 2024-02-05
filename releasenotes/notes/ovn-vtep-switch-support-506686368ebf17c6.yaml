@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Add support for ovn vtep switches. Operators will be able
+    to use logical and physical switches. Minimally tested
+    in production.

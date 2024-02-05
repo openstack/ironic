@@ -150,6 +150,19 @@ above and beyond a dedicated interface, you will need to make the attachment
 on the ``br-ex`` integration bridge, as opposed to ``br-int`` as one would
 have done with OVS.
 
+VTEP Switch Support
+===================
+
+Alpha-quality support was added to Ironic for OVN VTEP switches in API version
+1.90. When the keys ``vtep-logical-switch``, ``vtep-physical-switch``, and
+``port_id`` are set in ``port.local_link_connection``, Ironic will pass them on
+to Neutron to be included in the binding profile to enable OVN support.
+
+There `are reports of this approach working <https://bugs.launchpad.net/ironic/+bug/2034953>`_,
+but Ironic developers do not have access to physical hardware to fully test
+this feature. If you have any feedback for this feature, please reach out
+to the Ironic community.
+
 Unknowns
 ========
 

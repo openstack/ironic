@@ -1854,3 +1854,31 @@ class TestLocalLinkValidation(base.TestCase):
         v = utils.LOCAL_LINK_VALIDATOR
         value = {'network_type': 'invalid'}
         self.assertRaises(exception.Invalid, v, 'l', value)
+
+    def test_local_link_connection_cant_set_only_physical(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        value = {'port_id': '42',
+                 'vtep-physical-switch': 'jswitch',
+                 'switch_id': '0a:1b:2c:3d:4e:5f'}
+        self.assertRaisesRegex(
+            exception.Invalid,
+            'is a dependency of',
+            v, 'l', value)
+
+    def test_local_link_connection_cant_set_only_logical(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        value = {'port_id': '42',
+                 'vtep-logical-switch': 'jswitch',
+                 'switch_id': '0a:1b:2c:3d:4e:5f'}
+        self.assertRaisesRegex(
+            exception.Invalid,
+            'is a dependency of',
+            v, 'l', value
+        )
+
+    def test_local_link_connection_set_both_switches(self):
+        v = utils.LOCAL_LINK_VALIDATOR
+        value = {'port_id': '42',
+                 'vtep-logical-switch': 'lswitch',
+                 'vtep-physical-switch': 'pswitch'}
+        self.assertEqual(value, v('l', value))
