@@ -35,7 +35,7 @@
       devstack_localrc:
         DEFAULT_INSTANCE_TYPE: baremetal
         FORCE_CONFIG_DRIVE: True
-        INSTALL_TEMPEST: False # Don't install a tempest package globaly
+        INSTALL_TEMPEST: False # Don't install a tempest package globally
         VIRT_DRIVER: ironic
         BUILD_TIMEOUT: 1800
         IRONIC_BAREMETAL_BASIC_OPS: True
@@ -65,7 +65,7 @@
         # NOTE(TheJulia): Disable neutron firewall as bug
         # https://bugs.launchpad.net/neutron/+bug/1944201
         # causes us an abnormally high job failure rate due to the ports
-        # not being found (as neutron crashed on initailization).
+        # not being found (as neutron crashed on initialization).
         Q_USE_SECGROUP: False
         # Default API workers is 2, however only 1 is needed,
         # which cuts API memory utilziation in half reducing the risk of
@@ -272,7 +272,7 @@
         # Reset the callback to a normal-ish value.
         IRONIC_CALLBACK_TIMEOUT: 600
         IRONIC_BOOT_MODE: bios
-        # Make sure this feature works even with the minumum implementation
+        # Make sure this feature works even with the minimum implementation
         IRONIC_REDFISH_EMULATOR_FEATURE_SET: minimum
       devstack_services:
         # Parent job uses swift, this one does not, thus we can turn it off.
@@ -607,7 +607,7 @@
         GENERIC_SWITCH_KEY_FILE: /opt/stack/.ssh/id_rsa
         HOST_TOPOLOGY: multinode
         HOST_TOPOLOGY_ROLE: primary
-        INSTALL_TEMPEST: False # Don't install a tempest package globaly
+        INSTALL_TEMPEST: False # Don't install a tempest package globally
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         HOST_TOPOLOGY_SUBNODES: "{{ hostvars['compute1']['nodepool']['public_ipv4'] }}"
         IRONIC_BAREMETAL_BASIC_OPS: True
@@ -1058,7 +1058,7 @@
           HOST_TOPOLOGY: multinode
           HOST_TOPOLOGY_ROLE: primary
           BUILD_TIMEOUT: 1200
-          INSTALL_TEMPEST: False # Don't install a tempest package globaly
+          INSTALL_TEMPEST: False # Don't install a tempest package globally
           HOST_TOPOLOGY_SUBNODES: "{{ hostvars['compute1']['nodepool']['public_ipv4'] }}"
           IRONIC_BAREMETAL_BASIC_OPS: True
           IRONIC_AUTOMATED_CLEAN_ENABLED: False
@@ -1208,3 +1208,10 @@
       grenade_localrc:
         # NOTE(iurygregory): This is required for skip upgrades.
         NOVA_ENABLE_UPGRADE_WORKAROUND: True
+
+- job:
+    name: ironic-tox-codespell
+    parent: openstack-tox
+    timeout: 7200
+    vars:
+      tox_envlist: codespell

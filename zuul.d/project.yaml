@@ -63,6 +63,8 @@
             voting: false
         - bifrost-benchmark-ironic:
             voting: false
+        - ironic-tox-codespell:
+            voting: false
     gate:
       jobs:
         - ironic-tox-bandit
