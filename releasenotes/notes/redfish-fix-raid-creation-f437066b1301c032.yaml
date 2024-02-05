@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes Raid creation issue in iLO6 and other BMC with latest schema by
+    removing 'VolumeType', 'Encrypted' and changing placement of 'Drives'
+    to inside 'Links'.

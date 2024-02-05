@@ -47,12 +47,11 @@ def _mock_drive(identity, block_size_bytes=None, capacity_bytes=None,
     )
 
 
-def _mock_volume(identity, volume_type=None, raid_type=None,
-                 capacity_bytes=units.Gi):
+def _mock_volume(identity, raid_type=None,
+                 capacity_bytes=units.Gi, volume_name=None):
     volume = mock.MagicMock(
         _path='/redfish/v1/Systems/1/Storage/1/Volumes/' + identity,
         identity=identity,
-        volume_type=volume_type,
         raid_type=raid_type,
         capacity_bytes=capacity_bytes
     )
@@ -251,8 +250,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(task)
             pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
             expected_payload = {
-                'Encrypted': False,
-                'VolumeType': 'StripedWithParity',
                 'RAIDType': 'RAID5',
                 'CapacityBytes': 107374182400,
                 'Links': {
@@ -316,8 +313,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(task)
             pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
             expected_payload = {
-                'Encrypted': False,
-                'VolumeType': 'StripedWithParity',
                 'RAIDType': 'RAID5',
                 'CapacityBytes': 107374182400,
                 'Links': {
@@ -388,8 +383,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(task)
             pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
             expected_payload = {
-                'Encrypted': False,
-                'VolumeType': 'StripedWithParity',
                 'RAIDType': 'RAID5',
                 'CapacityBytes': 107374182400,
                 'Links': {
@@ -462,8 +455,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(task)
             pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
             expected_payload1 = {
-                'Encrypted': False,
-                'VolumeType': 'StripedWithParity',
                 'RAIDType': 'RAID5',
                 'CapacityBytes': 107374182400,
                 'Links': {
@@ -475,8 +466,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                 }
             }
             expected_payload2 = {
-                'Encrypted': False,
-                'VolumeType': 'Mirrored',
                 'RAIDType': 'RAID1',
                 'CapacityBytes': 536870912000,
                 'Links': {
@@ -556,8 +545,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(task)
             pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
             expected_payload = {
-                'Encrypted': False,
-                'VolumeType': 'Mirrored',
                 'RAIDType': 'RAID1',
                 'CapacityBytes': 536870912000,
                 'Links': {
@@ -631,8 +618,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(task)
             pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
             expected_payload = {
-                'Encrypted': False,
-                'VolumeType': 'StripedWithParity',
                 'RAIDType': 'RAID5',
                 'CapacityBytes': 107374182400,
                 'Links': {
@@ -724,8 +709,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(task)
             pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
             expected_payload1 = {
-                'Encrypted': False,
-                'VolumeType': 'SpannedMirrors',
                 'RAIDType': 'RAID10',
                 'CapacityBytes': 53687091200,
                 'Links': {
@@ -738,8 +721,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                 }
             }
             expected_payload2 = {
-                'Encrypted': False,
-                'VolumeType': 'StripedWithParity',
                 'RAIDType': 'RAID5',
                 'CapacityBytes': 107374182400,
                 'Links': {
@@ -852,8 +833,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(task)
             pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
             expected_payload1 = {
-                'Encrypted': False,
-                'VolumeType': 'Mirrored',
                 'RAIDType': 'RAID1',
                 'CapacityBytes': 107374182400,
                 'Links': {
@@ -864,8 +843,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                 }
             }
             expected_payload2 = {
-                'Encrypted': False,
-                'VolumeType': 'NonRedundant',
                 'RAIDType': 'RAID0',
                 'CapacityBytes': 536870912000,
                 'Links': {
@@ -975,8 +952,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
             task.driver.raid.create_configuration(task)
             pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
             expected_payload1 = {
-                'Encrypted': False,
-                'VolumeType': 'StripedWithParity',
                 'RAIDType': 'RAID5',
                 'CapacityBytes': 107374182400,
                 'Links': {
@@ -988,8 +963,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                 }
             }
             expected_payload2 = {
-                'Encrypted': False,
-                'VolumeType': 'Mirrored',
                 'RAIDType': 'RAID1',
                 'CapacityBytes': 536870912000,
                 'Links': {
@@ -1038,7 +1011,7 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         mock_volumes = []
         for i in ["1", "2"]:
             mock_volumes.append(_mock_volume(
-                i, volume_type='Mirrored', raid_type=sushy.RAIDType.RAID1))
+                i, raid_type=sushy.RAIDType.RAID1))
         op_apply_time_support = mock.MagicMock()
         op_apply_time_support.mapped_supported_values = [
             sushy.APPLY_TIME_IMMEDIATE, sushy.APPLY_TIME_ON_RESET]
@@ -1092,7 +1065,7 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         mock_volumes = []
         for i in ["1", "2"]:
             mock_volumes.append(_mock_volume(
-                i, volume_type='Mirrored', raid_type=sushy.RAIDType.RAID1))
+                i, raid_type=sushy.RAIDType.RAID1))
         op_apply_time_support = mock.MagicMock()
         op_apply_time_support.mapped_supported_values = [
             sushy.APPLY_TIME_ON_RESET]
@@ -1146,8 +1119,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         capacity_bytes = 53739520000
         pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
         expected_payload = {
-            'Encrypted': False,
-            'VolumeType': 'Mirrored',
             'RAIDType': 'RAID1',
             'CapacityBytes': capacity_bytes,
             'Links': {
