@@ -157,10 +157,28 @@ discovery_opts = [
                       "Must be set when enabling auto-discovery.")),
 ]
 
+pxe_filter_opts = [
+    cfg.StrOpt('dhcp_hostsdir',
+               help=_('The MAC address cache directory, exposed to dnsmasq.'
+                      'This directory is expected to be in exclusive control '
+                      'of the driver but must be purged by the operator. '
+                      'Required.')),
+    cfg.ListOpt('supported_inspect_interfaces',
+                default=['agent'], mutable=True,
+                help=_("List of inspect interfaces that will be considered "
+                       "by the PXE filter. Only nodes with these interfaces "
+                       "will be enabled.")),
+    cfg.IntOpt('sync_period',
+               default=45, mutable=True,
+               help=_("Period (in seconds) between synchronizing the state "
+                      "if dnsmasq with the database.")),
+]
+
 
 def register_opts(conf):
     conf.register_opts(opts, group='inspector')
     conf.register_opts(discovery_opts, group='auto_discovery')
+    conf.register_opts(pxe_filter_opts, group='pxe_filter')
     auth.register_auth_opts(conf, 'inspector',
                             service_type='baremetal-introspection')
 

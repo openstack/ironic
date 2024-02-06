@@ -27,6 +27,7 @@ ironic-inspector_ service.
    data
    hooks
    discovery
+   pxe_filter
 
 Configuration
 -------------

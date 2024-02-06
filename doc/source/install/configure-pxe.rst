@@ -535,13 +535,10 @@ Networking service won't be able to handle them. For instance, you can install
     dhcp-boot=pxelinux.0
     dhcp-sequential-ip
 
-.. warning::
-   Ironic currently lacks `PXE filters
-   <https://docs.openstack.org/ironic-inspector/latest/admin/dnsmasq-pxe-filter.html>`_
-   used by ironic-inspector to allow its DHCP server to co-exist with
-   OpenStack Networking (neutron) on the same network. Unless you can
-   physically isolation the inspection network, you may want to stay with
-   ironic-inspector for the time being.
+If you need this dnsmasq instance to co-exist with the OpenStack Networking
+service, some measures must be taken to prevent them from clashing over DHCP
+requests. One way to do it is to physically separate the inspection network.
+Another - to configure the :doc:`/admin/inspection/pxe_filter`.
 
 Finally, build or download IPA images into
 ``/tftpboot/ironic-python-agent.kernel`` and
