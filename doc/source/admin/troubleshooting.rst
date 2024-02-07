@@ -1127,3 +1127,24 @@ or manual cleaning with ``clean`` command. or the next appropriate action
 in the workflow process you are attempting to follow, which may be
 ultimately be decommissioning the node because it could have failed and is
 being removed or replaced.
+
+I can't seem to introspect newly added nodes in a large cluster
+===============================================================
+
+With larger clusters, the act of synchronizing DHCP for introspection and
+hardware discovery can take quite a bit of time because of the operational
+overhead. What happens is we spend so much time trying to perform
+the update that the processes stay continuously busy, which can have a side
+effect such as impacting the ability to successfully introspect nodes
+which were very recently added to the cluster.
+
+To remedy this, try setting ``[pxe_filter]sync_period`` to be less frequent,
+i.e. a larger value to enable conductors to have time between running syncs.
+
+.. note::
+   It is anticipated that as part of the 2024.1 release, Ironic will have
+   this functionality also merged into Ironic directly as part of the
+   merge of the ``ironic-inspector`` service into ``ironic`` itself. This
+   merger will result in a slightly more performant implementation, which may
+   necessitate re-evaluation and tuning of the ``[pxe_filter]sync_period``
+   parameter.
