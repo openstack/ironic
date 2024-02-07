@@ -359,3 +359,9 @@ sed -i "s/$(hostname)/$DOC_IRONIC_CONDUCTOR_HOSTNAME/" *.json
 sed -i "s/created_at\": \".*\"/created_at\": \"$DOC_CREATED_AT\"/" *.json
 sed -i "s/updated_at\": \".*\"/updated_at\": \"$DOC_UPDATED_AT\"/" *.json
 sed -i "s/provision_updated_at\": \".*\"/provision_updated_at\": \"$DOC_PROVISION_UPDATED_AT\"/" *.json
+
+##########
+# Clean up
+
+openstack baremetal node maintenance set $NID
+openstack baremetal node delete $NID
