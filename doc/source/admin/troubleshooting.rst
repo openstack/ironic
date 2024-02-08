@@ -766,6 +766,39 @@ be set in UTC.
    Microsoft Windows uses local time by default, so a machine that has
    previously run Windows will likely have wrong time.
 
+I've checked the clock skew, tried syncing with NTP, and certificate reports not valid yet
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you have encountered a case where you have tried to sync the clock of
+a system and deployment/cleaning operations are failing stating the
+certificate is not valid yet or has expired, there could be a few different
+things going on.
+
+But first, we need to delineate an aspect. There is more than one clock in
+most systems.
+
+Specifically, a Baseboard Management Controller has its own clock, which may
+or may not be syncing with the "Host" clock of the system. It is important to
+ensure that the Host clock in bios firmware settings is what is checked.
+The best way to do this is to, on the console, boot into firmware settings,
+and check the "Date / Time Settings".
+
+In most cases, simple clock skew can be addressed through use of the
+``ipa-ntp-server`` setting, however the Ironic community has become aware
+of reports where even that does not remedy this issue. Investigation has found
+some hardware also allowing a timezone setting to be introduced with a UTC
+offset or localized time zone. It appears that when the ramdisk boots, the
+ramdisk clock does not properly calculate UTC as a result, and believes the
+time to be skewed based upon the timezone setting applied in firmware
+settings. The Ironic community recommends that the only timezone used
+set in a system clock is UTC, as Linux generally expects the system clock
+to be in UTC.
+
+Another option is the ``auto_tls_allowed_clock_skew`` setting in the
+ironic-python-agent configuration file. It defaults to 1 hour. If you
+find you need to modify this setting in your deployment, please notify
+Ironic community.
+
 I changed ironic.conf, and now I can't edit my nodes.
 =====================================================
 
