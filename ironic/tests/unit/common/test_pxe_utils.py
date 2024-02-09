@@ -1477,7 +1477,7 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
             image_info = pxe_utils.get_instance_image_info(
                 task, ipxe_enabled=False)
             self.assertEqual(expected_info, image_info)
-            # In the absense of kickstart template in both instance_info and
+            # In the absence of kickstart template in both instance_info and
             # image default kickstart template is used
             self.assertEqual('file://' + CONF.anaconda.default_ks_template,
                              image_info['ks_template'][0])
@@ -1536,7 +1536,7 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
             image_info = pxe_utils.get_instance_image_info(
                 task, ipxe_enabled=False)
             self.assertEqual(expected_info, image_info)
-            # In the absense of kickstart template in both instance_info and
+            # In the absence of kickstart template in both instance_info and
             # image default kickstart template is used
             self.assertEqual('file://' + CONF.anaconda.default_ks_template,
                              image_info['ks_template'][0])

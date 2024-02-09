@@ -212,7 +212,7 @@ def _allocate_node(context, allocation, nodes):
         try:
             # NOTE(dtantsur): retries are done for all nodes above, so disable
             # per-node retry. Also disable loading the driver, since the
-            # current conductor may not have the requried hardware type or
+            # current conductor may not have the required hardware type or
             # interfaces (it's picked at random).
             with task_manager.acquire(context, node.uuid, shared=False,
                                       retry=False, load_driver=False,

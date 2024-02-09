@@ -191,7 +191,7 @@ location of the files will depend on the way you've built the ramdisk.
 
     This will allow you to run commands within the filesystem, e.g. use package
     manager. If the ramdisk is also systemd-based, and you have login
-    credentials set up, you can even boot a real ramdisk enviroment with
+    credentials set up, you can even boot a real ramdisk environment with
 
     ::
 
@@ -548,7 +548,7 @@ of such wait states includes:
 
 * ``clean wait`` for cleaning,
 * ``inspect wait`` for introspection,
-* ``rescue wait`` for rescueing, and
+* ``rescue wait`` for rescuing, and
 * ``wait call-back`` for deploying.
 
 Communication issues between the conductor and the node
@@ -641,7 +641,7 @@ stable state, and the node should not be provisioned. If the
 ``baremetal port delete`` command fails, this may indicate that
 a known VIF is still attached. Generally if they are transitory from cleaning,
 provisioning, rescuing, or even inspection, getting the node to the
-``available`` state wil unblock your delete operation, that is unless there is
+``available`` state will unblock your delete operation, that is unless there is
 a tenant VIF attahment. In that case, the vif will need to be removed from
 with-in the Bare Metal service using the
 ``baremetal node vif detach`` command.
@@ -652,7 +652,7 @@ the port's ``internal_info`` field.
 .. warning::
    The ``maintenance`` flag can be used to force the node's port to be
    deleted, however this will disable any check that would normally block
-   the user from issuing a delete and accidently orphaning the VIF attachment
+   the user from issuing a delete and accidentally orphaning the VIF attachment
    record.
 
 How do I resolve this?
@@ -682,8 +682,8 @@ Using that, you can delete the port. Example:
 My test VM image does not deploy -- mount point does not exist
 ==============================================================
 
-What is likely occuring
------------------------
+What is likely occurring
+------------------------
 
 The image attempting to be deployed likely is a partition image where
 the file system that the user wishes to boot from lacks the required
@@ -845,7 +845,7 @@ How did I get here?
 One of the major consumers of memory in a host running an ironic-conductor is
 transformation of disk images using the ``qemu-img`` tool. This tool, because
 the disk images it works with are both compressed and out of linear block
-order, requires a considerable amount of memory to efficently re-assemble
+order, requires a considerable amount of memory to efficiently re-assemble
 and write-out a disk to a device, or to simply convert the format such as
 to a ``raw`` image.
 
@@ -986,7 +986,7 @@ baremetal operators.
 These settings can be modified by using the
 ``[conductor]max_concurrent_deploy`` and ``[conductor]max_concurrent_clean``
 settings from the ironic.conf file supporting the ``ironic-conductor``
-service. Neither setting can be explicity disabled, however there is also no
+service. Neither setting can be explicitly disabled, however there is also no
 upper limit to the setting.
 
 .. note::
@@ -1112,7 +1112,7 @@ basic troubleshooting steps:
 * If the version of ironic supports the feature, consult the node history
   log, ``baremetal node history list`` and
   ``baremetal node history get <uuid>``.
-* Consult the acutal console screen of the physical machine. *If* the ramdisk
+* Consult the actual console screen of the physical machine. *If* the ramdisk
   booted, you will generally want to investigate the controller logs and see
   if an uploaded agent log is being stored on the conductor responsible for
   the baremetal node. Consult `Retrieving logs from the deploy ramdisk`_.

@@ -57,7 +57,7 @@ class IRMCVendorPassthru(base.VendorInterface):
     def cache_irmc_firmware_version(self, task, **kwargs):
         """Fetch and save iRMC firmware version.
 
-        This method connects to iRMC and fetch iRMC firmware verison.
+        This method connects to iRMC and fetch iRMC firmware version.
         If fetched firmware version is not cached in or is different from
         one in driver_internal_info/irmc_fw_version, store fetched version
         in driver_internal_info/irmc_fw_version.

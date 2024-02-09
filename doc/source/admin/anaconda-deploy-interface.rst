@@ -126,7 +126,7 @@ glance:
         openstack image create --file ./initrd.img --container-format ari \
             --disk-format ari --shared anaconda-ramdisk-<version>
         openstack image create --file ./squashfs.img --container-format ari \
-            --disk-format ari --shared anaconda-stage-<verison>
+            --disk-format ari --shared anaconda-stage-<version>
         openstack image create --file ./os-image.tar.gz \
             --container-format bare --disk-format raw --shared \
             --property kernel_id=<glance_uuid_vmlinuz> \
@@ -162,14 +162,14 @@ ironic node:
    back to Ironic and indicate the state. This token is randomly generated
    for every deploy, and is required. Specifically this is leveraged in the
    template's ``pre``, ``onerror``, and ``post`` steps.
-   For more infomation on Agent Token, please see :doc:`/admin/agent-token`.
+   For more information on Agent Token, please see :doc:`/admin/agent-token`.
 
 Standalone deployments
 ----------------------
 
 While this deployment interface driver was developed around the use of other
 OpenStack services, it is not explicitly required. For example HTTP(S) URLs
-can be supplied by the API user to explictly set the expected baremetal node
+can be supplied by the API user to explicitly set the expected baremetal node
 ``instance_info`` fields
 
 .. code-block:: shell
@@ -299,7 +299,7 @@ Limitations
 * This deploy interface has only been tested with Red Hat based operating
   systems that use anaconda. Other systems are not supported.
 
-* Runtime TLS certifiate injection into ramdisks is not supported. Assets
+* Runtime TLS certificate injection into ramdisks is not supported. Assets
   such as ``ramdisk`` or a ``stage2`` ramdisk image need to have trusted
   Certificate Authority certificates present within the images *or* the
   Ironic API endpoint utilized should utilize a known trusted Certificate

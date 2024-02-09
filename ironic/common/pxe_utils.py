@@ -780,7 +780,7 @@ def get_instance_image_info(task, ipxe_enabled=False):
         # told anaconda how to execute.
         if i_info.get('ks_template'):
             # If the value is set, we always overwrite it, in the event
-            # a rebuild is occuring or something along those lines.
+            # a rebuild is occurring or something along those lines.
             node.set_driver_internal_info('ks_template',
                                           i_info['ks_template'])
         else:

@@ -1054,7 +1054,7 @@ def power_state_for_network_configuration(task):
 def build_configdrive(node, configdrive):
     """Build a configdrive from provided meta_data, network_data and user_data.
 
-    If uuid or name are not provided in the meta_data, they're defauled to the
+    If uuid or name are not provided in the meta_data, they're defaulted to the
     node's uuid and name accordingly.
 
     :param node: an Ironic node object.
@@ -1127,7 +1127,7 @@ def value_within_timeout(value, timeout):
     :param timeout: timeout in seconds.
     """
     # use native datetime objects for conversion and compare
-    # slightly odd because py2 compatability :(
+    # slightly odd because py2 compatibility :(
     last = datetime.datetime.strptime(value or '1970-01-01T00:00:00.000000',
                                       "%Y-%m-%dT%H:%M:%S.%f")
     # If we found nothing, we assume that the time is essentially epoch.
@@ -1139,7 +1139,7 @@ def value_within_timeout(value, timeout):
 def agent_is_alive(node, timeout=None):
     """Check that the agent is likely alive.
 
-    The method then checks for the last agent heartbeat, and if it occured
+    The method then checks for the last agent heartbeat, and if it occurred
     within the timeout set by [deploy]fast_track_timeout, then agent is
     presumed alive.
 
@@ -1164,7 +1164,7 @@ def is_fast_track(task):
     have a ramdisk running through another means like discovery.
     If not valid, False is returned.
 
-    The method then checks for the last agent heartbeat, and if it occured
+    The method then checks for the last agent heartbeat, and if it occurred
     within the timeout set by [deploy]fast_track_timeout and the power
     state for the machine is POWER_ON, then fast track is permitted.
 
@@ -1336,7 +1336,7 @@ def is_agent_token_pregenerated(node):
 
     This method helps us identify WHEN we did so as we don't need to remove
     records of the token prior to rebooting the token. This is important as
-    tokens provided through out of band means presist in the virtual media
+    tokens provided through out of band means persist in the virtual media
     image, are loaded as part of the agent ramdisk, and do not require
     regeneration of the token upon the initial lookup, ultimately making
     the overall usage of virtual media and pregenerated tokens far more
@@ -1650,7 +1650,7 @@ def node_history_record(node, conductor=None, event=None,
                        based upon the activity. The purpose is to help guide
                        an API consumer/operator to have a better contextual
                        understanding of what was going on *when* the "event"
-                       occured.
+                       occurred.
     :param user: The user_id value which triggered the request,
                  if available.
     :param error: Boolean value, default false, to signify if the event
@@ -1659,11 +1659,11 @@ def node_history_record(node, conductor=None, event=None,
     :returns: None. No value is returned by this method.
     """
     if not event:
-        # No error has occured, apparently.
+        # No error has occurred, apparently.
         return
     if error:
         # When the task exits out or is saved, the event
-        # or error is saved, but that is outside of ceating an
+        # or error is saved, but that is outside of creating an
         # entry in the history table.
         node.last_error = event
     if not conductor:
@@ -1703,7 +1703,7 @@ def update_image_type(context, node):
         # idea since it is also user-settable, but laregely is just geared
         # to take what is in glance. Line below should we wish to uncomment.
         # node.set_instance_info('image_type', images.IMAGE_TYPE_DIRECTORY)
-        # An alternative is to explictly allow it to be configured by the
+        # An alternative is to explicitly allow it to be configured by the
         # caller/requester.
         return True
 
@@ -1744,7 +1744,7 @@ def get_token_project_from_request(ctx):
     This method evaluates the ``auth_token_info`` field, which is used to
     pass information returned from keystone as a token's
     verification. This information is based upon the actual, original
-    requestor context provided ``auth_token``.
+    requester context provided ``auth_token``.
 
     When a service, such as Nova proxies a request, the request provided
     auth token value is intended to be from the original user.
@@ -1758,7 +1758,7 @@ def get_token_project_from_request(ctx):
             if project:
                 return project.get('id')
     except AttributeError:
-        LOG.warning('Attempted to identify requestor project ID value, '
+        LOG.warning('Attempted to identify requester project ID value, '
                     'however we were unable to do so. Possible older API?')
 
 
@@ -1773,7 +1773,7 @@ def servicing_error_handler(task, logmsg, errmsg=None, traceback=False,
         used.
     :param traceback: Whether to log a traceback. Defaults to False.
     :param tear_down_service: Whether to clean up the PXE and DHCP files after
-        servie. Default to True.
+        service. Default to True.
     :param set_fail_state: Whether to set node to failed state. Default to
         True.
     :param set_maintenance: Whether to set maintenance mode. If None,

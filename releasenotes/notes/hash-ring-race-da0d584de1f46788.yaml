@@ -8,6 +8,6 @@ upgrade:
   - |
     The ``hash_ring_reset_interval`` configuration option was changed from 180
     to 15 seconds. Previously, this option was essentially ignored on the API
-    side, becase the hash ring was reset on each API access. The lower value
+    side, because the hash ring was reset on each API access. The lower value
     minimizes the probability of a request routed to a wrong conductor when the
     ring needs rebalancing.

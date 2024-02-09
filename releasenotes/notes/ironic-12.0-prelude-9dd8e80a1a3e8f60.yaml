@@ -13,7 +13,7 @@ prelude: |
     * Dedicated ``ipxe`` boot interface enabling better co-existence of
       different hardware types.
     * Configurable ``disk_erasure_concurrency`` to speed disk cleaning.
-    * Configurable "protected" nodes to help prevent accidential actions
+    * Configurable "protected" nodes to help prevent accidental actions
       upon critical nodes.
 
     And many many bug fixes, Enjoy!

@@ -3,4 +3,4 @@ features:
   - |
     Adds support for verify steps - a mechanism for running optional,
     actions pre-defined in the driver while the node is in transition from
-    enroll to managable state, prior to inspection.
+    enroll to manageable state, prior to inspection.

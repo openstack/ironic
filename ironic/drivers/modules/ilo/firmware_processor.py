@@ -318,7 +318,7 @@ def _download_swift_based_fw_to(self, target_file):
     :raises: ImageDownloadFailed, on failure to download the original file.
     """
     # set the parsed_url attribute to the newly created tempurl from swift and
-    # delegate the dowloading job to the http_based downloader
+    # delegate the downloading job to the http_based downloader
     self.parsed_url = urlparse.urlparse(get_swift_url(self.parsed_url))
     _download_http_based_fw_to(self, target_file)
 

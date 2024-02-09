@@ -165,7 +165,7 @@ class TestACLBase(base.BaseApiTest):
         #       Example: PATCH /v1/nodes/<uuid> as a reader.
         # 404 - Trying to access something where we don't have permissions
         #       in a project scope. This is particularly true where implied
-        #       permissions or assocation exists. Ports are attempted to be
+        #       permissions or association exists. Ports are attempted to be
         #       accessed when the underlying node is inaccessible as owner
         #       nor node matches.
         #       Example: GET /v1/portgroups or /v1/nodes/<uuid>/ports
@@ -198,7 +198,7 @@ class TestACLBase(base.BaseApiTest):
                     # json ends up being null in json or None.
                     self.assertIsNone(response.json[k])
                 elif str(v) == "{}":
-                    # Special match for signifying a dictonary.
+                    # Special match for signifying a dictionary.
                     self.assertEqual({}, response.json[k])
                 elif isinstance(v, dict):
                     # The value from the YAML can be a dictionary,
@@ -347,7 +347,7 @@ class TestRBACScoped(TestRBACModelBeforeScopes):
         # while we also enable the new ones in another test class with
         # the appropriate scope friendly chagnges. In other words, two
         # test changes will be needed for each which should also reduce
-        # risk of accidential policy changes. It may just be Julia being
+        # risk of accidental policy changes. It may just be Julia being
         # super risk-adverse, just let her roll with it and we will delete
         # this class later.
         # NOTE(TheJulia): This test class runs with test_rbac_legacy.yaml!

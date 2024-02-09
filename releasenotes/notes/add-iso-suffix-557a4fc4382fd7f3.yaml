@@ -1,7 +1,7 @@
 ---
 fixes:
   - |
-    Fixes compatability with some hardware that requires the file name of
+    Fixes compatibility with some hardware that requires the file name of
     any virtual media to end with the suffix ".iso" when Ironic generates
     a virtual media image. We recommend operators generating their own
     virtual media files to name the files with proper extensions.

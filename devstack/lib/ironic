@@ -1281,7 +1281,7 @@ function configure_ironic_dirs {
         if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
             if is_ubuntu; then
                 # NOTE(TheJulia): This is done separately here as this allows
-                # the script to have hirtuse/bionic compatability.
+                # the script to have hirtuse/bionic compatibility.
                 if [[ -f /usr/lib/ipxe/snponly.efi ]]; then
                     update_loader_copy_paths snponly.efi:/usr/lib/ipxe/snponly.efi
                 elif [[ -f /usr/lib/ipxe/ipxe.efi ]]; then
@@ -1366,7 +1366,7 @@ function configure_ironic_provision_network {
     if [[ "$IRONIC_IP_VERSION" == "6" ]]; then
         # NOTE(TheJulia): Ideally we should let this happen
         # with our global address, but iPXE seems to have in
-        # consistant behavior in this configuration with devstack.
+        # consistent behavior in this configuration with devstack.
         # so we will setup a dummy interface and use that.
         if ! ( ping -c1 -w1 $IRONIC_HOST_IPV6 ); then
             # But before we create an interface, lets make sure it is
@@ -1724,7 +1724,7 @@ function configure_ironic_conductor {
                 # - generate outside of this script
                 # - pass path in as $IRONIC_ANSIBLE_SSH_KEY
                 # - distribute private key to subnodes under the same path
-                # Similar to what we do for n-g-s, may be even re-use its key.
+                # Similar to what we do for n-g-s, may be even reuse its key.
                 ssh-keygen -t rsa -N '' -f $IRONIC_ANSIBLE_SSH_KEY
                 chmod 600 $IRONIC_ANSIBLE_SSH_KEY
             fi
@@ -3038,7 +3038,7 @@ function upload_baremetal_ironic_efiboot {
     # request *or* we just do it as the project scoped admin using the admin
     # project which in devstack's case is the demo project.
     # In other words, we can't use devstack-system-admin to upload the image
-    # unless we set the project_id in the create reqeust.
+    # unless we set the project_id in the create request.
     IRONIC_EFIBOOT_ID=$(openstack --os-cloud devstack-admin \
         image create \
         $efiboot_name \

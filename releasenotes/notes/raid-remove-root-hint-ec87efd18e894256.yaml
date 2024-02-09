@@ -7,4 +7,4 @@ fixes:
   - |
     Fixes the issue that root device hint is not removed after the ``agent``
     RAID interface has successfully deleted RAID configuration. The previous
-    hint is not guranteed to be valid and may cause a deployment failure.
+    hint is not guaranteed to be valid and may cause a deployment failure.

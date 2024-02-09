@@ -720,7 +720,7 @@ Set BIOS Config
   baremetal node passthru call <node> set_bios_config --arg "name=value"
 
 
-Walkthrough of perfoming a BIOS configuration change:
+Walkthrough of performing a BIOS configuration change:
 
 The following section demonstrates how to change BIOS configuration settings,
 detect that a commit and reboot are required, and act on them accordingly. The

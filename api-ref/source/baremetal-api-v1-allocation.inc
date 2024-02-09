@@ -52,7 +52,7 @@ parameters must be missing or match the provided node.
 
 .. versionadded:: 1.79
     A node with the same name as the allocation ``name`` is moved to the
-    start of the derived candidiate list.
+    start of the derived candidate list.
 
 Normal response codes: 201
 

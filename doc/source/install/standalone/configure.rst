@@ -66,7 +66,7 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
       rpc_transport = json-rpc
 
    JSON RPC also has its own authentication strategy. If it is not specified then
-   the stategy defaults to ``[DEFAULT]``  ``auth_strategy``. The following will
+   the strategy defaults to ``[DEFAULT]``  ``auth_strategy``. The following will
    set JSON RPC to ``noauth``:
 
    .. code-block:: ini

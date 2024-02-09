@@ -195,7 +195,7 @@ def validate_http_provisioning_configuration(node):
         '[deploy]http_root': CONF.deploy.http_root,
         '[deploy]http_image_subdir': CONF.deploy.http_image_subdir
     }
-    error_msg = _('Node %s failed to validate http provisoning. Some '
+    error_msg = _('Node %s failed to validate http provisioning. Some '
                   'configuration options were missing') % node.uuid
     deploy_utils.check_for_missing_params(params, error_msg)
 
@@ -863,7 +863,7 @@ class AgentRescue(base.RescueInterface):
 
         # NOTE(TheJulia): Revealing that the power is off at any time can
         # cause external power sync to decide that the node must be off.
-        # This may result in a post-rescued insance being turned off
+        # This may result in a post-rescued instance being turned off
         # unexpectedly after unrescue.
         # TODO(TheJulia): Once we have power/state callbacks to nova,
         # the reset of the power_state can be removed.

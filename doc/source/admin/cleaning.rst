@@ -445,7 +445,7 @@ power will be turned off via the management interface. Afterwards, the
    While the deployment step framework also supports the
    ``execute_on_child_nodes`` and ``limit_child_node_execution`` parameters,
    all of the step frameworks have a fundamental limitation in that child node
-   step execution is indended for syncronous actions which do not rely upon
+   step execution is intended for synchronous actions which do not rely upon
    the ``ironic-python-agent`` running on any child nodes. This constraint may
    be changed in the future.
 

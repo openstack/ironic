@@ -160,7 +160,7 @@ user.
 
 Often, depending on load, query patterns, periodic tasks, and so on and so
 forth, additional indexes may be needed to help provide hints to the database
-so it can most efficently attempt to reduce the number of rows which need to
+so it can most efficiently attempt to reduce the number of rows which need to
 be examined in order to return a result set.
 
 Adding indexes

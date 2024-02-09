@@ -160,7 +160,7 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         """Register hardware interfaces with the conductor.
 
         :param interfaces: List of interface to register, each entry should
-            be a dictionary conaining "hardware_type", "interface_type",
+            be a dictionary containing "hardware_type", "interface_type",
             "interface_name" and "default", e.g.
             {'hardware_type': 'hardware-type', 'interface_type': 'deploy',
             'interface_name': 'direct', 'default': True}

@@ -24,7 +24,7 @@
 # they can determine that something is special, something is different,
 # and from there try to determine *what* it is. The key in their case
 # is the ID values, but they don't know that from the outside.
-# This is also why thid party admins should get 200s and empty lists,
+# This is also why third party admins should get 200s and empty lists,
 # again the database query should be filtered. Third party admin,
 # in essence serves as the primary negative test.
 #
@@ -581,7 +581,7 @@ owner_manager_cannot_change_owner:
 # This is not an explicitly restricted item, it falls
 # to generalized update capability, which oddly makes
 # a lot of sense in this case. It is a flag to prevent
-# accidential erasure/removal of the node.
+# accidental erasure/removal of the node.
 
 lessee_member_can_set_protected:
   path: '/v1/nodes/{lessee_node_ident}'
@@ -3531,7 +3531,7 @@ third_party_admin_cannot_create_allocation_with_candidates_not_owned:
   assert_status: 400
 
 owner_admin_can_create_allocation_with_their_uuid:
-  # NOTE(TheJulia): Owner/Lessee are equivelent in
+  # NOTE(TheJulia): Owner/Lessee are equivalent in
   # this context, so testing only one is fine.
   path: '/v1/allocations'
   method: post

@@ -275,7 +275,7 @@ def _can_get_server_post_state(node):
     Returns True if the POST state of the server can be retrieved.
     It cannot be retrieved for older ProLiant models.
     :param node: The node.
-    :returns: True if POST state can be retrieved, else Flase.
+    :returns: True if POST state can be retrieved, else False.
     :raises: IloOperationError on an error from IloClient library.
     """
     try:

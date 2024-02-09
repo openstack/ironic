@@ -1,12 +1,12 @@
 ---
 security:
   - |
-    Fixes an issue where ironic was not properly labeling dynamicly built
+    Fixes an issue where ironic was not properly labeling dynamically built
     virtual media ramdisks with the signifier flag so the ramdisk understands
     it was booted from virtual media.
 fixes:
   - |
-    Fixes the missing ``boot_method`` ramdisk parameter for dynamicly build
+    Fixes the missing ``boot_method`` ramdisk parameter for dynamically build
     virtual media payloads. This value must be set to ``vmedia`` for the
     ramdisk running on virtual media to understand it is executing from
     virtual media. This was fixed for cases where it is used with the

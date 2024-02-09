@@ -127,7 +127,7 @@ class LocalLinkConnectionTestCase(db_base.DbTestCase):
                                                     self.plugin_data)
             mock_log.assert_called_once_with(
                 'TLV value for TLV type %d is not in correct format. Ensure '
-                'that the TLV value is in hexidecimal format when sent to '
+                'that the TLV value is in hexadecimal format when sent to '
                 'ironic. Node: %s', 2, task.node.uuid)
             self.assertFalse(mock_port_save.called)
             self.assertEqual(self.port.local_link_connection, {})

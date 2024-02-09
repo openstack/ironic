@@ -6,7 +6,7 @@ Contributor Vision
 
 Background
 ==========
-During the Rocky Project Teams Gathering (Feburary/March 2018),
+During the Rocky Project Teams Gathering (February/March 2018),
 The contributors in the room at that time took a few minutes to write out
 each contributor's vision of where they see ironic in five years time.
 

@@ -11,6 +11,6 @@ fixes:
     Fixes an issue where the fallback to a default kickstart template
     value would result in error indicating
     "Scheme-less image href is not a UUID".
-    This was becaues the handling code falling back to the default
+    This was because the handling code falling back to the default
     did not explicitly indicate it was a file URL before saving the
     value.

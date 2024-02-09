@@ -246,7 +246,7 @@ def get_autoneg_cap(pmd):
     Dependent (PMD) capability bits.
 
     :param  pmd: PMD bits
-    :return: Sorted ist containing capability strings
+    :return: Sorted list containing capability strings
     """
     caps_set = set()
 

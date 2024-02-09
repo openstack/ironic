@@ -327,7 +327,7 @@ def validate(*args, **kwargs):
     """Decorator which validates and transforms function arguments
 
     """
-    assert not args, 'Validators must be specifed by argument name'
+    assert not args, 'Validators must be specified by argument name'
     assert kwargs, 'No validators specified'
     validators = kwargs
 

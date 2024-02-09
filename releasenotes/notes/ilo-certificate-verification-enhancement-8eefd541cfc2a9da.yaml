@@ -4,7 +4,7 @@ features:
     Adds a new configuration option ``[ilo]verify_ca`` and a new
     ``driver_info`` parameter ``ilo_verify_ca`` to enhance certificate
     verification for hardware type ilo and ilo5 which can take
-    directory and bolean values apart from file.
+    directory and boolean values apart from file.
 deprecations:
    - The ``[ilo]ca_file`` configuration option is deprecated for
      removal, please use ``[ilo]verify_ca`` instead which can take

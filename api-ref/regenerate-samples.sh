@@ -273,7 +273,7 @@ GET v1/lookup?node_uuid=$NID > lookup-node-response.json
 # and the node's driver is "fake", to avoid potential races
 # with internal processes that lock the Node
 
-# this corrects an intentional ommission in some of the samples
+# this corrects an intentional omission in some of the samples
 PATCH v1/nodes/$NID node-update-driver-info-request.json > node-update-driver-info-response.json
 
 GET v1/nodes/$NID/management/boot_device/supported > node-get-supported-boot-devices-response.json

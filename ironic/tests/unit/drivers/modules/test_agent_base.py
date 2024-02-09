@@ -309,7 +309,7 @@ class HeartbeatMixinTest(AgentDeployMixinBaseTest):
             next_step_mock.side_effect = driver_failure
             self.deploy.heartbeat(task, 'http://127.0.0.1:8080', '1.0.0')
             # task.node.provision_state being set to DEPLOYFAIL
-            # within the driver_failue, hearbeat should not call
+            # within the driver_failue, heartbeat should not call
             # deploy_utils.set_failed_state anymore
             self.assertFalse(failed_mock.called)
             log_mock.assert_called_once_with(

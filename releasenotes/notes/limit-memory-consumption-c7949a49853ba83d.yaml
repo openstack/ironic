@@ -17,7 +17,7 @@ features:
     becomes available. This will effectively rate limit concurrency.
 
     If raw image conversions with-in the conductor is required, and a
-    situation exists where insufficent memory exists and it cannot be waited,
+    situation exists where insufficient memory exists and it cannot be waited,
     the deployment operation will fail. For the ``iscsi`` deployment
     interface, which is the other location in ironic that may consume large
     amounts of memory, the conductor will wait until the next agent heartbeat.

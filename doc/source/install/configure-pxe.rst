@@ -300,7 +300,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
       Setting the iPXE parameters noted in the code block above to no value,
       in other words setting a line to something like ``ipxe_bootfile_name=``
       will result in ironic falling back to the default values of the non-iPXE
-      PXE settings. This is for backwards compatability.
+      PXE settings. This is for backwards compatibility.
 
 #. Ensure iPXE is the default PXE, if applicable.
 
@@ -520,7 +520,7 @@ You may also populate other IPA options (e.g. ``ipa-debug=1`` for detailed
 logging, ``ipa-inspection-collectors`` to customize the inspection process,
 or ``ipa-api-url`` to enable :doc:`/admin/fast-track`).
 
-Second, you need to configure DHCP for unknows hosts since the OpenStack
+Second, you need to configure DHCP for unknown hosts since the OpenStack
 Networking service won't be able to handle them. For instance, you can install
 **dnsmasq** and use the following ``/etc/dnsmasq.conf``:
 

@@ -104,7 +104,7 @@ class BaseConductorManager(object):
         """Initialize the conductor host.
 
         :param admin_context: the admin context to pass to periodic tasks.
-        :param start_consoles: If consoles should be started in intialization.
+        :param start_consoles: If consoles should be started in initialization.
         :param start_allocations: If allocations should be started in
                                   initialization.
         :raises: RuntimeError when conductor is already running.

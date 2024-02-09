@@ -87,7 +87,7 @@ def get_client(context, auth_from_config=False):
                                     auth=user_auth or service_auth)
 
         # Re-determine the endpoint so we can work with versions prior to
-        # Yoga, becuase the endpoint, based upon configuration, may require
+        # Yoga, because the endpoint, based upon configuration, may require
         # project_id specific URLs.
         if user_auth:
             endpoint = keystone.get_endpoint('cinder', session=sess,

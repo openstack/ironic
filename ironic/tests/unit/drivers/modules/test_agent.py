@@ -197,7 +197,7 @@ class TestAgentMethods(db_base.DbTestCase):
         i_info['image_source'] = '0448fa34-4db1-407b-a051-6357d5f86c59'
         self.node.instance_info = i_info
         self.assertRaisesRegex(exception.MissingParameterValue,
-                               'failed to validate http provisoning',
+                               'failed to validate http provisioning',
                                agent.validate_http_provisioning_configuration,
                                self.node)
 
@@ -207,7 +207,7 @@ class TestAgentMethods(db_base.DbTestCase):
         i_info['image_source'] = 'file://image-ref'
         self.node.instance_info = i_info
         self.assertRaisesRegex(exception.MissingParameterValue,
-                               'failed to validate http provisoning',
+                               'failed to validate http provisioning',
                                agent.validate_http_provisioning_configuration,
                                self.node)
 
@@ -218,7 +218,7 @@ class TestAgentMethods(db_base.DbTestCase):
         i_info['image_source'] = 'http://image-ref'
         self.node.instance_info = i_info
         self.assertRaisesRegex(exception.MissingParameterValue,
-                               'failed to validate http provisoning',
+                               'failed to validate http provisioning',
                                agent.validate_http_provisioning_configuration,
                                self.node)
 
@@ -229,7 +229,7 @@ class TestAgentMethods(db_base.DbTestCase):
         i_info['image_download_source'] = 'local'
         self.node.instance_info = i_info
         self.assertRaisesRegex(exception.MissingParameterValue,
-                               'failed to validate http provisoning',
+                               'failed to validate http provisioning',
                                agent.validate_http_provisioning_configuration,
                                self.node)
 

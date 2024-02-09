@@ -6,7 +6,7 @@ upgrade:
     is generated, and then additional queries are executed to composite this
     data together. This is from a model where the database client in the
     conductor was having to deduplicate the resulting data set which is
-    overall less efficent.
+    overall less efficient.
 other:
   - |
     The default database query pattern has been changed which will result

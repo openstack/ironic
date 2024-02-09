@@ -552,7 +552,7 @@ def create_boot_iso(context, output_filename, kernel_href,
 
             elif CONF.esp_image:
                 esp_image_path = CONF.esp_image
-            # TODO(TheJulia): we should opportunisticly try to make bios
+            # TODO(TheJulia): we should opportunistically try to make bios
             # bootable and UEFI. In other words, collapse a lot of this
             # path since they are not mutually exclusive.
             # UEFI boot mode, but Network iPXE -> ISO means bios bootable

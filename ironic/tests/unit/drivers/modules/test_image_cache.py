@@ -572,7 +572,7 @@ class TestImageCacheCleanUp(base.TestCase):
 
         self.assertEqual(image_cache._cache_cleanup_list[0][1], Cache2)
 
-        # The order of caches with same prioirty is not deterministic.
+        # The order of caches with same priority is not deterministic.
         item_possibilities = [Cache1, Cache3]
         second_item_actual = image_cache._cache_cleanup_list[1][1]
         self.assertIn(second_item_actual, item_possibilities)

@@ -185,9 +185,9 @@ class DracWSManInspect(base.InspectInterface):
                 'boot_mode': bios_settings["BootMode"].current_value.lower(),
                 'pci_gpu_devices': self._calculate_gpus(video_controllers)}
 
-            capabilties = utils.get_updated_capabilities(current_capabilities,
-                                                         new_capabilities)
-            properties['capabilities'] = capabilties
+            capabilities = utils.get_updated_capabilities(current_capabilities,
+                                                          new_capabilities)
+            properties['capabilities'] = capabilities
 
             virtual_disks = client.list_virtual_disks()
             root_disk = self._guess_root_disk(virtual_disks)

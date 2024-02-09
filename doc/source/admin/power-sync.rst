@@ -25,7 +25,7 @@ misbehaving BMCs which may delay or even block the synchronization otherwise.
     logs). While Ironic automatically retries to get the power status
     for the affected nodes, the failure rate may be reduced by increasing
     the power sync cycle, e.g. to 300 seconds, and/or by reducing the number
-    of power sync workers, e.g. to 2. Pleae keep in mind, however, that
+    of power sync workers, e.g. to 2. Please keep in mind, however, that
     depending on the concrete setup increasing the power sync interval may
     have an impact on other components relying on up-to-date power states.
 

@@ -13,7 +13,7 @@ fixes:
 
     The retry logic can be disabled using the
     ``[database]sqlite_retries`` option, which defaults to
-    *True*. Users of other, mutli-threaded/concurrent-write database
+    *True*. Users of other, multi-threaded/concurrent-write database
     platforms are not impacted by this change, as the retry logic
     recognizes if another database is in use and bypasses the retry
     logic in that case. A similar retry logic concept already exists

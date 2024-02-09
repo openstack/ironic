@@ -2,7 +2,7 @@ Inspection hooks
 ================
 
 *Inspection hooks* are a type of the Bare Metal service plug-ins responsible
-for processing data from in-band inspection. By confuguring these hooks, an
+for processing data from in-band inspection. By configuring these hooks, an
 operator can fully customize the inspection processing phase. How the data is
 collected can be configured with `inspection collectors
 <https://docs.openstack.org/ironic-python-agent/latest/admin/how_it_works.html#inspection-data>`_.

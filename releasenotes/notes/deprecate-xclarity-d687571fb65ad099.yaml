@@ -8,6 +8,6 @@ deprecations:
 
     The ``xclarity`` hardware type was introduced at the end of the Queens
     development cycle. During implementation of Third Party CI, the Lenovo
-    team encountered some unforseen delays. Lenovo is continuing to work
+    team encountered some unforeseen delays. Lenovo is continuing to work
     towards Third Party CI, and upon establishment and verification of
     functional Third Party CI, this deprecation will be rescinded.

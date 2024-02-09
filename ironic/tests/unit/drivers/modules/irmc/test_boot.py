@@ -1008,7 +1008,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     def test_check_share_fs_mounted_ok(self, parse_conf_mock,
                                        check_share_fs_mounted_mock):
         # Note(naohirot): mock.patch.stop() and mock.patch.start() don't work.
-        # therefor monkey patching is used to
+        # therefore monkey patching is used to
         # irmc_boot.check_share_fs_mounted.
         # irmc_boot.check_share_fs_mounted is mocked in
         # third_party_driver_mocks.py.
@@ -1025,7 +1025,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
     def test_check_share_fs_mounted_exception(self, parse_conf_mock,
                                               check_share_fs_mounted_mock):
         # Note(naohirot): mock.patch.stop() and mock.patch.start() don't work.
-        # therefor monkey patching is used to
+        # therefore monkey patching is used to
         # irmc_boot.check_share_fs_mounted.
         # irmc_boot.check_share_fs_mounted is mocked in
         # third_party_driver_mocks.py.

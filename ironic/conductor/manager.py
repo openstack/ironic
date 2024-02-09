@@ -2678,7 +2678,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         except AttributeError:
             # TODO(TheJulia): Remove this at some point, but right now
             # don't inherently break on version mismatches when people
-            # disregard requriements.
+            # disregard requirements.
             LOG.warning(
                 'get_sensors_data has been configured to collect '
                 'conductor metrics, however the installed ironic-lib '
@@ -2686,7 +2686,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                 'ironic-lib to a minimum of version 5.4.0.')
         except Exception as e:
             LOG.exception(
-                "An unknown error occured while attempting to collect "
+                "An unknown error occurred while attempting to collect "
                 "sensor data from within the conductor. Error: %(error)s",
                 {'error': e})
         else:
@@ -3588,7 +3588,7 @@ class ConductorManager(base_manager.BaseConductorManager):
                             {'node': node_id})
                 # Allow lookup to work by returning a value, it is just an
                 # unusable value that can't be verified against.
-                # This is important if the agent lookup has occured with
+                # This is important if the agent lookup has occurred with
                 # pre-generation of tokens with virtual media usage.
                 node.set_driver_internal_info('agent_secret_token', "******")
                 return node

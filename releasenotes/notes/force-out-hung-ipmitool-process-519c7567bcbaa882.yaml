@@ -4,7 +4,7 @@ fixes:
     Kill ``ipmitool`` process invoked by ironic to read node's power state if
     ``ipmitool`` process does not exit after configured timeout expires. It
     appears pretty common for ``ipmitool`` to run for five minutes (with
-    current ironic defauls) once it hits a non-responsive bare metal node.
+    current ironic defaults) once it hits a non-responsive bare metal node.
     This could slow down the management of other nodes due periodic tasks
     slots exhaustion. The new behaviour could is enabled by default, but
     could be disabled via the ``[ipmi]kill_on_timeout`` ironic configuration

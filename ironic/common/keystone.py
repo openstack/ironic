@@ -139,7 +139,7 @@ def get_service_auth(context, endpoint, service_auth,
     :param context: The RequestContext instance from which the user
                     auth_token is extracted.
     :param endpoint: The requested endpoint to be utilized.
-    :param service_auth: The service authenticaiton credentals to be
+    :param service_auth: The service authentication credentals to be
                          used.
     :param only_service_auth: Boolean, default False. When set to True,
                               the resulting Service token pair is generated

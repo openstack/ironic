@@ -213,7 +213,7 @@ to consume the output of the burn-in steps more easily, or even in real-time,
 the nodes can be configured to store the output of the individual steps to
 files in the ramdisk (from where they can be picked up by a logging pipeline).
 
-The configuration of the outpout file is done via one of
+The configuration of the output file is done via one of
 ``agent_burnin_cpu_outputfile``, ``agent_burnin_vm_outputfile``,
 ``agent_burnin_fio_disk_outputfile``, and
 ``agent_burnin_fio_network_outputfile`` parameters which need to be added

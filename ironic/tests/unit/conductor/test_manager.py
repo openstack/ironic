@@ -637,7 +637,7 @@ class ChangeNodeBootModeTestCase(mgr_utils.ServiceSetUpMixin,
     def test_change_node_boot_mode_exception_getting_current(self,
                                                              get_boot_mock,
                                                              set_boot_mock):
-        # Test change_node_boot_mode smooth opertion when get_boot_mode mode
+        # Test change_node_boot_mode smooth operation when get_boot_mode mode
         # raises an exception
         initial_state = boot_modes.LEGACY_BIOS
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -854,7 +854,7 @@ class ChangeNodeSecureBootTestCase(mgr_utils.ServiceSetUpMixin,
     def test_change_node_secure_boot_exception_getting_current(self,
                                                                get_boot_mock,
                                                                set_boot_mock):
-        # Test change_node_secure_boot smooth opertion when
+        # Test change_node_secure_boot smooth operation when
         # get_secure_boot_state raises an exception
         initial_state = False
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
@@ -1010,7 +1010,7 @@ class UpdateNodeTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     def test_update_node_retired_invalid_state(self):
         # NOTE(arne_wiebalck): nodes in available cannot be 'retired'.
-        # This is to ensure backwards comaptibility.
+        # This is to ensure backwards compatibility.
         node = obj_utils.create_test_node(self.context,
                                           provision_state='available')
 

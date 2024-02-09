@@ -79,7 +79,7 @@ def get_next(collection, limit, url, key_field='uuid', **kwargs):
 
     fields = kwargs.pop('fields', None)
     # NOTE(saga): If fields argument is present in kwargs and not None. It
-    # is a list so convert it into a comma seperated string.
+    # is a list so convert it into a comma separated string.
     if fields:
         kwargs['fields'] = ','.join(fields)
     q_args = ''.join(['%s=%s&' % (key, kwargs[key]) for key in kwargs])

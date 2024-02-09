@@ -306,7 +306,7 @@ class StartStopTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test_start_dbapi_single_call(self, mock_dbapi):
         self._start_service()
         # NOTE(TheJulia): This seems like it should only be 1, but
-        # the hash ring initailization pulls it's own database connection
+        # the hash ring initialization pulls it's own database connection
         # instance, which is likely a good thing, thus this is 2 instead of
         # 3 without reuse of the database connection.
         self.assertEqual(2, mock_dbapi.call_count)

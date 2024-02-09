@@ -87,7 +87,7 @@ class RedfishFirmware(base.FirmwareInterface):
         node_id = task.node.id
         settings = []
         # NOTE(iurygregory): currently we will only retrieve BIOS and BMC
-        # firmware information trough the redfish system and manager.
+        # firmware information through the redfish system and manager.
 
         system = redfish_utils.get_system(task.node)
 

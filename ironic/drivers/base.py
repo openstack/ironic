@@ -1411,7 +1411,7 @@ class BIOSInterface(BaseInterface):
         table with the BIOS configuration applied on the node.
 
         :param task: a TaskManager instance.
-        :param settings: Dictonary containing the BIOS configuration.
+        :param settings: Dictionary containing the BIOS configuration.
         :raises: UnsupportedDriverExtension, if the node's driver doesn't
             support BIOS configuration.
         :raises: InvalidParameterValue, if validation of settings fails.
@@ -1807,7 +1807,7 @@ class NetworkInterface(BaseInterface):
         :raises: InvalidParameterValue, if the network interface configuration
             is invalid.
         :raises: MissingParameterValue, if some parameters are missing.
-        :returns: a dict holding network configuration information adhearing
+        :returns: a dict holding network configuration information adhering
             Nova network metadata layout (`network_data.json`).
         """
         return task.node.network_data or {}

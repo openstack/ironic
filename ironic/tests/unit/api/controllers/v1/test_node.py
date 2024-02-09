@@ -944,14 +944,14 @@ class TestListNodes(test_api_base.BaseApiTest):
         mock_authorize.side_effect = mock_authorize_function
 
         instance_uuid = '6eccd391-961c-4da5-b3c5-e2fa5cfbbd9d'
-        requestor_uuid = '46c0bf8a-846d-49a5-9724-5a61a5efa6bf'
+        requester_uuid = '46c0bf8a-846d-49a5-9724-5a61a5efa6bf'
         obj_utils.create_test_node(
             self.context,
             owner='97879042-c0bf-4216-882a-66a7cbf2bd74',
             instance_uuid=instance_uuid)
         data = self.get_json(
             '/nodes/detail?instance_uuid=%s' % instance_uuid,
-            headers={'X-Project-ID': requestor_uuid,
+            headers={'X-Project-ID': requester_uuid,
                      api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(0, len(data['nodes']))
 
@@ -964,14 +964,14 @@ class TestListNodes(test_api_base.BaseApiTest):
         mock_authorize.side_effect = mock_authorize_function
 
         instance_uuid = '6eccd391-961c-4da5-b3c5-e2fa5cfbbd9d'
-        requestor_uuid = '46c0bf8a-846d-49a5-9724-5a61a5efa6bf'
+        requester_uuid = '46c0bf8a-846d-49a5-9724-5a61a5efa6bf'
         node = obj_utils.create_test_node(
             self.context,
-            owner=requestor_uuid,
+            owner=requester_uuid,
             instance_uuid=instance_uuid)
         data = self.get_json(
             '/nodes/detail?instance_uuid=%s' % instance_uuid,
-            headers={'X-Project-ID': requestor_uuid,
+            headers={'X-Project-ID': requester_uuid,
                      api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(1, len(data['nodes']))
         # Assert we did get the node and it matched.

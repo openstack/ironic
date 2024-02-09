@@ -1481,7 +1481,7 @@ volume_targets_get_observer:
   deprecated: true
 
 # NOTE(TheJulia): Because we can't seem to get the uuid
-# to load from an existing uuid, since we're not subsituting
+# to load from an existing uuid, since we're not substituting
 # it, this will return with 400 due to the ID not matching.
 volume_targets_post_admin:
   path: '/v1/volume/targets'

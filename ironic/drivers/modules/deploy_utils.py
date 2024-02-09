@@ -1154,7 +1154,7 @@ def _validate_image_url(node, url, secret=False):
 
 
 def _cache_and_convert_image(task, instance_info, image_info=None):
-    """Cache an image locally and covert it to RAW if needed."""
+    """Cache an image locally and convert it to RAW if needed."""
     # Ironic cache and serve images from httpboot server
     force_raw = direct_deploy_should_convert_raw_image(task.node)
     _, image_path = cache_instance_image(task.context, task.node,

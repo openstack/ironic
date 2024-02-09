@@ -26,7 +26,7 @@ IPMI is a relatively old protocol and may require additional set up on the
 hardware side that the Bare Metal service cannot do automatically:
 
 #. Make sure IPMI is enabled and the account you use have the permissions
-   to change power and boot devices. By default the adminstrator rights are
+   to change power and boot devices. By default the administrator rights are
    expected, you can change it: see :ref:`ipmi-priv-level`.
 
 #. Make sure the cipher suites are configured for maximum security. Suite 17 is

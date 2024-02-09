@@ -1,5 +1,5 @@
 # NOTE(pas-ha) this is to ensure that partition metadata that might be stored
-# in the start or end of partiton itself also becomes unusable
+# in the start or end of partition itself also becomes unusable
 # and does not interfere with future partition scheme if new partitions
 # happen to fall on the same boundaries where old partitions were.
 # NOTE(pas-ha) loop_control works with Ansible >= 2.1

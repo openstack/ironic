@@ -81,7 +81,7 @@ Feature Submission Process
 #. As soon as a member of the team acknowledges the bug,
    we will move it to the 'Review' state. As time goes on, Discussion
    about the RFE, and whether to approve it will occur. If the RFE has not
-   been triaged and you'd like it to recieve immediate attention, add it to
+   been triaged and you'd like it to receive immediate attention, add it to
    the Open Discussion section of our
    `weekly meeting agenda <https://wiki.openstack.org/wiki/Meetings/Ironic>`,
    and, timezone permitting, attend the meeting to advocate for your RFE.

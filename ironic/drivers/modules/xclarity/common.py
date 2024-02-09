@@ -56,7 +56,7 @@ def parse_driver_info(node):
     Parses the driver_info of the node, reads default values
     and returns a dict containing the combination of both.
 
-    :param node: an ironic node object to get informatin from.
+    :param node: an ironic node object to get information from.
     :returns: a dict containing information parsed from driver_info.
     :raises: InvalidParameterValue if some required information
              is missing on the node or inputs is invalid.
@@ -132,7 +132,7 @@ def get_xclarity_client(node):
 def get_server_hardware_id(node):
     """Validates node configuration and returns xclarity hardware id.
 
-    Validates whether node configutation is consistent with XClarity and
+    Validates whether node configuration is consistent with XClarity and
     returns the XClarity Hardware ID for a specific node.
     :param node: node object to get information from
     :returns: the XClarity Hardware ID for a specific node

@@ -10,7 +10,7 @@ features:
     The deploy interface uses heartbeat API to communicate. The kickstart
     template must include %pre %post %onerror and %traceback sections that
     should send status of the deployment back to Ironic API using heartbeats.
-    An example of such calls to hearbeat API can be found in the default
+    An example of such calls to heartbeat API can be found in the default
     kickstart template. To enable anaconda to send status back to Ironic API
     via heartbeat ``agent_status`` and ``agent_status_message`` are added to
     the heartbeat API. Use of these new parameters require API microversion
