@@ -480,7 +480,10 @@ def cleaning_error_handler(task, logmsg, errmsg=None, traceback=False,
             msg2 = ('Failed to tear down cleaning on node %(uuid)s, '
                     'reason: %(err)s' % {'err': e, 'uuid': node.uuid})
             LOG.exception(msg2)
-            errmsg = _('%s. Also failed to tear down cleaning.') % errmsg
+            errmsg = _(
+                '%(orig_err)s. '
+                'Also %(msg2)s'
+            ) % {'orig_err': errmsg, 'msg2': msg2}
 
     if node.provision_state in (
             states.CLEANING,
