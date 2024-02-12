@@ -35,6 +35,7 @@ from ironic.drivers import base as drivers_base
 from ironic.drivers.modules import agent_base
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import fake
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import pxe_base
 from ironic.drivers.modules.storage import noop as noop_storage
@@ -83,6 +84,11 @@ class iPXEBootTestCase(db_base.DbTestCase):
             driver_internal_info=self.driver_internal_info)
         self.port = obj_utils.create_test_port(self.context,
                                                node_id=self.node.id)
+
+    def test_ensure_boot_interface_is_not_http_enabled(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertFalse(task.driver.boot.http_boot_enabled)
 
     def test_get_properties(self):
         expected = pxe_base.COMMON_PROPERTIES
@@ -964,3 +970,192 @@ class iPXEValidateRescueTestCase(db_base.DbTestCase):
             self.assertRaisesRegex(exception.MissingParameterValue,
                                    'Missing.*rescue_kernel',
                                    task.driver.boot.validate_rescue, task)
+
+
+@mock.patch.object(ipxe.iPXEHttpBoot, '__init__', lambda self: None)
+class iPXEHttpBootTestCase(db_base.DbTestCase):
+
+    driver = 'fake-hardware'
+    boot_interface = 'http-ipxe'
+    driver_info = DRV_INFO_DICT
+    driver_internal_info = DRV_INTERNAL_INFO_DICT
+
+    def setUp(self):
+        super(iPXEHttpBootTestCase, self).setUp()
+        self.context.auth_token = 'fake'
+        self.config_temp_dir('tftp_root', group='pxe')
+        self.config_temp_dir('images_path', group='pxe')
+        self.config_temp_dir('http_root', group='deploy')
+        self.config(group='deploy', http_url='http://myserver')
+        instance_info = INST_INFO_DICT
+
+        self.config(enabled_boot_interfaces=[self.boot_interface,
+                                             'http-ipxe', 'fake'])
+        self.node = obj_utils.create_test_node(
+            self.context,
+            driver=self.driver,
+            boot_interface=self.boot_interface,
+            # Avoid fake properties in get_properties() output
+            vendor_interface='no-vendor',
+            instance_info=instance_info,
+            driver_info=self.driver_info,
+            driver_internal_info=self.driver_internal_info)
+        self.port = obj_utils.create_test_port(self.context,
+                                               node_id=self.node.id)
+
+    def test_http_boot_enabled(self):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            self.assertTrue(task.driver.boot.http_boot_enabled)
+
+    # TODO(TheJulia): Many of the interfaces mocked below are private PXE
+    # interface methods. As time progresses, these will need to be migrated
+    # and refactored as we begin to separate PXE and iPXE interfaces.
+    @mock.patch.object(manager_utils, 'node_get_boot_mode', autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+    @mock.patch.object(dhcp_factory, 'DHCPFactory', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_instance_image_info', autospec=True)
+    @mock.patch.object(pxe_utils, 'get_image_info', autospec=True)
+    @mock.patch.object(pxe_utils, 'cache_ramdisk_kernel', autospec=True)
+    @mock.patch.object(pxe_utils, 'build_pxe_config_options', autospec=True)
+    @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
+    def _test_prepare_ramdisk(self, mock_pxe_config,
+                              mock_build_pxe, mock_cache_r_k,
+                              mock_deploy_img_info,
+                              mock_instance_img_info,
+                              dhcp_factory_mock,
+                              set_boot_device_mock,
+                              get_boot_mode_mock,
+                              uefi=False,
+                              cleaning=False,
+                              ipxe_use_swift=False,
+                              whole_disk_image=False,
+                              mode='deploy',
+                              node_boot_mode=None,
+                              persistent=False):
+        mock_build_pxe.return_value = {}
+        kernel_label = '%s_kernel' % mode
+        ramdisk_label = '%s_ramdisk' % mode
+        mock_deploy_img_info.return_value = {kernel_label: 'a',
+                                             ramdisk_label: 'r'}
+        if whole_disk_image:
+            mock_instance_img_info.return_value = {}
+        else:
+            mock_instance_img_info.return_value = {'kernel': 'b'}
+        mock_pxe_config.return_value = None
+        mock_cache_r_k.return_value = None
+        provider_mock = mock.MagicMock()
+        dhcp_factory_mock.return_value = provider_mock
+        get_boot_mode_mock.return_value = node_boot_mode
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['is_whole_disk_image'] = whole_disk_image
+        self.node.driver_internal_info = driver_internal_info
+        if mode == 'rescue':
+            mock_deploy_img_info.return_value = {
+                'rescue_kernel': 'a',
+                'rescue_ramdisk': 'r'}
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            dhcp_opts = pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=True, ip_version=4, http_boot_enabled=True)
+            dhcp_opts += pxe_utils.dhcp_options_for_instance(
+                task, ipxe_enabled=True, ip_version=6, http_boot_enabled=True)
+            task.driver.boot.prepare_ramdisk(task, {'foo': 'bar'})
+            mock_deploy_img_info.assert_called_once_with(task.node, mode=mode,
+                                                         ipxe_enabled=True)
+            provider_mock.update_dhcp.assert_called_once_with(
+                task, dhcp_opts)
+            if self.node.provision_state == states.DEPLOYING:
+                get_boot_mode_mock.assert_called_once_with(task)
+            set_boot_device_mock.assert_called_once_with(task,
+                                                         boot_devices.UEFIHTTP,
+                                                         persistent=persistent)
+            if ipxe_use_swift:
+                if whole_disk_image:
+                    self.assertFalse(mock_cache_r_k.called)
+                else:
+                    mock_cache_r_k.assert_called_once_with(
+                        task, {'kernel': 'b'},
+                        ipxe_enabled=True)
+                mock_instance_img_info.assert_called_once_with(
+                    task, ipxe_enabled=True)
+            elif not cleaning and mode == 'deploy':
+                mock_cache_r_k.assert_called_once_with(
+                    task,
+                    {'deploy_kernel': 'a', 'deploy_ramdisk': 'r',
+                     'kernel': 'b'},
+                    ipxe_enabled=True)
+                mock_instance_img_info.assert_called_once_with(
+                    task, ipxe_enabled=True)
+            elif mode == 'deploy':
+                mock_cache_r_k.assert_called_once_with(
+                    task, {'deploy_kernel': 'a', 'deploy_ramdisk': 'r'},
+                    ipxe_enabled=True)
+            elif mode == 'rescue':
+                mock_cache_r_k.assert_called_once_with(
+                    task, {'rescue_kernel': 'a', 'rescue_ramdisk': 'r'},
+                    ipxe_enabled=True)
+            mock_pxe_config.assert_called_once_with(
+                task, {}, CONF.pxe.ipxe_config_template,
+                ipxe_enabled=True)
+
+    def test_prepare_ramdisk(self):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        self._test_prepare_ramdisk()
+
+    def test_prepare_ramdisk_rescue(self):
+        self.node.provision_state = states.RESCUING
+        self.node.save()
+        self._test_prepare_ramdisk(mode='rescue')
+
+    def test_prepare_ramdisk_uefi(self):
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        properties = self.node.properties
+        properties['capabilities'] = 'boot_mode:uefi'
+        self.node.properties = properties
+        self.node.save()
+        self._test_prepare_ramdisk(uefi=True)
+
+
+@mock.patch.object(ipxe.iPXEHttpBoot, '__init__', lambda self: None)
+class iPXEBootBaseUtils(db_base.DbTestCase):
+
+    driver = 'fake-hardware'
+    boot_interface = 'http-ipxe'
+    driver_info = DRV_INFO_DICT
+    driver_internal_info = DRV_INTERNAL_INFO_DICT
+
+    def setUp(self):
+        super(iPXEBootBaseUtils, self).setUp()
+        self.context.auth_token = 'fake'
+        instance_info = INST_INFO_DICT
+
+        self.config(enabled_boot_interfaces=[self.boot_interface,
+                                             'http-ipxe'])
+        self.node = obj_utils.create_test_node(
+            self.context,
+            driver=self.driver,
+            boot_interface=self.boot_interface,
+            # Avoid fake properties in get_properties() output
+            vendor_interface='no-vendor',
+            instance_info=instance_info,
+            driver_info=self.driver_info,
+            driver_internal_info=self.driver_internal_info)
+
+    @mock.patch.object(fake.FakeManagement, 'set_boot_device', autospec=True)
+    def test__node_set_boot_device_for_network_boot(self, mock_set_boot_dev):
+        mock_set_boot_dev.side_effect = [
+            exception.InvalidParameterValue('Invalid boot device'),
+            None
+        ]
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.boot._node_set_boot_device_for_network_boot(
+                task, persistent=True)
+            mock_set_boot_dev.assert_has_calls([
+                mock.call(mock.ANY, task, boot_devices.UEFIHTTP,
+                          persistent=True),
+                mock.call(mock.ANY, task, boot_devices.PXE,
+                          persistent=True)
+            ])

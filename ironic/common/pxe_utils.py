@@ -48,6 +48,7 @@ LOG = logging.getLogger(__name__)
 
 PXE_CFG_DIR_NAME = CONF.pxe.pxe_config_subdir
 
+DHCP_VENDOR_CLASS_ID = '60'  # rfc2132
 DHCP_CLIENT_ID = '61'  # rfc2132
 DHCP_TFTP_SERVER_NAME = '66'  # rfc2132
 DHCP_BOOTFILE_NAME = '67'  # rfc2132
@@ -66,8 +67,8 @@ KERNEL_RAMDISK_LABELS = {'deploy': DEPLOY_KERNEL_RAMDISK_LABELS,
                          'rescue': RESCUE_KERNEL_RAMDISK_LABELS}
 
 
-def _get_root_dir(ipxe_enabled):
-    if ipxe_enabled:
+def _get_root_dir(use_http_root):
+    if use_http_root:
         return CONF.deploy.http_root
     else:
         return CONF.pxe.tftp_root
@@ -239,7 +240,8 @@ def get_kernel_ramdisk_info(node_uuid, driver_info, mode='deploy',
     return image_info
 
 
-def get_pxe_config_file_path(node_uuid, ipxe_enabled=False):
+def get_pxe_config_file_path(node_uuid, ipxe_enabled=False,
+                             http_boot_enabled=False):
     """Generate the path for the node's PXE configuration file.
 
     :param node_uuid: the UUID of the node.
@@ -248,7 +250,8 @@ def get_pxe_config_file_path(node_uuid, ipxe_enabled=False):
     :returns: The path to the node's PXE configuration file.
 
     """
-    return os.path.join(_get_root_dir(ipxe_enabled), node_uuid, 'config')
+    return os.path.join(
+        _get_root_dir(ipxe_enabled or http_boot_enabled), node_uuid, 'config')
 
 
 def get_file_path_from_label(node_uuid, root_dir, label):
@@ -433,7 +436,8 @@ def clean_up_pxe_config(task, ipxe_enabled=False):
                                             task.node.uuid))
 
 
-def _dhcp_option_file_or_url(task, urlboot=False, ip_version=None):
+def _dhcp_option_file_or_url(task, urlboot=False, ip_version=None,
+                             http_boot_enabled=False):
     """Returns the appropriate file or URL.
 
     :param task: A TaskManager object.
@@ -443,7 +447,11 @@ def _dhcp_option_file_or_url(task, urlboot=False, ip_version=None):
     :param ip_version: Integer representing the version of IP of
                        to return options for DHCP. Possible options
                        are 4, and 6.
+    :param http_boot_enabled: If HTTPBoot is utilized, default False.
+    :raises: InvalidParameterValue if the resulting property length
+        exceeds Neutron limitations.
     """
+    result = None
     try:
         if task.driver.boot.ipxe_enabled:
             boot_file = deploy_utils.get_ipxe_boot_file(task.node)
@@ -457,18 +465,30 @@ def _dhcp_option_file_or_url(task, urlboot=False, ip_version=None):
     # NOTE(TheJulia): There are additional cases as we add new
     # features, so the logic below is in the form of if/elif/elif
     if not urlboot:
-        return boot_file
-    elif urlboot:
+        result = boot_file
+    elif urlboot and not http_boot_enabled:
         if CONF.my_ipv6 and ip_version == 6:
             host = utils.wrap_ipv6(CONF.my_ipv6)
-        else:
+        elif not http_boot_enabled:
             host = utils.wrap_ipv6(CONF.pxe.tftp_server)
-        return "tftp://{host}/{boot_file}".format(host=host,
-                                                  boot_file=boot_file)
+        result = "tftp://{host}/{boot_file}".format(host=host,
+                                                    boot_file=boot_file)
+    elif http_boot_enabled:
+        result = "{url}/{boot_file}".format(url=CONF.deploy.http_url,
+                                            boot_file=boot_file)
+    if len(result) > 64:
+        # This is an internal limitation for Neutron. We cannot send it
+        # a value longer than 64 characters.
+        raise exception.InvalidParameterValue('The resulting boot file or '
+                                              'URL length exceeds Neutron '
+                                              'limitations. Please explore '
+                                              'shorter file names or '
+                                              'hostnames.')
+    return result
 
 
 def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False,
-                              ip_version=None):
+                              ip_version=None, http_boot_enabled=False):
     """Retrieves the DHCP PXE boot options.
 
     :param task: A TaskManager instance.
@@ -485,8 +505,16 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False,
                        Possible options are integers 4 or 6.
     :returns: Dictionary to be sent to the networking service describing
               the DHCP options to be set.
+    :raises: InvalidParameterValue if the underlying configuration cannot
+        be conveyed to Neutron due to resulting value length.
     """
+    # FIXME(TheJulia): Presently, we determine if we should generate ipxe
+    # enabled configuration *via* the argument, and that presently gets set
+    # via the driver's interface, but we ought to double check because
+    # otherwise it is easy to miss, like when writing tests if you've touched
+    # this area of the code.
     if ip_version:
+        # IP version defines *which* parameter is used for file name.
         use_ip_version = ip_version
     else:
         use_ip_version = int(CONF.pxe.ip_version)
@@ -499,11 +527,15 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False,
         # a URL reply.
         boot_file_param = DHCPV6_BOOTFILE_NAME
         url_boot = True
+    if http_boot_enabled:
+        # IF this is for httpboot, just always mark url boot as enabled.
+        url_boot = True
     # NOTE(TheJulia): The ip_version value config from the PXE config is
     # guarded in the configuration, so there is no real sense in having
     # anything else here in the event the value is something aside from
     # 4 or 6, as there are no other possible values.
-    boot_file = _dhcp_option_file_or_url(task, url_boot, use_ip_version)
+    boot_file = _dhcp_option_file_or_url(task, url_boot, use_ip_version,
+                                         http_boot_enabled=http_boot_enabled)
 
     if ipxe_enabled:
         # TODO(TheJulia): DHCPv6 through dnsmasq + ipxe matching simply
@@ -561,6 +593,11 @@ def dhcp_options_for_instance(task, ipxe_enabled=False, url_boot=False,
     else:
         dhcp_opts.append({'opt_name': boot_file_param,
                           'opt_value': boot_file})
+    if http_boot_enabled and use_ip_version == 4:
+        # So unlike v6 PXE's use of URLs above, we explicitly need
+        # to send a vendor class back (option 60, vendor-class in dnsmasq)
+        dhcp_opts.append({'opt_name': DHCP_VENDOR_CLASS_ID,
+                          'opt_value': 'HTTPClient'})
 
     if not url_boot:
         dhcp_opts.append({'opt_name': DHCP_TFTP_SERVER_NAME,
@@ -1168,7 +1205,8 @@ def prepare_instance_pxe_config(task, image_info,
                                 iscsi_boot=False,
                                 ramdisk_boot=False,
                                 ipxe_enabled=False,
-                                anaconda_boot=False):
+                                anaconda_boot=False,
+                                http_boot_enabled=False):
     """Prepares the config file for PXE boot
 
     :param task: a task from TaskManager.
@@ -1179,6 +1217,8 @@ def prepare_instance_pxe_config(task, image_info,
     :param ipxe_enabled: Default false boolean to indicate if ipxe
                          is in use by the caller.
     :param anaconda_boot: if the boot is to a anaconda ramdisk configuration.
+    :param http_boot_enabled: If httpboot models of use are to be used
+                              with the underlying boot loaders.
     :returns: None
     """
     node = task.node
@@ -1188,14 +1228,19 @@ def prepare_instance_pxe_config(task, image_info,
     # development cycle so that we call a single method and return
     # combined options. The method we currently call is relied upon
     # by two eternal projects, to changing the behavior is not ideal.
-    dhcp_opts = dhcp_options_for_instance(task, ipxe_enabled,
-                                          ip_version=4)
-    dhcp_opts += dhcp_options_for_instance(task, ipxe_enabled,
-                                           ip_version=6)
+    dhcp_opts = dhcp_options_for_instance(
+        task, ipxe_enabled,
+        ip_version=4,
+        http_boot_enabled=http_boot_enabled)
+    dhcp_opts += dhcp_options_for_instance(
+        task, ipxe_enabled,
+        ip_version=6,
+        http_boot_enabled=http_boot_enabled)
     provider = dhcp_factory.DHCPFactory()
     provider.update_dhcp(task, dhcp_opts)
     pxe_config_path = get_pxe_config_file_path(
-        node.uuid, ipxe_enabled=ipxe_enabled)
+        node.uuid, ipxe_enabled=ipxe_enabled,
+        http_boot_enabled=http_boot_enabled)
     if not os.path.isfile(pxe_config_path):
         pxe_options = build_pxe_config_options(
             task, image_info, service=ramdisk_boot or anaconda_boot,
@@ -1354,15 +1399,16 @@ def place_common_config():
     if not CONF.pxe.initial_grub_template:
         return
 
-    grub_dir_path = os.path.join(_get_root_dir(False), 'grub')
-    if not os.path.isdir(grub_dir_path):
-        fileutils.ensure_tree(grub_dir_path)
-        if CONF.pxe.dir_permission:
-            os.chmod(grub_dir_path, CONF.pxe.dir_permission)
-
-    initial_grub = utils.render_template(
-        CONF.pxe.initial_grub_template,
-        {'tftp_root': _get_root_dir(False)})
-    initial_grub_path = os.path.join(grub_dir_path, 'grub.cfg')
-
-    utils.write_to_file(initial_grub_path, initial_grub)
+    for use_http in [False, True]:
+        # Create paths
+        grub_dir_path = os.path.join(_get_root_dir(use_http), 'grub')
+        if not os.path.isdir(grub_dir_path):
+            fileutils.ensure_tree(grub_dir_path)
+            if CONF.pxe.dir_permission:
+                os.chmod(grub_dir_path, CONF.pxe.dir_permission)
+        # Write templates
+        initial_grub = utils.render_template(
+            CONF.pxe.initial_grub_template,
+            {'tftp_root': _get_root_dir(False)})
+        initial_grub_path = os.path.join(grub_dir_path, 'grub.cfg')
+        utils.write_to_file(initial_grub_path, initial_grub)

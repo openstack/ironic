@@ -858,7 +858,8 @@ class TestPXEUtils(db_base.DbTestCase):
                                       'config'),
                          pxe_utils.get_pxe_config_file_path(self.node.uuid))
 
-    def _dhcp_options_for_instance(self, ip_version=4, ipxe=False):
+    def _dhcp_options_for_instance(self, ip_version=4, ipxe=False,
+                                   http_boot=False):
         self.config(ip_version=ip_version, group='pxe')
         if ip_version == 4:
             self.config(tftp_server='192.0.2.1', group='pxe')
@@ -878,12 +879,14 @@ class TestPXEUtils(db_base.DbTestCase):
             else:
                 self.config(pxe_bootfile_name='fake-bootfile', group='pxe')
         self.config(tftp_root='/tftp-path', group='pxe')
+        if http_boot:
+            self.config(http_url='https://foo.bar', group='deploy')
         if ipxe:
             bootfile = 'fake-bootfile-ipxe'
         else:
             bootfile = 'fake-bootfile'
 
-        if ip_version == 6:
+        if ip_version == 6 and not http_boot:
             # NOTE(TheJulia): DHCPv6 RFCs seem to indicate that the prior
             # options are not imported, although they may be supported
             # by vendors. The apparent proper option is to return a
@@ -891,7 +894,22 @@ class TestPXEUtils(db_base.DbTestCase):
             expected_info = [{'opt_name': '59',
                               'opt_value': 'tftp://[ff80::1]/%s' % bootfile,
                               'ip_version': ip_version}]
-        elif ip_version == 4:
+        elif ip_version == 6 and http_boot:
+            if not ipxe:
+                expected_info = [
+                    {'ip_version': 6,
+                     'opt_name': '59',
+                     'opt_value': 'https://foo.bar/%s' % bootfile}]
+            else:
+                expected_info = [
+                    {'ip_version': 6,
+                     'opt_name': 'tag:!ipxe6,59',
+                     'opt_value': 'https://foo.bar/%s' % bootfile},
+                    {'ip_version': 6,
+                     'opt_name': 'tag:ipxe6,59',
+                     'opt_value': 'https://foo.bar/boot.ipxe'},
+                ]
+        elif ip_version == 4 and not http_boot:
             expected_info = [{'opt_name': '67',
                               'opt_value': bootfile,
                               'ip_version': ip_version},
@@ -905,9 +923,41 @@ class TestPXEUtils(db_base.DbTestCase):
                               'opt_value': '192.0.2.1',
                               'ip_version': ip_version}
                              ]
+        elif ip_version == 4 and http_boot:
+            if not ipxe:
+                expected_info = [
+                    {'ip_version': 4,
+                     'opt_name': '67',
+                     'opt_value': 'https://foo.bar/%s' % bootfile},
+                    {'ip_version': 4,
+                     'opt_name': '60',
+                     'opt_value': 'HTTPClient'}
+                ]
+            else:
+                expected_info = [
+                    {'ip_version': 4,
+                     'opt_name': 'tag:!ipxe,67',
+                     'opt_value': 'https://foo.bar/%s' % bootfile},
+                    {'ip_version': 4,
+                     'opt_name': 'tag:ipxe,67',
+                     'opt_value': 'https://foo.bar/boot.ipxe'},
+                    {'ip_version': 4,
+                     'opt_name': '60',
+                     'opt_value': 'HTTPClient'}
+                ]
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
+            if ipxe:
+                # Since we are using fake, we need to somehow assert it
+                # with simplicity :\
+                task.driver.boot.ipxe_enabled = True
+            # NOTE(TheJulia): If we *are* testing ipxe, *always* call the
+            # this method with ipxe_enabled set, because it informed via
+            # the call, not via the task.
             self.assertEqual(expected_info,
-                             pxe_utils.dhcp_options_for_instance(task))
+                             pxe_utils.dhcp_options_for_instance(
+                                 task, ipxe_enabled=ipxe,
+                                 http_boot_enabled=http_boot))
 
     def test_dhcp_options_for_instance(self):
         self.config(default_boot_mode='uefi', group='deploy')
@@ -925,6 +975,24 @@ class TestPXEUtils(db_base.DbTestCase):
         self.config(tftp_server='ff80::1', group='pxe')
         self.config(default_boot_mode='bios', group='deploy')
         self._dhcp_options_for_instance(ip_version=6)
+
+    def test_dhcp_options_for_instance_http_ipv4(self):
+        self.config(default_boot_mode='uefi', group='deploy')
+        self._dhcp_options_for_instance(ip_version=4, http_boot=True)
+
+    def test_dhcp_options_for_instance_http_ipv6(self):
+        self.config(default_boot_mode='uefi', group='deploy')
+        self._dhcp_options_for_instance(ip_version=6, http_boot=True)
+
+    def test_dhcp_options_for_instance_http_ipxe_ipv4(self):
+        self.config(default_boot_mode='uefi', group='deploy')
+        self._dhcp_options_for_instance(ip_version=4, ipxe=True,
+                                        http_boot=True)
+
+    def test_dhcp_options_for_instance_http_ipxe_ipv6(self):
+        self.config(default_boot_mode='uefi', group='deploy')
+        self._dhcp_options_for_instance(ip_version=6, ipxe=True,
+                                        http_boot=True)
 
     def _test_get_kernel_ramdisk_info(self, expected_dir, mode='deploy',
                                       ipxe_enabled=False):
@@ -1105,7 +1173,7 @@ class TestPXEUtils(db_base.DbTestCase):
         self.config(group='pxe', dir_permission=0o777)
 
         def write_to_file(path, contents):
-            self.assertEqual('/tftpboot/grub/grub.cfg', path)
+            self.assertIn('/grub/grub.cfg', path)
             self.assertIn(
                 'configfile /tftpboot/$net_default_mac.conf',
                 contents
@@ -1115,9 +1183,18 @@ class TestPXEUtils(db_base.DbTestCase):
                         wraps=write_to_file):
             pxe_utils.place_common_config()
 
-        mock_isdir.assert_called_once_with('/tftpboot/grub')
-        mock_makedirs.assert_called_once_with('/tftpboot/grub', 511)
-        mock_chmod.assert_called_once_with('/tftpboot/grub', 0o777)
+        mock_isdir.assert_has_calls([
+            mock.call('/tftpboot/grub'),
+            mock.call('/httpboot/grub')
+        ])
+        mock_makedirs.assert_has_calls([
+            mock.call('/tftpboot/grub', 511),
+            mock.call('/httpboot/grub', 511)
+        ])
+        mock_chmod.assert_has_calls([
+            mock.call('/tftpboot/grub', 0o777),
+            mock.call('/httpboot/grub', 0o777)
+        ])
 
     @mock.patch.object(os, 'makedirs', autospec=True)
     @mock.patch.object(os.path, 'isdir', autospec=True)
@@ -1133,9 +1210,12 @@ class TestPXEUtils(db_base.DbTestCase):
         with mock.patch('ironic.common.utils.write_to_file',
                         autospec=True) as mock_write:
             pxe_utils.place_common_config()
-            mock_write.assert_called_once()
+            self.assertEqual(2, mock_write.call_count)
 
-        mock_isdir.assert_called_once_with('/tftpboot/grub')
+        mock_isdir.assert_has_calls([
+            mock.call('/tftpboot/grub'),
+            mock.call('/httpboot/grub')
+        ])
         mock_makedirs.assert_not_called()
         mock_chmod.assert_not_called()
 

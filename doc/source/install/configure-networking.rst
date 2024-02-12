@@ -4,9 +4,13 @@ Configure the Networking service for bare metal provisioning
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You need to configure Networking so that the bare metal server can communicate
-with the Networking service for DHCP, PXE boot and other requirements.
+with the Networking service for DHCP, PXE/HTTP boot and other requirements.
 This section covers configuring Networking for a single flat network for bare
-metal provisioning.
+metal provisioning. In more advanced configurations, we typically refer to
+the network upon which nodes undergo deployment as the provisioning network,
+as the underlying resources to provision the node must be available for
+successful operations.
+
 
 .. Warning:: This docuemntation is geared for use of OVS with Neutron along
              with the ``neutron-dhcp-agent``. It *is* possible to use OVN

@@ -63,12 +63,21 @@ class PXEBaseMixin(object):
 
     ipxe_enabled = False
 
+    http_boot_enabled = False
+
     def get_properties(self):
         """Return the properties of the interface.
 
         :returns: dictionary of <property name>:<property description> entries.
         """
         return COMMON_PROPERTIES
+
+    def _use_http_folder(self):
+        if self.ipxe_enabled:
+            return True
+        if self.http_boot_enabled:
+            return True
+        return False
 
     @METRICS.timer('PXEBaseMixin.clean_up_ramdisk')
     def clean_up_ramdisk(self, task):
@@ -90,14 +99,14 @@ class PXEBaseMixin(object):
         mode = deploy_utils.rescue_or_deploy_mode(node)
         try:
             images_info = pxe_utils.get_image_info(
-                node, mode=mode, ipxe_enabled=self.ipxe_enabled)
+                node, mode=mode, ipxe_enabled=self._use_http_folder())
         except exception.MissingParameterValue as e:
             LOG.warning('Could not get %(mode)s image info '
                         'to clean up images for node %(node)s: %(err)s',
                         {'mode': mode, 'node': node.uuid, 'err': e})
         else:
             pxe_utils.clean_up_pxe_env(
-                task, images_info, ipxe_enabled=self.ipxe_enabled)
+                task, images_info, ipxe_enabled=self._use_http_folder())
 
     @METRICS.timer('PXEBaseMixin.clean_up_instance')
     def clean_up_instance(self, task):
@@ -114,14 +123,14 @@ class PXEBaseMixin(object):
 
         try:
             images_info = pxe_utils.get_instance_image_info(
-                task, ipxe_enabled=self.ipxe_enabled)
+                task, ipxe_enabled=self._use_http_folder())
         except exception.MissingParameterValue as e:
             LOG.warning('Could not get instance image info '
                         'to clean up images for node %(node)s: %(err)s',
                         {'node': node.uuid, 'err': e})
         else:
             pxe_utils.clean_up_pxe_env(task, images_info,
-                                       ipxe_enabled=self.ipxe_enabled)
+                                       ipxe_enabled=self._use_http_folder())
 
         boot_mode_utils.deconfigure_secure_boot_if_needed(task)
 
@@ -146,7 +155,6 @@ class PXEBaseMixin(object):
             operation failed on the node.
         """
         node = task.node
-
         # Label indicating a deploy or rescue operation being carried out on
         # the node, 'deploy' or 'rescue'. Unless the node is in a rescue like
         # state, the mode is set to 'deploy', indicating deploy operation is
@@ -168,14 +176,19 @@ class PXEBaseMixin(object):
         # combined options. The method we currently call is relied upon
         # by two eternal projects, to changing the behavior is not ideal.
         dhcp_opts = pxe_utils.dhcp_options_for_instance(
-            task, ipxe_enabled=self.ipxe_enabled, ip_version=4)
+            task, ipxe_enabled=self.ipxe_enabled, ip_version=4,
+            http_boot_enabled=self.http_boot_enabled)
         dhcp_opts += pxe_utils.dhcp_options_for_instance(
-            task, ipxe_enabled=self.ipxe_enabled, ip_version=6)
+            task, ipxe_enabled=self.ipxe_enabled, ip_version=6,
+            http_boot_enabled=self.http_boot_enabled)
         provider = dhcp_factory.DHCPFactory()
         provider.update_dhcp(task, dhcp_opts)
-
-        pxe_info = pxe_utils.get_image_info(node, mode=mode,
-                                            ipxe_enabled=self.ipxe_enabled)
+        # TODO(TheJulia): We need to change the parameter name for
+        # ipxe_enabled in pxe_utils at some point since here it is
+        # an indicator of where to put the files on the filesystem.
+        pxe_info = pxe_utils.get_image_info(
+            node, mode=mode,
+            ipxe_enabled=self._use_http_folder())
 
         # NODE: Try to validate and fetch instance images only
         # if we are in DEPLOYING state.
@@ -201,8 +214,7 @@ class PXEBaseMixin(object):
         pxe_utils.create_pxe_config(task, pxe_options,
                                     pxe_config_template,
                                     ipxe_enabled=self.ipxe_enabled)
-        manager_utils.node_set_boot_device(task, boot_devices.PXE,
-                                           persistent=False)
+        self._node_set_boot_device_for_network_boot(task)
 
         if self.ipxe_enabled and CONF.pxe.ipxe_use_swift:
             kernel_label = '%s_kernel' % mode
@@ -211,12 +223,42 @@ class PXEBaseMixin(object):
             pxe_info.pop(ramdisk_label, None)
 
         if pxe_info:
-            pxe_utils.cache_ramdisk_kernel(task, pxe_info,
-                                           ipxe_enabled=self.ipxe_enabled)
+            pxe_utils.cache_ramdisk_kernel(
+                task, pxe_info,
+                ipxe_enabled=self._use_http_folder())
 
         LOG.debug('Ramdisk (i)PXE boot for node %(node)s has been prepared '
                   'with kernel params %(params)s',
                   {'node': node.uuid, 'params': pxe_options})
+
+    def _node_set_boot_device_for_network_boot(self, task, persistent=False):
+        """Helper to handle httpboot aware network booting.
+
+        Basic challenge: IPMI doesn't have a field reserved for "httpboot" as
+        httpboot pre-dates IPMI. It is also entirely possible that all logic
+        to support httpboot is coming from OPROM code on network cards, so to
+        sort of handle this, and the nature of PXE being percieved as
+        "network boot", if we are http boot enabled, we attempt to explicitly
+        request as such, but if the driver errors, then we fall back to PXE.
+
+        :params task: a TaskManager object.
+        :params persistent: Default False, if the network boot request is
+                            persistent.
+        """
+        if self.http_boot_enabled:
+            try:
+                manager_utils.node_set_boot_device(task,
+                                                   boot_devices.UEFIHTTP,
+                                                   persistent=persistent)
+            except exception.InvalidParameterValue:
+                LOG.warning('Attempted to set HTTPBOOT for node %s, but it is '
+                            'not supported by the driver. Falling back to '
+                            'PXE to trigger network boot.', task.node.uuid)
+                manager_utils.node_set_boot_device(task, boot_devices.PXE,
+                                                   persistent=persistent)
+        else:
+            manager_utils.node_set_boot_device(task, boot_devices.PXE,
+                                               persistent=persistent)
 
     @METRICS.timer('PXEBaseMixin.prepare_instance')
     def prepare_instance(self, task):
@@ -241,8 +283,9 @@ class PXEBaseMixin(object):
         if boot_option == "ramdisk" or boot_option == "kickstart":
             instance_image_info = pxe_utils.get_instance_image_info(
                 task, ipxe_enabled=self.ipxe_enabled)
-            pxe_utils.cache_ramdisk_kernel(task, instance_image_info,
-                                           ipxe_enabled=self.ipxe_enabled)
+            pxe_utils.cache_ramdisk_kernel(
+                task, instance_image_info,
+                ipxe_enabled=self._use_http_folder())
             if 'ks_template' in instance_image_info:
                 ks_cfg = pxe_utils.validate_kickstart_template(
                     instance_image_info['ks_template'][1]
@@ -256,7 +299,8 @@ class PXEBaseMixin(object):
                 iscsi_boot=deploy_utils.is_iscsi_boot(task),
                 ramdisk_boot=(boot_option == "ramdisk"),
                 anaconda_boot=(boot_option == "kickstart"),
-                ipxe_enabled=self.ipxe_enabled)
+                ipxe_enabled=self.ipxe_enabled,
+                http_boot_enabled=self.http_boot_enabled)
             pxe_utils.prepare_instance_kickstart_config(
                 task, instance_image_info,
                 anaconda_boot=(boot_option == "kickstart"))
@@ -285,8 +329,14 @@ class PXEBaseMixin(object):
         # during takeover
         if boot_device and (task.node.provision_state not in
                             (states.ACTIVE, states.ADOPTING)):
-            manager_utils.node_set_boot_device(task, boot_device,
-                                               persistent=True)
+            if boot_device == boot_devices.PXE:
+                # Implying network booting, we need to handle the case
+                # it might be HTTPBoot instead of PXEBoot.
+                self._node_set_boot_device_for_network_boot(task,
+                                                            persistent=True)
+            else:
+                manager_utils.node_set_boot_device(task, boot_device,
+                                                   persistent=True)
 
     def _validate_common(self, task):
         node = task.node
@@ -423,8 +473,7 @@ class PXEBaseMixin(object):
                   'timeout': CONF.pxe.boot_retry_timeout})
 
         manager_utils.node_power_action(task, states.POWER_OFF)
-        manager_utils.node_set_boot_device(task, boot_devices.PXE,
-                                           persistent=False)
+        self._node_set_boot_device_for_network_boot(task)
         manager_utils.node_power_action(task, states.POWER_ON)
 
 

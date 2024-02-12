@@ -32,3 +32,16 @@ class iPXEBoot(pxe_base.PXEBaseMixin, base.BootInterface):
         pxe_utils.place_loaders_for_boot(CONF.deploy.http_root)
         # This is required to serve the iPXE binary via tftp
         pxe_utils.place_loaders_for_boot(CONF.pxe.tftp_root)
+
+
+class iPXEHttpBoot(pxe_base.PXEBaseMixin, base.BootInterface):
+
+    ipxe_enabled = True
+
+    http_boot_enabled = True
+
+    capabilities = ['iscsi_volume_boot', 'ramdisk_boot', 'ipxe_boot']
+
+    def __init__(self):
+        pxe_utils.create_ipxe_boot_script()
+        pxe_utils.place_loaders_for_boot(CONF.deploy.http_root)

@@ -44,7 +44,7 @@ class GenericHardware(hardware_type.AbstractHardwareType):
     @property
     def supported_boot_interfaces(self):
         """List of supported boot interfaces."""
-        return [ipxe.iPXEBoot, pxe.PXEBoot]
+        return [ipxe.iPXEBoot, pxe.PXEBoot, ipxe.iPXEHttpBoot, pxe.HttpBoot]
 
     @property
     def supported_deploy_interfaces(self):
