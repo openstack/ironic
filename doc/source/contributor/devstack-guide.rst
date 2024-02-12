@@ -278,7 +278,7 @@ deploy, we need to determine what image to use, and what network to use.
 
 Determine the network::
 
-    net_id=$(openstack network list | egrep "$PRIVATE_NETWORK_NAME"'[^-]' | awk '{ print $2 }')
+    net_id=$(openstack network list | awk '/private/ {print $2}')
 
 
 We also need to choose an image to deploy. Devstack has both cirros partition
@@ -287,10 +287,10 @@ image::
 
     image=$(openstack image list | grep -- '-disk' | awk '{ print $2 }')
 
-Source credentials and create a key, and spawn an instance as the ``demo``
-user::
+Source credentials and create a key, and set the user to the admin demo (Note
+that all the user options can be seen in `/etc/openstack/clouds.yaml`)::
 
-    . ~/devstack/openrc demo
+    export OS_CLOUD=devstack-admin-demo
 
     # create keypair
     ssh-keygen
@@ -317,7 +317,8 @@ Nova will be interfacing with Ironic conductor to spawn the node.  On the
 Ironic side, you should see an Ironic node associated with this Nova instance.
 It should be powered on and in a 'wait call-back' provisioning state::
 
-    baremetal node list
+    # Note that a different user is required to see the Ironic nodes
+    OS_CLOUD=devstack-system-admin openstack baremetal node list
     +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+
     | UUID                                 | Name   | Instance UUID                        | Power State | Provisioning State | Maintenance |
     +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+
@@ -342,7 +343,7 @@ This provisioning process may take some time depending on the performance of
 the host system, but Ironic should eventually show the node as having an
 'active' provisioning state::
 
-    baremetal node list
+    OS_CLOUD=devstack-system-admin openstack baremetal node list
     +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+
     | UUID                                 | Name   | Instance UUID                        | Power State | Provisioning State | Maintenance |
     +--------------------------------------+--------+--------------------------------------+-------------+--------------------+-------------+
