@@ -623,7 +623,7 @@ this is because HTTPBoot is an evolution of PXE Boot technique and
 technology.
 
 This means a TFTP server is *not* required, but the HTTP server is
-required as if your utilizing iPXE. This is largely because iPXE
+required as if you are utilizing iPXE. This is largely because iPXE
 has traditionally been leveraged by Operators to limit the TFTP
 packets being transmitted via UDP across a network.
 
