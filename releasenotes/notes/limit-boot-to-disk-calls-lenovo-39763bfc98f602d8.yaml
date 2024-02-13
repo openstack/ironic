@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixes issues with Lenovo hardware where the system firmware may display
+    a blue "Boot Option Restoration" screen after the agent writes an image
+    to the host in UEFI boot mode, requiring manual intervention before the
+    deployed node boots. This issue is rooted in multiple changes being made
+    to the underlying NVRAM configuration of the node. Lenovo engineers
+    have suggested to *only* change the UEFI NVRAM and not perform
+    any further changes via the BMC to configure the next boot. Ironic now
+    does such on Lenovo hardware. More information and background on this
+    issue can be discovered in
+    `bug 2053064 <https://bugs.launchpad.net/ironic/+bug/2053064>`_.
