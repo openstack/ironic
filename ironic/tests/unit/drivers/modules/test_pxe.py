@@ -728,6 +728,25 @@ class PXEBootTestCase(db_base.DbTestCase):
                                                          persistent=True)
             secure_boot_mock.assert_called_once_with(task)
 
+    @mock.patch.object(boot_mode_utils, 'configure_secure_boot_if_needed',
+                       autospec=True)
+    @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
+    @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
+    def test_prepare_instance_lenovo(self, clean_up_pxe_config_mock,
+                                     set_boot_device_mock, secure_boot_mock):
+        props = self.node.properties
+        props['vendor'] = 'Lenovo'
+        props['capabilities'] = 'boot_mode:uefi'
+        self.node.properties = props
+        self.node.provision_state = states.DEPLOYING
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.boot.prepare_instance(task)
+            clean_up_pxe_config_mock.assert_called_once_with(
+                task, ipxe_enabled=False)
+            set_boot_device_mock.assert_not_called()
+            secure_boot_mock.assert_called_once_with(task)
+
     @mock.patch.object(manager_utils, 'node_set_boot_device', autospec=True)
     @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
     def test_prepare_instance_localboot_active(self, clean_up_pxe_config_mock,
