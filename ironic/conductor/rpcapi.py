@@ -236,7 +236,8 @@ class ConductorAPI(object):
             return dest.pop()
         except exception.DriverNotFound:
             reason = (_('No conductor service registered which supports '
-                        'driver %(driver)s for conductor group "%(group)s".') %
+                        'driver %(driver)s for conductor group "%(group)s". '
+                        'Ensure the driver is valid and enabled.') %
                       {'driver': node.driver, 'group': node.conductor_group})
             raise exception.NoValidHost(reason=reason)
 
