@@ -1535,8 +1535,13 @@ function configure_ironic {
     if [[ "$IRONIC_ENFORCE_SCOPE" == "False" ]]; then
         iniset $IRONIC_CONF_FILE oslo_policy enforce_scope false
         iniset $IRONIC_CONF_FILE oslo_policy enforce_new_defaults false
+    else
+        # NOTE(TheJulia): In devstack, services by default get service role
+        # accounts in a service project. Under normal circumstances, they
+        # need to be able to have elevated access if not explicitly
+        # configured for a system scoped account.
+        iniset $IRONIC_CONF_FILE DEFAULT rbac_service_role_elevated_access true
     fi
-
     # Set fast track options
     iniset $IRONIC_CONF_FILE deploy fast_track $IRONIC_DEPLOY_FAST_TRACK
 
