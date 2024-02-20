@@ -37,6 +37,8 @@ from ironic.tests.unit.objects import utils as obj_utils
 class BaseIRMCTest(db_base.DbTestCase):
 
     boot_interface = 'irmc-pxe'
+    inspect_interface = 'irmc'
+    power_interface = 'irmc'
 
     def setUp(self):
         super(BaseIRMCTest, self).setUp()
@@ -51,6 +53,8 @@ class BaseIRMCTest(db_base.DbTestCase):
             self.context,
             driver='irmc',
             boot_interface=self.boot_interface,
+            inspect_interface=self.inspect_interface,
+            power_interface=self.power_interface,
             driver_info=self.info,
             uuid=uuidutils.generate_uuid())
 
@@ -74,6 +78,54 @@ class IRMCValidateParametersTestCase(BaseIRMCTest):
         self.assertEqual('public', info['irmc_snmp_community'])
         self.assertFalse(info['irmc_snmp_security'])
         self.assertTrue(info['irmc_verify_ca'])
+
+    @mock.patch.object(utils, 'is_fips_enabled',
+                       return_value=False, autospec=True)
+    def test_parse_snmp_driver_info_with_snmp_ir_ir(self, mock_check_fips):
+        ints = [{'interface': 'inspect_interface', 'impl': 'irmc'},
+                {'interface': 'power_interface', 'impl': 'irmc'}]
+
+        for int_conf in ints:
+            setattr(self.node, int_conf['interface'], int_conf['impl'])
+
+        irmc_common.parse_driver_info(self.node)
+        mock_check_fips.assert_called()
+
+    @mock.patch.object(utils, 'is_fips_enabled',
+                       return_value=False, autospec=True)
+    def test_parse_snmp_driver_info_with_snmp_in_ir(self, mock_check_fips):
+        ints = [{'interface': 'inspect_interface', 'impl': 'inspector'},
+                {'interface': 'power_interface', 'impl': 'irmc'}]
+
+        for int_conf in ints:
+            setattr(self.node, int_conf['interface'], int_conf['impl'])
+
+        irmc_common.parse_driver_info(self.node)
+        mock_check_fips.assert_called()
+
+    @mock.patch.object(utils, 'is_fips_enabled',
+                       return_value=False, autospec=True)
+    def test_parse_snmp_driver_info_with_snmp_ir_ip(self, mock_check_fips):
+        ints = [{'interface': 'inspect_interface', 'impl': 'irmc'},
+                {'interface': 'power_interface', 'impl': 'ipmitool'}]
+
+        for int_conf in ints:
+            setattr(self.node, int_conf['interface'], int_conf['impl'])
+
+        irmc_common.parse_driver_info(self.node)
+        mock_check_fips.assert_called()
+
+    @mock.patch.object(utils, 'is_fips_enabled',
+                       return_value=False, autospec=True)
+    def test_parse_snmp_driver_info_with_snmp_in_ip(self, mock_check_fips):
+        ints = [{'interface': 'inspect_interface', 'impl': 'inspector'},
+                {'interface': 'power_interface', 'impl': 'ipmitool'}]
+
+        for int_conf in ints:
+            setattr(self.node, int_conf['interface'], int_conf['impl'])
+
+        irmc_common.parse_driver_info(self.node)
+        mock_check_fips.assert_not_called()
 
     @mock.patch.object(irmc_common, 'scci_mod', spec_set=['__version__'])
     def test_parse_driver_info_snmpv3_support_auth(self, mock_scci_module):
