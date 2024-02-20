@@ -525,8 +525,12 @@ class TestPatch(BaseDeployTemplatesAPITest):
 
     def test_replace_empty_step_list_fail(self, mock_save):
         patch = [{'path': '/steps', 'op': 'replace', 'value': []}]
-        self._test_update_bad_request(
-            mock_save, patch, '[] is too short')
+        try:
+            self._test_update_bad_request(
+                mock_save, patch, "[] is too short")
+        except Exception:
+            self._test_update_bad_request(
+                mock_save, patch, "[] should be non-empty")
 
     def _test_remove_not_allowed(self, mock_save, field, error_msg=None):
         patch = [{'path': '/%s' % field, 'op': 'remove'}]
@@ -621,8 +625,12 @@ class TestPatch(BaseDeployTemplatesAPITest):
 
     def test_remove_only_step_fail(self, mock_save):
         patch = [{'path': '/steps/0', 'op': 'remove'}]
-        self._test_update_bad_request(
-            mock_save, patch, "[] is too short")
+        try:
+            self._test_update_bad_request(
+                mock_save, patch, "[] is too short")
+        except Exception:
+            self._test_update_bad_request(
+                mock_save, patch, "[] should be non-empty")
 
     def test_remove_non_existent_step_property_fail(self, mock_save):
         patch = [{'path': '/steps/0/non-existent', 'op': 'remove'}]
@@ -841,8 +849,12 @@ class TestPost(BaseDeployTemplatesAPITest):
             'steps', {}, "{} is not of type 'array'")
 
     def test_create_invalid_field_empty_steps(self):
-        self._test_create_invalid_field(
-            'steps', [], "[] is too short")
+        try:
+            self._test_create_invalid_field(
+                'steps', [], "[] is too short")
+        except Exception:
+            self._test_create_invalid_field(
+                'steps', [], "[] should be non-empty")
 
     def test_create_invalid_field_extra(self):
         self._test_create_invalid_field(

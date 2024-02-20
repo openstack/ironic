@@ -7023,9 +7023,14 @@ class TestCheckCleanSteps(db_base.DbTestCase):
 
     def test__check_clean_steps_step_min_length_step_value(self):
         clean_steps = [{"step": "", "interface": "deploy"}]
-        self.assertRaisesRegex(exception.InvalidParameterValue,
-                               'is too short',
-                               api_node._check_clean_steps, clean_steps)
+        try:
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   'is too short',
+                                   api_node._check_clean_steps, clean_steps)
+        except Exception:
+            self.assertRaisesRegex(exception.InvalidParameterValue,
+                                   'should be non-empty',
+                                   api_node._check_clean_steps, clean_steps)
 
     def test__check_clean_steps_step_interface_value_invalid(self):
         clean_steps = [{"step": "upgrade_firmware", "interface": "not"}]
