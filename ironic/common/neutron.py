@@ -726,7 +726,8 @@ def validate_network(uuid_or_name, net_type=_('network'), context=None):
     """
     if not uuid_or_name:
         raise exception.MissingParameterValue(
-            _('UUID or name of %s is not set in configuration') % net_type)
+            _('UUID or name of %s is not set in configuration or '
+              'in node driver_info.') % net_type)
 
     client = get_client(context=context)
     network = _get_network_by_uuid_or_name(client, uuid_or_name,
@@ -981,7 +982,7 @@ class NeutronNetworkInterfaceMixin(object):
             or CONF.neutron.cleaning_network
         )
         return validate_network(
-            cleaning_network, _('cleaning network'),
+            cleaning_network, 'cleaning_network',
             context=task.context)
 
     def get_provisioning_network_uuid(self, task):
@@ -990,7 +991,7 @@ class NeutronNetworkInterfaceMixin(object):
             or CONF.neutron.provisioning_network
         )
         return validate_network(
-            provisioning_network, _('provisioning network'),
+            provisioning_network, 'provisioning_network',
             context=task.context)
 
     # TODO(stendulker): FlatNetwork should not use this method.
@@ -1001,7 +1002,7 @@ class NeutronNetworkInterfaceMixin(object):
             or CONF.neutron.rescuing_network
         )
         return validate_network(
-            rescuing_network, _('rescuing network'),
+            rescuing_network, 'rescuing_network',
             context=task.context)
 
     def get_inspection_network_uuid(self, task):
@@ -1010,7 +1011,7 @@ class NeutronNetworkInterfaceMixin(object):
             or CONF.neutron.inspection_network
         )
         return validate_network(
-            inspection_network, _('inspection network'),
+            inspection_network, 'inspection_network',
             context=task.context)
 
     def validate_inspection(self, task):
