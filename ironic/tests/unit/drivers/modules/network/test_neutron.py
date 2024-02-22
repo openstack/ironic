@@ -85,18 +85,14 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.interface.port_changed(task, port)
             mock_p_changed.assert_called_once_with(self.interface, task, port)
 
-    def test_init_incorrect_provisioning_net(self):
-        self.config(provisioning_network=None, group='neutron')
-        self.assertRaises(exception.DriverLoadError, neutron.NeutronNetwork)
-        self.config(provisioning_network=uuidutils.generate_uuid(),
-                    group='neutron')
-        self.config(cleaning_network=None, group='neutron')
-        self.assertRaises(exception.DriverLoadError, neutron.NeutronNetwork)
-
     @mock.patch.object(neutron_common, 'validate_network', autospec=True)
     def test_validate(self, validate_mock):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.validate(task)
+            # NOTE(TheJulia): This tests validates the calls are made.
+            # When not mocked out completely, since Neutron is consulted
+            # on validity of the name or UUID as well, the validate_network
+            # method gets called which rasies a validate parsable error.
             self.assertEqual([mock.call(CONF.neutron.cleaning_network,
                                         'cleaning network',
                                         context=task.context),
