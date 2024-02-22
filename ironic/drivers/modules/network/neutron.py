@@ -33,22 +33,6 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
                      base.NetworkInterface):
     """Neutron v2 network interface"""
 
-    def __init__(self):
-        failures = []
-        cleaning_net = CONF.neutron.cleaning_network
-        if not cleaning_net:
-            failures.append('cleaning_network')
-
-        provisioning_net = CONF.neutron.provisioning_network
-        if not provisioning_net:
-            failures.append('provisioning_network')
-
-        if failures:
-            raise exception.DriverLoadError(
-                driver=self.__class__.__name__,
-                reason=(_('The following [neutron] group configuration '
-                          'options are missing: %s') % ', '.join(failures)))
-
     def validate(self, task):
         """Validates the network interface.
 
@@ -57,6 +41,8 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
             is invalid.
         :raises: MissingParameterValue, if some parameters are missing.
         """
+        # NOTE(TheJulia): These are the minimal networks needed for
+        # the neutron network interface to function.
         self.get_cleaning_network_uuid(task)
         self.get_provisioning_network_uuid(task)
 
