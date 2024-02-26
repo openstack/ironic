@@ -21,9 +21,9 @@ from oslo_utils import timeutils
 
 from ironic.common import context
 from ironic.common import rpc
-from ironic.common import rpc_service
 from ironic.common import service as ironic_service
 from ironic.conductor import manager
+from ironic.conductor import rpc_service
 from ironic.objects import base as objects_base
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils

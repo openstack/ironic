@@ -59,6 +59,7 @@ from ironic.common import faults
 from ironic.common.i18n import _
 from ironic.common import network
 from ironic.common import nova
+from ironic.common import rpc
 from ironic.common import states
 from ironic.conductor import allocations
 from ironic.conductor import base_manager
@@ -100,7 +101,7 @@ class ConductorManager(base_manager.BaseConductorManager):
 
     target = messaging.Target(version=RPC_API_VERSION)
 
-    def __init__(self, host, topic):
+    def __init__(self, host, topic=rpc.MANAGER_TOPIC):
         super(ConductorManager, self).__init__(host, topic)
         # NOTE(TheJulia): This is less a metric-able count, but a means to
         # sort out nodes and prioritise a subset (of non-responding nodes).
