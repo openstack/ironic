@@ -4,10 +4,10 @@
 # python projects they should package as optional dependencies for Ironic.
 
 # These are available on pypi
-proliantutils>=2.16.0
+proliantutils>=2.16.1
 pysnmp-lextudio>=5.0.0 # BSD
-pyasn1-lextudio>=1.1.0 # BSD
-pyasn1-modules-lextudio>=0.2.0 # BSD
+pyasn1>=0.5.1 # BSD
+pyasn1-modules>=0.3.0 # BSD
 python-scciclient>=0.15.0
 python-dracclient>=5.1.0,<9.0.0
 python-xclarityclient>=0.1.6
