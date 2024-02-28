@@ -27,8 +27,12 @@
             voting: false
         - ironic-grenade-skip-level:
             voting: false
-        - ironic-standalone
-        - ironic-standalone-redfish
+        # NOTE(JayF): Disabling standalone jobs on 20240228 from voting, there's a
+        # dnsmasq bug only exposed on these jobs.
+        - ironic-standalone:
+            voting: false
+        - ironic-standalone-redfish:
+            voting: false
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-ramdisk-bios-snmp-pxe
@@ -78,8 +82,10 @@
         # - ironic-tempest-functional-rbac-scope-enforced
         # NOTE(TheJulia): Disabling until we get a dnsmasq handling fix backported.
         # - ironic-grenade
-        - ironic-standalone
-        - ironic-standalone-redfish
+        # NOTE(JayF): Disabling standalone jobs on 20240228 from voting, there's a
+        # dnsmasq bug only exposed on these jobs.
+        #- ironic-standalone
+        #- ironic-standalone-redfish
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-ramdisk-bios-snmp-pxe
