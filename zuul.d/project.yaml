@@ -49,6 +49,9 @@
         # NOTE(rpittau): Currently broken because of an issue with parted
         - metalsmith-integration-glance-centos9-legacy:
             voting: false
+        # NOTE(TheJulia): At present, metal3 doesn't leverage
+        # stable branches, and as far as we are aware these jobs
+        # can be removed once this branch is made stable.
         - metal3-integration
         # Non-voting jobs
         - ironic-inspector-tempest:
@@ -101,6 +104,9 @@
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         # NOTE(rpittau): Currently broken because of an issue with parted
         #- metalsmith-integration-glance-centos9-legacy
+        # NOTE(TheJulia): At present, metal3 doesn't leverage
+        # stable branches, and as far as we are aware these jobs
+        # can be removed once this branch is made stable.
         - metal3-integration
     experimental:
       jobs:
