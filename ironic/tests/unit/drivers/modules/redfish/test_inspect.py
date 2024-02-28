@@ -15,8 +15,8 @@
 
 from unittest import mock
 
-from oslo_utils import importutils
 from oslo_utils import units
+import sushy
 
 from ironic.common import exception
 from ironic.common import states
@@ -28,8 +28,6 @@ from ironic import objects
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
-
-sushy = importutils.try_import('sushy')
 
 INFO_DICT = db_utils.get_test_redfish_info()
 

@@ -22,6 +22,7 @@ from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 from oslo_utils import units
+import sushy
 import tenacity
 
 from ironic.common import exception
@@ -41,7 +42,6 @@ from ironic.drivers.modules.redfish import utils as redfish_utils
 
 drac_exceptions = importutils.try_import('dracclient.exceptions')
 drac_constants = importutils.try_import('dracclient.constants')
-sushy = importutils.try_import('sushy')
 sushy_oem_idrac = importutils.try_import('sushy_oem_idrac')
 
 LOG = logging.getLogger(__name__)

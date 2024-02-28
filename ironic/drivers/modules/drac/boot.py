@@ -15,7 +15,7 @@
 # under the License.
 
 from oslo_log import log
-from oslo_utils import importutils
+import sushy
 
 from ironic.common import boot_devices
 from ironic.drivers.modules.drac import utils as drac_utils
@@ -23,8 +23,6 @@ from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import utils as redfish_utils
 
 LOG = log.getLogger(__name__)
-
-sushy = importutils.try_import('sushy')
 
 
 class DracRedfishVirtualMediaBoot(redfish_boot.RedfishVirtualMediaBoot):
@@ -63,11 +61,10 @@ class DracRedfishVirtualMediaBoot(redfish_boot.RedfishVirtualMediaBoot):
     via OEM action call implemented in Dell sushy OEM extension package.
     """
 
-    if sushy:
-        VIRTUAL_MEDIA_DEVICES = {
-            boot_devices.FLOPPY: sushy.VIRTUAL_MEDIA_FLOPPY,
-            boot_devices.CDROM: sushy.VIRTUAL_MEDIA_CD
-        }
+    VIRTUAL_MEDIA_DEVICES = {
+        boot_devices.FLOPPY: sushy.VIRTUAL_MEDIA_FLOPPY,
+        boot_devices.CDROM: sushy.VIRTUAL_MEDIA_CD
+    }
 
     def _validate_vendor(self, task, managers):
         pass  # assume people are doing the right thing

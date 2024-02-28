@@ -24,6 +24,7 @@ import json
 from unittest import mock
 
 from oslo_utils import importutils
+import sushy
 
 import ironic.common.boot_devices
 from ironic.common import exception
@@ -42,7 +43,6 @@ from ironic.tests.unit.drivers.modules.drac import utils as test_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
 dracclient_exceptions = importutils.try_import('dracclient.exceptions')
-sushy = importutils.try_import('sushy')
 
 INFO_DICT = test_utils.INFO_DICT
 

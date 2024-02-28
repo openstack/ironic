@@ -16,7 +16,6 @@
 import socket
 from unittest import mock
 
-from oslo_utils import importutils
 from oslo_utils import uuidutils
 
 from ironic.common import context as ironic_context
@@ -29,8 +28,6 @@ from ironic.drivers.modules import inspect_utils as utils
 from ironic import objects
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
-
-sushy = importutils.try_import('sushy')
 
 
 @mock.patch('time.sleep', lambda sec: None)

@@ -16,8 +16,8 @@
 import datetime
 from unittest import mock
 
-from oslo_utils import importutils
 from oslo_utils import units
+import sushy
 
 from ironic.common import boot_devices
 from ironic.common import boot_modes
@@ -38,8 +38,6 @@ from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
-
-sushy = importutils.try_import('sushy')
 
 INFO_DICT = db_utils.get_test_redfish_info()
 
@@ -81,13 +79,6 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         }
 
         return system_mock
-
-    @mock.patch.object(redfish_mgmt, 'sushy', None)
-    def test_loading_error(self):
-        self.assertRaisesRegex(
-            exception.DriverLoadError,
-            'Unable to import the sushy library',
-            redfish_mgmt.RedfishManagement)
 
     def test_get_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,

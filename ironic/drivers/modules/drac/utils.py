@@ -13,14 +13,12 @@
 # under the License.
 
 from oslo_log import log
-from oslo_utils import importutils
+import sushy
 
 from ironic.common import exception
 from ironic.drivers.modules.redfish import utils as redfish_utils
 
 LOG = log.getLogger(__name__)
-
-sushy = importutils.try_import('sushy')
 
 
 def execute_oem_manager_method(

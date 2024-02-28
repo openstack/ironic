@@ -28,6 +28,7 @@ import jsonschema
 from jsonschema import exceptions as json_schema_exc
 from oslo_log import log as logging
 from oslo_utils import importutils
+import sushy
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -48,7 +49,6 @@ from ironic.drivers.modules.redfish import utils as redfish_utils
 
 
 drac_exceptions = importutils.try_import('dracclient.exceptions')
-sushy = importutils.try_import('sushy')
 
 LOG = logging.getLogger(__name__)
 

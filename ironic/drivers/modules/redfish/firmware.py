@@ -15,8 +15,8 @@ from urllib.parse import urlparse
 
 from ironic_lib import metrics_utils
 from oslo_log import log
-from oslo_utils import importutils
 from oslo_utils import timeutils
+import sushy
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -34,8 +34,6 @@ LOG = log.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
-sushy = importutils.try_import('sushy')
-
 
 class RedfishFirmware(base.FirmwareInterface):
 
@@ -47,13 +45,6 @@ class RedfishFirmware(base.FirmwareInterface):
             'required': True
         }
     }
-
-    def __init__(self):
-        super(RedfishFirmware, self).__init__()
-        if sushy is None:
-            raise exception.DriverLoadError(
-                driver='redfish',
-                reason=_("Unable to import the sushy library"))
 
     def get_properties(self):
         """Return the properties of the interface.

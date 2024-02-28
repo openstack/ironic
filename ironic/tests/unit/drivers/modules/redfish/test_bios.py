@@ -14,22 +14,19 @@
 
 from unittest import mock
 
-from oslo_utils import importutils
+import sushy
 
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import deploy_utils
-from ironic.drivers.modules.redfish import bios as redfish_bios
 from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic import objects
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
-
-sushy = importutils.try_import('sushy')
 
 INFO_DICT = db_utils.get_test_redfish_info()
 
@@ -56,13 +53,6 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                     enabled_management_interfaces=['redfish'])
         self.node = obj_utils.create_test_node(
             self.context, driver='redfish', driver_info=INFO_DICT)
-
-    @mock.patch.object(redfish_bios, 'sushy', None)
-    def test_loading_error(self):
-        self.assertRaisesRegex(
-            exception.DriverLoadError,
-            'Unable to import the sushy library',
-            redfish_bios.RedfishBIOS)
 
     def test_get_properties(self):
         with task_manager.acquire(self.context, self.node.uuid,

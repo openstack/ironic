@@ -14,7 +14,7 @@
 
 from ironic_lib import metrics_utils
 from oslo_log import log
-from oslo_utils import importutils
+import sushy
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -28,8 +28,6 @@ from ironic import objects
 LOG = log.getLogger(__name__)
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
-
-sushy = importutils.try_import('sushy')
 
 registry_fields = ('attribute_type', 'allowable_values', 'lower_bound',
                    'max_length', 'min_length', 'read_only',
@@ -46,13 +44,6 @@ class RedfishBIOS(base.BIOSInterface):
             'required': True
         }
     }
-
-    def __init__(self):
-        super(RedfishBIOS, self).__init__()
-        if sushy is None:
-            raise exception.DriverLoadError(
-                driver='redfish',
-                reason=_("Unable to import the sushy library"))
 
     def _parse_allowable_values(self, node, allowable_values):
         """Convert the BIOS registry allowable_value list to expected strings

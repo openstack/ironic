@@ -14,7 +14,7 @@
 #    under the License.
 
 from oslo_log import log
-from oslo_utils import importutils
+import sushy
 import tenacity
 
 from ironic.common import boot_devices
@@ -78,8 +78,6 @@ COMMON_PROPERTIES.update(OPTIONAL_PROPERTIES)
 COMMON_PROPERTIES.update(RESCUE_PROPERTIES)
 
 IMAGE_SUBDIR = 'redfish'
-
-sushy = importutils.try_import('sushy')
 
 
 def _parse_driver_info(node):
@@ -400,18 +398,6 @@ class RedfishVirtualMediaBoot(base.BootInterface):
 
     capabilities = ['iscsi_volume_boot', 'ramdisk_boot',
                     'ramdisk_boot_configdrive']
-
-    def __init__(self):
-        """Initialize the Redfish virtual media boot interface.
-
-        :raises: DriverLoadError if the driver can't be loaded due to
-            missing dependencies
-        """
-        super(RedfishVirtualMediaBoot, self).__init__()
-        if not sushy:
-            raise exception.DriverLoadError(
-                driver='redfish',
-                reason=_('Unable to import the sushy library'))
 
     def get_properties(self):
         """Return the properties of the interface.

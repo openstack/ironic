@@ -14,8 +14,8 @@ Redfish Inspect Interface
 """
 
 from oslo_log import log
-from oslo_utils import importutils
 from oslo_utils import units
+import sushy
 
 from ironic.common import boot_modes
 from ironic.common import exception
@@ -30,47 +30,32 @@ from ironic import objects
 
 LOG = log.getLogger(__name__)
 
-sushy = importutils.try_import('sushy')
+CPU_ARCH_MAP = {
+    sushy.PROCESSOR_ARCH_x86: 'x86_64',
+    sushy.PROCESSOR_ARCH_IA_64: 'ia64',
+    sushy.PROCESSOR_ARCH_ARM: 'arm',
+    sushy.PROCESSOR_ARCH_MIPS: 'mips',
+    sushy.PROCESSOR_ARCH_OEM: 'oem'
+}
 
-if sushy:
-    CPU_ARCH_MAP = {
-        sushy.PROCESSOR_ARCH_x86: 'x86_64',
-        sushy.PROCESSOR_ARCH_IA_64: 'ia64',
-        sushy.PROCESSOR_ARCH_ARM: 'arm',
-        sushy.PROCESSOR_ARCH_MIPS: 'mips',
-        sushy.PROCESSOR_ARCH_OEM: 'oem'
-    }
+PROCESSOR_INSTRUCTION_SET_MAP = {
+    sushy.InstructionSet.ARM_A32: 'arm',
+    sushy.InstructionSet.ARM_A64: 'aarch64',
+    sushy.InstructionSet.IA_64: 'ia64',
+    sushy.InstructionSet.MIPS32: 'mips',
+    sushy.InstructionSet.MIPS64: 'mips64',
+    sushy.InstructionSet.OEM: None,
+    sushy.InstructionSet.X86: 'i686',
+    sushy.InstructionSet.X86_64: 'x86_64'
+}
 
-    PROCESSOR_INSTRUCTION_SET_MAP = {
-        sushy.InstructionSet.ARM_A32: 'arm',
-        sushy.InstructionSet.ARM_A64: 'aarch64',
-        sushy.InstructionSet.IA_64: 'ia64',
-        sushy.InstructionSet.MIPS32: 'mips',
-        sushy.InstructionSet.MIPS64: 'mips64',
-        sushy.InstructionSet.OEM: None,
-        sushy.InstructionSet.X86: 'i686',
-        sushy.InstructionSet.X86_64: 'x86_64'
-    }
-
-    BOOT_MODE_MAP = {
-        sushy.BOOT_SOURCE_MODE_UEFI: boot_modes.UEFI,
-        sushy.BOOT_SOURCE_MODE_BIOS: boot_modes.LEGACY_BIOS
-    }
+BOOT_MODE_MAP = {
+    sushy.BOOT_SOURCE_MODE_UEFI: boot_modes.UEFI,
+    sushy.BOOT_SOURCE_MODE_BIOS: boot_modes.LEGACY_BIOS
+}
 
 
 class RedfishInspect(base.InspectInterface):
-
-    def __init__(self):
-        """Initialize the Redfish inspection interface.
-
-        :raises: DriverLoadError if the driver can't be loaded due to
-            missing dependencies
-        """
-        super(RedfishInspect, self).__init__()
-        if not sushy:
-            raise exception.DriverLoadError(
-                driver='redfish',
-                reason=_('Unable to import the sushy library'))
 
     def get_properties(self):
         """Return the properties of the interface.

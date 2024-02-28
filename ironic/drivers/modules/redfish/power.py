@@ -14,7 +14,7 @@
 #    under the License.
 
 from oslo_log import log
-from oslo_utils import importutils
+import sushy
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -27,23 +27,20 @@ from ironic.drivers.modules.redfish import utils as redfish_utils
 
 LOG = log.getLogger(__name__)
 
-sushy = importutils.try_import('sushy')
+GET_POWER_STATE_MAP = {
+    sushy.SYSTEM_POWER_STATE_ON: states.POWER_ON,
+    sushy.SYSTEM_POWER_STATE_POWERING_ON: states.POWER_ON,
+    sushy.SYSTEM_POWER_STATE_OFF: states.POWER_OFF,
+    sushy.SYSTEM_POWER_STATE_POWERING_OFF: states.POWER_OFF
+}
 
-if sushy:
-    GET_POWER_STATE_MAP = {
-        sushy.SYSTEM_POWER_STATE_ON: states.POWER_ON,
-        sushy.SYSTEM_POWER_STATE_POWERING_ON: states.POWER_ON,
-        sushy.SYSTEM_POWER_STATE_OFF: states.POWER_OFF,
-        sushy.SYSTEM_POWER_STATE_POWERING_OFF: states.POWER_OFF
-    }
-
-    SET_POWER_STATE_MAP = {
-        states.POWER_ON: sushy.RESET_ON,
-        states.POWER_OFF: sushy.RESET_FORCE_OFF,
-        states.REBOOT: sushy.RESET_FORCE_RESTART,
-        states.SOFT_REBOOT: sushy.RESET_GRACEFUL_RESTART,
-        states.SOFT_POWER_OFF: sushy.RESET_GRACEFUL_SHUTDOWN
-    }
+SET_POWER_STATE_MAP = {
+    states.POWER_ON: sushy.RESET_ON,
+    states.POWER_OFF: sushy.RESET_FORCE_OFF,
+    states.REBOOT: sushy.RESET_FORCE_RESTART,
+    states.SOFT_REBOOT: sushy.RESET_GRACEFUL_RESTART,
+    states.SOFT_POWER_OFF: sushy.RESET_GRACEFUL_SHUTDOWN
+}
 
 TARGET_STATE_MAP = {
     states.REBOOT: states.POWER_ON,
@@ -70,18 +67,6 @@ def _set_power_state(task, system, power_state, timeout=None):
 
 
 class RedfishPower(base.PowerInterface):
-
-    def __init__(self):
-        """Initialize the Redfish power interface.
-
-        :raises: DriverLoadError if the driver can't be loaded due to
-            missing dependencies
-        """
-        super(RedfishPower, self).__init__()
-        if not sushy:
-            raise exception.DriverLoadError(
-                driver='redfish',
-                reason=_('Unable to import the sushy library'))
 
     def get_properties(self):
         """Return the properties of the interface.

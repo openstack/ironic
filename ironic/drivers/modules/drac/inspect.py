@@ -34,7 +34,6 @@ from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic import objects
 
 drac_exceptions = importutils.try_import('dracclient.exceptions')
-sushy = importutils.try_import('sushy')
 
 LOG = logging.getLogger(__name__)
 
