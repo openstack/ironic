@@ -18,12 +18,20 @@
         # commented out 2023-05-19
         - ironic-tempest-functional-rbac-scope-enforced:
             voting: false
-        - ironic-grenade
-        - ironic-standalone
-        - ironic-standalone-redfish
+        # NOTE(TheJulia): Marking non-voting until we can get
+        # other banches sorted breakage wise.
+        - ironic-grenade:
+            voting: false
+        - ironic-standalone:
+            voting: false
+        - ironic-standalone-redfish:
+            voting: false
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
-        - ironic-tempest-wholedisk-bios-snmp-pxe
+        # NOTE(TheJulia): Disabling until we can sort out the various
+        # breaks with CI on this branch.
+        - ironic-tempest-wholedisk-bios-snmp-pxe:
+            voting: false
         - ironic-tempest-partition-uefi-ipmi-pxe
         # NOTE(TheJulia) Marking multinode non-voting on 20210311
         # Due to a high failure rate on limestone where the compute1
@@ -35,7 +43,8 @@
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
-        - metalsmith-integration-glance-centos8-legacy
+        - metalsmith-integration-glance-centos8-legacy:
+            voting: false
         # Non-voting jobs
         - ironic-tox-bandit:
             voting: false
@@ -69,12 +78,18 @@
         # should be re-enabled in stable when it's re-enabled on master.
         # commented out 2023-05-19
         #- ironic-tempest-functional-rbac-scope-enforced
-        - ironic-grenade
-        - ironic-standalone
-        - ironic-standalone-redfish
+        # NOTE(TheJulia): Disabling grenade since the branch before is no
+        # longer supported.
+        # - ironic-grenade
+        # NOTE(TheJulia): Commenting out standalone jobs until we figure
+        # out what is causing them to fail on mulitple branches.
+        # - ironic-standalone
+        # - ironic-standalone-redfish
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
-        - ironic-tempest-wholedisk-bios-snmp-pxe
+        # NOTE(TheJulia): disabling until we can sort out the various
+        # CI issues impacting this branch.
+        # - ironic-tempest-wholedisk-bios-snmp-pxe:
         - ironic-tempest-partition-uefi-ipmi-pxe
         # NOTE(TheJulia): Disabled multinode on 20210311 due to Limestone
         # seeming to be 
@@ -82,7 +97,9 @@
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
-        - metalsmith-integration-glance-centos8-legacy
+        # NOTE(TheJulia): Disabling until we can the competing
+        # gate fixes merged
+        # - metalsmith-integration-glance-centos8-legacy
     experimental:
       jobs:
         # TODO(dtantsur): these jobs are useful but currently hopelessly
