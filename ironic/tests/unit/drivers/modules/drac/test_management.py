@@ -1593,8 +1593,15 @@ class DracRedfishManagementTestCase(test_utils.BaseDracTest):
             {'oem': {'interface': 'idrac-redfish'}})
 
     def test__validate_conf_mold_data_empty(self):
-        self.assertRaisesRegex(
-            exception.InvalidParameterValue,
-            "does not have enough properties",
-            drac_mgmt._validate_conf_mold,
-            {'oem': {'interface': 'idrac-redfish', 'data': {}}})
+        try:
+            self.assertRaisesRegex(
+                exception.InvalidParameterValue,
+                "does not have enough properties",
+                drac_mgmt._validate_conf_mold,
+                {'oem': {'interface': 'idrac-redfish', 'data': {}}})
+        except Exception:
+            self.assertRaisesRegex(
+                exception.InvalidParameterValue,
+                "should be non-empty",
+                drac_mgmt._validate_conf_mold,
+                {'oem': {'interface': 'idrac-redfish', 'data': {}}})
