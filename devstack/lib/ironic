@@ -46,7 +46,7 @@ GITBRANCH["virtualbmc"]=${VIRTUALBMC_BRANCH:-master}
 GITDIR["virtualbmc"]=$DEST/virtualbmc
 
 GITREPO["virtualpdu"]=${VIRTUALPDU_REPO:-${GIT_BASE}/openstack/virtualpdu.git}
-GITBRANCH["virtualpdu"]=${VIRTUALPDU_BRANCH:-master}
+GITBRANCH["virtualpdu"]=${VIRTUALPDU_BRANCH:-1.0.0}
 GITDIR["virtualpdu"]=$DEST/virtualpdu
 
 GITREPO["sushy"]=${SUSHY_REPO:-${GIT_BASE}/openstack/sushy.git}
@@ -572,7 +572,7 @@ IRONIC_DEPLOY_FAST_TRACK=${IRONIC_DEPLOY_FAST_TRACK:-False}
 TEMPEST_BAREMETAL_MIN_MICROVERSION=${TEMPEST_BAREMETAL_MIN_MICROVERSION:-}
 
 # Define baremetal max_microversion in tempest config. No default value means that it is picked from tempest.
-TEMPEST_BAREMETAL_MAX_MICROVERSION=${TEMPEST_BAREMETAL_MAX_MICROVERSION:1.78}
+TEMPEST_BAREMETAL_MAX_MICROVERSION=${TEMPEST_BAREMETAL_MAX_MICROVERSION:-"1.78"}
 
 # TODO(TheJulia): This PHYSICAL_NETWORK needs to be refactored in
 # our devstack plugin. It is used by the neutron-legacy integration,
@@ -987,7 +987,7 @@ function install_virtualpdu {
         git_clone_by_name "virtualpdu"
         setup_dev_lib "virtualpdu"
     else
-        pip_install "virtualpdu"
+        pip_install "virtualpdu==1.0.0"
     fi
 
     local cmd
@@ -3266,6 +3266,18 @@ function setup_vxlan_network {
     sudo ovs-vsctl set interface phy-infra-brbm type=patch
     sudo ovs-vsctl set interface phy-infra-brbm options:peer=phy-brbm-infra
     sudo ovs-vsctl set interface phy-brbm-infra options:peer=phy-infra-brbm
+}
+
+function downgrade_dnsmasq {
+    # NOTE(TheJulia): The intent here is to use dnsmasq version
+    # which does not crash on segfaults or sigabort when configuration
+    # is updated. See https://bugs.launchpad.net/ironic/+bug/2026757
+    sudo dpkg -r dnsmasq-base
+    git clone http://thekelleys.org.uk/git/dnsmasq.git -b v2.85 --depth 1
+    pushd dnsmasq
+    sed -i 's|^PREFIX.*|PREFIX = /usr|' Makefile
+    sudo make install
+    popd
 }
 
 # Restore xtrace + pipefail
