@@ -27,16 +27,12 @@
             voting: false
         - ironic-grenade-skip-level:
             voting: false
-        # NOTE(JayF): Disabling standalone jobs on 20240228 from voting, there's a
-        # dnsmasq bug only exposed on these jobs.
-        - ironic-standalone:
-            voting: false
         - ironic-standalone-redfish:
             voting: false
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-ramdisk-bios-snmp-pxe
-        - ironic-tempest-partition-uefi-ipmi-pxe
+        - ironic-tempest-ovn-uefi-ipmi-pxe
         # NOTE(TheJulia) Marking multinode non-voting on 20210311
         # Due to a high failure rate on limestone where the compute1
         # machine never appears to be able to communicate across the
@@ -84,12 +80,11 @@
         # - ironic-grenade
         # NOTE(JayF): Disabling standalone jobs on 20240228 from voting, there's a
         # dnsmasq bug only exposed on these jobs.
-        #- ironic-standalone
         #- ironic-standalone-redfish
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-ramdisk-bios-snmp-pxe
-        - ironic-tempest-partition-uefi-ipmi-pxe
+        - ironic-tempest-ovn-uefi-ipmi-pxe
         # NOTE(TheJulia): Disabled multinode on 20210311 due to Limestone
         # seeming to be
         # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
