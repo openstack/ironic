@@ -523,6 +523,15 @@ class TestListNodes(test_api_base.BaseApiTest):
         # We always append "links"
         self.assertCountEqual(['extra', 'instance_info', 'links'], data)
 
+    def test_get_one_custom_fields_as_list(self):
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        data = self.get_json(
+            '/nodes/%s?fields=extra&fields=instance_info' % node.uuid,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        # We always append "links"
+        self.assertCountEqual(['extra', 'instance_info', 'links'], data)
+
     def test_get_collection_custom_fields(self):
         fields = 'uuid,instance_info'
         for i in range(3):
@@ -532,6 +541,21 @@ class TestListNodes(test_api_base.BaseApiTest):
 
         data = self.get_json(
             '/nodes?fields=%s' % fields,
+            headers={api_base.Version.string: str(api_v1.max_version())})
+
+        self.assertEqual(3, len(data['nodes']))
+        for node in data['nodes']:
+            # We always append "links"
+            self.assertCountEqual(['uuid', 'instance_info', 'links'], node)
+
+    def test_get_collection_custom_fields_as_list(self):
+        for i in range(3):
+            obj_utils.create_test_node(self.context,
+                                       uuid=uuidutils.generate_uuid(),
+                                       instance_uuid=uuidutils.generate_uuid())
+
+        data = self.get_json(
+            '/nodes?fields=uuid&fields=instance_info',
             headers={api_base.Version.string: str(api_v1.max_version())})
 
         self.assertEqual(3, len(data['nodes']))
@@ -8301,6 +8325,13 @@ class TestNodeShardGets(test_api_base.BaseApiTest):
             '/nodes?shard=foo,bar', headers=self.headers)
         self.assertEqual(2, len(result['nodes']))
 
+    def test_filtering_by_multi_shard_as_list(self):
+        obj_utils.create_test_node(
+            self.context, uuid=uuid.uuid4(), shard='bar')
+        result = self.get_json(
+            '/nodes?shard=foo&shard=bar', headers=self.headers)
+        self.assertEqual(2, len(result['nodes']))
+
     def test_filtering_by_shard_detail_fails_wrong_version(self):
         headers = {api_base.Version.string: '1.80'}
 
@@ -8762,6 +8793,19 @@ class TestNodeVmedia(test_api_base.BaseApiTest):
         mock_detach.assert_called_once_with(
             mock.ANY, mock.ANY, self.node.uuid,
             device_types=[boot_devices.CDROM], topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'detach_virtual_media',
+                       autospec=True)
+    def test_detach_several_via_argument(self, mock_detach):
+        ret = self.delete('/nodes/%s/vmedia?device_types=%s&device_types=%s'
+                          % (self.node.uuid,
+                             boot_devices.CDROM, boot_devices.DISK),
+                          headers={api_base.Version.string: self.version})
+        self.assertEqual(http_client.NO_CONTENT, ret.status_int)
+        mock_detach.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid,
+            device_types=[boot_devices.CDROM, boot_devices.DISK],
+            topic='test-topic')
 
     def test_detach_wrong_device_types(self):
         ret = self.delete('/nodes/%s/vmedia?device_types=cdrom,cat'
