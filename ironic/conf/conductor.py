@@ -28,6 +28,12 @@ opts = [
                       'itself for handling heart beats and periodic tasks. '
                       'On top of that, `sync_power_state_workers` will take '
                       'up to 7 green threads with the default value of 8.')),
+    cfg.IntOpt('reserved_workers_pool_percentage',
+               default=5, min=0, max=50,
+               help=_('The percentage of the whole workers pool that will be '
+                      'kept for API requests and other important tasks. '
+                      'This part of the pool will not be used for periodic '
+                      'tasks or agent heartbeats. Set to 0 to disable.')),
     cfg.IntOpt('heartbeat_interval',
                default=10,
                help=_('Seconds between conductor heart beats.')),

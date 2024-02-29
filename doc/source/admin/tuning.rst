@@ -149,6 +149,13 @@ using more than one CPU core.
    If you use JSON RPC, you also need to make sure the ports don't conflict by
    setting the :oslo.config:option:`json_rpc.port` option.
 
+Starting with the 2024.1 "Caracal" release cycle, a small proportion of the
+threads (specified by the
+:oslo.config:option:`conductor.reserved_workers_pool_percentage` option) is
+reserved for API requests and other critical tasks. Periodic tasks and agent
+heartbeats cannot use them. This ensures that the API stays responsive even
+under extreme internal load.
+
 .. _eventlet: https://eventlet.net/
 
 Database
