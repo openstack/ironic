@@ -9,6 +9,7 @@
 .. include:: baremetal-api-versions.inc
 .. include:: baremetal-api-v1-nodes.inc
 .. include:: baremetal-api-v1-node-management.inc
+.. include:: baremetal-api-v1-attach-detach-vmedia.inc
 .. include:: baremetal-api-v1-node-passthru.inc
 .. include:: baremetal-api-v1-nodes-traits.inc
 .. include:: baremetal-api-v1-nodes-vifs.inc
