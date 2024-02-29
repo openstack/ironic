@@ -9,7 +9,11 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - ironic-tox-unit-with-driver-libs
+        # NOTE(TheJulia): re-enable voting once
+        # https://review.opendev.org/c/openstack/ironic/+/910528
+        # has merged.
+        - ironic-tox-unit-with-driver-libs:
+            voting: false
         - ironic-cross-sushy:
             voting: false
         - ironic-tempest-functional-python3
@@ -72,7 +76,10 @@
             voting: false
     gate:
       jobs:
-        - ironic-tox-unit-with-driver-libs
+        # NOTE(TheJulia): Return this to voting once
+        # https://review.opendev.org/c/openstack/ironic/+/910528
+        # or similar change to the branch has merged
+        #- ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
         # NOTE(JayF): This job is failing and is being fixed in master. It
         # should be re-enabled in stable when it's re-enabled on master.
