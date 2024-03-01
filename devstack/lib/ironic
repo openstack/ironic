@@ -3438,11 +3438,10 @@ function setup_vxlan_network {
 
 function downgrade_dnsmasq {
     # NOTE(TheJulia): The intent here is to use dnsmasq version
-    # which have the fix for segfaults triggered due to configuration
-    # refresh https://bugs.launchpad.net/ubuntu/+source/dnsmasq/+bug/2026757
-    # Source install v2.87
+    # which does not crash on segfaults or sigabort when configuration
+    # is updated. See https://bugs.launchpad.net/ironic/+bug/2026757
     sudo dpkg -r dnsmasq-base
-    git clone http://thekelleys.org.uk/git/dnsmasq.git -b v2.87 --depth 1
+    git clone http://thekelleys.org.uk/git/dnsmasq.git -b v2.85 --depth 1
     pushd dnsmasq
     sed -i 's|^PREFIX.*|PREFIX = /usr|' Makefile
     sudo make install
