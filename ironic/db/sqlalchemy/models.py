@@ -484,7 +484,7 @@ class NodeHistory(Base):
     event_type = Column(String(255), nullable=True)
     severity = Column(String(255), nullable=True)
     event = Column(Text, nullable=True)
-    user = Column(String(32), nullable=True)
+    user = Column(String(64), nullable=True)
     node_id = Column(Integer, ForeignKey('nodes.id'), nullable=True)
 
 

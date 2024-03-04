@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Increases the 32-character limit of the ``user`` column in the
+    ``NodeHistory`` model to support up to 64-character-long values.
+    For more information, `see bug <https://bugs.launchpad.net/ironic/+bug/2054594>`_.
