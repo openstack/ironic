@@ -19,8 +19,8 @@ from urllib.parse import urlparse
 
 from ironic_lib import metrics_utils
 from oslo_log import log
-from oslo_utils import importutils
 from oslo_utils import timeutils
+import sushy
 
 from ironic.common import boot_devices
 from ironic.common import boot_modes
@@ -43,55 +43,52 @@ from ironic.drivers.modules.redfish import utils as redfish_utils
 LOG = log.getLogger(__name__)
 METRICS = metrics_utils.get_metrics_logger(__name__)
 
-sushy = importutils.try_import('sushy')
-
 BOOT_MODE_CONFIG_INTERVAL = 15
 
-if sushy:
-    BOOT_DEVICE_MAP = {
-        sushy.BOOT_SOURCE_TARGET_PXE: boot_devices.PXE,
-        sushy.BOOT_SOURCE_TARGET_HDD: boot_devices.DISK,
-        sushy.BOOT_SOURCE_TARGET_CD: boot_devices.CDROM,
-        sushy.BOOT_SOURCE_TARGET_BIOS_SETUP: boot_devices.BIOS,
-        sushy.BOOT_SOURCE_TARGET_UEFI_HTTP: boot_devices.UEFIHTTP
-    }
+BOOT_DEVICE_MAP = {
+    sushy.BOOT_SOURCE_TARGET_PXE: boot_devices.PXE,
+    sushy.BOOT_SOURCE_TARGET_HDD: boot_devices.DISK,
+    sushy.BOOT_SOURCE_TARGET_CD: boot_devices.CDROM,
+    sushy.BOOT_SOURCE_TARGET_BIOS_SETUP: boot_devices.BIOS,
+    sushy.BOOT_SOURCE_TARGET_UEFI_HTTP: boot_devices.UEFIHTTP
+}
 
-    BOOT_DEVICE_MAP_REV = {v: k for k, v in BOOT_DEVICE_MAP.items()}
-    # Previously we used sushy constants in driver_internal_info. This mapping
-    # is provided for backward compatibility, taking into account that sushy
-    # constants will change from strings to enums.
-    BOOT_DEVICE_MAP_REV_COMPAT = dict(
-        BOOT_DEVICE_MAP_REV,
-        pxe=sushy.BOOT_SOURCE_TARGET_PXE,
-        hdd=sushy.BOOT_SOURCE_TARGET_HDD,
-        cd=sushy.BOOT_SOURCE_TARGET_CD,
-        **{'bios setup': sushy.BOOT_SOURCE_TARGET_BIOS_SETUP}
-    )
+BOOT_DEVICE_MAP_REV = {v: k for k, v in BOOT_DEVICE_MAP.items()}
+# Previously we used sushy constants in driver_internal_info. This mapping
+# is provided for backward compatibility, taking into account that sushy
+# constants will change from strings to enums.
+BOOT_DEVICE_MAP_REV_COMPAT = dict(
+    BOOT_DEVICE_MAP_REV,
+    pxe=sushy.BOOT_SOURCE_TARGET_PXE,
+    hdd=sushy.BOOT_SOURCE_TARGET_HDD,
+    cd=sushy.BOOT_SOURCE_TARGET_CD,
+    **{'bios setup': sushy.BOOT_SOURCE_TARGET_BIOS_SETUP}
+)
 
-    BOOT_MODE_MAP = {
-        sushy.BOOT_SOURCE_MODE_UEFI: boot_modes.UEFI,
-        sushy.BOOT_SOURCE_MODE_BIOS: boot_modes.LEGACY_BIOS
-    }
+BOOT_MODE_MAP = {
+    sushy.BOOT_SOURCE_MODE_UEFI: boot_modes.UEFI,
+    sushy.BOOT_SOURCE_MODE_BIOS: boot_modes.LEGACY_BIOS
+}
 
-    BOOT_MODE_MAP_REV = {v: k for k, v in BOOT_MODE_MAP.items()}
+BOOT_MODE_MAP_REV = {v: k for k, v in BOOT_MODE_MAP.items()}
 
-    BOOT_DEVICE_PERSISTENT_MAP = {
-        sushy.BOOT_SOURCE_ENABLED_CONTINUOUS: True,
-        sushy.BOOT_SOURCE_ENABLED_ONCE: False
-    }
+BOOT_DEVICE_PERSISTENT_MAP = {
+    sushy.BOOT_SOURCE_ENABLED_CONTINUOUS: True,
+    sushy.BOOT_SOURCE_ENABLED_ONCE: False
+}
 
-    BOOT_DEVICE_PERSISTENT_MAP_REV = {v: k for k, v in
-                                      BOOT_DEVICE_PERSISTENT_MAP.items()}
+BOOT_DEVICE_PERSISTENT_MAP_REV = {v: k for k, v in
+                                  BOOT_DEVICE_PERSISTENT_MAP.items()}
 
-    INDICATOR_MAP = {
-        sushy.INDICATOR_LED_LIT: indicator_states.ON,
-        sushy.INDICATOR_LED_OFF: indicator_states.OFF,
-        sushy.INDICATOR_LED_BLINKING: indicator_states.BLINKING,
-        sushy.INDICATOR_LED_UNKNOWN: indicator_states.UNKNOWN
-    }
+INDICATOR_MAP = {
+    sushy.INDICATOR_LED_LIT: indicator_states.ON,
+    sushy.INDICATOR_LED_OFF: indicator_states.OFF,
+    sushy.INDICATOR_LED_BLINKING: indicator_states.BLINKING,
+    sushy.INDICATOR_LED_UNKNOWN: indicator_states.UNKNOWN
+}
 
-    INDICATOR_MAP_REV = {
-        v: k for k, v in INDICATOR_MAP.items()}
+INDICATOR_MAP_REV = {
+    v: k for k, v in INDICATOR_MAP.items()}
 
 
 _FIRMWARE_UPDATE_ARGS = {
@@ -168,18 +165,6 @@ def _set_boot_device(task, system, device, persistent=False,
 
 
 class RedfishManagement(base.ManagementInterface):
-
-    def __init__(self):
-        """Initialize the Redfish management interface.
-
-        :raises: DriverLoadError if the driver can't be loaded due to
-            missing dependencies
-        """
-        super(RedfishManagement, self).__init__()
-        if not sushy:
-            raise exception.DriverLoadError(
-                driver='redfish',
-                reason=_('Unable to import the sushy library'))
 
     def get_properties(self):
         """Return the properties of the interface.

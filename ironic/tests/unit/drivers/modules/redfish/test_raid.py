@@ -14,8 +14,8 @@
 
 from unittest import mock
 
-from oslo_utils import importutils
 from oslo_utils import units
+import sushy
 
 from ironic.common import exception
 from ironic.common import states
@@ -28,8 +28,6 @@ from ironic.drivers.modules.redfish import utils as redfish_utils
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
-
-sushy = importutils.try_import('sushy')
 
 INFO_DICT = db_utils.get_test_redfish_info()
 
@@ -110,13 +108,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         self.free_space_bytes = {d: d.capacity_bytes for d in
                                  mock_drives}
         self.physical_disks = mock_drives
-
-    @mock.patch.object(redfish_raid, 'sushy', None)
-    def test_loading_error(self, mock_get_system):
-        self.assertRaisesRegex(
-            exception.DriverLoadError,
-            'Unable to import the sushy library',
-            redfish_raid.RedfishRAID)
 
     def test__max_volume_size_bytes_raid0(self, mock_get_system):
         spans = redfish_raid._calculate_spans('0', 3)

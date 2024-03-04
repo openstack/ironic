@@ -18,7 +18,6 @@ import os
 import tempfile
 from unittest import mock
 
-from oslo_utils import importutils
 from oslo_utils import uuidutils
 
 from ironic.common import images
@@ -31,7 +30,6 @@ from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
 
-sushy = importutils.try_import('sushy')
 
 INFO_DICT = db_utils.get_test_redfish_info()
 INFO_DICT_ILO = db_utils.get_test_ilo_info()

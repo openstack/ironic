@@ -21,17 +21,15 @@ from urllib import parse as urlparse
 
 from oslo_log import log
 from oslo_utils import excutils
-from oslo_utils import importutils
 from oslo_utils import strutils
 import rfc3986
+import sushy
 import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import utils
 from ironic.conf import CONF
-
-sushy = importutils.try_import('sushy')
 
 LOG = log.getLogger(__name__)
 
@@ -200,13 +198,12 @@ def parse_driver_info(node):
 
 class SessionCache(object):
     """Cache of HTTP sessions credentials"""
-    AUTH_CLASSES = {}
-    if sushy:
-        AUTH_CLASSES.update(
-            basic=sushy.auth.BasicAuth,
-            session=sushy.auth.SessionAuth,
-            auto=sushy.auth.SessionOrBasicAuth
-        )
+
+    AUTH_CLASSES = dict(
+        basic=sushy.auth.BasicAuth,
+        session=sushy.auth.SessionAuth,
+        auto=sushy.auth.SessionOrBasicAuth
+    )
 
     _sessions = collections.OrderedDict()
 

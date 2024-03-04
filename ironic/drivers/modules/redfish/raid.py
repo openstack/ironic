@@ -18,8 +18,8 @@ import math
 
 from ironic_lib import metrics_utils
 from oslo_log import log
-from oslo_utils import importutils
 from oslo_utils import units
+import sushy
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -84,13 +84,10 @@ RAID_LEVELS = {
     }
 }
 
-sushy = importutils.try_import('sushy')
-
-if sushy:
-    PROTOCOL_MAP = {
-        sushy.PROTOCOL_TYPE_SAS: raid.SAS,
-        sushy.PROTOCOL_TYPE_SATA: raid.SATA
-    }
+PROTOCOL_MAP = {
+    sushy.PROTOCOL_TYPE_SAS: raid.SAS,
+    sushy.PROTOCOL_TYPE_SATA: raid.SATA
+}
 
 
 def convert_drive_units(logical_disks, node):
@@ -714,13 +711,6 @@ def update_raid_config(node):
 
 
 class RedfishRAID(base.RAIDInterface):
-
-    def __init__(self):
-        super(RedfishRAID, self).__init__()
-        if sushy is None:
-            raise exception.DriverLoadError(
-                driver='redfish',
-                reason=_("Unable to import the sushy library"))
 
     def get_properties(self):
         """Return the properties of the interface.
