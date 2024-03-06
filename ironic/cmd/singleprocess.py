@@ -17,9 +17,9 @@ from oslo_log import log
 from oslo_service import service
 
 from ironic.cmd import conductor as conductor_cmd
-from ironic.common import rpc_service
 from ironic.common import service as ironic_service
 from ironic.common import wsgi_service
+from ironic.conductor import rpc_service
 
 CONF = cfg.CONF
 

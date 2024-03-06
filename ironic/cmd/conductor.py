@@ -25,9 +25,9 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_service import service
 
-from ironic.common import rpc_service
 from ironic.common import service as ironic_service
 from ironic.common import utils
+from ironic.conductor import rpc_service
 
 CONF = cfg.CONF
 

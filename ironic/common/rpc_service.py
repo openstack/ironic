@@ -14,8 +14,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import datetime
-import signal
 import sys
 import time
 
@@ -25,7 +23,6 @@ from oslo_log import log
 import oslo_messaging as messaging
 from oslo_service import service
 from oslo_utils import importutils
-from oslo_utils import timeutils
 
 from ironic.common import context
 from ironic.common import rpc
@@ -35,20 +32,18 @@ LOG = log.getLogger(__name__)
 CONF = cfg.CONF
 
 
-class RPCService(service.Service):
+class BaseRPCService(service.Service):
 
     def __init__(self, host, manager_module, manager_class):
-        super(RPCService, self).__init__()
+        super().__init__()
         self.host = host
         manager_module = importutils.try_import(manager_module)
         manager_class = getattr(manager_module, manager_class)
-        self.manager = manager_class(host, rpc.MANAGER_TOPIC)
+        self.manager = manager_class(host)
         self.topic = self.manager.topic
         self.rpcserver = None
-        self.deregister = True
-        self._failure = None
         self._started = False
-        self.draining = False
+        self._failure = None
 
     def wait_for_start(self):
         while not self._started and not self._failure:
@@ -60,7 +55,7 @@ class RPCService(service.Service):
     def start(self):
         self._failure = None
         self._started = False
-        super(RPCService, self).start()
+        super().start()
         try:
             self._real_start()
         except Exception as exc:
@@ -68,6 +63,9 @@ class RPCService(service.Service):
             raise
         else:
             self._started = True
+
+    def handle_signal(self):
+        pass
 
     def _real_start(self):
         admin_context = context.get_admin_context()
@@ -88,97 +86,8 @@ class RPCService(service.Service):
 
         self.handle_signal()
         self.manager.init_host(admin_context)
-        rpc.set_global_manager(self.manager)
 
         LOG.info('Created RPC server with %(transport)s transport for service '
                  '%(service)s on host %(host)s.',
                  {'service': self.topic, 'host': self.host,
                   'transport': CONF.rpc_transport})
-
-    def stop(self):
-        initial_time = timeutils.utcnow()
-        extend_time = initial_time + datetime.timedelta(
-            seconds=CONF.hash_ring_reset_interval)
-
-        try:
-            self.manager.del_host(deregister=self.deregister,
-                                  clear_node_reservations=False)
-        except Exception as e:
-            LOG.exception('Service error occurred when cleaning up '
-                          'the RPC manager. Error: %s', e)
-
-        if self.manager.get_online_conductor_count() > 1:
-            # Delay stopping the server until the hash ring has been
-            # reset on the cluster
-            stop_time = timeutils.utcnow()
-            if stop_time < extend_time:
-                stop_wait = max(0, (extend_time - stop_time).seconds)
-                LOG.info('Waiting %(stop_wait)s seconds for hash ring reset.',
-                         {'stop_wait': stop_wait})
-                time.sleep(stop_wait)
-
-        try:
-            if self.rpcserver is not None:
-                self.rpcserver.stop()
-                self.rpcserver.wait()
-        except Exception as e:
-            LOG.exception('Service error occurred when stopping the '
-                          'RPC server. Error: %s', e)
-
-        super(RPCService, self).stop(graceful=True)
-        LOG.info('Stopped RPC server for service %(service)s on host '
-                 '%(host)s.',
-                 {'service': self.topic, 'host': self.host})
-
-        # Wait for reservation locks held by this conductor.
-        # The conductor process will end when one of the following occurs:
-        # - All reservations for this conductor are released
-        # - shutdown_timeout has elapsed
-        # - The process manager (systemd, kubernetes) sends SIGKILL after the
-        #   configured timeout period
-        while (self.manager.has_reserved()
-               and not self._shutdown_timeout_reached(initial_time)):
-            LOG.info('Waiting for reserved nodes to clear on host %(host)s',
-                     {'host': self.host})
-            time.sleep(1)
-
-        # Stop the keepalive heartbeat greenthread sending touch(online=False)
-        self.manager.keepalive_halt()
-
-        rpc.set_global_manager(None)
-
-    def _shutdown_timeout_reached(self, initial_time):
-        if self.draining:
-            shutdown_timeout = CONF.drain_shutdown_timeout
-        else:
-            shutdown_timeout = CONF.graceful_shutdown_timeout
-        if shutdown_timeout == 0:
-            # No timeout, run until no nodes are reserved
-            return False
-        shutdown_time = initial_time + datetime.timedelta(
-            seconds=shutdown_timeout)
-        return shutdown_time < timeutils.utcnow()
-
-    def _handle_no_deregister(self, signo, frame):
-        LOG.info('Got signal SIGUSR1. Not deregistering on next shutdown '
-                 'of service %(service)s on host %(host)s.',
-                 {'service': self.topic, 'host': self.host})
-        self.deregister = False
-
-    def _handle_drain(self, signo, frame):
-        LOG.info('Got signal SIGUSR2. Starting drain shutdown'
-                 'of service %(service)s on host %(host)s.',
-                 {'service': self.topic, 'host': self.host})
-        self.draining = True
-        self.stop()
-
-    def handle_signal(self):
-        """Add a signal handler for SIGUSR1, SIGUSR2.
-
-        The SIGUSR1 handler ensures that the manager is not deregistered when
-        it is shutdown.
-
-        The SIGUSR2 handler starts a drain shutdown.
-        """
-        signal.signal(signal.SIGUSR1, self._handle_no_deregister)
-        signal.signal(signal.SIGUSR2, self._handle_drain)
