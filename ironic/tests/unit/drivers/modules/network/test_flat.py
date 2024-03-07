@@ -78,7 +78,7 @@ class TestFlatInterface(db_base.DbTestCase):
             self.interface.validate(task)
             validate_mock.assert_called_once_with(
                 CONF.neutron.cleaning_network,
-                'cleaning network', context=task.context)
+                'cleaning_network', context=task.context)
 
     @mock.patch.object(neutron, 'validate_network', autospec=True)
     def test_validate_from_node(self, validate_mock):
@@ -91,7 +91,7 @@ class TestFlatInterface(db_base.DbTestCase):
             self.interface.validate(task)
         validate_mock.assert_called_once_with(
             cleaning_network_uuid,
-            'cleaning network', context=task.context)
+            'cleaning_network', context=task.context)
 
     @mock.patch.object(neutron, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
@@ -107,7 +107,7 @@ class TestFlatInterface(db_base.DbTestCase):
             add_mock.assert_called_once_with(
                 task, CONF.neutron.cleaning_network)
             validate_mock.assert_called_once_with(
-                CONF.neutron.cleaning_network, 'cleaning network',
+                CONF.neutron.cleaning_network, 'cleaning_network',
                 context=task.context)
         self.port.refresh()
         self.assertEqual('vif-port-id',
@@ -134,7 +134,7 @@ class TestFlatInterface(db_base.DbTestCase):
                 add_mock.assert_called_with(task, cleaning_network_uuid)
                 validate_mock.assert_called_with(
                     cleaning_network_uuid,
-                    'cleaning network', context=task.context)
+                    'cleaning_network', context=task.context)
         self.port.refresh()
         self.assertEqual('vif-port-id',
                          self.port.internal_info['cleaning_vif_port_id'])
@@ -149,7 +149,7 @@ class TestFlatInterface(db_base.DbTestCase):
                 task, CONF.neutron.cleaning_network)
             validate_mock.assert_called_once_with(
                 CONF.neutron.cleaning_network,
-                'cleaning network', context=task.context)
+                'cleaning_network', context=task.context)
         self.port.refresh()
         self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)
 
@@ -168,7 +168,7 @@ class TestFlatInterface(db_base.DbTestCase):
             remove_mock.assert_called_once_with(task, cleaning_network_uuid)
             validate_mock.assert_called_once_with(
                 cleaning_network_uuid,
-                'cleaning network', context=task.context)
+                'cleaning_network', context=task.context)
         self.port.refresh()
         self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)
 
@@ -291,7 +291,7 @@ class TestFlatInterface(db_base.DbTestCase):
             add_mock.assert_called_once_with(
                 task, CONF.neutron.inspection_network)
             validate_mock.assert_called_once_with(
-                CONF.neutron.inspection_network, 'inspection network',
+                CONF.neutron.inspection_network, 'inspection_network',
                 context=task.context)
         self.port.refresh()
         self.assertEqual('vif-port-id',
@@ -319,7 +319,7 @@ class TestFlatInterface(db_base.DbTestCase):
                 add_mock.assert_called_with(task, inspection_network_uuid)
                 validate_mock.assert_called_with(
                     inspection_network_uuid,
-                    'inspection network', context=task.context)
+                    'inspection_network', context=task.context)
         self.port.refresh()
         self.assertEqual('vif-port-id',
                          self.port.internal_info['inspection_vif_port_id'])
@@ -335,7 +335,7 @@ class TestFlatInterface(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.validate_inspection(task)
             validate_mock.assert_called_once_with(
-                inspection_network_uuid, 'inspection network',
+                inspection_network_uuid, 'inspection_network',
                 context=task.context),
 
     def test_validate_inspection_exc(self):

@@ -94,10 +94,10 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             # on validity of the name or UUID as well, the validate_network
             # method gets called which rasies a validate parsable error.
             self.assertEqual([mock.call(CONF.neutron.cleaning_network,
-                                        'cleaning network',
+                                        'cleaning_network',
                                         context=task.context),
                               mock.call(CONF.neutron.provisioning_network,
-                                        'provisioning network',
+                                        'provisioning_network',
                                         context=task.context)],
                              validate_mock.call_args_list)
 
@@ -119,7 +119,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 security_groups=[])
             validate_mock.assert_called_once_with(
                 CONF.neutron.provisioning_network,
-                'provisioning network', context=task.context)
+                'provisioning_network', context=task.context)
         self.port.refresh()
         self.assertEqual(self.neutron_port.id,
                          self.port.internal_info['provisioning_vif_port_id'])
@@ -151,7 +151,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                     security_groups=[])
                 validate_mock.assert_called_once_with(
                     provisioning_network_uuid,
-                    'provisioning network', context=task.context)
+                    'provisioning_network', context=task.context)
         self.port.refresh()
         self.assertEqual(self.neutron_port.id,
                          self.port.internal_info['provisioning_vif_port_id'])
@@ -195,7 +195,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 task, CONF.neutron.provisioning_network)
             validate_mock.assert_called_once_with(
                 CONF.neutron.provisioning_network,
-                'provisioning network', context=task.context)
+                'provisioning_network', context=task.context)
         self.port.refresh()
         self.assertNotIn('provisioning_vif_port_id', self.port.internal_info)
 
@@ -218,7 +218,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 task, provisioning_network_uuid)
             validate_mock.assert_called_once_with(
                 provisioning_network_uuid,
-                'provisioning network', context=task.context)
+                'provisioning_network', context=task.context)
         self.port.refresh()
         self.assertNotIn('provisioning_vif_port_id', self.port.internal_info)
 
@@ -236,7 +236,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.assertEqual(res, add_ports_mock.return_value)
             validate_mock.assert_called_once_with(
                 CONF.neutron.cleaning_network,
-                'cleaning network', context=task.context)
+                'cleaning_network', context=task.context)
         self.port.refresh()
         self.assertEqual(self.neutron_port.id,
                          self.port.internal_info['cleaning_vif_port_id'])
@@ -262,7 +262,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 self.assertEqual(res, add_ports_mock.return_value)
                 validate_mock.assert_called_once_with(
                     cleaning_network_uuid,
-                    'cleaning network', context=task.context)
+                    'cleaning_network', context=task.context)
         self.port.refresh()
         self.assertEqual(self.neutron_port.id,
                          self.port.internal_info['cleaning_vif_port_id'])
@@ -303,7 +303,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 task, CONF.neutron.cleaning_network)
             validate_mock.assert_called_once_with(
                 CONF.neutron.cleaning_network,
-                'cleaning network', context=task.context)
+                'cleaning_network', context=task.context)
         self.port.refresh()
         self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)
 
@@ -326,7 +326,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 task, cleaning_network_uuid)
             validate_mock.assert_called_once_with(
                 cleaning_network_uuid,
-                'cleaning network', context=task.context)
+                'cleaning_network', context=task.context)
         self.port.refresh()
         self.assertNotIn('cleaning_vif_port_id', self.port.internal_info)
 
@@ -341,14 +341,14 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.validate_rescue(task)
             validate_mock.assert_called_once_with(
-                rescuing_network_uuid, 'rescuing network',
+                rescuing_network_uuid, 'rescuing_network',
                 context=task.context),
 
     def test_validate_rescue_exc(self):
         self.config(rescuing_network="", group='neutron')
         with task_manager.acquire(self.context, self.node.id) as task:
             self.assertRaisesRegex(exception.MissingParameterValue,
-                                   'rescuing network is not set',
+                                   'rescuing_network is not set',
                                    self.interface.validate_rescue, task)
 
     @mock.patch.object(neutron_common, 'validate_network',
@@ -376,7 +376,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.assertEqual(add_ports_mock.return_value, res)
             validate_mock.assert_called_once_with(
                 CONF.neutron.rescuing_network,
-                'rescuing network', context=task.context)
+                'rescuing_network', context=task.context)
         other_port.refresh()
         self.assertEqual(neutron_other_port['id'],
                          other_port.internal_info['rescuing_vif_port_id'])
@@ -412,7 +412,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.assertEqual(add_ports_mock.return_value, res)
             validate_mock.assert_called_once_with(
                 rescuing_network_uuid,
-                'rescuing network', context=task.context)
+                'rescuing_network', context=task.context)
         other_port.refresh()
         self.assertEqual(neutron_other_port['id'],
                          other_port.internal_info['rescuing_vif_port_id'])
@@ -459,7 +459,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 task, CONF.neutron.rescuing_network)
             validate_mock.assert_called_once_with(
                 CONF.neutron.rescuing_network,
-                'rescuing network', context=task.context)
+                'rescuing_network', context=task.context)
         other_port.refresh()
         self.assertNotIn('rescuing_vif_port_id', self.port.internal_info)
         self.assertNotIn('rescuing_vif_port_id', other_port.internal_info)
@@ -799,7 +799,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             self.assertEqual(res, add_ports_mock.return_value)
             validate_mock.assert_called_once_with(
                 CONF.neutron.inspection_network,
-                'inspection network', context=task.context)
+                'inspection_network', context=task.context)
         self.port.refresh()
         self.assertEqual(self.neutron_port.id,
                          self.port.internal_info['inspection_vif_port_id'])
@@ -826,7 +826,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                 self.assertEqual(res, add_ports_mock.return_value)
                 validate_mock.assert_called_once_with(
                     inspection_network_uuid,
-                    'inspection network', context=task.context)
+                    'inspection_network', context=task.context)
         self.port.refresh()
         self.assertEqual(self.neutron_port.id,
                          self.port.internal_info['inspection_vif_port_id'])
@@ -866,7 +866,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.validate_inspection(task)
             validate_mock.assert_called_once_with(
-                inspection_network_uuid, 'inspection network',
+                inspection_network_uuid, 'inspection_network',
                 context=task.context),
 
     def test_validate_inspection_exc(self):
