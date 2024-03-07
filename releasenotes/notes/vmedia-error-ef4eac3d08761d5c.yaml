@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes error handling in the virtual media attachment API when the image
+    downloading fails. Now the ``last_error`` field is populated correctly
+    and the error is logged.
