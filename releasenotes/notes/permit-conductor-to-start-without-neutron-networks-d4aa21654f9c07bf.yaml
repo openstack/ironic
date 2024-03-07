@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fixes an issue where the conductor service would fail to launch when
+    the ``neutron`` network_interface setting was enabled, and no global
+    ``cleaning_network`` or ``provisioning_network`` is set in `ironic.conf.`
+    These settings have long been able to be applied on a per-node basis via
+    the API. As such, the service can now be started and will error on node
+    validation calls, as designed for drivers missing networking parameters.
