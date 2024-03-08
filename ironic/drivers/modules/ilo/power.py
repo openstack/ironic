@@ -79,12 +79,21 @@ def _get_power_state(node):
     # Check the current power state.
     try:
         power_status = ilo_object.get_host_power_status()
-
     except ilo_error.IloError as ilo_exception:
         LOG.error("iLO get_power_state failed for node %(node_id)s with "
                   "error: %(error)s.",
                   {'node_id': node.uuid, 'error': ilo_exception})
         operation = _('iLO get_power_status')
+        if 'RIBCLI is disabled' in str(ilo_exception):
+            warn_msg = ("Node %s appears to have a disabled API "
+                        "required for the \'%s\' hardware type to function. "
+                        "Please consider using the \'redfish\' hardware "
+                        "type." % (node.uuid, node.driver))
+            manager_utils.node_history_record(node, event=warn_msg,
+                                              event_type=node.provision_state,
+                                              error=True)
+            raise exception.IloOperationError(operation=operation,
+                                              error=warn_msg)
         raise exception.IloOperationError(operation=operation,
                                           error=ilo_exception)
 
