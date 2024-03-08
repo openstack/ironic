@@ -4081,21 +4081,32 @@ def do_sync_power_state(task, count):
 
 def do_attach_virtual_media(task, device_type, image_url,
                             image_download_source):
-    assert device_type in boot_devices.VMEDIA_DEVICES
-    file_name = "%s.%s" % (
-        device_type.lower(),
-        'iso' if device_type == boot_devices.CDROM else 'img'
-    )
-    image_url = image_utils.prepare_remote_image(
-        task, image_url, file_name=file_name,
-        download_source=image_download_source)
-    utils.run_node_action(
-        task, task.driver.management.attach_virtual_media,
-        success_msg="Device %(device_type)s attached to node %(node)s",
-        error_msg="Could not attach device %(device_type)s "
-        "to node %(node)s: %(exc)s",
-        device_type=device_type,
-        image_url=image_url)
+    success_msg = "Device %(device_type)s attached to node %(node)s",
+    error_msg = ("Could not attach device %(device_type)s "
+                 "to node %(node)s: %(exc)s")
+    try:
+        assert device_type in boot_devices.VMEDIA_DEVICES
+        file_name = "%s.%s" % (
+            device_type.lower(),
+            'iso' if device_type == boot_devices.CDROM else 'img'
+        )
+        image_url = image_utils.prepare_remote_image(
+            task, image_url, file_name=file_name,
+            download_source=image_download_source)
+        utils.run_node_action(
+            task, task.driver.management.attach_virtual_media,
+            success_msg=success_msg,
+            error_msg=error_msg,
+            device_type=device_type,
+            image_url=image_url)
+    except Exception as exc:
+        error = error_msg % {'node': task.node.uuid,
+                             'device_type': device_type,
+                             'exc': exc}
+        LOG.error(
+            error, exc_info=not isinstance(exc, exception.IronicException))
+        utils.node_history_record(task.node, event=error, error=True)
+        task.node.save()
 
 
 def do_detach_virtual_media(task, device_types):
