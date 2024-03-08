@@ -1450,11 +1450,28 @@ class AgentDeployMixin(HeartbeatMixin, AgentOobStepsMixin):
 
         try:
             persistent = True
+            # NOTE(TheJulia): We *really* only should be doing this in bios
+            # boot mode. In UEFI this might just get disregarded, or cause
+            # issues/failures.
             if node.driver_info.get('force_persistent_boot_device',
                                     'Default') == 'Never':
                 persistent = False
-            deploy_utils.try_set_boot_device(task, boot_devices.DISK,
-                                             persistent=persistent)
+
+            vendor = task.node.properties.get('vendor', None)
+            if not (vendor and vendor.lower() == 'lenovo'
+                    and target_boot_mode == 'uefi'):
+                # Lenovo hardware is modeled on a "just update"
+                # UEFI nvram model of use, and if multiple actions
+                # get requested, you can end up in cases where NVRAM
+                # changes are deleted as the host "restores" to the
+                # backup. For more information see
+                # https://bugs.launchpad.net/ironic/+bug/2053064
+                # NOTE(TheJulia): We likely just need to do this with
+                # all hosts in uefi mode, but libvirt VMs don't handle
+                # nvram only changes *and* this pattern is known to generally
+                # work for Ironic operators.
+                deploy_utils.try_set_boot_device(task, boot_devices.DISK,
+                                                 persistent=persistent)
         except Exception as e:
             msg = (_("Failed to change the boot device to %(boot_dev)s "
                      "when deploying node %(node)s: %(error)s") %
