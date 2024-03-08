@@ -2462,19 +2462,19 @@ function enroll_nodes {
         local ironic_hwinfo_file=$IRONIC_VM_MACS_CSV_FILE
 
         if is_deployed_by_ipmi; then
-            local node_options="\
+            local deploy_options="\
                 --driver-info ipmi_address=${HOST_IP} \
                 --driver-info ipmi_username=admin \
                 --driver-info ipmi_password=password"
         elif is_deployed_by_snmp; then
-            local node_options="\
+            local deploy_options="\
                 --driver-info snmp_driver=${IRONIC_VPDU_SNMPDRIVER} \
                 --driver-info snmp_address=${HOST_IP} \
                 --driver-info snmp_port=${IRONIC_VPDU_LISTEN_PORT} \
                 --driver-info snmp_protocol=2c \
                 --driver-info snmp_community=${IRONIC_VPDU_COMMUNITY}"
         elif is_deployed_by_redfish; then
-            local node_options="\
+            local deploy_options="\
                 --driver-info redfish_address=http://${HOST_IP}:${IRONIC_REDFISH_EMULATOR_PORT} \
                 --driver-info redfish_username=admin \
                 --driver-info redfish_password=password"
@@ -2497,6 +2497,8 @@ function enroll_nodes {
     while read hardware_info; do
         local node_name
         node_name=$node_prefix-$total_nodes
+
+        local node_options="$deploy_options"
 
         local node_capabilities=""
         if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
