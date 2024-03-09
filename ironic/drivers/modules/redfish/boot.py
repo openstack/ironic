@@ -167,10 +167,36 @@ def _test_retry(exception):
     return False
 
 
-@tenacity.retry(retry=tenacity.retry_if_exception(_test_retry),
-                stop=tenacity.stop_after_attempt(3),
-                wait=tenacity.wait_fixed(3),
-                reraise=True)
+def _has_vmedia_via_systems(system):
+    """Indicates if virtual media is available trough Systems
+
+    :param system: A redfish System object
+    :return: True if the System has virtual media, else False
+    """
+    try:
+        system.virtual_media
+        return True
+    except sushy.exceptions.MissingAttributeError:
+        return False
+    except AttributeError:
+        # NOTE(wncslln): In case of older versions of sushy are
+        # used.
+        return False
+
+
+def _has_vmedia_via_manager(manager):
+    """Indicates if virtual media is available in the Manager
+
+    :param manager: A redfish System object
+    :return: True if the System has virtual media, else False
+    """
+    try:
+        manager.virtual_media
+        return True
+    except sushy.exceptions.MissingAttributeError:
+        return False
+
+
 def _insert_vmedia(task, managers, boot_url, boot_device):
     """Insert bootable ISO image into virtual CD or DVD
 
@@ -182,71 +208,103 @@ def _insert_vmedia(task, managers, boot_url, boot_device):
     :raises: InvalidParameterValue, if no suitable virtual CD or DVD is
         found on the node.
     """
-    err_msg = None
-    for manager in managers:
-        for v_media in manager.virtual_media.get_members():
-            if boot_device not in v_media.media_types:
-                # NOTE(janders): this conditional allows v_media that only
-                # support DVD MediaType and NOT CD to also be used.
-                # if v_media.media_types contains sushy.VIRTUAL_MEDIA_DVD
-                # we follow the usual steps of checking if v_media is inserted
-                # and if not, attempt to insert it. Otherwise we skip to the
-                # next v_media device, if any
-                # This is needed to add support to Cisco UCSB and UCSX blades
-                # reference: https://bugs.launchpad.net/ironic/+bug/2031595
-                if (boot_device == sushy.VIRTUAL_MEDIA_CD
-                    and sushy.VIRTUAL_MEDIA_DVD in v_media.media_types):
-                    LOG.debug("While looking for %(requested_device)s virtual "
-                              "media device, found %(available_device)s "
-                              "instead. Attempting to configure it.",
-                              {'requested_device': sushy.VIRTUAL_MEDIA_CD,
-                               'available_device': sushy.VIRTUAL_MEDIA_DVD})
-                else:
-                    continue
-
-            if v_media.inserted:
-                if v_media.image == boot_url:
-                    LOG.debug("Boot media %(boot_url)s is already "
-                              "inserted into %(boot_device)s for node "
-                              "%(node)s", {'node': task.node.uuid,
-                                           'boot_url': boot_url,
-                                           'boot_device': boot_device})
-                    return
-
-                continue
-
-            try:
-                v_media.insert_media(boot_url, inserted=True,
-                                     write_protected=True)
-            # NOTE(janders): On Cisco UCSB and UCSX blades there are several
-            # vMedia devices. Some of those are only meant for internal use
-            # by CIMC vKVM - attempts to InsertMedia into those will result
-            # in BadRequestError. We catch the exception here so that we don't
-            # fail out and try the next available device instead, if available.
-            except sushy.exceptions.BadRequestError:
-                err_msg = ("Inserting virtual media into %(boot_device)s "
-                           "failed for node %(node)s, moving to next virtual "
-                           "media device, if available",
-                           {'node': task.node.uuid,
-                            'boot_device': boot_device})
-                LOG.warning(err_msg)
-                continue
-            except sushy.exceptions.ServerSideError as e:
-                e.node_uuid = task.node.uuid
-                raise
-
-            LOG.info("Inserted boot media %(boot_url)s into "
-                     "%(boot_device)s for node "
-                     "%(node)s", {'node': task.node.uuid,
-                                  'boot_url': boot_url,
-                                  'boot_device': boot_device})
+    err_msgs = []
+    system = redfish_utils.get_system(task.node)
+    if _has_vmedia_via_systems(system):
+        inserted = _insert_vmedia_in_resource(task, system, boot_url,
+                                              boot_device, err_msgs)
+        if inserted:
             return
-    if (err_msg is not None):
+    else:
+        for manager in managers:
+            inserted = _insert_vmedia_in_resource(task, manager, boot_url,
+                                                  boot_device, err_msgs)
+            if inserted:
+                return
+
+    if err_msgs:
         exc_msg = ("All virtual media mount attempts failed. "
-                   "Most recent error: ", err_msg)
+                   "Most recent error: ", err_msgs[-1])
     else:
         exc_msg = 'No suitable virtual media device found'
     raise exception.InvalidParameterValue(exc_msg)
+
+
+@tenacity.retry(retry=tenacity.retry_if_exception(_test_retry),
+                stop=tenacity.stop_after_attempt(3),
+                wait=tenacity.wait_fixed(3),
+                reraise=True)
+def _insert_vmedia_in_resource(task, resource, boot_url, boot_device,
+                               err_msgs):
+    """Insert virtual media from a given redfish resource (System/Manager)
+
+    :param task: A task from TaskManager.
+    :param resource: A redfish resource either a System or Manager.
+    :param boot_url: URL to a bootable ISO image
+    :param boot_device: sushy boot device e.g. `VIRTUAL_MEDIA_CD`,
+        `VIRTUAL_MEDIA_DVD` or `VIRTUAL_MEDIA_FLOPPY`
+    :param err_msgs: A list that will contain all errors found
+    :raises: InvalidParameterValue, if no suitable virtual CD or DVD is
+        found on the node.
+    """
+    for v_media in resource.virtual_media.get_members():
+        if boot_device not in v_media.media_types:
+            # NOTE(janders): this conditional allows v_media that only
+            # support DVD MediaType and NOT CD to also be used.
+            # if v_media.media_types contains sushy.VIRTUAL_MEDIA_DVD
+            # we follow the usual steps of checking if v_media is inserted
+            # and if not, attempt to insert it. Otherwise we skip to the
+            # next v_media device, if any
+            # This is needed to add support to Cisco UCSB and UCSX blades
+            # reference: https://bugs.launchpad.net/ironic/+bug/2031595
+            if (boot_device == sushy.VIRTUAL_MEDIA_CD
+                and sushy.VIRTUAL_MEDIA_DVD in v_media.media_types):
+                LOG.debug("While looking for %(requested_device)s virtual "
+                          "media device, found %(available_device)s "
+                          "instead. Attempting to configure it.",
+                          {'requested_device': sushy.VIRTUAL_MEDIA_CD,
+                           'available_device': sushy.VIRTUAL_MEDIA_DVD})
+            else:
+                continue
+
+        if v_media.inserted:
+            if v_media.image == boot_url:
+                LOG.debug("Boot media %(boot_url)s is already "
+                          "inserted into %(boot_device)s for node "
+                          "%(node)s", {'node': task.node.uuid,
+                                       'boot_url': boot_url,
+                                       'boot_device': boot_device})
+                return True
+
+            continue
+
+        try:
+            v_media.insert_media(boot_url, inserted=True,
+                                 write_protected=True)
+        # NOTE(janders): On Cisco UCSB and UCSX blades there are several
+        # vMedia devices. Some of those are only meant for internal use
+        # by CIMC vKVM - attempts to InsertMedia into those will result
+        # in BadRequestError. We catch the exception here so that we don't
+        # fail out and try the next available device instead, if available.
+        except sushy.exceptions.BadRequestError:
+            err_msg = ("Inserting virtual media into %(boot_device)s "
+                       "failed for node %(node)s, moving to next virtual "
+                       "media device, if available",
+                       {'node': task.node.uuid,
+                        'boot_device': boot_device})
+            err_msgs.append(err_msg)
+            LOG.warning(err_msg)
+            continue
+        except sushy.exceptions.ServerSideError as e:
+            e.node_uuid = task.node.uuid
+            raise
+
+        LOG.info("Inserted boot media %(boot_url)s into "
+                 "%(boot_device)s for node "
+                 "%(node)s", {'node': task.node.uuid,
+                              'boot_url': boot_url,
+                              'boot_device': boot_device})
+        return True
 
 
 def _eject_vmedia(task, managers, boot_device=None):
@@ -262,37 +320,66 @@ def _eject_vmedia(task, managers, boot_device=None):
         found on the node.
     """
     found = False
+    system = redfish_utils.get_system(task.node)
+    # NOTE(wncslln): we will attempt to eject virtual media in Systems
+    # and in Managers.
+    if _has_vmedia_via_systems(system):
+        ejected = _eject_vmedia_from_resource(task, resource=system,
+                                              boot_device=boot_device)
+        if ejected:
+            found = True
+
     for manager in managers:
-        for v_media in manager.virtual_media.get_members():
-            if boot_device and boot_device not in v_media.media_types:
-                # NOTE(iurygregory): this conditional allows v_media that only
-                # support DVD MediaType and NOT CD to also be used.
-                # if v_media.media_types contains sushy.VIRTUAL_MEDIA_DVD
-                # we follow the usual steps of checking if v_media is inserted
-                # and eject it. Otherwise we skip to the
-                # next v_media device, if any.
-                # This is needed to add support to Cisco UCSB and UCSX blades
-                # reference: https://bugs.launchpad.net/ironic/+bug/2039042
-                if (boot_device == sushy.VIRTUAL_MEDIA_CD
-                    and sushy.VIRTUAL_MEDIA_DVD in v_media.media_types):
-                    LOG.debug('While looking for %(requested_device)s virtual '
-                              'media device, found %(available_device)s '
-                              'instead. Attempting to use it to eject media.',
-                              {'requested_device': sushy.VIRTUAL_MEDIA_CD,
-                               'available_device': sushy.VIRTUAL_MEDIA_DVD})
-                else:
-                    continue
-            inserted = v_media.inserted
-
-            if inserted:
-                v_media.eject_media()
+        if _has_vmedia_via_manager(manager):
+            ejected = _eject_vmedia_from_resource(task, resource=manager,
+                                                  boot_device=boot_device)
+            if ejected:
                 found = True
+        continue
 
-            LOG.info("Boot media is%(already)s ejected from "
-                     "%(boot_device)s for node %(node)s"
-                     "", {'node': task.node.uuid,
-                          'already': '' if inserted else ' already',
-                          'boot_device': v_media.name})
+    return found
+
+
+def _eject_vmedia_from_resource(task, resource, boot_device=None):
+    """Eject virtual media from a given redfish resource (System/Manager)
+
+    :param task: A task from TaskManager.
+    :param resource: A redfish resource either a System or Manager.
+    :param boot_device: sushy boot device e.g. `VIRTUAL_MEDIA_CD`,
+        `VIRTUAL_MEDIA_DVD` or `VIRTUAL_MEDIA_FLOPPY` or `None` to
+        eject everything (default).
+    :return: True if any device was ejected, else False
+    """
+    found = False
+    for v_media in resource.virtual_media.get_members():
+        if boot_device and boot_device not in v_media.media_types:
+            # NOTE(iurygregory): this conditional allows v_media that only
+            # support DVD MediaType and NOT CD to also be used.
+            # if v_media.media_types contains sushy.VIRTUAL_MEDIA_DVD
+            # we follow the usual steps of checking if v_media is inserted
+            # and eject it. Otherwise we skip to the
+            # next v_media device, if any.
+            # This is needed to add support to Cisco UCSB and UCSX blades
+            # reference: https://bugs.launchpad.net/ironic/+bug/2039042
+            if (boot_device == sushy.VIRTUAL_MEDIA_CD
+                and sushy.VIRTUAL_MEDIA_DVD in v_media.media_types):
+                LOG.debug('While looking for %(requested_device)s virtual '
+                          'media device, found %(available_device)s '
+                          'instead. Attempting to use it to eject media.',
+                          {'requested_device': sushy.VIRTUAL_MEDIA_CD,
+                           'available_device': sushy.VIRTUAL_MEDIA_DVD})
+            else:
+                continue
+        inserted = v_media.inserted
+        if inserted:
+            v_media.eject_media()
+            found = True
+
+        LOG.info("Boot media is%(already)s ejected from "
+                 "%(boot_device)s for node %(node)s"
+                 "", {'node': task.node.uuid,
+                      'already': '' if inserted else ' already',
+                      'boot_device': v_media.name})
     return found
 
 
@@ -318,8 +405,8 @@ def eject_vmedia(task, boot_device=None):
             image_utils.cleanup_iso_image(task)
 
 
-def _has_vmedia_device(managers, boot_device, inserted=None):
-    """Indicate if device exists at any of the managers
+def _has_vmedia_device(managers, boot_device, inserted=None, system=None):
+    """Indicate if device exists at any of the managers or system
 
     :param managers: A list of System managers.
     :param boot_device: One or more sushy boot device e.g. `VIRTUAL_MEDIA_CD`,
@@ -333,14 +420,23 @@ def _has_vmedia_device(managers, boot_device, inserted=None):
         boot_device = [boot_device]
 
     for dev in boot_device:
-        for manager in managers:
-            for v_media in manager.virtual_media.get_members():
+        if _has_vmedia_via_systems(system):
+            for v_media in system.virtual_media.get_members():
                 if dev not in v_media.media_types:
                     continue
                 if (inserted is not None
                         and bool(v_media.inserted) is not inserted):
                     continue
                 return dev
+        else:
+            for manager in managers:
+                for v_media in manager.virtual_media.get_members():
+                    if dev not in v_media.media_types:
+                        continue
+                    if (inserted is not None
+                            and bool(v_media.inserted) is not inserted):
+                        continue
+                    return dev
     return False
 
 
@@ -526,13 +622,14 @@ class RedfishVirtualMediaBoot(base.BootInterface):
             return
 
         d_info = _parse_driver_info(node)
-        managers = redfish_utils.get_system(task.node).managers
+        system = redfish_utils.get_system(task.node)
+        managers = system.managers
 
         self._validate_vendor(task, managers)
 
         if manager_utils.is_fast_track(task):
             if _has_vmedia_device(managers, sushy.VIRTUAL_MEDIA_CD,
-                                  inserted=True):
+                                  inserted=True, system=system):
                 LOG.debug('Fast track operation for node %s, not inserting '
                           'any devices', node.uuid)
                 return
@@ -570,7 +667,8 @@ class RedfishVirtualMediaBoot(base.BootInterface):
             removable = _has_vmedia_device(
                 managers,
                 # Prefer USB devices since floppies are outdated
-                [sushy.VIRTUAL_MEDIA_USBSTICK, sushy.VIRTUAL_MEDIA_FLOPPY])
+                [sushy.VIRTUAL_MEDIA_USBSTICK, sushy.VIRTUAL_MEDIA_FLOPPY],
+                system=system)
             if removable:
                 floppy_ref = image_utils.prepare_floppy_image(
                     task, params=ramdisk_params)
