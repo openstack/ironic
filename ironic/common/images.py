@@ -23,7 +23,7 @@ import os
 import shutil
 import time
 
-from ironic_lib import disk_utils
+from ironic_lib import qemu_img
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import fileutils
@@ -378,7 +378,7 @@ def fetch(context, image_href, path, force_raw=False):
 
 
 def get_source_format(image_href, path):
-    data = disk_utils.qemu_img_info(path)
+    data = qemu_img.image_info(path)
 
     fmt = data.file_format
     if fmt is None:
@@ -415,10 +415,10 @@ def image_to_raw(image_href, path, path_tmp):
             LOG.debug("%(image)s was %(format)s, converting to raw",
                       {'image': image_href, 'format': fmt})
             with fileutils.remove_path_on_error(staged):
-                disk_utils.convert_image(path_tmp, staged, 'raw')
+                qemu_img.convert_image(path_tmp, staged, 'raw')
                 os.unlink(path_tmp)
 
-                data = disk_utils.qemu_img_info(staged)
+                data = qemu_img.image_info(staged)
                 if data.file_format != "raw":
                     raise exception.ImageConvertFailed(
                         image_id=image_href,
@@ -454,7 +454,7 @@ def converted_size(path, estimate=False):
         the original image scaled by the configuration value
         `raw_image_growth_factor`.
     """
-    data = disk_utils.qemu_img_info(path)
+    data = qemu_img.image_info(path)
     if not estimate:
         return data.virtual_size
     growth_factor = CONF.raw_image_growth_factor

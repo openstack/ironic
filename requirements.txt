@@ -14,7 +14,7 @@ WebOb>=1.7.1 # MIT
 python-cinderclient!=4.0.0,>=3.3.0 # Apache-2.0
 python-glanceclient>=2.8.0 # Apache-2.0
 keystoneauth1>=4.2.0 # Apache-2.0
-ironic-lib>=5.5.0 # Apache-2.0
+ironic-lib>=6.0.0 # Apache-2.0
 stevedore>=1.29.0 # Apache-2.0
 oslo.concurrency>=4.2.0 # Apache-2.0
 oslo.config>=6.8.0 # Apache-2.0
