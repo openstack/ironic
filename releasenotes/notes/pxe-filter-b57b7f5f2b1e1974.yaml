@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds a new service ``ironic-pxe-filter`` that is designed to work with
+    the ``agent`` inspect interface to conduct "unmanaged" inspection. It is
+    adapted from the ironic-inspector's ``dnsmasq`` PXE filter and can be used
+    as its replacement. See documentation for more details.
