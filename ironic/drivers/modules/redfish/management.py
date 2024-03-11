@@ -37,6 +37,7 @@ from ironic.conf import CONF
 from ironic.drivers import base
 from ironic.drivers.modules import boot_mode_utils
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import firmware_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
 
@@ -1334,3 +1335,27 @@ class RedfishManagement(base.ManagementInterface):
                    % {'node': task.node.uuid, 'exc': exc})
             LOG.error(msg)
             raise exception.RedfishError(error=msg)
+
+    @task_manager.require_exclusive_lock
+    def attach_virtual_media(self, task, device_type, image_url):
+        """Attach a virtual media device to the node.
+
+            :param task: A task from TaskManager.
+            :param device_type: A device type from
+                :data:`ironic.common.boot_devices.VMEDIA_DEVICES`.
+            :param image_url: URL of the image to attach, HTTP or HTTPS.
+
+        """
+        redfish_boot.insert_vmedia(task, image_url, device_type)
+
+    @task_manager.require_exclusive_lock
+    def detach_virtual_media(self, task, device_type=None):
+        """Detach some or all virtual media devices from the node.
+
+            :param task: A task from TaskManager.
+            :param device_type: A device type from
+                :data:`ironic.common.boot_devices.VMEDIA_DEVICES`.
+                If not provided, all devices are detached.
+
+        """
+        redfish_boot.eject_vmedia(task, device_type)

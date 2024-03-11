@@ -95,6 +95,7 @@ class RedfishVendorPassthru(base.VendorInterface):
         """Eject a virtual media device.
 
         Deprecated in favour of the generic API.
+        This should be removed during the 2024.2 cycle.
 
         :param task: A TaskManager object.
         :param kwargs: The arguments sent with vendor passthru. The optional
