@@ -3822,6 +3822,8 @@ class ConductorManager(base_manager.BaseConductorManager):
 
         :param context: request context.
         :param node_id: node ID or UUID.
+        :param device_type: A device type from
+            :data:`ironic.common.boot_devices.VMEDIA_DEVICES`.
         :param image_url: URL of the image to attach, HTTP or HTTPS.
         :param image_download_source: Which way to serve the image to the BMC:
             "http" to serve it from the provided location, "local" to serve
