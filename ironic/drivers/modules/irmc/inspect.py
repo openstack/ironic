@@ -197,7 +197,8 @@ def _inspect_hardware(node, existing_traits=None, **kwargs):
         props = irmc.scci.get_essential_properties(
             report, IRMCInspect.ESSENTIAL_PROPERTIES)
         d_info = irmc_common.parse_driver_info(node)
-        if node.driver_internal_info.get('irmc_ipmi_succeed'):
+        if (getattr(node, 'power_interface') == 'ipmitool'
+            or node.driver_internal_info.get('irmc_ipmi_succeed')):
             capabilities = irmc.scci.get_capabilities_properties(
                 d_info,
                 capabilities_props,
