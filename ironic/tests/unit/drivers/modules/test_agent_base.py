@@ -1018,6 +1018,33 @@ class AgentDeployMixinTest(AgentDeployMixinBaseTest):
                        autospec=True)
     @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
     @mock.patch.object(boot_mode_utils, 'get_boot_mode', autospec=True,
+                       return_value='uefi')
+    def test_configure_local_boot_lenovo(self, boot_mode_mock,
+                                         try_set_boot_device_mock,
+                                         install_bootloader_mock):
+        install_bootloader_mock.return_value = {
+            'command_status': 'SUCCESS', 'command_error': None}
+        props = self.node.properties
+        props['vendor'] = 'Lenovo'
+        props['capabilities'] = 'boot_mode:uefi'
+        self.node.properties = props
+        self.node.save()
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            task.node.driver_internal_info['is_whole_disk_image'] = False
+            self.deploy.configure_local_boot(task, root_uuid='some-root-uuid')
+            try_set_boot_device_mock.assert_not_called()
+            boot_mode_mock.assert_called_once_with(task.node)
+            install_bootloader_mock.assert_called_once_with(
+                mock.ANY, task.node, root_uuid='some-root-uuid',
+                efi_system_part_uuid=None, prep_boot_part_uuid=None,
+                target_boot_mode='uefi', software_raid=False
+            )
+
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode', autospec=True,
                        return_value='whatever')
     def test_configure_local_boot_with_prep(self, boot_mode_mock,
                                             try_set_boot_device_mock,
