@@ -288,16 +288,15 @@ Then the following script can be used to build an ESP image:
    DEST=/path/to/esp.img
    GRUB2=/path/to/grub.efi
    SHIM=/path/to/shim.efi
-   TEMP_MOUNT=$(mktemp -d)
 
    dd if=/dev/zero of=$DEST bs=4096 count=1024
-   mkfs.fat -s 4 -r 512 -S 4096 $DEST
+   mkfs.msdos -F 12 -n ESP_IMAGE $DEST
 
-   sudo mount $DEST $TEMP_MOUNT
-   sudo mkdir -p $DEST/EFI/BOOT
-   sudo cp "$SHIM" $DEST/EFI/BOOT/BOOTX64.efi
-   sudo cp "$GRUB2" $DEST/EFI/BOOT/GRUBX64.efi
-   sudo umount $TEMP_MOUNT
+   # The following commands require mtools to be installed
+   mmd -i $DEST EFI EFI/BOOT
+   mcopy -i $DEST -v $SHIM ::EFI/BOOT/BOOTX64.efi
+   mcopy -i $DEST -v $GRUB2 ::EFI/BOOT/GRUBX64.efi
+   mdir -i $DEST ::EFI/BOOT
 
 .. note::
    If you use an architecture other than x86-64, you'll need to adjust the
