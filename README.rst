@@ -33,8 +33,8 @@ Project resources
 * Design Specifications: https://specs.openstack.org/openstack/ironic-specs/
 
 Project status, bugs, and requests for feature enhancements (RFEs) are tracked
-in StoryBoard:
-https://storyboard.openstack.org/#!/project/943
+in Launchpad:
+https://launchpad.net/ironic
 
 For information on how to contribute to ironic, see
 https://docs.openstack.org/ironic/latest/contributor
