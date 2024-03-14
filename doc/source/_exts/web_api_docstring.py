@@ -78,7 +78,7 @@ def parse_field_list(content):
 
 
 def create_bullet_list(input_dict, input_build_env):
-    """Convert input_dict into a sphinx representaion of a bullet list."""
+    """Convert input_dict into a sphinx representation of a bullet list."""
 
     grp_field = GroupedField('grp_field', label='title')
     bullet_list = nodes.paragraph()
@@ -138,7 +138,7 @@ def split_list(input_list):
     """Split input_list into three sub-lists.
 
     This function splits the input_list into three, one list containing the
-    inital non-empty items, one list containing items appearing after the
+    initial non-empty items, one list containing items appearing after the
     string 'Success' in input_list; and the other list containing items
     appearing after the string 'Failure' in input_list.
     """

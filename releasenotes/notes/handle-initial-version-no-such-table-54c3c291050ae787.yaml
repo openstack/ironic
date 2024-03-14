@@ -3,7 +3,7 @@ fixes:
   - |
     Fixes an issue in db schema version testing where objects with a initial
     version, e.g. "1.0", are allowed to not already have their DB tables
-    pre-exist when performing the pre-upgrade compatability check for the
+    pre-exist when performing the pre-upgrade compatibility check for the
     database. This allows the upgrade to proceed and update the database
     schema without an explicit known list having to be maintained in Ironic.
 other:

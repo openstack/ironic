@@ -366,7 +366,7 @@ def patched_validate_with_schema(patched_dict, schema, validator=None):
         updates applied
     :param schema: Any dict key not in the schema will be deleted from the
         dict. If no validator is specified then the resulting ``patched_dict``
-        will be validated agains the schema
+        will be validated against the schema
     :param validator: Optional validator to use if there is extra validation
         required beyond the schema
     :raises: exception.Invalid if validation fails

@@ -2,7 +2,7 @@
 fixes:
   - |
     Fixes an issue with the ``ansible`` deployment interface where automatic
-    root deviec selection would accidently choose the system CD-ROM device,
+    root deviec selection would accidentally choose the system CD-ROM device,
     which was likely to occur when the ansible deployment interface was used
     with virtual media boot.
     The ``ansible`` deployment interface now ignores all Ramdisks, Loopbacks,

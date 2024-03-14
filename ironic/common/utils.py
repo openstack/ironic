@@ -114,7 +114,7 @@ def is_valid_logical_name(hostname):
     """Determine if a logical name is valid.
 
     The logical name may only consist of RFC3986 unreserved
-    characters, to wit:
+    characters:
 
         ALPHA / DIGIT / "-" / "." / "_" / "~"
     """

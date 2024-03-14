@@ -1,8 +1,8 @@
 ---
 fixes:
   - |
-    Fixes a compatability issue where the iPXE kernel command line was no
-    longe compatible with dracut. The ``ip`` parameter has been removed
+    Fixes a compatibility issue where the iPXE kernel command line was no
+    longer compatible with dracut. The ``ip`` parameter has been removed
     as it is incompatible with the ``BOOTIF`` and missing ``autoconf``
     parameters when dracut is used. Further details can be found in
     `storyboard <https://storyboard.openstack.org/#!/story/2001969>`_.

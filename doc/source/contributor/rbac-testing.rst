@@ -13,7 +13,7 @@ standard pattern of entirely python based unit testing. In part this was done
 for purposes of speed and to keep the declaration of the test context.
 
 This also lended itself to be very useful due to the nature of A/B testing
-which is requried to properly migrate the Ironic project from a project
+which is required to properly migrate the Ironic project from a project
 scoped universe where an ``admin project`` is utilized as the authenticating
 factor coupled with two custom roles, ``baremetal_admin``, and
 ``baremetal_observer``.
@@ -41,7 +41,7 @@ back would have been a heavier lift. As such, the tests largely look for
 one of the following error codes.
 
 * 200 - Got the item from the API - This is an database driven interaction.
-* 201 - Created - This is databaes driven interaction. These are rare.
+* 201 - Created - This is database driven interaction. These are rare.
 * 204 - Accepted - This is a database driven interaction. These are rare.
 * 403 - Forbidden - This tells us the policy worked as expected where
         access was denied.
@@ -78,7 +78,7 @@ Some general rules apply
   Remember: owner and lessee admins are closer to System scoped Admin Members.
 * Members can do some things, but not everything
 * Readers can always read, but as we get into sensitive data later on
-  such as fields containing infrastucture internal addresses, these values
+  such as fields containing infrastructure internal addresses, these values
   will become hidden and additional tests will examine this.
 * Third party, or external/other Admins will find nothing but sadness
   in empty lists, 403, 404, or even 500 errors.
@@ -91,7 +91,7 @@ tests Role Based Access Control related capabilities will come in a
 series of phases, styles vary a little.
 
 The first phase is ``"legacy"``. In essence these are partially
-programatically generated and then human reviewed and values populated
+programmatically generated and then human reviewed and values populated
 with expected values.
 
 The second phase is remarkably similar to ``legacy``. It is the safety net
@@ -108,7 +108,7 @@ to the ``legacy`` tests. The major difference being some header values,
 and a user with a ``member`` role in the ``system`` scope now has some
 rights.
 
-The forth phase, is implementaiton of ``owner`` and ``lessee`` aware
+The forth phase, is implementation of ``owner`` and ``lessee`` aware
 project scoping. The testing approach is similar, however it is much more of
 a "shotgun" approach. We test what we know should work, and what know should
 not work, but we do not have redundant testing for each role as ``admin``

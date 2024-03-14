@@ -115,7 +115,7 @@ Logging
 
 Logging is implemented as custom Ansible callback module,
 that makes use of ``oslo.log`` and ``oslo.config`` libraries
-and can re-use logging configuration defined in the main ironic configuration
+and can reuse logging configuration defined in the main ironic configuration
 file to set logging for Ansible events, or use a separate file for this purpose.
 
 It works best when ``journald`` support for logging is enabled.

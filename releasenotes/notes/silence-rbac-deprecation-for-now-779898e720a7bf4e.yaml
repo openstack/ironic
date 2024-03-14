@@ -3,7 +3,7 @@ other:
   - |
     Deprecation warnings for the legacy RBAC policies are now suppressed,
     as the OpenStack community is coalescing around what appears will be a
-    longer deprecation cycle and process than would typcially be undertaken
+    longer deprecation cycle and process than would typically be undertaken
     due to the nature and impact of policy changes. The community as a whole
     is expecting to make RBAC policy work changes a community goal during the
     Y* release development cycle, which means the earliest legacy policy

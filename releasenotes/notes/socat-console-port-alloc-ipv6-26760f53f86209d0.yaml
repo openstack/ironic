@@ -2,4 +2,4 @@
 fixes:
   - |
     Fixes the issue that port auto allocation for the socat console failed to
-    correctly identify the availablility of ports under IPv6 networks.
+    correctly identify the availability of ports under IPv6 networks.

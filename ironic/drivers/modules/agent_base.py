@@ -864,7 +864,7 @@ class AgentBaseMixin(object):
 
         :param task: a TaskManager object containing the node
         :returns: A list of service step dictionaries, if an error
-                  occurs, then an emtpy list is returned.
+                  occurs, then an empty list is returned.
         """
         new_priorities = {
             'erase_devices': CONF.deploy.erase_devices_priority,

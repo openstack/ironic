@@ -75,7 +75,7 @@ class FunctionDefinition(object):
         #: The function arguments (list of :class:`FunctionArgument`)
         self.arguments = []
 
-        #: If the body carry the datas of a single argument, its type
+        #: If the body carry the data of a single argument, its type
         self.body_type = None
 
         #: Status code
@@ -86,7 +86,7 @@ class FunctionDefinition(object):
         #: exceptions
         self.ignore_extra_args = False
 
-        #: Dictionnary of protocol-specific options.
+        #: Dictionary of protocol-specific options.
         self.extra_options = None
 
     @staticmethod
@@ -145,7 +145,7 @@ class signature(object):
     :param body: If the function takes a final argument that is supposed to be
                  the request body by itself, its type.
     :param status_code: HTTP return status code of the function.
-    :param ignore_extra_args: Allow extra/unknow arguments (default to False)
+    :param ignore_extra_args: Allow extra/unknown arguments (default to False)
 
     Most of the time this decorator is not supposed to be used directly,
     unless you are not using WSME on top of another framework.

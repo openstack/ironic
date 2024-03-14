@@ -12,7 +12,7 @@ features:
   - |
     Adds the capability for a project scoped ``admin`` user to be able to
     delete nodes from Ironic which their `project` owns. This can be
-    contolled through the ``[api]project_admin_can_manage_own_nodes``
+    controlled through the ``[api]project_admin_can_manage_own_nodes``
     setting, which defaults to ``True``, as well as the
     ``baremetal:node:delete:self_owned_node`` policy.
 security:
@@ -23,5 +23,5 @@ security:
 upgrades:
   - |
     The API version has been increased to ``1.80`` in order to signify
-    the addition of additoinal Role Based Access Controls capabilities
+    the addition of additional Role Based Access Controls capabilities
     around node creation and deletion.

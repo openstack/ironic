@@ -2,9 +2,9 @@
 features:
   - |
     Adds a new feature to permit Ironic to automatically provide an instance
-    requestor's project, ``lessee`` rights to the Bare Metal machine under
+    requester's project, ``lessee`` rights to the Bare Metal machine under
     the Role Based Access Control model implemented in Ironic. It does this
-    by saving the project ID of the requestor to the Node ``lessee`` field
+    by saving the project ID of the requester to the Node ``lessee`` field
     automatically, and removing the rights when undeploying the machine.
     This feature, is normally disabled, but can be enabled using the
     ``[conductor]automatic_lessee`` configuration option. This option will not

@@ -524,7 +524,7 @@ def _ipmitool_timing_args():
 
 
 def choose_cipher_suite(actual_cipher_suite):
-    """Gives the possible next avaible cipher suite version.
+    """Gives the possible next available cipher suite version.
 
     Based on CONF.ipmi.cipher_suite_versions and the last cipher suite version
     used that failed. This function is only called if the node doesn't have
@@ -1209,8 +1209,8 @@ class IPMIManagement(base.ManagementInterface):
         boot_mode = boot_mode_utils.get_boot_mode(task.node)
         if boot_mode == 'uefi':
             # Long story short: UEFI was added to IPMI after the final spec
-            # release occured. This means BMCs may actually NEED to be
-            # explicitly told if the boot is persistant because the
+            # release occurred. This means BMCs may actually NEED to be
+            # explicitly told if the boot is persistent because the
             # BMC may return a value which is explicitly parsed as
             # no change, BUT the BMC may treat that as operational default.
             efi_persistence = '0xe0' if persistent else '0xa0'
@@ -1340,7 +1340,7 @@ class IPMIManagement(base.ManagementInterface):
         """
         driver_info = _parse_driver_info(task.node)
         # with '-v' option, we can get the entire sensor data including the
-        # extended sensor informations
+        # extended sensor information
         cmd = "sdr -v"
         try:
             out, err = _exec_ipmitool(

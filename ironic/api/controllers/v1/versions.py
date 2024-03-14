@@ -94,7 +94,7 @@ BASE_VERSION = 1
 # v1.54: Add events support.
 # v1.55: Add deploy templates API.
 # v1.56: Add support for building configdrives.
-# v1.57: Add support for updating an exisiting allocation.
+# v1.57: Add support for updating an existing allocation.
 # v1.58: Add support for backfilling allocations.
 # v1.59: Add support vendor data in configdrives.
 # v1.60: Add owner to the allocation object.

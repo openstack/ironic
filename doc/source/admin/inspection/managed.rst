@@ -34,7 +34,7 @@ option:
    [inspector]
    callback_endpoint_override = https://example.com/baremetal-introspection/v1/continue
 
-For the built-in inspection, the bare metal API endpoint can be overriden
+For the built-in inspection, the bare metal API endpoint can be overridden
 instead:
 
 .. code-block:: ini

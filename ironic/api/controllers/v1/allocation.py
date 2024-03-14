@@ -271,22 +271,22 @@ class AllocationsController(pecan.rest.RestController):
            :fields: fields
            :owner: r_owner
         """
-        requestor = api_utils.check_list_policy('allocation', owner)
+        requester = api_utils.check_list_policy('allocation', owner)
 
         self._check_allowed_allocation_fields(fields)
         if owner is not None and not api_utils.allow_allocation_owner():
-            # Requestor has asked for an owner field/column match, but
+            # Requester has asked for an owner field/column match, but
             # their client version does not support it.
             raise exception.NotAcceptable()
         if (owner is not None
-                and requestor is not None
-                and owner != requestor):
-            # The requestor is asking about other owner's records.
+                and requester is not None
+                and owner != requester):
+            # The requester is asking about other owner's records.
             # Naughty!
             raise exception.NotAuthorized()
 
-        if requestor is not None:
-            owner = requestor
+        if requester is not None:
+            owner = requester
 
         return self._get_allocations_collection(node, resource_class, state,
                                                 owner, marker, limit,
@@ -383,7 +383,7 @@ class AllocationsController(pecan.rest.RestController):
                     if req_alloc_owner != project_id:
                         msg = _("Cannot create allocation with an owner "
                                 "Project ID value %(req_owner)s not matching "
-                                "the requestor Project ID %(project)s. "
+                                "the requester Project ID %(project)s. "
                                 "Policy baremetal:allocation:create_restricted"
                                 " is required for this capability."
                                 ) % {'req_owner': req_alloc_owner,
@@ -427,7 +427,7 @@ class AllocationsController(pecan.rest.RestController):
                 if not api_utils.check_policy_true(
                         'baremetal:allocation:create_restricted'):
                     owner = cdict.get('project_id')
-                # Filter the candidate search by the requestor project ID
+                # Filter the candidate search by the requester project ID
                 # if any. The result is processes authenticating with system
                 # scope will not be impacted, where as project scoped requests
                 # will need additional authorization.

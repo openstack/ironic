@@ -76,7 +76,7 @@ You need to specify image information in the node's ``instance_info``
 * In case the image source requires HTTP(s) Basic Authentication ``RFC 7616``
   then the relevant authentication strategy has to be configured as
   ``http_basic`` and supplied with credentials  in the ironic global config
-  file. Further infromation about the authentication strategy selection
+  file. Further information about the authentication strategy selection
   can be found in :doc:`/admin/user-image-basic-auth`.
 
 * ``root_gb`` - size of the root partition, required for partition images.

@@ -16,4 +16,4 @@ fixes:
   - |
     Extra newlines ('\n') were incorrectly added to the user data content.
     This broke the content-type decoding and cloud-init was unable to
-    proces them. The extra newlines have been removed.
+    process them. The extra newlines have been removed.

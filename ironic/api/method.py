@@ -112,7 +112,7 @@ def body(body_arg):
 
 
 def format_exception(excinfo, debug=False):
-    """Extract informations that can be sent to the client."""
+    """Extract information that can be sent to the client."""
     error = excinfo[1]
     code = getattr(error, 'code', None)
     if code and code in http_client.responses and (400 <= code < 500):

@@ -111,7 +111,7 @@ class IloBIOS(base.BIOSInterface):
     def _execute_post_boot_bios_step(self, task, step):
         """Perform operations required after the reboot.
 
-        Caches BIOS settings in the database and clear the flags assocated
+        Caches BIOS settings in the database and clear the flags associated
         with the clean step post reboot.
         :param task: a task from TaskManager.
         :param step: name of the clean step to be performed

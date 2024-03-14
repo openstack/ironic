@@ -19,8 +19,8 @@ fixes:
     please consult `story 2008241 <https://storyboard.openstack.org/#!/story/2008241>`_.
   - Fixes handling of the ``ipmi`` hardware type where ``UEFI`` boot mode and
     "one-time" boot to PXE has been requested. As Ironic now specifically
-    transmits the raw commands, this setting should be properly appied where
-    previously PXE boot operations may have previously occured in
+    transmits the raw commands, this setting should be properly applied where
+    previously PXE boot operations may have previously occurred in
     ``Legacy BIOS`` mode.
 other:
   - Adds a ``detect_vendor`` management interface method to the ``ipmi``

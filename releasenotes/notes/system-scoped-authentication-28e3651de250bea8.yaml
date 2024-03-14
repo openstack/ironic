@@ -22,7 +22,7 @@ upgrade:
     ``[oslo_policy]enforce_new_defaults``. This requires a migration from
     using an ``admin project`` with the ``baremetal_admin`` and
     ``baremetal_observer``. System wide administrators using ``system``
-    scoped ``admin`` and ``reader`` accounts superceed the deprecated
+    scoped ``admin`` and ``reader`` accounts supersede the deprecated
     model.
 deprecations:
   - |

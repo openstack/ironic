@@ -401,7 +401,7 @@ def _filter_active_conductors(query, interval=None):
     if interval is None:
         interval = CONF.conductor.heartbeat_timeout
     if not utils.is_ironic_using_sqlite() and interval > 0:
-        # Check for greater than zero becaues if the value is zero,
+        # Check for greater than zero because if the value is zero,
         # then the logic makes no sense.
         limit = timeutils.utcnow() - datetime.timedelta(seconds=interval)
         query = (query.filter(models.Conductor.online.is_(True))
@@ -1852,7 +1852,7 @@ class Connection(api.Connection):
                 # a missing table, i.e. database upgrades which will create
                 # the table *and* the field version is 1.0, which means we
                 # are likely about to *create* the table, but first have to
-                # pass the version/compatability checking logic.
+                # pass the version/compatibility checking logic.
                 table_missing_ok = True
 
             # NOTE(mgagne): Additional safety check to detect old database

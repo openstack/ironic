@@ -923,7 +923,7 @@ class NodeStatesController(rest.RestController):
                     'modes': ', '.join(ALLOWED_TARGET_BOOT_MODES)})
             raise exception.InvalidParameterValue(msg)
 
-        # NOTE(cenne): This currenly includes the ADOPTING state
+        # NOTE(cenne): This currently includes the ADOPTING state
         if rpc_node.provision_state in ir_states.UNSTABLE_STATES:
             msg = _("Node is in %(state)s state. Since node is transitioning, "
                     "the boot mode will not be set as this may interfere "
@@ -971,7 +971,7 @@ class NodeStatesController(rest.RestController):
                    {'state': target})
             raise exception.InvalidParameterValue(msg)
 
-        # NOTE(cenne): This currenly includes the ADOPTING state
+        # NOTE(cenne): This currently includes the ADOPTING state
         if rpc_node.provision_state in ir_states.UNSTABLE_STATES:
             msg = _("Node is in %(state)s state. Since node is transitioning, "
                     "the boot mode will not be set as this may interfere "
@@ -1648,7 +1648,7 @@ def node_sanitize(node, fields, cdict=None,
     :type fields: list of str
     :param cdict: Context dictionary for policy values evaluation.
                   If not provided, it will be executed by the method,
-                  however for enumerating node lists, it is more efficent
+                  however for enumerating node lists, it is more efficient
                   to provide.
     :param show_driver_secrets: A boolean value to allow external single
                                 evaluation of policy instead of once per
@@ -1781,7 +1781,7 @@ def _node_sanitize_extended(node, node_keys, target_dict, cdict):
         and not policy.check("baremetal:node:get:last_error",
                              target_dict, cdict)):
         # Guard the last error from being visible as it can contain
-        # hostnames revealing infrastucture internal details.
+        # hostnames revealing infrastructure internal details.
         node['last_error'] = ('** Value Redacted - Requires '
                               'baremetal:node:get:last_error '
                               'permission. **')
@@ -2822,7 +2822,7 @@ class NodesController(rest.RestController):
 
             if requested_owner and requested_owner != project_id:
                 # Translation: If project scoped, and an owner has been
-                # requested, and that owner does not match the requestor's
+                # requested, and that owner does not match the requester's
                 # project ID value.
                 msg = _("Cannot create a node as a project scoped admin "
                         "with an owner other than your own project.")

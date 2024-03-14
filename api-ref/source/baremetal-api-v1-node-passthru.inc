@@ -61,7 +61,7 @@ and method.
 
 This endpoint passes the request directly to the Node's hardware driver. The
 HTTP BODY must be parseable JSON, which will be converted to parameters passed
-to that function. Unparseable JSON, missing parameters, or excess parameters
+to that function. Unparsable JSON, missing parameters, or excess parameters
 will cause the request to be rejected with an HTTP 400 error.
 
 Normal response code: 200 202

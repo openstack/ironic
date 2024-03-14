@@ -1080,7 +1080,7 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
         child_node1.refresh()
         child_node2.refresh()
 
-        # Confirm the objects *did* recieve locks.
+        # Confirm the objects *did* receive locks.
         self.assertNotEqual(child1_updated_at, child_node1.updated_at)
         self.assertNotEqual(child2_updated_at, child_node2.updated_at)
 
@@ -1163,7 +1163,7 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
         child_node1.refresh()
         child_node2.refresh()
 
-        # Confirm the objects *did* recieve locks.
+        # Confirm the objects *did* receive locks.
         self.assertNotEqual(child1_updated_at, child_node1.updated_at)
         self.assertIsNone(child_node2.updated_at)
 

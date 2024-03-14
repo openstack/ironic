@@ -28,7 +28,7 @@ Similarities to Cleaning and Deployment
 =======================================
 
 Similar to Clean and Deploy steps, when invoked an operator can validate
-the curent running steps by viewing the ``driver_internal_info`` field
+the current running steps by viewing the ``driver_internal_info`` field
 looking for a ``service_steps`` field. The *current* step being executed
 can be viewed using the baremetal node ``service_step`` field, which is a
 top level field.

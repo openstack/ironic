@@ -292,7 +292,7 @@ r_description_contains:
     Filter the list of returned nodes, and only return those containing
     substring specified by ``description_contains``.
   in: query
-  requred: false
+  required: false
   type: string
 r_driver:
   description: |
@@ -581,7 +581,7 @@ bios_setting_name:
   type: string
 bios_setting_read_only:
   description: |
-    This Bios seting is read only and can't be changed.
+    This Bios setting is read only and can't be changed.
     May be None.
   in: body
   required: true

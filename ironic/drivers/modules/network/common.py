@@ -607,7 +607,7 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         :raises: InvalidParameterValue, if the network interface configuration
             is invalid.
         :raises: MissingParameterValue, if some parameters are missing.
-        :returns: a dict holding network configuration information adhearing
+        :returns: a dict holding network configuration information adhering
             Nova network metadata layout (`network_data.json`).
         """
         # NOTE(etingof): static network data takes precedence

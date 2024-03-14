@@ -803,7 +803,7 @@ class IloManagement(base.ManagementInterface):
         """Deploy/Clean step hook after SUM based firmware update operation.
 
         This method is invoked as a post deploy/clean step hook by the Ironic
-        conductor once firmware update operaion is completed. The deploy/clean
+        conductor once firmware update operation is completed. The deploy/clean
         logs are collected and stored according to the configured storage
         backend when the node is configured to collect the logs.
 
@@ -1212,7 +1212,7 @@ class Ilo5Management(IloManagement):
         """Clears the certificates provided in the list of files to iLO.
 
         :param task: a task from TaskManager.
-        :param certificate_files: a list of cerificate files.
+        :param certificate_files: a list of certificate files.
         :raises: NodeCleaningFailure, on failure to execute of clean step.
         :raises: InstanceDeployFailure, on failure to execute of deploy step.
         """

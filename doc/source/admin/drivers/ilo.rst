@@ -361,7 +361,7 @@ Node configuration
      before the Xena release.
 
 * The  following parameters are mandatory in ``driver_info``
-  if ``ilo-inspect`` inspect inteface is used and SNMPv3 inspection
+  if ``ilo-inspect`` inspect interface is used and SNMPv3 inspection
   (`SNMPv3 Authentication` in `HPE iLO4 User Guide`_) is desired:
 
   * ``snmp_auth_user`` : The SNMPv3 user.
@@ -891,7 +891,7 @@ The hardware type ``ilo`` supports hardware inspection.
      an error. This feature is available in proliantutils release
      version >= 2.2.0.
    * The iLO must be updated with SNMPv3 authentication details.
-     Pleae refer to the section `SNMPv3 Authentication` in `HPE iLO4 User Guide`_
+     Please refer to the section `SNMPv3 Authentication` in `HPE iLO4 User Guide`_
      for setting up authentication details on iLO.
      The  following parameters are mandatory to be given in driver_info
      for SNMPv3 inspection:
@@ -1807,7 +1807,7 @@ refer to `HPE Integrated Lights-Out REST API Documentation <https://hewlettpacka
   Allowed values are ``Enabled``, ``Disabled``.
 
 - ``WorkloadProfile``:
-  Change the Workload Profile to accomodate your desired workload.
+  Change the Workload Profile to accommodate your desired workload.
   Allowed values are ``GeneralPowerEfficientCompute``,
   ``GeneralPeakFrequencyCompute``, ``GeneralThroughputCompute``,
   ``Virtualization-PowerEfficient``, ``Virtualization-MaxPerformance``,

@@ -2,7 +2,7 @@
 deprecations:
   - |
     The classic drivers, as well as the ``enabled_drivers`` configuration
-    option, are now deprecated and may be removed in the Rocky relese.
+    option, are now deprecated and may be removed in the Rocky release.
     A deprecation warning will be logged for every loaded classic driver.
     Check `the migration guide
     <https://docs.openstack.org/ironic/latest/admin/upgrade-to-hardware-types.html>`_

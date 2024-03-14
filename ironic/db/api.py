@@ -1419,7 +1419,7 @@ class Connection(object, metaclass=abc.ABCMeta):
     def bulk_delete_node_history_records(self, node_id, limit):
         """Utility method to bulk delete node history entries.
 
-        :param entires: A list of node history entriy id's to be
+        :param entries: A list of node history entry id's to be
                         queried for deletion.
         """
 

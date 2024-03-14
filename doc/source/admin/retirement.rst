@@ -72,7 +72,7 @@ will hence not be eligible for scheduling of new instances.
 
 Equally, nodes with ``retired`` set to True cannot move from ``manageable``
 to ``available``: the ``provide`` verb is blocked. This is to prevent
-accidental re-use of nodes tagged for removal from the fleet. In order
+accidental reuse of nodes tagged for removal from the fleet. In order
 to move these nodes to ``available`` none the less, the ``retired`` field
 needs to be removed first. This can be done via::
 

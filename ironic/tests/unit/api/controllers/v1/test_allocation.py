@@ -1044,7 +1044,7 @@ class TestPost(test_api_base.BaseApiTest):
         self.assertEqual(http_client.FORBIDDEN, response.status_int)
         expected_faultstring = ('Cannot create allocation with an owner '
                                 'Project ID value 12345 not matching the '
-                                'requestor Project ID 0987. Policy '
+                                'requester Project ID 0987. Policy '
                                 'baremetal:allocation:create_restricted '
                                 'is required for this capability.')
         error_body = json.loads(response.json['error_message'])

@@ -10,9 +10,9 @@ deprecations:
     The second reason is a lack of maintenance, which is ultimately the same
     reason Linux distributions are discussing dropping support and packaging.
     Syslinux has not been updated since `2019 <https://repo.or.cz/syslinux.git/shortlog>`_.
-    Incidently, the file format it utilizes *is* supported by Power hardware,
+    Incidentally, the file format it utilizes *is* supported by Power hardware,
     and that may result in the configuration template remaining in Ironic for
-    the forseeable future.
+    the foreseeable future.
   - Support for use of `pxelinux <https://wiki.syslinux.org/wiki/index.php?title=PXELINUX>`_
     is deprecated due to the deprecation of support for Syslinux.
   - Support for virtual media booting with x86 Hardware in Legacy BIOS mode is

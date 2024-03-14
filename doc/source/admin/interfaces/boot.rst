@@ -107,7 +107,7 @@ appended to the kernel command line::
    ``nomodeset`` as an option. This option is intended for troubleshooting,
    and can greatly degrade performance with Matrox/Aspeed BMC Graphics
    controllers which is very commonly used on physical servers. The
-   performance degredation can greatly reduce IO capacity upon every
+   performance degradation can greatly reduce IO capacity upon every
    console graphics update being written to the screen.
 
 Common options

@@ -1,7 +1,7 @@
 # NOTE(TheJulia): This is a special bindep file which is independent of the
 # project bindep file which is for general usage. This binde pfile is
 # intended for execution from Devstack. 
-# The *primary* purpose being, devstack manages sql dependency mangement
+# The *primary* purpose being, devstack manages sql dependency management
 # and credential setup, so they can't be included here or it is installed
 # prematurely.
 

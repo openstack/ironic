@@ -496,7 +496,7 @@ class DbNodeTestCase(base.DbTestCase):
                                           owner='fred',
                                           lessee='marsha',
                                           # Fields that should not be
-                                          # present in the obejct.
+                                          # present in the object.
                                           driver_internal_info={
                                               'cat': 'meow'},
                                           internal_info={'corgi': 'rocks'},

@@ -238,7 +238,7 @@ def execute_step_on_child_nodes(task, step):
     :param task: The TaskManager object for the parent node.
     :param step: The requested step to be executed.
     :returns: None on Success, the resulting error message if a
-              failure has occured.
+              failure has occurred.
     """
     # NOTE(TheJulia): We could just use nodeinfo list calls against
     # dbapi.

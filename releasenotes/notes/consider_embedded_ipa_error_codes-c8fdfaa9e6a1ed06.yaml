@@ -5,5 +5,5 @@ fixes:
     where a command exception may not be captured in the interaction
     with the agent rest API. The client code would return the resulting
     error message and a static error code. We now look with-in the error
-    to detect if the error may be a compatability error to raise the
+    to detect if the error may be a compatibility error to raise the
     appropriate exception for fallback logic to engage.

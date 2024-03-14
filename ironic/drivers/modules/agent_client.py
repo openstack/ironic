@@ -260,7 +260,7 @@ class AgentClient(object):
                 # is already busy.
                 # NOTE(TheJulia): The agent sends upper case A as of
                 # late victoria, but lower case the entire message
-                # for compatability with pre-late victoria agents
+                # for compatibility with pre-late victoria agents
                 # which returns HTTP 409.
                 raise exception.AgentInProgress(node=node.uuid,
                                                 command=method,

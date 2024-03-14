@@ -79,7 +79,7 @@ opts = [
     cfg.BoolOpt('enable_for_nodes',
                 default=True,
                 help=_('If to transmit any sensor data for any nodes under '
-                       'this conductor\'s management. This option superceeds '
+                       'this conductor\'s management. This option supersedes '
                        'the ``send_sensor_data_for_undeployed_nodes`` '
                        'setting.')),
 ]

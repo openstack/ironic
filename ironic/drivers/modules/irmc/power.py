@@ -72,7 +72,7 @@ def _is_expected_power_state(target_state, boot_status_value):
 
     :param target_state: Target power state.
     :param boot_status_value: SNMP BOOT_STATUS_VALUE.
-    :returns: True if expected power state, otherwise Flase.
+    :returns: True if expected power state, otherwise False.
     """
     if (target_state == states.SOFT_POWER_OFF
         and boot_status_value in (BOOT_STATUS_VALUE['unknown'],

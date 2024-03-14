@@ -3,7 +3,7 @@ features:
   - |
     Adds a configuration option ``[ipmi]disable_boot_timeout`` which is used
     to set the default behavior whether ironic should send a raw IPMI command
-    to disable timeout. This configuration option can be overidden by the
+    to disable timeout. This configuration option can be overridden by the
     per-node option ``ipmi_disable_boot_timeout`` in node's ``driver_info``
     field.
     See `story 2004266 <https://storyboard.openstack.org/#!/story/2004266>`_

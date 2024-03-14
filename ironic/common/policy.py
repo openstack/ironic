@@ -748,7 +748,7 @@ node_policies = [
         deprecated_rule=deprecated_node_clear_maintenance
     ),
 
-    # NOTE(TheJulia): This should liekly be deprecated and be replaced with
+    # NOTE(TheJulia): This should likely be deprecated and be replaced with
     # a cached object.
     policy.DocumentedRuleDefault(
         name='baremetal:node:get_boot_device',
@@ -977,7 +977,7 @@ node_policies = [
         name='baremetal:node:history:get',
         check_str=SYSTEM_OR_OWNER_READER,
         scope_types=['system', 'project'],
-        description='Filter to allow operators to retreive history records '
+        description='Filter to allow operators to retrieve history records '
                     'for a node.',
         operations=[
             {'path': '/nodes/{node_ident}/history', 'method': 'GET'},
@@ -1929,7 +1929,7 @@ def init_enforcer(policy_file=None, rules=None,
         rules=rules,
         default_rule=default_rule,
         use_conf=use_conf)
-    # NOTE(melwitt): Explictly disable the warnings for policies
+    # NOTE(melwitt): Explicitly disable the warnings for policies
     # changing their default check_str. During policy-defaults-refresh
     # work, all the policy defaults have been changed and warning for
     # each policy started filling the logs limit for various tool.

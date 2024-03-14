@@ -10,7 +10,7 @@ features:
     targets, and allocations.
   - |
     Project ``scoped`` requests for baremetal allocations, will automatically
-    record the ``project_id`` of the requestor as the ``owner`` of the node.
+    record the ``project_id`` of the requester as the ``owner`` of the node.
 deprecations:
   - >
     Pre-RBAC support rules have been deprecated. These consist of:
@@ -35,7 +35,7 @@ issues:
     impact ``system`` scoped requests. Operators who adopt project scoped
     access may find it necessary to verify or add additional database indexes
     in relation to the node ``uuid`` column as well as ``node_id`` field in
-    any table which may recieve heavy project query scope activity.
+    any table which may receive heavy project query scope activity.
     The ``ironic`` project anticipates that this will be a future work item
     of the project to help improve database performance.
 upgrade:

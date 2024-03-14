@@ -15,7 +15,7 @@ That being said, it would likely help anyone working to implement
 customization of these policies to consult some reference material
 in hopes of understanding the context.
 
-* `Keystone Adminstrator Guide - Service API Protection <https://docs.openstack.org/keystone/latest/admin/service-api-protection.html>`_
+* `Keystone Administrator Guide - Service API Protection <https://docs.openstack.org/keystone/latest/admin/service-api-protection.html>`_
 * `Ironic Scoped Role Based Access Control Specification <https://specs.openstack.org/openstack/ironic-specs/specs/17.0/secure-rbac.html>`_
 
 Historical Context - How we reached our access model
@@ -64,7 +64,7 @@ indicate an associated ``project_id`` value.
 
 The Secure RBAC model, since the introduction of the base capability has been
 extended as a result of an OpenStack community goal to include a ``manager``
-role in the project scope. By default, this access is equivelent to a Project
+role in the project scope. By default, this access is equivalent to a Project
 scoped ``admin`` user, however it may be delineated further as time moves
 forward.
 

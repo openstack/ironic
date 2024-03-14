@@ -13,7 +13,7 @@ Configure ironic PXE driver for provisioning using IPv6 addressing
 The PXE drivers operate in such a way that they are able to utilize
 both IPv4 and IPv6 addresses based upon the deployment's operating state and
 configuration. Internally, the drivers attempt to prepare configuration options for both formats, which allows ports which are IPv6 only to automatically
-receieve boot parameters. As a result of this, it is critical that the
+receive boot parameters. As a result of this, it is critical that the
 ``[DEFAULT]my_ipv6`` configuration parameter is set to the conductor's
 IPv6 address. This option is unique per conductor, and due to the nature
 of automatic address assignment, it cannot be "guessed" by the software.

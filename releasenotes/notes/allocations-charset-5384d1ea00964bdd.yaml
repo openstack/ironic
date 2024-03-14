@@ -15,7 +15,7 @@ upgrade:
     default. This was done as Ironic's database schema is incompatible
     with MySQL/MariaDB's ``UTF8MB4``, or "4 byte UTF8" character encoding
     and storage constraints.
-  - Upgrading will change the default chracter encoding of all tables.
+  - Upgrading will change the default character encoding of all tables.
     For most tables, this should be an effective noop, but may result in
     transitory table locks. For the ``allocations`` table, it will need to
     be re-written, during which the database engine will have locked the

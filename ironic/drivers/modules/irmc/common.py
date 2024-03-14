@@ -644,12 +644,12 @@ def within_version_ranges(node, version_ranges):
 
             v_range = version_ranges[os_num]
 
-            # An OS number with no ranges setted means no need to check
+            # An OS number with no ranges set means no need to check
             # specific version, all the version under this OS number is valid.
             if not v_range:
                 return True
 
-            # Specific range is setted, check if the node's
+            # Specific range is set, check if the node's
             # firmware version is within it.
             min_ver = v_range.get('min')
             upper_ver = v_range.get('upper')

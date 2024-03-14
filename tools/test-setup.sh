@@ -63,7 +63,7 @@ sudo sed -i 's/^.*password_encryption =.*/password_encryption = scram-sha-256/' 
 sudo cat $PG_HBA
 sudo cat $PG_CONF
 
-# restart postgres fo new HBA file is loaded
+# restart postgres with new HBA file is loaded
 sudo systemctl stop postgresql || true
 sudo systemctl start postgresql || true
 

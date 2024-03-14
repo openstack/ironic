@@ -55,11 +55,11 @@ is being worked in Neutron
    specific issues, but the OVN DHCP server is an entirely different server
    than the interfaces were tested upon.
 
-Maxmium Transmission Units
+Maximum Transmission Units
 --------------------------
 
 OVN's handling of MTUs has been identified by OVN as being incomplete.
-The reality is that it assumes the MTU is not further constained beyond
+The reality is that it assumes the MTU is not further constrained beyond
 the gateway, which sort of works in some caess for virtual machines, but
 might not be applicable with baremetal because your traffic may pass
 through lower, or higher MTUs.
@@ -106,7 +106,7 @@ a higher operational security posture for the deployment. Users of the
 Rescue
 ------
 
-Due to the aformentioned NAT issues, we know Rescue operations may not work.
+Due to the aforementioned NAT issues, we know Rescue operations may not work.
 
 This is being tracked as `bug 2033083 <https://bugs.launchpad.net/ironic/+bug/2033083>`_.
 

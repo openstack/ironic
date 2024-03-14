@@ -313,7 +313,7 @@ class DeployTemplatesController(rest.RestController):
         # This is due to the fact that the patch operation is always applied in
         # the API. Ways to avoid this include passing the patch to the
         # conductor to apply while holding a lock, or a collision detection
-        # & retry mechansim using e.g. the updated_at field.
+        # & retry mechanism using e.g. the updated_at field.
         notify.emit_start_notification(context, rpc_template, 'update')
         with notify.handle_error_notification(context, rpc_template, 'update'):
             rpc_template.save()

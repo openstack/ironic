@@ -59,7 +59,7 @@ Bare Metal service comes with an example file for configuring the
       /var/log/httpd).
 
 #. Stop and disable the ironic-api service. If ironic-api service is
-   started, the port will be occupied. Apach will fail to start:
+   started, the port will be occupied. Apache will fail to start:
 
    Fedora/RHEL8/CentOS8/SUSE::
 

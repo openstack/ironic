@@ -2,5 +2,5 @@
 features:
   - |
     By default Ironic will now not start new memory intensive work IF
-    insufficent system memory exists. This can be disabled by setting
+    insufficient system memory exists. This can be disabled by setting
     the ``[DEFAULT]minimum_memory_warning_only`` value to ``True``.

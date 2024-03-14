@@ -59,7 +59,7 @@ OPTIONAL_PROPERTIES = {
     'client_port': _("port to be used for iLO operations. Optional."),
     'client_timeout': _("timeout (in seconds) for iLO operations. Optional."),
     'ca_file': _("CA certificate file to validate iLO. This "
-                 "attibute is deprecated and will be removed in "
+                 "attribute is deprecated and will be removed in "
                  "future release. Optional"),
     'ilo_verify_ca': _("Either a Boolean value, a path to a CA_BUNDLE "
                        "file or directory with certificates of trusted "

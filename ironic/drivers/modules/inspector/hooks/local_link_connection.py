@@ -42,7 +42,7 @@ class LocalLinkConnectionHook(base.InspectionHook):
             except binascii.Error:
                 LOG.warning('TLV value for TLV type %d is not in correct '
                             'format. Ensure that the TLV value is in '
-                            'hexidecimal format when sent to ironic. Node: %s',
+                            'hexadecimal format when sent to ironic. Node: %s',
                             tlv_type, node_uuid)
                 return
 

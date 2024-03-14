@@ -63,7 +63,7 @@ class RamdiskDeploy(agent_base.AgentBaseMixin, agent_base.HeartbeatMixin,
                         {'node': task.node,
                          'drv': task.node.get_interface('boot')})
         manager_utils.node_power_action(task, states.POWER_OFF)
-        # Tenant neworks must enable connectivity to the boot
+        # Tenant networks must enable connectivity to the boot
         # location, as reboot() can otherwise be very problematic.
         # IDEA(TheJulia): Maybe a "trusted environment" mode flag
         # that we otherwise fail validation on for drivers that

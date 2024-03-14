@@ -12,12 +12,12 @@ as the underlying resources to provision the node must be available for
 successful operations.
 
 
-.. Warning:: This docuemntation is geared for use of OVS with Neutron along
+.. Warning:: This documentation is geared for use of OVS with Neutron along
              with the ``neutron-dhcp-agent``. It *is* possible to use OVN
              with ``neutron-dhcp-agent``, and depending on version of OVN
              and Neutron, OVN's own DHCP service for IPv4 clients, but that
              is considered an advanced topic, and we encourage operators
-             interested in use of OVN to fully undestand it's capabilities
+             interested in use of OVN to fully understand it's capabilities
              and state before attempting to utilize such a configuration.
              Please see :doc:`/admin/ovn-networking` for more details.
 

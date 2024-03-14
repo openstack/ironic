@@ -11,7 +11,7 @@ deprecations:
     This driver is expected to be removed during the ``2024.2`` development
     cycle.
   - The ``idrac-wsman`` interfaces on the ``idrac`` hardware type are
-    deprecated due to a lack of upstream communiation, and the decision of
+    deprecated due to a lack of upstream communication, and the decision of
     the driver's maintainer in the past to move in to the direction of
     using Redfish for driver interactions.
     These driver interfaces are expected to be removed during the
@@ -20,5 +20,5 @@ other:
   - The classic ``ilo`` hardware types may be deprecated in the future for
     removal or major changes, however our last communication with the
     maintainers as of the ``2024.1`` Project Teams Gathering sessions
-    indiated they were still working to determine their own forward
+    indicated they were still working to determine their own forward
     path with a strong emphasis on the use of Redfish.

@@ -5,5 +5,5 @@ fixes:
     Specifically, ``Node busy``, ``Timeout``, ``Out of space`` and
     ``BMC initialization in progress`` reporting emitted by ``ipmitool``
     will cause ironic to retry IPMI command.
-    This change should improve the reliability of IPMI-based communicaton
+    This change should improve the reliability of IPMI-based communication
     with BMC.
