@@ -296,6 +296,21 @@ def _eject_vmedia(task, managers, boot_device=None):
     return found
 
 
+def insert_vmedia(task, image_url, device_type):
+    """Insert virtual CDs and DVDs
+
+        :param task: A task from TaskManager.
+        :param image_url:
+        :param device_type: sushy boot device e.g. `VIRTUAL_MEDIA_CD`,
+            `VIRTUAL_MEDIA_DVD` or `VIRTUAL_MEDIA_FLOPPY` or `None` to
+            eject everything (default).
+        :raises: InvalidParameterValue, if no suitable virtual CD or DVD is
+            found on the node.
+        """
+    system = redfish_utils.get_system(task.node)
+    _insert_vmedia(task, system.managers, image_url, device_type)
+
+
 def eject_vmedia(task, boot_device=None):
     """Eject virtual CDs and DVDs
 

@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds implementation of attach/detach generic virtual media device
+    to the Redfish driver.
+deprecations:
+  - |
+    The redfish vendor eject vmedia action is now deprecated and it will be
+    removed during the next cycle in favor of the generic API.
