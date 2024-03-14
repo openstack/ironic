@@ -474,7 +474,7 @@ rbac_opts = [
                       'to override the default "service_role" rule. '
                       'It should be noted that the value of "service" '
                       'is a default convention for OpenStack deployments, '
-                      'but the requsite access and details around '
+                      'but the requisite access and details around '
                       'end configuration are largely up to an operator '
                       'if they are doing an OpenStack deployment manually.')),
 ]
