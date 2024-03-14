@@ -635,7 +635,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
             mock__has_vmedia_device, mock_prepare_deploy_iso,
             mock_prepare_floppy_image, mock_node_set_boot_device):
-
+        system = mock_system.return_value
         managers = mock_system.return_value.managers
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -658,7 +658,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock__has_vmedia_device.assert_called_once_with(
                 managers,
-                [sushy.VIRTUAL_MEDIA_USBSTICK, sushy.VIRTUAL_MEDIA_FLOPPY])
+                [sushy.VIRTUAL_MEDIA_USBSTICK, sushy.VIRTUAL_MEDIA_FLOPPY],
+                system=system)
 
             eject_calls = [
                 mock.call(task, managers, dev)
@@ -708,7 +709,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
             mock__has_vmedia_device, mock_prepare_deploy_iso,
             mock_prepare_floppy_image, mock_node_set_boot_device):
-
+        system = mock_system.return_value
         managers = mock_system.return_value.managers
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -731,7 +732,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             mock__has_vmedia_device.assert_called_once_with(
                 managers,
-                [sushy.VIRTUAL_MEDIA_USBSTICK, sushy.VIRTUAL_MEDIA_FLOPPY])
+                [sushy.VIRTUAL_MEDIA_USBSTICK, sushy.VIRTUAL_MEDIA_FLOPPY],
+                system=system)
 
             eject_calls = [
                 mock.call(task, managers, dev)
@@ -834,7 +836,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
             mock__has_vmedia_device,
             mock_prepare_deploy_iso, mock_node_set_boot_device):
-
+        system = mock_system.return_value
         managers = mock_system.return_value.managers
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -844,7 +846,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_ramdisk(task, {})
 
             mock__has_vmedia_device.assert_called_once_with(
-                managers, sushy.VIRTUAL_MEDIA_CD, inserted=True)
+                managers, sushy.VIRTUAL_MEDIA_CD, inserted=True,
+                system=system)
 
             mock_node_power_action.assert_not_called()
             mock__eject_vmedia.assert_not_called()
@@ -870,7 +873,7 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock__parse_driver_info, mock__insert_vmedia, mock__eject_vmedia,
             mock__has_vmedia_device,
             mock_prepare_deploy_iso, mock_node_set_boot_device):
-
+        system = mock_system.return_value
         managers = mock_system.return_value.managers
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
@@ -883,7 +886,8 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             task.driver.boot.prepare_ramdisk(task, {})
 
             mock__has_vmedia_device.assert_called_once_with(
-                managers, sushy.VIRTUAL_MEDIA_CD, inserted=True)
+                managers, sushy.VIRTUAL_MEDIA_CD, inserted=True,
+                system=system)
 
             mock_node_power_action.assert_called_once_with(
                 task, states.POWER_OFF)
@@ -1338,10 +1342,13 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock__eject_vmedia.assert_has_calls(eject_calls)
             mock_secure_boot.assert_called_once_with(task)
 
-    def test__insert_vmedia_anew(self):
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_anew(self, mock_sys, mock_vmd_sys):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            mock_vmd_sys.return_value = False
             mock_vmedia_cd = mock.MagicMock(
                 inserted=False,
                 media_types=[sushy.VIRTUAL_MEDIA_CD])
@@ -1362,8 +1369,10 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             self.assertFalse(mock_vmedia_floppy.insert_media.call_count)
 
-    def test__insert_vmedia_anew_dvd(self):
-
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_anew_dvd(self, mock_sys, mock_vmd_sys):
+        mock_vmd_sys.return_value = False
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             mock_vmedia_dvd = mock.MagicMock(
@@ -1382,8 +1391,10 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 'img-url', inserted=True, write_protected=True)
 
     @mock.patch('time.sleep', lambda *args, **kwargs: None)
-    def test__insert_vmedia_anew_dvd_retry(self):
-
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_anew_dvd_retry(self, mock_sys, mock_vmd_sys):
+        mock_vmd_sys.return_value = False
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             mock_vmedia_dvd_1 = mock.MagicMock(
@@ -1409,10 +1420,12 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             self.assertEqual(mock_vmedia_dvd_2.insert_media.call_count, 1)
 
-    def test__insert_vmedia_already_inserted(self):
-
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_already_inserted(self, mock_sys, mock_vmd_sys):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            mock_vmd_sys.return_value = False
             mock_vmedia_cd = mock.MagicMock(
                 inserted=True,
                 image='img-url',
@@ -1428,10 +1441,12 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertFalse(mock_vmedia_cd.insert_media.call_count)
 
     @mock.patch('time.sleep', lambda *args, **kwargs: None)
-    def test__insert_vmedia_while_ejecting(self):
-
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_while_ejecting(self, mock_sys, mock_vmd_sys):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            mock_vmd_sys.return_value = False
             mock_vmedia_cd = mock.MagicMock(
                 inserted=False,
                 image='img-url',
@@ -1453,8 +1468,10 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertEqual(mock_vmedia_cd.insert_media.call_count, 2)
 
     @mock.patch('time.sleep', lambda *args, **kwargs: None)
-    def test__insert_vmedia_bad_device(self):
-
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_bad_device(self, mock_sys, mock_vmd_sys):
+        mock_vmd_sys.return_value = False
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             mock_vmedia_floppy = mock.MagicMock(
@@ -1472,10 +1489,11 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(image_utils, 'cleanup_disk_image', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
     @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
-    def test_eject_vmedia_everything(self, mock_redfish_utils,
+    def test_eject_vmedia_everything(self, mock_redfish_utils, mock_vmd_sys,
                                      mock_cleanup_iso, mock_cleanup_disk):
-
+        mock_vmd_sys.return_value = False
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             mock_vmedia_cd = mock.MagicMock(
@@ -1507,10 +1525,11 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
     @mock.patch.object(image_utils, 'cleanup_disk_image', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
     @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
-    def test_eject_vmedia_specific(self, mock_redfish_utils,
+    def test_eject_vmedia_specific(self, mock_redfish_utils, mock_vmd_sys,
                                    mock_cleanup_iso, mock_cleanup_disk):
-
+        mock_vmd_sys.return_value = False
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             mock_vmedia_cd = mock.MagicMock(
@@ -1538,14 +1557,16 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
     @mock.patch.object(image_utils, 'cleanup_disk_image', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
     @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
     @mock.patch.object(redfish_boot.LOG, 'debug', autospec=True)
     @mock.patch.object(redfish_boot.LOG, 'info', autospec=True)
     def test_eject_vmedia_with_dvd_cisco_ucs(self, mock_log_info,
                                              mock_log_debug,
+                                             mock_vmd_sys,
                                              mock_redfish_utils,
                                              mock_cleanup_iso,
                                              mock_cleanup_disk):
-
+        mock_vmd_sys.return_value = False
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             mock_vmedia_dvd_1 = mock.MagicMock(
@@ -1573,11 +1594,13 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             mock_cleanup_iso.assert_called_once_with(task)
             mock_cleanup_disk.assert_not_called()
 
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
     @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
-    def test_eject_vmedia_not_inserted(self, mock_redfish_utils):
+    def test_eject_vmedia_not_inserted(self, mock_redfish_utils, mock_vmd_sys):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            mock_vmd_sys.return_value = False
             mock_vmedia_cd = mock.MagicMock(
                 inserted=False,
                 media_types=[sushy.VIRTUAL_MEDIA_CD])
@@ -1598,11 +1621,13 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             self.assertFalse(mock_vmedia_cd.eject_media.call_count)
             self.assertFalse(mock_vmedia_floppy.eject_media.call_count)
 
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
     @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
-    def test_eject_vmedia_unknown(self, mock_redfish_utils):
+    def test_eject_vmedia_unknown(self, mock_redfish_utils, mock_vmd_sys):
 
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
+            mock_vmd_sys.return_value = False
             mock_vmedia_cd = mock.MagicMock(
                 inserted=False,
                 media_types=[sushy.VIRTUAL_MEDIA_CD])
@@ -1619,7 +1644,9 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
 
             self.assertFalse(mock_vmedia_cd.eject_media.call_count)
 
-    def test__has_vmedia_device(self):
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    def test__has_vmedia_device(self, mock_vmd_sys):
+        mock_vmd_sys.return_value = False
         mock_vmedia_cd = mock.MagicMock(
             inserted=False,
             media_types=[sushy.VIRTUAL_MEDIA_CD])
@@ -1645,7 +1672,9 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
             redfish_boot._has_vmedia_device(
                 [mock_manager], sushy.VIRTUAL_MEDIA_USBSTICK))
 
-    def test__has_vmedia_device_inserted(self):
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    def test__has_vmedia_device_inserted(self, mock_vmd_sys):
+        mock_vmd_sys.return_value = False
         mock_vmedia_cd = mock.MagicMock(
             inserted=False,
             media_types=[sushy.VIRTUAL_MEDIA_CD])
@@ -2512,3 +2541,426 @@ class RedfishHTTPBootTestCase(db_base.DbTestCase):
 
             mock_secure_boot.assert_called_once_with(task)
             mock_cleanup_disk_image.assert_not_called()
+
+
+@mock.patch('oslo_utils.eventletutils.EventletEvent.wait',
+            lambda *args, **kwargs: None)
+class RedfishVirtualMediaBootViaSystemTestCase(db_base.DbTestCase):
+
+    def setUp(self):
+        super(RedfishVirtualMediaBootViaSystemTestCase, self).setUp()
+        self.config(enabled_hardware_types=['redfish'],
+                    enabled_power_interfaces=['redfish'],
+                    enabled_boot_interfaces=['redfish-virtual-media'],
+                    enabled_management_interfaces=['redfish'],
+                    enabled_inspect_interfaces=['redfish'],
+                    enabled_bios_interfaces=['redfish'])
+        self.node = obj_utils.create_test_node(
+            self.context, driver='redfish', driver_info=INFO_DICT)
+
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_anew(self, mock_system, mock_vmd_sys):
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmd_sys.return_value = True
+            mock_vmedia_cd = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_floppy = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_FLOPPY])
+
+            mock_manager = mock.MagicMock()
+
+            mock_system.return_value.virtual_media.get_members.return_value = [
+                mock_vmedia_cd, mock_vmedia_floppy]
+
+            redfish_boot._insert_vmedia(
+                task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            mock_vmedia_cd.insert_media.assert_called_once_with(
+                'img-url', inserted=True, write_protected=True)
+
+            self.assertFalse(mock_vmedia_floppy.insert_media.call_count)
+
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_anew_dvd(self, mock_system, mock_vmd_sys):
+        mock_vmd_sys.return_value = True
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_dvd = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_DVD])
+
+            mock_manager = mock.MagicMock()
+
+            mock_system.return_value.virtual_media.get_members.return_value = [
+                mock_vmedia_dvd]
+
+            redfish_boot._insert_vmedia(
+                task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            mock_vmedia_dvd.insert_media.assert_called_once_with(
+                'img-url', inserted=True, write_protected=True)
+
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_anew_dvd_retry(self, mock_system, mock_vmd_sys):
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmd_sys.return_value = True
+            mock_vmedia_dvd_1 = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_DVD])
+
+            mock_vmedia_dvd_2 = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_DVD])
+
+            mock_manager = mock.MagicMock()
+
+            def clear_and_raise(*args, **kwargs):
+                mock_vmedia_dvd_1.insert_media.side_effect = None
+                raise sushy.exceptions.BadRequestError(
+                    "POST", 'img-url', mock.MagicMock())
+            mock_vmedia_dvd_1.insert_media.side_effect = clear_and_raise
+            mock_system.return_value.virtual_media.get_members.return_value = [
+                mock_vmedia_dvd_1, mock_vmedia_dvd_2]
+
+            redfish_boot._insert_vmedia(
+                task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            self.assertEqual(mock_vmedia_dvd_2.insert_media.call_count, 1)
+
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_already_inserted(self, mock_sys, mock_vmd_sys):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmd_sys.return_value = False
+            mock_vmedia_cd = mock.MagicMock(
+                inserted=True,
+                image='img-url',
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_manager = mock.MagicMock()
+
+            mock_manager.virtual_media.get_members.return_value = [
+                mock_vmedia_cd]
+
+            redfish_boot._insert_vmedia(
+                task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            self.assertFalse(mock_vmedia_cd.insert_media.call_count)
+
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_while_ejecting(self, mock_system, mock_vmd_sys):
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmd_sys.return_value = True
+            mock_vmedia_cd = mock.MagicMock(
+                inserted=False,
+                image='img-url',
+                media_types=[sushy.VIRTUAL_MEDIA_CD],
+            )
+            mock_manager = mock.MagicMock()
+
+            def clear_and_raise(*args, **kwargs):
+                mock_vmedia_cd.insert_media.side_effect = None
+                raise sushy.exceptions.ServerSideError(
+                    "POST", 'img-url', mock.MagicMock())
+            mock_vmedia_cd.insert_media.side_effect = clear_and_raise
+            mock_system.return_value.virtual_media.get_members.return_value = [
+                mock_vmedia_cd]
+
+            redfish_boot._insert_vmedia(
+                task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+            self.assertEqual(mock_vmedia_cd.insert_media.call_count, 2)
+
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_bad_device(self, mock_sys, mock_vmd_sys):
+        mock_vmd_sys.return_value = True
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_floppy = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_FLOPPY])
+            mock_system = mock.MagicMock()
+            mock_manager = mock.MagicMock()
+
+            mock_system.virtual_media.get_members.return_value = [
+                mock_vmedia_floppy]
+
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                redfish_boot._insert_vmedia,
+                task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
+    @mock.patch.object(image_utils, 'cleanup_disk_image', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
+    def test_eject_vmedia_everything(self, mock_redfish_utils, mock_vmd_sys,
+                                     mock_cleanup_iso, mock_cleanup_disk):
+        mock_vmd_sys.return_value = True
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_cd = mock.MagicMock(
+                inserted=True,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_floppy = mock.MagicMock(
+                inserted=True,
+                media_types=[sushy.VIRTUAL_MEDIA_FLOPPY])
+            mock_vmedia_dvd = mock.MagicMock(
+                inserted=True,
+                media_types=[sushy.VIRTUAL_MEDIA_DVD])
+
+            mock_manager = mock.MagicMock()
+            mock_system = mock.MagicMock()
+
+            mock_redfish_utils.get_system.return_value = mock_system
+            mock_system.managers = [
+                mock_manager]
+
+            mock_system.virtual_media.get_members.return_value = [
+                mock_vmedia_cd, mock_vmedia_floppy, mock_vmedia_dvd]
+
+            redfish_boot.eject_vmedia(task)
+
+            mock_vmedia_cd.eject_media.assert_called_once_with()
+            mock_vmedia_floppy.eject_media.assert_called_once_with()
+            mock_vmedia_dvd.eject_media.assert_called_once_with()
+            mock_cleanup_iso.assert_called_once_with(task)
+            mock_cleanup_disk.assert_called_once_with(task,
+                                                      prefix='configdrive')
+
+    @mock.patch.object(image_utils, 'cleanup_disk_image', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_manager', autospec=True)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
+    def test_eject_vmedia_from_all_resources(self, mock_redfish_utils,
+                                             mock_vmd_sys, mock_vmd_mg,
+                                             mock_cleanup_iso,
+                                             mock_cleanup_disk):
+        mock_vmd_sys.return_value = True
+        mock_vmd_mg.return_value = True
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_cd = mock.MagicMock(
+                inserted=True,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_floppy = mock.MagicMock(
+                inserted=True,
+                media_types=[sushy.VIRTUAL_MEDIA_FLOPPY])
+            mock_vmedia_dvd = mock.MagicMock(
+                inserted=True,
+                media_types=[sushy.VIRTUAL_MEDIA_DVD])
+
+            mock_manager = mock.MagicMock()
+            mock_system = mock.MagicMock()
+
+            mock_redfish_utils.get_system.return_value = mock_system
+            mock_system.managers = [
+                mock_manager]
+
+            mock_system.virtual_media.get_members.return_value = [
+                mock_vmedia_floppy, mock_vmedia_dvd]
+            mock_manager.virtual_media.get_members.return_value = [
+                mock_vmedia_cd]
+
+            redfish_boot.eject_vmedia(task)
+
+            mock_vmedia_cd.eject_media.assert_called_once_with()
+            mock_vmedia_floppy.eject_media.assert_called_once_with()
+            mock_vmedia_dvd.eject_media.assert_called_once_with()
+            mock_cleanup_iso.assert_called_once_with(task)
+            mock_cleanup_disk.assert_called_once_with(task,
+                                                      prefix='configdrive')
+
+    @mock.patch.object(image_utils, 'cleanup_disk_image', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
+    def test_eject_vmedia_specific(self, mock_redfish_utils, mock_vmd_sys,
+                                   mock_cleanup_iso, mock_cleanup_disk):
+        mock_vmd_sys.return_value = True
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_cd = mock.MagicMock(
+                inserted=True,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_floppy = mock.MagicMock(
+                inserted=True,
+                media_types=[sushy.VIRTUAL_MEDIA_FLOPPY])
+
+            mock_system = mock.MagicMock()
+            mock_manager = mock.MagicMock()
+
+            mock_redfish_utils.get_system.return_value = mock_system
+            mock_system.managers = [
+                mock_manager]
+            mock_system.virtual_media.get_members.return_value = [
+                mock_vmedia_cd, mock_vmedia_floppy]
+
+            redfish_boot.eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
+
+            mock_vmedia_cd.eject_media.assert_called_once_with()
+            self.assertFalse(mock_vmedia_floppy.eject_media.call_count)
+            mock_cleanup_iso.assert_called_once_with(task)
+            mock_cleanup_disk.assert_not_called()
+
+    @mock.patch.object(image_utils, 'cleanup_disk_image', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
+    @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_boot.LOG, 'debug', autospec=True)
+    @mock.patch.object(redfish_boot.LOG, 'info', autospec=True)
+    def test_eject_vmedia_with_dvd_cisco_ucs(self, mock_log_info,
+                                             mock_log_debug,
+                                             mock_vmd_sys,
+                                             mock_redfish_utils,
+                                             mock_cleanup_iso,
+                                             mock_cleanup_disk):
+        mock_vmd_sys.return_value = True
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_dvd_1 = mock.MagicMock(
+                inserted=True,
+                media_types=[sushy.VIRTUAL_MEDIA_DVD])
+            mock_vmedia_dvd_2 = mock.MagicMock(
+                inserted=True,
+                media_types=[sushy.VIRTUAL_MEDIA_DVD])
+
+            mock_system = mock.MagicMock()
+            mock_manager = mock.MagicMock()
+
+            mock_redfish_utils.get_system.return_value = mock_system
+            mock_system.managers = [
+                mock_manager]
+            mock_system.virtual_media.get_members.return_value = [
+                mock_vmedia_dvd_1, mock_vmedia_dvd_2]
+
+            redfish_boot.eject_vmedia(task, sushy.VIRTUAL_MEDIA_CD)
+
+            mock_vmedia_dvd_1.eject_media.assert_called_once_with()
+            mock_vmedia_dvd_2.eject_media.assert_called_once_with()
+
+            self.assertEqual(mock_log_info.call_count, 2)
+            self.assertEqual(mock_log_debug.call_count, 3)
+            mock_cleanup_iso.assert_called_once_with(task)
+            mock_cleanup_disk.assert_not_called()
+
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
+    def test_eject_vmedia_not_inserted(self, mock_redfish_utils, mock_vmd_sys):
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmd_sys.return_value = True
+            mock_vmedia_cd = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+            mock_vmedia_floppy = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_FLOPPY])
+
+            mock_manager = mock.MagicMock()
+            mock_system = mock.MagicMock()
+
+            mock_system.virtual_media.get_members.return_value = [
+                mock_vmedia_cd, mock_vmedia_floppy]
+
+            mock_redfish_utils.get_system.return_value.managers = [
+                mock_manager]
+
+            redfish_boot.eject_vmedia(task)
+
+            self.assertFalse(mock_vmedia_cd.eject_media.call_count)
+            self.assertFalse(mock_vmedia_floppy.eject_media.call_count)
+
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_boot, 'redfish_utils', autospec=True)
+    def test_eject_vmedia_unknown(self, mock_redfish_utils, mock_vmd_sys):
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmd_sys.return_value = True
+            mock_vmedia_cd = mock.MagicMock(
+                inserted=False,
+                media_types=[sushy.VIRTUAL_MEDIA_CD])
+
+            mock_manager = mock.MagicMock()
+            mock_system = mock.MagicMock()
+
+            mock_system.virtual_media.get_members.return_value = [
+                mock_vmedia_cd]
+
+            mock_redfish_utils.get_system.return_value.managers = [
+                mock_manager]
+
+            redfish_boot.eject_vmedia(task)
+
+            self.assertFalse(mock_vmedia_cd.eject_media.call_count)
+
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    def test__has_vmedia_device(self, mock_vmd_sys):
+        mock_vmd_sys.return_value = True
+        mock_vmedia_cd = mock.MagicMock(
+            inserted=False,
+            media_types=[sushy.VIRTUAL_MEDIA_CD])
+        mock_vmedia_floppy = mock.MagicMock(
+            inserted=False,
+            media_types=[sushy.VIRTUAL_MEDIA_FLOPPY])
+
+        mock_manager = mock.MagicMock()
+
+        mock_system = mock.MagicMock()
+        mock_system.virtual_media.get_members.return_value = [
+            mock_vmedia_cd, mock_vmedia_floppy]
+
+        self.assertEqual(
+            sushy.VIRTUAL_MEDIA_CD,
+            redfish_boot._has_vmedia_device(
+                [mock_manager], sushy.VIRTUAL_MEDIA_CD,
+                system=mock_system))
+
+        self.assertFalse(
+            redfish_boot._has_vmedia_device(
+                [mock_manager], sushy.VIRTUAL_MEDIA_CD,
+                inserted=True, system=mock_system))
+
+        self.assertFalse(
+            redfish_boot._has_vmedia_device(
+                [mock_manager], sushy.VIRTUAL_MEDIA_USBSTICK,
+                system=mock_system))
+
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    def test__has_vmedia_device_inserted(self, mock_vmd_sys):
+        mock_vmd_sys.return_value = True
+        mock_vmedia_cd = mock.MagicMock(
+            inserted=False,
+            media_types=[sushy.VIRTUAL_MEDIA_CD])
+        mock_vmedia_floppy = mock.MagicMock(
+            inserted=True,
+            media_types=[sushy.VIRTUAL_MEDIA_FLOPPY])
+
+        mock_manager = mock.MagicMock()
+        mock_system = mock.MagicMock()
+        mock_system.virtual_media.get_members.return_value = [
+            mock_vmedia_cd, mock_vmedia_floppy]
+
+        self.assertEqual(
+            sushy.VIRTUAL_MEDIA_FLOPPY,
+            redfish_boot._has_vmedia_device(
+                [mock_manager], sushy.VIRTUAL_MEDIA_FLOPPY,
+                inserted=True, system=mock_system))

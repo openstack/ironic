@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes Redfish virtual media boot on BMCs that only expose the VirtualMedia
+    resource on Systems instead of Managers. For more informations, you can see
+    `bug 2039458 <https://bugs.launchpad.net/sushy/+bug/2039458>`_.
