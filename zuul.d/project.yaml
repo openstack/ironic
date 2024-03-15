@@ -17,8 +17,10 @@
         # commented out 2023-05-19
         - ironic-tempest-functional-rbac-scope-enforced:
             voting: false
-        - ironic-grenade
-        - ironic-standalone
+        - ironic-grenade:
+            voting: false
+        - ironic-standalone:
+            voting: false
         - ironic-standalone-redfish
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
@@ -57,20 +59,27 @@
             voting: false
         - bifrost-integration-redfish-vmedia-uefi-centos-8:
             voting: false
-        - ironic-tempest-pxe_ipmitool-postgres:
-            voting: false
-        - bifrost-benchmark-ironic:
-            voting: false
+        # NOTE(TheJulia): Disabling because these are really not needed
+        # At this point in time with the age of this branch.
+        # - ironic-tempest-pxe_ipmitool-postgres:
+        #    voting: false
+        # - bifrost-benchmark-ironic:
+        #    voting: false
     gate:
       jobs:
-        - ironic-tox-unit-with-driver-libs
+        # NOTE(TheJulia): Return this to voting once
+        # https://review.opendev.org/c/openstack/ironic/+/910528
+        # or similar change to the branch has merged
+        #- ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
         # NOTE(JayF): This job is failing and is being fixed in master. It
         # should be re-enabled in stable when it's re-enabled on master.
         # commented out 2023-05-19
         #- ironic-tempest-functional-rbac-scope-enforced
-        - ironic-grenade
-        - ironic-standalone
+        # NOTE(TheJulia): Disabling grenade/standalone as they are not really
+        # needed on this branch at this point.
+        # - ironic-grenade
+        # - ironic-standalone
         - ironic-standalone-redfish
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia

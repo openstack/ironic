@@ -4,7 +4,11 @@
 # python projects they should package as optional dependencies for Ironic.
 
 # These are available on pypi
-proliantutils>=2.11.0
+
+# NOTE(TheJulia): Proliantutils 2.16.0 moves to pysnmp-lextudio
+# however that breaks on imports and with testing due to collission
+# with pysnmp.
+proliantutils>=2.11.0,<2.16.0
 pysnmp>=4.3.0,<5.0.0
 python-scciclient>=0.8.0,<0.12.0
 python-dracclient>=5.1.0,<8.0.0
