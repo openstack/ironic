@@ -1,0 +1,13 @@
+prelude: >
+    Ironic contributors are thrilled to present the release of 24.1.0, tested
+    as part of OpenStack 2024.1 (Caracal) throughout the last six months. This release can
+    be upgraded directly to from Ironic 21.4 as part of a
+    `SLURP <https://releases.openstack.org/#releases-with-skip-level-upgrade-release-process-slurp>`_
+    upgrade from OpenStack 2023.1 (Antelope).
+
+    Ironic's first release came during the 2014.1 (Icehouse) cycle -- a decade
+    ago. In those ten years, redfish has been created, the default deploy driver
+    has been replaced, and Ironic has expanded into the CNCF community with
+    `Metal3 <https://metal3.io>`_.
+
+    Thanks for making us a part of your cloud!
