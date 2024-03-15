@@ -298,6 +298,9 @@
     description: "Deploy ironic node over Redfish virtual media using UEFI boot mode"
     parent: ironic-base
     vars:
+      # NOTE(iurygregory): switch to only wholedisk test, since the
+      # partition test is failling randomly.
+      tempest_test_regex: test_baremetal_server_ops_wholedisk_image
       devstack_localrc:
         IRONIC_DEPLOY_DRIVER: redfish
         IRONIC_ENABLED_HARDWARE_TYPES: redfish
@@ -436,6 +439,9 @@
     description: IPMI power, UEFI, iPXE, OVN image.
     parent: ironic-base
     vars:
+      # NOTE(iurygregory): switch to only wholedisk test, since the
+      # partition test is failling randomly.
+      tempest_test_regex: test_baremetal_server_ops_wholedisk_image
       devstack_localrc:
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         Q_AGENT: ovn
