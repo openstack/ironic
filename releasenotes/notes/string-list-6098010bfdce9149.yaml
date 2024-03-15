@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Query parameters in the API that expect lists now accept repeated arguments
+    (``param=value1&param=value2``) in addition to comma-separated strings
+    (``param=value1,value2``). The former seems to be more common and is
+    actually (incorrectly) used in GopherCloud.

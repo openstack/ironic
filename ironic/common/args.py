@@ -128,9 +128,12 @@ def string_list(name, value):
               same order, or None if value is None
     :raises: InvalidParameterValue if the value is not a string
     """
-    value = string(name, value)
     if value is None:
         return
+    if isinstance(value, list):
+        return [string(name, item) for item in value]
+
+    value = string(name, value)
     items = []
     for v in str(value).split(','):
         v_norm = v.strip().lower()
