@@ -3383,19 +3383,19 @@ owner_reader_cannot_get_conductors:
   path: '/v1/conductors'
   method: get
   headers: *owner_reader_headers
-  assert_status: 500
+  assert_status: 403
 
 lessee_reader_cannot_get_conductors:
   path: '/v1/conductors'
   method: get
   headers: *lessee_reader_headers
-  assert_status: 500
+  assert_status: 403
 
 third_party_admin_cannot_get_conductors:
   path: '/v1/conductors'
   method: get
   headers: *third_party_admin_headers
-  assert_status: 500
+  assert_status: 403
 
 # Allocations - https://docs.openstack.org/api-ref/baremetal/#allocations-allocations
 
@@ -3631,19 +3631,19 @@ owner_reader_cannot_get_deploy_templates:
   path: '/v1/deploy_templates'
   method: get
   headers: *owner_reader_headers
-  assert_status: 500
+  assert_status: 403
 
 lessee_reader_cannot_get_deploy_templates:
   path: '/v1/deploy_templates'
   method: get
   headers: *lessee_reader_headers
-  assert_status: 500
+  assert_status: 403
 
 third_party_admin_cannot_get_deploy_templates:
   path: '/v1/deploy_templates'
   method: get
   headers: *third_party_admin_headers
-  assert_status: 500
+  assert_status: 403
 
 third_party_admin_cannot_post_deploy_template:
   path: '/v1/deploy_templates'
@@ -3656,20 +3656,20 @@ third_party_admin_cannot_post_deploy_template:
         args: {}
         priority: 0
   headers: *third_party_admin_headers
-  assert_status: 500
+  assert_status: 403
 
 service_cannot_get_deploy_templates:
   path: '/v1/deploy_templates'
   method: get
   headers: *service_headers
-  assert_status: 500
+  assert_status: 403
 
 service_cannot_post_deploy_template:
   path: '/v1/deploy_templates'
   method: post
   body: *deploy_template
   headers: *service_headers
-  assert_status: 500
+  assert_status: 403
 
 # Chassis endpoints - https://docs.openstack.org/api-ref/baremetal/#chassis-chassis
 

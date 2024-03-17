@@ -1638,7 +1638,7 @@ conductor_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:conductor:get',
         check_str=SYSTEM_READER,
-        scope_types=['system'],
+        scope_types=['system', 'project'],
         description='Retrieve Conductor records',
         operations=[
             {'path': '/conductors', 'method': 'GET'},
@@ -1839,7 +1839,7 @@ deploy_template_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:deploy_template:get',
         check_str=SYSTEM_READER,
-        scope_types=['system'],
+        scope_types=['system', 'project'],
         description='Retrieve Deploy Template records',
         operations=[
             {'path': '/deploy_templates', 'method': 'GET'},
@@ -1851,7 +1851,7 @@ deploy_template_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:deploy_template:create',
         check_str=SYSTEM_ADMIN,
-        scope_types=['system'],
+        scope_types=['system', 'project'],
         description='Create Deploy Template records',
         operations=[{'path': '/deploy_templates', 'method': 'POST'}],
         deprecated_rule=deprecated_deploy_template_create
@@ -1859,7 +1859,7 @@ deploy_template_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:deploy_template:delete',
         check_str=SYSTEM_ADMIN,
-        scope_types=['system'],
+        scope_types=['system', 'project'],
         description='Delete Deploy Template records',
         operations=[
             {'path': '/deploy_templates/{deploy_template_ident}',
@@ -1870,7 +1870,7 @@ deploy_template_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:deploy_template:update',
         check_str=SYSTEM_ADMIN,
-        scope_types=['system'],
+        scope_types=['system', 'project'],
         description='Update Deploy Template records',
         operations=[
             {'path': '/deploy_templates/{deploy_template_ident}',
