@@ -351,6 +351,22 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(nodes.c.inspection_finished_at.type,
                               sqlalchemy.types.DateTime)
 
+    def _check_01f21d5e5195(self, engine, data):
+        node_history = db_utils.get_table(engine, 'node_history')
+        bigstring = 'a' * 64
+        uuid = uuidutils.generate_uuid()
+        data = {'uuid': uuid, 'user': bigstring}
+        with engine.begin() as connection:
+            insert_node_history = node_history.insert().values(data)
+            connection.execute(insert_node_history)
+            node_history_stmt = sqlalchemy.select(
+                models.NodeHistory.user
+            ).where(
+                models.NodeHistory.uuid == uuid
+            )
+            node_history = connection.execute(node_history_stmt).first()
+            self.assertEqual(bigstring, node_history.user)
+
     def _check_4f399b21ae71(self, engine, data):
         nodes = db_utils.get_table(engine, 'nodes')
         col_names = [column.name for column in nodes.c]
