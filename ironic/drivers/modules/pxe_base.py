@@ -332,6 +332,19 @@ class PXEBaseMixin(object):
         # NOTE(pas-ha) do not re-set boot device on ACTIVE nodes
         # during takeover
         if boot_device and task.node.provision_state != states.ACTIVE:
+            vendor = task.node.properties.get('vendor', None)
+            boot_mode = boot_mode_utils.get_boot_mode(task.node)
+            if (task.node.provision_state == states.DEPLOYING
+                    and vendor and vendor.lower() == 'lenovo'
+                    and boot_mode == 'uefi'
+                    and boot_device == boot_devices.DISK):
+                # Lenovo hardware is modeled on a "just update"
+                # UEFI nvram model of use, and if multiple actions
+                # get requested, you can end up in cases where NVRAM
+                # changes are deleted as the host "restores" to the
+                # backup. For more information see
+                # https://bugs.launchpad.net/ironic/+bug/2053064
+                return
             manager_utils.node_set_boot_device(task, boot_device,
                                                persistent=True)
 
