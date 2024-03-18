@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    No longer falls back to `unmanaged` inspection for virtual media and
+    UEFI HTTP boot interfaces. Previously, if the validation of the boot
+    interface failed before in-band inspection, Ironic would switch to
+    unmanaged inspection, which involved PXE-booting. It is not expected
+    that nodes explicitly configured to use virtual media start booting
+    over PXE, so the fallback has been removed.

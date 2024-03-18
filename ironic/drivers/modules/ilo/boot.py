@@ -342,12 +342,7 @@ class IloVirtualMediaBoot(base.BootInterface):
             parameters
         :raises: UnsupportedDriverExtension
         """
-        try:
-            _validate_driver_info(task)
-        except exception.MissingParameterValue:
-            # Fall back to non-managed in-band inspection
-            raise exception.UnsupportedDriverExtension(
-                driver=task.node.driver, extension='inspection')
+        _validate_driver_info(task)
 
     @METRICS.timer('IloVirtualMediaBoot.prepare_ramdisk')
     def prepare_ramdisk(self, task, ramdisk_params):
@@ -921,12 +916,7 @@ class IloUefiHttpsBoot(base.BootInterface):
             parameters
         :raises: UnsupportedDriverExtension
         """
-        try:
-            self._validate_driver_info(task)
-        except exception.MissingParameterValue:
-            # Fall back to non-managed in-band inspection
-            raise exception.UnsupportedDriverExtension(
-                driver=task.node.driver, extension='inspection')
+        self._validate_driver_info(task)
 
     @METRICS.timer('IloUefiHttpsBoot.prepare_ramdisk')
     def prepare_ramdisk(self, task, ramdisk_params):
