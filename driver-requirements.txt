@@ -4,7 +4,7 @@
 # python projects they should package as optional dependencies for Ironic.
 
 # These are available on pypi
-proliantutils>=2.16.1
+proliantutils>=2.16.2
 pysnmp-lextudio>=5.0.0 # BSD
 pyasn1>=0.5.1 # BSD
 pyasn1-modules>=0.3.0 # BSD
