@@ -14,6 +14,7 @@
 
 import functools
 
+import microversion_parse as mvp
 from webob import exc
 
 from ironic.common.i18n import _
@@ -56,19 +57,19 @@ class Version(object):
         :returns: a tuple of (major, minor) version numbers
         :raises: webob.HTTPNotAcceptable
         """
-        version_str = headers.get(Version.string, default_version)
-
-        if version_str.lower() == 'latest':
-            parse_str = latest_version
-        else:
-            parse_str = version_str
-
         try:
-            version = tuple(int(i) for i in parse_str.split('.'))
-        except ValueError:
-            version = ()
+            version_str = mvp.get_version(headers,
+                                          service_type='baremetal',
+                                          legacy_headers=[Version.string])
+            if not version_str:
+                version_str = default_version
+            if version_str.lower() == 'latest':
+                version_str = latest_version
 
-        if len(version) != 2:
+            version = mvp.parse_version_string(version_str)
+            if len(version) != 2:
+                raise ValueError
+        except (ValueError, TypeError, AttributeError):
             raise exc.HTTPNotAcceptable(_(
                 "Invalid value for %s header") % Version.string)
         return version
