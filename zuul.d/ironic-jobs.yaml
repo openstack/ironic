@@ -325,6 +325,36 @@
         s-proxy: True
 
 - job:
+    name: ironic-tempest-uefi-redfish-https
+    description: "Deploy ironic node utilizing https boot interface"
+    parent: ironic-base
+    required-projects:
+      - opendev.org/openstack/sushy
+      - opendev.org/openstack/sushy-tools
+    vars:
+      devstack_localrc:
+        IRONIC_DEPLOY_DRIVER: redfish
+        IRONIC_ENABLED_HARDWARE_TYPES: redfish
+        IRONIC_ENABLED_POWER_INTERFACES: redfish
+        IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_ENABLED_BOOT_INTERFACES: redfish-https
+        SWIFT_ENABLE_TEMPURLS: True
+        SWIFT_TEMPURL_KEY: secretkey
+        # Ironic has to master a new image, and this CAN take longer as a
+        # result and makes this job VERY sensitive to heavy disk IO of the
+        # underlying hypervisor/cloud.
+        IRONIC_CALLBACK_TIMEOUT: 800
+        IRONIC_GRUB2_SHIM_FILE: https://mirror.iad3.inmotion.opendev.org/centos-stream/9-stream/BaseOS/x86_64/os/EFI/BOOT/BOOTX64.EFI
+        IRONIC_GRUB2_FILE: https://mirror.iad3.inmotion.opendev.org/centos-stream/9-stream/BaseOS/x86_64/os/EFI/BOOT/grubx64.efi
+        IRONIC_GRUB2_CONFIG_PATH: EFI/BOOT/grub.cfg
+      devstack_services:
+        s-account: True
+        s-container: True
+        s-object: True
+        s-proxy: True
+
+- job:
     name: ironic-inspector-tempest-uefi-redfish-vmedia
     description: "Inspect and deploy ironic node over Redfish virtual media using UEFI"
     parent: ironic-tempest-partition-uefi-redfish-vmedia

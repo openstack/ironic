@@ -32,6 +32,7 @@
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-ramdisk-bios-snmp-pxe
+        - ironic-tempest-uefi-redfish-https
         - ironic-tempest-ovn-uefi-ipmi-pxe
         # NOTE(TheJulia) Marking multinode non-voting on 20210311
         # Due to a high failure rate on limestone where the compute1
@@ -90,6 +91,7 @@
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-ramdisk-bios-snmp-pxe
+        - ironic-tempest-uefi-redfish-https
         - ironic-tempest-ovn-uefi-ipmi-pxe
         # NOTE(TheJulia): Disabled multinode on 20210311 due to Limestone
         # seeming to be
