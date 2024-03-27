@@ -577,7 +577,7 @@ class IloVirtualMediaBootTestCase(test_common.BaseIloTest):
     def test_validate_inspection_missing(self, mock_parse_driver_info):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            self.assertRaises(exception.UnsupportedDriverExtension,
+            self.assertRaises(exception.MissingParameterValue,
                               task.driver.boot.validate_inspection, task)
 
     @mock.patch.object(image_utils, 'prepare_deploy_iso', autospec=True)
@@ -1838,7 +1838,7 @@ class IloUefiHttpsBootTestCase(db_base.DbTestCase):
             "Error validating iLO UEFIHTTPS for deploy.")
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            self.assertRaises(exception.UnsupportedDriverExtension,
+            self.assertRaises(exception.MissingParameterValue,
                               task.driver.boot.validate_inspection, task)
 
     @mock.patch.object(ilo_common, 'add_certificates',

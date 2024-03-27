@@ -606,14 +606,9 @@ class RedfishVirtualMediaBoot(base.BootInterface):
         :param task: A TaskManager instance with the node being checked
         :raises: MissingParameterValue if node is missing one or more required
             parameters
-        :raises: UnsupportedDriverExtension
         """
-        try:
-            self._validate_driver_info(task)
-        except exception.MissingParameterValue:
-            # Fall back to non-managed in-band inspection
-            raise exception.UnsupportedDriverExtension(
-                driver=task.node.driver, extension='inspection')
+        # No unmanaged fallback for virtual media
+        self._validate_driver_info(task)
 
     def prepare_ramdisk(self, task, ramdisk_params):
         """Prepares the boot of deploy or rescue ramdisk over virtual media.
@@ -979,14 +974,8 @@ class RedfishHttpsBoot(base.BootInterface):
         :param task: A TaskManager instance with the node being checked
         :raises: MissingParameterValue if node is missing one or more required
             parameters
-        :raises: UnsupportedDriverExtension
         """
-        try:
-            self._validate_driver_info(task)
-        except exception.MissingParameterValue:
-            # Fall back to non-managed in-band inspection
-            raise exception.UnsupportedDriverExtension(
-                driver=task.node.driver, extension='inspection')
+        self._validate_driver_info(task)
 
     def prepare_ramdisk(self, task, ramdisk_params):
         """Prepares the boot of the agent ramdisk.
