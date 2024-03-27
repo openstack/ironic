@@ -92,7 +92,7 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
             # NOTE(TheJulia): This tests validates the calls are made.
             # When not mocked out completely, since Neutron is consulted
             # on validity of the name or UUID as well, the validate_network
-            # method gets called which rasies a validate parsable error.
+            # method gets called which raises a validate parsable error.
             self.assertEqual([mock.call(CONF.neutron.cleaning_network,
                                         'cleaning_network',
                                         context=task.context),

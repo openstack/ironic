@@ -237,7 +237,7 @@ class PXEBaseMixin(object):
         Basic challenge: IPMI doesn't have a field reserved for "httpboot" as
         httpboot pre-dates IPMI. It is also entirely possible that all logic
         to support httpboot is coming from OPROM code on network cards, so to
-        sort of handle this, and the nature of PXE being percieved as
+        sort of handle this, and the nature of PXE being perceived as
         "network boot", if we are http boot enabled, we attempt to explicitly
         request as such, but if the driver errors, then we fall back to PXE.
 
