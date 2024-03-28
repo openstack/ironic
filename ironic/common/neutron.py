@@ -70,7 +70,11 @@ def get_client(token=None, context=None, auth_from_config=False):
 
     user_auth = None
     if (not auth_from_config and CONF.neutron.auth_type != 'none'
-            and context.auth_token):
+            and context.auth_token and not context.system_scope):
+        # If we have a token, we *should* use the user's auth, however we
+        # can only do so *if* it is a project scoped request. If it is
+        # system scoped, we cannot leverage user auth data to make the next
+        # request.
         user_auth = keystone.get_service_auth(context, endpoint, service_auth)
 
     sess = keystone.get_session('neutron', timeout=CONF.neutron.timeout,
