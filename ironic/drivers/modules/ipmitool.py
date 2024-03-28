@@ -1624,6 +1624,14 @@ class IPMIShellinaboxConsole(IPMIConsole):
     def get_console(self, task):
         """Get the type and connection information about the console."""
         driver_info = _parse_driver_info(task.node)
+
+        try:
+            self._exec_stop_console(driver_info)
+        except OSError:
+            # We need to drop any existing sol sessions with sol deactivate.
+            # OSError is raised when sol session is already deactivated,
+            # so we can ignore it.
+            pass
         url = console_utils.get_shellinabox_console_url(driver_info['port'])
         return {'type': 'shellinabox', 'url': url}
 
@@ -1687,5 +1695,13 @@ class IPMISocatConsole(IPMIConsole):
         :param task: a task from TaskManager
         """
         driver_info = _parse_driver_info(task.node)
+
+        try:
+            self._exec_stop_console(driver_info)
+        except OSError:
+            # We need to drop any existing sol sessions with sol deactivate.
+            # OSError is raised when sol session is already deactivated,
+            # so we can ignore it.
+            pass
         url = console_utils.get_socat_console_url(driver_info['port'])
         return {'type': 'socat', 'url': url}

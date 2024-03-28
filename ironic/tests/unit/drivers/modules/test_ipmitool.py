@@ -3418,7 +3418,9 @@ class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
 
     @mock.patch.object(console_utils, 'get_shellinabox_console_url',
                        autospec=True)
-    def test_get_console(self, mock_get):
+    @mock.patch.object(ipmi.IPMIShellinaboxConsole, "_exec_stop_console",
+                       autospec=True)
+    def test_get_console(self, mock_exec_stop, mock_get):
         url = 'http://localhost:4201'
         mock_get.return_value = url
         expected = {'type': 'shellinabox', 'url': url}
@@ -3426,7 +3428,9 @@ class IPMIToolShellinaboxTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             console_info = self.console.get_console(task)
+            driver_info = ipmi._parse_driver_info(task.node)
 
+        mock_exec_stop.assert_called_once_with(self.console, driver_info)
         self.assertEqual(expected, console_info)
         mock_get.assert_called_once_with(self.info['port'])
 
@@ -3651,7 +3655,9 @@ class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
 
     @mock.patch.object(console_utils, 'get_socat_console_url',
                        autospec=True)
-    def test_get_console(self, mock_get_url):
+    @mock.patch.object(ipmi.IPMISocatConsole, '_exec_stop_console',
+                       autospec=True)
+    def test_get_console(self, mock_exec_stop, mock_get_url):
         url = 'tcp://localhost:4201'
         mock_get_url.return_value = url
         expected = {'type': 'socat', 'url': url}
@@ -3659,6 +3665,8 @@ class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
         with task_manager.acquire(self.context,
                                   self.node.uuid) as task:
             console_info = self.console.get_console(task)
+            driver_info = ipmi._parse_driver_info(task.node)
 
+        mock_exec_stop.assert_called_once_with(self.console, driver_info)
         self.assertEqual(expected, console_info)
         mock_get_url.assert_called_once_with(self.info['port'])
