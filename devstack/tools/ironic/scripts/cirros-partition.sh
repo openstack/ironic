@@ -54,6 +54,11 @@ sudo mount $efidev $efi_mp
 sudo cp -aR $root_mp/* $dest/
 sudo cp -aR $efi_mp/EFI $dest/boot/efi/
 
+# Extract all of the stuffs from the disk image and write it out into
+# the dest folder. This is *normally* done on startup for Cirros, but
+# doesn't quite jive with the expected partition image model.
+sudo zcat $root_mp/boot/initrd.img* | sudo cpio -i --make-directories -D $dest
+
 # These locations are required by IPA even when it does not really run
 # grub-install.
 sudo mkdir -p $dest/{dev,proc,run,sys}
