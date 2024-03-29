@@ -59,9 +59,9 @@ class DbNodeTestCase(base.DbTestCase):
                           traits=['trait1', 'trait2'])
 
     def test_create_node_already_exists(self):
-        utils.create_test_node()
+        node = utils.create_test_node()
         self.assertRaises(exception.NodeAlreadyExists,
-                          utils.create_test_node)
+                          utils.create_test_node, uuid=node.uuid)
 
     def test_create_node_instance_already_associated(self):
         instance = uuidutils.generate_uuid()
