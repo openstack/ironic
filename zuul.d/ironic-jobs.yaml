@@ -332,6 +332,7 @@
       - opendev.org/openstack/sushy
       - opendev.org/openstack/sushy-tools
     vars:
+      tempest_test_regex: test_baremetal_server_ops_wholedisk_image
       devstack_localrc:
         IRONIC_DEPLOY_DRIVER: redfish
         IRONIC_ENABLED_HARDWARE_TYPES: redfish
