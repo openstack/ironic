@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes usage of redfish detach virtual media feature to be conform to
+    the general implementation.
+    Before the detach virtual media API call using redfish driver was not
+    working as intended and caused the operation to fail.
