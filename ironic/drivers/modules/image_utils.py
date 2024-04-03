@@ -23,6 +23,7 @@ import tempfile
 from urllib import parse as urlparse
 
 from oslo_log import log
+from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
@@ -446,6 +447,9 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
 
     img_handler = ImageHandler(task.node.driver)
 
+    if not is_ramdisk_boot:
+        publisher_id = uuidutils.generate_uuid()
+
     with tempfile.TemporaryDirectory(dir=CONF.tempdir) as boot_file_dir:
 
         boot_iso_tmp_file = os.path.join(boot_file_dir, 'boot.iso')
@@ -455,6 +459,9 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
         else:
             kernel_params = driver_utils.get_kernel_append_params(
                 task.node, default=img_handler.kernel_params)
+
+        if not is_ramdisk_boot:
+            kernel_params += " ir_pub_id=%s" % publisher_id
 
         if params:
             kernel_params = ' '.join(
@@ -472,14 +479,27 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
                 'ramdisk_href': ramdisk_href,
                 'bootloader_href': bootloader_href,
                 'params': kernel_params})
-        images.create_boot_iso(
-            task.context, boot_iso_tmp_file,
-            kernel_href, ramdisk_href,
-            esp_image_href=bootloader_href,
-            root_uuid=root_uuid,
-            kernel_params=kernel_params,
-            boot_mode=boot_mode,
-            inject_files=inject_files)
+
+        if is_ramdisk_boot:
+            images.create_boot_iso(
+                task.context, boot_iso_tmp_file,
+                kernel_href, ramdisk_href,
+                esp_image_href=bootloader_href,
+                root_uuid=root_uuid,
+                kernel_params=kernel_params,
+                boot_mode=boot_mode,
+                inject_files=inject_files)
+
+        else:
+            images.create_boot_iso(
+                task.context, boot_iso_tmp_file,
+                kernel_href, ramdisk_href,
+                esp_image_href=bootloader_href,
+                root_uuid=root_uuid,
+                kernel_params=kernel_params,
+                boot_mode=boot_mode,
+                inject_files=inject_files,
+                publisher_id=publisher_id)
 
         node_http_url = task.node.driver_info.get("external_http_url")
         image_url = img_handler.publish_image(

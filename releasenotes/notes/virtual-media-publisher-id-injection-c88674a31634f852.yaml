@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Adds an ISO publisher value to ISO images which are mastered as part of
+    cleaning/deployment/service operations in support of a fix for
+    `bug 2032377 <https://bugs.launchpad.net/ironic/+bug/2032377>`_.
