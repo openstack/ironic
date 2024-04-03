@@ -1349,13 +1349,17 @@ class RedfishManagement(base.ManagementInterface):
         redfish_boot.insert_vmedia(task, image_url, device_type)
 
     @task_manager.require_exclusive_lock
-    def detach_virtual_media(self, task, device_type=None):
+    def detach_virtual_media(self, task, device_types=None):
         """Detach some or all virtual media devices from the node.
 
             :param task: A task from TaskManager.
-            :param device_type: A device type from
+            :param device_types: A list of device types from
                 :data:`ironic.common.boot_devices.VMEDIA_DEVICES`.
                 If not provided, all devices are detached.
 
         """
-        redfish_boot.eject_vmedia(task, device_type)
+        if device_types is None:
+            redfish_boot.eject_vmedia(task)
+        else:
+            for device_type in device_types:
+                redfish_boot.eject_vmedia(task, device_type)
