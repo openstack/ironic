@@ -4081,6 +4081,14 @@ def do_sync_power_state(task, count):
     return count
 
 
+def _virtual_media_file_name(task, device_type):
+    return "%s-%s.%s" % (
+        device_type.lower(),
+        task.node.uuid,
+        'iso' if device_type == boot_devices.CDROM else 'img'
+    )
+
+
 def do_attach_virtual_media(task, device_type, image_url,
                             image_download_source):
     success_msg = "Device %(device_type)s attached to node %(node)s",
@@ -4088,10 +4096,8 @@ def do_attach_virtual_media(task, device_type, image_url,
                  "to node %(node)s: %(exc)s")
     try:
         assert device_type in boot_devices.VMEDIA_DEVICES
-        file_name = "%s.%s" % (
-            device_type.lower(),
-            'iso' if device_type == boot_devices.CDROM else 'img'
-        )
+        file_name = _virtual_media_file_name(task, device_type)
+        image_utils.cleanup_remote_image(task, file_name)
         image_url = image_utils.prepare_remote_image(
             task, image_url, file_name=file_name,
             download_source=image_download_source)
@@ -4119,6 +4125,5 @@ def do_detach_virtual_media(task, device_types):
                           "%(device_types)s from node %(node)s: %(exc)s",
                           device_types=device_types)
     for device_type in device_types:
-        suffix = '.iso' if device_type == boot_devices.CDROM else '.img'
-        image_utils.ImageHandler.unpublish_image_for_node(
-            task.node, prefix=device_type.lower(), suffix=suffix)
+        file_name = _virtual_media_file_name(task, device_type)
+        image_utils.cleanup_remote_image(task, file_name)
