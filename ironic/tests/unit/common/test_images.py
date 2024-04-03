@@ -570,7 +570,8 @@ class FsImageTestCase(base.TestCase):
                                          'path/to/kernel',
                                          'path/to/ramdisk',
                                          deploy_iso='path/to/deploy_iso',
-                                         kernel_params=params)
+                                         kernel_params=params,
+                                         publisher_id='1-23-4')
         get_iso_files_mock.assert_called_once_with('path/to/deploy_iso',
                                                    'mountdir')
         create_root_fs_mock.assert_called_once_with('tmpdir', files_info)
@@ -578,7 +579,8 @@ class FsImageTestCase(base.TestCase):
                                      grub_options)
         write_to_file_mock.assert_any_call(grub_file, grubcfg)
         execute_mock.assert_called_once_with(
-            'mkisofs', '-r', '-V', 'VMEDIA_BOOT_ISO', '-l', '-e',
+            'mkisofs', '-r', '-V', 'VMEDIA_BOOT_ISO', '-l',
+            '-publisher', '1-23-4', '-e',
             'path/to/efiboot.img', '-no-emul-boot', '-o', 'tgt_file', 'tmpdir')
         rmtree_mock.assert_called_once_with('mountdir')
 
@@ -653,7 +655,8 @@ class FsImageTestCase(base.TestCase):
                                               'path/to/kernel',
                                               'path/to/ramdisk',
                                               kernel_params=params,
-                                              inject_files=inject_files)
+                                              inject_files=inject_files,
+                                              publisher_id='1-23-4')
 
         files_info = {
             'path/to/kernel': 'vmlinuz',
@@ -672,6 +675,7 @@ class FsImageTestCase(base.TestCase):
         execute_mock.assert_called_once_with(
             'mkisofs', '-r', '-V',
             "VMEDIA_BOOT_ISO", '-J', '-l',
+            '-publisher', '1-23-4',
             '-no-emul-boot', '-boot-load-size',
             '4', '-boot-info-table', '-b', 'isolinux/isolinux.bin',
             '-o', 'tgt_file', 'tmpdir')
@@ -811,7 +815,8 @@ class FsImageTestCase(base.TestCase):
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
             deploy_iso='tmpdir/iso',
-            esp_image=None, kernel_params=params, inject_files=None)
+            esp_image=None, kernel_params=params, inject_files=None,
+            publisher_id=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -839,7 +844,8 @@ class FsImageTestCase(base.TestCase):
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
             deploy_iso=None, esp_image='tmpdir/esp',
-            kernel_params=params, inject_files=None)
+            kernel_params=params, inject_files=None,
+            publisher_id=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -867,7 +873,8 @@ class FsImageTestCase(base.TestCase):
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
             deploy_iso='tmpdir/iso',
-            esp_image=None, kernel_params=params, inject_files=None)
+            esp_image=None, kernel_params=params, inject_files=None,
+            publisher_id=None)
 
     @mock.patch.object(images, 'create_esp_image_for_uefi', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -882,7 +889,7 @@ class FsImageTestCase(base.TestCase):
             'ctx', 'output_file', 'http://kernel-href', 'http://ramdisk-href',
             esp_image_href='http://efiboot-href',
             root_uuid='root-uuid', kernel_params='kernel-params',
-            boot_mode='uefi')
+            boot_mode='uefi', publisher_id='1-23-4')
 
         expected_calls = [mock.call('ctx', 'http://kernel-href',
                                     'tmpdir/kernel'),
@@ -895,7 +902,8 @@ class FsImageTestCase(base.TestCase):
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
             deploy_iso=None, esp_image='tmpdir/esp',
-            kernel_params=params, inject_files=None)
+            kernel_params=params, inject_files=None,
+            publisher_id='1-23-4')
 
     @mock.patch.object(images, 'create_isolinux_image_for_bios', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -909,7 +917,8 @@ class FsImageTestCase(base.TestCase):
         images.create_boot_iso('ctx', 'output_file', 'kernel-uuid',
                                'ramdisk-uuid', 'deploy_iso-uuid',
                                'efiboot-uuid', 'root-uuid',
-                               'kernel-params', 'bios')
+                               'kernel-params', 'bios',
+                               publisher_id='1-23-4')
 
         fetch_images_mock.assert_any_call(
             'ctx', 'kernel-uuid', 'tmpdir/kernel')
@@ -926,7 +935,8 @@ class FsImageTestCase(base.TestCase):
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
-            kernel_params=params, inject_files=None)
+            kernel_params=params, inject_files=None,
+            publisher_id='1-23-4')
 
     @mock.patch.object(images, 'create_isolinux_image_for_bios', autospec=True)
     @mock.patch.object(images, 'fetch', autospec=True)
@@ -951,7 +961,8 @@ class FsImageTestCase(base.TestCase):
         params = ['root=UUID=root-uuid', 'kernel-params']
         create_isolinux_mock.assert_called_once_with(
             'output_file', 'tmpdir/kernel', 'tmpdir/ramdisk',
-            kernel_params=params, inject_files=None)
+            kernel_params=params, inject_files=None,
+            publisher_id=None)
 
     @mock.patch.object(image_service, 'get_image_service', autospec=True)
     def test_get_glance_image_properties_no_such_prop(self,

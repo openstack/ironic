@@ -175,7 +175,8 @@ def _label(files_info):
 
 
 def create_isolinux_image_for_bios(
-        output_file, kernel, ramdisk, kernel_params=None, inject_files=None):
+        output_file, kernel, ramdisk, kernel_params=None, inject_files=None,
+        publisher_id=None):
     """Creates an isolinux image on the specified file.
 
     Copies the provided kernel, ramdisk to a directory, generates the isolinux
@@ -191,6 +192,8 @@ def create_isolinux_image_for_bios(
         as the kernel cmdline.
     :param inject_files: Mapping of local source file paths to their location
         on the final ISO image.
+    :param publisher_id: A value to set as the publisher identifier string
+        in the ISO image to be generated.
     :raises: ImageCreationFailed, if image creation failed while copying files
         or while running command to generate iso.
     """
@@ -237,9 +240,12 @@ def create_isolinux_image_for_bios(
         isolinux_cfg = os.path.join(tmpdir, ISOLINUX_CFG)
         utils.write_to_file(isolinux_cfg, cfg)
 
+        # Set a publisher ID value to a string.
+        pub_id = str(publisher_id)
+
         try:
             utils.execute('mkisofs', '-r', '-V', _label(files_info),
-                          '-J', '-l', '-no-emul-boot',
+                          '-J', '-l', '-publisher', pub_id, '-no-emul-boot',
                           '-boot-load-size', '4', '-boot-info-table',
                           '-b', ISOLINUX_BIN, '-o', output_file, tmpdir)
         except processutils.ProcessExecutionError as e:
@@ -249,7 +255,7 @@ def create_isolinux_image_for_bios(
 
 def create_esp_image_for_uefi(
         output_file, kernel, ramdisk, deploy_iso=None, esp_image=None,
-        kernel_params=None, inject_files=None):
+        kernel_params=None, inject_files=None, publisher_id=None):
     """Creates an ESP image on the specified file.
 
     Copies the provided kernel, ramdisk and EFI system partition image (ESP) to
@@ -271,6 +277,8 @@ def create_esp_image_for_uefi(
         as the kernel cmdline.
     :param inject_files: Mapping of local source file paths to their location
         on the final ISO image.
+    :param publisher_id: A value to set as the publisher identifier string
+        in the ISO image to be generated.
     :raises: ImageCreationFailed, if image creation failed while copying files
         or while running command to generate iso.
     """
@@ -337,10 +345,18 @@ def create_esp_image_for_uefi(
         utils.write_to_file(grub_cfg, grub_conf)
 
         # Create the boot_iso.
+        if publisher_id:
+            args = ('mkisofs', '-r', '-V', _label(files_info),
+                    '-l', '-publisher', publisher_id, '-e', e_img_rel_path,
+                    '-no-emul-boot', '-o', output_file,
+                    tmpdir)
+        else:
+            args = ('mkisofs', '-r', '-V', _label(files_info),
+                    '-l', '-e', e_img_rel_path,
+                    '-no-emul-boot', '-o', output_file,
+                    tmpdir)
         try:
-            utils.execute('mkisofs', '-r', '-V', _label(files_info),
-                          '-l', '-e', e_img_rel_path, '-no-emul-boot',
-                          '-o', output_file, tmpdir)
+            utils.execute(*args)
 
         except processutils.ProcessExecutionError as e:
             LOG.exception("Creating ISO image failed.")
@@ -498,7 +514,7 @@ def get_temp_url_for_glance_image(context, image_uuid):
 def create_boot_iso(context, output_filename, kernel_href,
                     ramdisk_href, deploy_iso_href=None, esp_image_href=None,
                     root_uuid=None, kernel_params=None, boot_mode=None,
-                    inject_files=None):
+                    inject_files=None, publisher_id=None):
     """Creates a bootable ISO image for a node.
 
     Given the hrefs for kernel, ramdisk, root partition's UUID and
@@ -524,6 +540,8 @@ def create_boot_iso(context, output_filename, kernel_href,
     :boot_mode: the boot mode in which the deploy is to happen.
     :param inject_files: Mapping of local source file paths to their location
         on the final ISO image.
+    :param publisher_id: A value to set as the publisher identifier string
+        in the ISO image to be generated.
     :raises: ImageCreationFailed, if creating boot ISO failed.
     """
     with utils.tempdir() as tmpdir:
@@ -560,12 +578,14 @@ def create_boot_iso(context, output_filename, kernel_href,
             create_esp_image_for_uefi(
                 output_filename, kernel_path, ramdisk_path,
                 deploy_iso=deploy_iso_path, esp_image=esp_image_path,
-                kernel_params=params, inject_files=inject_files)
+                kernel_params=params, inject_files=inject_files,
+                publisher_id=publisher_id)
 
         else:
             create_isolinux_image_for_bios(
                 output_filename, kernel_path, ramdisk_path,
-                kernel_params=params, inject_files=inject_files)
+                kernel_params=params, inject_files=inject_files,
+                publisher_id=publisher_id)
 
 
 IMAGE_TYPE_PARTITION = 'partition'
