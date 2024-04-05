@@ -326,6 +326,8 @@ def cleanup_disk_image(task, prefix=None):
     ImageHandler.unpublish_image_for_node(task.node, prefix=prefix)
 
 
+# FIXME(dtantsur): file_name is not node-specific, we should probably replace
+# it with a prefix/suffix pair and pass to _get_name
 def prepare_remote_image(task, image_url, file_name='boot.iso',
                          download_source='local', cache=None):
     """Generic function for publishing remote images.

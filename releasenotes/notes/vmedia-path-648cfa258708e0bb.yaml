@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes generated URL when using the virtual media attachment API.
+    Previously, it missed the node UUID, causing conflicts between different
+    nodes.

@@ -8743,30 +8743,38 @@ class VirtualMediaTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch.object(redfish.management.RedfishManagement,
                        'attach_virtual_media', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_remote_image', autospec=True)
     @mock.patch.object(image_utils, 'prepare_remote_image', autospec=True)
-    def test_do_attach_virtual_media(self, mock_prepare_image, mock_attach):
+    def test_do_attach_virtual_media(self, mock_prepare_image,
+                                     mock_cleanup_image, mock_attach):
         with task_manager.acquire(self.context, self.node.id) as task:
             manager.do_attach_virtual_media(task, boot_devices.CDROM,
                                             "https://url", "local")
+            file_name = f"cdrom-{self.node.uuid}.iso"
             mock_prepare_image.assert_called_once_with(
-                task, "https://url", file_name="cdrom.iso",
+                task, "https://url", file_name=file_name,
                 download_source="local")
+            mock_cleanup_image.assert_called_once_with(task, file_name)
             mock_attach.assert_called_once_with(
                 task.driver.management, task, device_type=boot_devices.CDROM,
                 image_url=mock_prepare_image.return_value)
 
     @mock.patch.object(redfish.management.RedfishManagement,
                        'attach_virtual_media', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_remote_image', autospec=True)
     @mock.patch.object(image_utils, 'prepare_remote_image', autospec=True)
     def test_do_attach_virtual_media_fails_on_prepare(self, mock_prepare_image,
+                                                      mock_cleanup_image,
                                                       mock_attach):
         mock_prepare_image.side_effect = exception.InvalidImageRef
         with task_manager.acquire(self.context, self.node.id) as task:
             manager.do_attach_virtual_media(task, boot_devices.CDROM,
                                             "https://url", "local")
+            file_name = f"cdrom-{self.node.uuid}.iso"
             mock_prepare_image.assert_called_once_with(
-                task, "https://url", file_name="cdrom.iso",
+                task, "https://url", file_name=file_name,
                 download_source="local")
+            mock_cleanup_image.assert_called_once_with(task, file_name)
             mock_attach.assert_not_called()
         self.node.refresh()
         self.assertIn("Could not attach device cdrom", self.node.last_error)
@@ -8774,15 +8782,18 @@ class VirtualMediaTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
     @mock.patch.object(redfish.management.RedfishManagement,
                        'attach_virtual_media', autospec=True)
+    @mock.patch.object(image_utils, 'cleanup_remote_image', autospec=True)
     @mock.patch.object(image_utils, 'prepare_remote_image', autospec=True)
     def test_do_attach_virtual_media_fails_on_attach(self, mock_prepare_image,
+                                                     mock_cleanup_image,
                                                      mock_attach):
         mock_attach.side_effect = exception.UnsupportedDriverExtension
         with task_manager.acquire(self.context, self.node.id) as task:
             manager.do_attach_virtual_media(task, boot_devices.CDROM,
                                             "https://url", "local")
+            file_name = f"cdrom-{self.node.uuid}.iso"
             mock_prepare_image.assert_called_once_with(
-                task, "https://url", file_name="cdrom.iso",
+                task, "https://url", file_name=file_name,
                 download_source="local")
             mock_attach.assert_called_once_with(
                 task.driver.management, task, device_type=boot_devices.CDROM,
