@@ -419,6 +419,7 @@ def get_test_conductor(**kw):
         'conductor_group': kw.get('conductor_group', ''),
         'created_at': kw.get('created_at', timeutils.utcnow()),
         'updated_at': kw.get('updated_at', timeutils.utcnow()),
+        'online': kw.get('online', True)
     }
 
 

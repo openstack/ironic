@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    Previously the ``conductors`` ``online`` database column is not considered
+    when displaying the "baremetal conductor list" ``Alive`` status. This means
+    that when a conductor is stopped gracefully it will be shown as
+    (inaccurately) alive for the duration of ``[conductor]graceful_timeout``.
+
+    A conductor is now considered alive if ``online`` is true and there is a
+    recent enough heartbeat.

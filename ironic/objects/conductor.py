@@ -31,7 +31,8 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.2: Add register_hardware_interfaces() and
     #              unregister_all_hardware_interfaces()
     # Version 1.3: Add conductor_group field.
-    VERSION = '1.3'
+    # Version 1.4: Add online field.
+    VERSION = '1.4'
 
     dbapi = db_api.get_instance()
 
@@ -40,6 +41,7 @@ class Conductor(base.IronicObject, object_base.VersionedObjectDictCompat):
         'drivers': object_fields.ListOfStringsField(nullable=True),
         'hostname': object_fields.StringField(),
         'conductor_group': object_fields.StringField(),
+        'online': object_fields.BooleanField(),
     }
 
     @classmethod

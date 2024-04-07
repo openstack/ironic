@@ -713,7 +713,7 @@ RELEASE_MAPPING = {
             'Node': ['1.40', '1.39', '1.38', '1.37'],
             'NodeHistory': ['1.0'],
             'NodeInventory': ['1.0'],
-            'Conductor': ['1.3'],
+            'Conductor': ['1.4'],
             'Chassis': ['1.3'],
             'Deployment': ['1.0'],
             'DeployTemplate': ['1.1'],
