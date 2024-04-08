@@ -30,10 +30,6 @@ from ironic import objects
 
 LOG = log.getLogger(__name__)
 
-# TODO(pas-ha) remove in Rocky, until then it is a default
-# for CONF.neutron.url in noauth case when endpoint_override is not set
-DEFAULT_NEUTRON_URL = 'http://%s:9696' % CONF.my_ip
-
 _NEUTRON_SESSION = None
 
 VNIC_BAREMETAL = 'baremetal'
