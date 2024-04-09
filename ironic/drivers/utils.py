@@ -504,4 +504,6 @@ def need_prepare_ramdisk(node):
                                     states.RESCUING,
                                     states.RESCUEWAIT,
                                     states.INSPECTING,
-                                    states.INSPECTWAIT)
+                                    states.INSPECTWAIT,
+                                    states.SERVICING,
+                                    states.SERVICEWAIT)
