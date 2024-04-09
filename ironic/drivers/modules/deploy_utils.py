@@ -829,21 +829,15 @@ def tear_down_inband_service(task):
 
     task.driver.boot.clean_up_ramdisk(task)
 
-    power_state_to_restore = manager_utils.power_on_node_if_needed(task)
-
     if not service_failure:
-        manager_utils.restore_power_state_if_needed(
-            task, power_state_to_restore)
-
         with manager_utils.power_state_for_network_configuration(task):
             task.driver.network.remove_servicing_network(task)
             task.driver.network.configure_tenant_networks(task)
-        task.driver.boot.prepare_instance(task)
-        manager_utils.restore_power_state_if_needed(
-            task, power_state_to_restore)
 
-        # Change the task instead of return the state.
-        task.process_event('done')
+        task.driver.boot.prepare_instance(task)
+        # prepare_instance does not power on the node, the deploy interface is
+        # normally responsible for that.
+        manager_utils.node_power_action(task, states.POWER_ON)
 
 
 def get_image_instance_info(node):

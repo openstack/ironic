@@ -1071,7 +1071,10 @@ class AgentMethodsTestCase(db_base.DbTestCase):
         with task_manager.acquire(
                 self.context, self.node.uuid, shared=False) as task:
             utils.tear_down_inband_service(task)
-            power_mock.assert_called_once_with(task, states.POWER_OFF)
+            power_mock.assert_has_calls([
+                mock.call(task, states.POWER_OFF),
+                mock.call(task, states.POWER_ON),
+            ])
             remove_service_network_mock.assert_called_once_with(
                 task.driver.network, task)
             clean_up_ramdisk_mock.assert_called_once_with(

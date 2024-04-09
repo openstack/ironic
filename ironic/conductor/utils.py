@@ -1117,7 +1117,10 @@ def fast_track_able(task):
             # TODO(TheJulia): Should we check the provisioning/deployment
             # networks match config wise? Do we care? #decisionsdecisions
             and task.driver.storage.should_write_image(task)
-            and task.node.last_error is None)
+            and task.node.last_error is None
+            # NOTE(dtantsur): Fast track makes zero sense for servicing and
+            # may prevent normal clean-up from happening.
+            and task.node.provision_state not in states.SERVICING_STATES)
 
 
 def value_within_timeout(value, timeout):
