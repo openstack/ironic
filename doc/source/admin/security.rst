@@ -23,43 +23,14 @@ OpenStack deployment.
 REST API: user roles and policy settings
 ========================================
 
-.. WARNING::
-   This information is presently in flux as of the Wallaby release with the
-   implementation of ``Secure RBAC`` where ``system`` and ``project``
-   scoped requests are able to be parsed and default access controls support
-   a delineation of roles and responsibilities through the roles.
-   Please see :doc:`/admin/secure-rbac`.
+Default REST API user roles and policy settings have evolved, starting in the
+Wallaby development cycle, into a model often referred to in the OpenStack
+community as ``Secure RBAC``. You can find more information on this at
+:doc:`/admin/secure-rbac`.
 
-Beginning with the Newton (6.1.0) release, the Bare Metal service allows
-operators significant control over API access:
-
-* Access may be restricted to each method (GET, PUT, etc) for each
-  REST resource. Defaults are provided with the release and defined in code.
-* Access may be divided between an "administrative" role with full access and
-  "observer" role with read-only access. By default, these roles are assigned
-  the names ``baremetal_admin`` and ``baremetal_observer``, respectively.
-* By default, passwords and instance secrets are hidden in ``driver_info`` and
-  ``instance_info``, respectively. In case of debugging or diagnosing, the
-  behavior can be overridden by changing the policy file. To allow password
-  in ``driver_info`` unmasked for users with administrative privileges, apply
-  following changes to policy configuration file::
-
-    "show_password": "rule:is_admin"
-
-  And restart the Bare Metal API service to take effect. Please check
-  :doc:`/configuration/policy` for more details.
-
-Prior to the Newton (6.1.0) release, the Bare Metal service only supported two
-policy options:
-
-* API access may be secured by a simple policy rule: users with administrative
-  privileges may access all API resources, whereas users without administrative
-  privileges may only access public API resources.
-* Passwords contained in the ``driver_info`` field may be hidden from all API
-  responses with the ``show_password`` policy setting. This defaults to always
-  hide passwords, regardless of the user's role. You can override it with
-  policy configuration as described above.
-
+Operators may choose to override default, in-code, Role Based Access Control
+policies by utilizing override policies, which you can learn about at
+:doc:`/configuration/policy`.
 
 Multi-tenancy
 =============
