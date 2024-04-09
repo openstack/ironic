@@ -1904,6 +1904,28 @@ class ConductorManager(base_manager.BaseConductorManager):
                                callback_method=utils.cleanup_rescuewait_timeout
                                )
 
+    @METRICS.timer('ConductorManager._check_servicewait_timeouts')
+    @periodics.periodic(
+        spacing=CONF.conductor.check_provision_state_interval,
+        enabled=CONF.conductor.check_provision_state_interval > 0
+        and CONF.conductor.service_callback_timeout > 0)
+    def _check_servicewait_timeouts(self, context):
+        """Periodically check if servicing has timed out waiting for heartbeat.
+
+        :param context: request context
+
+        """
+        callback_timeout = CONF.conductor.service_callback_timeout
+        filters = {'reserved': False,
+                   'provision_state': states.SERVICEWAIT,
+                   'maintenance': False,
+                   'provisioned_before': callback_timeout}
+        self._fail_if_in_state(
+            context, filters, states.SERVICEWAIT,
+            'provision_updated_at',
+            keep_target_state=True,
+            callback_method=utils.cleanup_servicewait_timeout)
+
     @METRICS.timer('ConductorManager._sync_local_state')
     @periodics.node_periodic(
         purpose='node take over',

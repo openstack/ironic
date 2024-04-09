@@ -2370,6 +2370,31 @@ class CheckTimeoutsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_clean_up.assert_called_once_with(mock.ANY, mock.ANY)
         node_power_mock.assert_called_once_with(mock.ANY, states.POWER_OFF)
 
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.tear_down_service',
+                autospec=True)
+    @mock.patch.object(conductor_utils, 'node_power_action', autospec=True)
+    def test_check_servicewait_timeouts(self, node_power_mock, mock_clean_up):
+        self._start_service()
+        CONF.set_override('service_callback_timeout', 1, group='conductor')
+        tgt_prov_state = states.RESCUE
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            network_interface='flat',
+            provision_state=states.SERVICEWAIT,
+            target_provision_state=tgt_prov_state,
+            provision_updated_at=datetime.datetime(2000, 1, 1, 0, 0))
+
+        self.service._check_servicewait_timeouts(self.context)
+        self._stop_service()
+        node.refresh()
+        self.assertEqual(states.SERVICEFAIL, node.provision_state)
+        self.assertEqual(tgt_prov_state, node.target_provision_state)
+        self.assertIsNotNone(node.last_error)
+        self.assertIn('Timeout reached while servicing the node',
+                      node.last_error)
+        mock_clean_up.assert_called_once_with(mock.ANY, mock.ANY)
+        node_power_mock.assert_not_called()
+
 
 @mgr_utils.mock_record_keepalive
 class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Adds a timeout to the ``service wait`` state. Previously, a node stuck in
+    this state would remain in it forever. The timeout value can be adjusted
+    via the new option ``[conductor]service_callback_timeout``.
