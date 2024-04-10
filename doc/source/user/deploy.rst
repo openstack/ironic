@@ -83,8 +83,7 @@ You need to specify image information in the node's ``instance_info``
 
   .. note::
      Older versions of the Bare Metal service used to require a positive
-     integer for ``root_gb`` even for whole-disk images. You may want to set
-     it for compatibility.
+     integer for ``root_gb`` even for whole-disk images.
 
 * ``image_checksum`` - MD5 checksum of the image specified by
   ``image_source``, only required for ``http://`` images when using

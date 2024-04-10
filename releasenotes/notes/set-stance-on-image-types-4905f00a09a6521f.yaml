@@ -1,0 +1,10 @@
+---
+other:
+  - |
+    Moving forward, Ironic will discourage the use of "partition" images,
+    in favor of "whole disk images", largely due to the underlying complexity
+    in the code to maintain partition image support. This is not the
+    deprecation of the functionality as the community has agreed to keep the
+    functionality and fix any issues we become aware of. UEFI Partition images,
+    where EFI assets are copied from a partition image, are the only partition
+    images Ironic intends to test on a regular basis moving forward.
