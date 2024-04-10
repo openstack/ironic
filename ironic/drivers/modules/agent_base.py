@@ -584,7 +584,7 @@ class HeartbeatMixin(object):
         try:
             node.touch_provisioning()
             if not node.service_step:
-                LOG.debug('Node %s just booted to start %s service',
+                LOG.debug('Node %s just booted to start service',
                           node.uuid)
                 msg = _('Node failed to start the first service step')
                 task.process_event('resume')
