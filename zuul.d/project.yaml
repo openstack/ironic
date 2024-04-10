@@ -11,6 +11,7 @@
     check:
       jobs:
         - ironic-tox-bandit
+        - ironic-tox-codespell
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-sqlalchemy-2x
         - ironic-tox-unit-with-driver-libs
@@ -71,11 +72,10 @@
             voting: false
         - bifrost-benchmark-ironic:
             voting: false
-        - ironic-tox-codespell:
-            voting: false
     gate:
       jobs:
         - ironic-tox-bandit
+        - ironic-tox-codespell
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-sqlalchemy-2x
         - ironic-tox-unit-with-driver-libs
