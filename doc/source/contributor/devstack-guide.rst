@@ -270,7 +270,7 @@ documentation:
 
   Ironic Boot from Volume <ironic-boot-from-volume>
   Ironic w/Multitenant Networking <ironic-multitenant-networking>
-
+  Deploying Ironic on ARM64 architecture with DevStack <arm-devstack-guide>
 
 Deploying to Ironic node using Nova
 ===================================

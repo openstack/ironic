@@ -55,6 +55,8 @@
             voting: false
         - ironic-inspector-tempest-uefi-redfish-vmedia:
             voting: false
+        - ironic-standalone-aarch64:
+            voting: false
         - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
             voting: false
         - ironic-tempest-ipxe-ipv6:

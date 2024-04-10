@@ -101,6 +101,74 @@
         s-object: False
         s-proxy: False
 
+- job:
+    name: ironic-standalone-aarch64
+    description:
+      Test ironic standalone configured with ipmi hardware type, ramdisk and
+      direct deploy interfaces, rescue enabled.
+    parent: ironic-base
+    irrelevant-files:
+      - ^.*\.rst$
+      - ^api-ref/.*$
+      - ^doc/.*$
+      - ^install-guide/.*$
+      - ^ironic/locale/.*$
+      - ^ironic/tests/.*$
+      - ^releasenotes/.*$
+      - ^setup.cfg$
+      - ^test-requirements.txt$
+      - ^tools/.*$
+      - ^tox.ini$
+    vars:
+      tempest_test_regex: BaremetalDriverDirectWholedisk
+      tempest_concurrency: 2
+      devstack_localrc:
+        CIRROS_VERSION: 0.6.1
+        CIRROS_ARCH: aarch64
+        DEFAULT_IMAGE_NAME: cirros-0.6.1-aarch64-uec
+        FORCE_CONFIG_DRIVE: False
+        IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_BUILD_DEPLOY_RAMDISK: False
+        IRONIC_DEPLOY_DRIVER: redfish
+        IRONIC_DEFAULT_RESCUE_INTERFACE: agent
+        IRONIC_ENABLED_BOOT_INTERFACES: "ipxe,redfish-virtual-media,http-ipxe,pxe,http"
+        IRONIC_ENABLED_HARDWARE_TYPES: redfish
+        IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
+        IRONIC_ENABLED_DEPLOY_INTERFACES: "direct,ramdisk"
+        IRONIC_ENABLED_RESCUE_INTERFACES: "agent,no-rescue"
+        IRONIC_BOOT_MODE: uefi
+        IRONIC_CALLBACK_TIMEOUT: 800
+        IRONIC_GRUB2_SHIM_FILE: https://mirror.stream.centos.org/9-stream/BaseOS/aarch64/os/EFI/BOOT/BOOTAA64.EFI
+        IRONIC_GRUB2_FILE: https://mirror.stream.centos.org/9-stream/BaseOS/aarch64/os/EFI/BOOT/grubaa64.efi
+        IRONIC_HW_ARCH: aarch64
+        IRONIC_MACHINE_TYPE: virt-6.2
+        IRONIC_JSON_RPC_AUTH_STRATEGY: 'http_basic'
+        IRONIC_DIB_RAMDISK_OS: debian-arm64
+        IRONIC_RAMDISK_TYPE: dib
+        IRONIC_RPC_TRANSPORT: json-rpc
+        IRONIC_VM_SPECS_RAM: 4096
+        IRONIC_VM_SPECS_CPU: 1
+        IRONIC_VM_COUNT: 1
+        IRONIC_VM_VOLUME_COUNT: 2
+        # We're using a lot of disk space in this job. Some testing nodes have
+        # a small root partition, so use /opt which is mounted from a bigger
+        # ephemeral partition on such nodes
+        LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
+      devstack_services:
+        n-api: False
+        n-api-meta: False
+        n-cond: False
+        n-cpu: False
+        n-novnc: False
+        n-sch: False
+        nova: False
+        placement-api: False
+        s-account: False
+        s-container: False
+        s-object: False
+        s-proxy: False
+
 # NOTE(TheJulia): This job is being phased out as it ends up executing
 # the wholedisk standalone deploy, the partition standalone deploy,
 # software raid tests, and ramdisk iso boot tests. All of this while in

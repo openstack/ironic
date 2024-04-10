@@ -14,10 +14,19 @@
         {% endif %}
     {% endif %}
     <bootmenu enable='no'/>
+    {% if arch != 'aarch64' %}
     <bios useserial='yes'/>
+    {% endif %}
   </os>
-  {% if engine == 'kvm' %}
-  <cpu mode='host-passthrough'/>
+  {% if engine == 'kvm' or arch == 'aarch64' %}
+    {% if engine == 'kvm' %}
+    <cpu mode='host-passthrough'/>
+    {% endif %}
+    {% if arch == 'aarch64' %}
+    <cpu mode='custom' match='exact' check='none'>
+      <model fallback='allow'>cortex-a53</model>
+    </cpu>
+    {% endif %}
   {% else %}
   <cpu mode='host-model'/>
   {% endif %}
