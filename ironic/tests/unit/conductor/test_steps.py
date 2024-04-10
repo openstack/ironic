@@ -1415,17 +1415,17 @@ class NodeServiceStepsTestCase(db_base.DbTestCase):
         super(NodeServiceStepsTestCase, self).setUp()
 
         self.deploy_start = {
-            'step': 'deploy_start', 'priority': 50, 'interface': 'deploy'}
+            'step': 'deploy_start', 'interface': 'deploy'}
         self.power_one = {
-            'step': 'power_one', 'priority': 40, 'interface': 'power'}
+            'step': 'power_one', 'priority': 0, 'interface': 'power'}
         self.deploy_middle = {
-            'step': 'deploy_middle', 'priority': 40, 'interface': 'deploy'}
+            'step': 'deploy_middle', 'interface': 'deploy'}
         self.deploy_end = {
-            'step': 'deploy_end', 'priority': 20, 'interface': 'deploy'}
+            'step': 'deploy_end', 'interface': 'deploy'}
         self.power_disable = {
             'step': 'power_disable', 'priority': 0, 'interface': 'power'}
         self.deploy_core = {
-            'step': 'deploy', 'priority': 100, 'interface': 'deploy'}
+            'step': 'deploy', 'interface': 'deploy'}
         # enabled steps
         self.service_steps = [self.deploy_start, self.power_one,
                               self.deploy_middle, self.deploy_end]
@@ -1472,7 +1472,7 @@ class NodeServiceStepsTestCase(db_base.DbTestCase):
                 self.context, self.node.uuid, shared=False) as task:
             steps = conductor_steps._get_service_steps(task, enabled=False)
 
-            self.assertEqual(expected, steps)
+            self.assertCountEqual(expected, steps)
             mock_mgt_steps.assert_called_once_with(mock.ANY, task)
             mock_power_steps.assert_called_once_with(mock.ANY, task)
             mock_deploy_steps.assert_called_once_with(mock.ANY, task)
