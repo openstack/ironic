@@ -1152,7 +1152,7 @@ i.e. a larger value to enable conductors to have time between running syncs.
 Some or all of my baremetal nodes disappeared! Help?!
 =====================================================
 
-If you just upgraded, and this has occured:
+If you just upgraded, and this has occurred:
 
 #) Don't Panic
 #) Don't try to re-enroll the nodes. They should still be there,
@@ -1181,7 +1181,7 @@ A good starting point is obtaining a ``system`` scoped account with an
 ``admin`` or ``member`` role. Either of those roles will permit a node's
 ``owner`` or ``lessee`` fields to be changed. Executing
 ``baremetal node list`` commands with this account should show you all
-baremetal nodes accross all projects. Alternatively, If you just want to
+baremetal nodes across all projects. Alternatively, if you just want to
 enable the legacy RBAC policies temporarily to change the fields, that is also
 an option, although not encouraged, and can be done utilizing the
 ``[oslo_policy] enforce_scope`` and ``[oslo_policy] enforce_new_defaults``
@@ -1201,7 +1201,7 @@ In this example below, which if successful, should return a list of all
 baremetal nodes known to Ironic, once the executing user supplies the
 valid password. In this case the "admin" account keystone was
 bootstrapped with. As a minor note, you will not be able to have
-any "OS_*" enviornment variables loaded into your current
+any "OS_*" environment variables loaded into your current
 command shell, including "OS_CLOUD" for this command to be successful.
 
 .. code-block:: console
@@ -1209,7 +1209,7 @@ command shell, including "OS_CLOUD" for this command to be successful.
     $ openstack --os-username=admin --os-user-domain-name=default --os-system-scope all baremetal node list
 
 You can alternatively issue a `system-scoped token <https://docs.openstack.org/keystone/latest/admin/tokens-overview.html#operation_create_system_token>`_
-and re-use further commands with that token, or even generate a new system
+and reuse further commands with that token, or even generate a new system
 scoped account with a role of ``member``.
 
 Changing/Assigning an Owner
@@ -1228,7 +1228,7 @@ Why am I only seeing *some* of the nodes?
 
 During the Zed development cycle of Ironic, Ironic added an option which
 defaulted to True, which enabled project scoped ``admin`` users to be able
-to create their own baremetal nodes without needing higher level acccess.
+to create their own baremetal nodes without needing higher level access.
 This default enabled option, ``[api] project_admin_can_manage_own_nodes``,
 automatically stamps the requestor's project ID on to a baremetal node if an
 ``owner`` is not otherwise specified upon creation. Obviously, this can
