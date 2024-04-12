@@ -1561,6 +1561,22 @@ def reboot_to_finish_step(task, timeout=None):
     return get_async_step_return_state(task.node)
 
 
+def step_error_handler(task, logmsg, errmsg=None):
+    """Run the correct handler for the current step.
+
+    :param task: a TaskManager instance.
+    :param logmsg: Message to be logged.
+    :param errmsg: Message for the user. Optional, if not provided `logmsg` is
+        used.
+    """
+    if task.node.provision_state in [states.CLEANING, states.CLEANWAIT]:
+        manager_utils.cleaning_error_handler(task, logmsg, errmsg=errmsg)
+    elif task.node.provision_state in [states.DEPLOYING, states.DEPLOYWAIT]:
+        manager_utils.deploying_error_handler(task, logmsg, errmsg=errmsg)
+    elif task.node.provision_state in [states.SERVICING, states.SERVICEWAIT]:
+        manager_utils.servicing_error_handler(task, logmsg, errmsg=errmsg)
+
+
 def get_root_device_for_deploy(node):
     """Get a root device requested for deployment or None.
 

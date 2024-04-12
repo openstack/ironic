@@ -18,8 +18,6 @@ import sushy
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import states
-from ironic.conductor import utils as manager_utils
 from ironic.drivers import base
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules.redfish import utils as redfish_utils
@@ -364,7 +362,4 @@ class RedfishBIOS(base.BIOSInterface):
         last_error = (_('Redfish BIOS apply_configuration step failed. '
                         'Attributes %(attrs)s are not updated.') %
                       {'attrs': attrs_not_updated})
-        if task.node.provision_state in [states.CLEANING, states.CLEANWAIT]:
-            manager_utils.cleaning_error_handler(task, last_error)
-        if task.node.provision_state in [states.DEPLOYING, states.DEPLOYWAIT]:
-            manager_utils.deploying_error_handler(task, error_msg, last_error)
+        deploy_utils.step_error_handler(task, error_msg, last_error)
