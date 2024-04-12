@@ -14,6 +14,7 @@
 
 from oslo_log import log
 
+from ironic.common import async_steps
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import states
@@ -192,13 +193,14 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
 
         except Exception as e:
             if isinstance(e, exception.AgentConnectionFailed):
-                if task.node.driver_internal_info.get('cleaning_reboot'):
+                if task.node.driver_internal_info.get(
+                        async_steps.CLEANING_REBOOT):
                     LOG.info('Agent is not yet running on node %(node)s '
                              'after cleaning reboot, waiting for agent to '
                              'come up to run next clean step %(step)s.',
                              {'node': node.uuid, 'step': step})
-                    node.set_driver_internal_info('skip_current_clean_step',
-                                                  False)
+                    node.set_driver_internal_info(
+                        async_steps.SKIP_CURRENT_CLEAN_STEP, False)
                     target_state = (states.MANAGEABLE if manual_clean
                                     else None)
                     task.process_event('wait', target_state=target_state)
@@ -209,7 +211,8 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
                          'executing a command. Error: %(error)s',
                          {'node': task.node.uuid,
                           'error': e})
-                node.set_driver_internal_info('skip_current_clean_step', False)
+                node.set_driver_internal_info(
+                    async_steps.SKIP_CURRENT_CLEAN_STEP, False)
                 target_state = states.MANAGEABLE if manual_clean else None
                 task.process_event('wait', target_state=target_state)
                 return

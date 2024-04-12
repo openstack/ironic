@@ -187,13 +187,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_create_config_case_1a(
             self,
             mock_set_async_step_flags,
-            mock_get_async_step_return_state,
             mock_node_power_action,
             mock_build_agent_options,
             mock_prepare_ramdisk,
@@ -221,13 +218,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_create_config_case_1b(
             self,
             mock_set_async_step_flags,
-            mock_get_async_step_return_state,
             mock_node_power_action,
             mock_build_agent_options,
             mock_prepare_ramdisk,
@@ -270,13 +264,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_create_config_case_1b_apply_time_immediate(
             self,
             mock_set_async_step_flags,
-            mock_get_async_step_return_state,
             mock_node_power_action,
             mock_build_agent_options,
             mock_prepare_ramdisk,
@@ -310,7 +301,7 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            task.driver.raid.create_configuration(task)
+            self.assertIsNone(task.driver.raid.create_configuration(task))
             pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
             expected_payload = {
                 'RAIDType': 'RAID5',
@@ -327,7 +318,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                 expected_payload, apply_time=sushy.APPLY_TIME_IMMEDIATE)
             mock_set_async_step_flags.assert_called_once_with(
                 task.node, reboot=False, skip_current_step=True, polling=True)
-            self.assertEqual(mock_get_async_step_return_state.call_count, 0)
             self.assertEqual(mock_node_power_action.call_count, 0)
             self.assertEqual(mock_build_agent_options.call_count, 0)
             self.assertEqual(mock_prepare_ramdisk.call_count, 0)
@@ -345,13 +335,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_create_config_case_1b_apply_time_on_reset(
             self,
             mock_set_async_step_flags,
-            mock_get_async_step_return_state,
             mock_node_power_action,
             mock_build_agent_options,
             mock_prepare_ramdisk,
@@ -380,7 +367,8 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         self.node.save()
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
-            task.driver.raid.create_configuration(task)
+            result = task.driver.raid.create_configuration(task)
+            self.assertEqual(states.DEPLOYWAIT, result)
             pre = '/redfish/v1/Systems/1/Storage/1/Drives/'
             expected_payload = {
                 'RAIDType': 'RAID5',
@@ -397,8 +385,6 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                 expected_payload, apply_time=sushy.APPLY_TIME_ON_RESET)
             mock_set_async_step_flags.assert_called_once_with(
                 task.node, reboot=True, skip_current_step=True, polling=True)
-            mock_get_async_step_return_state.assert_called_once_with(
-                task.node)
             mock_node_power_action.assert_called_once_with(
                 task, states.REBOOT, None)
             mock_build_agent_options.assert_called_once_with(task.node)
@@ -410,13 +396,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_create_config_case_2(
             self,
             mock_set_async_step_flags,
-            mock_get_async_step_return_state,
             mock_node_power_action,
             mock_build_agent_options,
             mock_prepare_ramdisk,
@@ -501,13 +484,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_create_config_case_2_on_reset(
             self,
             mock_set_async_step_flags,
-            mock_get_async_step_return_state,
             mock_node_power_action,
             mock_build_agent_options,
             mock_prepare_ramdisk,
@@ -583,13 +563,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_create_config_case_3(
             self,
             mock_set_async_step_flags,
-            mock_get_async_step_return_state,
             mock_node_power_action,
             mock_build_agent_options,
             mock_prepare_ramdisk,
@@ -639,13 +616,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_create_config_case_4(
             self,
             mock_set_async_step_flags,
-            mock_get_async_step_return_state,
             mock_node_power_action,
             mock_build_agent_options,
             mock_prepare_ramdisk,
@@ -758,13 +732,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_create_config_case_5a(
             self,
             mock_set_async_step_flags,
-            mock_get_async_step_return_state,
             mock_node_power_action,
             mock_build_agent_options,
             mock_prepare_ramdisk,
@@ -797,13 +768,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_create_config_case_5b(
             self,
             mock_set_async_step_flags,
-            mock_get_async_step_return_state,
             mock_node_power_action,
             mock_build_agent_options,
             mock_prepare_ramdisk,
@@ -865,13 +833,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_create_config_case_6(
             self,
             mock_set_async_step_flags,
-            mock_get_async_step_return_state,
             mock_node_power_action,
             mock_build_agent_options,
             mock_prepare_ramdisk,
@@ -905,13 +870,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_create_config_interface_type(
             self,
             mock_set_async_step_flags,
-            mock_get_async_step_return_state,
             mock_node_power_action,
             mock_build_agent_options,
             mock_prepare_ramdisk,
@@ -998,13 +960,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_delete_config_immediate(
             self,
             mock_set_async_step_flags,
-            mock_get_async_step_return_state,
             mock_node_power_action,
             mock_build_agent_options,
             mock_prepare_ramdisk,
@@ -1033,12 +992,11 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                     'raid_level': '1',
                     'size_gb': 100}],
                 'last_updated': last_updated}
-            task.driver.raid.delete_configuration(task)
+            self.assertIsNone(task.driver.raid.delete_configuration(task))
             self.assertEqual(mock_volumes[0].delete.call_count, 1)
             self.assertEqual(mock_volumes[1].delete.call_count, 1)
             mock_set_async_step_flags.assert_called_once_with(
                 task.node, reboot=False, skip_current_step=True, polling=True)
-            self.assertEqual(mock_get_async_step_return_state.call_count, 0)
             self.assertEqual(mock_node_power_action.call_count, 0)
             self.assertEqual(mock_build_agent_options.call_count, 0)
             self.assertEqual(mock_prepare_ramdisk.call_count, 0)
@@ -1052,13 +1010,10 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                        spec_set=True, autospec=True)
     @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     def test_delete_config_on_reset(
             self,
             mock_set_async_step_flags,
-            mock_get_async_step_return_state,
             mock_node_power_action,
             mock_build_agent_options,
             mock_prepare_ramdisk,
@@ -1090,13 +1045,12 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
                     'size_gb': 100}],
                 'last_updated': '2022-05-18 08:49:17.585443'}
             task.node.raid_config = raid_config
-            task.driver.raid.delete_configuration(task)
+            result = task.driver.raid.delete_configuration(task)
+            self.assertEqual(states.DEPLOYWAIT, result)
             self.assertEqual(mock_volumes[0].delete.call_count, 1)
             self.assertEqual(mock_volumes[1].delete.call_count, 0)
             mock_set_async_step_flags.assert_called_once_with(
                 task.node, reboot=True, skip_current_step=True, polling=True)
-            mock_get_async_step_return_state.assert_called_once_with(
-                task.node)
             mock_node_power_action.assert_called_once_with(
                 task, states.REBOOT, None)
             mock_build_agent_options.assert_called_once_with(task.node)
