@@ -609,7 +609,7 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
             last_error=None,
             driver_internal_info={'service_steps': self.service_steps,
                                   'service_step_index': None,
-                                  'service_reboot': True},
+                                  'servicing_reboot': True},
             service_step={})
         mock_execute.side_effect = exception.AgentConnectionFailed(
             reason='failed')
@@ -642,7 +642,7 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
             last_error=None,
             driver_internal_info={'service_steps': self.service_steps,
                                   'service_step_index': None,
-                                  'service_reboot': True},
+                                  'servicing_reboot': True},
             service_step={})
         mock_execute.side_effect = exception.AgentInProgress(
             reason='still meowing')
@@ -667,7 +667,7 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
         # Resume where last_step is the last service step
         tgt_prov_state = states.ACTIVE
         info = {'service_steps': self.service_steps,
-                'service_reboot': True,
+                'servicing_reboot': True,
                 'service_step_index': len(self.service_steps) - 1}
 
         node = obj_utils.create_test_node(
@@ -689,7 +689,7 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
         self.assertEqual(states.NOSTATE, node.target_provision_state)
         self.assertEqual({}, node.service_step)
         self.assertNotIn('service_step_index', node.driver_internal_info)
-        self.assertNotIn('service_reboot', node.driver_internal_info)
+        self.assertNotIn('servicing_reboot', node.driver_internal_info)
         self.assertIsNone(node.driver_internal_info['service_steps'])
         self.assertFalse(mock_execute.called)
 
@@ -933,8 +933,8 @@ class DoNodeServiceAbortTestCase(db_base.DbTestCase):
                 'agent_url': 'some url',
                 'agent_secret_token': 'token',
                 'service_step_index': 2,
-                'service_reboot': True,
-                'service_polling': True,
+                'servicing_reboot': True,
+                'servicing_polling': True,
                 'skip_current_service_step': True})
 
         with task_manager.acquire(self.context, node.uuid) as task:
@@ -948,9 +948,9 @@ class DoNodeServiceAbortTestCase(db_base.DbTestCase):
             self.assertEqual({}, task.node.service_step)
             self.assertNotIn('service_step_index',
                              task.node.driver_internal_info)
-            self.assertNotIn('service_reboot',
+            self.assertNotIn('servicing_reboot',
                              task.node.driver_internal_info)
-            self.assertNotIn('service_polling',
+            self.assertNotIn('servicing_polling',
                              task.node.driver_internal_info)
             self.assertNotIn('skip_current_service_step',
                              task.node.driver_internal_info)
