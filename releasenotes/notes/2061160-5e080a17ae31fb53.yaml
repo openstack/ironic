@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue with units tests that show this DeprecationWarning:
+    The metaschema specified by $schema was not found. Using the latest
+    draft to validate, but this will raise an error in the future.
+    cls = validator_for(schema)
+    Removed the warning for deprecated schema by using a new template.
