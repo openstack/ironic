@@ -49,3 +49,4 @@ openstacksdk>=0.48.0 # Apache-2.0
 sushy>=4.8.0
 construct>=2.9.39 # MIT
 netaddr>=0.9.0 # BSD
+microversion_parse>=1.0.1 # Apache-2.0
