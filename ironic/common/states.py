@@ -252,6 +252,11 @@ SERVICEHOLD = 'service hold'
 """ Node is being held for direct intervention from a service step. """
 
 
+"""All Node states related to servicing."""
+SERVICING_STATES = frozenset((SERVICING, SERVICEWAIT,
+                              SERVICEFAIL, SERVICEHOLD))
+
+
 # NOTE(kaifeng): INSPECTING is allowed to keep backwards compatibility,
 # starting from API 1.39 node update is disallowed in this state.
 UPDATE_ALLOWED_STATES = (DEPLOYFAIL, INSPECTING, INSPECTFAIL, INSPECTWAIT,

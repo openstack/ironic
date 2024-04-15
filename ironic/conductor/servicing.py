@@ -86,8 +86,6 @@ def do_node_service(task, service_steps=None, disable_ramdisk=False):
         return utils.servicing_error_handler(task, msg)
 
     steps = node.driver_internal_info.get('service_steps', [])
-    if not steps:
-        _tear_down_node_service(task, disable_ramdisk=disable_ramdisk)
     step_index = 0 if steps else None
     do_next_service_step(task, step_index, disable_ramdisk=disable_ramdisk)
 
