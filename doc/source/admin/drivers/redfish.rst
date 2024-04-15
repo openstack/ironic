@@ -429,6 +429,21 @@ interface, the same basic instructions covered in `Virtual Media Ramdisk`_
 apply, just use ``redfish-https`` as the boot_interface, and keep in mind,
 no configuration drives exist with the ``redfish-https`` boot interface.
 
+Limitations & Issues
+~~~~~~~~~~~~~~~~~~~~
+
+Ironic contains two different ways of providing an HTTP(S) URL
+to a remote BMC. The first is Swift, enabled when ``[redfish]use_swift``
+is set to ``true``. Ironic uploads files to Swift, which are then shared as
+Temporary Swift URLs. While highly scalable, this method does suffer from
+issues where some vendors BMCs reject URLs with **&** or **?** characters.
+There is no available workaround to leverage Swift in this state.
+
+When the ``[redfish]use_swift`` setting is set to ``false``, Ironic will house
+the files locally in the ``[deploy]http_root`` folder structure, and then
+generate a URL pointing the BMC to connect to the HTTP service configured
+via ``[deploy]http_url``.
+
 Firmware update using manual cleaning
 =====================================
 
