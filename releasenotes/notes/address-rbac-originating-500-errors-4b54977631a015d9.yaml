@@ -2,7 +2,7 @@
 fixes:
   - |
     Some of Ironic's API endpoints, when the new RBAC policy is being enforced,
-    were previously emitting *500* error codes when insufficent access rights were
+    were previously emitting *500* error codes when insufficient access rights were
     being used, specifically because the policy required ``system`` scope. This
     has been corrected, and the endpoints should now properly signal a *403* error
-    code if insufficient access rights are present for an authenticated requestor.
+    code if insufficient access rights are present for an authenticated requester.

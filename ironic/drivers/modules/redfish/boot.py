@@ -168,7 +168,7 @@ def _test_retry(exception):
 
 
 def _has_vmedia_via_systems(system):
-    """Indicates if virtual media is available trough Systems
+    """Indicates if virtual media is available through Systems
 
     :param system: A redfish System object
     :return: True if the System has virtual media, else False

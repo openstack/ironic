@@ -299,7 +299,7 @@
     parent: ironic-base
     vars:
       # NOTE(iurygregory): switch to only wholedisk test, since the
-      # partition test is failling randomly.
+      # partition test is failing randomly.
       tempest_test_regex: test_baremetal_server_ops_wholedisk_image
       devstack_localrc:
         IRONIC_DEPLOY_DRIVER: redfish
@@ -471,7 +471,7 @@
     parent: ironic-base
     vars:
       # NOTE(iurygregory): switch to only wholedisk test, since the
-      # partition test is failling randomly.
+      # partition test is failing randomly.
       tempest_test_regex: test_baremetal_server_ops_wholedisk_image
       devstack_localrc:
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
