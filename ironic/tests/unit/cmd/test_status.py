@@ -45,16 +45,30 @@ class TestUpgradeChecks(db_base.DbTestCase):
         self.assertEqual(Code.SUCCESS,
                          check_result.code)
 
+    def _create_mock_context_manager(self, return_self=True):
+        mock_obj = mock.Mock()
+        if return_self:
+            val = mock_obj
+        else:
+            val = mock.Mock()
+        mock_obj.__enter__ = mock.Mock(return_value=val)
+        mock_obj.__exit__ = mock.Mock()
+        return mock_obj
+
     @mock.patch.object(sqlalchemy.enginefacade.reader,
                        'get_engine', autospec=True)
     def test__check_allocations_table_latin1(self, mock_reader):
         mock_engine = mock.Mock()
         mock_res = mock.Mock()
+        mock_engine.url = '..mysql..'
         mock_res.all.return_value = (
             '... ENGINE=InnoDB DEFAULT CHARSET=latin1',
         )
-        mock_engine.url = '..mysql..'
-        mock_engine.execute.return_value = mock_res
+        mock_conn = self._create_mock_context_manager(True)
+        mock_trans = self._create_mock_context_manager(False)
+        mock_engine.connect.return_value = mock_conn
+        mock_conn.execute.return_value = mock_res
+        mock_conn.begin.return_value = mock_trans
         mock_reader.return_value = mock_engine
         check_result = self.cmd._check_allocations_table()
         self.assertEqual(Code.WARNING,
@@ -76,7 +90,11 @@ class TestUpgradeChecks(db_base.DbTestCase):
         mock_res.all.return_value = (
             '... ENGINE=MyIASM DEFAULT CHARSET=utf8',
         )
-        mock_engine.execute.return_value = mock_res
+        mock_conn = self._create_mock_context_manager(True)
+        mock_trans = self._create_mock_context_manager(False)
+        mock_engine.connect.return_value = mock_conn
+        mock_conn.execute.return_value = mock_res
+        mock_conn.begin.return_value = mock_trans
         mock_reader.return_value = mock_engine
         check_result = self.cmd._check_allocations_table()
         self.assertEqual(Code.WARNING,
@@ -100,7 +118,11 @@ class TestUpgradeChecks(db_base.DbTestCase):
         mock_res.all.return_value = (
             '... ENGINE=MyIASM DEFAULT CHARSET=latin1',
         )
-        mock_engine.execute.return_value = mock_res
+        mock_conn = self._create_mock_context_manager(True)
+        mock_trans = self._create_mock_context_manager(False)
+        mock_engine.connect.return_value = mock_conn
+        mock_conn.execute.return_value = mock_res
+        mock_conn.begin.return_value = mock_trans
         mock_reader.return_value = mock_engine
         check_result = self.cmd._check_allocations_table()
         self.assertEqual(Code.WARNING,
