@@ -101,7 +101,9 @@ class Checks(upgradecheck.UpgradeCommands):
             # This test only applies to mysql and database schema
             # selection.
             return upgradecheck.Result(upgradecheck.Code.SUCCESS)
-        res = engine.execute("show create table allocations")
+        with engine.connect() as conn, conn.begin():
+            res = conn.execute(
+                sqlalchemy.text("show create table allocations"))
         results = str(res.all()).lower()
         if 'utf8' not in results:
             msg = ('The Allocations table is is not using UTF8 encoding. '
