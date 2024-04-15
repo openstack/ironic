@@ -30,7 +30,7 @@ from ironic.drivers.modules.redfish import utils as redfish_utils
 LOG = log.getLogger(__name__)
 
 _UPDATE_FIRMWARE_SCHEMA = {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-04/schema#",
     "title": "update_firmware clean step schema",
     "type": "array",
     # list of firmware update images
