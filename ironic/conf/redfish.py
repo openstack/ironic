@@ -45,7 +45,7 @@ opts = [
                default='auto',
                help=_('Redfish HTTP client authentication method.')),
     cfg.BoolOpt('use_swift',
-                default=True,
+                default=False,
                 mutable=True,
                 help=_('Upload generated ISO images for virtual media boot to '
                        'Swift, then pass temporary URL to BMC for booting the '
