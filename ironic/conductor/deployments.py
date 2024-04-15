@@ -19,6 +19,7 @@ from oslo_db import exception as db_exception
 from oslo_log import log
 from oslo_utils import excutils
 
+from ironic.common import async_steps
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
@@ -302,19 +303,20 @@ def do_next_deploy_step(task, step_index):
                      'executing a command. Error: %(error)s',
                      {'node': task.node.uuid,
                       'error': e})
-            node.set_driver_internal_info('skip_current_deploy_step',
-                                          False)
+            node.set_driver_internal_info(
+                async_steps.SKIP_CURRENT_DEPLOY_STEP, False)
             task.process_event('wait')
             return
         except exception.IronicException as e:
             if isinstance(e, exception.AgentConnectionFailed):
-                if task.node.driver_internal_info.get('deployment_reboot'):
+                if task.node.driver_internal_info.get(
+                        async_steps.DEPLOYMENT_REBOOT):
                     LOG.info('Agent is not yet running on node %(node)s after '
                              'deployment reboot, waiting for agent to come up '
                              'to run next deploy step %(step)s.',
                              {'node': node.uuid, 'step': step})
-                    node.set_driver_internal_info('skip_current_deploy_step',
-                                                  False)
+                    node.set_driver_internal_info(
+                        async_steps.SKIP_CURRENT_DEPLOY_STEP, False)
                     task.process_event('wait')
                     return
 

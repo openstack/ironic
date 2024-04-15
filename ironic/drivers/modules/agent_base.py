@@ -23,6 +23,7 @@ from oslo_log import log
 from oslo_utils import strutils
 import tenacity
 
+from ironic.common import async_steps
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -217,18 +218,7 @@ def _post_step_reboot(task, step_type):
         return
 
     # Signify that we've rebooted
-    if step_type == 'clean':
-        task.node.set_driver_internal_info('cleaning_reboot', True)
-    elif step_type == 'deploy':
-        task.node.set_driver_internal_info('deployment_reboot', True)
-    elif step_type == 'service':
-        task.node.set_driver_internal_info('servicing_reboot', True)
-
-    if not task.node.driver_internal_info.get(
-            'agent_secret_token_pregenerated', False):
-        # Wipes out the existing recorded token because the machine will
-        # need to re-establish the token.
-        task.node.del_driver_internal_info('agent_secret_token')
+    async_steps.set_node_flags(task.node, reboot=True, step_type=step_type)
     task.node.save()
 
 
@@ -531,7 +521,7 @@ class HeartbeatMixin(object):
             # Check if the driver is polling for completion of
             # a step, via the 'deployment_polling' flag.
             polling = node.driver_internal_info.get(
-                'deployment_polling', False)
+                async_steps.DEPLOYMENT_POLLING, False)
             if not polling:
                 msg = _('Failed to process the next deploy step')
                 self.process_next_step(task, 'deploy')
@@ -567,7 +557,7 @@ class HeartbeatMixin(object):
                 # Check if the driver is polling for completion of a step,
                 # via the 'cleaning_polling' flag.
                 polling = node.driver_internal_info.get(
-                    'cleaning_polling', False)
+                    async_steps.CLEANING_POLLING, False)
                 if not polling:
                     self.continue_cleaning(task)
         except Exception as e:
@@ -608,9 +598,9 @@ class HeartbeatMixin(object):
             else:
                 msg = _('Node failed to check service progress')
                 # Check if the driver is polling for completion of a step,
-                # via the 'cleaning_polling' flag.
+                # via the 'servicing_polling' flag.
                 polling = node.driver_internal_info.get(
-                    'service_polling', False)
+                    async_steps.SERVICING_POLLING, False)
                 if not polling:
                     self.continue_servicing(task)
         except Exception as e:
@@ -1003,7 +993,8 @@ class AgentBaseMixin(object):
                      'continuing from current step %(step)s.',
                      {'node': node.uuid, 'step': node.clean_step})
 
-            node.set_driver_internal_info('skip_current_clean_step', False)
+            node.set_driver_internal_info(
+                async_steps.SKIP_CURRENT_CLEAN_STEP, False)
             node.save()
         else:
             # Restart the process, agent must have rebooted to new version
@@ -1054,14 +1045,14 @@ class AgentBaseMixin(object):
         agent_commands = client.get_commands_status(task.node)
         if _freshly_booted(agent_commands, step_type):
             if step_type == 'clean':
-                field = 'cleaning_reboot'
+                field = async_steps.CLEANING_REBOOT
             elif step_type == 'service':
-                field = 'servicing_reboot'
+                field = async_steps.SERVICING_REBOOT
             else:
                 # TODO(TheJulia): One day we should standardize the field
                 # names here, but we also need to balance human ability
                 # to understand what is going on so *shrug*.
-                field = 'deployment_reboot'
+                field = async_steps.DEPLOYMENT_REBOOT
             utils.pop_node_nested_field(node, 'driver_internal_info', field)
             node.save()
             return _continue_steps(task, step_type)
