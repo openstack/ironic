@@ -273,6 +273,11 @@ Deploying to Ironic node using Nova
 This section assumes you already have a working, deployed Ironic with Nova
 configured as laid out above.
 
+First, set the user to the admin demo (Note
+that all the user options can be seen in `/etc/openstack/clouds.yaml`)::
+
+    export OS_CLOUD=devstack-admin-demo
+
 We need to gather two more pieces of information before performing the
 deploy, we need to determine what image to use, and what network to use.
 
@@ -287,10 +292,7 @@ image::
 
     image=$(openstack image list | grep -- '-disk' | awk '{ print $2 }')
 
-Source credentials and create a key, and set the user to the admin demo (Note
-that all the user options can be seen in `/etc/openstack/clouds.yaml`)::
-
-    export OS_CLOUD=devstack-admin-demo
+Source credentials and create a key::
 
     # create keypair
     ssh-keygen
