@@ -1453,13 +1453,24 @@ parse_instance_info_capabilities = (
 
 
 def get_async_step_return_state(node):
-    """Returns state based on operation (cleaning/deployment) being invoked
+    """Returns state based on operation being invoked.
 
     :param node: an ironic node object.
-    :returns: states.CLEANWAIT if cleaning operation in progress
-              or states.DEPLOYWAIT if deploy operation in progress.
+    :returns: states.CLEANWAIT if cleaning operation in progress,
+              or states.DEPLOYWAIT if deploy operation in progress,
+              or states.SERVICEWAIT if servicing in progress.
     """
-    return states.CLEANWAIT if node.clean_step else states.DEPLOYWAIT
+    # FIXME(dtantsur): this distinction is rather useless, create a new
+    # constant to use for all step types?
+    if node.clean_step:
+        return states.CLEANWAIT
+    elif node.service_step:
+        return states.SERVICEWAIT
+    else:
+        # TODO(dtantsur): ideally, check for node.deploy_step and raise
+        # something if this function is called without any step field set.
+        # Unfortunately, a lot of unit tests rely on exactly this.
+        return states.DEPLOYWAIT
 
 
 def _check_agent_token_prior_to_agent_reboot(node):
