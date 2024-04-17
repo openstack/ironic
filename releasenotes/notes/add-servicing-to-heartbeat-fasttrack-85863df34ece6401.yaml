@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes the issue of service steps not starting due to servicing states
+    (states.SERVICING and states.SERVICEWAIT) missing from
+    _FASTTRACK_HEARTBEAT_ALLOWED constant.
