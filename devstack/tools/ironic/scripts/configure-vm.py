@@ -65,6 +65,8 @@ def main():
                         help='The virtualization engine to use')
     parser.add_argument('--arch', default='i686',
                         help='The architecture to use')
+    parser.add_argument('--machine_type', default='q35',
+                        help='Machine type based on architecture')
     parser.add_argument('--memory', default='2097152',
                         help="Maximum memory for the VM in KB.")
     parser.add_argument('--cpus', default='1',
@@ -104,6 +106,7 @@ def main():
         'images': images,
         'engine': args.engine,
         'arch': args.arch,
+        'machine_type': args.machine_type,
         'memory': args.memory,
         'cpus': args.cpus,
         'bootdev': args.bootdev,
