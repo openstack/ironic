@@ -590,7 +590,7 @@
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_RPC_TRANSPORT: json-rpc
       devstack_services:
-        rabbit: False
+        rabbit: True
         g-api: False
         n-api: False
         n-api-meta: False
@@ -600,13 +600,8 @@
         n-sch: False
         nova: False
         placement-api: False
-        q-agt: False
-        q-dhcp: False
-        q-l3: False
-        q-meta: False
-        q-metering: False
-        q-svc: False
-
+        # NOTE(TheJulia): This job runs neutron so neutron dependent
+        # tests can also exercised as part of CI.
 - job:
     name: ironic-tempest-functional-rbac-scope-enforced
     description: ironic-tempest-funcitonal-rbac-scope-enforced
