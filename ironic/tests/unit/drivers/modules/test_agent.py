@@ -1114,9 +1114,7 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             steps = self.driver.get_service_steps(task)
             mock_get_steps.assert_called_once_with(
-                task, 'service',
-                override_priorities={'erase_devices': None,
-                                     'erase_devices_metadata': None})
+                task, 'service')
         self.assertEqual(mock_steps, steps)
 
     @mock.patch.object(agent_base, 'get_steps', autospec=True)
