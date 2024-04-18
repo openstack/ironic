@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = ironic
+omit = ironic/tests/*
+
+[report]
+ignore_errors = True
