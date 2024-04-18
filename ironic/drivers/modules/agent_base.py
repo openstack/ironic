@@ -854,14 +854,7 @@ class AgentBaseMixin(object):
         :returns: A list of service step dictionaries, if an error
                   occurs, then an empty list is returned.
         """
-        new_priorities = {
-            'erase_devices': CONF.deploy.erase_devices_priority,
-            'erase_devices_metadata':
-                CONF.deploy.erase_devices_metadata_priority,
-        }
-        return get_steps(
-            task, 'service',
-            override_priorities=new_priorities)
+        return get_steps(task, 'service')
 
     @METRICS.timer('AgentBaseMixin.refresh_steps')
     def refresh_steps(self, task, step_type):
