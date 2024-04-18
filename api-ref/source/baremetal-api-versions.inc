@@ -12,9 +12,14 @@ supports versioning. There are two kinds of versions in Ironic.
 
 - ''major versions'', which have dedicated urls.
 - ''microversions'', which can be requested through the use of the
-  ``X-OpenStack-Ironic-API-Version`` header.
+  ``X-OpenStack-Ironic-API-Version`` header or the new standard singular header
+  ``OpenStack-API-Version: baremetal <version>``.
 
 The Version APIs work differently from other APIs as they *do not* require authentication.
+
+Upon the Dalmatian release, all API requests support the
+new standard singular header ``OpenStack-API-Version: baremetal <version>``.
+If that's not present, we fall back to the legacy headers.
 
 Beginning with the Kilo release, all API requests support the
 ``X-OpenStack-Ironic-API-Version`` header. This header SHOULD be supplied

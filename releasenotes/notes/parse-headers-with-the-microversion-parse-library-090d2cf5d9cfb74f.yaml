@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Delegate parsing of version headers in API requests to the
+    ``microversion-parse`` library which also adds support for the new
+    standard singular header: 'OpenStack-API-Version: baremetal <version>'.

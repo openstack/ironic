@@ -71,6 +71,11 @@ class TestVersion(base.BaseApiTest):
             {cbase.Version.string: '123.456'}, mock.ANY, mock.ANY)
         self.assertEqual((123, 456), version)
 
+    def test_parse_new_standard_singular_header_ok(self):
+        version = cbase.Version.parse_headers(
+            {'OpenStack-API-Version': 'baremetal 123.456'}, mock.ANY, mock.ANY)
+        self.assertEqual((123, 456), version)
+
     def test_parse_headers_latest(self):
         for s in ['latest', 'LATEST']:
             version = cbase.Version.parse_headers(
