@@ -234,12 +234,13 @@ class TestHeartbeat(test_api_base.BaseApiTest):
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
     def test_ok_with_json(self, mock_heartbeat):
+        headers = {api_base.Version.string: '1.90'}
         node = obj_utils.create_test_node(self.context)
         response = self.post_json(
             '/heartbeat/%s.json' % node.uuid,
             {'callback_url': 'url',
              'agent_token': 'maybe some magic'},
-            headers={api_base.Version.string: str(api_v1.max_version())})
+            headers=headers)
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,

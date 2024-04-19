@@ -18,6 +18,15 @@ capable of running an Operating System. Each Node must be associated with a
   the ``node_ident``. Responses clearly indicate whether a given field is a
   ``uuid`` or a ``name``.
 
+.. versionchanged:: 1.91
+  In older API versions, we have a pecan feature enabled that strips .json
+  extensions from the end of a resource reference query and treat it as if it
+  was referenced by just its UUID or ``node_ident``. E.g.
+  ``0178-0c2c-9c26-ca69-3011-a9dd.json``, is treated as
+  ``0178-0c2c-9c26-ca69-3011-a9dd``. This feature is now disabled in newer API
+  versions.
+
+
 Depending on the Roles assigned to the authenticated OpenStack User, and upon
 the configuration of the Bare Metal service, API responses may change. For
 example, the default value of the "show_password" settings cause all API

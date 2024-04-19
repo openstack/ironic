@@ -220,6 +220,7 @@ MINOR_87_SERVICE = 87
 MINOR_88_PORT_NAME = 88
 MINOR_89_ATTACH_DETACH_VMEDIA = 89
 MINOR_90_OVN_VTEP = 90
+MINOR_91_DOT_JSON = 91
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -227,7 +228,7 @@ MINOR_90_OVN_VTEP = 90
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_90_OVN_VTEP
+MINOR_MAX_VERSION = MINOR_91_DOT_JSON
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

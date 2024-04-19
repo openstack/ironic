@@ -10,8 +10,11 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import microversion_parse as mvp
 from oslo_log import log
 
+from ironic.api.controllers import base
+from ironic.api.controllers.v1 import versions
 from ironic.common import utils
 
 
@@ -32,12 +35,26 @@ class JsonExtensionMiddleware(object):
 
     def __call__(self, env, start_response):
         path = utils.safe_rstrip(env.get('PATH_INFO'), '/')
+
         if path and path.endswith('.json'):
-            LOG.debug('Stripping .json prefix from %s for compatibility '
-                      'with pecan', path)
-            env['PATH_INFO'] = path[:-5]
-            env['HAS_JSON_SUFFIX'] = True
+            version_string = self.transform_header(base.Version.string)
+
+            minor = None
+            request_version = env.get(version_string, '')
+            if request_version:
+                _, minor = mvp.parse_version_string(request_version)
+
+            env['HAS_JSON_SUFFIX'] = False
+            if minor and minor < versions.MINOR_91_DOT_JSON:
+                LOG.debug('Stripping .json prefix from %s for compatibility '
+                          'with pecan', path)
+                env['PATH_INFO'] = path[:-5]
+                env['HAS_JSON_SUFFIX'] = True
         else:
             env['HAS_JSON_SUFFIX'] = False
 
         return self.app(env, start_response)
+
+    def transform_header(self, version_string):
+        """Transforms version string to HTTP header format."""
+        return 'HTTP_%s' % version_string.replace('-', '_').upper()

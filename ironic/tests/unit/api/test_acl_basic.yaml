@@ -40,8 +40,8 @@ public_api_v1_slash:
 
 public_api_v1_json:
   path: /v1.json
-  assert_status: 200
-  
+  assert_status: 404
+
 public_api_v1_xml:
   path: /v1.xml
   assert_status: 404
