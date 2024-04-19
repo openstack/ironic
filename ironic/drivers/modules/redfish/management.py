@@ -1346,7 +1346,8 @@ class RedfishManagement(base.ManagementInterface):
             :param image_url: URL of the image to attach, HTTP or HTTPS.
 
         """
-        redfish_boot.insert_vmedia(task, image_url, device_type)
+        redfish_boot.insert_vmedia(task, image_url,
+                                   BOOT_DEVICE_MAP_REV[device_type])
 
     @task_manager.require_exclusive_lock
     def detach_virtual_media(self, task, device_types=None):
@@ -1362,4 +1363,5 @@ class RedfishManagement(base.ManagementInterface):
             redfish_boot.eject_vmedia(task)
         else:
             for device_type in device_types:
-                redfish_boot.eject_vmedia(task, device_type)
+                redfish_boot.eject_vmedia(task,
+                                          BOOT_DEVICE_MAP_REV[device_type])

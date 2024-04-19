@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes an issue in Redfish generic attach and detach virtual media
+    where the virtual media devices were not recognized causing a
+    failure when attaching or detaching a single virtual media device.
+
