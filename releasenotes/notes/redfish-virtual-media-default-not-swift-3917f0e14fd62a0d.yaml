@@ -1,0 +1,7 @@
+---
+upgrade:
+  - |
+    The default value for ``[redfish]use_swift`` has been changed to
+    ``false``. This is to limit URL validation challenges presented by some
+    baseboard management controllers where characters in the Swift temporary
+    URL form are rejected by Baseboard Management Controllers.
