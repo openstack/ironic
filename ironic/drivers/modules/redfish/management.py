@@ -66,6 +66,14 @@ BOOT_DEVICE_MAP_REV_COMPAT = dict(
     **{'bios setup': sushy.BOOT_SOURCE_TARGET_BIOS_SETUP}
 )
 
+VMEDIA_DEVICES_MAP = {
+    sushy.VIRTUAL_MEDIA_CD: boot_devices.CDROM,
+    sushy.VIRTUAL_MEDIA_FLOPPY: boot_devices.FLOPPY,
+    sushy.VIRTUAL_MEDIA_USBSTICK: boot_devices.DISK
+}
+
+VMEDIA_DEVICES_MAP_REV = {v: k for k, v in VMEDIA_DEVICES_MAP.items()}
+
 BOOT_MODE_MAP = {
     sushy.BOOT_SOURCE_MODE_UEFI: boot_modes.UEFI,
     sushy.BOOT_SOURCE_MODE_BIOS: boot_modes.LEGACY_BIOS
@@ -1346,7 +1354,8 @@ class RedfishManagement(base.ManagementInterface):
             :param image_url: URL of the image to attach, HTTP or HTTPS.
 
         """
-        redfish_boot.insert_vmedia(task, image_url, device_type)
+        redfish_boot.insert_vmedia(task, image_url,
+                                   VMEDIA_DEVICES_MAP_REV[device_type])
 
     @task_manager.require_exclusive_lock
     def detach_virtual_media(self, task, device_types=None):
@@ -1362,4 +1371,5 @@ class RedfishManagement(base.ManagementInterface):
             redfish_boot.eject_vmedia(task)
         else:
             for device_type in device_types:
-                redfish_boot.eject_vmedia(task, device_type)
+                redfish_boot.eject_vmedia(task,
+                                          VMEDIA_DEVICES_MAP_REV[device_type])

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes an issue in redfish attach/detach generic virtual media where the
+    attached devices are not correctly recognized causing the attach operation
+    to fail.
