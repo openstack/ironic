@@ -1879,3 +1879,24 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             self.assertIsNone(task.driver.management.get_mac_addresses(task))
+
+    @mock.patch.object(redfish_boot, 'insert_vmedia', autospec=True)
+    def test_attach_virtual_media(self, mock_insert_vmedia):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.management.attach_virtual_media(task, 'cdrom',
+                                                        'http://test.iso')
+            mock_insert_vmedia.assert_called_once_with(task, 'http://test.iso',
+                                                       sushy.VIRTUAL_MEDIA_CD)
+
+    @mock.patch.object(redfish_boot, 'eject_vmedia', autospec=True)
+    def test_detach_virtual_media(self, mock_eject_vmedia):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.management.detach_virtual_media(task, ['cdrom'])
+            mock_eject_vmedia.assert_called_once_with(task,
+                                                      sushy.VIRTUAL_MEDIA_CD)
+
+    @mock.patch.object(redfish_boot, 'eject_vmedia', autospec=True)
+    def test_detach_virtual_media_all(self, mock_eject_vmedia):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.management.detach_virtual_media(task)
+            mock_eject_vmedia.assert_called_once_with(task)
