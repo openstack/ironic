@@ -64,8 +64,9 @@ opts = [
                       'download starts. swift_temp_url_duration value must be '
                       'greater than or equal to this option\'s value. '
                       'Defaults to 0.')),
-    cfg.StrOpt(
+    cfg.URIOpt(
         'swift_endpoint_url',
+        schemes=['http', 'https'],
         help=_('The "endpoint" (scheme, hostname, optional port) for '
                'the Swift URL of the form '
                '"endpoint_url/api_version/account/container/object_id". '
