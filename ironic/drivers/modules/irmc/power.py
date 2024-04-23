@@ -204,9 +204,12 @@ def _set_power_state(task, target_state, timeout=None):
             _wait_power_state(task, states.SOFT_REBOOT, timeout=timeout)
 
     except exception.SNMPFailure as snmp_exception:
+        advice = ("The SNMP related parameters' value may be different with "
+                  "the server, please check if you have set them correctly.")
         LOG.error("iRMC failed to acknowledge the target state "
-                  "for node %(node_id)s. Error: %(error)s",
-                  {'node_id': node.uuid, 'error': snmp_exception})
+                  "for node %(node_id)s. Error: %(error)s. %(advice)s",
+                  {'node_id': node.uuid, 'error': snmp_exception,
+                   'advice': advice})
         raise exception.IRMCOperationError(operation=target_state,
                                            error=snmp_exception)
 
