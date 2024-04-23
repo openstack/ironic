@@ -1,0 +1,19 @@
+---
+fixes:
+  - |
+    Fixes the default boot interface order for the ``irmc`` hardware type
+    where previously it would prefer ``irmc-pxe`` over ``ipxe``. This
+    created inconsistencies for operators using multiple hardware types,
+    where both interfaces were enabled in the deployment.
+    Because the fix is backported on this point of releasae of Zed,
+    operators who will update their environment beyond this release have
+    to check the related upgrade note and take necessary action even
+    though their update will be done in Zed release.
+upgrade:
+  - |
+    ``ipxe`` boot_interface will be preferred to ``irmc-pxe`` by default
+    with the ``irmc`` hardware type during the new baremetal node
+    creation. This change doesn't affect to the existing baremetal nodes.
+    Operators who want to continue to use ``irmc-pxe`` as default boot
+    interface need to specify it in ``[DEFAULT]default_boot_interface``
+    setting in ``ironic.conf``.
