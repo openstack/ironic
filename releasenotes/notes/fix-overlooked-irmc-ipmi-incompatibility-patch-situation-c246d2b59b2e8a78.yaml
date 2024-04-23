@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes bug in iRMC driver, where `irmc` power_interface sets and updates
+    `irmc_ipmi_succeed` flag which is used by rest of iRMC driver code to deal
+    with iRMC firmware's IPMI incompatibility but `ipmitool` power_interface
+    doesn't set nor update `irmc_ipmi_succeed` flag and rest of iRMC driver
+    code fail to handle iRMC firmware's IPMI incompatibility correctly.
