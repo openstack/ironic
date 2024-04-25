@@ -704,6 +704,10 @@ RELEASE_MAPPING = {
             'FirmwareComponent': ['1.0'],
         }
     },
+    # NOTE(TheJulia): Items above this line are for shipped versions
+    # for the mappings. If your making a non-release related change,
+    # make it below. To release, we will preserve a version matching
+    # the release as a separate block of text, like above.
     'master': {
         'api': '1.90',
         'rpc': '1.59',
