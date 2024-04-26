@@ -24,6 +24,7 @@ opts = [
     cfg.StrOpt('user',
                help=_('User for "http" Basic auth. By default set empty.')),
     cfg.StrOpt('password',
+               secret=True,
                help=_('Password for "http" Basic auth. By default set '
                       'empty.')),
     cfg.IntOpt('retry_attempts',
