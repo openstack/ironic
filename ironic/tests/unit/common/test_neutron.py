@@ -75,6 +75,7 @@ class TestNeutronClient(base.TestCase):
                                            mock_auth, mock_sauth):
         mock_ctxt.return_value = ctxt = mock.Mock()
         ctxt.auth_token = 'test-token-123'
+        ctxt.system_scope = None
         neutron.get_client(token='test-token-123')
         mock_ctxt.assert_called_once_with(auth_token='test-token-123')
         mock_client_init.assert_called_once_with(oslo_conf=mock.ANY,
