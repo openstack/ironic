@@ -21,7 +21,8 @@ from ironic.common.i18n import _
 
 
 opts = [
-    cfg.StrOpt('http_url',
+    cfg.URIOpt('http_url',
+               schemes=['http', 'https'],
                help=_("ironic-conductor node's HTTP server URL. "
                       "Example: http://192.1.2.3:8080")),
     cfg.StrOpt('http_root',
@@ -51,13 +52,15 @@ opts = [
                help=_("Can be used by any authentication strategy that "
                       "requires password credential. Currently utilized by "
                       "the http_basic authentication strategy.")),
-    cfg.StrOpt('external_http_url',
+    cfg.URIOpt('external_http_url',
+               schemes=['http', 'https'],
                help=_("URL of the ironic-conductor node's HTTP server for "
                       "boot methods such as virtual media, "
                       "where images could be served outside of the "
                       "provisioning network. Does not apply when Swift is "
                       "used. Defaults to http_url.")),
-    cfg.StrOpt('external_callback_url',
+    cfg.URIOpt('external_callback_url',
+               schemes=['http', 'https'],
                help=_("Agent callback URL of the bare metal API for boot "
                       "methods such as virtual media, where images could be "
                       "served outside of the provisioning network. Defaults "
