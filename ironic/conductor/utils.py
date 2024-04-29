@@ -29,6 +29,7 @@ from oslo_utils import excutils
 from oslo_utils import strutils
 from oslo_utils import timeutils
 
+from ironic.common import async_steps
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common import faults
@@ -490,9 +491,7 @@ def cleaning_error_handler(task, logmsg, errmsg=None, traceback=False,
         node.clean_step = {}
         # Clear any leftover metadata about cleaning
         node.del_driver_internal_info('clean_step_index')
-        node.del_driver_internal_info('cleaning_reboot')
-        node.del_driver_internal_info('cleaning_polling')
-        node.del_driver_internal_info('skip_current_clean_step')
+        async_steps.remove_node_flags(node)
         # We don't need to keep the old agent URL, or token
         # as it should change upon the next cleaning attempt.
         wipe_token_and_url(task)
@@ -553,10 +552,8 @@ def wipe_deploy_internal_info(task):
     node.del_driver_internal_info('user_deploy_steps')
     node.del_driver_internal_info('agent_cached_deploy_steps')
     node.del_driver_internal_info('deploy_step_index')
-    node.del_driver_internal_info('deployment_reboot')
-    node.del_driver_internal_info('deployment_polling')
-    node.del_driver_internal_info('skip_current_deploy_step')
     node.del_driver_internal_info('steps_validated')
+    async_steps.remove_node_flags(node)
 
 
 def wipe_cleaning_internal_info(task):
@@ -567,11 +564,9 @@ def wipe_cleaning_internal_info(task):
     node.set_driver_internal_info('clean_steps', None)
     node.del_driver_internal_info('agent_cached_clean_steps')
     node.del_driver_internal_info('clean_step_index')
-    node.del_driver_internal_info('cleaning_reboot')
-    node.del_driver_internal_info('cleaning_polling')
     node.del_driver_internal_info('cleaning_disable_ramdisk')
-    node.del_driver_internal_info('skip_current_clean_step')
     node.del_driver_internal_info('steps_validated')
+    async_steps.remove_node_flags(node)
 
 
 def wipe_service_internal_info(task):
@@ -581,11 +576,9 @@ def wipe_service_internal_info(task):
     node.set_driver_internal_info('service_steps', None)
     node.del_driver_internal_info('agent_cached_service_steps')
     node.del_driver_internal_info('service_step_index')
-    node.del_driver_internal_info('service_reboot')
-    node.del_driver_internal_info('service_polling')
     node.del_driver_internal_info('service_disable_ramdisk')
-    node.del_driver_internal_info('skip_current_service_step')
     node.del_driver_internal_info('steps_validated')
+    async_steps.remove_node_flags(node)
 
 
 def deploying_error_handler(task, logmsg, errmsg=None, traceback=False,
@@ -1268,14 +1261,8 @@ def update_next_step_index(task, step_type):
     :param step_type: The type of steps to process: 'clean' or 'deploy'.
     :returns: Index of the next step.
     """
-    skip_current_step = task.node.del_driver_internal_info(
-        'skip_current_%s_step' % step_type, True)
-    if step_type == 'clean':
-        task.node.del_driver_internal_info('cleaning_polling')
-    else:
-        task.node.del_driver_internal_info('deployment_polling')
-    task.node.save()
-
+    skip_current_step = async_steps.prepare_node_for_next_step(
+        task.node, step_type)
     return _get_node_next_steps(task, step_type,
                                 skip_current_step=skip_current_step)
 
@@ -1810,9 +1797,7 @@ def servicing_error_handler(task, logmsg, errmsg=None, traceback=False,
         node.service_step = {}
         # Clear any leftover metadata about cleaning
         node.del_driver_internal_info('service_step_index')
-        node.del_driver_internal_info('servicing_reboot')
-        node.del_driver_internal_info('servicing_polling')
-        node.del_driver_internal_info('skip_current_service_step')
+        async_steps.remove_node_flags(node)
         # We don't need to keep the old agent URL, or token
         # as it should change upon the next cleaning attempt.
         wipe_token_and_url(task)
