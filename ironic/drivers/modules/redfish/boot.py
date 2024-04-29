@@ -224,7 +224,7 @@ def _insert_vmedia(task, managers, boot_url, boot_device):
 
     if err_msgs:
         exc_msg = ("All virtual media mount attempts failed. "
-                   "Most recent error: ", err_msgs[-1])
+                   "Most recent error: " + err_msgs[-1])
     else:
         exc_msg = 'No suitable virtual media device found'
     raise exception.InvalidParameterValue(exc_msg)
@@ -286,11 +286,11 @@ def _insert_vmedia_in_resource(task, resource, boot_url, boot_device,
         # by CIMC vKVM - attempts to InsertMedia into those will result
         # in BadRequestError. We catch the exception here so that we don't
         # fail out and try the next available device instead, if available.
-        except sushy.exceptions.BadRequestError:
+        except sushy.exceptions.BadRequestError as exc:
             err_msg = ("Inserting virtual media into %(boot_device)s "
                        "failed for node %(node)s, moving to next virtual "
-                       "media device, if available",
-                       {'node': task.node.uuid,
+                       "media device, if available. %(exc)s" %
+                       {'node': task.node.uuid, 'exc': exc,
                         'boot_device': boot_device})
             err_msgs.append(err_msg)
             LOG.warning(err_msg)
