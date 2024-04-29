@@ -23,7 +23,15 @@ support in Ironic please check this `Gen10 wiki section`_.
 .. warning::
    Starting from Gen11 servers and above (iLO6 and above) use ``redfish``
    (see :doc:`redfish`) hardware type for baremetal provisioning and
-   management.
+   management. You can use the ``redfish`` hardware type for iLO5 hardware,
+   however RAID configuration is not available via Redfish until the iLO6
+   baseboard management controllers.
+
+   The Ironic community does not anticipate new features to be added to the
+   ``ilo`` and ``ilo5`` hardware types as ``redfish`` is superseding
+   most vendor specific hardware types. These drivers are anticipated
+   to be available in Ironic as long as the ``proliantutils`` library
+   is maintained.
 
 Hardware type
 =============
