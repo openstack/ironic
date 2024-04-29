@@ -1083,7 +1083,7 @@ def get_volume_pxe_options(task):
         else:
             host = portal
             port = ''
-        return ("iscsi:%(host)s::%(port)s:%(lun)s:%(iqn)s" %
+        return ("iscsi:%(host)s::%(port)s:%(lun)x:%(iqn)s" %
                 {'host': host, 'port': port, 'lun': lun, 'iqn': iqn})
 
     def __generate_iscsi_url(properties):

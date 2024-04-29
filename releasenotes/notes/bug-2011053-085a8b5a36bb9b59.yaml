@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    [`bug 2011053 <https://storyboard.openstack.org/#!/story/2011053>`_]
+    Fix issue with boot from volume feature. Convert lun field from
+    decimal to hexadecimal when generating iscsi url so that ipxe firmware
+    could be able to identify the iSCSI SAN URI correctly, according to
+    SAN URIs description at https://ipxe.org/sanuri.

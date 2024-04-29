@@ -2428,6 +2428,30 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
             options = pxe_utils.get_volume_pxe_options(task)
         self.assertEqual([], options['iscsi_volumes'])
 
+    def test_get_volume_pxe_options_hexadecimal_lunid(self):
+        vol_id = uuidutils.generate_uuid()
+        object_utils.create_test_volume_target(
+            self.context, node_id=self.node.id, volume_type='iscsi',
+            boot_index=0, volume_id='1234', uuid=vol_id,
+            properties={'target_lun': 16,
+                        'target_portal': 'fake_host:3260',
+                        'target_iqns': 'fake_iqn'})
+        self.node.driver_internal_info.update({'boot_from_volume': vol_id})
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['boot_from_volume'] = vol_id
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        expected = {'boot_from_volume': True,
+                    'iscsi_boot_url': 'iscsi:fake_host::3260:10:fake_iqn',
+                    'iscsi_initiator_iqn': None,
+                    'iscsi_volumes': []
+                    }
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            options = pxe_utils.get_volume_pxe_options(task)
+        self.assertEqual(expected, options)
+
     def test_build_pxe_config_options_ipxe_rescue(self):
         self._test_build_pxe_config_options_ipxe(mode='rescue')
 
