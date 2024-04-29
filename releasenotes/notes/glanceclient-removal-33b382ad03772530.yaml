@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    `python-glanceclient` is no longer a dependency, all OpenStack Glance
+    operations are now done using `openstacksdk`.

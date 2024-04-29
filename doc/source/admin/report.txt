@@ -229,7 +229,6 @@ default:
     amqp=WARNING
     amqplib=WARNING
     eventlet.wsgi.server=INFO
-    glanceclient=WARNING
     iso8601=WARNING
     keystoneauth.session=INFO
     keystonemiddleware.auth_token=INFO

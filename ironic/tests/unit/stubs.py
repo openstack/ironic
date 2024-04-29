@@ -12,43 +12,43 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from glanceclient import exc as glance_exc
+import io
+
+from openstack.connection import exceptions as openstack_exc
 
 
 NOW_GLANCE_FORMAT = "2010-10-11T10:30:22"
 
 
-class _GlanceWrapper(object):
-    def __init__(self, wrapped):
-        self.wrapped = wrapped
-
-    def __iter__(self):
-        return iter(())
-
-
 class StubGlanceClient(object):
 
-    fake_wrapped = object()
+    image_data = b'this is an image'
 
     def __init__(self, images=None):
         self._images = []
         _images = images or []
         map(lambda image: self.create(**image), _images)
 
-        # NOTE(bcwaldon): HACK to get client.images.* to work
-        self.images = lambda: None
-        for fn in ('get', 'data'):
-            setattr(self.images, fn, getattr(self, fn))
-
-    def get(self, image_id):
+    def get_image(self, image_id):
         for image in self._images:
             if image.id == str(image_id):
                 return image
-        raise glance_exc.NotFound(image_id)
+        raise openstack_exc.NotFoundException(image_id)
 
-    def data(self, image_id):
-        self.get(image_id)
-        return _GlanceWrapper(self.fake_wrapped)
+    def download_image(self, image_id, stream=False):
+        self.get_image(image_id)
+        if stream:
+            return io.BytesIO(self.image_data)
+        else:
+            return FakeImageDownload(self.image_data)
+
+
+class FakeImageDownload(object):
+
+    content = None
+
+    def __init__(self, content):
+        self.content = content
 
 
 class FakeImage(dict):

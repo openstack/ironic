@@ -19,9 +19,10 @@ import importlib
 import time
 from unittest import mock
 
-from glanceclient import client as glance_client
-from glanceclient import exc as glance_exc
+from keystoneauth1 import exceptions as ks_exception
 from keystoneauth1 import loading as ks_loading
+import openstack
+from openstack.connection import exceptions as openstack_exc
 from oslo_config import cfg
 from oslo_utils import uuidutils
 import testtools
@@ -150,7 +151,7 @@ class TestGlanceImageService(base.TestCase):
         with mock.patch.object(self.service, 'call', autospec=True):
             self.service.call.return_value = image
             image_meta = self.service.show(image_id)
-            self.service.call.assert_called_with('get', image_id)
+            self.service.call.assert_called_with('get_image', image_id)
             self.assertEqual(expected, image_meta)
 
     def test_show_makes_datetimes(self):
@@ -159,7 +160,7 @@ class TestGlanceImageService(base.TestCase):
         with mock.patch.object(self.service, 'call', autospec=True):
             self.service.call.return_value = image
             image_meta = self.service.show(image_id)
-            self.service.call.assert_called_with('get', image_id)
+            self.service.call.assert_called_with('get_image', image_id)
             self.assertEqual(self.NOW_DATETIME, image_meta['created_at'])
             self.assertEqual(self.NOW_DATETIME, image_meta['updated_at'])
 
@@ -185,10 +186,10 @@ class TestGlanceImageService(base.TestCase):
 
         class MyGlanceStubClient(stubs.StubGlanceClient):
             """A client that fails the first time, then succeeds."""
-            def get(self, image_id):
+            def get_image(self, image_id):
                 if tries[0] == 0:
                     tries[0] = 1
-                    raise glance_exc.ServiceUnavailable('')
+                    raise ks_exception.ServiceUnavailable()
                 else:
                     return {}
 
@@ -216,11 +217,11 @@ class TestGlanceImageService(base.TestCase):
         stub_service.download(image_id, writer)
 
     def test_download_no_data(self):
-        self.client.fake_wrapped = None
+        self.client.image_data = b''
         image_id = uuidutils.generate_uuid()
 
         image = self._make_datetime_fixture()
-        with mock.patch.object(self.client, 'get', return_value=image,
+        with mock.patch.object(self.client, 'get_image', return_value=image,
                                autospec=True):
             self.assertRaisesRegex(exception.ImageDownloadFailed,
                                    'image contains no data',
@@ -237,7 +238,7 @@ class TestGlanceImageService(base.TestCase):
 
             s_tmpfname = '/whatever/source'
 
-            def get(self, image_id):
+            def get_image(self, image_id):
                 return type('GlanceTestDirectUrlMeta', (object,),
                             {'direct_url': 'file://%s' + self.s_tmpfname})
 
@@ -275,25 +276,8 @@ class TestGlanceImageService(base.TestCase):
     def test_client_forbidden_converts_to_imagenotauthed(self):
         class MyGlanceStubClient(stubs.StubGlanceClient):
             """A client that raises a Forbidden exception."""
-            def get(self, image_id):
-                raise glance_exc.Forbidden(image_id)
-
-        stub_client = MyGlanceStubClient()
-        stub_context = context.RequestContext(auth_token=True)
-        stub_context.user_id = 'fake'
-        stub_context.project_id = 'fake'
-        stub_service = image_service.GlanceImageService(stub_client,
-                                                        stub_context)
-        image_id = uuidutils.generate_uuid()
-        writer = NullWriter()
-        self.assertRaises(exception.ImageNotAuthorized, stub_service.download,
-                          image_id, writer)
-
-    def test_client_httpforbidden_converts_to_imagenotauthed(self):
-        class MyGlanceStubClient(stubs.StubGlanceClient):
-            """A client that raises a HTTPForbidden exception."""
-            def get(self, image_id):
-                raise glance_exc.HTTPForbidden(image_id)
+            def get_image(self, image_id):
+                raise openstack_exc.ForbiddenException()
 
         stub_client = MyGlanceStubClient()
         stub_context = context.RequestContext(auth_token=True)
@@ -309,25 +293,8 @@ class TestGlanceImageService(base.TestCase):
     def test_client_notfound_converts_to_imagenotfound(self):
         class MyGlanceStubClient(stubs.StubGlanceClient):
             """A client that raises a NotFound exception."""
-            def get(self, image_id):
-                raise glance_exc.NotFound(image_id)
-
-        stub_client = MyGlanceStubClient()
-        stub_context = context.RequestContext(auth_token=True)
-        stub_context.user_id = 'fake'
-        stub_context.project_id = 'fake'
-        stub_service = image_service.GlanceImageService(stub_client,
-                                                        stub_context)
-        image_id = uuidutils.generate_uuid()
-        writer = NullWriter()
-        self.assertRaises(exception.ImageNotFound, stub_service.download,
-                          image_id, writer)
-
-    def test_client_httpnotfound_converts_to_imagenotfound(self):
-        class MyGlanceStubClient(stubs.StubGlanceClient):
-            """A client that raises a HTTPNotFound exception."""
-            def get(self, image_id):
-                raise glance_exc.HTTPNotFound(image_id)
+            def get_image(self, image_id):
+                raise openstack_exc.NotFoundException()
 
         stub_client = MyGlanceStubClient()
         stub_context = context.RequestContext(auth_token=True)
@@ -348,7 +315,7 @@ class TestGlanceImageService(base.TestCase):
 @mock.patch('ironic.common.keystone.get_adapter', autospec=True)
 @mock.patch('ironic.common.keystone.get_session', autospec=True,
             return_value=mock.sentinel.session)
-@mock.patch.object(glance_client, 'Client', autospec=True)
+@mock.patch.object(openstack.connection, 'Connection', autospec=True)
 class CheckImageServiceTestCase(base.TestCase):
     def setUp(self):
         super(CheckImageServiceTestCase, self).setUp()
@@ -385,13 +352,11 @@ class CheckImageServiceTestCase(base.TestCase):
         self.assertEqual(0, mock_auth.call_count)
         self.assertEqual(0, mock_sauth.call_count)
 
-    def _assert_client_call(self, mock_gclient, url, user=False):
+    def _assert_connnection_call(self, mock_gclient, url):
         mock_gclient.assert_called_once_with(
-            2,
             session=mock.sentinel.session,
-            global_request_id='global',
-            auth=mock.sentinel.sauth if user else mock.sentinel.auth,
-            endpoint_override=url)
+            image_endpoint_override=url,
+            image_api_version='2')
 
     def test_check_image_service__config_auth(self, mock_gclient, mock_sess,
                                               mock_adapter, mock_sauth,
@@ -406,9 +371,12 @@ class CheckImageServiceTestCase(base.TestCase):
 
         wrapped_func = image_service.check_image_service(func)
         self.assertEqual(((), params), wrapped_func(self.service, **params))
-        self._assert_client_call(mock_gclient, 'glance_url')
+        self._assert_connnection_call(mock_gclient, 'glance_url')
         mock_auth.assert_called_once_with('glance')
-        mock_sess.assert_called_once_with('glance')
+        mock_sess.assert_has_calls([
+            mock.call('glance'),
+            mock.call('glance', auth=mock.sentinel.auth)
+        ])
         mock_adapter.assert_called_once_with('glance',
                                              session=mock.sentinel.session,
                                              auth=mock.sentinel.auth)
@@ -430,8 +398,11 @@ class CheckImageServiceTestCase(base.TestCase):
 
         wrapped_func = image_service.check_image_service(func)
         self.assertEqual(((), params), wrapped_func(self.service, **params))
-        self._assert_client_call(mock_gclient, 'glance_url', user=True)
-        mock_sess.assert_called_once_with('glance')
+        self._assert_connnection_call(mock_gclient, 'glance_url')
+        mock_sess.assert_has_calls([
+            mock.call('glance'),
+            mock.call('glance', auth=mock.sentinel.sauth)
+        ])
         mock_adapter.assert_called_once_with('glance',
                                              session=mock.sentinel.session,
                                              auth=mock.sentinel.auth)
@@ -455,24 +426,15 @@ class CheckImageServiceTestCase(base.TestCase):
         wrapped_func = image_service.check_image_service(func)
         self.assertEqual(((), params), wrapped_func(self.service, **params))
         self.assertEqual('none', image_service.CONF.glance.auth_type)
-        self._assert_client_call(mock_gclient, 'foo')
-        mock_sess.assert_called_once_with('glance')
+        self._assert_connnection_call(mock_gclient, 'foo')
+        mock_sess.assert_has_calls([
+            mock.call('glance'),
+            mock.call('glance', auth=mock.sentinel.auth)
+        ])
         mock_adapter.assert_called_once_with('glance',
                                              session=mock.sentinel.session,
                                              auth=mock.sentinel.auth)
         self.assertEqual(0, mock_sauth.call_count)
-
-
-def _create_failing_glance_client(info):
-    class MyGlanceStubClient(stubs.StubGlanceClient):
-        """A client that fails the first time, then succeeds."""
-        def get(self, image_id):
-            info['num_calls'] += 1
-            if info['num_calls'] == 1:
-                raise glance_exc.ServiceUnavailable('')
-            return {}
-
-    return MyGlanceStubClient()
 
 
 class TestGlanceSwiftTempURL(base.TestCase):

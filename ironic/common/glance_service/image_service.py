@@ -21,8 +21,9 @@ import sys
 import time
 from urllib import parse as urlparse
 
-from glanceclient import client
-from glanceclient import exc as glance_exc
+from keystoneauth1 import exceptions as ks_exception
+import openstack
+from openstack.connection import exceptions as openstack_exc
 from oslo_log import log
 from oslo_utils import uuidutils
 import tenacity
@@ -44,12 +45,11 @@ _GLANCE_SESSION = None
 
 
 def _translate_image_exception(image_id, exc_value):
-    if isinstance(exc_value, (glance_exc.Forbidden,
-                              glance_exc.Unauthorized)):
+    if isinstance(exc_value, (openstack_exc.ForbiddenException)):
         return exception.ImageNotAuthorized(image_id=image_id)
-    if isinstance(exc_value, glance_exc.NotFound):
+    if isinstance(exc_value, openstack_exc.NotFoundException):
         return exception.ImageNotFound(image_id=image_id)
-    if isinstance(exc_value, glance_exc.BadRequest):
+    if isinstance(exc_value, openstack_exc.BadRequestException):
         return exception.Invalid(exc_value)
     return exc_value
 
@@ -70,8 +70,6 @@ def check_image_service(func):
         if not _GLANCE_SESSION:
             _GLANCE_SESSION = keystone.get_session('glance')
 
-        # NOTE(pas-ha) glanceclient uses Adapter-based SessionClient,
-        # so we can pass session and auth separately, makes things easier
         service_auth = keystone.get_auth('glance')
 
         self.endpoint = keystone.get_endpoint('glance',
@@ -85,10 +83,15 @@ def check_image_service(func):
         if self.context.auth_token:
             user_auth = keystone.get_service_auth(self.context, self.endpoint,
                                                   service_auth)
-        self.client = client.Client(2, session=_GLANCE_SESSION,
-                                    auth=user_auth or service_auth,
-                                    endpoint_override=self.endpoint,
-                                    global_request_id=self.context.global_id)
+        sess = keystone.get_session('glance',
+                                    auth=user_auth or service_auth)
+        conn = openstack.connection.Connection(
+            session=sess,
+            image_endpoint_override=self.endpoint,
+            image_api_version='2')
+
+        self.client = conn.global_request(self.context.global_id).image
+
         return func(self, *args, **kwargs)
 
     return wrapper
@@ -130,28 +133,22 @@ class GlanceImageService(object):
 
         :raises: GlanceConnectionFailed
         """
-        retry_excs = (glance_exc.ServiceUnavailable,
-                      glance_exc.InvalidEndpoint,
-                      glance_exc.CommunicationError)
-        image_excs = (glance_exc.Forbidden,
-                      glance_exc.Unauthorized,
-                      glance_exc.NotFound,
-                      glance_exc.BadRequest)
-
         try:
-            return getattr(self.client.images, method)(*args, **kwargs)
-        except retry_excs as e:
+            return getattr(self.client, method)(*args, **kwargs)
+        except openstack_exc.SDKException:
+            exc_type, exc_value, exc_trace = sys.exc_info()
+            new_exc = _translate_image_exception(
+                args[0], exc_value)
+            if isinstance(new_exc, exception.IronicException):
+                # exception has been translated to a new one, raise it
+                raise type(new_exc)(new_exc).with_traceback(exc_trace)
+        except ks_exception.ClientException as e:
             error_msg = ("Error contacting glance endpoint "
                          "%(endpoint)s for '%(method)s'")
             LOG.exception(error_msg, {'endpoint': self.endpoint,
                                       'method': method})
             raise exception.GlanceConnectionFailed(
                 endpoint=self.endpoint, reason=e)
-        except image_excs:
-            exc_type, exc_value, exc_trace = sys.exc_info()
-            new_exc = _translate_image_exception(
-                args[0], exc_value)
-            raise type(new_exc)(new_exc).with_traceback(exc_trace)
 
     @check_image_service
     def show(self, image_href):
@@ -167,7 +164,7 @@ class GlanceImageService(object):
                   image_href)
         image_id = service_utils.parse_image_id(image_href)
 
-        image = self.call('get', image_id)
+        image = self.call('get_image', image_id)
 
         if not service_utils.is_image_active(image):
             raise exception.ImageUnacceptable(
@@ -198,18 +195,20 @@ class GlanceImageService(object):
                     os.sendfile(data.fileno(), f.fileno(), 0, filesize)
                 return
 
-        image_chunks = self.call('data', image_id)
-        # NOTE(dtantsur): when using Glance V2, image_chunks is a wrapper
-        # around real data, so we have to check the wrapped data for None.
-        if image_chunks.wrapped is None:
-            raise exception.ImageDownloadFailed(
-                image_href=image_href, reason=_('image contains no data.'))
-
-        if data is None:
-            return image_chunks
-        else:
+        image_size = 0
+        image_data = None
+        if data:
+            image_chunks = self.call('download_image', image_id, stream=True)
             for chunk in image_chunks:
                 data.write(chunk)
+                image_size += len(chunk)
+        else:
+            image_data = self.call('download_image', image_id).content
+            image_size = len(image_data)
+        if image_size == 0:
+            raise exception.ImageDownloadFailed(
+                image_href=image_href, reason=_('image contains no data.'))
+        return image_data
 
     def _generate_temp_url(self, path, seconds, key, method, endpoint,
                            image_id):
@@ -400,7 +399,7 @@ class GlanceImageService(object):
         Returns the direct url representing the backend storage location,
         or None if this attribute is not shown by Glance.
         """
-        image_meta = self.call('get', image_id)
+        image_meta = self.call('get_image', image_id)
 
         if not service_utils.is_image_available(self.context, image_meta):
             raise exception.ImageNotFound(image_id=image_id)
