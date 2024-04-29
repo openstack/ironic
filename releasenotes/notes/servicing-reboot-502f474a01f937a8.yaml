@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes service steps that rely on a reboot. Previously, the reboot was not
+    properly recognized in the conductor logic.

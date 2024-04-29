@@ -1012,13 +1012,10 @@ class RedfishManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
                        spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
     def test_update_firmware(self, mock_get_update_service,
                              mock_set_async_step_flags,
-                             mock_get_async_step_return_state,
                              mock_node_power_action, mock_prepare,
                              build_mock):
         build_mock.return_value = {'a': 'b'}
@@ -1032,12 +1029,13 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             task.node.save = mock.Mock()
 
-            task.driver.management.update_firmware(
+            result = task.driver.management.update_firmware(
                 task,
                 [{'url': 'http://test1',
                   'checksum': 'aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d'},
                  {'url': 'http://test2',
                   'checksum': '9f6227549221920e312fed2cfc6586ee832cc546'}])
+            self.assertEqual(states.DEPLOYWAIT, result)
 
             mock_get_update_service.assert_called_once_with(task.node)
             mock_update_service.simple_update.assert_called_once_with(
@@ -1054,8 +1052,6 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.node.driver_internal_info.get('firmware_cleanup'))
             mock_set_async_step_flags.assert_called_once_with(
                 task.node, reboot=True, skip_current_step=True, polling=True)
-            mock_get_async_step_return_state.assert_called_once_with(
-                task.node)
             mock_node_power_action.assert_called_once_with(
                 task, states.REBOOT, None)
 
@@ -1066,14 +1062,11 @@ class RedfishManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
                        spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
     def test_update_firmware_stage(
             self, mock_get_update_service, mock_set_async_step_flags,
-            mock_get_async_step_return_state, mock_node_power_action,
-            mock_prepare, build_mock, mock_stage):
+            mock_node_power_action, mock_prepare, build_mock, mock_stage):
         build_mock.return_value = {'a': 'b'}
         mock_task_monitor = mock.Mock()
         mock_task_monitor.task_monitor_uri = '/task/123'
@@ -1109,8 +1102,6 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 ['http'], task.node.driver_internal_info['firmware_cleanup'])
             mock_set_async_step_flags.assert_called_once_with(
                 task.node, reboot=True, skip_current_step=True, polling=True)
-            mock_get_async_step_return_state.assert_called_once_with(
-                task.node)
             mock_node_power_action.assert_called_once_with(
                 task, states.REBOOT, None)
 
@@ -1121,14 +1112,11 @@ class RedfishManagementTestCase(db_base.DbTestCase):
     @mock.patch.object(redfish_boot.RedfishVirtualMediaBoot, 'prepare_ramdisk',
                        spec_set=True, autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    @mock.patch.object(deploy_utils, 'get_async_step_return_state',
-                       autospec=True)
     @mock.patch.object(deploy_utils, 'set_async_step_flags', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
     def test_update_firmware_stage_both(
             self, mock_get_update_service, mock_set_async_step_flags,
-            mock_get_async_step_return_state, mock_node_power_action,
-            mock_prepare, build_mock, mock_stage):
+            mock_node_power_action, mock_prepare, build_mock, mock_stage):
         build_mock.return_value = {'a': 'b'}
         mock_task_monitor = mock.Mock()
         mock_task_monitor.task_monitor_uri = '/task/123'
@@ -1170,8 +1158,6 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 task.node.driver_internal_info['firmware_cleanup'])
             mock_set_async_step_flags.assert_called_once_with(
                 task.node, reboot=True, skip_current_step=True, polling=True)
-            mock_get_async_step_return_state.assert_called_once_with(
-                task.node)
             mock_node_power_action.assert_called_once_with(
                 task, states.REBOOT, None)
 

@@ -18,6 +18,7 @@ from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import units
 
+from ironic.common import async_steps
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
@@ -266,10 +267,11 @@ class CustomAgentDeploy(agent_base.AgentBaseMixin, agent_base.AgentDeployMixin,
         elif task.driver.storage.should_write_image(task):
             # Check if the driver has already performed a reboot in a previous
             # deploy step.
-            if not task.node.driver_internal_info.get('deployment_reboot'):
-                manager_utils.node_power_action(task, states.REBOOT)
-            task.node.del_driver_internal_info('deployment_reboot')
+            already_rebooted = task.node.del_driver_internal_info(
+                async_steps.DEPLOYMENT_REBOOT)
             task.node.save()
+            if not already_rebooted:
+                manager_utils.node_power_action(task, states.REBOOT)
             return states.DEPLOYWAIT
 
     @METRICS.timer('CustomAgentDeployMixin.prepare_instance_boot')

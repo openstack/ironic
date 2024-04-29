@@ -1497,8 +1497,8 @@ class ErrorHandlersTestCase(db_base.DbTestCase):
         target = 'baz'
         self.node.target_provision_state = target
         self.node.service_step = {'key': 'val'}
-        self.node.set_driver_internal_info('service_reboot', True)
-        self.node.set_driver_internal_info('service_polling', True)
+        self.node.set_driver_internal_info('servicing_reboot', True)
+        self.node.set_driver_internal_info('servicing_polling', True)
         self.node.set_driver_internal_info('skip_current_service_step', True)
         self.node.set_driver_internal_info('service_step_index', 0)
         self.node.set_driver_internal_info('agent_url', 'url')
@@ -1513,8 +1513,8 @@ class ErrorHandlersTestCase(db_base.DbTestCase):
         self.node.save.assert_called_once_with()
         self.assertEqual({}, self.node.service_step)
         self.assertNotIn('service_step_index', self.node.driver_internal_info)
-        self.assertNotIn('service_reboot', self.node.driver_internal_info)
-        self.assertNotIn('service_polling', self.node.driver_internal_info)
+        self.assertNotIn('servicing_reboot', self.node.driver_internal_info)
+        self.assertNotIn('servicing_polling', self.node.driver_internal_info)
         self.assertNotIn('skip_current_service_step',
                          self.node.driver_internal_info)
         self.assertNotIn('agent_secret_token', self.node.driver_internal_info)
@@ -2849,16 +2849,16 @@ class ServiceUtilsTestCase(db_base.DbTestCase):
         self.node.driver_internal_info = {
             'service_steps': {'foo': 'bar'},
             'agent_cached_service_steps': {'more_foo': None},
-            'service_reboot': False,
-            'service_polling': 1,
+            'servicing_reboot': False,
+            'servicing_polling': 1,
             'service_disable_ramdisk': False,
             'skip_current_service_step': False,
             'steps_validated': 'meow'
             'agent_secret_token'}
         self.node.save()
         not_in_list = ['agent_cached_service_steps',
-                       'serivce_reboot',
-                       'service_polling',
+                       'servicing_reboot',
+                       'servicing_polling',
                        'service_disable_ramdisk',
                        'skip_current_service_step',
                        'steps_validated',
