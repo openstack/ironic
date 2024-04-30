@@ -19,8 +19,11 @@ from ironic.conf import auth
 opts = [
     cfg.IntOpt('retries',
                default=3,
-               help=_('Client retries in the case of a failed request '
-                      'connection.')),
+               deprecated_for_removal=True,
+               deprecated_reason=_('Replaced by status_code_retries and '
+                                   'status_code_retry_delay.'),
+               help=_('DEPRECATED: Client retries in the case of a failed '
+                      'request.')),
     cfg.IntOpt('action_retries',
                default=3,
                help=_('Number of retries in the case of a failed '
@@ -33,8 +36,6 @@ opts = [
 ]
 
 
-# NOTE(pas-ha) cinder V3 which ironic requires is registered as volumev3
-# service type ATM
 def register_opts(conf):
     conf.register_opts(opts, group='cinder')
     auth.register_auth_opts(conf, 'cinder', service_type='volumev3')

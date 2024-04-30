@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    `python-cinderclient` is no longer a dependency, all OpenStack Cinder
+    operations are now done using `openstacksdk`.
