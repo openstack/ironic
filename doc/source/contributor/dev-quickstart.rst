@@ -14,8 +14,29 @@ to get yourself familiar with the general git workflow we use.
 This guide is primarily technical in nature; for information on how the Ironic
 team organizes work, please see `Ironic's contribution guide <https://docs.openstack.org/ironic/latest/contributor/contributing.html>`_.
 
-This document covers both :ref:`unit` and :ref:`integrated`. New contributors
-are recommended to start with unit tests.
+This document covers :ref:`githooks`, :ref:`unit`, and :ref:`integrated`. New
+contributors are recommended to setup git hooks, then continue with unit tests.
+
+.. _githooks:
+
+Git hooks
+---------
+Ironic uses multiple software packages to ensure code is styled as expected. A
+convenient way to ensure your code complies with these rules is via the use of
+`pre-commit <https://pre-commit.com/>`_.
+
+To configure your environment for automatic checking of code spelling and linting
+before commit, install ``pre-commit``:
+
+  pip install --user pre-commit
+  cd /path/to/ironic/checkout
+  pre-commit install --allow-missing-config
+
+Now, before any commit, any changed lines will be run through our ``pre-commit``
+checks. Contributors are still encouraged to run ``pep8`` and ``codespell``
+tox environments before pushing code as an extra check.
+
+More information about running tests in tox available in :ref:`unit`.
 
 .. _integrated:
 
@@ -109,7 +130,6 @@ upgrade it individually, if you need to::
 
 Running Unit Tests Locally
 ==========================
-
 If you haven't already, Ironic source code should be pulled directly from git::
 
     # from a user-writable directory, usually $HOME or $HOME/dev
@@ -117,10 +137,10 @@ If you haven't already, Ironic source code should be pulled directly from git::
     cd ironic
 
 
-Most of the time, you will want to run unit tests and pep8 checks. This can be
-done with the following command::
+Most of the time, you will want to run codespell, unit tests, and pep8 checks.
+This can be done with the following command::
 
-    tox -e pep8,py3
+    tox -e codespell,pep8,py3
 
 Ironic has multiple test environments that can be run by tox. An incomplete
 list of environments and what they do is below. Please reference the ``tox.ini``
@@ -133,6 +153,8 @@ file in the project you're working on for a complete, up-to-date list.
     - Description
   * - pep8
     - Run style checks on code, documentation, and release notes.
+  * - codespell
+    - Check code against a list of known-misspelled words.
   * - py<version>
     - Run unit tests with the specified python version. For example, ``py310`` will run the unit tests with python 3.10.
   * - unit-with-driver-libs
