@@ -12,122 +12,83 @@
 #    under the License.
 
 import datetime
-from http import client as http_client
 import json
 from unittest import mock
 
-from cinderclient import exceptions as cinder_exceptions
-import cinderclient.v3 as cinderclient
+from keystoneauth1 import loading as ks_loading
+import openstack
+from openstack.connection import exceptions as openstack_exc
 from oslo_utils import uuidutils
 
 from ironic.common import cinder
 from ironic.common import context
 from ironic.common import exception
-from ironic.common import keystone
 from ironic.conductor import task_manager
 from ironic.tests import base
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as object_utils
 
 
-@mock.patch.object(keystone, 'get_auth', autospec=True)
-@mock.patch.object(keystone, 'get_session', autospec=True)
-class TestCinderSession(base.TestCase):
-
-    def setUp(self):
-        super(TestCinderSession, self).setUp()
-        self.config(timeout=1,
-                    retries=2,
-                    group='cinder')
-        cinder._CINDER_SESSION = None
-
-    def test__get_cinder_session(self, mock_keystone_session, mock_auth):
-        """Check establishing new session when no session exists."""
-        mock_keystone_session.return_value = 'session1'
-        self.assertEqual('session1', cinder._get_cinder_session())
-        mock_keystone_session.assert_called_once_with('cinder')
-
-        """Check if existing session is used."""
-        mock_keystone_session.reset_mock()
-        mock_keystone_session.return_value = 'session2'
-        self.assertEqual('session1', cinder._get_cinder_session())
-        self.assertFalse(mock_keystone_session.called)
-        self.assertFalse(mock_auth.called)
-
-
-@mock.patch('ironic.common.keystone.get_adapter', autospec=True)
 @mock.patch('ironic.common.keystone.get_service_auth', autospec=True,
             return_value=mock.sentinel.sauth)
-@mock.patch('ironic.common.keystone.get_auth', autospec=True)
+@mock.patch('ironic.common.keystone.get_auth', autospec=True,
+            return_value=mock.sentinel.auth)
+@mock.patch('ironic.common.keystone.get_adapter', autospec=True)
 @mock.patch('ironic.common.keystone.get_session', autospec=True,
             return_value=mock.sentinel.session)
-@mock.patch.object(cinderclient.Client, '__init__', autospec=True,
-                   return_value=None)
+@mock.patch.object(openstack.connection, "Connection", autospec=True)
 class TestCinderClient(base.TestCase):
 
     def setUp(self):
         super(TestCinderClient, self).setUp()
-        self.config(timeout=1,
-                    retries=2,
+        # NOTE(pas-ha) register keystoneauth dynamic options manually
+        plugin = ks_loading.get_plugin_loader('password')
+        opts = ks_loading.get_auth_plugin_conf_options(plugin)
+        self.cfg_fixture.register_opts(opts, group='cinder')
+        self.config(retries=2,
                     group='cinder')
+        self.config(username='test-admin-user',
+                    project_name='test-admin-tenant',
+                    password='test-admin-password',
+                    auth_url='test-auth-uri',
+                    auth_type='password',
+                    interface='internal',
+                    service_type='block_storage',
+                    timeout=10,
+                    group='cinder')
+        # force-reset the global session object
         cinder._CINDER_SESSION = None
         self.context = context.RequestContext(global_request_id='global')
 
-    def _assert_client_call(self, init_mock, url, auth=mock.sentinel.auth,
-                            auth_from_config=None):
-        if not auth_from_config:
-            self.context.auth_token = 'meow'
-        cinder.get_client(self.context, auth_from_config=auth_from_config)
-        init_mock.assert_called_once_with(
-            mock.ANY,
+    def test_get_cinder_client_with_context(self, mock_client_init,
+                                            mock_session, mock_adapter,
+                                            mock_auth, mock_sauth):
+        self.context = context.RequestContext(global_request_id='global',
+                                              auth_token='test-token-123')
+        cinder.get_client(context=self.context)
+        mock_client_init.assert_called_once_with(
             session=mock.sentinel.session,
-            auth=auth,
-            endpoint_override=url,
-            connect_retries=2,
-            global_request_id='global')
-
-    def test_get_client(self, mock_client_init, mock_session, mock_auth,
-                        mock_sauth, mock_adapter):
-        mock_auth.return_value = mock_auth_obj = mock.Mock()
-        mock_auth_obj.get_project_id.return_value = '1111'
-        mock_adapter.return_value = mock_adapter_obj = mock.Mock()
-        mock_adapter_obj.get_endpoint.side_effect = iter([
-            'cinder_url/1111',
-            'cinder_url'])
-        self._assert_client_call(mock_client_init, 'cinder_url',
-                                 auth=mock.sentinel.sauth)
+            block_storage_endpoint_override=mock.ANY,
+            block_storage_api_version='3')
+        # testing handling of default url_timeout
         mock_session.assert_has_calls([
             mock.call('cinder'),
-            mock.call('cinder', timeout=1, auth=mock.sentinel.sauth)])
-        mock_auth.assert_called_once_with('cinder')
-        mock_adapter.assert_has_calls([
-            mock.call('cinder', session=mock.sentinel.session,
-                      auth=mock_auth_obj),
+            mock.call('cinder', auth=mock.sentinel.sauth, timeout=10)
+        ])
 
-            mock.call('cinder', session=mock.sentinel.session,
-                      auth=mock.sentinel.sauth)])
-        self.assertTrue(mock_sauth.called)
+    def test__get_cinder_session(self, mock_client_init,
+                                 mock_session, mock_adapter,
+                                 mock_auth, mock_sauth):
+        """Check establishing new session when no session exists."""
+        mock_session.return_value = 'session1'
+        self.assertEqual('session1', cinder._get_cinder_session())
+        mock_session.assert_called_once_with('cinder')
 
-    def test_get_client_service_token(self, mock_client_init, mock_session,
-                                      mock_auth, mock_sauth, mock_adapter):
-        mock_auth.return_value = mock_auth_obj = mock.Mock()
-        mock_auth_obj.get_project_id.return_value = '1111'
-        mock_adapter.return_value = mock_adapter_obj = mock.Mock()
-        mock_adapter_obj.get_endpoint.side_effect = iter([
-            'cinder_url/1111',
-            'cinder_url'])
-        self._assert_client_call(
-            mock_client_init,
-            'cinder_url',
-            auth=None,
-            auth_from_config=True)
-        mock_session.assert_has_calls([
-            mock.call('cinder'),
-            mock.call('cinder', timeout=1, auth=mock_auth_obj)])
-        mock_auth.assert_called_once_with('cinder')
-        mock_adapter.assert_called_once_with(
-            'cinder', session=mock.sentinel.session, auth=mock_auth_obj)
-        self.assertFalse(mock_sauth.called)
+        """Check if existing session is used."""
+        mock_session.reset_mock()
+        mock_session.return_value = 'session2'
+        self.assertEqual('session1', cinder._get_cinder_session())
+        self.assertFalse(mock_session.called)
 
 
 class TestCinderUtils(db_base.DbTestCase):
@@ -140,11 +101,11 @@ class TestCinderUtils(db_base.DbTestCase):
 
     def test_is_volume_available(self):
         available_volumes = [
-            mock.Mock(status=cinder.AVAILABLE, multiattach=False),
-            mock.Mock(status=cinder.IN_USE, multiattach=True)]
+            mock.Mock(status=cinder.AVAILABLE, is_multiattach=False),
+            mock.Mock(status=cinder.IN_USE, is_multiattach=True)]
         unavailable_volumes = [
-            mock.Mock(status=cinder.IN_USE, multiattach=False),
-            mock.Mock(status='fake-non-status', multiattach=True)]
+            mock.Mock(status=cinder.IN_USE, is_multiattach=False),
+            mock.Mock(status='fake-non-status', is_multiattach=True)]
 
         for vol in available_volumes:
             result = cinder.is_volume_available(vol)
@@ -201,10 +162,7 @@ class TestCinderUtils(db_base.DbTestCase):
         self.assertEqual(expected_data, data)
 
 
-@mock.patch.object(cinder, '_get_cinder_session', autospec=True)
-@mock.patch.object(cinderclient.volumes.VolumeManager, 'set_metadata',
-                   autospec=True)
-@mock.patch.object(cinderclient.volumes.VolumeManager, 'get', autospec=True)
+@mock.patch.object(cinder, 'get_client', autospec=True)
 class TestCinderActions(db_base.DbTestCase):
 
     def setUp(self):
@@ -214,17 +172,10 @@ class TestCinderActions(db_base.DbTestCase):
             instance_uuid=uuidutils.generate_uuid())
         self.mount_point = 'ironic_mountpoint'
 
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'attach',
-                       autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager,
-                       'initialize_connection', autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'reserve',
-                       autospec=True)
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     def test_attach_volumes(self, mock_create_meta, mock_is_attached,
-                            mock_reserve, mock_init, mock_attach, mock_get,
-                            mock_set_meta, mock_session):
+                            mock_client):
         """Iterate once on a single volume with success."""
 
         volume_id = '111111111-0000-0000-0000-000000000003'
@@ -241,7 +192,16 @@ class TestCinderActions(db_base.DbTestCase):
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_is_attached.return_value = False
-        mock_get.return_value = mock.Mock(attachments=[], id='000-001')
+
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_init = mock_bs.init_volume_attachment
+        mock_reserve = mock_bs.reserve_volume
+        mock_attach = mock_bs.attach_volume
+        mock_set_meta = mock_bs.set_volume_metadata
+
+        volume = mock.Mock(attachments=[], id='000-001')
+        mock_get.return_value = volume
 
         mock_init.return_value = {
             'driver_volume_type': 'iscsi',
@@ -254,25 +214,17 @@ class TestCinderActions(db_base.DbTestCase):
             attachments = cinder.attach_volumes(task, volumes, connector)
 
         self.assertEqual(expected, attachments)
-        mock_reserve.assert_called_once_with(mock.ANY, volume_id)
-        mock_init.assert_called_once_with(mock.ANY, volume_id, connector)
-        mock_attach.assert_called_once_with(mock.ANY, volume_id,
-                                            self.node.instance_uuid,
-                                            self.mount_point)
-        mock_set_meta.assert_called_once_with(mock.ANY, volume_id,
-                                              {'bar': 'baz'})
-        mock_get.assert_called_once_with(mock.ANY, volume_id)
+        mock_reserve.assert_called_once_with(volume)
+        mock_init.assert_called_once_with(volume, connector)
+        mock_attach.assert_called_once_with(volume,
+                                            self.mount_point,
+                                            instance=self.node.instance_uuid)
+        mock_set_meta.assert_called_once_with(volume, bar='baz')
+        mock_get.assert_called_once_with(volume_id)
 
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'attach',
-                       autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager,
-                       'initialize_connection', autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'reserve',
-                       autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     def test_attach_volumes_one_attached(
-            self, mock_create_meta, mock_reserve, mock_init, mock_attach,
-            mock_get, mock_set_meta, mock_session):
+            self, mock_create_meta, mock_client):
         """Iterate with two volumes, one already attached."""
 
         volume_id = '111111111-0000-0000-0000-000000000003'
@@ -292,8 +244,17 @@ class TestCinderActions(db_base.DbTestCase):
         volumes = [volume_id, 'already_attached']
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
+
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_init = mock_bs.init_volume_attachment
+        mock_reserve = mock_bs.reserve_volume
+        mock_attach = mock_bs.attach_volume
+        mock_set_meta = mock_bs.set_volume_metadata
+
+        volume = mock.Mock(attachments=[], id='000-000')
         mock_get.side_effect = [
-            mock.Mock(attachments=[], id='000-000'),
+            volume,
             mock.Mock(attachments=[{'server_id': self.node.uuid}],
                       id='000-001')
         ]
@@ -309,21 +270,18 @@ class TestCinderActions(db_base.DbTestCase):
             attachments = cinder.attach_volumes(task, volumes, connector)
 
         self.assertEqual(expected, attachments)
-        mock_reserve.assert_called_once_with(mock.ANY, volume_id)
-        mock_init.assert_called_once_with(mock.ANY, volume_id, connector)
-        mock_attach.assert_called_once_with(mock.ANY, volume_id,
-                                            self.node.instance_uuid,
-                                            self.mount_point)
-        mock_set_meta.assert_called_once_with(mock.ANY, volume_id,
-                                              {'bar': 'baz'})
+        mock_reserve.assert_called_once_with(volume)
+        mock_init.assert_called_once_with(volume, connector)
+        mock_attach.assert_called_once_with(volume,
+                                            self.mount_point,
+                                            instance=self.node.instance_uuid)
+        mock_set_meta.assert_called_once_with(volume, bar='baz')
 
-    @mock.patch.object(cinderclient.Client, '__init__', autospec=True)
-    def test_attach_volumes_client_init_failure(
-            self, mock_client, mock_get, mock_set_meta, mock_session):
+    def test_attach_volumes_conn_init_failure(
+            self, mock_client):
         connector = {'foo': 'bar'}
         volumes = ['111111111-0000-0000-0000-000000000003']
-        mock_client.side_effect = cinder_exceptions.BadRequest(
-            http_client.BAD_REQUEST)
+        mock_client.side_effect = openstack_exc.EndpointNotFound()
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.StorageError,
@@ -332,29 +290,31 @@ class TestCinderActions(db_base.DbTestCase):
                               volumes,
                               connector)
 
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'attach',
-                       autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager,
-                       'initialize_connection', autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'reserve',
-                       autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     def test_attach_volumes_vol_not_found(
-            self, mock_create_meta, mock_reserve, mock_init, mock_attach,
-            mock_get, mock_set_meta, mock_session):
+            self, mock_create_meta, mock_client):
         """Raise an error if the volume lookup fails"""
 
-        def __mock_get_side_effect(client, volume_id):
-            if volume_id == 'not_found':
-                raise cinder_exceptions.NotFound(
-                    http_client.NOT_FOUND, message='error')
+        volume = mock.Mock(attachments=[], uuid='000-000')
+
+        def __mock_get_side_effect(vol):
+            if vol == 'not_found':
+                raise openstack_exc.ResourceNotFound()
             else:
-                return mock.Mock(attachments=[], uuid='000-000')
+                return volume
 
         volumes = ['111111111-0000-0000-0000-000000000003',
                    'not_found',
                    'not_reached']
         connector = {'foo': 'bar'}
+
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_init = mock_bs.init_volume_attachment
+        mock_reserve = mock_bs.reserve_volume
+        mock_attach = mock_bs.attach_volume
+        mock_set_meta = mock_bs.set_volume_metadata
+
         mock_get.side_effect = __mock_get_side_effect
         mock_create_meta.return_value = {'bar': 'baz'}
 
@@ -364,33 +324,27 @@ class TestCinderActions(db_base.DbTestCase):
                               task,
                               volumes,
                               connector)
-        mock_get.assert_any_call(mock.ANY,
-                                 '111111111-0000-0000-0000-000000000003')
-        mock_get.assert_any_call(mock.ANY, 'not_found')
+        mock_get.assert_any_call('111111111-0000-0000-0000-000000000003')
+        mock_get.assert_any_call('not_found')
         self.assertEqual(2, mock_get.call_count)
-        mock_reserve.assert_called_once_with(
-            mock.ANY, '111111111-0000-0000-0000-000000000003')
-        mock_init.assert_called_once_with(
-            mock.ANY, '111111111-0000-0000-0000-000000000003', connector)
+        mock_reserve.assert_called_once_with(volume)
+        mock_init.assert_called_once_with(volume, connector)
         mock_attach.assert_called_once_with(
-            mock.ANY, '111111111-0000-0000-0000-000000000003',
-            self.node.instance_uuid, self.mount_point)
-        mock_set_meta.assert_called_once_with(
-            mock.ANY, '111111111-0000-0000-0000-000000000003', {'bar': 'baz'})
+            volume, self.mount_point, instance=self.node.instance_uuid)
+        mock_set_meta.assert_called_once_with(volume, bar='baz')
 
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'reserve',
-                       autospec=True)
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     def test_attach_volumes_reserve_failure(self, mock_is_attached,
-                                            mock_reserve, mock_get,
-                                            mock_set_meta, mock_session):
+                                            mock_client):
         volumes = ['111111111-0000-0000-0000-000000000003']
         connector = {'foo': 'bar'}
         volume = mock.Mock(attachments=[])
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_reserve = mock_bs.reserve_volume
         mock_get.return_value = volume
         mock_is_attached.return_value = False
-        mock_reserve.side_effect = cinder_exceptions.NotAcceptable(
-            http_client.NOT_ACCEPTABLE)
+        mock_reserve.side_effect = openstack_exc.HttpException()
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.StorageError,
@@ -400,15 +354,11 @@ class TestCinderActions(db_base.DbTestCase):
                               connector)
         mock_is_attached.assert_called_once_with(mock.ANY, volume)
 
-    @mock.patch.object(cinderclient.volumes.VolumeManager,
-                       'initialize_connection', autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'reserve',
-                       autospec=True)
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     def test_attach_volumes_initialize_connection_failure(
-            self, mock_create_meta, mock_is_attached, mock_reserve, mock_init,
-            mock_get, mock_set_meta, mock_session):
+            self, mock_create_meta, mock_is_attached,
+            mock_client):
         """Fail attachment upon an initialization failure."""
 
         volume_id = '111111111-0000-0000-0000-000000000003'
@@ -416,9 +366,15 @@ class TestCinderActions(db_base.DbTestCase):
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_is_attached.return_value = False
-        mock_get.return_value = mock.Mock(attachments=[])
-        mock_init.side_effect = cinder_exceptions.NotAcceptable(
-            http_client.NOT_ACCEPTABLE)
+
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_init = mock_bs.init_volume_attachment
+        mock_reserve = mock_bs.reserve_volume
+
+        volume = mock.Mock(attachments=[])
+        mock_get.return_value = volume
+        mock_init.side_effect = openstack_exc.HttpException("not acceptable")
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.StorageError,
@@ -427,63 +383,55 @@ class TestCinderActions(db_base.DbTestCase):
                               volumes,
                               connector)
 
-        mock_get.assert_called_once_with(mock.ANY, volume_id)
-        mock_reserve.assert_called_once_with(mock.ANY, volume_id)
-        mock_init.assert_called_once_with(mock.ANY, volume_id, connector)
+        mock_get.assert_called_once_with(volume_id)
+        mock_reserve.assert_called_once_with(volume)
+        mock_init.assert_called_once_with(volume, connector)
 
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'attach',
-                       autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager,
-                       'initialize_connection', autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'reserve',
-                       autospec=True)
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     def test_attach_volumes_attach_record_failure(
-            self, mock_create_meta, mock_is_attached, mock_reserve,
-            mock_init, mock_attach, mock_get, mock_set_meta, mock_session):
+            self, mock_create_meta, mock_is_attached, mock_client):
         """Attach a volume and fail if final record failure occurs"""
         volume_id = '111111111-0000-0000-0000-000000000003'
         volumes = [volume_id]
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_is_attached.return_value = False
-        mock_get.return_value = mock.Mock(attachments=[], id='000-003')
+
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_init = mock_bs.init_volume_attachment
+        mock_reserve = mock_bs.reserve_volume
+        mock_attach = mock_bs.attach_volume
+
+        volume = mock.Mock(attachments=[], id='000-003')
+        mock_get.return_value = volume
         mock_init.return_value = {
             'driver_volume_type': 'iscsi',
             'data': {
                 'target_iqn': 'iqn.2010-10.org.openstack:volume-00000002',
                 'target_portal': '127.0.0.0.1:3260',
                 'target_lun': 2}}
-        mock_attach.side_effect = cinder_exceptions.ClientException(
-            http_client.NOT_ACCEPTABLE, 'error')
+        mock_attach.side_effect = openstack_exc.HttpException("not acceptable")
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.StorageError, cinder.attach_volumes,
                               task, volumes, connector)
 
-        mock_reserve.assert_called_once_with(mock.ANY, volume_id)
-        mock_init.assert_called_once_with(mock.ANY, volume_id, connector)
-        mock_attach.assert_called_once_with(mock.ANY, volume_id,
-                                            self.node.instance_uuid,
-                                            self.mount_point)
-        mock_get.assert_called_once_with(mock.ANY, volume_id)
-        mock_is_attached.assert_called_once_with(mock.ANY,
-                                                 mock_get.return_value)
+        mock_reserve.assert_called_once_with(volume)
+        mock_init.assert_called_once_with(volume, connector)
+        mock_attach.assert_called_once_with(volume,
+                                            self.mount_point,
+                                            instance=self.node.instance_uuid)
+        mock_get.assert_called_once_with(volume_id)
+        mock_is_attached.assert_called_once_with(mock.ANY, volume)
 
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'attach',
-                       autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager,
-                       'initialize_connection', autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'reserve',
-                       autospec=True)
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     @mock.patch.object(cinder, 'LOG', autospec=True)
     def test_attach_volumes_attach_set_meta_failure(
             self, mock_log, mock_create_meta, mock_is_attached,
-            mock_reserve, mock_init, mock_attach, mock_get, mock_set_meta,
-            mock_session):
+            mock_client):
         """Attach a volume and tolerate set_metadata failure."""
 
         expected = [{
@@ -499,43 +447,42 @@ class TestCinderActions(db_base.DbTestCase):
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_is_attached.return_value = False
-        mock_get.return_value = mock.Mock(attachments=[], id='000-000')
+
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_init = mock_bs.init_volume_attachment
+        mock_reserve = mock_bs.reserve_volume
+        mock_attach = mock_bs.attach_volume
+        mock_set_meta = mock_bs.set_volume_metadata
+
+        volume = mock.Mock(attachments=[], id='000-000')
+        mock_get.return_value = volume
         mock_init.return_value = {
             'driver_volume_type': 'iscsi',
             'data': {
                 'target_iqn': 'iqn.2010-10.org.openstack:volume-00000002',
                 'target_portal': '127.0.0.0.1:3260',
                 'target_lun': 2}}
-        mock_set_meta.side_effect = cinder_exceptions.NotAcceptable(
-            http_client.NOT_ACCEPTABLE)
+        mock_set_meta.side_effect = openstack_exc.HttpException()
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             attachments = cinder.attach_volumes(task, volumes, connector)
 
         self.assertEqual(expected, attachments)
-        mock_reserve.assert_called_once_with(mock.ANY, volume_id)
-        mock_init.assert_called_once_with(mock.ANY, volume_id, connector)
-        mock_attach.assert_called_once_with(mock.ANY, volume_id,
-                                            self.node.instance_uuid,
-                                            self.mount_point)
-        mock_set_meta.assert_called_once_with(mock.ANY, volume_id,
-                                              {'bar': 'baz'})
-        mock_get.assert_called_once_with(mock.ANY, volume_id)
-        mock_is_attached.assert_called_once_with(mock.ANY,
-                                                 mock_get.return_value)
+        mock_reserve.assert_called_once_with(volume)
+        mock_init.assert_called_once_with(volume, connector)
+        mock_attach.assert_called_once_with(volume,
+                                            self.mount_point,
+                                            instance=self.node.instance_uuid)
+        mock_set_meta.assert_called_once_with(volume, bar='baz')
+        mock_get.assert_called_once_with(volume_id)
+        mock_is_attached.assert_called_once_with(mock.ANY, volume)
         self.assertTrue(mock_log.warning.called)
 
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'detach',
-                       autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager,
-                       'terminate_connection', autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'begin_detaching',
-                       autospec=True)
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     def test_detach_volumes(
-            self, mock_create_meta, mock_is_attached, mock_begin, mock_term,
-            mock_detach, mock_get, mock_set_meta, mock_session):
+            self, mock_create_meta, mock_is_attached, mock_client):
         """Iterate once and detach a volume without issues."""
         volume_id = '111111111-0000-0000-0000-000000000003'
         volumes = [volume_id]
@@ -543,28 +490,29 @@ class TestCinderActions(db_base.DbTestCase):
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_is_attached.return_value = True
-        mock_get.return_value = mock.Mock(attachments=[
+
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_begin = mock_bs.begin_volume_detaching
+        mock_term = mock_bs.terminate_volume_attachment
+        mock_detach = mock_bs.detach_volume
+        mock_set_meta = mock_bs.set_volume_metadata
+
+        volume = mock.Mock(attachments=[
             {'server_id': self.node.uuid, 'attachment_id': 'qux'}])
+        mock_get.return_value = volume
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             cinder.detach_volumes(task, volumes, connector, allow_errors=False)
 
-        mock_begin.assert_called_once_with(mock.ANY, volume_id)
-        mock_term.assert_called_once_with(mock.ANY, volume_id, {'foo': 'bar'})
-        mock_detach.assert_called_once_with(mock.ANY, volume_id, 'qux')
-        mock_set_meta.assert_called_once_with(mock.ANY, volume_id,
-                                              {'bar': 'baz'})
+        mock_begin.assert_called_once_with(volume)
+        mock_term.assert_called_once_with(volume, {'foo': 'bar'})
+        mock_detach.assert_called_once_with(volume, 'qux')
+        mock_set_meta.assert_called_once_with(volume, bar='baz')
 
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'detach',
-                       autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager,
-                       'terminate_connection', autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'begin_detaching',
-                       autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     def test_detach_volumes_one_detached(
-            self, mock_create_meta, mock_begin, mock_term, mock_detach,
-            mock_get, mock_set_meta, mock_session):
+            self, mock_create_meta, mock_client):
         """Iterate with two volumes, one already detached."""
         volume_id = '111111111-0000-0000-0000-000000000003'
         volumes = [volume_id, 'detached']
@@ -572,56 +520,49 @@ class TestCinderActions(db_base.DbTestCase):
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
 
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_begin = mock_bs.begin_volume_detaching
+        mock_term = mock_bs.terminate_volume_attachment
+        mock_detach = mock_bs.detach_volume
+        mock_set_meta = mock_bs.set_volume_metadata
+
+        volume = mock.Mock(attachments=[
+            {'server_id': self.node.uuid, 'attachment_id': 'qux'}])
         mock_get.side_effect = [
-            mock.Mock(attachments=[
-                {'server_id': self.node.uuid, 'attachment_id': 'qux'}]),
-            mock.Mock(attachments=[])
+            volume, mock.Mock(attachments=[])
         ]
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             cinder.detach_volumes(task, volumes, connector, allow_errors=False)
 
-        mock_begin.assert_called_once_with(mock.ANY, volume_id)
-        mock_term.assert_called_once_with(mock.ANY, volume_id, {'foo': 'bar'})
-        mock_detach.assert_called_once_with(mock.ANY, volume_id, 'qux')
-        mock_set_meta.assert_called_once_with(mock.ANY, volume_id,
-                                              {'bar': 'baz'})
+        mock_begin.assert_called_once_with(volume)
+        mock_term.assert_called_once_with(volume, {'foo': 'bar'})
+        mock_detach.assert_called_once_with(volume, 'qux')
+        mock_set_meta.assert_called_once_with(volume, bar='baz')
 
-    @mock.patch.object(cinderclient.Client, '__init__', autospec=True)
-    def test_detach_volumes_client_init_failure_bad_request(
-            self, mock_client, mock_get, mock_set_meta, mock_session):
+    def test_detach_volumes_conn_init_failure_bad_request(
+            self, mock_client):
         connector = {'foo': 'bar'}
         volumes = ['111111111-0000-0000-0000-000000000003']
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            mock_client.side_effect = cinder_exceptions.BadRequest(
-                http_client.BAD_REQUEST)
+            mock_client.side_effect = openstack_exc.BadRequestException()
             self.assertRaises(exception.StorageError,
                               cinder.detach_volumes,
                               task,
                               volumes,
                               connector)
 
-    @mock.patch.object(cinderclient.Client, '__init__', autospec=True)
-    def test_detach_volumes_client_init_failure_invalid_parameter_value(
-            self, mock_client, mock_get, mock_set_meta, mock_session):
-        connector = {'foo': 'bar'}
-        volumes = ['111111111-0000-0000-0000-000000000003']
-        with task_manager.acquire(self.context, self.node.uuid) as task:
-            # While we would be permitting failures, this is an exception that
-            # must be raised since the client cannot be initialized.
-            mock_client.side_effect = exception.InvalidParameterValue('error')
-            self.assertRaises(exception.StorageError,
-                              cinder.detach_volumes, task, volumes,
-                              connector, allow_errors=True)
-
-    def test_detach_volumes_vol_not_found(self, mock_get, mock_set_meta,
-                                          mock_session):
+    def test_detach_volumes_vol_not_found(self, mock_client):
         """Raise an error if the volume lookup fails"""
         volumes = ['vol1']
         connector = {'foo': 'bar'}
-        mock_get.side_effect = cinder_exceptions.NotFound(
-            http_client.NOT_FOUND, message='error')
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_set_meta = mock_bs.set_volume_metadata
+
+        mock_get.side_effect = openstack_exc.NotFoundException()
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.StorageError,
@@ -635,27 +576,26 @@ class TestCinderActions(db_base.DbTestCase):
             cinder.detach_volumes(task, volumes, connector, allow_errors=True)
             self.assertFalse(mock_set_meta.called)
 
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'detach',
-                       autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager,
-                       'terminate_connection', autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'begin_detaching',
-                       autospec=True)
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     def test_detach_volumes_begin_detaching_failure(
-            self, mock_create_meta, mock_is_attached, mock_begin, mock_term,
-            mock_detach, mock_get, mock_set_meta, mock_session):
+            self, mock_create_meta, mock_is_attached, mock_client):
 
         volume_id = '111111111-0000-0000-0000-000000000003'
         volumes = [volume_id]
         connector = {'foo': 'bar'}
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_begin = mock_bs.begin_volume_detaching
+        mock_term = mock_bs.terminate_volume_attachment
+        mock_detach = mock_bs.detach_volume
+        mock_set_meta = mock_bs.set_volume_metadata
+
         volume = mock.Mock(attachments=[])
         mock_get.return_value = volume
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_is_attached.return_value = True
-        mock_begin.side_effect = cinder_exceptions.NotAcceptable(
-            http_client.NOT_ACCEPTABLE)
+        mock_begin.side_effect = openstack_exc.HttpException("not acceptable")
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.StorageError,
@@ -665,30 +605,30 @@ class TestCinderActions(db_base.DbTestCase):
                               connector)
             mock_is_attached.assert_called_once_with(mock.ANY, volume)
             cinder.detach_volumes(task, volumes, connector, allow_errors=True)
-            mock_term.assert_called_once_with(mock.ANY, volume_id,
+            mock_term.assert_called_once_with(volume,
                                               {'foo': 'bar'})
-            mock_detach.assert_called_once_with(mock.ANY, volume_id, None)
-            mock_set_meta.assert_called_once_with(mock.ANY, volume_id,
-                                                  {'bar': 'baz'})
+            mock_detach.assert_called_once_with(volume, None)
+            mock_set_meta.assert_called_once_with(volume, bar='baz')
 
-    @mock.patch.object(cinderclient.volumes.VolumeManager,
-                       'terminate_connection', autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'begin_detaching',
-                       autospec=True)
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     def test_detach_volumes_term_failure(
-            self, mock_create_meta, mock_is_attached, mock_begin, mock_term,
-            mock_get, mock_set_meta, mock_session):
+            self, mock_create_meta, mock_is_attached, mock_client):
 
         volume_id = '111111111-0000-0000-0000-000000000003'
         volumes = [volume_id]
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_is_attached.return_value = True
-        mock_get.return_value = {'id': volume_id, 'attachments': []}
-        mock_term.side_effect = cinder_exceptions.NotAcceptable(
-            http_client.NOT_ACCEPTABLE)
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_begin = mock_bs.begin_volume_detaching
+        mock_term = mock_bs.terminate_volume_attachment
+        mock_set_meta = mock_bs.set_volume_metadata
+
+        volume = mock.Mock(id=volume_id, attachments=[])
+        mock_get.return_value = volume
+        mock_term.side_effect = openstack_exc.HttpException("not acceptable")
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.StorageError,
@@ -696,32 +636,30 @@ class TestCinderActions(db_base.DbTestCase):
                               task,
                               volumes,
                               connector)
-            mock_begin.assert_called_once_with(mock.ANY, volume_id)
-            mock_term.assert_called_once_with(mock.ANY, volume_id, connector)
+            mock_begin.assert_called_once_with(volume)
+            mock_term.assert_called_once_with(volume, connector)
             cinder.detach_volumes(task, volumes, connector, allow_errors=True)
             self.assertFalse(mock_set_meta.called)
 
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'detach',
-                       autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager,
-                       'terminate_connection', autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'begin_detaching',
-                       autospec=True)
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     def test_detach_volumes_detach_failure_errors_not_allowed(
-            self, mock_create_meta, mock_is_attached, mock_begin, mock_term,
-            mock_detach, mock_get, mock_set_meta, mock_session):
+            self, mock_create_meta, mock_is_attached, mock_client):
 
         volume_id = '111111111-0000-0000-0000-000000000003'
         volumes = [volume_id]
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_is_attached.return_value = True
-        mock_get.return_value = mock.Mock(attachments=[
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_detach = mock_bs.detach_volume
+        mock_set_meta = mock_bs.set_volume_metadata
+
+        volume = mock.Mock(attachments=[
             {'server_id': self.node.uuid, 'attachment_id': 'qux'}])
-        mock_detach.side_effect = cinder_exceptions.NotAcceptable(
-            http_client.NOT_ACCEPTABLE)
+        mock_get.return_value = volume
+        mock_detach.side_effect = openstack_exc.HttpException("not acceptable")
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.assertRaises(exception.StorageError,
@@ -730,61 +668,55 @@ class TestCinderActions(db_base.DbTestCase):
                               volumes,
                               connector,
                               allow_errors=False)
-            mock_detach.assert_called_once_with(mock.ANY, volume_id, 'qux')
+            mock_detach.assert_called_once_with(volume, 'qux')
             self.assertFalse(mock_set_meta.called)
 
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'detach',
-                       autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager,
-                       'terminate_connection', autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'begin_detaching',
-                       autospec=True)
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     def test_detach_volumes_detach_failure_errors_allowed(
-            self, mock_create_meta, mock_is_attached, mock_begin, mock_term,
-            mock_detach, mock_get, mock_set_meta, mock_session):
+            self, mock_create_meta, mock_is_attached, mock_client):
 
         volume_id = '111111111-0000-0000-0000-000000000003'
         volumes = [volume_id]
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_is_attached.return_value = True
-        mock_get.return_value = mock.Mock(attachments=[
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_detach = mock_bs.detach_volume
+        mock_set_meta = mock_bs.set_volume_metadata
+
+        volume = mock.Mock(attachments=[
             {'server_id': self.node.uuid, 'attachment_id': 'qux'}])
-        mock_set_meta.side_effect = cinder_exceptions.NotAcceptable(
-            http_client.NOT_ACCEPTABLE)
+        mock_get.return_value = volume
+        mock_set_meta.side_effect = openstack_exc.HttpException()
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             cinder.detach_volumes(task, volumes, connector, allow_errors=True)
-            mock_detach.assert_called_once_with(mock.ANY, volume_id, 'qux')
-            mock_set_meta.assert_called_once_with(mock.ANY, volume_id,
-                                                  {'bar': 'baz'})
+            mock_detach.assert_called_once_with(volume, 'qux')
+            mock_set_meta.assert_called_once_with(volume, bar='baz')
 
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'detach',
-                       autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager,
-                       'terminate_connection', autospec=True)
-    @mock.patch.object(cinderclient.volumes.VolumeManager, 'begin_detaching',
-                       autospec=True)
     @mock.patch.object(cinder, 'is_volume_attached', autospec=True)
     @mock.patch.object(cinder, '_create_metadata_dictionary', autospec=True)
     def test_detach_volumes_detach_meta_failure_errors_not_allowed(
-            self, mock_create_meta, mock_is_attached, mock_begin, mock_term,
-            mock_detach, mock_get, mock_set_meta, mock_session):
+            self, mock_create_meta, mock_is_attached, mock_client):
 
         volume_id = '111111111-0000-0000-0000-000000000003'
         volumes = [volume_id]
         connector = {'foo': 'bar'}
         mock_create_meta.return_value = {'bar': 'baz'}
         mock_is_attached.return_value = True
-        mock_get.return_value = mock.Mock(attachments=[
+        mock_bs = mock_client.return_value
+        mock_get = mock_bs.get_volume
+        mock_detach = mock_bs.detach_volume
+        mock_set_meta = mock_bs.set_volume_metadata
+
+        volume = mock.Mock(attachments=[
             {'server_id': self.node.uuid, 'attachment_id': 'qux'}])
-        mock_set_meta.side_effect = cinder_exceptions.NotAcceptable(
-            http_client.NOT_ACCEPTABLE)
+        mock_get.return_value = volume
+        mock_set_meta.side_effect = openstack_exc.HttpException()
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
             cinder.detach_volumes(task, volumes, connector, allow_errors=False)
-            mock_detach.assert_called_once_with(mock.ANY, volume_id, 'qux')
-            mock_set_meta.assert_called_once_with(mock.ANY, volume_id,
-                                                  {'bar': 'baz'})
+            mock_detach.assert_called_once_with(volume, 'qux')
+            mock_set_meta.assert_called_once_with(volume, bar='baz')
