@@ -113,6 +113,11 @@ For example,
    This is a limitation of iPXE and the overall boot process of the
    operating system where memory allocated by iPXE is released.
 
+When choosing your boot ISO, your ISO image will need to be sufficient to boot
+the hardware under normal conditions. For example, if the ISO is only
+compatible with BIOS booting, then a host in UEFI mode will not boot.
+This is not a limitation of Ironic, but an architectural limitation.
+
 By default the Bare Metal service will cache the ISO locally and serve from its
 HTTP server. If you want to avoid that, set the following:
 
