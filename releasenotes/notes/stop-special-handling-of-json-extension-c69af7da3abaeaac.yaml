@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Special treatment of .json is now disabled for nodes with .json
+    extension in URL field.
+
+    See `bug 1748224 <https://bugs.launchpad.net/ironic/+bug/1748224>`_ for more details.
+upgrade:
+  - |
+    API version 1.91 removes special treatment given to URLs ending in ".json".
+    Operators desiring the previous behavior can request API version 1.90 or
+    earlier.

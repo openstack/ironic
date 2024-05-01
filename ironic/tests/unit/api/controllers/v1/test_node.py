@@ -245,15 +245,6 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertEqual('******', data['instance_info']['image_url'])
         self.assertEqual('bar', data['instance_info']['foo'])
 
-    def test_get_one_with_json(self):
-        # Test backward compatibility with guess_content_type_from_ext
-        node = obj_utils.create_test_node(self.context,
-                                          chassis_id=self.chassis.id)
-        data = self.get_json(
-            '/nodes/%s.json' % node.uuid,
-            headers={api_base.Version.string: str(api_v1.max_version())})
-        self.assertEqual(node.uuid, data['uuid'])
-
     def test_get_one_with_json_in_name(self):
         # Test that it is possible to name a node ending with .json
         node = obj_utils.create_test_node(self.context,
@@ -264,23 +255,42 @@ class TestListNodes(test_api_base.BaseApiTest):
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(node.uuid, data['uuid'])
 
+    def test_get_one_with_double_json_in_name(self):
+        # Check that .json.json is treated as is
+        headers = {api_base.Version.string: str(api_v1.max_version())}
+        node = obj_utils.create_test_node(self.context,
+                                          name='node.json.json',
+                                          chassis_id=self.chassis.id)
+        data = self.get_json('/nodes/%s' % node.name, headers=headers)
+        self.assertEqual(node.uuid, data['uuid'])
+
+    def test_get_one_with_json(self):
+        # Test backward compatibility with guess_content_type_from_ext
+        headers = {api_base.Version.string: '1.90'}
+        node = obj_utils.create_test_node(self.context,
+                                          chassis_id=self.chassis.id)
+        data = self.get_json('/nodes/%s.json' % node.uuid, headers=headers)
+        self.assertEqual(node.uuid, data['uuid'])
+
+    def test_get_one_with_json_not_found(self):
+        # Check that appending .json extension fails in newer api
+        node = obj_utils.create_test_node(self.context,
+                                          name='node',
+                                          chassis_id=self.chassis.id)
+        data = self.get_json(
+            '/nodes/%s.json' % node.uuid,
+            headers={api_base.Version.string: str(api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, data.status_code)
+
     def test_get_one_with_suffix(self):
         # This tests that we don't mess with mime-like suffixes
         node = obj_utils.create_test_node(self.context,
                                           name='test.1',
                                           chassis_id=self.chassis.id)
+
         data = self.get_json(
             '/nodes/%s' % node.name,
-            headers={api_base.Version.string: str(api_v1.max_version())})
-        self.assertEqual(node.uuid, data['uuid'])
-
-    def test_get_one_with_double_json(self):
-        # Check that .json is only stripped once
-        node = obj_utils.create_test_node(self.context,
-                                          name='node.json',
-                                          chassis_id=self.chassis.id)
-        data = self.get_json(
-            '/nodes/%s.json' % node.name,
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(node.uuid, data['uuid'])
 
@@ -4211,7 +4221,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                           uuid=uuidutils.generate_uuid())
         mock_cmnpar.return_value = node
         self.mock_update_node.return_value = node
-        headers = {api_base.Version.string: str(api_v1.max_version())}
+        headers = {api_base.Version.string: '1.90'}
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/description',
                                      'value': 'foo',
@@ -4245,7 +4255,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                           uuid=uuidutils.generate_uuid())
         mock_cmnpar.return_value = node
         self.mock_update_node.return_value = node
-        headers = {api_base.Version.string: str(api_v1.max_version())}
+        headers = {api_base.Version.string: '1.90'}
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/extra/foo',
                                      'value': 'bar',
@@ -4263,7 +4273,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                           uuid=uuidutils.generate_uuid())
         mock_cmnpar.return_value = node
         self.mock_update_node.return_value = node
-        headers = {api_base.Version.string: str(api_v1.max_version())}
+        headers = {api_base.Version.string: '1.90'}
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/instance_info/foo',
                                      'value': 'bar',
@@ -4277,12 +4287,13 @@ class TestPatch(test_api_base.BaseApiTest):
 
     @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
                        autospec=True)
-    def test_patch_policy_update_generic_and_extra(self, mock_cmnpar):
+    def test_patch_policy_update_generic_and_extra(
+            self, mock_cmnpar):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
         mock_cmnpar.return_value = node
         self.mock_update_node.return_value = node
-        headers = {api_base.Version.string: str(api_v1.max_version())}
+        headers = {api_base.Version.string: '1.90'}
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/description',
                                      'value': 'foo',
@@ -4299,12 +4310,13 @@ class TestPatch(test_api_base.BaseApiTest):
 
     @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
                        autospec=True)
-    def test_patch_policy_update_generic_and_instance_info(self, mock_cmnpar):
+    def test_patch_policy_update_generic_and_instance_info(
+            self, mock_cmnpar):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
         mock_cmnpar.return_value = node
         self.mock_update_node.return_value = node
-        headers = {api_base.Version.string: str(api_v1.max_version())}
+        headers = {api_base.Version.string: '1.90'}
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/description',
                                      'value': 'foo',
@@ -4321,12 +4333,13 @@ class TestPatch(test_api_base.BaseApiTest):
 
     @mock.patch.object(api_utils, 'check_multiple_node_policies_and_retrieve',
                        autospec=True)
-    def test_patch_policy_update_extra_and_instance_info(self, mock_cmnpar):
+    def test_patch_policy_update_extra_and_instance_info(
+            self, mock_cmnpar):
         node = obj_utils.create_test_node(self.context,
                                           uuid=uuidutils.generate_uuid())
         mock_cmnpar.return_value = node
         self.mock_update_node.return_value = node
-        headers = {api_base.Version.string: str(api_v1.max_version())}
+        headers = {api_base.Version.string: '1.90'}
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/extra/foo',
                                      'value': 'bar',
@@ -4350,7 +4363,7 @@ class TestPatch(test_api_base.BaseApiTest):
                                           uuid=uuidutils.generate_uuid())
         mock_cmnpar.return_value = node
         self.mock_update_node.return_value = node
-        headers = {api_base.Version.string: str(api_v1.max_version())}
+        headers = {api_base.Version.string: '1.90'}
         response = self.patch_json('/nodes/%s' % node.uuid,
                                    [{'path': '/description',
                                      'value': 'foo',

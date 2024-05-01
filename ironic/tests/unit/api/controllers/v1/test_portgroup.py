@@ -84,10 +84,11 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         self.assertNotIn('node_id', data)
 
     def test_get_one_with_json(self):
+        headers = {api_base.Version.string: '1.90'}
         portgroup = obj_utils.create_test_portgroup(self.context,
                                                     node_id=self.node.id)
         data = self.get_json('/portgroups/%s.json' % portgroup.uuid,
-                             headers=self.headers)
+                             headers=headers)
         self.assertEqual(portgroup.uuid, data['uuid'])
 
     def test_get_one_with_json_in_name(self):
@@ -97,6 +98,23 @@ class TestListPortgroups(test_api_base.BaseApiTest):
         data = self.get_json('/portgroups/%s' % portgroup.uuid,
                              headers=self.headers)
         self.assertEqual(portgroup.uuid, data['uuid'])
+
+    def test_get_one_with_double_json_in_name(self):
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    name='pg.json.json',
+                                                    node_id=self.node.id)
+        data = self.get_json('/portgroups/%s' % portgroup.uuid,
+                             headers=self.headers)
+        self.assertEqual(portgroup.uuid, data['uuid'])
+
+    def test_get_one_with_json_not_found(self):
+        portgroup = obj_utils.create_test_portgroup(self.context,
+                                                    name='pg',
+                                                    node_id=self.node.id)
+        data = self.get_json('/portgroups/%s.json' % portgroup.uuid,
+                             headers=self.headers,
+                             expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, data.status_code)
 
     def test_get_one_with_suffix(self):
         portgroup = obj_utils.create_test_portgroup(self.context,
@@ -637,13 +655,14 @@ class TestPatch(test_api_base.BaseApiTest):
 
     def test_update_byname_with_json(self, mock_upd):
         extra = {'foo': 'bar'}
+        headers = {api_base.Version.string: '1.90'}
         mock_upd.return_value = self.portgroup
         mock_upd.return_value.extra = extra
         response = self.patch_json('/portgroups/%s.json' % self.portgroup.name,
                                    [{'path': '/extra/foo',
                                      'value': 'bar',
                                      'op': 'add'}],
-                                   headers=self.headers)
+                                   headers=headers)
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.OK, response.status_code)
         self.assertEqual(extra, response.json['extra'])
@@ -1413,8 +1432,9 @@ class TestDelete(test_api_base.BaseApiTest):
         self.assertTrue(mock_dpt.called)
 
     def test_delete_portgroup_byname_with_json(self, mock_dpt):
+        headers = {api_base.Version.string: '1.90'}
         self.delete('/portgroups/%s.json' % self.portgroup.name,
-                    headers=self.headers)
+                    headers=headers)
         self.assertTrue(mock_dpt.called)
 
     def test_delete_portgroup_byname_not_existed(self, mock_dpt):

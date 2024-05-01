@@ -2,6 +2,23 @@
 REST API Version History
 ========================
 
+1.91 (Dalmatian)
+-----------------------
+
+Removes special treatment of .json for API objects
+
+* ``/v1/nodes/test.json`` will now only mean node with the name
+  "test.json"
+* ``/v1/nodes/test.json``.json will mean a node with the name
+  "test.json.json" and,
+* ``/v1/nodes/test`` will mean a node with the name "test".
+
+So ``/v1/nodes/test.json`` will no longer default to "test" and
+will HTTP 404 unless a node with the name "test" actually exists.
+
+This also removes the backward compatibility with the
+``guess_content_type_from_ext`` feature
+
 1.90 (Caracal)
 -----------------------
 
