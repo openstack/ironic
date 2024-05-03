@@ -2865,6 +2865,11 @@ function build_ipa_dib_ramdisk {
     if is_deploy_iso_required; then
         IRONIC_DIB_RAMDISK_OPTIONS+=" iso"
     fi
+    if [[ "centos" =~ "$IRONIC_DIB_RAMDISK_OPTIONS" ]]; then
+        # NOTE(TheJulia): This is kind of awful, but XFS in newer centos
+        # images breaks on older ubuntu.
+        DIB_CLOUD_IMAGES="https://cloud.centos.org/centos/9-stream/x86_64/images/CentOS-Stream-GenericCloud-9-20240101.0.x86_64.qcow2"
+    fi
     git_clone $IRONIC_PYTHON_AGENT_BUILDER_REPO $IRONIC_PYTHON_AGENT_BUILDER_DIR $IRONIC_PYTHON_AGENT_BUILDER_BRANCH
     ELEMENTS_PATH="$IRONIC_PYTHON_AGENT_BUILDER_DIR/dib" \
         DIB_DHCP_TIMEOUT=$IRONIC_DIB_DHCP_TIMEOUT \
@@ -2873,6 +2878,7 @@ function build_ipa_dib_ramdisk {
         DIB_REPOREF_ironic_python_agent=$TARGET_BRANCH \
         DIB_REPOLOCATION_requirements="$DEST/requirements" \
         DIB_REPOREF_requirements=$TARGET_BRANCH \
+        DIB_CLOUD_IMAGES=${DIB_CLOUD_IMAGES:-} \
         disk-image-create "$IRONIC_DIB_RAMDISK_OPTIONS" \
         -x -o  "$tempdir/ironic-agent" \
         ironic-python-agent-ramdisk
