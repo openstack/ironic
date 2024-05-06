@@ -202,7 +202,7 @@ a value that can be used from the list provided (from last to first):
 .. code-block:: ini
 
   [ipmi]
-  cipher_suite_versions = ['1','2','3','6','7','8','11','12']
+  cipher_suite_versions = 1,2,3,6,7,8,11,12
 
 To find the suitable values for this configuration, you can check the field
 `RMCP+ Cipher Suites` after running an ``ipmitool`` command, e.g:
