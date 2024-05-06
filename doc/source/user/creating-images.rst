@@ -13,15 +13,16 @@ the end user. There are two types of user images:
     a kernel and with an initramfs.
 
     .. warning::
-        To use partition images with local boot, Grub2 must be installed on
-        them.
+        To use partition images, Grub2 must be installed in the image.
+        This is *not* a recommended path.
 
 *whole disk images*
     contain a complete partition table with one or more partitions.
 
     .. warning::
         The kernel/initramfs pair must not be used with whole disk images,
-        otherwise they'll be mistaken for partition images.
+        otherwise they'll be mistaken for partition images. Whole disk images
+        are the recommended type of images to use.
 
 Many distributions publish their own cloud images. These are usually whole disk
 images that are built for legacy boot mode (not UEFI), with Ubuntu being an
