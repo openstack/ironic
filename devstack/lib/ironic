@@ -3248,8 +3248,11 @@ function ironic_configure_tempest {
         iniset $TEMPEST_CONFIG baremetal partition_image_ref $image_uuid
     fi
 
-    # Our cirros images cannot do local boot in legacy mode.
-    if [[ "${IRONIC_PARTITIONED_IMAGE_NAME}" =~ cirros && "${IRONIC_BOOT_MODE}" == "bios" ]]; then
+    # Our cirros images cannot do local boot and we don't support
+    # Netboot anymore, but the conditional is still used because
+    # some boot constraints exist around cirros. i.e. the setting
+    # likely should just be "don't attempt the partition boot test.
+    if [[ "${IRONIC_PARTITIONED_IMAGE_NAME}" =~ cirros ]]; then
         iniset $TEMPEST_CONFIG baremetal partition_netboot True
     else
         iniset $TEMPEST_CONFIG baremetal partition_netboot False
