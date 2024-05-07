@@ -1239,3 +1239,23 @@ If your bare metal management processes require that full machine management
 is made using a project scoped account, please configure an appropriate
 node ``owner`` for the nodes which need to be managed. Ironic recognizes
 this is going to vary based upon processes and preferences.
+
+Config Drives in Swift, but rebuilds fails?
+===========================================
+
+When deploying instances, Ironic can be configured such that configuration
+drives are stored in Swift. The pointer to the configuration drive is saved
+in Ironic as a Temporary URL which has a time expiration.
+
+When you issue the rebuild request for a node, Ironic expects that you will
+supply new configuration drive contents with your request, however this is
+also optional.
+
+Because Swift has been set as the optional configuration drive storage
+location, a rebuild can fail if the prior configuration drive file is no
+longer accessible and no new configuration drive has been supplied to Ironic.
+
+To resolve this case, you can either supply new configuration drive contents
+with your request, or disable configuration from being stored in Swift for
+new baremetal node deployments by changing setting
+``[conductor]configdrive_use_object_store`` to ``false``.
