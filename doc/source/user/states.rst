@@ -17,7 +17,7 @@ API-initiated-transitions that are possible from non-stable states.
 The events for these API-initiated transitions are indicated with '(via API)'.
 Internally, the conductor initiates the other transitions (depicted in gray).
 
-.. figure:: ../images/states.png
+.. figure:: ../images/states.svg
    :width: 660px
    :align: left
    :alt: Ironic state transitions
@@ -256,3 +256,37 @@ unrescue failed
     using the ``unrescue`` verb.
   * ``available`` (through ``deleting``) by setting the node's provision state
     using the ``deleted`` verb.
+
+
+Servicing
+=========
+
+servicing
+  Nodes in the ``servicing`` state are nodes that are having service performed
+  on them. This service is similar to cleaning, but is performed on nodes currently
+  in ``active`` state and returns them to ``active`` state when complete.
+
+  When a node is in the ``servicing`` state it means that the conductor is
+  executing the service step or preparing the environment to execute the step.
+
+  See :doc:`/admin/servicing` for more details on Node servicing.
+
+service wait
+  Just like the ``servicing`` state, the nodes in the ``service wait`` state are
+  being serviced with service steps. The difference is that in the
+  ``service wait`` state the conductor is waiting for the ramdisk to boot or the
+  clean step which is running in-band to finish.
+
+  The servicing of a node in the ``service wait`` state can be interrupted
+  by setting the node's provision state using the ``abort`` verb if the task
+  that is running allows it.
+
+service failed
+  This is the state a node will move into when a service operation fails,
+  for example a timeout waiting for the ramdisk to PXE boot. From here the
+  node can be transitioned to:
+
+  * ``active`` (through ``servicing``) by setting the node's provision state
+    using the ``service`` verb.
+  * ``rescue`` (through ``rescuing``) by setting the node's provision state
+    using the ``rescue`` verb.
