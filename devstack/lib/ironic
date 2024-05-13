@@ -612,6 +612,9 @@ PHYSICAL_NETWORK=${NEUTRON_PHYSICAL_NETWORK:-${PHYSICAL_NETWORK:-}}
 # NOTE(TheJulia): As of May 19th, 2023, mirrors.dotsrc.org was
 # accessible via ipv4 and ipv6, it appears to be the only v6
 # accessible tinycore mirror..
+# NOTE(TheJulia): The TinyCore Image *is* only compatible with
+# BIOS booting. iPXE loaders with UEFI mode will ERROR pointing
+# to https://ipxe.org/err/7f22208e.
 IRONIC_RAMDISK_IMAGE=${IRONIC_RAMDISK_IMAGE:-http://mirrors.dotsrc.org/tinycorelinux/14.x/x86/release/Core-current.iso}
 
 IRONIC_LOADER_PATHS=${IRONIC_LOADER_PATHS:-}
