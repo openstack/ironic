@@ -100,6 +100,7 @@
         s-container: False
         s-object: False
         s-proxy: False
+        openstack-cli-server: True
 
 # NOTE(TheJulia): This job is being phased out as it ends up executing
 # the wholedisk standalone deploy, the partition standalone deploy,
