@@ -113,9 +113,75 @@ Additional references:
 UEFI secure boot mode
 =====================
 
+Secure Boot is an interesting topic because exists at an intersection of
+hardware, security, vendors, and what you are willing to put in place to in
+terms of process, controls, or further mechanisms to enable processes and
+capabilities.
+
+At a high level, Secure Boot is where an artifact such as an operating system
+kernel or Preboot eXecution Environment (PXE) binary is read by the UEFI
+firmware, and executed if the artifact is signed with a trusted key.
+Once a piece of code has been loaded and executed, it may read more bytecode
+in and verify additional signed artifacts which were signed utilizing
+different keys.
+
+This is fundamentally how most Linux operating systems boot today. A ``shim``
+loader is signed by an authority, Microsoft, which is generally trusted by
+hardware vendors. The shim loader then loads a boot loader such as Grub, which
+then loads an operating system.
+
+Underlying challenges
+---------------------
+
+A major challenge for Secure Boot is the state of Preboot eXecution
+Environment binaries. Operating System distribution vendors tend not to
+request the authority with the general signing keys to sign these binary
+artifacts. The result of this, is that it is nearly impossible to network
+boot a machine which has Secure Boot enabled.
+
+There are reports in the Open Source community that Microsoft has been willing
+to sign iPXE binaries, however the requirements are a bit steep for Open
+Source and largely means that Vendors would need to shoulder the burden for
+signed iPXE binaries to become common place. The iPXE developers provide
+further `details on their website <https://ipxe.org/appnote/etoken>`_,
+but it provides the details which solidify why we're unlikely to see
+a signed iPXE loader.
+
+That is, unless, you sign iPXE yourself.
+
+Which you can do, but you need to put in place your own key management
+infrastructure and teach the hardware to trust your signature, which is
+no simple feat in itself.
+
+.. NOTE::
+   The utility to manage keys in Linux on a local machine is `mokutil`,
+   however it's modeled for manual invocation. One may be able to manage
+   keys via Baseboard Management Controller, and Ironic may add such
+   capabilities at some point in time.
+
+There is a possibility of utilizing
+`shim <https://wiki.debian.org/SecureBoot#Shim>`_ and Grub2 to network boot
+a machine, however Grub2's capabilities for booting a machine are extremely
+limited when compared to a tool like iPXE. It is also worth noting the bulk
+of Ironic's example configurations utilize iPXE, including whole activities
+like unmanaged hardware introspection with ironic-inspector.
+
+For extra context, unmanaged introspection is when you ask ironic-inspector
+to inspect a machine *instead* of asking ironic. In other words, using
+``openstack baremetal introspection start <node>`` versus
+``baremetal node inspect <node>`` commands. This does require the
+``[inspector]require_managed_boot`` setting be set to ``true``.
+
+Driver support for Deployment with Secure Boot
+----------------------------------------------
+
 Some hardware types support turning `UEFI secure boot`_ dynamically when
 deploying an instance. Currently these are :doc:`/admin/drivers/ilo`,
 :doc:`/admin/drivers/irmc` and :doc:`/admin/drivers/redfish`.
+
+Other drivers, such as :doc:`/admin/drivers/ipmitool`, may be able to be manually
+configured on the host, but as there is not standardization of Secure Boot
+support in the IPMI protocol, you may encounter unexpected behavior.
 
 Support for the UEFI secure boot is declared by adding the ``secure_boot``
 capability in the ``capabilities`` parameter in the ``properties`` field of
@@ -136,18 +202,54 @@ the secure boot capability.
 Compatible images
 -----------------
 
-Use element ``ubuntu-signed`` or ``fedora`` to build signed deploy ISO and
-user images with `diskimage-builder
-<https://pypi.org/project/diskimage-builder>`_.
+Most mainstream and vendor backed Linux based public cloud images are already
+compatible with use of secure boot.
 
-The below command creates files named cloud-image-boot.iso, cloud-image.initrd,
-cloud-image.vmlinuz and cloud-image.qcow2 in the current working directory::
+Using Shim and Grub2 for Secure Boot
+------------------------------------
 
- cd <path-to-diskimage-builder>
- ./bin/disk-image-create -o cloud-image ubuntu-signed baremetal iso
+To utilize Shim and Grub to boot a baremetal node, actions are required
+by the administrator of the Ironic deployment as well as the user of
+Ironic's API.
 
-Ensure the public key of the signed image is loaded into bare metal to deploy
-signed images.
+For the Ironic Administrator
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To enable use of grub to network boot baremetal nodes for activities such
+as managed introspection, node cleaning, and deployment, some configuration
+is required in ironic.conf.::
+
+  [DEFAULT]
+  enabled_boot_interfaces = pxe
+  [pxe]
+  uefi_pxe_config_template = $pybasedir/drivers/modules/pxe_grub_config.template
+  tftp_root = /tftpboot
+  loader_file_paths = bootx64.efi:/usr/lib/shimx64.efi.signed,grubx64.efi:/usr/lib/grub/x86_64-efi-signed/grubnetx64.efi.signed
+
+.. NOTE::
+   You may want to leverage the ``[pxe]loader_file_paths`` feature, which
+   automatically copies boot loaders into the ``tftp_root`` folder, but this
+   functionality is not required if you manually copy the named files into
+   the Preboot eXecution Environment folder(s), by default the [pxe]tftp_root,
+   and [deploy]http_root folders.
+
+.. WARNING::
+   Shim/Grub artifact paths will vary by distribution. The example above is
+   taken from Ironic's Continuous Integration test jobs where this
+   functionality is exercised.
+
+For the Ironic user
+~~~~~~~~~~~~~~~~~~~
+
+To set a node to utilize the ``pxe`` boot_interface, execute the baremetal
+command::
+
+  baremetal node set --boot-interface pxe <node>
+
+Alternatively, if your hardware supports HttpBoot and your Ironic is at
+least 2023.2, you can set the ``http`` boot_interface instead::
+
+  baremetal node set --boot-interface http <node>
 
 Enabling with OpenStack Compute
 -------------------------------
@@ -177,12 +279,15 @@ Enabling standalone
 -------------------
 
 To request secure boot for an instance in standalone mode (without OpenStack
-Compute), you need to add the capability directly to the node's
-``instance_info``::
+Compute), you must explicitly inform Ironic::
 
-  baremetal node set <node> --instance-info capabilities='{"secure_boot": "true"}'
+  baremetal node set secure boot on <node>
 
-.. _UEFI secure boot: https://en.wikipedia.org/wiki/Unified_Extensible_Firmware_Interface#Secure_boot
+Which can also be disabled by exeuting negative form of the command::
+
+  baremetal node set secure boot off <node>
+
+.. _UEFI secure boot: https://en.wikipedia.org/wiki/UEFI#Secure_Boot
 
 Other considerations
 ====================
