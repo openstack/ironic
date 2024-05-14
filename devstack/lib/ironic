@@ -3006,7 +3006,7 @@ function upload_image_if_needed {
         openstack image create $IRONIC_PARTITIONED_IMAGE_NAME \
             --public --disk-format raw --container-format bare \
             --property kernel_id=$kernel_id --property ramdisk_id=$ramdisk_id \
-            --file "$dest"
+            --file $(readlink -f "$dest")
 
         # Change the default image only if the provided settings prevent the
         # default cirros image from working.
@@ -3075,7 +3075,7 @@ function upload_baremetal_ironic_efiboot {
         --public --disk-format=raw \
         --container-format=bare \
         -f value -c id \
-        < $IRONIC_EFIBOOT)
+        --file $(readlink -f $IRONIC_EFIBOOT))
     die_if_not_set $LINENO IRONIC_EFIBOOT_ID "Failed to load EFI bootloader image into glance"
 
     iniset $IRONIC_CONF_FILE conductor bootloader $IRONIC_EFIBOOT_ID
@@ -3148,7 +3148,8 @@ function upload_baremetal_ironic_deploy {
                 $ironic_deploy_kernel_name \
                 --public --disk-format=aki \
                 --container-format=aki \
-                < $IRONIC_DEPLOY_KERNEL  | grep ' id ' | get_field 2)
+                --file $(readlink -f $IRONIC_DEPLOY_KERNEL)  | \
+                grep ' id ' | get_field 2)
             die_if_not_set $LINENO IRONIC_DEPLOY_KERNEL_ID "Failed to load kernel image into glance"
 
             IRONIC_DEPLOY_RAMDISK_ID=$(openstack --os-cloud devstack-admin \
@@ -3156,7 +3157,8 @@ function upload_baremetal_ironic_deploy {
                 $ironic_deploy_ramdisk_name \
                 --public --disk-format=ari \
                 --container-format=ari \
-                < $IRONIC_DEPLOY_RAMDISK  | grep ' id ' | get_field 2)
+                --file $(readlink -f $IRONIC_DEPLOY_RAMDISK)  | \
+                grep ' id ' | get_field 2)
             die_if_not_set $LINENO IRONIC_DEPLOY_RAMDISK_ID "Failed to load ramdisk image into glance"
 
         else
@@ -3165,7 +3167,7 @@ function upload_baremetal_ironic_deploy {
                 $(basename $IRONIC_DEPLOY_ISO) \
                 --public --disk-format=iso \
                 --container-format=bare \
-                < $IRONIC_DEPLOY_ISO  -f value -c id)
+                --file $(readlink -f $IRONIC_DEPLOY_ISO)  -f value -c id)
             die_if_not_set $LINENO IRONIC_DEPLOY_ISO_ID "Failed to load deploy iso into glance"
         fi
     else
