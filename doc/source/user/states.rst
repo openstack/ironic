@@ -18,9 +18,13 @@ The events for these API-initiated transitions are indicated with '(via API)'.
 Internally, the conductor initiates the other transitions (depicted in gray).
 
 .. figure:: ../images/states.svg
-   :width: 660px
+   :width: 99%
    :align: left
    :alt: Ironic state transitions
+
+Please click the image above to view the diagram at it's full size,
+as the presence in the documentation results in it being scaled down.
+
 
 .. note::
    There are aliases for some transitions:
