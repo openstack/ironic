@@ -16,6 +16,7 @@ from unittest import mock
 
 from oslo_db import sqlalchemy
 from oslo_upgradecheck.upgradecheck import Code
+from sqlalchemy.engine import url as sa_url
 
 from ironic.cmd import dbsync
 from ironic.cmd import status
@@ -60,7 +61,8 @@ class TestUpgradeChecks(db_base.DbTestCase):
     def test__check_allocations_table_latin1(self, mock_reader):
         mock_engine = mock.Mock()
         mock_res = mock.Mock()
-        mock_engine.url = '..mysql..'
+        mock_engine.url = sa_url.make_url(
+            'mysql+pymysql://ironic:pass@192.0.2.10/ironic')
         mock_res.all.return_value = (
             '... ENGINE=InnoDB DEFAULT CHARSET=latin1',
         )
@@ -86,7 +88,8 @@ class TestUpgradeChecks(db_base.DbTestCase):
     def test__check_allocations_table_myiasm(self, mock_reader):
         mock_engine = mock.Mock()
         mock_res = mock.Mock()
-        mock_engine.url = '..mysql..'
+        mock_engine.url = sa_url.make_url(
+            'mysql+pymysql://ironic:pass@192.0.2.10/ironic')
         mock_res.all.return_value = (
             '... ENGINE=MyIASM DEFAULT CHARSET=utf8',
         )
@@ -114,7 +117,8 @@ class TestUpgradeChecks(db_base.DbTestCase):
     def test__check_allocations_table_myiasm_both(self, mock_reader):
         mock_engine = mock.Mock()
         mock_res = mock.Mock()
-        mock_engine.url = '..mysql..'
+        mock_engine.url = sa_url.make_url(
+            'mysql+pymysql://ironic:pass@192.0.2.10/ironic')
         mock_res.all.return_value = (
             '... ENGINE=MyIASM DEFAULT CHARSET=latin1',
         )
