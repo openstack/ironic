@@ -24,6 +24,7 @@ from urllib import parse as urlparse
 
 from ironic_lib import utils as ironic_utils
 from oslo_log import log
+from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
@@ -494,6 +495,10 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
     img_handler = ImageHandler(task.node.driver)
 
     boot_mode = boot_mode_utils.get_boot_mode(task.node)
+    if not is_ramdisk_boot:
+        publisher_id = uuidutils.generate_uuid()
+    else:
+        publisher_id = None
 
     with tempfile.TemporaryDirectory(dir=CONF.tempdir) as boot_file_dir:
 
@@ -516,6 +521,7 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
             else:
                 kernel_params = driver_utils.get_kernel_append_params(
                     task.node, default=img_handler.kernel_params)
+                kernel_params += " ir_pub_id=%s" % publisher_id
 
             if params:
                 kernel_params = ' '.join(
@@ -533,14 +539,26 @@ def _prepare_iso_image(task, kernel_href, ramdisk_href,
                  'ramdisk_href': ramdisk_href,
                  'bootloader_href': bootloader_href,
                  'params': kernel_params})
-            images.create_boot_iso(
-                task.context, boot_iso_tmp_file,
-                kernel_href, ramdisk_href,
-                esp_image_href=bootloader_href,
-                root_uuid=root_uuid,
-                kernel_params=kernel_params,
-                boot_mode=boot_mode,
-                inject_files=inject_files)
+
+            if publisher_id:
+                images.create_boot_iso(
+                    task.context, boot_iso_tmp_file,
+                    kernel_href, ramdisk_href,
+                    esp_image_href=bootloader_href,
+                    root_uuid=root_uuid,
+                    kernel_params=kernel_params,
+                    boot_mode=boot_mode,
+                    inject_files=inject_files,
+                    publisher_id=publisher_id)
+            else:
+                images.create_boot_iso(
+                    task.context, boot_iso_tmp_file,
+                    kernel_href, ramdisk_href,
+                    esp_image_href=bootloader_href,
+                    root_uuid=root_uuid,
+                    kernel_params=kernel_params,
+                    boot_mode=boot_mode,
+                    inject_files=inject_files)
 
         iso_object_name = _get_name(task.node, prefix='boot', suffix='.iso')
 
