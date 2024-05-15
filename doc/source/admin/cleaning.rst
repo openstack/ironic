@@ -76,6 +76,10 @@ See `How do I change the priority of a cleaning step?`_ for more information.
 Storage cleaning options
 ------------------------
 
+.. warning::
+   Ironic's storage cleaning options by default will remove data from the disk
+   permanently during automated cleaning.
+
 Clean steps specific to storage are ``erase_devices``,
 ``erase_devices_metadata`` and (added in Yoga) ``erase_devices_express``.
 
@@ -83,13 +87,16 @@ Clean steps specific to storage are ``erase_devices``,
 way available. On devices that support hardware assisted secure erasure
 (many NVMe and some ATA drives) this is the preferred option. If
 hardware-assisted secure erasure is not available and if
-``[deploy]/continue_if_disk_secure_erase_fails`` is set to ``True``, cleaning
-will fall back to using ``shred`` to overwrite the contents of the device.
-Otherwise cleaning will fail. It is important to note that ``erase_devices``
-may take a very long time (hours or even days) to complete, unless fast,
-hardware assisted data erasure is supported by all the devices in a system.
-Generally, it is very difficult (if possible at all) to recover data after
-performing cleaning with ``erase_devices``.
+:oslo.config:option:`deploy.continue_if_disk_secure_erase_fails` is set to
+``True``, cleaning will fall back to using ``shred`` to overwrite the
+contents of the device. By default, if ``erase_devices`` is enabled
+and Ironic is unable to erase the device, cleaning will fail to ensure
+data security.
+
+.. note::
+   ``erase_devices`` may take a very long time (hours or even days) to
+   complete, unless fast, hardware assisted data erasure is supported by
+   all the devices in a system.
 
 ``erase_devices_metadata`` clean step doesn't provide as strong assurance
 of irreversible destruction of data as ``erase_devices``. However, it has the
@@ -110,23 +117,53 @@ data erasure as it is possible within a short period of time.
 This clean step is particularly well suited for environments with hybrid
 NVMe-HDD storage configuration as it allows fast and secure erasure of data
 stored on NVMes combined with equally fast but more basic metadata-based
-erasure of data on HDDs.
-``erase_devices_express`` is disabled by default. In order to use it, the
-following configuration is recommended.
+erasure of data on commodity HDDs.
+
+By default, Ironic will use ``erase_devices_metadata`` early in cleaning
+for reliability (ensuring a node cannot reboot into it's old workload) and
+``erase_devices`` later in cleaning to securely erase the drive;
+``erase_devices_express`` is disabled.
+
+Operators can use :oslo.config:option:`deploy.erase_devices_priority` and
+:oslo.config:option:`deploy.erase_devices_metadata_priority` to change the
+priorities of the default device erase methods or disable them entirely
+by setting ``0``. Other cleaning steps can have their priority modified
+via the :oslo.config:option:`conductor.clean_step_priority_override` option.
+For example, the configuration snippet below disables
+``erase_devices_metadata`` and ``erase_devices`` and instead performs an
+``erase_devices_express`` erase step.
 
 .. code-block:: ini
 
-    [deploy]/erase_devices_priority=0
-    [deploy]/erase_devices_metadata_priority=0
-    [conductor]/clean_step_priority_override=deploy.erase_devices_express:5
+    [deploy]
+    erase_devices_priority=0
+    erase_devices_metadata_priority=0
+
+    [conductor]
+    clean_step_priority_override=deploy.erase_devices_express:95
 
 This ensures that ``erase_devices`` and ``erase_devices_metadata`` are
 disabled so that storage is not cleaned twice and then assigns a non-zero
 priority to ``erase_devices_express``, hence enabling it. Any non-zero
-priority specified in the priority override will work.
+priority specified in the priority override will work; larger values will
+cause the disk erasure to run earlier in the cleaning process if multiple
+steps are enabled.
 
-Also ``[deploy]/enable_nvme_secure_erase`` should not be disabled (it is on by
-default).
+Other configurations that can modify how Ironic erases disks are below.
+This list may not be comprehensive. Please review ironic.conf.sample
+(linked) for more details:
+
+* :oslo.config:option:`deploy.enable_ata_secure_erase`, default ``True``
+* :oslo.config:option:`deploy.enable_nvme_secure_erase`, default ``True``
+* :oslo.config:option:`deploy.shred_random_overwrite_iterations`, default ``1``
+* :oslo.config:option:`deploy.shred_final_overwrite_with_zeros`, default ``True``
+* :oslo.config:option:`deploy.disk_erasure_concurrency`, default ``4``
+
+.. warning::
+  Ironic automated cleaning is defaulted to a secure configuration. You should
+  not modify settings related to it unless you are have special hardware needs,
+  or a unique use case. Misconfigurations can lead to data exposure
+  vulnerabilities.
 
 .. show-steps::
    :phase: cleaning
@@ -218,7 +255,7 @@ Alternatively, you can specify a runbook instead of clean_steps::
 
 The specified runbook must match one of the node's traits to be used.
 
-Starting manual cleaning via "openstack metal" CLI
+Starting manual cleaning via "openstack baremetal" CLI
 ------------------------------------------------------
 
 Manual cleaning is available via the ``baremetal node clean``
@@ -330,6 +367,7 @@ How do I skip a cleaning step?
 ------------------------------
 For automated cleaning, cleaning steps with a priority of 0 or None are skipped.
 
+.. _clean_step_priority:
 
 How do I change the priority of a cleaning step?
 ------------------------------------------------
@@ -342,46 +380,9 @@ Most out-of-band cleaning steps have an explicit configuration option for
 priority.
 
 Changing the priority of an in-band (ironic-python-agent) cleaning step
-requires use of a custom HardwareManager. The only exception is
-``erase_devices``, which can have its priority set in ironic.conf. For instance,
-to disable erase_devices, you'd set the following configuration option::
-
-  [deploy]
-  erase_devices_priority=0
-
-To enable/disable the in-band disk erase using ``ilo`` hardware type, use the
-following configuration option::
-
-  [ilo]
-  clean_priority_erase_devices=0
-
-The generic hardware manager first identifies whether a device is an NVMe
-drive or an ATA drive so that it can attempt a platform-specific secure erase
-method. In case of NVMe drives, it tries to perform a secure format operation
-by using the ``nvme-cli`` utility. This behavior can be controlled using
-the following configuration option (by default it is set to True)::
-
-   [deploy]
-   enable_nvme_secure_erase=True
-
-
-In case of ATA drives, it tries to perform ATA disk erase by using the
-``hdparm`` utility.
-
-If neither method is supported, it performs software based disk erase using
-the ``shred`` utility.  By default, the number of iterations performed
-by ``shred`` for software based disk erase is 1. To configure the number of
-iterations, use the following configuration option::
-
-  [deploy]
-  erase_devices_iterations=1
-
-Overriding step priority
-------------------------
-
-:oslo.config:option:`conductor.clean_step_priority_override` is a new configuration option
-which allows specifying priority of each step using multiple configuration
-values:
+requires use of :oslo.config:option:`conductor.clean_step_priority_override`,
+a configuration option which allows specifying priority of each step using
+multiple configuration values:
 
 .. code-block:: ini
 
