@@ -450,6 +450,10 @@ detailed documentation of the Ironic State Machine is available
    ``disable_ramdisk`` can be provided to avoid booting the ramdisk during
    manual cleaning.
 
+.. versionadded:: 1.87
+   A node can be serviced by setting the provision target state to ``service``
+   with a list of ``service_steps``.
+
 Normal response code: 202
 
 Error codes:
@@ -468,6 +472,7 @@ Request
     - configdrive: configdrive
     - clean_steps: clean_steps
     - deploy_steps: deploy_steps
+    - service_steps: service_steps
     - rescue_password: rescue_password
     - disable_ramdisk: disable_ramdisk
 
