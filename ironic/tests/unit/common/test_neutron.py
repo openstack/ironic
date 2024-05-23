@@ -1431,7 +1431,7 @@ class TestNeutronNetworkInterfaceMixin(db_base.DbTestCase):
         self.node = object_utils.create_test_node(self.context)
 
     def test_get_network_names_and_uuids(self):
-        """A test to validate confiured overrides work."""
+        """A test to validate configured overrides work."""
         for name in ['cleaning', 'provisioning', 'rescuing', 'inspection',
                      'servicing']:
             method_name = 'get_{}_network_uuid'.format(name)

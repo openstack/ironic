@@ -428,7 +428,7 @@ def clean_up_pxe_config(task, ipxe_enabled=False):
         ironic_utils.unlink_without_raise(
             _get_pxe_mac_path(port.address, client_id=client_id,
                               ipxe_enabled=ipxe_enabled))
-        # Grub2 MAC address based confiuration
+        # Grub2 MAC address based configuration
         for path in _get_pxe_grub_mac_path(port.address,
                                            ipxe_enabled=ipxe_enabled):
             ironic_utils.unlink_without_raise(path)

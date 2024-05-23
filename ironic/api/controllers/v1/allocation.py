@@ -328,7 +328,7 @@ class AllocationsController(pecan.rest.RestController):
                 # that if the scope enforcement is not enabled, that
                 # any user can't create an allocation until the deployment
                 # is in a new operating mode *where* owner will be added
-                # automatically if not a privilged user.
+                # automatically if not a privileged user.
         except exception.HTTPForbidden:
             cdict = api.request.context.to_policy_values()
             project = cdict.get('project_id')

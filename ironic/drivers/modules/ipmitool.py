@@ -206,7 +206,7 @@ def _vendor_aware_boot_device_map(task):
         # NOTE(TheJulia): Similar differences may exist with Cisco UCS
         # hardware when using IPMI, however at present we don't know
         # what the setting would be.
-        # NOTE(TheJulia) I've observed "mc info" manufacter name of a cisco
+        # NOTE(TheJulia) I've observed "mc info" manufacturer name of a cisco
         # c-series machine to return "Unknown (0x168B)"
     return boot_dev_map
 

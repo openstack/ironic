@@ -128,7 +128,7 @@ class ServiceSetUpMixin(object):
         super(ServiceSetUpMixin, self).setUp()
         self.hostname = 'test-host'
         # Relies upon the default number of "NodeLocked" retries as
-        # in unit testing, sqllite is not operated in a transactional
+        # in unit testing, sqlite is not operated in a transactional
         # way and utilizes asynchronous IO. Locking, in particular, can
         # detect this, and it can cause some false or delayed inpressions
         # of lock status, causing lock failures.

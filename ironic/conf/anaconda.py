@@ -32,7 +32,7 @@ opts = [
                 default=False,
                 mutable=True,
                 help=_('Option to allow the kickstart configuration to be '
-                       'informed if SSL/TLS certificate verificaiton should '
+                       'informed if SSL/TLS certificate verification should '
                        'be enforced, or not. This option exists largely to '
                        'facilitate easy testing and use of the ``anaconda`` '
                        'deployment interface. When this option is set, '

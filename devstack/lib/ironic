@@ -1471,7 +1471,7 @@ function configure_ironic_provision_network {
 
     # Set provision network GW on physical interface
     # Add vlan on br interface in case of IRONIC_PROVISION_PROVIDER_NETWORK_TYPE==vlan
-    # othervise assign ip to br interface directly.
+    # otherwise assign ip to br interface directly.
     sudo ip link set dev $OVS_PHYSICAL_BRIDGE up
     if [[ "$IRONIC_IP_VERSION" == "4" ]]; then
         if [[ "$IRONIC_PROVISION_PROVIDER_NETWORK_TYPE" == "vlan" ]]; then
@@ -2669,7 +2669,7 @@ function enroll_nodes {
         fi
 
         # In case we using portgroups, we should API version that support them.
-        # Othervise API will return 406 ERROR
+        # Otherwise API will return 406 ERROR
         # NOTE(vsaienko) interface_info is in the following format here:
         # mac1,tap-node0i1;mac2,tap-node0i2;...;macN,tap-node0iN
         for info in ${interface_info//;/ }; do

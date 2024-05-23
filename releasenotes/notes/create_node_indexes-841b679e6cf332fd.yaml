@@ -18,7 +18,7 @@ upgrade:
     * ``resource_class``
 
     An example of the SQL commands to generate these indexes can be found
-    in the `tuning <htts://docs.openstack.org/ironic/latest/admin/tuning.html>`_
+    in the `tuning <https://docs.openstack.org/ironic/latest/admin/tuning.html>`_
     documentation.
 
     In testing with mock data, each column took approximately about 4 seconds

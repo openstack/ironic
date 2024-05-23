@@ -487,7 +487,7 @@ owner_member_can_patch_all_the_things:
       value: "43"
   assert_status: 503
 
-# FIXME(TheJulia): This should be with member privilges below.
+# FIXME(TheJulia): This should be with member privileges below.
 owner_member_can_change_lessee:
   path: '/v1/nodes/{owner_node_ident}'
   method: patch

@@ -4,7 +4,7 @@ upgrade:
     Operators utilizing ``grub`` for PXE booting, typically with UEFI, should
     change their deployed master PXE configuration file provided for nodes PXE
     booting using grub. Ironic 11.1 now writes both MAC address and IP address
-    based PXE confiuration links for network booting via ``grub``.
+    based PXE configuration links for network booting via ``grub``.
     The grub variable should be changed from ``$net_default_ip`` to
     ``$net_default_mac``. IP address support is deprecated and will be removed
     in the Stein release.
