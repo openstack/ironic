@@ -1,0 +1,6 @@
+---
+other:
+  - |
+    The Redfish interoperability profile 1.0.0 has been replaced with version
+    1.1.0 that adds a lot of missing resources and fields, and clarifies
+    their purpose.
