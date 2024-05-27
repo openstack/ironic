@@ -42,7 +42,8 @@ extensions = ['sphinx.ext.viewcode',
               'oslo_policy.sphinxpolicygen',
               'automated_steps',
               'openstackdocstheme',
-              'web_api_docstring'
+              'web_api_docstring',
+              'redfish_interop',
               ]
 
 # sphinxcontrib.apidoc options
@@ -60,6 +61,10 @@ apidoc_separate_modules = True
 autodoc_default_options = {
     'special-members': '__call__',
 }
+
+redfish_interop_source = \
+    '../../redfish-interop-profiles/OpenStackIronicProfile.v1_1_0.json'
+redfish_interop_output_dir = 'admin/drivers/redfish/'
 
 openstackdocs_repo_name = 'openstack/ironic'
 openstackdocs_use_storyboard = False

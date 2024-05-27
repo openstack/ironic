@@ -18,6 +18,10 @@ and conformance testing. Many of the properties defined within this structure
 have assumed default values that correspond with the most common use case, so
 that those properties can be omitted from the document for brevity.
 
+.. toctree::
+
+   OpenStackIronicProfile.v1_1_0
+
 Validation of Profiles using DMTF tool
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -27,4 +31,3 @@ Redfish Interoperability Profile. The Redfish Interop Validator is available
 for download from the DMTF's organization on Github at
 https://github.com/DMTF/Redfish-Interop-Validator. Refer to instructions in
 README on how to configure and run validation.
-
