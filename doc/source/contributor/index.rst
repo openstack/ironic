@@ -8,15 +8,39 @@ If you are new to ironic, this section contains information that should help
 you get started as a developer working on the project or contributing to the
 project.
 
+This guide assumes you have read the
+`OpenDev getting started documentation <https://docs.opendev.org/opendev/infra-manual/latest/gettingstarted.html>`_.
+It will also be helpful to be familiar with
+`OpenStack contributors documentation <https://docs.openstack.org/contributors/code-and-documentation/>`_,
+which contains basic information about how to use many of the community tools
+and OpenStack practices.
+
+Basics
+______
+
+Basic information about setting up development environments with devstack
+or bifrost, or getting unit tests running can be found in our
+:ref:`dev-quickstart`.
+
+Bugs
+----
+Information about how ironic projects handle bugs can be found below.
+
+.. toctree::
+  :maxdepth: 1
+
+  Bugs Reporting and Triaging Guide <bugs>
+  Bug Deputy Guide <bug-deputy>
+
+
+Community & Policies
+____________________
+
 .. toctree::
   :maxdepth: 1
 
   Bare Metal Community <community>
   Developer Contribution Guide <contributing>
-  Bugs Reporting and Triaging Guide <bugs>
-  Bug Deputy Guide <bug-deputy>
-  Setting Up Your Development Environment <dev-quickstart>
-  Priorities <https://specs.openstack.org/openstack/ironic-specs/#priorities>
   Specifications <https://specs.openstack.org/openstack/ironic-specs/>
   Frequently Asked Questions <faq>
   Contributor Vision <vision>
@@ -48,9 +72,7 @@ reviewers.
    :hidden:
 
    states
-   bifrost-dev-guide
-   local-dev-guide
-   devstack-guide
+   dev-quickstart
 
 Writing Drivers
 ---------------
@@ -78,30 +100,6 @@ the developer community about any implementation using this functionality.
   Third party continuous integration testing <third-party-ci>
   Writing Deploy or Clean Steps <deploy-steps>
 
-Testing Network Integration
----------------------------
-
-In order to test the integration between the Bare Metal and Networking
-services, support has been added to `devstack <https://docs.openstack.org/devstack/latest/>`_
-to mimic an external physical switch.  Here we include a recommended
-configuration for devstack to bring up this environment.
-
-.. toctree::
-  :maxdepth: 1
-
-  Configuring Devstack for multitenant network testing <ironic-multitenant-networking>
-
-Testing Boot-from-Volume
-------------------------
-
-Starting with the Pike release, it is also possible to use DevStack for testing
-booting from Cinder volumes with VMs.
-
-.. toctree::
-  :maxdepth: 1
-
-  Configuring Devstack for boot-from-volume testing <ironic-boot-from-volume>
-
 Full Ironic Server Python API Reference
 ---------------------------------------
 
@@ -123,25 +121,3 @@ the documentation below.
   Job roles in the CI <jobs-description>
   How to add a new job? <adding-new-job>
   How to debug failures in CI jobs <debug-ci-failures>
-
-Our policy for stable branches
-------------------------------
-
-Stable branches that are on `Extended Maintenance`_ and haven't received
-backports in a while, can be tagged as ``Unmaintained``, after discussions
-within the ironic community. If such a decision is taken, an email will
-be sent to the OpenStack mailing list.
-
-What does ``Unmaintained`` mean? The branch still exists, but the ironic
-upstream community will not actively backport patches from maintained
-branches. Fixes can still be merged, though, if pushed into review by
-operators or other downstream developers. It also means that branchless
-projects (e.g.: ironic-tempest-plugin), may not have configurations that are
-compatible with those branches.
-
-As of 09 March 2020, the list of ``Unmaintained`` branches includes:
-
-* Ocata (Last commit - Jun 28, 2019)
-* Pike (Last commit - Oct 2, 2019)
-
-.. _Extended Maintenance: https://docs.openstack.org/project-team-guide/stable-branches.html#maintenance-phases

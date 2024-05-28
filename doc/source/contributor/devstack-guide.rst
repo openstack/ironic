@@ -264,8 +264,13 @@ Other Devstack Configurations
 There are additional devstack configurations in other parts of contributor
 documentation:
 
-* :ref:`Ironic Boot from Volume <BFVDevstack>`
-* :ref:`Ironic w/Multitenant Networking <DevstackMTNetwork>`
+
+.. toctree::
+  :maxdepth: 1
+
+  Ironic Boot from Volume <ironic-boot-from-volume>
+  Ironic w/Multitenant Networking <ironic-multitenant-networking>
+
 
 Deploying to Ironic node using Nova
 ===================================
