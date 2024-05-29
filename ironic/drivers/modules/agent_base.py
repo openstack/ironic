@@ -104,6 +104,8 @@ _FASTTRACK_HEARTBEAT_ALLOWED = _HEARTBEAT_ALLOWED + (states.MANAGEABLE,
                                                      states.ENROLL)
 FASTTRACK_HEARTBEAT_ALLOWED = frozenset(_FASTTRACK_HEARTBEAT_ALLOWED)
 
+_VALID_STEP_TYPES = ('clean', 'deploy', 'service')
+
 
 @METRICS.timer('AgentBase.post_clean_step_hook')
 def post_clean_step_hook(interface, step):
@@ -354,11 +356,24 @@ def find_step(task, step_type, interface, name):
         steps, {'interface': interface, 'step': name})
 
 
+def _validate_step_type(step_type):
+    if step_type not in _VALID_STEP_TYPES:
+        err_msg = _('Invalid step type "%(step_type)s". Valid step types: '
+                    '%(valid_step_types)s') % {
+                        'step_type': step_type,
+                        'valid_step_types': _VALID_STEP_TYPES}
+        LOG.error(err_msg)
+        raise exception.InvalidParameterValue(err_msg)
+
+
 def _raise(step_type, msg):
-    assert step_type in ('clean', 'deploy')
-    exc = (exception.NodeCleaningFailure if step_type == 'clean'
-           else exception.InstanceDeployFailure)
-    raise exc(msg)
+    _validate_step_type(step_type)
+    step_to_exc = {
+        'clean': exception.NodeCleaningFailure,
+        'deploy': exception.InstanceDeployFailure,
+        'service': exception.NodeServicingFailure,
+    }
+    raise step_to_exc[step_type](msg)
 
 
 def execute_step(task, step, step_type, client=None):
@@ -369,9 +384,10 @@ def execute_step(task, step, step_type, client=None):
     :param step_type: 'clean' or 'deploy'
     :param client: agent client (if available)
     :raises: NodeCleaningFailure (clean step) or InstanceDeployFailure (deploy
-        step) if the agent does not return a command status.
-    :returns: states.CLEANWAIT/DEPLOYWAIT to signify the step will be
-        completed async
+        step) or NodeServicingFailure (service step) if the agent does not
+        return a command status.
+    :returns: states.CLEANWAIT/DEPLOYWAIT/SERVICEWAIT to signify the step will
+        be completed async
     """
     if client is None:
         client = agent_client.get_client(task)
@@ -383,7 +399,13 @@ def execute_step(task, step, step_type, client=None):
         _raise(step_type, _(
             'Agent on node %(node)s returned bad command result: '
             '%(result)s') % {'node': task.node.uuid, 'result': result})
-    return states.CLEANWAIT if step_type == 'clean' else states.DEPLOYWAIT
+    _validate_step_type(step_type)
+    step_to_state = {
+        'clean': states.CLEANWAIT,
+        'deploy': states.DEPLOYWAIT,
+        'service': states.SERVICEWAIT,
+    }
+    return step_to_state[step_type]
 
 
 def execute_clean_step(task, step):
@@ -952,6 +974,19 @@ class AgentBaseMixin(object):
         """
         return execute_step(task, step, 'clean')
 
+    @METRICS.timer('AgentBaseMixin.execute_service_step')
+    def execute_service_step(self, task, step):
+        """Execute a service step asynchronously on the agent.
+
+        :param task: a TaskManager object containing the node
+        :param step: a service step dictionary to execute
+        :raises: NodeServicingFailure if the agent does not return a command
+            status
+        :returns: states.SERVICEWAIT to signify the step will be completed
+            async
+        """
+        return execute_step(task, step, 'service')
+
     def _process_version_mismatch(self, task, step_type):
         node = task.node
         # For manual clean, the target provision state is MANAGEABLE, whereas
@@ -1029,7 +1064,7 @@ class AgentBaseMixin(object):
         set to True, this method will coordinate the reboot once the step is
         completed.
         """
-        assert step_type in ('clean', 'deploy', 'service')
+        _validate_step_type(step_type)
 
         node = task.node
         client = agent_client.get_client(task)

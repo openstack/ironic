@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    [`bug 2069430 <https://bugs.launchpad.net/ironic/+bug/2069430>`_]
+    Fixes an issue that prevented Ironic from being able to execute node
+    servicing steps exposed by IPA's HardwareManager

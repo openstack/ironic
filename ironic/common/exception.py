@@ -567,6 +567,10 @@ class NodeCleaningFailure(IronicException):
     _msg_fmt = _("Failed to clean node %(node)s: %(reason)s")
 
 
+class NodeServicingFailure(IronicException):
+    _msg_fmt = _("Failed to service node %(node)s: %(reason)s")
+
+
 class PathNotFound(IronicException):
     _msg_fmt = _("Path %(dir)s does not exist.")
 
