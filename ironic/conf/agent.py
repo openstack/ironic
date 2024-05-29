@@ -114,7 +114,15 @@ opts = [
     cfg.IntOpt('command_timeout',
                default=60,
                mutable=True,
-               help=_('Timeout (in seconds) for IPA commands.')),
+               help=_('Timeout (in seconds) for IPA commands. '
+                      'A large timeout value may result in the conductor '
+                      'free worker pool becoming exhausted should a multi-'
+                      'node network connectivity issue arise during '
+                      'deployment or cleaning operations. These commands '
+                      'also cause the individual node lock to be held while '
+                      'in progress, which prevents new requests from being '
+                      'acted upon for the impacted nodes until the issue '
+                      'has been resolved.')),
     cfg.IntOpt('max_command_attempts',
                default=3,
                help=_('This is the maximum number of attempts that will be '

@@ -63,7 +63,8 @@ api_opts = [
                  ('http_basic', _('HTTP basic authentication'))],
         help=_('Authentication strategy used by ironic-api. "noauth" should '
                'not be used in a production environment because all '
-               'authentication will be disabled.')),
+               'authentication will be disabled creating insecure '
+               'operating conditions.')),
     cfg.StrOpt('http_basic_auth_user_file',
                default='/etc/ironic/htpasswd',
                help=_('Path to Apache format user authentication file used '
@@ -442,7 +443,11 @@ webserver_opts = [
                default=60,
                help=_('Connection timeout when accessing/interacting with '
                       'remote web servers with images or other artifacts '
-                      'being accessed.')),
+                      'being accessed. An excessive value here is not '
+                      'advisable as excessive requests to an unreachable '
+                      'endpoint can result in Ironic service resources '
+                      'being consumed waiting for the connection to '
+                      'timeout.')),
 ]
 
 rbac_opts = [

@@ -51,7 +51,9 @@ opts = [
                 help=_('Kill `ipmitool` process invoked by ironic to read '
                        'node power state if `ipmitool` process does not exit '
                        'after `command_retry_timeout` timeout expires. '
-                       'Recommended setting is True')),
+                       'Recommended setting is True. Setting to False may '
+                       'present an operational issue and will result in '
+                       'unexpected and undesirable behavior.')),
     cfg.BoolOpt('disable_boot_timeout',
                 default=True,
                 mutable=True,

@@ -77,7 +77,8 @@ opts = [
                 default=True,
                 mutable=True,
                 help=_('Whether to restrict the lookup API to only nodes '
-                       'in certain states.')),
+                       'in certain states. Setting this to False can be '
+                       'insecure and is not advisable.')),
     cfg.IntOpt('ramdisk_heartbeat_timeout',
                default=300,
                mutable=True,

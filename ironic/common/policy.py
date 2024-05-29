@@ -212,11 +212,11 @@ default_policies = [
     #             the value of this field
     policy.RuleDefault('show_password',
                        '!',
-                       description='Show or mask secrets within node driver information in API responses'),  # noqa
+                       description='Show or mask secrets within node driver information in API responses. This setting should be used with the utmost care as its use can present a security risk.'),  # noqa
     # Generic default to hide instance secrets
     policy.RuleDefault('show_instance_secrets',
                        '!',
-                       description='Show or mask secrets within instance information in API responses'),  # noqa
+                       description='Show or mask secrets within instance information in API responses. This setting should be used with the utmost care as its use can present a security risk.'),  # noqa
     # NOTE(TheJulia): This is a special rule to allow customization of the
     # service role check. The config.service_project_name is a reserved
     # target check field which is loaded from configuration to the
