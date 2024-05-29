@@ -2029,6 +2029,15 @@ secure_boot:
     Indicates whether node is currently booted with secure_boot turned on.
   in: body
   type: boolean
+service_steps:
+  description: |
+    An ordered list of service steps that will be performed on the node. A
+    cleaning step is a dictionary with required keys 'interface' and 'step', and
+    optional key 'args'. If specified, the value for 'args' is a keyword variable
+    argument dictionary that is passed to the cleaning step method.
+  in: body
+  required: false
+  type: array
 shard:
   description: |
     A string indicating the shard this node belongs to.
