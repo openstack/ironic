@@ -17,6 +17,13 @@ team organizes work, please see `Ironic's contribution guide <https://docs.opens
 This document covers both :ref:`unit` and :ref:`integrated`. New contributors
 are recommended to start with unit tests.
 
+.. toctree::
+   :hidden:
+
+   devstack-guide
+   bifrost-dev-guide
+   local-dev-guide
+
 .. _integrated:
 
 Integrated Testing Environments
