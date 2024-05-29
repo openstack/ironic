@@ -86,6 +86,10 @@ _STEPS_SCHEMA = {
                 "type": "object",
                 "properties": {}
             },
+            'order': {'anyOf': [
+                {'type': 'integer', 'minimum': 0},
+                {'type': 'string', 'minLength': 1, 'pattern': '^[0-9]+$'}
+            ]},
             "execute_on_child_nodes": {
                 "description": "Boolean if the step should be executed "
                                "on child nodes.",
@@ -988,6 +992,41 @@ class NodeStatesController(rest.RestController):
         url_args = '/'.join([node_ident, 'states'])
         api.response.location = link.build_url('nodes', url_args)
 
+    def _handle_runbook(self, rpc_node, target, runbook, clean_steps,
+                        service_steps):
+        if not api_utils.allow_runbooks():
+            raise exception.NotAcceptable()
+
+        rpc_runbook = api_utils.check_runbook_policy_and_retrieve(
+            policy_name='baremetal:runbook:use',
+            runbook_ident=runbook)
+
+        node_traits = rpc_node.traits.get_trait_names() or []
+        if rpc_runbook.name not in node_traits:
+            msg = (_('This runbook has not been approved for '
+                     'use on this node %s. Please ask an administrator '
+                     'to add it to your node traits.') % rpc_node.uuid)
+            raise exception.ClientSideError(
+                msg, status_code=http_client.BAD_REQUEST)
+
+        disable_ramdisk = rpc_runbook.disable_ramdisk
+        if target == ir_states.VERBS['clean']:
+            if clean_steps:
+                msg = (_('Please provide either "clean_steps" or a '
+                         'runbook, but not both.'))
+                raise exception.ClientSideError(
+                    msg, status_code=http_client.BAD_REQUEST)
+            clean_steps = list(api_utils.convert_steps(rpc_runbook.steps))
+        elif target == ir_states.VERBS['service']:
+            if service_steps:
+                msg = (_('Please provide either "service_steps" or a '
+                         'runbook, but not both.'))
+                raise exception.ClientSideError(
+                    msg, status_code=http_client.BAD_REQUEST)
+            service_steps = list(api_utils.convert_steps(
+                rpc_runbook.steps))
+        return clean_steps, service_steps, disable_ramdisk
+
     def _do_provision_action(self, rpc_node, target, configdrive=None,
                              clean_steps=None, deploy_steps=None,
                              rescue_password=None, disable_ramdisk=None,
@@ -1061,11 +1100,12 @@ class NodeStatesController(rest.RestController):
                    deploy_steps=args.types(type(None), list),
                    rescue_password=args.string,
                    disable_ramdisk=args.boolean,
-                   service_steps=args.types(type(None), list))
+                   service_steps=args.types(type(None), list),
+                   runbook=args.types(type(None), str))
     def provision(self, node_ident, target, configdrive=None,
                   clean_steps=None, deploy_steps=None,
                   rescue_password=None, disable_ramdisk=None,
-                  service_steps=None):
+                  service_steps=None, runbook=None):
         """Asynchronous trigger the provisioning of the node.
 
         This will set the target provision state of the node, and a
@@ -1142,6 +1182,7 @@ class NodeStatesController(rest.RestController):
                 'args': {'force': True},
                 'priority': 90 }
 
+        :param runbook: UUID or logical name of a runbook.
         :raises: NodeLocked (HTTP 409) if the node is currently locked.
         :raises: ClientSideError (HTTP 409) if the node is already being
                  provisioned.
@@ -1187,9 +1228,26 @@ class NodeStatesController(rest.RestController):
         api_utils.check_allow_configdrive(target, configdrive)
         api_utils.check_allow_clean_disable_ramdisk(target, disable_ramdisk)
 
+        if runbook:
+            clean_steps, service_steps, disable_ramdisk = self._handle_runbook(
+                rpc_node, target, runbook, clean_steps, service_steps
+            )
+        else:
+            if clean_steps:
+                api_utils.check_policy(
+                    'baremetal:node:set_provision_state:clean_steps')
+            if service_steps:
+                api_utils.check_policy(
+                    'baremetal:node:set_provision_state:service_steps')
+
         if clean_steps and target != ir_states.VERBS['clean']:
             msg = (_('"clean_steps" is only valid when setting target '
                      'provision state to %s') % ir_states.VERBS['clean'])
+            if runbook:
+                rb_allowed_targets = [ir_states.VERBS['clean'],
+                                      ir_states.VERBS['service']]
+                msg = (_('"runbooks" is only valid when setting target '
+                         'provision state to any of %s') % rb_allowed_targets)
             raise exception.ClientSideError(
                 msg, status_code=http_client.BAD_REQUEST)
 
@@ -1213,6 +1271,17 @@ class NodeStatesController(rest.RestController):
             # states are involved.
             if not api_utils.allow_unhold_verb():
                 raise exception.NotAcceptable()
+
+        if service_steps and target != ir_states.VERBS['service']:
+            msg = (_('"service_steps" is only valid when setting target '
+                     'provision state to %s') % ir_states.VERBS['service'])
+            if runbook:
+                rb_allowed_targets = [ir_states.VERBS['clean'],
+                                      ir_states.VERBS['service']]
+                msg = (_('"runbooks" is only valid when setting target '
+                         'provision state to any of %s') % rb_allowed_targets)
+            raise exception.ClientSideError(
+                msg, status_code=http_client.BAD_REQUEST)
 
         if target == ir_states.VERBS['service']:
             if not api_utils.allow_service_verb():

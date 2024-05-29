@@ -209,6 +209,15 @@ In the above example, the node's RAID interface would configure hardware
 RAID without non-root volumes, and then all devices would be erased
 (in that order).
 
+Alternatively, you can specify a runbook instead of clean_steps::
+
+  {
+    "target":"clean",
+    "runbook": "<runbook_name_or_uuid>"
+  }
+
+The specified runbook must match one of the node's traits to be used.
+
 Starting manual cleaning via "openstack metal" CLI
 ------------------------------------------------------
 
@@ -245,6 +254,24 @@ Or with stdin::
 
     cat my-clean-steps.txt | baremetal node clean <node> \
         --clean-steps -
+
+To use a runbook instead of specifying clean steps:
+
+    baremetal node clean <node> --runbook <runbook_name_or_uuid>
+
+Runbooks for Manual Cleaning
+----------------------------
+Instead of passing a list of clean steps, operators can now use runbooks.
+Runbooks are curated lists of steps that can be associated with nodes via
+traits which simplifies the process of performing consistent cleaning
+operations across similar nodes.
+
+To use a runbook for manual cleaning:
+
+    baremetal node clean <node> --runbook <runbook_name_or_uuid>
+
+Runbooks must be created and associated with nodes beforehand. Only runbooks
+that match the node's traits can be used for cleaning that node.
 
 Cleaning Network
 ================

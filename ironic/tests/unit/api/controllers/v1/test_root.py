@@ -160,6 +160,12 @@ class TestV1Routing(api_base.BaseApiTest):
             'volume': [
                 {'href': 'http://localhost/v1/volume/', 'rel': 'self'},
                 {'href': 'http://localhost/volume/', 'rel': 'bookmark'}
+            ],
+            'runbooks': [
+                {'href': 'http://localhost/v1/runbooks/',
+                 'rel': 'self'},
+                {'href': 'http://localhost/runbooks/',
+                 'rel': 'bookmark'}
             ]
         }, response)
 

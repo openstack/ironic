@@ -1169,6 +1169,152 @@ class MigrationCheckersMixin(object):
         self.assertIsInstance(deploy_templates.c.extra.type,
                               sqlalchemy.types.TEXT)
 
+    def _check_dada631878c4(self, engine, data):
+        # Runbooks.
+        runbooks = db_utils.get_table(engine, 'runbooks')
+        col_names = [column.name for column in runbooks.c]
+        expected = ['created_at', 'updated_at', 'version',
+                    'id', 'uuid', 'name']
+        self.assertEqual(sorted(expected), sorted(col_names))
+        self.assertIsInstance(runbooks.c.created_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(runbooks.c.updated_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(runbooks.c.version.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(runbooks.c.id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(runbooks.c.uuid.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(runbooks.c.name.type,
+                              sqlalchemy.types.String)
+
+        # Runbook steps.
+        runbook_steps = db_utils.get_table(engine, 'runbook_steps')
+        col_names = [column.name for column in runbook_steps.c]
+        expected = ['created_at', 'updated_at', 'version', 'id',
+                    'runbook_id', 'interface', 'step', 'args',
+                    'order']
+        self.assertEqual(sorted(expected), sorted(col_names))
+
+        self.assertIsInstance(runbook_steps.c.created_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(runbook_steps.c.updated_at.type,
+                              sqlalchemy.types.DateTime)
+        self.assertIsInstance(runbook_steps.c.version.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(runbook_steps.c.id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(runbook_steps.c.runbook_id.type,
+                              sqlalchemy.types.Integer)
+        self.assertIsInstance(runbook_steps.c.interface.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(runbook_steps.c.step.type,
+                              sqlalchemy.types.String)
+        self.assertIsInstance(runbook_steps.c.args.type,
+                              sqlalchemy.types.Text)
+        self.assertIsInstance(runbook_steps.c.order.type,
+                              sqlalchemy.types.Integer)
+
+        with engine.begin() as connection:
+            # Insert a Runbook.
+            uuid = uuidutils.generate_uuid()
+            name = 'CUSTOM_DT1'
+            runbook = {'name': name, 'uuid': uuid}
+            insert_dpt = runbooks.insert().values(runbook)
+            connection.execute(insert_dpt)
+            # Query by UUID.
+            dpt_uuid_stmt = sqlalchemy.select(
+                models.Runbook.id,
+                models.Runbook.name,
+            ).where(
+                models.Runbook.uuid == uuid
+            )
+            result = connection.execute(dpt_uuid_stmt).first()
+            runbook_id = result.id
+            self.assertEqual(name, result.name)
+            # Query by name.
+            dpt_name_stmt = sqlalchemy.select(
+                models.Runbook.id
+            ).where(
+                models.Runbook.name == name
+            )
+            result = connection.execute(dpt_name_stmt).first()
+            self.assertEqual(runbook_id, result.id)
+            # Query by ID.
+            dpt_id_stmt = sqlalchemy.select(
+                models.Runbook.uuid,
+                models.Runbook.name
+            ).where(
+                models.Runbook.id == runbook_id
+            )
+            result = connection.execute(dpt_id_stmt).first()
+            self.assertEqual(uuid, result.uuid)
+            self.assertEqual(name, result.name)
+            savepoint_uuid = connection.begin_nested()
+            # UUID is unique.
+            runbook = {'name': 'CUSTOM_DT2', 'uuid': uuid}
+            self.assertRaises(db_exc.DBDuplicateEntry, connection.execute,
+                              runbooks.insert(), runbook)
+            savepoint_uuid.rollback()
+            savepoint_uuid.close()
+            # Name is unique.
+            savepoint_name = connection.begin_nested()
+            runbook = {'name': name, 'uuid': uuidutils.generate_uuid()}
+            self.assertRaises(db_exc.DBDuplicateEntry, connection.execute,
+                              runbooks.insert(), runbook)
+            savepoint_name.rollback()
+            savepoint_name.close()
+
+            # Insert a Runbook step.
+            interface = 'raid'
+            step_name = 'create_configuration'
+            # The line below is JSON.
+            args = '{"logical_disks": []}'
+            order = 1
+            step = {'runbook_id': runbook_id, 'interface': interface,
+                    'step': step_name, 'args': args, 'order': order}
+            insert_dpts = runbook_steps.insert().values(step)
+            connection.execute(insert_dpts)
+            # Query by Runbook ID.
+            query_id_stmt = sqlalchemy.select(
+                models.RunbookStep.runbook_id,
+                models.RunbookStep.interface,
+                models.RunbookStep.step,
+                models.RunbookStep.args,
+                models.RunbookStep.order,
+            ).where(
+                models.RunbookStep.runbook_id == runbook_id
+            )
+            result = connection.execute(query_id_stmt).first()
+            self.assertEqual(runbook_id, result.runbook_id)
+            self.assertEqual(interface, result.interface)
+            self.assertEqual(step_name, result.step)
+            if isinstance(result.args, dict):
+                # Postgres testing results in a dict being returned
+                # at this level which if you str() it, you get a dict,
+                # so comparing string to string fails.
+                result_args = json.dumps(result.args)
+            else:
+                # Mysql/MariaDB appears to be actually hand us
+                # a string back so we should be able to compare it.
+                result_args = result.args
+            self.assertEqual(args, result_args)
+            self.assertEqual(order, result.order)
+            # Insert another step for the same runbook.
+            insert_step = runbook_steps.insert().values(step)
+            connection.execute(insert_step)
+
+    def _check_245c3e54b247(self, engine, data):
+        # Runbook 'extra' field.
+        runbooks = db_utils.get_table(engine, 'runbooks')
+        col_names = [column.name for column in runbooks.c]
+        expected = ['created_at', 'updated_at', 'version',
+                    'id', 'uuid', 'name', 'extra']
+        self.assertEqual(sorted(expected), sorted(col_names))
+        self.assertIsInstance(runbooks.c.extra.type,
+                              sqlalchemy.types.TEXT)
+
     def _check_ce6c4b3cf5a2(self, engine, data):
         allocations = db_utils.get_table(engine, 'allocations')
         col_names = [column.name for column in allocations.c]

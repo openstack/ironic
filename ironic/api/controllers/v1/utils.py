@@ -13,6 +13,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import collections
 import copy
 from http import client as http_client
 import inspect
@@ -155,6 +156,24 @@ DEPLOY_STEP_SCHEMA = {
         'step': {'type': 'string', 'minLength': 1},
     },
     'required': ['interface', 'step', 'args', 'priority'],
+    'additionalProperties': False,
+}
+
+RUNBOOK_STEP_SCHEMA = {
+    'type': 'object',
+    'properties': {
+        'args': {'type': 'object'},
+        'interface': {
+            'type': 'string',
+            'enum': list(conductor_steps.CLEANING_INTERFACE_PRIORITY)
+        },
+        'step': {'type': 'string', 'minLength': 1},
+        'order': {'anyOf': [
+            {'type': 'integer', 'minimum': 0},
+            {'type': 'string', 'minLength': 1, 'pattern': '^[0-9]+$'}
+        ]}
+    },
+    'required': ['interface', 'step', 'order'],
     'additionalProperties': False,
 }
 
@@ -683,6 +702,43 @@ def get_rpc_deploy_template_with_suffix(template_ident):
     """
     return _get_with_suffix(get_rpc_deploy_template, template_ident,
                             exception.DeployTemplateNotFound)
+
+
+def get_rpc_runbook(runbook_ident):
+    """Get the RPC runbook from the UUID or logical name.
+
+    :param runbook_ident: the UUID or logical name of a runbook.
+
+    :returns: The RPC runbook.
+    :raises: InvalidUuidOrName if the name or uuid provided is not valid.
+    :raises: RunbookNotFound if the runbook is not found.
+    """
+    # If runbook_ident is instead a valid UUID, treat it as a UUID.
+    if uuidutils.is_uuid_like(runbook_ident):
+        return objects.Runbook.get_by_uuid(api.request.context,
+                                           runbook_ident)
+
+    # Else, we can refer to runbooks by their name too
+    if utils.is_valid_logical_name(runbook_ident):
+        return objects.Runbook.get_by_name(api.request.context,
+                                           runbook_ident)
+    raise exception.InvalidUuidOrName(name=runbook_ident)
+
+
+def check_runbook_policy_and_retrieve(policy_name, runbook_ident):
+    """Check if the specified policy authorizes this request on a node.
+
+    :param: policy_name: Name of the policy to check.
+    :param: runbook_ident: the UUID or logical name of a runbook.
+
+    :raises: HTTPForbidden if the policy forbids access.
+    :raises: RunbookNotFound if the runbook is not found.
+    :return: a runbook object
+    """
+    rpc_runbook = get_rpc_runbook(runbook_ident)
+    check_owner_policy(object_type='runbook', policy_name=policy_name,
+                       owner=rpc_runbook['owner'])
+    return rpc_runbook
 
 
 def is_valid_node_name(name):
@@ -1517,6 +1573,53 @@ def check_policy_true(policy_name):
     return policy.check_policy(policy_name, cdict, api.request.context)
 
 
+def duplicate_steps(name, value):
+    """Argument validator to check template for duplicate steps"""
+    # TODO(mgoddard): Determine the consequences of allowing duplicate
+    # steps.
+    # * What if one step has zero priority and another non-zero?
+    # * What if a step that is enabled by default is included in a
+    #   template? Do we override the default or add a second invocation?
+
+    # Check for duplicate steps. Each interface/step combination can be
+    # specified at most once.
+    counter = collections.Counter((step['interface'], step['step'])
+                                  for step in value['steps'])
+    duplicates = {key for key, count in counter.items() if count > 1}
+    if duplicates:
+        duplicates = {"interface: %s, step: %s" % (interface, step)
+                      for interface, step in duplicates}
+        err = _("Duplicate deploy steps. A template cannot have multiple "
+                "deploy steps with the same interface and step. "
+                "Duplicates: %s") % "; ".join(duplicates)
+        raise exception.InvalidDeployTemplate(err=err)
+    return value
+
+
+def convert_steps(rpc_steps):
+    for step in rpc_steps:
+        result = {
+            'interface': step['interface'],
+            'step': step['step'],
+            'args': step['args'],
+        }
+
+        if 'priority' in step:
+            result['priority'] = step['priority']
+        elif 'order' in step:
+            result['order'] = step['order']
+
+        yield result
+
+
+def allow_runbooks():
+    """Check if accessing runbook endpoints is allowed.
+
+    Version 1.92 of the API exposed runbook endpoints.
+    """
+    return api.request.version.minor >= versions.MINOR_92_RUNBOOKS
+
+
 def check_owner_policy(object_type, policy_name, owner, lessee=None,
                        conceal_node=False):
     """Check if the policy authorizes this request on an object.
@@ -1545,6 +1648,19 @@ def check_owner_policy(object_type, policy_name, owner, lessee=None,
             raise exception.NodeNotFound(node=conceal_node)
         else:
             raise
+
+
+def check_and_retrieve_public_runbook(runbook_ident):
+    """If policy authorization check fails, check if runbook is public.
+
+    :param: runbook_ident: the UUID or logical name of a runbook.
+    :raises: HTTPForbidden if runbook is not public.
+    :return: RPC runbook identified by runbook_ident
+    """
+    rpc_runbook = get_rpc_runbook(runbook_ident)
+    if not rpc_runbook.public:
+        raise exception.HTTPForbidden
+    return rpc_runbook
 
 
 def check_node_policy_and_retrieve(policy_name, node_ident,
@@ -1633,6 +1749,27 @@ def check_multiple_node_policies_and_retrieve(policy_names,
             check_owner_policy('node', policy_name,
                                rpc_node['owner'], rpc_node['lessee'])
     return rpc_node
+
+
+def check_multiple_runbook_policies_and_retrieve(policy_names,
+                                                 runbook_ident):
+    """Check if the specified policies authorize this request on a runbook.
+
+    :param: policy_names: List of policy names to check.
+    :param: runbook_ident: the UUID or logical name of a runbook.
+
+    :raises: HTTPForbidden if the policy forbids access.
+    :raises: RunbookNotFound if the runbook is not found.
+    :return: RPC runbook identified by runbook_ident
+    """
+    rpc_runbook = None
+    for policy_name in policy_names:
+        if rpc_runbook is None:
+            rpc_runbook = check_runbook_policy_and_retrieve(policy_names[0],
+                                                            runbook_ident)
+        else:
+            check_owner_policy('runbook', policy_name, rpc_runbook['owner'])
+    return rpc_runbook
 
 
 def check_list_policy(object_type, owner=None):

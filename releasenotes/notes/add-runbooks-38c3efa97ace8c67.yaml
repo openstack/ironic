@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    Adds a new API concept, runbooks, to enable self-service of maintenance
+    items on nodes by project members.
+
+    Runbooks are curated lists of steps that can be run on nodes only
+    associated via traits and used in lieu of an explicit list of steps
+    for manual cleaning or servicing.
+  - |
+    Adds a new top-level REST API endpoint `/v1/runbooks/` with basic CRUD
+    support.
+  - |
+    Extends the `/v1/nodes/<node>/states/provision` API to accept a runbook
+    ident (name or UUID) instead of `clean_steps` or `service_steps` for
+    servicing or manual cleaning.
+  - |
+    Implements RBAC-aware lifecycle management for runbooks, allowing projects
+    to limit who can CRUD and use a runbook.

@@ -10,7 +10,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import collections
 from http import client as http_client
 
 from ironic_lib import metrics_utils
@@ -57,44 +56,11 @@ PATCH_ALLOWED_FIELDS = ['extra', 'name', 'steps', 'description']
 STEP_PATCH_ALLOWED_FIELDS = ['args', 'interface', 'priority', 'step']
 
 
-def duplicate_steps(name, value):
-    """Argument validator to check template for duplicate steps"""
-    # TODO(mgoddard): Determine the consequences of allowing duplicate
-    # steps.
-    # * What if one step has zero priority and another non-zero?
-    # * What if a step that is enabled by default is included in a
-    #   template? Do we override the default or add a second invocation?
-
-    # Check for duplicate steps. Each interface/step combination can be
-    # specified at most once.
-    counter = collections.Counter((step['interface'], step['step'])
-                                  for step in value['steps'])
-    duplicates = {key for key, count in counter.items() if count > 1}
-    if duplicates:
-        duplicates = {"interface: %s, step: %s" % (interface, step)
-                      for interface, step in duplicates}
-        err = _("Duplicate deploy steps. A deploy template cannot have "
-                "multiple deploy steps with the same interface and step. "
-                "Duplicates: %s") % "; ".join(duplicates)
-        raise exception.InvalidDeployTemplate(err=err)
-    return value
-
-
 TEMPLATE_VALIDATOR = args.and_valid(
     args.schema(TEMPLATE_SCHEMA),
-    duplicate_steps,
+    api_utils.duplicate_steps,
     args.dict_valid(uuid=args.uuid)
 )
-
-
-def convert_steps(rpc_steps):
-    for step in rpc_steps:
-        yield {
-            'interface': step['interface'],
-            'step': step['step'],
-            'args': step['args'],
-            'priority': step['priority'],
-        }
 
 
 def convert_with_links(rpc_template, fields=None, sanitize=True):
@@ -104,7 +70,7 @@ def convert_with_links(rpc_template, fields=None, sanitize=True):
         fields=('name', 'extra'),
         link_resource='deploy_templates',
     )
-    template['steps'] = list(convert_steps(rpc_template.steps))
+    template['steps'] = list(api_utils.convert_steps(rpc_template.steps))
 
     if fields is not None:
         api_utils.check_for_invalid_fields(fields, template)

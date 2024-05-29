@@ -36,6 +36,7 @@ def register_all():
     __import__('ironic.objects.node_inventory')
     __import__('ironic.objects.port')
     __import__('ironic.objects.portgroup')
+    __import__('ironic.objects.runbook')
     __import__('ironic.objects.trait')
     __import__('ironic.objects.volume_connector')
     __import__('ironic.objects.volume_target')

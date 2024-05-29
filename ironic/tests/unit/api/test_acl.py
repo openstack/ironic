@@ -298,6 +298,7 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
         # false positives with test runners.
         db_utils.create_test_node(
             uuid='18a552fb-dcd2-43bf-9302-e4c93287be11')
+        fake_db_runbook = db_utils.create_test_runbook()
         self.format_data.update({
             'node_ident': fake_db_node['uuid'],
             'allocated_node_ident': fake_db_node_alloced['uuid'],
@@ -314,6 +315,7 @@ class TestRBACModelBeforeScopesBase(TestACLBase):
             'driver_name': 'fake-driverz',
             'bios_setting': fake_setting,
             'trait': fake_trait,
+            'runbook_ident': fake_db_runbook['uuid'],
             'volume_target_ident': fake_db_volume_target['uuid'],
             'volume_connector_ident': fake_db_volume_connector['uuid'],
             'history_ident': fake_history['uuid'],
@@ -390,6 +392,9 @@ class TestRBACProjectScoped(TestACLBase):
         owner_project_id = '70e5e25a-2ca2-4cb1-8ae8-7d8739cee205'
         lessee_project_id = 'f11853c7-fa9c-4db3-a477-c9d8e0dbbf13'
         unowned_node = db_utils.create_test_node(chassis_id=None)
+
+        fake_db_runbook = db_utils.create_test_runbook(
+            owner='70e5e25a-2ca2-4cb1-8ae8-7d8739cee205')
 
         # owned node - since the tests use the same node for
         # owner/lesse checks
@@ -496,6 +501,7 @@ class TestRBACProjectScoped(TestACLBase):
             'vif_ident': fake_vif_port_id,
             'ind_component': 'component',
             'ind_ident': 'magic_light',
+            'runbook_ident': fake_db_runbook['uuid'],
             'owner_port_ident': owned_node_port['uuid'],
             'other_port_ident': other_port['uuid'],
             'owner_portgroup_ident': owner_pgroup['uuid'],
