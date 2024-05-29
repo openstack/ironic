@@ -51,8 +51,8 @@ Executing Service Steps
 In order for manual cleaning to work, you may need to configure a
 `Servicing Network`_.
 
-Starting manual cleaning via API
---------------------------------
+Starting manual servicing via API
+---------------------------------
 
 Servicing can only be performed when a node is in the ``active``
 provision state. The REST API request to initiate it is available in
@@ -74,7 +74,7 @@ dictionary (JSON), in the form::
       "args": {"<arg1>": "<value1>", ..., "<argn>": <valuen>}
   }
 
-The 'interface' and 'step' keys are required for all steps. If a cleaning step
+The 'interface' and 'step' keys are required for all steps. If a servicing step
 method takes keyword arguments, the 'args' key may be specified. It
 is a dictionary of keyword variable arguments, with each keyword-argument entry
 being <name>: <value>.
@@ -99,7 +99,7 @@ An example of the request body for this API::
     },
     {
       "interface": "vendor",
-      "step": "send_raw"
+      "step": "send_raw",
       "args": {"raw_bytes": "0x00 0x00 0x00 0x00"}
     }]
   }
@@ -119,13 +119,10 @@ The argument ``--service-steps`` must be specified. Its value is one of:
 
 - a JSON string
 - path to a JSON file whose contents are passed to the API
-- '-', to read from stdin. This allows piping in the clean steps.
+- '-', to read from stdin. This allows piping in the service steps.
   Using '-' to signify stdin is common in Unix utilities.
 
 Examples of doing this with a JSON string::
-
-    baremetal node service <node> \
-        --clean-steps '[{"interface": "deploy", "step": "example_task"}]'
 
     baremetal node service <node> \
         --service-steps '[{"interface": "deploy", "step": "example_task"}]'
