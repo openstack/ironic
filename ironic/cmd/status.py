@@ -97,7 +97,7 @@ class Checks(upgradecheck.UpgradeCommands):
     def _check_allocations_table(self):
         msg = None
         engine = enginefacade.reader.get_engine()
-        if 'mysql' not in str(engine.url):
+        if 'mysql' != str(engine.url.get_backend_name()):
             # This test only applies to mysql and database schema
             # selection.
             return upgradecheck.Result(upgradecheck.Code.SUCCESS)
