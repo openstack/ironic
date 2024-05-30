@@ -166,6 +166,32 @@ class TestPXEUtils(db_base.DbTestCase):
 
         self.assertEqual(str(expected_template), rendered_template)
 
+    def test_pxe_config_x86_64(self):
+        self.node.properties['cpu_arch'] = 'x86_64'
+        self.node.save()
+
+        rendered_template = utils.render_template(
+            CONF.pxe.uefi_pxe_config_template,
+            {'pxe_options': self.pxe_options,
+             'ROOT': '{{ ROOT }}',
+             'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'})
+
+        self.assertIn('linuxefi', rendered_template)
+        self.assertIn('initrdefi', rendered_template)
+
+    def test_pxe_config_aarch64(self):
+        self.node.properties['cpu_arch'] = 'aarch64'
+        self.node.save()
+
+        rendered_template = utils.render_template(
+            CONF.pxe.uefi_pxe_config_template,
+            {'pxe_options': self.pxe_options,
+             'ROOT': '{{ ROOT }}',
+             'DISK_IDENTIFIER': '{{ DISK_IDENTIFIER }}'})
+
+        self.assertIn('linux', rendered_template)
+        self.assertIn('initrd', rendered_template)
+
     def test_default_ipxe_boot_script(self):
         rendered_template = utils.render_template(
             CONF.pxe.ipxe_boot_script,
