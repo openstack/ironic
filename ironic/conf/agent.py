@@ -118,7 +118,7 @@ opts = [
                       'A large timeout value may result in the conductor '
                       'free worker pool becoming exhausted should a multi-'
                       'node network connectivity issue arise during '
-                      'deployment or cleaning operations. These commands '
+                      'inband operations. These commands '
                       'also cause the individual node lock to be held while '
                       'in progress, which prevents new requests from being '
                       'acted upon for the impacted nodes until the issue '
