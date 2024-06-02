@@ -11,13 +11,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import datetime
 import json
 from unittest import mock
 
 from keystoneauth1 import loading as ks_loading
 import openstack
 from openstack.connection import exceptions as openstack_exc
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from ironic.common import cinder
@@ -144,12 +144,14 @@ class TestCinderUtils(db_base.DbTestCase):
         self.assertIsNone(cinder._get_attachment_id(self.node, unattached))
         self.assertIsNone(cinder._get_attachment_id(self.node, no_attachment))
 
-    @mock.patch.object(datetime, 'datetime', autospec=True)
-    def test__create_metadata_dictionary(self, mock_datetime):
+    @mock.patch.object(timeutils, 'utcnow', autospec=True)
+    def test__create_metadata_dictionary(self, mock_utcnow):
         fake_time = '2017-06-05T00:33:26.574676'
-        mock_utcnow = mock.Mock()
-        mock_datetime.utcnow.return_value = mock_utcnow
-        mock_utcnow.isoformat.return_value = fake_time
+        mock_datetime = mock.Mock()
+        mock_datetime.isoformat.return_value = fake_time
+
+        mock_utcnow.return_value = mock_datetime
+
         expected_key = ("ironic_node_%s" % self.node.uuid)
         expected_data = {
             'instance_uuid': self.node.instance_uuid,

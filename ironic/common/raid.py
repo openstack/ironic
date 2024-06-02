@@ -12,10 +12,9 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import datetime
-
 import jsonschema
 from jsonschema import exceptions as json_schema_exc
+from oslo_utils import timeutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -113,7 +112,7 @@ def update_raid_info(node, raid_config):
         one root volume or if node.properties['capabilities'] is malformed.
     """
     current = raid_config.copy()
-    current['last_updated'] = str(datetime.datetime.utcnow())
+    current['last_updated'] = str(timeutils.utcnow())
     node.raid_config = current
 
     # Current RAID configuration can have 0 or 1 root volumes. If there

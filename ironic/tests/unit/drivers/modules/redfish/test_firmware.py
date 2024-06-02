@@ -14,6 +14,7 @@
 import datetime
 from unittest import mock
 
+from oslo_utils import timeutils
 import sushy
 
 from ironic.common import exception
@@ -314,7 +315,7 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
         bmc_component = {'component': 'bmc', 'url': 'https://bmc/v1.0.1'}
         bios_component = {'component': 'bios', 'url': 'https://bios/v1.0.1'}
         if add_wait:
-            wait_start_time = datetime.datetime.utcnow() -\
+            wait_start_time = timeutils.utcnow() -\
                 datetime.timedelta(minutes=1)
             bmc_component['wait_start_time'] = wait_start_time.isoformat()
             bios_component['wait_start_time'] = wait_start_time.isoformat()

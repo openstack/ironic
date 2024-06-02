@@ -16,6 +16,7 @@
 import datetime
 from unittest import mock
 
+from oslo_utils import timeutils
 from oslo_utils import units
 import sushy
 
@@ -1281,8 +1282,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         mock_update_service = mock.Mock()
         mock_get_update_service.return_value = mock_update_service
 
-        wait_start_time = datetime.datetime.utcnow() -\
-            datetime.timedelta(minutes=15)
+        wait_start_time = timeutils.utcnow() - datetime.timedelta(minutes=15)
         driver_internal_info = {
             'firmware_updates': [
                 {'task_monitor': '/task/123',
@@ -1312,8 +1312,7 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         mock_update_service = mock.Mock()
         mock_get_update_service.return_value = mock_update_service
 
-        wait_start_time = datetime.datetime.utcnow() -\
-            datetime.timedelta(minutes=1)
+        wait_start_time = timeutils.utcnow() - datetime.timedelta(minutes=1)
         driver_internal_info = {
             'firmware_updates': [
                 {'task_monitor': '/task/123',
