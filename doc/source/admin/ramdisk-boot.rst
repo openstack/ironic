@@ -27,7 +27,7 @@ be set upon creation of a new node:
 
 .. code-block:: shell
 
-   baremetal node create --driver ipmi \
+   baremetal node create --driver <driver> \
        --deploy-interface ramdisk \
        --boot-interface ipxe
 
@@ -75,11 +75,6 @@ source, for example,
         --instance-info kernel=http://path/to/ramdisk.kernel \
         --instance-info ramdisk=http://path/to/ramdisk.initramfs
     baremetal node deploy <NODE>
-
-.. note::
-   Before the Xena release, the ``image_source`` field was also required::
-
-        --instance-info image_source=http://path/to/ramdisk.initramfs
 
 Booting an ISO
 --------------
