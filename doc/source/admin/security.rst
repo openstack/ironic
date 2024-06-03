@@ -23,14 +23,28 @@ OpenStack deployment.
 REST API: user roles and policy settings
 ========================================
 
+By default, users are authenticated and authorization details are provided to
+Ironic as part web API's operating security model and interaction with
+keystone.
+
 Default REST API user roles and policy settings have evolved, starting in the
 Wallaby development cycle, into a model often referred to in the OpenStack
-community as ``Secure RBAC``. You can find more information on this at
-:doc:`/admin/secure-rbac`.
+community as ``Secure RBAC``. This model is intended balance usability, while
+leaning towards a secure-by-default state. You can find more information on
+this at :doc:`/admin/secure-rbac`.
 
 Operators may choose to override default, in-code, Role Based Access Control
 policies by utilizing override policies, which you can learn about at
 :doc:`/configuration/policy`.
+
+Conductor Operation
+-------------------
+
+Ironic relies upon the REST API to validate, authenticate, and authorize user
+requests and interactions. While the conductor service *can* be operated with
+the REST API in a single process, the normal operating mode is as separate
+services either connected to a Message bus or use of an authenticated JSON-RPC
+endpoint.
 
 Multi-tenancy
 =============
@@ -41,6 +55,7 @@ actions one tenant can take on a machine that will affect the next tenant.
 
 Network Interactions
 --------------------
+
 Interactions between tenants' workloads running simultaneously on separate
 servers include, but are not limited to: IP spoofing, packet sniffing, and
 network man-in-the-middle attacks.
@@ -302,6 +317,11 @@ the nodes' BMC controllers), provisioning, cleaning (if used) and rescuing
 
 This can be done with physical or logical network isolation, traffic filtering, etc.
 
+While the Ironic project has made strives to enable the API to be utilized
+by end users directly, we still encourage operators to be as mindful as
+possible to ensure appropriate security controls are in place to also restrict
+access to the service.
+
 Management interface technologies
 ---------------------------------
 
@@ -330,12 +350,13 @@ a node by default, once the node has been provisioned.
 API endpoints for RAM disk use
 ------------------------------
 
-There are `two (unauthorized) endpoints
+There are `three (unauthorized) endpoints
 <https://docs.openstack.org/api-ref/baremetal/#utility>`_ in the
 Bare Metal API that are intended for use by the ironic-python-agent RAM disk.
 They are not intended for public use.
 
-These endpoints can potentially cause security issues. Access to
+These endpoints can potentially cause security issues even though the logic
+around these endpoints is intended to be defensive in nature. Access to
 these endpoints from external or untrusted networks should be prohibited.
 An easy way to do this is to:
 
@@ -347,7 +368,39 @@ An easy way to do this is to:
   :ironic-doc:`policy.yaml file <configuration/sample-policy.html>`::
 
     # Send heartbeats from IPA ramdisk
-    "baremetal:node:ipa_heartbeat": "rule:is_admin"
+    "baremetal:node:ipa_heartbeat": "!"
 
     # Access IPA ramdisk functions
-    "baremetal:driver:ipa_lookup": "rule:is_admin"
+    "baremetal:driver:ipa_lookup": "!"
+
+    # Continue introspection IPA ramdisk endpoint
+    "baremetal:driver:ipa_continue_inspection": "!"
+
+Rate Limiting
+-------------
+
+Ironic has a concept of a "concurrent action limit", which allows
+operators to restrict concurrent, long running, destructive actions.
+
+The overall use case this was implemented for was to help provide
+backstop for runaway processes and actions which one may apply to
+an environment, such as batch deletes of nodes. The appropriate
+settings for these settings are the ``[conductor]max_concurrent_deploy``
+with a default value of 250, and ``[conductor]max_concurrent_clean``
+with a default value of 50. These settings are reasonable defaults
+for medium to large deployments, but depending on load and usage
+patterns and can be safely tuned to be in line with an operator's
+comfort level.
+
+Memory Limiting
+---------------
+
+Because users of the Ironic API can request activities which
+can consume large amounts of memory, for example, disk image format
+conversions as part of a deployment operations. The Ironic conductor
+service has a minimum memory available check which is executed before
+launching these operations. It defaults to ``1024`` Megabytes, and can
+be tuned using the ``[DEFAULT]minimum_required_memory`` setting.
+
+Operators with a higher level of concurrency may wish to increase the
+default value.
