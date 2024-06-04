@@ -854,9 +854,6 @@
       - ^releasenotes/.*$
       - ^setup.cfg$
       - ^tox.ini$
-      - ^tools/.*$
-      - regex: ^tools/bandit\.yml$
-        negate: true
 
 - job:
     name: ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib
