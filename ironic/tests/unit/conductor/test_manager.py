@@ -7669,11 +7669,11 @@ class HeartbeatTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         mock_spawn.side_effect = self._fake_spawn
 
-        self.service.heartbeat(self.context, node.uuid, 'http://callback',
+        self.service.heartbeat(self.context, node.uuid, 'https://callback',
                                agent_version=None, agent_token='magic',
                                agent_status='start')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
-                                          'http://callback', None,
+                                          'https://callback', None,
                                           None, 'start', None)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
@@ -7682,6 +7682,7 @@ class HeartbeatTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 autospec=True)
     def test_heartbeat_with_agent_version(self, mock_spawn, mock_heartbeat):
         """Test heartbeating."""
+        self.config(require_tls=False, group='agent')
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYING,
@@ -7743,10 +7744,10 @@ class HeartbeatTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         mock_spawn.side_effect = self._fake_spawn
 
-        self.service.heartbeat(self.context, node.uuid, 'http://callback',
+        self.service.heartbeat(self.context, node.uuid, 'https://callback',
                                '6.1.0', agent_token='a secret')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
-                                          'http://callback', '6.1.0', None,
+                                          'https://callback', '6.1.0', None,
                                           None, None)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
@@ -7768,10 +7769,10 @@ class HeartbeatTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         mock_spawn.side_effect = self._fake_spawn
 
-        self.service.heartbeat(self.context, node.uuid, 'http://callback',
+        self.service.heartbeat(self.context, node.uuid, 'https://callback',
                                '6.1.0', agent_token='a secret')
         mock_heartbeat.assert_called_with(mock.ANY, mock.ANY,
-                                          'http://callback', '6.1.0', None,
+                                          'https://callback', '6.1.0', None,
                                           None, None)
 
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.heartbeat',
@@ -7795,7 +7796,7 @@ class HeartbeatTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.heartbeat, self.context,
-                                node.uuid, 'http://callback',
+                                node.uuid, 'https://callback',
                                 agent_token='evil', agent_version='5.0.0b23')
         self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
         self.assertFalse(mock_heartbeat.called)
@@ -7822,7 +7823,7 @@ class HeartbeatTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         # occurs.
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.heartbeat, self.context,
-                                node.uuid, 'http://callback',
+                                node.uuid, 'https://callback',
                                 agent_token='evil', agent_version='4.0.0')
         self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
         self.assertFalse(mock_heartbeat.called)
@@ -7847,7 +7848,7 @@ class HeartbeatTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
         exc = self.assertRaises(messaging.rpc.ExpectedException,
                                 self.service.heartbeat, self.context,
-                                node.uuid, 'http://callback',
+                                node.uuid, 'https://callback',
                                 agent_token=None, agent_version='6.1.5')
         self.assertEqual(exception.InvalidParameterValue, exc.exc_info[0])
         self.assertFalse(mock_heartbeat.called)
@@ -7858,7 +7859,6 @@ class HeartbeatTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 autospec=True)
     def test_heartbeat_tls_required(self, mock_spawn, mock_heartbeat):
         """Heartbeat fails when it does not match."""
-        self.config(require_tls=True, group='agent')
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.DEPLOYING,
@@ -7900,11 +7900,11 @@ class HeartbeatTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_spawn.reset_mock()
 
         mock_spawn.side_effect = self._fake_spawn
-        self.service.heartbeat(self.context, node.uuid, 'http://callback',
+        self.service.heartbeat(self.context, node.uuid, 'https://callback',
                                agent_version='6.1.0', agent_token='a secret',
                                agent_verify_ca='abcd')
         mock_heartbeat.assert_called_with(
-            mock.ANY, mock.ANY, 'http://callback', '6.1.0', '/path/to/crt',
+            mock.ANY, mock.ANY, 'https://callback', '6.1.0', '/path/to/crt',
             None, None)
 
 

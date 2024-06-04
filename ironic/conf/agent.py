@@ -153,10 +153,12 @@ opts = [
                help=_('Wait time in seconds between attempts for validating '
                       'Neutron agent status.')),
     cfg.BoolOpt('require_tls',
-                default=False,
+                default=True,
                 mutable=True,
-                help=_('If set to True, callback URLs without https:// will '
-                       'be rejected by the conductor.')),
+                help=_('If set to False, callback URLs without https:// will '
+                       'be permitted by the conductor, which may be needed '
+                       'for backwards compatibility outside of the supported '
+                       'version window.')),
     cfg.StrOpt('certificates_path',
                default='/var/lib/ironic/certificates',
                help=_('Path to store auto-generated TLS certificates used to '
