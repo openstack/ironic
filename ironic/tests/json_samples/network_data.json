@@ -27,7 +27,7 @@
         "interface1"
       ],
       "ethernet_mac_address": "a0:36:9f:2c:e8:82",
-      "bond_mode": "802.1ad",
+      "bond_mode": "802.3ad",
       "bond_xmit_hash_policy": "layer3+4",
       "bond_miimon": 100
     },
