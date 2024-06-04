@@ -13,6 +13,7 @@
 #    under the License.
 
 from http import client as http_client
+from urllib import parse as urlparse
 
 from oslo_config import cfg
 from oslo_log import log
@@ -225,6 +226,20 @@ class HeartbeatController(rest.RestController):
         rpc_node = api_utils.get_rpc_node_with_suffix(node_ident)
         dii = rpc_node['driver_internal_info']
         agent_url = dii.get('agent_url')
+        try:
+            # NOTE(TheJulia): Use of urllib.urlparse is not a security
+            # guard, but detecting oddities and incorrect formatting
+            # https://docs.python.org/3/library/urllib.parse.html#url-parsing-security  # noqa
+            parsed_url = urlparse.urlparse(callback_url)
+            # Check if http (compatibility), or https (much newer agents)
+            if 'http' not in parsed_url.scheme:
+                raise ValueError
+            callback_url = parsed_url.geturl()
+        except ValueError:
+            raise exception.InvalidParameterValue(
+                _('An issue with the supplied "callback_url" has been '
+                  'detected.'))
+
         # If we have an agent_url on file, and we get something different
         # we should fail because this is unexpected behavior of the agent.
         if agent_url is not None and agent_url != callback_url:

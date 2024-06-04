@@ -204,7 +204,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
     def test_old_api_version(self):
         response = self.post_json(
             '/heartbeat/%s' % uuidutils.generate_uuid(),
-            {'callback_url': 'url'},
+            {'callback_url': 'https://url'},
             headers={api_base.Version.string: str(api_v1.min_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
@@ -212,7 +212,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
     def test_node_not_found(self):
         response = self.post_json(
             '/heartbeat/%s' % uuidutils.generate_uuid(),
-            {'callback_url': 'url'},
+            {'callback_url': 'https://url'},
             headers={api_base.Version.string: str(api_v1.max_version())},
             expect_errors=True)
         self.assertEqual(http_client.NOT_FOUND, response.status_int)
@@ -222,14 +222,14 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context)
         response = self.post_json(
             '/heartbeat/%s' % node.uuid,
-            {'callback_url': 'url',
+            {'callback_url': 'https://url',
              'agent_token': 'x'},
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', None, 'x',
-                                               None, None, None,
+                                               node.uuid, 'https://url', None,
+                                               'x', None, None, None,
                                                topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
@@ -238,14 +238,14 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context)
         response = self.post_json(
             '/heartbeat/%s.json' % node.uuid,
-            {'callback_url': 'url',
+            {'callback_url': 'https://url',
              'agent_token': 'maybe some magic'},
             headers=headers)
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', None,
-                                               'maybe some magic',
+                                               node.uuid, 'https://url',
+                                               None, 'maybe some magic',
                                                None, None, None,
                                                topic='test-topic')
 
@@ -254,13 +254,13 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context, name='test.1')
         response = self.post_json(
             '/heartbeat/%s' % node.name,
-            {'callback_url': 'url',
+            {'callback_url': 'https://url',
              'agent_token': 'token'},
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', None,
+                                               node.uuid, 'https://url', None,
                                                'token', None, None, None,
                                                topic='test-topic')
 
@@ -269,14 +269,15 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context)
         response = self.post_json(
             '/heartbeat/%s' % node.uuid,
-            {'callback_url': 'url',
+            {'callback_url': 'https://url',
              'agent_version': '1.4.1',
              'agent_token': 'meow'},
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', '1.4.1',
+                                               node.uuid, 'https://url',
+                                               '1.4.1',
                                                'meow',
                                                None, None, None,
                                                topic='test-topic')
@@ -286,9 +287,20 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context)
         response = self.post_json(
             '/heartbeat/%s' % node.uuid,
-            {'callback_url': 'url',
+            {'callback_url': 'https://url',
              'agent_version': '1.4.1'},
             headers={api_base.Version.string: '1.35'},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
+    def test_heartbeat_rejects_file_url(self, mock_heartbeat):
+        node = obj_utils.create_test_node(
+            self.context)
+        response = self.post_json(
+            '/heartbeat/%s' % node.uuid,
+            {'callback_url': 'file:///path/to/the/wizzard'},
+            headers={api_base.Version.string: str(api_v1.max_version())},
             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
@@ -296,10 +308,10 @@ class TestHeartbeat(test_api_base.BaseApiTest):
     def test_heartbeat_rejects_different_callback_url(self, mock_heartbeat):
         node = obj_utils.create_test_node(
             self.context,
-            driver_internal_info={'agent_url': 'url'})
+            driver_internal_info={'agent_url': 'https://url'})
         response = self.post_json(
             '/heartbeat/%s' % node.uuid,
-            {'callback_url': 'url2'},
+            {'callback_url': 'https://url2'},
             headers={api_base.Version.string: str(api_v1.max_version())},
             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
@@ -309,13 +321,13 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context)
         response = self.post_json(
             '/heartbeat/%s' % node.uuid,
-            {'callback_url': 'url',
+            {'callback_url': 'http://url',
              'agent_token': 'abcdef1'},
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', None,
+                                               node.uuid, 'http://url', None,
                                                'abcdef1', None, None, None,
                                                topic='test-topic')
 
@@ -324,14 +336,14 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context)
         response = self.post_json(
             '/heartbeat/%s' % node.uuid,
-            {'callback_url': 'url',
+            {'callback_url': 'https://url',
              'agent_token': 'meow',
              'agent_verify_ca': 'abcdef1'},
             headers={api_base.Version.string: str(api_v1.max_version())})
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', None,
+                                               node.uuid, 'https://url', None,
                                                'meow', 'abcdef1', None, None,
                                                topic='test-topic')
 
@@ -340,7 +352,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context)
         response = self.post_json(
             '/heartbeat/%s' % node.uuid,
-            {'callback_url': 'url',
+            {'callback_url': 'https://url',
              'agent_token': 'meow',
              'agent_status': 'start',
              'agent_status_message': 'woof',
@@ -349,7 +361,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         self.assertEqual(http_client.ACCEPTED, response.status_int)
         self.assertEqual(b'', response.body)
         mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
-                                               node.uuid, 'url', None,
+                                               node.uuid, 'https://url', None,
                                                'meow', 'abcdef1', 'start',
                                                'woof', topic='test-topic')
 
@@ -358,7 +370,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context)
         response = self.post_json(
             '/heartbeat/%s' % node.uuid,
-            {'callback_url': 'url',
+            {'callback_url': 'https://url',
              'agent_token': 'meow',
              'agent_status': 'invalid_state',
              'agent_status_message': 'woof',
@@ -372,7 +384,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context)
         response = self.post_json(
             '/heartbeat/%s' % node.uuid,
-            {'callback_url': 'url',
+            {'callback_url': 'https://url',
              'agent_token': 'meow',
              'agent_verify_ca': 'abcd'},
             headers={api_base.Version.string: '1.67'},
@@ -384,7 +396,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
         node = obj_utils.create_test_node(self.context)
         response = self.post_json(
             '/heartbeat/%s' % node.uuid,
-            {'callback_url': 'url',
+            {'callback_url': 'https://url',
              'agent_token': 'meow',
              'agent_verify_ca': 'abcd',
              'agent_status': 'wow',

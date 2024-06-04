@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds additional validation to the agent ``callback_url``.
+security:
+  - |
+    Additional validation of the ``callback_url`` which is supplied to Ironic
+    by the agent has been added. In addition to any standardized formatting
+    checks included in Python urllib, we will also reject requests which
+    have an invalid URL schema formatting.
