@@ -125,7 +125,8 @@ disabled so that storage is not cleaned twice and then assigns a non-zero
 priority to ``erase_devices_express``, hence enabling it. Any non-zero
 priority specified in the priority override will work.
 
-Also `[deploy]/enable_nvme_secure_erase` should not be disabled (it is on by default).
+Also ``[deploy]/enable_nvme_secure_erase`` should not be disabled (it is on by
+default).
 
 .. show-steps::
    :phase: cleaning
