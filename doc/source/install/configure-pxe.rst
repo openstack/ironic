@@ -430,7 +430,7 @@ nodes will be deployed by 'grubaa64.efi', and ppc64 nodes by 'bootppc64'::
 .. note::
    A ``[pxe]ipxe_bootfile_name_by_arch`` setting is available for multi-arch
    iPXE based deployment, and defaults to the same behavior as the comperable
-   ``[pxe]pxe_bootfile_by_arch`` setting for standard PXE.
+   ``[pxe]pxe_bootfile_name_by_arch`` setting for standard PXE.
 
 .. note::
    When booting PowerPC based machines, the firmware loader directly boots
