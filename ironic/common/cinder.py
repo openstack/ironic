@@ -12,12 +12,12 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import datetime
 import json
 
 import openstack
 from openstack.connection import exceptions as openstack_exc
 from oslo_log import log
+from oslo_utils import timeutils
 
 from ironic.common import context as ironic_context
 from ironic.common import exception
@@ -164,7 +164,7 @@ def _create_metadata_dictionary(node, action):
     """
     label = "ironic_node_%s" % node.uuid
     data = {'instance_uuid': node.instance_uuid or node.uuid,
-            'last_seen': datetime.datetime.utcnow().isoformat(),
+            'last_seen': timeutils.utcnow().isoformat(),
             'last_action': action}
     return {label: json.dumps(data)}
 

@@ -235,7 +235,8 @@ class DbConductorTestCase(base.DbTestCase):
         h = 'fake-host'
         expected = {}
 
-        mock_utcnow.return_value = datetime.datetime.utcnow()
+        mock_utcnow.return_value = datetime.datetime.now(
+            datetime.timezone.utc).replace(tzinfo=None)
         self._create_test_cdr(hostname=h, drivers=[], hardware_types=[])
         result = self.dbapi.get_active_hardware_type_dict()
         self.assertEqual(expected, result)
@@ -246,7 +247,8 @@ class DbConductorTestCase(base.DbTestCase):
         ht = 'hardware-type'
         expected = {ht: {h}}
 
-        mock_utcnow.return_value = datetime.datetime.utcnow()
+        mock_utcnow.return_value = datetime.datetime.now(
+            datetime.timezone.utc).replace(tzinfo=None)
         self._create_test_cdr(hostname=h, drivers=[], hardware_types=[ht])
         result = self.dbapi.get_active_hardware_type_dict()
         self.assertEqual(expected, result)
@@ -260,7 +262,8 @@ class DbConductorTestCase(base.DbTestCase):
         key = '%s:%s' % (group, ht)
         expected = {key: {h}}
 
-        mock_utcnow.return_value = datetime.datetime.utcnow()
+        mock_utcnow.return_value = datetime.datetime.now(
+            datetime.timezone.utc).replace(tzinfo=None)
         self._create_test_cdr(hostname=h, drivers=[], hardware_types=[ht],
                               conductor_group=group)
         result = self.dbapi.get_active_hardware_type_dict(use_groups=True)
@@ -273,7 +276,8 @@ class DbConductorTestCase(base.DbTestCase):
         ht2 = 'another-hardware-type'
         expected = {ht1: {h}, ht2: {h}}
 
-        mock_utcnow.return_value = datetime.datetime.utcnow()
+        mock_utcnow.return_value = datetime.datetime.now(
+            datetime.timezone.utc).replace(tzinfo=None)
         self._create_test_cdr(hostname=h, drivers=[],
                               hardware_types=[ht1, ht2])
         result = self.dbapi.get_active_hardware_type_dict()
@@ -286,7 +290,8 @@ class DbConductorTestCase(base.DbTestCase):
         ht = 'hardware-type'
         expected = {ht: {h1, h2}}
 
-        mock_utcnow.return_value = datetime.datetime.utcnow()
+        mock_utcnow.return_value = datetime.datetime.now(
+            datetime.timezone.utc).replace(tzinfo=None)
         self._create_test_cdr(id=1, hostname=h1, drivers=[],
                               hardware_types=[ht])
         self._create_test_cdr(id=2, hostname=h2, drivers=[],
@@ -303,7 +308,8 @@ class DbConductorTestCase(base.DbTestCase):
         ht2 = 'another-hardware-type'
         expected = {ht1: {h1, h2}, ht2: {h1, h2}}
 
-        mock_utcnow.return_value = datetime.datetime.utcnow()
+        mock_utcnow.return_value = datetime.datetime.now(
+            datetime.timezone.utc).replace(tzinfo=None)
         self._create_test_cdr(id=1, hostname=h1, drivers=[],
                               hardware_types=[ht1, ht2])
         self._create_test_cdr(id=2, hostname=h2, drivers=[],

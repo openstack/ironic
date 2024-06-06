@@ -41,7 +41,6 @@ notifying Neutron of a change, etc.
 """
 
 import collections
-import datetime
 import queue
 
 import eventlet
@@ -50,6 +49,7 @@ from ironic_lib import metrics_utils
 from oslo_log import log
 import oslo_messaging as messaging
 from oslo_utils import excutils
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from ironic.common import boot_devices
@@ -2602,7 +2602,7 @@ class ConductorManager(base_manager.BaseConductorManager):
             message = {'message_id': uuidutils.generate_uuid(),
                        'instance_uuid': instance_uuid,
                        'node_uuid': node_uuid,
-                       'timestamp': datetime.datetime.utcnow()}
+                       'timestamp': timeutils.utcnow()}
 
             try:
                 lock_purpose = 'getting sensors data'
@@ -2672,7 +2672,7 @@ class ConductorManager(base_manager.BaseConductorManager):
         # populate the message which will be sent to ceilometer
         # or other data consumer
         message = {'message_id': uuidutils.generate_uuid(),
-                   'timestamp': datetime.datetime.utcnow(),
+                   'timestamp': timeutils.utcnow(),
                    'hostname': self.host}
 
         try:

@@ -13,6 +13,8 @@
 import datetime
 from unittest import mock
 
+from oslo_utils import timeutils
+
 from ironic.common import exception
 from ironic.common import states
 from ironic.conductor import task_manager
@@ -30,7 +32,7 @@ class AgentPowerTest(db_base.DbTestCase):
         self.config(fast_track=True, group='deploy')
         self.power = agent_power.AgentPower()
         dii = {
-            'agent_last_heartbeat': datetime.datetime.utcnow().strftime(
+            'agent_last_heartbeat': timeutils.utcnow().strftime(
                 "%Y-%m-%dT%H:%M:%S.%f"),
             'deployment_reboot': True,
             'agent_url': 'http://url',

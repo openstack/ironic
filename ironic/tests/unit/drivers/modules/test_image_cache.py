@@ -23,6 +23,7 @@ import time
 from unittest import mock
 import uuid
 
+from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from ironic.common import exception
@@ -336,7 +337,7 @@ class TestUpdateImages(BaseTest):
         touch(self.master_path)
         href = 'http://awesomefreeimages.al/img999'
         self.img_info = {
-            'updated_at': datetime.datetime((datetime.datetime.utcnow().year
+            'updated_at': datetime.datetime((timeutils.utcnow().year
                                              + 1), 11, 15, 8, 12, 31)
         }
         res = image_cache._delete_master_path_if_stale(self.master_path, href,

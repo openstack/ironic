@@ -19,6 +19,8 @@ import datetime
 import hashlib
 import json
 
+from oslo_utils import timeutils
+
 from ironic.api.controllers.v1 import allocation as al_controller
 from ironic.api.controllers.v1 import chassis as chassis_controller
 from ironic.api.controllers.v1 import deploy_template as dt_controller
@@ -82,7 +84,7 @@ class FakeMemcache(object):
         self.token_expiration = None
 
     def get(self, key):
-        dt = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+        dt = timeutils.utcnow() + datetime.timedelta(minutes=5)
         return json.dumps((self._cache.get(key), dt.isoformat()))
 
     def set(self, key, value, time=0, min_compress_len=0):
