@@ -699,7 +699,7 @@ class PortsController(rest.RestController):
                         context, port_dict['portgroup_uuid'])
                 else:
                     portgroup = None
-        except exception.PortGroupNotFound as e:
+        except exception.PortgroupNotFound as e:
             # Change error code because 404 (NotFound) is inappropriate
             # response for a PATCH request to change a Port
             e.code = http_client.BAD_REQUEST  # BadRequest
