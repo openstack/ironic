@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    During node deployment, unless explicitly configured otherwise,
+    Ironic now only creates PXE link files for ports with pxe_enabled=True,
+    preventing unintended booting from disabled ports.
