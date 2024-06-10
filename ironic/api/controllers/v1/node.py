@@ -2220,6 +2220,23 @@ class NodeVmediaController(rest.RestController, GetNodeAndTopicMixin):
     def __init__(self, node_ident):
         self.node_ident = node_ident
 
+    @METRICS.timer('NodeVmediaController.get')
+    @method.expose(status_code=http_client.OK)
+    def get(self):
+        """Get virtual media details for this node
+
+        """
+        # NOTE(hroyrh) checking for api version here
+        # rather than separating the get function into
+        # a different controller
+        if not api_utils.allow_get_vmedia():
+            pecan.abort(http_client.NOT_FOUND)
+        rpc_node, topic = self._get_node_and_topic(
+            'baremetal:node:vmedia:get')
+        return api.request.rpcapi.get_virtual_media(
+            api.request.context, rpc_node.uuid,
+            topic=topic)
+
     @METRICS.timer('NodeVmediaController.post')
     @method.expose(status_code=http_client.NO_CONTENT)
     @method.body('vmedia')

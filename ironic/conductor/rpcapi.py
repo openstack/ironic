@@ -159,12 +159,13 @@ class ConductorAPI(object):
     |    1.58 - Added support for json-rpc port usage
     |    1.59 - Added support for attaching/detaching virtual media
     |    1.60 - Added continue_node_service
+    |    1.61 - Added get virtual media support
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.60'
+    RPC_API_VERSION = '1.61'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -1506,3 +1507,21 @@ class ConductorAPI(object):
             context, 'detach_virtual_media',
             node_id=node_id,
             device_types=device_types)
+
+    def get_virtual_media(self, context, node_id, topic=None):
+        """Get all virtual media devices from the node.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :param topic: RPC topic. Defaults to self.topic.
+        :raises: UnsupportedDriverExtension if the driver does not support
+                 this call.
+        :raises: InvalidParameterValue if validation of management driver
+                 interface failed.
+        :raises: NodeLocked if node is locked by another conductor.
+
+        """
+        cctxt = self._prepare_call(topic=topic, version='1.61')
+        return cctxt.call(
+            context, 'get_virtual_media',
+            node_id=node_id)

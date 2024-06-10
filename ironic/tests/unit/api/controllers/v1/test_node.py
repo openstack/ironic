@@ -8908,8 +8908,32 @@ class TestNodeVmedia(test_api_base.BaseApiTest):
 
     def setUp(self):
         super().setUp()
-        self.version = "1.89"
+        self.version = "1.93"
         self.node = obj_utils.create_test_node(self.context)
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'get_virtual_media',
+                       autospec=True)
+    def test_get(self, mock_get):
+        mock_vmedia_list = [
+            {'media_types': ['CD', 'DVD'],
+                'inserted': 'false',
+                'image': ''},
+            {'media_types': ['Floppy', 'USBStick'],
+                'inserted': 'false',
+                'image': ''}
+        ]
+        mock_get.return_value = mock_vmedia_list
+        ret = self.get_json('/nodes/%s/vmedia' % self.node.uuid,
+                            headers={api_base.Version.string: self.version})
+        self.assertEqual(mock_vmedia_list, ret)
+        mock_get.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid, topic='test-topic')
+
+    def test_get_wrong_version(self):
+        ret = self.get_json('/nodes/%s/vmedia' % self.node.uuid,
+                            headers={api_base.Version.string: "1.92"},
+                            expect_errors=True)
+        self.assertEqual(http_client.NOT_FOUND, ret.status_int)
 
     @mock.patch.object(rpcapi.ConductorAPI, 'attach_virtual_media',
                        autospec=True)

@@ -1302,6 +1302,16 @@ class ManagementInterface(BaseInterface):
         raise exception.UnsupportedDriverExtension(
             driver=task.node.driver, extension='get_mac_addresses')
 
+    def get_virtual_media(self, task):
+        """Get all virtual media devices from the node.
+
+        :param task: A TaskManager instance containing the node to act on.
+        :raises: UnsupportedDriverExtension
+
+        """
+        raise exception.UnsupportedDriverExtension(
+            driver=task.node.driver, extension='get_virtual_media')
+
     def attach_virtual_media(self, task, device_type, image_url):
         """Attach a virtual media device to the node.
 

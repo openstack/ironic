@@ -1341,6 +1341,18 @@ class RedfishManagement(base.ManagementInterface):
             raise exception.RedfishError(error=msg)
 
     @task_manager.require_exclusive_lock
+    def get_virtual_media(self, task):
+        """Get all virtual media devices from the node.
+
+            :param task: A task from TaskManager.
+
+        """
+        LOG.info('Called redfish.management.get_virtual_media,'
+                 'for the node=%(node)s',
+                 {'node': task.node.uuid})
+        return redfish_boot.get_vmedia(task)
+
+    @task_manager.require_exclusive_lock
     def attach_virtual_media(self, task, device_type, image_url):
         """Attach a virtual media device to the node.
 

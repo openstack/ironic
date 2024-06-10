@@ -1,0 +1,5 @@
+---
+features:
+  Adds a new capability allowing to fetch the list
+  of virtual media devices attached to a node by
+  making a GET request.

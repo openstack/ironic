@@ -97,7 +97,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.60'
+    RPC_API_VERSION = '1.61'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -3850,6 +3850,31 @@ class ConductorManager(base_manager.BaseConductorManager):
                 raise exception.InvalidStateRequested(
                     action='service', node=node.uuid,
                     state=node.provision_state)
+
+    @METRICS.timer('ConductorManager.get_virtual_media')
+    @messaging.expected_exceptions(exception.InvalidParameterValue,
+                                   exception.NodeLocked,
+                                   exception.UnsupportedDriverExtension)
+    def get_virtual_media(self, context, node_id):
+        """Get all virtual media devices from the node.
+
+        :param context: request context.
+        :param node_id: node ID or UUID.
+        :raises: UnsupportedDriverExtension if the driver does not support
+                 this call.
+        :raises: InvalidParameterValue if validation of management driver
+                 interface failed.
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task.
+
+        """
+        LOG.debug("RPC get_virtual_media called for node %(node)s ",
+                  {'node': node_id})
+        with task_manager.acquire(context, node_id,
+                                  purpose='get virtual media devices') as task:
+            task.driver.management.validate(task)
+            return task.driver.management.get_virtual_media(task)
 
     @METRICS.timer('ConductorManager.attach_virtual_media')
     @messaging.expected_exceptions(exception.InvalidParameterValue,

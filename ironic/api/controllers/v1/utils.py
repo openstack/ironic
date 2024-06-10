@@ -2209,3 +2209,8 @@ def allow_port_name():
 def allow_attach_detach_vmedia():
     """Check if we should support virtual media actions."""
     return api.request.version.minor >= versions.MINOR_89_ATTACH_DETACH_VMEDIA
+
+
+def allow_get_vmedia():
+    """Check if we should support get virtual media action."""
+    return api.request.version.minor >= versions.MINOR_93_GET_VMEDIA

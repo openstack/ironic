@@ -1866,6 +1866,12 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             self.assertIsNone(task.driver.management.get_mac_addresses(task))
 
+    @mock.patch.object(redfish_boot, 'get_vmedia', autospec=True)
+    def test_get_virtual_media(self, mock_get_vmedia):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.driver.management.get_virtual_media(task)
+            mock_get_vmedia.assert_called_once_with(task)
+
     @mock.patch.object(redfish_boot, 'insert_vmedia', autospec=True)
     def test_attach_virtual_media(self, mock_insert_vmedia):
         with task_manager.acquire(self.context, self.node.uuid) as task:
