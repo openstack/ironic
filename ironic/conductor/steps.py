@@ -132,15 +132,6 @@ def _sorted_steps(steps, sort_step_key):
     return sorted(steps, key=sort_step_key, reverse=True)
 
 
-def _service_step_key(step):
-    """Sort by priority, then interface priority in event of tie.
-
-    :param step: deploy step dict to get priority for.
-    """
-    return (step.get('priority'),
-            SERVICING_INTERFACE_PRIORITY[step.get('interface')])
-
-
 def is_equivalent(step1, step2):
     """Compare steps, ignoring their priority."""
     return (step1.get('interface') == step2.get('interface')
@@ -260,17 +251,14 @@ def _get_service_steps(task, enabled=False, sort=True):
     :param task: A TaskManager object
     :param enabled: If True, returns only enabled (priority > 0) steps. If
         False, returns all clean steps.
-    :param sort: If True, the steps are sorted from highest priority to lowest
-        priority. For steps having the same priority, they are sorted from
-        highest interface priority to lowest.
+    :param sort: Used for consistency, ignored.
     :raises: NodeServicingFailure if there was a problem getting the
         clean steps.
     :returns: A list of clean step dictionaries
     """
-    sort_key = _service_step_key if sort else None
     service_steps = _get_steps(task, SERVICING_INTERFACE_PRIORITY,
                                'get_service_steps', enabled=enabled,
-                               sort_step_key=sort_key)
+                               sort_step_key=None)
     return service_steps
 
 
@@ -621,7 +609,7 @@ def _validate_user_step(task, user_step, driver_step, step_type,
                   'unexpected': ', '.join(unexpected)})
         errors.append(error)
 
-    if step_type == 'clean' or user_step['priority'] > 0:
+    if step_type != 'deploy' or user_step['priority'] > 0:
         # Check that all required arguments were specified by the user
         missing = []
         for (arg_name, arg_info) in argsinfo.items():
@@ -637,10 +625,13 @@ def _validate_user_step(task, user_step, driver_step, step_type,
                       'miss': ', '.join(missing)})
             errors.append(error)
         if disable_ramdisk and driver_step.get('requires_ramdisk', True):
-            error = _('clean step %s requires booting a ramdisk') % user_step
+            error = _('%(type)s step %(step)s requires booting a ramdisk') % {
+                'type': step_type,
+                'step': user_step
+            }
             errors.append(error)
 
-    if step_type == 'clean':
+    if step_type != 'deploy':
         # Copy fields that should not be provided by a user
         user_step['abortable'] = driver_step.get('abortable', False)
         user_step['priority'] = driver_step.get('priority', 0)

@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Service step validation no longer requires a priority field, which is not
+    supported for servicing.
