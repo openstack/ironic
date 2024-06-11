@@ -297,7 +297,7 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
     if not ports_to_create:
         pxe_enabled = 'PXE-enabled ' if not add_all_ports else ''
         raise exception.NetworkError(_(
-            "No available %(enabled)sports on node %(node)s.") %
+            "No available %(enabled)s ports on node %(node)s.") %
             {'enabled': pxe_enabled, 'node': node.uuid})
 
     for ironic_port in ports_to_create:
@@ -366,10 +366,10 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
         except openstack_exc.OpenStackCloudException as e:
             failures.append(ironic_port.uuid)
             LOG.warning("Could not create neutron port for node's "
-                        "%(node)s port %(ir-port)s on the neutron "
+                        "%(node)s port %(ir_port)s on the neutron "
                         "network %(net)s. %(exc)s",
                         {'net': network_uuid, 'node': node.uuid,
-                         'ir-port': ironic_port.uuid, 'exc': e})
+                         'ir_port': ironic_port.uuid, 'exc': e})
         else:
             ports[ironic_port.uuid] = port.id
 
