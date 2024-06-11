@@ -1,0 +1,5 @@
+---
+security:
+  - |
+    Agent communication now requires an HTTPS url by default. This can be
+    changed using the ``[agent]require_tls`` setting.
