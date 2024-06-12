@@ -2051,7 +2051,7 @@ Events subscription
 ^^^^^^^^^^^^^^^^^^^
 Events subscription is supported by ``ilo`` and ``ilo5`` hardware types with
 ``ilo`` vendor interface for Gen10 and Gen10 Plus servers. See
-:ref:`node-vendor-passthru-methods` for more information.
+:doc:`redfish/passthru` for more information.
 
 Anaconda based deployment
 ^^^^^^^^^^^^^^^^^^^^^^^^^
