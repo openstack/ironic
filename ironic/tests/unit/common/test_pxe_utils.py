@@ -518,6 +518,53 @@ class TestPXEUtils(db_base.DbTestCase):
         create_link_mock.assert_has_calls(create_link_calls)
 
     @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
+    def test_link_mac_pxe_configs_with_pxe_disabled(self, create_link_mock):
+        port_1 = object_utils.create_test_port(
+            self.context, node_id=self.node.id, pxe_enabled=True,
+            address='11:22:33:44:55:66', uuid=uuidutils.generate_uuid())
+        port_2 = object_utils.create_test_port(
+            self.context, node_id=self.node.id, pxe_enabled=False,
+            address='11:22:33:44:55:67', uuid=uuidutils.generate_uuid())
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.ports = [port_1, port_2]
+
+            # Test with add_all_ports set to False (default)
+            pxe_utils._link_mac_pxe_configs(task)
+
+            # Verify that no links were created for pxe disabled ports
+            self.assertNotIn(mock.call(
+                u'../%s/config' % self.node.uuid,
+                '/tftpboot/pxelinux.cfg/01-11-22-33-44-55-67'),
+                create_link_mock.mock_calls)
+            self.assertNotIn(mock.call(
+                u'%s/config' % self.node.uuid,
+                '/tftpboot/grub.cfg-01-11-22-33-44-55-67'),
+                create_link_mock.mock_calls)
+            self.assertNotIn(mock.call(
+                u'%s/config' % self.node.uuid,
+                '/tftpboot/11:22:33:44:55:67.conf'),
+                create_link_mock.mock_calls)
+
+            # Test with add_all_ports set to True
+            self.config(add_all_ports=True, group='neutron')
+            pxe_utils._link_mac_pxe_configs(task)
+
+            # Verify that links were created for all ports
+            self.assertIn(mock.call(
+                u'../%s/config' % self.node.uuid,
+                '/tftpboot/pxelinux.cfg/01-11-22-33-44-55-67'),
+                create_link_mock.mock_calls)
+            self.assertIn(mock.call(
+                u'%s/config' % self.node.uuid,
+                '/tftpboot/grub.cfg-01-11-22-33-44-55-67'),
+                create_link_mock.mock_calls)
+            self.assertIn(mock.call(
+                u'%s/config' % self.node.uuid,
+                '/tftpboot/11:22:33:44:55:67.conf'),
+                create_link_mock.mock_calls)
+
+    @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
     @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider',
                 autospec=True)

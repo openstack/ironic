@@ -115,6 +115,8 @@ def _link_mac_pxe_configs(task, ipxe_enabled=False):
     pxe_config_file_path = get_pxe_config_file_path(
         task.node.uuid, ipxe_enabled=ipxe_enabled)
     for port in task.ports:
+        if not CONF.neutron.add_all_ports and not port.pxe_enabled:
+            continue
         client_id = port.extra.get('client-id')
         # Syslinux, ipxe, depending on settings.
         create_link(_get_pxe_mac_path(port.address, client_id=client_id,
