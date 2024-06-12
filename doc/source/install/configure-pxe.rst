@@ -140,6 +140,9 @@ In order to deploy instances with PXE on bare metal nodes which support
 UEFI, perform these additional steps on the ironic conductor node to configure
 the PXE UEFI environment.
 
+.. NOTE:: Most commercial Linux distributions have signed shim and grub
+   binaries, which are required for Secure Boot.
+
 #. Install Grub2 and shim packages:
 
    Ubuntu (18.04LTS and later)::
@@ -259,6 +262,12 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
       using SUSE or if the packaged version of the iPXE boot image doesn't
       work, you can download a prebuilt one from http://boot.ipxe.org or build
       one image from source, see http://ipxe.org/download for more information.
+
+.. note::
+   The Ironic project is unaware of any vendor signed iPXE binaries to enable
+   use of iPXE with Secure Boot, unless you have implemented your own Secure
+   Boot key signing and support for the Machine Owner Key settings on
+   individual baremetal nodes.
 
 #. Copy the iPXE boot image (``undionly.kpxe`` for **BIOS** and
    ``ipxe.efi`` for **UEFI**) to ``/tftpboot``. The binary might
