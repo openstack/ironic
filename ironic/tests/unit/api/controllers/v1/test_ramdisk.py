@@ -94,6 +94,20 @@ class TestLookup(test_api_base.BaseApiTest):
             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
 
+    def test_invalid_input_addresses(self):
+        response = self.get_json(
+            '/lookup?addresses=meow1',
+            headers={api_base.Version.string: str(api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_invalid_input_node_uuid(self):
+        response = self.get_json(
+            '/lookup?node_uuid=meow1',
+            headers={api_base.Version.string: str(api_v1.max_version())},
+            expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
     def test_not_found(self):
         response = self.get_json(
             '/lookup?addresses=%s' % ','.join(self.addresses),
