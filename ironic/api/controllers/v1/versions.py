@@ -128,6 +128,7 @@ BASE_VERSION = 1
 # v1.88: Add name field to port.
 # v1.89: Add API for attaching/detaching virtual media
 # v1.90: Accept ovn vtep switch metadata schema to port.local_link_connection
+# v1.91: Remove special treatment of .json for API objects
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
