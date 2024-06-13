@@ -649,13 +649,6 @@ class RedfishManagementTestCase(db_base.DbTestCase):
             'power_capacity_watts': 1450,
             'last_power_output_watts': 650,
             'line_input_voltage': 220,
-            'input_ranges': {
-                'minimum_voltage': 185,
-                'maximum_voltage': 250,
-                'minimum_frequency_hz': 47,
-                'maximum_frequency_hz': 63,
-                'output_wattage': 1450
-            },
             'serial_number': 'SN010203040506',
             "status": {
                 "state": "enabled",
@@ -669,7 +662,6 @@ class RedfishManagementTestCase(db_base.DbTestCase):
         mock_psu = mock.MagicMock(**attributes)
         mock_psu.name = attributes['name']
         mock_psu.status = mock.MagicMock(**attributes['status'])
-        mock_psu.input_ranges = mock.MagicMock(**attributes['input_ranges'])
         mock_power.power_supplies = [mock_psu]
 
         with task_manager.acquire(self.context, self.node.uuid,
@@ -681,11 +673,6 @@ class RedfishManagementTestCase(db_base.DbTestCase):
                 'health': 'OK',
                 'last_power_output_watts': 650,
                 'line_input_voltage': 220,
-                'maximum_frequency_hz': 63,
-                'maximum_voltage': 250,
-                'minimum_frequency_hz': 47,
-                'minimum_voltage': 185,
-                'output_wattage': 1450,
                 'power_capacity_watts': 1450,
                 'serial_number': 'SN010203040506',
                 'state': 'enabled'

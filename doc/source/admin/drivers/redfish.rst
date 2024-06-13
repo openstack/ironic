@@ -22,7 +22,8 @@ Redfish_ protocol. Supported features include:
 * Retrieving and changing :ref:`BIOS settings <redfish-bios-settings>`.
 * Applying :doc:`firmware updates </admin/firmware-updates>`.
 * Configuring :doc:`hardware RAID </admin/raid>`.
-* Hardware metrics and integration with `ironic-prometheus-exporter
+* :doc:`Hardware metrics <redfish/metrics>` and integration with
+  `ironic-prometheus-exporter
   <https://docs.openstack.org/ironic-prometheus-exporter/latest/>`_.
 * Event notifications configured via :doc:`redfish/passthru`.
 
@@ -420,6 +421,7 @@ Further topics
 
 .. toctree::
 
+   redfish/metrics
    redfish/passthru
    redfish/session-cache
    redfish/interop
