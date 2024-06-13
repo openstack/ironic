@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes issue with configuring virtual media boot for executing service
+    steps by adding missing entries for states.SERVICING and states.SERVICEWAIT
+    in the whitelist of the states allowed by this method.
+
