@@ -720,14 +720,6 @@ class InvalidKickstartFile(Invalid):
     _msg_fmt = _("The kickstart file is not valid.")
 
 
-class IBMCError(DriverOperationError):
-    _msg_fmt = _("IBMC exception occurred on node %(node)s. Error: %(error)s")
-
-
-class IBMCConnectionError(IBMCError):
-    _msg_fmt = _("IBMC connection failed for node %(node)s: %(error)s")
-
-
 class ClientSideError(RuntimeError):
     def __init__(self, msg=None, status_code=400, faultcode='Client'):
         self.msg = msg

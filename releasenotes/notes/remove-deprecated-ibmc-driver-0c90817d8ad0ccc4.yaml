@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The deprecated ``ibmc`` hardware type has been removed from Ironic.

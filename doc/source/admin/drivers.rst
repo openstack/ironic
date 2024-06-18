@@ -17,7 +17,6 @@ Hardware Types
 .. toctree::
   :maxdepth: 1
 
-  drivers/ibmc
   drivers/idrac
   drivers/ilo
   drivers/intel-ipmi
