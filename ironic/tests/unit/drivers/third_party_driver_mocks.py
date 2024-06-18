@@ -196,25 +196,6 @@ class MockKwargsException(Exception):
         self.kwargs = kwargs
 
 
-xclarity_client = importutils.try_import('xclarity_client')
-if not xclarity_client:
-    xclarity_client = mock.MagicMock(spec_set=mock_specs.XCLARITY_SPEC)
-    sys.modules['xclarity_client'] = xclarity_client
-    sys.modules['xclarity_client.client'] = xclarity_client.client
-    states = mock.MagicMock(
-        spec_set=mock_specs.XCLARITY_STATES_SPEC,
-        STATE_POWER_ON="power on",
-        STATE_POWER_OFF="power off",
-        STATE_POWERING_ON="powering_on",
-        STATE_POWERING_OFF="powering_off")
-    sys.modules['xclarity_client.states'] = states
-    sys.modules['xclarity_client.exceptions'] = xclarity_client.exceptions
-    sys.modules['xclarity_client.utils'] = xclarity_client.utils
-    xclarity_client.exceptions.XClarityException = type('XClarityException',
-                                                        (Exception,), {})
-    sys.modules['xclarity_client.models'] = xclarity_client.models
-
-
 # python-ibmcclient mocks for HUAWEI rack server driver
 ibmc_client = importutils.try_import('ibmc_client')
 if not ibmc_client:

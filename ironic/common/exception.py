@@ -651,10 +651,6 @@ class InstanceUnrescueFailure(IronicException):
                  '%(node)s: %(reason)s')
 
 
-class XClarityError(IronicException):
-    _msg_fmt = _("XClarity exception occurred. Error: %(error)s")
-
-
 class BIOSSettingAlreadyExists(Conflict):
     _msg_fmt = _('A BIOS setting %(name)s for node %(node)s already exists.')
 

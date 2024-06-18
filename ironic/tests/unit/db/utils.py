@@ -514,24 +514,6 @@ def create_test_node_tag(**kw):
     return dbapi.add_node_tag(tag['node_id'], tag['tag'])
 
 
-def get_test_xclarity_properties():
-    return {
-        "cpu_arch": "x86_64",
-        "local_gb": "10",
-        "memory_mb": "4096",
-    }
-
-
-def get_test_xclarity_driver_info():
-    return {
-        'xclarity_manager_ip': "1.2.3.4",
-        'xclarity_username': "USERID",
-        'xclarity_password': "fake",
-        'xclarity_port': 443,
-        'xclarity_hardware_id': 'fake_sh_id',
-    }
-
-
 def get_test_node_trait(**kw):
     return {
         'version': kw.get('version', trait.Trait.VERSION),
