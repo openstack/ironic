@@ -282,6 +282,56 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.assertIsNone(node.last_error)
             mock_deploy.assert_called_once_with(mock.ANY, mock.ANY)
 
+    def test_node_validation_in_disabled_bios_boot_mode_fails(self):
+        self.config(disallowed_deployment_boot_modes=['bios'],
+                    group='conductor')
+        node = obj_utils.create_test_node(self.context,
+                                          properties={'boot_mode': 'bios'},
+                                          driver='fake-hardware')
+
+        with task_manager.acquire(self.context, node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.BootModeNotAllowed,
+                              deployments.validate_node,
+                              task, event='deploy')
+
+    def test_node_validation_in_disabled_uefi_boot_mode_fails(self):
+        self.config(disallowed_deployment_boot_modes=['uefi'],
+                    group='conductor')
+        node = obj_utils.create_test_node(self.context,
+                                          properties={'boot_mode': 'uefi'},
+                                          driver='fake-hardware')
+
+        with task_manager.acquire(self.context, node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(exception.BootModeNotAllowed,
+                              deployments.validate_node,
+                              task, event='deploy')
+
+    def test_update_fails_on_invalid_boot_mode(self):
+        # NOTE(cid): This test might need updating if boot modes' naming
+        # convention changes
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_deployment_boot_modes=['BIOS'],
+                          group='conductor')
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_deployment_boot_modes=['Bios'],
+                          group='conductor')
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_deployment_boot_modes=['UEFI'],
+                          group='conductor')
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_deployment_boot_modes=['Uefi'],
+                          group='conductor')
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_deployment_boot_modes=['blah'],
+                          group='conductor')
+
     @mock.patch.object(deployments, 'do_next_deploy_step', autospec=True)
     @mock.patch.object(conductor_steps, 'set_node_deployment_steps',
                        autospec=True)

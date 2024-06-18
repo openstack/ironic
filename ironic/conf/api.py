@@ -17,6 +17,7 @@
 from oslo_config import cfg
 from oslo_config import types as cfg_types
 
+from ironic.common import boot_modes
 from ironic.common.i18n import _
 
 
@@ -92,6 +93,16 @@ opts = [
                 mutable=True,
                 help=_('If a project scoped administrative user is permitted '
                        'to create/delete baremetal nodes in their project.')),
+    cfg.ListOpt('disallowed_enrollment_boot_modes',
+                item_type=cfg_types.String(
+                    choices=[
+                        (boot_modes.UEFI, _('UEFI boot mode')),
+                        (boot_modes.LEGACY_BIOS, _('Legacy BIOS boot mode'))],
+                ),
+                default=[],
+                mutable=True,
+                help=_("Specifies a list of boot modes that are not allowed "
+                       "during enrollment. Eg: ['bios']")),
 ]
 
 opt_group = cfg.OptGroup(name='api',

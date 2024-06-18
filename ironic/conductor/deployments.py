@@ -43,7 +43,8 @@ def validate_node(task, event='deploy'):
 
     :param task: a TaskManager instance.
     :param event: event to process: deploy or rebuild.
-    :raises: NodeInMaintenance, NodeProtected, InvalidStateRequested
+    :raises: NodeInMaintenance, NodeProtected, InvalidStateRequested,
+             BootModeNotAllowed
     """
     if task.node.maintenance:
         raise exception.NodeInMaintenance(op=_('provisioning'),
@@ -55,6 +56,12 @@ def validate_node(task, event='deploy'):
     if not task.fsm.is_actionable_event(event):
         raise exception.InvalidStateRequested(
             action=event, node=task.node.uuid, state=task.node.provision_state)
+
+    disallowed_boot_modes = CONF.conductor.disallowed_deployment_boot_modes
+    boot_mode = task.node.properties.get('boot_mode', '').lower()
+    if disallowed_boot_modes and boot_mode.strip() in disallowed_boot_modes:
+        raise exception.BootModeNotAllowed(mode=boot_mode,
+                                           op=_('provisioning'))
 
 
 @METRICS.timer('start_deploy')

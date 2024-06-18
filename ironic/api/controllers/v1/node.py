@@ -2775,6 +2775,12 @@ class NodesController(rest.RestController):
         if self.from_chassis:
             raise exception.OperationNotPermitted()
 
+        node_capabilities = node.get('properties', {}).get('capabilities', '')
+        # ``check_allow_boot_mode`` expects ``node_capabilities`` to be a list
+        api_utils.check_allow_boot_mode(
+            [node_capabilities],
+            CONF.api.disallowed_enrollment_boot_modes)
+
         context = api.request.context
         owned_node = False
         if CONF.api.project_admin_can_manage_own_nodes:
@@ -2869,6 +2875,12 @@ class NodesController(rest.RestController):
         corrected_values = {}
         if self.from_chassis:
             raise exception.OperationNotPermitted()
+
+        node_capabilities = api_utils.get_patch_values(
+            patch, '/properties/capabilities')
+        api_utils.check_allow_boot_mode(
+            node_capabilities,
+            CONF.api.disallowed_enrollment_boot_modes)
 
         api_utils.patch_validate_allowed_fields(patch, PATCH_ALLOWED_FIELDS)
 
