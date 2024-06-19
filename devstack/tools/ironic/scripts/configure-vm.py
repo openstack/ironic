@@ -49,7 +49,7 @@ CONSOLE_PTY = """
       <target port='0'/>
     </serial>
     <console type='pty'>
-      <target type='serial' port='0'/>
+      <target port='0'/>
     </console>
 """
 
@@ -136,6 +136,7 @@ def main():
         params['console'] = CONSOLE_LOG % {'console_log': args.console_log}
     else:
         params['console'] = CONSOLE_PTY
+
     libvirt_template = template.render(**params)
     conn = libvirt.open("qemu:///system")
 
