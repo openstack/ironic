@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    [`bug 2069413 <https://bugs.launchpad.net/ironic/+bug/2069413>`_]
+    Fixes an issue with node servicing that caused node to be put into
+    'service failed' state when Ironic configuration option
+    [pxe]enable_netboot_fallback was enabled.

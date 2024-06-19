@@ -2598,6 +2598,27 @@ class iPXEBuildServicePXEConfigTestCase(db_base.DbTestCase):
         mock_pxe_utils.assert_called()
         mock_switch.assert_called()
 
+    @mock.patch.object(pxe_utils, 'create_pxe_config', autospec=True)
+    @mock.patch.object(deploy_utils, 'switch_pxe_config', autospec=True)
+    def test_build_service_pxe_config_servicing(self, mock_switch,
+                                                mock_pxe_utils):
+        self.node.provision_state = states.SERVICING
+
+        driver_internal_info = self.node.driver_internal_info
+        driver_internal_info['is_whole_disk_image'] = True
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+
+        image_info = {}
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            pxe_utils.build_service_pxe_config(task, image_info, 'id',
+                                               is_whole_disk_image=True)
+
+        mock_pxe_utils.assert_called()
+        mock_switch.assert_called()
+
 
 @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
 @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
