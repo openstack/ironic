@@ -121,10 +121,3 @@ SCCICLIENT_VIOM_CONF_SPEC = (
 REDFISH_SPEC = (
     'redfish',
 )
-
-# python-ibmcclient
-IBMCCLIENT_SPEC = (
-    'connect',
-    'exceptions',
-    'constants',
-)

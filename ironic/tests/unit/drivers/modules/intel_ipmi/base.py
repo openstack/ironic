@@ -10,7 +10,7 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations
 # under the License.
-"""Test base class for iBMC Driver."""
+"""Test base class for intel ipmi Driver."""
 
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils

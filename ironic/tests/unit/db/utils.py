@@ -679,15 +679,6 @@ def create_test_deploy_template(**kw):
     return dbapi.create_deploy_template(template)
 
 
-def get_test_ibmc_info():
-    return {
-        "ibmc_address": "https://example.com",
-        "ibmc_username": "username",
-        "ibmc_password": "password",
-        "verify_ca": False,
-    }
-
-
 def get_test_history(**kw):
     return {
         'id': kw.get('id', 345),
