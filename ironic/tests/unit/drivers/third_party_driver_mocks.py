@@ -26,7 +26,6 @@ Current list of mocked libraries:
 - proliantutils
 - pysnmp
 - scciclient
-- python-dracclient
 - sushy_oem_idrac
 """
 
@@ -78,50 +77,6 @@ if not redfish:
 
 if 'ironic.drivers.redfish' in sys.modules:
     importlib.reload(sys.modules['ironic.drivers.modules.redfish'])
-
-# attempt to load the external 'python-dracclient' library, which is required
-# by the optional drivers.modules.drac module
-dracclient = importutils.try_import('dracclient')
-if not dracclient:
-    dracclient = mock.MagicMock(spec_set=mock_specs.DRACCLIENT_SPEC)
-    dracclient.client = mock.MagicMock(
-        spec_set=mock_specs.DRACCLIENT_CLIENT_MOD_SPEC)
-    dracclient.constants = mock.MagicMock(
-        spec_set=mock_specs.DRACCLIENT_CONSTANTS_MOD_SPEC,
-        POWER_OFF=mock.sentinel.POWER_OFF,
-        POWER_ON=mock.sentinel.POWER_ON,
-        REBOOT=mock.sentinel.REBOOT)
-    dracclient.constants.RebootRequired = mock.MagicMock(
-        spec_set=mock_specs.DRACCLIENT_CONSTANTS_REBOOT_REQUIRED_MOD_SPEC,
-        true=mock.sentinel.true,
-        optional=mock.sentinel.optional,
-        false=mock.sentinel.false)
-    dracclient.constants.RaidStatus = mock.MagicMock(
-        spec_set=mock_specs.DRACCLIENT_CONSTANTS_RAID_STATUS_MOD_SPEC,
-        jbod=mock.sentinel.jbod,
-        raid=mock.sentinel.raid)
-
-    sys.modules['dracclient'] = dracclient
-    sys.modules['dracclient.client'] = dracclient.client
-    sys.modules['dracclient.constants'] = dracclient.constants
-    sys.modules['dracclient.exceptions'] = dracclient.exceptions
-    dracclient.exceptions.BaseClientException = type('BaseClientException',
-                                                     (Exception,), {})
-
-    dracclient.exceptions.DRACRequestFailed = type(
-        'DRACRequestFailed', (dracclient.exceptions.BaseClientException,), {})
-
-    class DRACOperationFailed(dracclient.exceptions.DRACRequestFailed):
-        def __init__(self, **kwargs):
-            super(DRACOperationFailed, self).__init__(
-                'DRAC operation failed. Messages: %(drac_messages)s' % kwargs)
-
-    dracclient.exceptions.DRACOperationFailed = DRACOperationFailed
-
-    # Now that the external library has been mocked, if anything had already
-    # loaded any of the drivers, reload them.
-    if 'ironic.drivers.modules.drac' in sys.modules:
-        importlib.reload(sys.modules['ironic.drivers.modules.drac'])
 
 sushy_oem_idrac = importutils.try_import('sushy_oem_idrac')
 if not sushy_oem_idrac:

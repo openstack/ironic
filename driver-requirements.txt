@@ -9,7 +9,6 @@ pysnmp-lextudio>=5.0.0 # BSD
 pyasn1>=0.5.1 # BSD
 pyasn1-modules>=0.3.0 # BSD
 python-scciclient>=0.16.0,<0.17.0
-python-dracclient>=5.1.0,<9.0.0
 
 # Ansible-deploy interface
 ansible>=2.7

@@ -89,12 +89,6 @@ def get_test_ilo_info():
 
 def get_test_drac_info():
     return {
-        "drac_address": "1.2.3.4",
-        "drac_port": 443,
-        "drac_path": "/wsman",
-        "drac_protocol": "https",
-        "drac_username": "admin",
-        "drac_password": "fake",
         "redfish_address": "1.2.3.4",
         "redfish_system_id": "/redfish/v1/Systems/System.Embedded.1",
         "redfish_username": "admin",
