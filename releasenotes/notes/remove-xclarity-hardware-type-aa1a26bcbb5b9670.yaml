@@ -1,0 +1,4 @@
+---
+upgrade:
+  - |
+    The deprecated ``xclarity`` hardware type has been removed from Ironic.

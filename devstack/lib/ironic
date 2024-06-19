@@ -842,11 +842,6 @@ function is_deployed_by_irmc {
     return 1
 }
 
-function is_deployed_by_xclarity {
-    [[ "$IRONIC_DEPLOY_DRIVER" == xclarity ]] && return 0
-    return 1
-}
-
 function is_deployed_by_ibmc {
     [[ "$IRONIC_DEPLOY_DRIVER" == ibmc ]] && return 0
     return 1
@@ -2603,13 +2598,6 @@ function enroll_nodes {
                 if [[ -n "$IRONIC_DEPLOY_ISO_ID" ]]; then
                     node_options+=" --driver-info deploy_iso=$IRONIC_DEPLOY_ISO_ID"
                 fi
-            elif is_deployed_by_xclarity; then
-                local xclarity_hardware_id
-                xclarity_hardware_id=$(echo $hardware_info |awk '{print $5}')
-                node_options+=" --driver-info xclarity_manager_ip=$bmc_address \
-                    --driver-info xclarity_password=$bmc_passwd \
-                    --driver-info xclarity_username=$bmc_username \
-                    --driver-info xclarity_hardware_id=$xclarity_hardware_id"
             elif is_deployed_by_ibmc; then
                 node_options+=" --driver-info ibmc_address=$bmc_address \
                     --driver-info ibmc_username=$bmc_username \
