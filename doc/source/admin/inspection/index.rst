@@ -22,12 +22,14 @@ ironic-inspector_ service.
 .. _ironic-inspector: https://pypi.org/project/ironic-inspector
 
 .. toctree::
+   :maxdepth: 2
 
    managed
    data
    hooks
    discovery
    pxe_filter
+   migration
 
 Configuration
 -------------

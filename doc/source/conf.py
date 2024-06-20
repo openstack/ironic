@@ -57,6 +57,10 @@ apidoc_excluded_paths = [
 ]
 apidoc_separate_modules = True
 
+autodoc_default_options = {
+    'special-members': '__call__',
+}
+
 openstackdocs_repo_name = 'openstack/ironic'
 openstackdocs_use_storyboard = False
 openstackdocs_pdf_link = True
