@@ -1,0 +1,15 @@
+{
+    "@odata.type": "#ComputerSystemCollection.ComputerSystemCollection",
+    "Name": "Computer System Collection",
+    "Members@odata.count": 1,
+    "Members": [
+
+            {
+                "@odata.id": "/redfish/v1/Systems/ea72b191-ef72-4504-9aac-90e936c9dfd9"
+            }
+
+    ],
+    "@odata.context": "/redfish/v1/$metadata#ComputerSystemCollection.ComputerSystemCollection",
+    "@odata.id": "/redfish/v1/Systems",
+    "@Redfish.Copyright": "Copyright 2014-2016 Distributed Management Task Force, Inc. (DMTF). For the full DMTF copyright policy, see http://www.dmtf.org/about/policies/copyright."
+}
