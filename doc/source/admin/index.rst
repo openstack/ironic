@@ -16,6 +16,7 @@ the services.
    Node Retirement <retirement>
    RAID Configuration <raid>
    BIOS Settings <bios>
+   Firmware Updates <firmware-updates>
    Node Rescuing <rescue>
    Configuring to boot from volume <boot-from-volume>
    Multi-tenant Networking <multitenancy>
