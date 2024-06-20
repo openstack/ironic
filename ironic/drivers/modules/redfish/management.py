@@ -500,10 +500,6 @@ class RedfishManagement(base.ManagementInterface):
                 'line_input_voltage', 'last_power_output_watts',
                 'serial_number')
             sensor.update(cls._sensor2dict(power.status, 'state', 'health'))
-            sensor.update(cls._sensor2dict(
-                power.input_ranges, 'minimum_voltage',
-                'maximum_voltage', 'minimum_frequency_hz',
-                'maximum_frequency_hz', 'output_wattage'))
             unique_name = '%s:%s@%s' % (
                 power.identity, chassis.power.identity,
                 chassis.identity)
