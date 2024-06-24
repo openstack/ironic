@@ -93,7 +93,7 @@ Contributor Guide
 =================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    contributor/index
 

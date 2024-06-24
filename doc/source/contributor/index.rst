@@ -15,29 +15,37 @@ It will also be helpful to be familiar with
 which contains basic information about how to use many of the community tools
 and OpenStack practices.
 
-Basics
-______
-
 Basic information about setting up development environments with devstack
-or bifrost, or getting unit tests running can be found in our
-:ref:`dev-quickstart`.
+or bifrost, or getting unit tests running can be found here:
+
+.. toctree::
+   :maxdepth: 2
+
+   dev-quickstart
+   devstack-guide
+   bifrost-dev-guide
+   local-dev-guide
+
+.. toctree::
+   :hidden:
+
+   states
 
 Bugs
 ----
 Information about how ironic projects handle bugs can be found below.
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
 
   Bugs Reporting and Triaging Guide <bugs>
   Bug Deputy Guide <bug-deputy>
 
-
-Community & Policies
-____________________
+Community and Policies
+----------------------
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
 
   Bare Metal Community <community>
   Developer Contribution Guide <contributing>
@@ -46,12 +54,15 @@ ____________________
   Contributor Vision <vision>
   OpenStack Vision <vision-reflection>
 
+Architecture and Implementation Details
+---------------------------------------
+
 The following pages describe the architecture of the Bare Metal service
 and may be helpful to anyone working on or with the service, but are written
 primarily for developers.
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
 
   Ironic System Architecture <architecture>
   Developing New Notifications <notifications>
@@ -59,20 +70,17 @@ primarily for developers.
   Rolling Upgrades <rolling-upgrades>
   Role Based Access Control Testing <rbac-testing>
 
+Governance and Processes
+------------------------
+
 These pages contain information for PTLs, cross-project liaisons, and core
 reviewers.
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
 
   Releasing Ironic Projects <releasing>
   Ironic Governance Structure <governance>
-
-.. toctree::
-   :hidden:
-
-   states
-   dev-quickstart
 
 Writing Drivers
 ---------------
@@ -92,21 +100,21 @@ this are provided below. Driver authors are strongly encouraged to talk with
 the developer community about any implementation using this functionality.
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
 
   Driver Overview <drivers>
-  Writing "vendor_passthru" methods <vendor-passthru>
-  Creating new BIOS interfaces <bios_develop>
-  Third party continuous integration testing <third-party-ci>
+  Writing "vendor_passthru" Methods <vendor-passthru>
+  Creating New BIOS Interfaces <bios_develop>
+  Third Party Continuous Integration Testing <third-party-ci>
   Writing Deploy or Clean Steps <deploy-steps>
 
 Full Ironic Server Python API Reference
 ---------------------------------------
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
 
-  api/modules
+  Python Modules Index <api/modules>
 
 Understanding the Ironic's CI
 -----------------------------
@@ -116,8 +124,8 @@ and how to debug failures that may arise. To facilitate that, we have created
 the documentation below.
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
 
-  Job roles in the CI <jobs-description>
-  How to add a new job? <adding-new-job>
-  How to debug failures in CI jobs <debug-ci-failures>
+  Job Roles in the CI <jobs-description>
+  How to Add a New Job? <adding-new-job>
+  How to Debug Failures in CI Jobs <debug-ci-failures>
