@@ -43,9 +43,6 @@ Create devstack/local.conf with the following content::
     IRONIC_VM_SPECS_CPU=1
     IRONIC_VM_VOLUME_COUNT=2
 
-    IRONIC_RPC_TRANSPORT=json-rpc
-    IRONIC_RAMDISK_TYPE=dib
-
     # Enable hardware types and interfaces.
     IRONIC_ENABLED_HARDWARE_TYPES=redfish
     IRONIC_ENABLED_MANAGEMENT_INTERFACES=redfish
@@ -56,10 +53,6 @@ Create devstack/local.conf with the following content::
 
     # Specify deploy driver. This driver should be in the enabled list above.
     IRONIC_DEPLOY_DRIVER=redfish
-
-    CIRROS_VERSION=0.6.1
-    CIRROS_ARCH=aarch64
-    DEFAULT_IMAGE_NAME=cirros-0.6.1-aarch64-uec
 
     FORCE_CONFIG_DRIVE=False
 
@@ -73,8 +66,6 @@ Create devstack/local.conf with the following content::
     IRONIC_GRUB2_SHIM_FILE=https://mirror.stream.centos.org/9-stream/BaseOS/aarch64/os/EFI/BOOT/BOOTAA64.EFI
     IRONIC_GRUB2_FILE=https://mirror.stream.centos.org/9-stream/BaseOS/aarch64/os/EFI/BOOT/grubaa64.efi
     IRONIC_HW_ARCH=aarch64
-    IRONIC_MACHINE_TYPE=virt-6.2
-    IRONIC_JSON_RPC_AUTH_STRATEGY='http_basic'
     IRONIC_DIB_RAMDISK_OS=debian-arm64
 
     INSTALL_TEMPEST=False
@@ -83,10 +74,11 @@ Create devstack/local.conf with the following content::
     # By default, DevStack creates a 10.0.0.0/24 network for instances.
     # If this overlaps with the hosts network, you may adjust with the
     # following.
-    IP_VERSION=4
-    FIXED_RANGE=10.1.0.0/20
-    IPV4_ADDRS_SAFE_TO_USE=10.1.0.0/20
-    NETWORK_GATEWAY=10.1.0.1
+    #
+    # IP_VERSION=4
+    # FIXED_RANGE=10.1.0.0/20
+    # IPV4_ADDRS_SAFE_TO_USE=10.1.0.0/20
+    # NETWORK_GATEWAY=10.1.0.1
 
     Q_AGENT=openvswitch
     Q_ML2_PLUGIN_MECHANISM_DRIVERS=openvswitch

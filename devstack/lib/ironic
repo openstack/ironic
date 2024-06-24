@@ -124,6 +124,10 @@ IRONIC_VM_EMULATOR="/usr/bin/qemu-system-${IRONIC_HW_ARCH}"
 GRUB_ARCH=x64
 if [[ $IRONIC_HW_ARCH == "aarch64" ]]; then
     GRUB_ARCH=aa64
+
+    # NOTE(cid): Original change was tested on virt-6.2
+    # 'virt' is an alias for whatever is the latest version
+    IRONIC_MACHINE_TYPE=virt
 fi
 
 # Deploy Ironic Nodes & configure n-cpu for sharding
@@ -1161,15 +1165,13 @@ function configure_redfish {
         mkdir -p $(dirname $IRONIC_REDFISH_EMULATOR_CONFIG)
     fi
 
-    local ironic_node_arch=$IRONIC_HW_ARCH
-
     cat - <<EOF > $IRONIC_REDFISH_EMULATOR_CONFIG
 SUSHY_EMULATOR_BOOT_LOADER_MAP = {
     'UEFI': {
-        '$ironic_node_arch': '$UEFI_LOADER_PATH'
+        '$IRONIC_HW_ARCH': '$UEFI_LOADER_PATH'
     },
     'Legacy': {
-        '$ironic_node_arch': None
+        '$IRONIC_HW_ARCH': None
     }
 }
 SUSHY_EMULATOR_FEATURE_SET = "$IRONIC_REDFISH_EMULATOR_FEATURE_SET"
@@ -3047,7 +3049,7 @@ function upload_image_if_needed {
         dest="$IRONIC_DATA_DIR/$IRONIC_PARTITIONED_IMAGE_NAME.img"
 
         # Export some variables that the script is using.
-        CIRROS_ARCH=$CIRROS_ARCH CIRROS_VERSION=$CIRROS_VERSION \
+        CIRROS_ARCH=$IRONIC_HW_ARCH CIRROS_VERSION=$CIRROS_VERSION \
             IRONIC_TTY_DEV=$IRONIC_TTY_DEV VERBOSE=$VERBOSE \
             $IRONIC_SCRIPTS_DIR/cirros-partition.sh "$dest"
 
