@@ -15,10 +15,8 @@
 
 from ironic.drivers import generic
 from ironic.drivers.modules import agent
-from ironic.drivers.modules import ipxe
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import noop_mgmt
-from ironic.drivers.modules import pxe
 from ironic.drivers.modules.redfish import bios as redfish_bios
 from ironic.drivers.modules.redfish import boot as redfish_boot
 from ironic.drivers.modules.redfish import firmware as redfish_firmware
@@ -58,9 +56,9 @@ class RedfishHardware(generic.GenericHardware):
         """List of supported boot interfaces."""
         # NOTE(dtantsur): virtual media goes last because of limited hardware
         # vendors support.
-        return [ipxe.iPXEBoot, pxe.PXEBoot,
-                redfish_boot.RedfishVirtualMediaBoot,
-                redfish_boot.RedfishHttpsBoot]
+        return (super().supported_boot_interfaces
+                + [redfish_boot.RedfishVirtualMediaBoot,
+                   redfish_boot.RedfishHttpsBoot])
 
     @property
     def supported_vendor_interfaces(self):
