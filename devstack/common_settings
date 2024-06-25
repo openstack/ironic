@@ -8,13 +8,15 @@ fi
 # values are: "bios" or "uefi", defaults to "uefi".
 IRONIC_BOOT_MODE=${IRONIC_BOOT_MODE:-uefi}
 
+IRONIC_HW_ARCH=${IRONIC_HW_ARCH:-x86_64}
+
 CIRROS_VERSION_DEVSTACK=$(set +o xtrace &&
                           source $TOP_DIR/stackrc &&
                           echo $CIRROS_VERSION)
 
 CIRROS_VERSION=${CIRROS_VERSION:-$CIRROS_VERSION_DEVSTACK}
 
-IRONIC_DEFAULT_IMAGE_NAME=cirros-${CIRROS_VERSION}-x86_64-uec
+IRONIC_DEFAULT_IMAGE_NAME=cirros-${CIRROS_VERSION}-${IRONIC_HW_ARCH}-uec
 
 IRONIC_IMAGE_NAME=${DEFAULT_IMAGE_NAME:-$IRONIC_DEFAULT_IMAGE_NAME}
 
@@ -35,13 +37,8 @@ function add_image_link {
 # Do not restrict downloading image only for specific case. Download both disk and uec images.
 # NOTE (vdrok): Here the images are actually pre-cached by devstack, in
 # the files folder, so they won't be downloaded again.
-if [[ $IRONIC_HW_ARCH == "aarch64" ]]; then
-    add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-aarch64-uec.tar.gz
-    add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-aarch64-disk.img
-else
-    add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-uec.tar.gz
-    add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-x86_64-disk.img
-fi
+add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-${IRONIC_HW_ARCH}-uec.tar.gz
+add_image_link http://download.cirros-cloud.net/${CIRROS_VERSION}/cirros-${CIRROS_VERSION}-${IRONIC_HW_ARCH}-disk.img
 
 export IRONIC_WHOLEDISK_IMAGE_NAME=${IRONIC_WHOLEDISK_IMAGE_NAME:-${IRONIC_IMAGE_NAME/-uec/-disk}}
 export IRONIC_PARTITIONED_IMAGE_NAME=${IRONIC_PARTITIONED_IMAGE_NAME:-${IRONIC_IMAGE_NAME/-disk/-uec}}
