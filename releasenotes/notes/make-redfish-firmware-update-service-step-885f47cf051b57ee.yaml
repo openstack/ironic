@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Makes redfish driver firmware update feature a service step, enabling
+    operators to perform firmware updates on active nodes.
+

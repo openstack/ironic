@@ -281,6 +281,18 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                 task, settings)
             log_mock.debug.assert_not_called()
 
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    def _test_invalid_settings_service(self, log_mock):
+        step = self.node.service_step
+        settings = step['argsinfo'].get('settings', None)
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=False) as task:
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                task.driver.firmware.update,
+                task, settings)
+            log_mock.debug.assert_not_called()
+
     def test_invalid_component_in_settings(self):
         argsinfo = {'settings': [
             {'component': 'nic', 'url': 'https://nic-update/v1.1.0'}
@@ -290,6 +302,16 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                                 'argsinfo': argsinfo}
         self.node.save()
         self._test_invalid_settings()
+
+    def test_invalid_component_in_settings_service(self):
+        argsinfo = {'settings': [
+            {'component': 'nic', 'url': 'https://nic-update/v1.1.0'}
+        ]}
+        self.node.service_step = {'priority': 100, 'interface': 'firmware',
+                                  'step': 'update',
+                                  'argsinfo': argsinfo}
+        self.node.save()
+        self._test_invalid_settings_service()
 
     def test_missing_required_field_in_settings(self):
         argsinfo = {'settings': [
@@ -302,6 +324,17 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
         self.node.save()
         self._test_invalid_settings()
 
+    def test_missing_required_field_in_settings_service(self):
+        argsinfo = {'settings': [
+            {'url': 'https://nic-update/v1.1.0'},
+            {'component': "bmc"}
+        ]}
+        self.node.service_step = {'priority': 100, 'interface': 'firmware',
+                                  'step': 'update',
+                                  'argsinfo': argsinfo}
+        self.node.save()
+        self._test_invalid_settings_service()
+
     def test_empty_settings(self):
         argsinfo = {'settings': []}
         self.node.clean_step = {'priority': 100, 'interface': 'firmware',
@@ -309,6 +342,14 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                                 'argsinfo': argsinfo}
         self.node.save()
         self._test_invalid_settings()
+
+    def test_empty_settings_service(self):
+        argsinfo = {'settings': []}
+        self.node.service_step = {'priority': 100, 'interface': 'firmware',
+                                  'step': 'update',
+                                  'argsinfo': argsinfo}
+        self.node.save()
+        self._test_invalid_settings_service()
 
     def _generate_new_driver_internal_info(self, components=[], invalid=False,
                                            add_wait=False, wait=1):
@@ -343,6 +384,45 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
             self.node.driver_internal_info = {'something': 'else'}
         else:
             self.node.provision_state = states.CLEANING
+            self.node.driver_internal_info = {
+                'redfish_fw_updates': updates,
+            }
+        self.node.save()
+
+    def _generate_new_driver_internal_info_service(self, components=[],
+                                                   invalid=False,
+                                                   add_wait=False, wait=1):
+        bmc_component = {'component': 'bmc', 'url': 'https://bmc/v1.0.1'}
+        bios_component = {'component': 'bios', 'url': 'https://bios/v1.0.1'}
+        if add_wait:
+            wait_start_time = timeutils.utcnow() -\
+                datetime.timedelta(minutes=1)
+            bmc_component['wait_start_time'] = wait_start_time.isoformat()
+            bios_component['wait_start_time'] = wait_start_time.isoformat()
+            bmc_component['wait'] = wait
+            bios_component['wait'] = wait
+
+        self.node.service_step = {'priority': 100, 'interface': 'bios',
+                                  'step': 'apply_configuration',
+                                  'argsinfo': {'settings': []}}
+
+        updates = []
+        if 'bmc' in components:
+            self.node.service_step['argsinfo']['settings'].append(
+                bmc_component)
+            bmc_component['task_monitor'] = '/task/1'
+            updates.append(bmc_component)
+        if 'bios' in components:
+            self.node.service_step['argsinfo']['settings'].append(
+                bios_component)
+            bios_component['task_monitor'] = '/task/2'
+            updates.append(bios_component)
+
+        if invalid:
+            self.node.provision_state = states.SERVICING
+            self.node.driver_internal_info = {'something': 'else'}
+        else:
+            self.node.provision_state = states.SERVICING
             self.node.driver_internal_info = {
                 'redfish_fw_updates': updates,
             }
@@ -522,6 +602,37 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
         cleaning_error_handler_mock.assert_called_once()
         interface._continue_updates.assert_not_called()
 
+    @mock.patch.object(manager_utils, 'servicing_error_handler',
+                       autospec=True)
+    @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
+    def test__check_node_firmware_update_fail_servicing(
+            self, tm_mock,
+            get_us_mock,
+            servicing_error_handler_mock):
+
+        mock_sushy_task = mock.Mock()
+        mock_sushy_task.task_state = 'exception'
+        mock_message_unparsed = mock.Mock()
+        mock_message_unparsed.message = None
+        message_mock = mock.Mock()
+        message_mock.message = 'Firmware upgrade failed'
+        messages = mock.MagicMock(return_value=[[mock_message_unparsed],
+                                                [message_mock],
+                                                [message_mock]])
+        mock_sushy_task.messages = messages
+        mock_task_monitor = mock.Mock()
+        mock_task_monitor.is_processing = False
+        mock_task_monitor.get_task.return_value = mock_sushy_task
+        tm_mock.return_value = mock_task_monitor
+        self._generate_new_driver_internal_info_service(['bmc'])
+
+        task, interface = self._test__check_node_redfish_firmware_update()
+
+        task.upgrade_lock.assert_called_once_with()
+        servicing_error_handler_mock.assert_called_once()
+        interface._continue_updates.assert_not_called()
+
     @mock.patch.object(redfish_fw, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
     @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
@@ -654,6 +765,22 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
         task = self._test_continue_updates()
 
         cond_resume_clean_mock.assert_called_once_with(task)
+
+        info_call = [
+            mock.call('Firmware updates completed for node %(node)s',
+                      {'node': self.node.uuid})
+        ]
+        log_mock.info.assert_has_calls(info_call)
+
+    @mock.patch.object(redfish_fw, 'LOG', autospec=True)
+    @mock.patch.object(manager_utils, 'notify_conductor_resume_service',
+                       autospec=True)
+    def test_continue_updates_last_service(self, cond_resume_service_mock,
+                                           log_mock):
+        self._generate_new_driver_internal_info_service(['bmc'])
+        task = self._test_continue_updates()
+
+        cond_resume_service_mock.assert_called_once_with(task)
 
         info_call = [
             mock.call('Firmware updates completed for node %(node)s',
