@@ -97,7 +97,7 @@ class ConductorManager(base_manager.BaseConductorManager):
     # NOTE(rloo): This must be in sync with rpcapi.ConductorAPI's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.59'
+    RPC_API_VERSION = '1.60'
 
     target = messaging.Target(version=RPC_API_VERSION)
 
@@ -989,6 +989,46 @@ class ConductorManager(base_manager.BaseConductorManager):
             task.spawn_after(
                 self._spawn_worker,
                 deployments.continue_node_deploy, task)
+
+    @METRICS.timer('ConductorManager.continue_node_service')
+    def continue_node_service(self, context, node_id):
+        """RPC method to continue servicing a node.
+
+        This is useful for servicing tasks that are async. When they complete,
+        they call back via RPC, a new worker and lock are set up, and servicing
+        continues. This can also be used to resume servicing on take_over.
+
+        :param context: an admin context.
+        :param node_id: the ID or UUID of a node.
+        :raises: InvalidStateRequested if the node is not in SERVICEWAIT state
+        :raises: NoFreeConductorWorker when there is no free worker to start
+                 async task
+        :raises: NodeLocked if node is locked by another conductor.
+        :raises: NodeNotFound if the node no longer appears in the database
+
+        """
+        LOG.debug("RPC continue_node_service called for node %s.", node_id)
+        with task_manager.acquire(context, node_id, shared=False, patient=True,
+                                  purpose='continue node servicing') as task:
+            node = task.node
+
+            expected_states = [states.SERVICEWAIT, states.SERVICING]
+            if node.provision_state not in expected_states:
+                raise exception.InvalidStateRequested(_(
+                    'Cannot continue servicing on %(node)s. Node is in '
+                    '%(state)s state; should be in one of %(service_state)s') %
+                    {'node': node.uuid,
+                     'state': node.provision_state,
+                     'service_state': ', '.join(expected_states)})
+
+            else:
+                task.process_event('resume')
+
+            task.set_spawn_error_hook(utils.spawn_servicing_error_handler,
+                                      task.node)
+            task.spawn_after(
+                self._spawn_worker,
+                servicing.continue_node_service, task)
 
     @METRICS.timer('ConductorManager.do_node_tear_down')
     @messaging.expected_exceptions(exception.NoFreeConductorWorker,

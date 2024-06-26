@@ -710,7 +710,7 @@ RELEASE_MAPPING = {
     # the release as a separate block of text, like above.
     'master': {
         'api': '1.91',
-        'rpc': '1.59',
+        'rpc': '1.60',
         'objects': {
             'Allocation': ['1.1'],
             'BIOSSetting': ['1.1'],

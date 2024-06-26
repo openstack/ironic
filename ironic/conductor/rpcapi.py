@@ -158,12 +158,13 @@ class ConductorAPI(object):
     |    1.57 - Added do_node_service
     |    1.58 - Added support for json-rpc port usage
     |    1.59 - Added support for attaching/detaching virtual media
+    |    1.60 - Added continue_node_service
     """
 
     # NOTE(rloo): This must be in sync with manager.ConductorManager's.
     # NOTE(pas-ha): This also must be in sync with
     #               ironic.common.release_mappings.RELEASE_MAPPING['master']
-    RPC_API_VERSION = '1.59'
+    RPC_API_VERSION = '1.60'
 
     def __init__(self, topic=None):
         super(ConductorAPI, self).__init__()
@@ -622,6 +623,20 @@ class ConductorAPI(object):
         """
         cctxt = self._prepare_call(topic=topic, version='1.45')
         return cctxt.cast(context, 'continue_node_deploy',
+                          node_id=node_id)
+
+    def continue_node_service(self, context, node_id, topic=None):
+        """Signal to conductor service to start the next service action.
+
+        NOTE(janders): this is an RPC cast, there will be no response or
+        exception raised by the conductor for this RPC.
+
+        :param context: request context.
+        :param node_id: node id or uuid.
+        :param topic: RPC topic. Defaults to self.topic.
+        """
+        cctxt = self._prepare_call(topic=topic, version='1.60')
+        return cctxt.cast(context, 'continue_node_service',
                           node_id=node_id)
 
     def validate_driver_interfaces(self, context, node_id, topic=None):

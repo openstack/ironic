@@ -487,6 +487,12 @@ class RPCAPITestCase(db_base.DbTestCase):
                           version='1.45',
                           node_id=self.fake_node['uuid'])
 
+    def test_continue_node_service(self):
+        self._test_rpcapi('continue_node_service',
+                          'cast',
+                          version='1.60',
+                          node_id=self.fake_node['uuid'])
+
     def test_get_raid_logical_disk_properties(self):
         self._test_rpcapi('get_raid_logical_disk_properties',
                           'call',
