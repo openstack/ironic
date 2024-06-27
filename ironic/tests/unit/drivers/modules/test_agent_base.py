@@ -2522,6 +2522,21 @@ class StepMethodsTestCase(db_base.DbTestCase):
 
     @mock.patch('ironic.objects.Port.list_by_node_id',
                 spec_set=types.FunctionType)
+    @mock.patch.object(agent_client.AgentClient, 'execute_service_step',
+                       autospec=True)
+    def test_execute_service_step(self, client_mock, list_ports_mock):
+        client_mock.return_value = {
+            'command_status': 'SUCCEEDED'}
+        list_ports_mock.return_value = self.ports
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            response = agent_base.execute_step(
+                task, self.clean_steps['deploy'][0], 'service')
+            self.assertEqual(states.SERVICEWAIT, response)
+
+    @mock.patch('ironic.objects.Port.list_by_node_id',
+                spec_set=types.FunctionType)
     @mock.patch.object(agent_client.AgentClient, 'execute_deploy_step',
                        autospec=True)
     def test_execute_deploy_step(self, client_mock, list_ports_mock):
