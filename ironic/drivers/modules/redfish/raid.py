@@ -125,8 +125,7 @@ def get_physical_disks(node):
     try:
         collection = system.storage
         for storage in collection.get_members():
-            controller = (storage.storage_controllers[0]
-                          if storage.storage_controllers else None)
+            controller = redfish_utils.get_first_controller(storage)
             if controller and controller.raid_types == []:
                 continue
             disks.extend(storage.drives)
@@ -590,8 +589,7 @@ def _get_storage_controller(node, system, physical_disks):
     collection = system.storage
     for storage in collection.get_members():
         # Using first controller as expecting only one
-        controller = (storage.storage_controllers[0]
-                      if storage.storage_controllers else None)
+        controller = redfish_utils.get_first_controller(storage)
         if controller and controller.raid_types == []:
             continue
         for drive in storage.drives:
@@ -1130,8 +1128,7 @@ class RedfishRAID(base.RAIDInterface):
         any_left = False
         try:
             for storage in system.storage.get_members():
-                controller = (storage.storage_controllers[0]
-                              if storage.storage_controllers else None)
+                controller = redfish_utils.get_first_controller(storage)
                 controller_id = None
                 if controller:
                     controller_id = storage.identity

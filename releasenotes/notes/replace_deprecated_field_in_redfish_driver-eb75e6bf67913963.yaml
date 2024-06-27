@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Replaces deprecated ``Storage.StorageControllers`` in Redfish RAID
+    with ``Storage.Controllers``, which provides an array of links to
+    controller objects instead of embedding the full controller objects.
+    The old field is now used as a fallback.
+
