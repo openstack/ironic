@@ -45,7 +45,7 @@ class AgentInspect(common.Common):
         self.hooks = hooks_base.validate_inspection_hooks()
 
     def _start_managed_inspection(self, task):
-        """Start inspection managed by ironic."""
+        """Start inspection with boot managed by ironic."""
         ep = deploy_utils.get_ironic_api_url().rstrip('/')
         if ep.endswith('/v1'):
             ep = f'{ep}/continue_inspection'

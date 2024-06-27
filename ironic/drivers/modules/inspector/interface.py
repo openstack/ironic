@@ -190,8 +190,7 @@ class Common(base.InspectInterface):
     def inspect_hardware(self, task):
         """Inspect hardware to obtain the hardware properties.
 
-        This particular implementation only starts inspection using
-        ironic-inspector. Results will be checked in a periodic task.
+        Results will be checked in a periodic task.
 
         :param task: a task from TaskManager.
         :returns: states.INSPECTWAIT
@@ -214,8 +213,8 @@ class Common(base.InspectInterface):
         inspect_utils.cache_lookup_addresses(task.node)
         task.node.save()
 
-        LOG.debug('Starting inspection for node %(uuid)s using '
-                  'ironic-inspector, booting is managed by %(project)s',
+        LOG.debug('Starting inspection for node %(uuid)s. Booting is '
+                  'managed by %(project)s',
                   {'uuid': task.node.uuid,
                    'project': 'ironic' if manage_boot else 'ironic-inspector'})
 
@@ -237,7 +236,7 @@ class Inspector(Common):
     """In-band inspection via ironic-inspector project."""
 
     def _start_managed_inspection(self, task):
-        """Start inspection managed by ironic."""
+        """Start inspection with boot managed by ironic."""
         cli = client.get_client(task.context)
         endpoint = _get_callback_endpoint(cli)
         prepare_managed_inspection(task, endpoint)
@@ -313,7 +312,7 @@ def _start_inspection(node_uuid, context):
 
 
 def _check_status(task):
-    """Check inspection status for node given by a task."""
+    """Check inspection status from inspector for node given by a task."""
     node = task.node
     if node.provision_state != states.INSPECTWAIT:
         return
