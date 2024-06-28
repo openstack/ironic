@@ -13,16 +13,11 @@
 
 import collections
 
-from oslo_utils import importutils
-
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 
 
 INFO_DICT = db_utils.get_test_drac_info()
-
-dracclient_job = importutils.try_import('dracclient.resources.job')
-dracclient_raid = importutils.try_import('dracclient.resources.raid')
 
 
 class BaseDracTest(db_base.DbTestCase):
@@ -31,14 +26,15 @@ class BaseDracTest(db_base.DbTestCase):
         self.config(enabled_hardware_types=['idrac', 'fake-hardware'],
                     enabled_boot_interfaces=[
                         'idrac-redfish-virtual-media', 'fake'],
-                    enabled_power_interfaces=['idrac-wsman', 'fake'],
-                    enabled_management_interfaces=['idrac-wsman', 'fake'],
+                    enabled_power_interfaces=['idrac-redfish', 'fake'],
+                    enabled_management_interfaces=['idrac-redfish', 'fake'],
                     enabled_inspect_interfaces=[
-                        'idrac-wsman', 'fake', 'no-inspect'],
+                        'idrac-redfish', 'fake', 'no-inspect'],
                     enabled_vendor_interfaces=[
-                        'idrac-wsman', 'fake', 'no-vendor'],
-                    enabled_raid_interfaces=['idrac-wsman', 'fake', 'no-raid'],
-                    enabled_bios_interfaces=['idrac-wsman', 'no-bios'])
+                        'idrac-redfish', 'fake', 'no-vendor'],
+                    enabled_raid_interfaces=['idrac-redfish', 'fake',
+                                             'no-raid'],
+                    enabled_bios_interfaces=['idrac-redfish', 'no-bios'])
 
 
 class DictToObj(object):
@@ -72,30 +68,6 @@ def dict_of_object(data):
             dict_obj = DictToObj(v)
             data[k] = dict_obj
     return data
-
-
-def make_job(job_dict):
-    tuple_class = dracclient_job.Job if dracclient_job else None
-    return dict_to_namedtuple(values=job_dict,
-                              tuple_class=tuple_class)
-
-
-def make_raid_controller(raid_controller_dict):
-    tuple_class = dracclient_raid.RAIDController if dracclient_raid else None
-    return dict_to_namedtuple(values=raid_controller_dict,
-                              tuple_class=tuple_class)
-
-
-def make_virtual_disk(virtual_disk_dict):
-    tuple_class = dracclient_raid.VirtualDisk if dracclient_raid else None
-    return dict_to_namedtuple(values=virtual_disk_dict,
-                              tuple_class=tuple_class)
-
-
-def make_physical_disk(physical_disk_dict):
-    tuple_class = dracclient_raid.PhysicalDisk if dracclient_raid else None
-    return dict_to_namedtuple(values=physical_disk_dict,
-                              tuple_class=tuple_class)
 
 
 def create_raid_setting(raid_settings_dict):

@@ -17,36 +17,6 @@
 """This module provides mock 'specs' for third party modules that can be used
 when needing to mock those third party modules"""
 
-# python-dracclient
-DRACCLIENT_SPEC = (
-    'client',
-    'constants',
-    'exceptions',
-)
-
-DRACCLIENT_CLIENT_MOD_SPEC = (
-    'DRACClient',
-)
-
-DRACCLIENT_CONSTANTS_MOD_SPEC = (
-    'POWER_OFF',
-    'POWER_ON',
-    'REBOOT',
-    'RebootRequired',
-    'RaidStatus'
-)
-
-DRACCLIENT_CONSTANTS_REBOOT_REQUIRED_MOD_SPEC = (
-    'true',
-    'optional',
-    'false'
-)
-
-DRACCLIENT_CONSTANTS_RAID_STATUS_MOD_SPEC = (
-    'jbod',
-    'raid'
-)
-
 # sushy_oem_idrac
 SUSHY_OEM_IDRAC_MOD_SPEC = (
     'PHYSICAL_DISK_STATE_MODE_RAID',

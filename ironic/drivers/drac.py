@@ -47,20 +47,19 @@ class IDRACHardware(generic.GenericHardware):
     @property
     def supported_management_interfaces(self):
         """List of supported management interfaces."""
-        return [management.DracWSManManagement, management.DracManagement,
-                management.DracRedfishManagement]
+        return [management.DracRedfishManagement]
 
     @property
     def supported_power_interfaces(self):
         """List of supported power interfaces."""
-        return [power.DracWSManPower, power.DracPower, power.DracRedfishPower]
+        return [power.DracRedfishPower]
 
     # Optional hardware interfaces
 
     @property
     def supported_bios_interfaces(self):
         """List of supported bios interfaces."""
-        return [bios.DracWSManBIOS, bios.DracRedfishBIOS, noop.NoBIOS]
+        return [bios.DracRedfishBIOS, noop.NoBIOS]
 
     @property
     def supported_firmware_interfaces(self):
@@ -72,20 +71,17 @@ class IDRACHardware(generic.GenericHardware):
         # Inspector support should have a higher priority than NoInspect
         # if it is enabled by an operator (implying that the service is
         # installed).
-        return [drac_inspect.DracWSManInspect, drac_inspect.DracInspect,
-                drac_inspect.DracRedfishInspect] + super(
-                    IDRACHardware, self).supported_inspect_interfaces
+        return [drac_inspect.DracRedfishInspect] + super(
+            IDRACHardware, self).supported_inspect_interfaces
 
     @property
     def supported_raid_interfaces(self):
         """List of supported raid interfaces."""
-        return [raid.DracWSManRAID, raid.DracRAID,
-                raid.DracRedfishRAID] + super(
-                    IDRACHardware, self).supported_raid_interfaces
+        return [raid.DracRedfishRAID] + super(
+            IDRACHardware, self).supported_raid_interfaces
 
     @property
     def supported_vendor_interfaces(self):
         """List of supported vendor interfaces."""
-        return [vendor_passthru.DracWSManVendorPassthru,
-                vendor_passthru.DracVendorPassthru,
-                vendor_passthru.DracRedfishVendorPassthru, noop.NoVendor]
+        return [vendor_passthru.DracRedfishVendorPassthru,
+                noop.NoVendor]

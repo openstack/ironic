@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    The deprecated ``idrac-wsman`` and related ``idrac`` interface
+    aliases have been removed from the ``idrac`` hardware type.
