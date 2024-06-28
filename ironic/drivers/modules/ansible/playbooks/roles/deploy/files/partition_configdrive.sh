@@ -34,7 +34,6 @@ fail() {
     exit 1
 }
 
-MAX_DISK_PARTITIONS=128
 MAX_MBR_SIZE_MB=2097152
 
 DEVICE="$1"
