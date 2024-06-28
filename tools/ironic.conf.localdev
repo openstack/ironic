@@ -1,0 +1,14 @@
+[DEFAULT]
+# Disable all but fake hardware types and interfaces
+enabled_hardware_types = fake-hardware
+enabled_boot_interfaces = fake
+enabled_deploy_interfaces = fake
+enabled_management_interfaces = fake
+enabled_vendor_interfaces = fake
+default_network_interface = noop
+
+# Enable single-process Ironic
+rpc_transport = none
+
+# No authentication for dev
+auth_strategy = noauth
