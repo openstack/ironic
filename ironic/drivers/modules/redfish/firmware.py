@@ -144,6 +144,9 @@ class RedfishFirmware(base.FirmwareInterface):
     @base.clean_step(priority=0, abortable=False,
                      argsinfo=_FW_SETTINGS_ARGSINFO,
                      requires_ramdisk=True)
+    @base.service_step(priority=0, abortable=False,
+                       argsinfo=_FW_SETTINGS_ARGSINFO,
+                       requires_ramdisk=True)
     @base.cache_firmware_components
     def update(self, task, settings):
         """Update the Firmware on the node using the settings for components.
@@ -252,8 +255,13 @@ class RedfishFirmware(base.FirmwareInterface):
 
             LOG.info('Firmware updates completed for node %(node)s',
                      {'node': node.uuid})
+            if task.node.clean_step:
+                manager_utils.notify_conductor_resume_clean(task)
+            elif task.node.service_step:
+                manager_utils.notify_conductor_resume_service(task)
+            elif task.node.deploy_step:
+                manager_utils.notify_conductor_resume_deploy(task)
 
-            manager_utils.notify_conductor_resume_clean(task)
         else:
             settings.pop(0)
             self._execute_firmware_update(node,
@@ -281,8 +289,8 @@ class RedfishFirmware(base.FirmwareInterface):
     @periodics.node_periodic(
         purpose='checking if async update of firmware component failed',
         spacing=CONF.redfish.firmware_update_fail_interval,
-        filters={'reserved': False, 'provision_state': states.CLEANFAIL,
-                 'maintenance': True},
+        filters={'reserved': False, 'provision_state_in': [states.CLEANFAIL,
+                 states.DEPLOYFAIL, states.SERVICEFAIL], 'maintenance': True},
         predicate_extra_fields=['driver_internal_info'],
         predicate=lambda n: n.driver_internal_info.get('redfish_fw_updates'),
     )
@@ -304,7 +312,8 @@ class RedfishFirmware(base.FirmwareInterface):
     @periodics.node_periodic(
         purpose='checking async update of firmware component',
         spacing=CONF.redfish.firmware_update_fail_interval,
-        filters={'reserved': False, 'provision_state': states.CLEANWAIT},
+        filters={'reserved': False, 'provision_state_in': [states.CLEANWAIT,
+                 states.DEPLOYWAIT, states.SERVICEWAIT]},
         predicate_extra_fields=['driver_internal_info'],
         predicate=lambda n: n.driver_internal_info.get('redfish_fw_updates'),
     )
@@ -407,8 +416,10 @@ class RedfishFirmware(base.FirmwareInterface):
                 self._clear_updates(node)
                 if task.node.clean_step:
                     manager_utils.cleaning_error_handler(task, error_msg)
-                else:
+                elif task.node.deploy_step:
                     manager_utils.deploying_error_handler(task, error_msg)
+                elif task.node.service_step:
+                    manager_utils.servicing_error_handler(task, error_msg)
 
         else:
             LOG.debug('Firmware update in progress for node %(node)s, '
