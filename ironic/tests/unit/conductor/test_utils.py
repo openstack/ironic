@@ -1186,6 +1186,45 @@ class ErrorHandlersTestCase(db_base.DbTestCase):
         self.assertEqual(clean_error, self.node.maintenance_reason)
         self.assertEqual('clean failure', self.node.fault)
 
+    @mock.patch.object(conductor_utils, 'servicing_error_handler',
+                       autospec=True)
+    def test_cleanup_servicewait_timeout_handler_call(self,
+                                                      mock_error_handler):
+        self.task.node.uuid = '18c95393-b775-4887-a274-c45be47509d5'
+        self.node.service_step = {}
+        conductor_utils.cleanup_servicewait_timeout(self.task)
+
+        mock_error_handler.assert_called_once_with(
+            self.task,
+            logmsg="Servicing for node 18c95393-b775-4887-a274-c45be47509d5 "
+                   "failed. Timeout reached while servicing the node. Please "
+                   "check if the ramdisk responsible for the servicing is "
+                   "running on the node. Failed on step {}.",
+            errmsg="Timeout reached while servicing the node. Please "
+                   "check if the ramdisk responsible for the servicing is "
+                   "running on the node. Failed on step {}.",
+            set_fail_state=False)
+
+    def test_cleanup_servicewait_timeout(self):
+        self.node.provision_state = states.SERVICEFAIL
+        target = 'baz'
+        self.node.target_provision_state = target
+        self.node.driver_internal_info = {}
+        self.node.service_step = {'key': 'val'}
+        service_error = ("Timeout reached while servicing the node. Please "
+                         "check if the ramdisk responsible for the servicing "
+                         "is running on the node. Failed on step "
+                         "{'key': 'val'}.")
+        self.node.set_driver_internal_info('servicing_reboot', True)
+        self.node.set_driver_internal_info('service_step_index', 0)
+        conductor_utils.cleanup_servicewait_timeout(self.task)
+        self.assertEqual({}, self.node.service_step)
+        self.assertNotIn('service_step_index', self.node.driver_internal_info)
+        self.assertFalse(self.task.process_event.called)
+        self.assertTrue(self.node.maintenance)
+        self.assertEqual(service_error, self.node.maintenance_reason)
+        self.assertEqual('service failure', self.node.fault)
+
     @mock.patch.object(conductor_utils.LOG, 'error', autospec=True)
     def _test_cleaning_error_handler(self, mock_log_error,
                                      prov_state=states.CLEANING):
@@ -1324,6 +1363,21 @@ class ErrorHandlersTestCase(db_base.DbTestCase):
     def test_spawn_deploying_error_handler_other_error(self, log_mock):
         exc = Exception('foo')
         conductor_utils.spawn_deploying_error_handler(exc, self.node)
+        self.assertFalse(self.node.save.called)
+        self.assertFalse(log_mock.warning.called)
+
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    def test_spawn_servicing_error_handler_no_worker(self, log_mock):
+        exc = exception.NoFreeConductorWorker()
+        conductor_utils.spawn_servicing_error_handler(exc, self.node)
+        self.node.save.assert_called_once_with()
+        self.assertIn('No free conductor workers', self.node.last_error)
+        self.assertTrue(log_mock.warning.called)
+
+    @mock.patch.object(conductor_utils, 'LOG', autospec=True)
+    def test_spawn_servicing_error_handler_other_error(self, log_mock):
+        exc = Exception('foo')
+        conductor_utils.spawn_servicing_error_handler(exc, self.node)
         self.assertFalse(self.node.save.called)
         self.assertFalse(log_mock.warning.called)
 

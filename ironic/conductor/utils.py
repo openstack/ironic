@@ -518,6 +518,25 @@ def cleaning_error_handler(task, logmsg, errmsg=None, traceback=False,
         task.process_event('fail', target_state=target_state)
 
 
+def cleanup_servicewait_timeout(task):
+    """Cleanup a servicing task after timeout.
+
+    :param task: a TaskManager instance.
+    """
+    last_error = (_("Timeout reached while servicing the node. Please "
+                    "check if the ramdisk responsible for the servicing is "
+                    "running on the node. Failed on step %(step)s.") %
+                  {'step': task.node.service_step})
+    logmsg = ("Servicing for node %(node)s failed. %(error)s" %
+              {'node': task.node.uuid, 'error': last_error})
+    # NOTE(janders): this is called from the periodic task for servicewait
+    # timeouts, via the task manager's process_event(). The node has already
+    # been moved to SERVICEFAIL, so the error handler doesn't need to set the
+    # fail state.
+    servicing_error_handler(task, logmsg, errmsg=last_error,
+                            set_fail_state=False)
+
+
 def wipe_internal_info_on_power_off(node):
     """Wipe information that should not survive reboot/power off."""
     # DHCP may result in a new IP next time.
@@ -789,6 +808,11 @@ def spawn_deploying_error_handler(e, node):
     _spawn_error_handler(e, node, states.DEPLOYING)
 
 
+def spawn_servicing_error_handler(e, node):
+    """Handle spawning error for node servicing."""
+    _spawn_error_handler(e, node, states.SERVICING)
+
+
 def spawn_rescue_error_handler(e, node):
     """Handle spawning error for node rescue."""
     if isinstance(e, exception.NoFreeConductorWorker):
@@ -964,6 +988,10 @@ def notify_conductor_resume_clean(task):
 
 def notify_conductor_resume_deploy(task):
     notify_conductor_resume_operation(task, 'deploy')
+
+
+def notify_conductor_resume_service(task):
+    notify_conductor_resume_operation(task, 'service')
 
 
 def skip_automated_cleaning(node):
