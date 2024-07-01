@@ -1,0 +1,561 @@
+{
+    "License": "Apache License, Version 2.0. For full text, see link: http://www.apache.org/licenses/LICENSE-2.0",
+    "SchemaDefinition": "RedfishInteroperabilityProfile.v1_8_0",
+    "ProfileName": "OpenStackIronicProfile",
+    "ProfileVersion": "1.1.0",
+    "Purpose": "Specifies the OpenStack Ironic vendor-independent Redfish service requirements, typically offered by a baseboard management controller (BMC).",
+    "OwningEntity": "Ironic community",
+    "ContactInfo": "openstack-discuss@lists.openstack.org",
+    "Protocol": {
+        "MinVersion": "1.6.0"
+    },
+    "Resources": {
+        "Bios": {
+            "Purpose": "Allows reading or changing BIOS settings.",
+            "ReadRequirement": "Recommended",
+            "PropertyRequirements": {
+                "Attributes": {
+                    "Purpose": "Current BIOS settings."
+                },
+                "AttributeRegistry": {
+                    "Purpose": "Name of the registry with the schema of BIOS settings.",
+                    "ReadRequirement": "Recommended"
+                },
+                "@Redfish.Settings": {
+                    "PropertyRequirements": {
+                        "ETag": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "Messages": {
+                            "Purpose": "Used to determine success or failure.",
+                            "ReadRequirement": "Recommended"
+                        },
+                        "SettingsObject": {
+                            "Purpose": "Provides a link to the actually updated object.",
+                            "Comparison": "LinkToResource",
+                            "Values": ["Bios"]
+                        },
+                        "SupportedApplyTimes": {
+                            "Purpose": "Determines whether update is immediate or needs a reboot.",
+                            "ReadRequirement": "Recommended",
+                            "MinSupportValues": [
+                                "OnReset"
+                            ]
+                        }
+                    }
+                }
+            },
+            "ActionRequirements": {
+                "ResetBios": {
+                    "Purpose": "Reset BIOS settings to their factory values.",
+                    "ReadRequirement": "Recommended"
+                }
+            }
+        },
+        "Chassis": {
+            "Purpose": "Allows collecting sensors data from the chassis.",
+            "ReadRequirement": "Recommended",
+            "PropertyRequirements": {
+                "Power": {
+                    "Purpose": "Provides a link to the power information.",
+                    "ReadRequirement": "Recommended",
+                    "Comparison": "LinkToResource",
+                    "Values": ["Power"]
+                },
+                "Thermal": {
+                    "Purpose": "Provides a link to the thermal information.",
+                    "ReadRequirement": "Recommended",
+                    "Comparison": "LinkToResource",
+                    "Values": ["Thermal"]
+                },
+                "UUID": {
+                    "Purpose": "Used as an ID for indicators.",
+                    "ReadRequirement": "Recommended"
+                }
+            }
+        },
+        "ComputerSystemCollection": {
+            "Purpose": "At least one system is expected.",
+            "PropertyRequirements": {
+                "Members": {
+                    "MinCount": 1
+                }
+            }
+        },
+        "ComputerSystem": {
+            "Purpose": "Provides bare-metal node management.",
+            "PropertyRequirements": {
+                "Bios": {
+                    "Purpose": "Reference to the corresponding Bios resource.",
+                    "ReadRequirement": "Recommended"
+                },
+                "BiosVersion": {
+                    "Purpose": "Version of the system firmware.",
+                    "ReadRequirement": "Recommended"
+                },
+                "Boot": {
+                    "Purpose": "Allows changing boot devices and modes, which is fundamental for bare-metal provisioning.",
+                    "PropertyRequirements": {
+                        "BootSourceOverrideEnabled": {
+                            "Purpose": "Manages whether the next boot device will be permanent or one-time.",
+                            "WriteRequirement": "Mandatory",
+                            "MinSupportValues": [
+                                "Once",
+                                "Continuous"
+                            ]
+                        },
+                        "BootSourceOverrideMode": {
+                            "Purpose": "Allows switching boot mode to/from UEFI.",
+                            "WriteRequirement": "Mandatory"
+                        },
+                        "BootSourceOverrideTarget": {
+                            "Purpose": "Allows changing the next boot device.",
+                            "WriteRequirement": "Mandatory",
+                            "MinSupportValues": [
+                                "Pxe",
+                                "Hdd",
+                                "Cd"
+                            ]
+                        }
+                    }
+                },
+                "EthernetInterfaces": {
+                    "Purpose": "Provides a link to the node's network interfaces.",
+                    "ReadRequirement": "Recommended",
+                    "Comparison": "LinkToResource",
+                    "Values": ["EthernetInterfaceCollection"]
+                },
+                "IndicatorLED": {
+                    "Purpose": "Enables the bare-metal indicator API.",
+                    "WriteRequirement": "Recommended",
+                    "ReadRequirement": "Recommended",
+                    "Comparison": "AnyOf",
+                    "Values": [
+                        "Lit",
+                        "Off",
+                        "Blinking"
+                    ]
+                },
+                "Links": {
+                    "PropertyRequirements": {
+                        "Chassis": {
+                            "Purpose": "Provides sensor data.",
+                            "ReadRequirement": "Recommended"
+                        },
+                        "ManagedBy": {
+                            "Purpose": "Provides a link from the node to its BMC."
+                        }
+                    }
+                },
+                "Manufacturer": {
+                    "Purpose": "Provides the 'vendor' property.",
+                    "ReadRequirement": "Recommended"
+                },
+                "MemorySummary": {
+                    "Purpose": "Provides memory data during out-of-band inspection.",
+                    "ReadRequirement": "Recommended",
+                    "PropertyRequirements": {
+                        "TotalSystemMemoryGiB": {}
+                    }
+                },
+                "PowerState": {
+                    "Purpose": "Provides the current power state."
+                },
+                "Processors": {
+                    "Purpose": "Provides a link to the node's CPUs.",
+                    "ReadRequirement": "Recommended",
+                    "Comparison": "LinkToResource",
+                    "Values": ["ProcessorCollection"]
+                },
+                "SecureBoot": {
+                    "Purpose": "Provides a link to the node's secure boot settings.",
+                    "ReadRequirement": "Recommended",
+                    "Comparison": "LinkToResource",
+                    "Values": ["SecureBoot"]
+                },
+                "SimpleStorage": {
+                    "Purpose": "Provides disk data during out-of-band inspection.",
+                    "ReadRequirement": "Recommended",
+                    "Comparison": "LinkToResource",
+                    "Values": ["SimpleStorageCollection"]
+                },
+                "Storage": {
+                    "Purpose": "Enables hardware RAID management.",
+                    "ReadRequirement": "Recommended",
+                    "Comparison": "LinkToResource",
+                    "Values": ["StorageCollection"]
+                },
+                "VirtualMedia": {
+                    "Purpose": "Enables provisioning using virtual media.",
+                    "ReadRequirement": "IfImplemented",
+                    "Comparison": "LinkToResource",
+                    "Values": ["VirtualMediaCollection"]
+                }
+            },
+            "ActionRequirements": {
+                "Reset": {
+                    "Purpose": "Provides an ability to execute power actions on the node.",
+                    "Parameters": {
+                        "ResetType": {
+                            "ParameterValues": [
+                                "On",
+                                "ForceOff",
+                                "ForceRestart"
+                            ],
+                            "RecommendedValues": [
+                                "GracefulShutdown",
+                                "GracefulRestart",
+                                "Nmi"
+                            ],
+                            "ReadRequirement": "Mandatory"
+                        }
+                    }
+                }
+            }
+        },
+        "Drive": {
+            "ReadRequirement": "Recommended",
+            "Purpose": "Provides information about individual drives when configuring hardware RAID.",
+            "PropertyRequirements": {
+                "CapacityBytes": {
+                    "ReadRequirement": "Recommended"
+                },
+                "MediaType": {},
+                "Protocol": {},
+                "Status": {
+                    "PropertyRequirements": {
+                        "Health": {},
+                        "State": {}
+                    }
+                }
+            }
+        },
+        "EthernetInterface": {
+            "Purpose": "Enables enrolling ports during inspection.",
+            "ReadRequirement": "Recommended",
+            "URIs": [
+                "/redfish/v1/Systems/{ComputerSystemId}/EthernetInterfaces/{EthernetInterfaceId}"
+            ],
+            "PropertyRequirements": {
+                "MACAddress": {
+                    "Purpose": "MAC address is mandatory on ports."
+                },
+                "Status": {
+                    "PropertyRequirements": {
+                        "Health": {
+                            "Purpose": "Only healthy interfaces are considered."
+                        },
+                        "State": {
+                            "Purpose": "Enables filtering only enabled interfaces."
+                        }
+                    }
+                }
+            }
+        },
+        "Manager": {
+            "Purpose": "Provides access to the properties of the BMC.",
+            "ReadRequirement": "Recommended",
+            "PropertyRequirements": {
+                "FirmwareVersion": {
+                    "Purpose": "Provides the current firmware version of the BMC.",
+                    "ReadRequirement": "Recommended"
+                }
+            }
+        },
+        "Power": {
+            "Purpose": "Provides the current power information in the sensor data.",
+            "ReadRequirement": "Recommended",
+            "PropertyRequirements": {
+                "PowerSupplies": {
+                    "Purpose": "Provides a list of the installed power supplies.",
+                    "PropertyRequirements": {
+                        "LastPowerOutputWatts": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "LineInputVoltage": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "PowerCapacityWatts": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "SerialNumber": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "Status": {
+                            "PropertyRequirements": {
+                                "Health": {
+                                    "Purpose": "Health status to report in the sensors data.",
+                                    "ReadRequirement": "Recommended"
+                                },
+                                "State": {
+                                    "Purpose": "Power state to report in the sensors data.",
+                                    "ReadRequirement": "Recommended"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "Processor": {
+            "Purpose": "Provides CPU data during out-of-band inspection.",
+            "ReadRequirement": "Recommended",
+            "PropertyRequirements": {
+                "ProcessorArchitecture": {
+                    "Purpose": "Used to determine the CPU architecture of the machine."
+                },
+                "TotalThreads": {
+                    "Purpose": "Used to estimate the core count."
+                }
+            }
+        },
+        "SecureBoot": {
+            "Purpose": "Allows turning secure boot mode on and off.",
+            "ReadRequirement": "Recommended",
+            "PropertyRequirements": {
+                "SecureBootEnable": {
+                    "Purpose": "Allows reading and changing the secure boot state.",
+                    "WriteRequirement": "Recommended"
+                }
+            },
+            "ActionRequirements": {
+                "ResetKeys": {
+                    "Purpose": "Allows resetting secure boot keys via a step.",
+                    "ReadRequirement": "Recommended"
+                }
+            }
+        },
+        "ServiceRoot": {
+            "Purpose": "Provides links to all collections and services.",
+            "PropertyRequirements": {
+                "Systems": {
+                    "Purpose": "Provides a link to systems.",
+                    "Comparison": "LinkToResource",
+                    "Values": ["ComputerSystemCollection"]
+                },
+                "SessionService": {
+                    "Purpose": "Provides a link to the session service.",
+                    "ReadRequirement": "Recommended",
+                    "Comparison": "LinkToResource",
+                    "Values": ["SessionService"]
+                },
+                "TaskService": {
+                    "Purpose": "Provides a link to the task service.",
+                    "ReadRequirement": "Recommended",
+                    "Comparison": "LinkToResource",
+                    "Values": ["TaskService"]
+                },
+                "UpdateService": {
+                    "Purpose": "Provides a link to the update service.",
+                    "ReadRequirement": "Recommended",
+                    "Comparison": "LinkToResource",
+                    "Values": ["UpdateService"]
+                }
+            }
+        },
+        "SessionService": {
+            "Purpose": "Allows using sessions for authentication instead of HTTP basic authentication.",
+            "ReadRequirement": "Recommended"
+        },
+        "SimpleStorage": {
+            "Purpose": "Provides information about disks during inspection as well as disk sensors.",
+            "ReadRequirement": "Recommended",
+            "PropertyRequirements": {
+                "Devices": {
+                    "PropertyRequirements": {
+                        "CapacityBytes": {
+                            "Purpose": "Disk capacity.",
+                            "ReadRequirement": "Recommended"
+                        },
+                        "Model": {
+                            "Purpose": "Device model to report in the sensors data.",
+                            "ReadRequirement": "Recommended"
+                        },
+                        "Name": {
+                            "Purpose": "Device name to report in the sensors data.",
+                            "ReadRequirement": "Recommended"
+                        },
+                        "Status": {
+                            "PropertyRequirements": {
+                                "Health": {
+                                    "Purpose": "Health status to report in the sensors data.",
+                                    "ReadRequirement": "Recommended"
+                                },
+                                "State": {
+                                    "Purpose": "Device state to report in the sensors data.",
+                                    "ReadRequirement": "Recommended"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "Storage": {
+            "Purpose": "Allows configuring hardware RAID.",
+            "ReadRequirement": "Recommended",
+            "MinVersion": "1.6.0",
+            "PropertyRequirements": {
+                "Drives": {
+                    "Purpose": "Provides a link to attached drives.",
+                    "Comparison": "LinkToResource",
+                    "Values": ["DriveCollection"]
+                },
+                "StorageControllers": {
+                    "Purpose": "Provides information about storage controllers.",
+                    "MinCount": 1,
+                    "PropertyRequirements": {
+                        "SupportedRAIDTypes": {
+                            "ReadRequirement": "Recommended",
+                            "Purpose": "Defines which RAID types are supported."
+                        }
+                    }
+                },
+                "Volumes": {
+                    "Purpose": "Provides a link to existing volumes.",
+                    "Comparison": "LinkToResource",
+                    "Values": ["VolumeCollection"]
+                }
+            }
+        },
+        "TaskService": {
+            "Purpose": "Provides task management.",
+            "ReadRequirement": "Recommended"
+        },
+        "Thermal": {
+            "Purpose": "Provides thermal information of a chassis as part of the sensors data.",
+            "ReadRequirement": "Recommended",
+            "MinVersion": "1.0.1",
+            "PropertyRequirements": {
+                "Fans": {
+                    "PropertyRequirements": {
+                        "MaxReadingRange": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "MinReadingRange": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "Reading": {},
+                        "ReadingUnits": {},
+                        "SerialNumber": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "Status": {
+                            "PropertyRequirements": {
+                                "Health": {
+                                    "Purpose": "Health status to report in the sensors data.",
+                                    "ReadRequirement": "Recommended"
+                                },
+                                "State": {
+                                    "Purpose": "Device state to report in the sensors data.",
+                                    "ReadRequirement": "Recommended"
+                                }
+                            }
+                        }
+                    }
+                },
+                "Temperatures": {
+                    "PropertyRequirements": {
+                        "MaxReadingRangeTemp": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "MinReadingRangeTemp": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "ReadingCelsius": {},
+                        "PhysicalContext": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "SensorNumber": {
+                            "ReadRequirement": "Recommended"
+                        }
+                    }
+                }
+            }
+        },
+        "UpdateService": {
+            "ReadRequirement": "Recommended",
+            "ActionRequirements": {
+                "SimpleUpdate": {
+                    "Purpose": "Enables firmware updates.",
+                    "Parameters": {
+                        "ImageURI": {},
+                        "Targets": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "TransferProtocol": {}
+                    }
+                }
+            }
+        },
+        "VirtualMedia": {
+            "Purpose": "Enables provisioning using virtual media.",
+            "PropertyRequirements": {
+                "Image": {
+                    "Purpose": "URL of the image to attach.",
+                    "WriteRequirement": "Recommended"
+                },
+                "Inserted": {
+                    "ReadRequirement": "Recommended",
+                    "WriteRequirement": "Recommended"
+                },
+                "MediaTypes": {
+                    "Purpose": "Supported media types for this virtual media slot."
+                },
+                "WriteProtected": {
+                    "ReadRequirement": "Recommended",
+                    "WriteRequirement": "Recommended"
+                }
+            },
+            "ActionRequirements": {
+                "EjectMedia": {
+                    "Purpose": "Enables ejecting virtual media devices."
+                },
+                "InsertMedia": {
+                    "Purpose": "Enables inserting virtual media devices.",
+                    "Parameters": {
+                        "Image": {},
+                        "Inserted": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "TransferMethod": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "TransferProtocolType": {
+                            "ReadRequirement": "Recommended"
+                        },
+                        "WriteProtected": {
+                            "ReadRequirement": "Recommended"
+                        }
+                    }
+                }
+            }
+        },
+        "Volume": {
+            "Purpose": "Provides access to RAID volumes.",
+            "ReadRequirement": "Recommended",
+            "MinVersion": "1.3.1",
+            "PropertyRequirements": {
+                "CapacityBytes": {},
+                "Name": {},
+                "RAIDType": {
+                    "ReadRequirement": "Recommended"
+                }
+            }
+        },
+        "VolumeCollection": {
+            "Purpose": "Allows listing and creating RAID volumes.",
+            "ReadRequirement": "Recommended",
+            "CreateResource": true,
+            "PropertyRequirements": {
+                "@Redfish.OperationApplyTimeSupport": {}
+            }
+        }
+    },
+    "Registries": {
+        "Base": {
+            "MinVersion": "1.0.0",
+            "Messages": {}
+        }
+    }
+}

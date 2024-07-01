@@ -23,6 +23,7 @@
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
+      - ^redfish-interop-profiles/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
       - ^test-requirements.txt$
@@ -181,6 +182,7 @@
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
+      - ^redfish-interop-profiles/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
       - ^test-requirements.txt$
@@ -230,18 +232,6 @@
       direct and ansible deploy interfaces, rescue it's not enabled.
     required-projects:
       - opendev.org/openstack/sushy-tools
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^api-ref/.*$
-      - ^doc/.*$
-      - ^install-guide/.*$
-      - ^ironic/locale/.*$
-      - ^ironic/tests/.*$
-      - ^releasenotes/.*$
-      - ^setup.cfg$
-      - ^test-requirements.txt$
-      - ^tools/.*$
-      - ^tox.ini$
     vars:
       tempest_test_regex: ironic_standalone
       tempest_concurrency: 2
@@ -288,18 +278,6 @@
       Test also uses Redfish.
     required-projects:
       - opendev.org/openstack/sushy-tools
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^api-ref/.*$
-      - ^doc/.*$
-      - ^install-guide/.*$
-      - ^ironic/locale/.*$
-      - ^ironic/tests/.*$
-      - ^releasenotes/.*$
-      - ^setup.cfg$
-      - ^test-requirements.txt$
-      - ^tools/.*$
-      - ^tox.ini$
     vars:
       tempest_test_regex: BaremetalRedfishIPxeAnacondaNoGlance
       tempest_test_timeout: 4800
@@ -602,6 +580,7 @@
       # This job is also run on inspector
       - ^ironic_inspector/locale/.*$
       - ^ironic_inspector/test/.*$
+      - ^redfish-interop-profiles/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
       - ^test-requirements.txt$
@@ -692,6 +671,7 @@
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
+      - ^redfish-interop-profiles/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
       - ^tools/.*$
@@ -912,6 +892,7 @@
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
+      - ^redfish-interop-profiles/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
       - ^tox.ini$
@@ -1043,6 +1024,7 @@
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
+      - ^redfish-interop-profiles/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
       - ^tools/.*$
@@ -1139,6 +1121,7 @@
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
+      - ^redfish-interop-profiles/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
       - ^tools/.*$
