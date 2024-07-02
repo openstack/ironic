@@ -1,0 +1,9 @@
+---
+deprecations:
+  - |
+    The ``[[agent]]manage_agent_boot`` configuration directive is being
+    deprecated. It is completely untested, and requires operators to
+    manually configure significant parts of infrastructure typically
+    handled by Ironic. Operators using this configuration are advised
+    to migrate away from it before it's scheduled removal during the
+    2025.2 cycle releases, coming out late 2025.

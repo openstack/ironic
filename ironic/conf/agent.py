@@ -25,7 +25,8 @@ opts = [
                 help=_('Whether Ironic will manage booting of the agent '
                        'ramdisk. If set to False, you will need to configure '
                        'your mechanism to allow booting the agent '
-                       'ramdisk.')),
+                       'ramdisk. Deprecated for removal in 2025.2 release.'),
+                deprecated_for_removal=True),
     cfg.IntOpt('memory_consumed_by_agent',
                default=0,
                mutable=True,
