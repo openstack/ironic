@@ -1150,13 +1150,18 @@ def fast_track_able(task):
 def value_within_timeout(value, timeout):
     """Checks if the time is within the previous timeout seconds from now.
 
-    :param value: a string representing date and time or None.
+    :param value: a datetime or string representing date and time or None.
     :param timeout: timeout in seconds.
     """
     # use native datetime objects for conversion and compare
     # slightly odd because py2 compatibility :(
-    last = datetime.datetime.strptime(value or '1970-01-01T00:00:00.000000',
-                                      "%Y-%m-%dT%H:%M:%S.%f")
+    if isinstance(value, datetime.datetime):
+        # Converts to a offset-naive datetime(as created by timeutils.utcnow())
+        last = value.replace(tzinfo=None)
+    else:
+        defaultdt = '1970-01-01T00:00:00.000000'
+        last = datetime.datetime.strptime(value or defaultdt,
+                                          '%Y-%m-%dT%H:%M:%S.%f')
     # If we found nothing, we assume that the time is essentially epoch.
     time_delta = datetime.timedelta(seconds=timeout)
     last_valid = timeutils.utcnow() - time_delta
@@ -1173,14 +1178,20 @@ def agent_is_alive(node, timeout=None):
     :param node: A node object.
     :param timeout: Heartbeat timeout, defaults to `fast_track_timeout`.
     """
+
+    timeout = timeout or CONF.deploy.fast_track_timeout
+    if node.power_state == states.POWER_ON and \
+       node.inspection_finished_at and \
+       value_within_timeout(node.inspection_finished_at, timeout):
+        return True
+
     # If no agent_url is present then we have powered down since the
     # last agent heartbeat
     if not node.driver_internal_info.get('agent_url'):
         return False
 
     return value_within_timeout(
-        node.driver_internal_info.get('agent_last_heartbeat'),
-        timeout or CONF.deploy.fast_track_timeout)
+        node.driver_internal_info.get('agent_last_heartbeat'), timeout)
 
 
 def is_fast_track(task):

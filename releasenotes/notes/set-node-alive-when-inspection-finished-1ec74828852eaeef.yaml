@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Set node "alive" and make it fast trackable
+    as soon as inspection is finished, in addition
+    add a wait for the agent to callback should
+    it not be available when fast track is attempted.

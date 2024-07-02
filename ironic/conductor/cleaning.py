@@ -95,6 +95,12 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False):
                      'out-of-band only cleaning has been requested for node '
                      '%s', node.uuid)
             prepare_result = None
+    except exception.AgentConnectionFailed:
+        LOG.info('Agent is not yet running on node %(node)s, waiting for'
+                 ' agent to come up for fast track', {'node': node.uuid})
+        target_state = states.MANAGEABLE if manual_clean else None
+        task.process_event('wait', target_state=target_state)
+        return
     except Exception as e:
         msg = (_('Failed to prepare node %(node)s for cleaning: %(e)s')
                % {'node': node.uuid, 'e': e})
