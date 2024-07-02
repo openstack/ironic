@@ -1173,14 +1173,22 @@ def agent_is_alive(node, timeout=None):
     :param node: A node object.
     :param timeout: Heartbeat timeout, defaults to `fast_track_timeout`.
     """
+
+    timeout = timeout or CONF.deploy.fast_track_timeout
+    dtfmt = '%Y-%m-%dT%H:%M:%S.%f'
+    if node.power_state == states.POWER_ON and \
+       node.inspection_finished_at and \
+       value_within_timeout(
+           node.inspection_finished_at.strftime(dtfmt), timeout):
+        return True
+
     # If no agent_url is present then we have powered down since the
     # last agent heartbeat
     if not node.driver_internal_info.get('agent_url'):
         return False
 
     return value_within_timeout(
-        node.driver_internal_info.get('agent_last_heartbeat'),
-        timeout or CONF.deploy.fast_track_timeout)
+        node.driver_internal_info.get('agent_last_heartbeat'), timeout)
 
 
 def is_fast_track(task):
