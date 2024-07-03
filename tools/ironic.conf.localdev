@@ -12,3 +12,15 @@ rpc_transport = none
 
 # No authentication for dev
 auth_strategy = noauth
+
+[conductor]
+cache_clean_up_interval = 0
+
+[deploy]
+# Disable image caching
+iso_master_path = ''
+
+[pxe]
+# Disable image caching
+instance_master_path = ''
+
