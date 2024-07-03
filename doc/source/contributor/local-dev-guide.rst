@@ -6,12 +6,51 @@ full devstack environment or a server in a remote datacenter.
 
 If you would like to exercise the Ironic services in isolation within your local
 environment, you can do this without starting any other OpenStack services. For
-example, this is useful for rapidly prototyping and debugging interactions over
-the RPC channel, testing database migrations, and so forth.
+example, this is useful for rapidly prototyping and debugging interactions between
+client and API, exploring the Ironic API for the first time, and basic testing.
 
-Here we describe two ways to install and configure the dependencies, either run
-directly on your local machine or encapsulated in a virtual machine or
-container.
+This guide assumes you have already installed all required Ironic prerequisites,
+as documented in the prerequisites section of :ref:`unit`.
+
+Using tox
+_________
+Ironic provides a tox environment suitable for running a single-process Ironic
+against sqlite. This utilizes the config in ``tools/ironic.conf.localdev`` to
+setup a simple, all-in-one Ironic service useful for testing.
+
+By default, this configuration uses sqlite with a backing file
+``ironic/ironic.sqlite``. Deleting this file and restarting ironic will reset
+you to a blank state.
+
+Setup
+-----
+
+#. If you haven't already downloaded the source code, do that first::
+
+    cd ~
+    git clone https://opendev.org/openstack/ironic
+    cd ironic
+
+#. Run the ironic all-in-one process::
+
+    tox -elocal-ironic-dev
+
+#. In another window, utilize the client inside the tox venv::
+
+    . .tox/local-ironic-dev/bin/activate
+    export OS_AUTH_TYPE=none
+    export OS_ENDPOINT=http://127.0.0.1:6385
+    baremetal driver list
+
+#. Press CTRL+C in the window running ``tox -elocal-ironic-dev`` when you
+   are done.
+
+Manually
+________
+
+You may wish to do this manually in order to give you more granular control
+over library versions and configurations, to enable usage of a database
+server backend, or to spin up a non-all-in-one Ironic.
 
 Step 1: Create a Python virtualenv
 ----------------------------------
@@ -24,24 +63,17 @@ Step 1: Create a Python virtualenv
 
 #. Create the Python virtualenv::
 
-    tox -evenv --notest --develop -r
+    tox -elocal-ironic-dev --notest --develop -r
 
 #. Activate the virtual environment::
 
-    . .tox/venv/bin/activate
+    . .tox/local-ironic-dev/bin/activate
 
-#. Install the `openstack` client command utility::
-
-    pip install python-openstackclient
-
-
-#. Install the `baremetal` client::
-
-    pip install python-ironicclient
-
-   .. note:: You can install python-ironicclient from source by cloning the git
-             repository and running `pip install .` while in the root of the
-             cloned repository.
+   .. note:: This installs ``python-openstackclient`` and
+             ``python-ironicclient`` from pypi. You can instead install them
+             from source by cloning the git repository, activating the venv,
+             and running `pip install -e .` while in the root of the git
+             repo.
 
 #. Export some ENV vars so the client will connect to the local services
    that you'll start in the next section::
@@ -49,15 +81,12 @@ Step 1: Create a Python virtualenv
     export OS_AUTH_TYPE=none
     export OS_ENDPOINT=http://localhost:6385/
 
-Next, install and configure system dependencies.
-
 Step 2: Install System Dependencies Locally
 --------------------------------------------
 
 This step will install MySQL on your local system. This may not be desirable
 in some situations (eg, you're developing from a laptop and do not want to run
-a MySQL server on it all the time). If you want to use SQLite, skip it and do
-not set the ``connection`` option.
+a MySQL server on it all the time).
 
 #. Install mysql-server:
 
@@ -78,41 +107,17 @@ not set the ``connection`` option.
 
        mysql -u root -pMYSQL_ROOT_PWD -e "create schema ironic"
 
-   .. note:: if you choose not to install mysql-server, ironic will default to
-             using a local sqlite database. The database will then be stored in
-             ``ironic/ironic.sqlite``.
-
-
-#. Create a configuration file within the ironic source directory::
-
-    # generate a sample config
-    tox -egenconfig
+#. Use the localdev config as a template, and modify it::
 
     # copy sample config and modify it as necessary
-    cp etc/ironic/ironic.conf.sample etc/ironic/ironic.conf.local
+    cp tools/ironic.conf.localdev etc/ironic/ironic.conf.local
 
-    # disable auth since we are not running keystone here
-    sed -i "s/#auth_strategy = keystone/auth_strategy = noauth/" etc/ironic/ironic.conf.local
+    # Add mysql database connection information to config
+    echo -e "\n[database]" >> etc/ironic/ironic.conf.local
+    echo -e "connection = mysql+pymysql://root:MYSQL_ROOT_PWD@localhost/ironic" >> etc/ironic/ironic.conf.local
 
-    # use the 'fake-hardware' test hardware type
-    sed -i "s/#enabled_hardware_types = .*/enabled_hardware_types = fake-hardware/" etc/ironic/ironic.conf.local
-
-    # use the 'fake' deploy and boot interfaces
-    sed -i "s/#enabled_deploy_interfaces = .*/enabled_deploy_interfaces = fake/" etc/ironic/ironic.conf.local
-    sed -i "s/#enabled_boot_interfaces = .*/enabled_boot_interfaces = fake/" etc/ironic/ironic.conf.local
-
-    # enable both fake and ipmitool management and power interfaces
-    sed -i "s/#enabled_management_interfaces = .*/enabled_management_interfaces = fake,ipmitool/" etc/ironic/ironic.conf.local
-    sed -i "s/#enabled_power_interfaces = .*/enabled_power_interfaces = fake,ipmitool/" etc/ironic/ironic.conf.local
-
-    # change the periodic sync_power_state_interval to a week, to avoid getting NodeLocked exceptions
-    sed -i "s/#sync_power_state_interval = 60/sync_power_state_interval = 604800/" etc/ironic/ironic.conf.local
-
-    # if you opted to install mysql-server, switch the DB connection from sqlite to mysql
-    sed -i "s/#connection = .*/connection = mysql\+pymysql:\/\/root:MYSQL_ROOT_PWD@localhost\/ironic/" etc/ironic/ironic.conf.local
-
-    # use JSON RPC to avoid installing rabbitmq locally
-    sed -i "s/#rpc_transport = oslo/rpc_transport = json-rpc/" etc/ironic/ironic.conf.local
+    # disable single-process mode and enable json-rpc
+    sed -i "s/rpc_transport = none/rpc_transport = json-rpc/" etc/ironic/ironic.conf.local
 
 Step 3: Start the Services
 --------------------------
@@ -130,13 +135,13 @@ daemons; you can observe their output and stop them with Ctrl-C at any time.
 #. Start the API service in debug mode and watch its output::
 
     cd ~/ironic
-    . .tox/venv/bin/activate
+    . .tox/local-ironic-dev/bin/activate
     ironic-api -d --config-file etc/ironic/ironic.conf.local
 
 #. Start the Conductor service in debug mode and watch its output::
 
     cd ~/ironic
-    . .tox/venv/bin/activate
+    . .tox/local-ironic-dev/bin/activate
     ironic-conductor -d --config-file etc/ironic/ironic.conf.local
 
 Step 4: Interact with the running services
@@ -148,7 +153,7 @@ the other two windows. This is a good way to test new features or play with the
 functionality without necessarily starting DevStack.
 
 To get started, export the following variables to point the client at the
-local instance of ironic and disable the authentication::
+local instance of ironic::
 
     export OS_AUTH_TYPE=none
     export OS_ENDPOINT=http://127.0.0.1:6385
@@ -156,7 +161,7 @@ local instance of ironic and disable the authentication::
 Then list the available commands and resources::
 
     # get a list of available commands
-    openstack help baremetal
+    baremetal help
 
     # get the list of drivers currently supported by the available conductor(s)
     baremetal driver list
@@ -166,27 +171,14 @@ Then list the available commands and resources::
 
 Here is an example walkthrough of creating a node::
 
-    MAC="aa:bb:cc:dd:ee:ff"   # replace with the MAC of a data port on your node
-    IPMI_ADDR="1.2.3.4"       # replace with a real IP of the node BMC
-    IPMI_USER="admin"         # replace with the BMC's user name
-    IPMI_PASS="pass"          # replace with the BMC's password
-
     # enroll the node with the fake hardware type and IPMI-based power and
     # management interfaces. Note that driver info may be added at node
     # creation time with "--driver-info"
-    NODE=$(baremetal node create \
-           --driver fake-hardware \
-           --management-interface ipmitool \
-           --power-interface ipmitool \
-           --driver-info ipmi_address=$IPMI_ADDR \
-           --driver-info ipmi_username=$IPMI_USER \
-           -f value -c uuid)
+    NODE=$(baremetal node create --driver fake-hardware -f value -c uuid)
 
-    # driver info may also be added or updated later on
-    baremetal node set $NODE --driver-info ipmi_password=$IPMI_PASS
-
-    # add a network port
-    baremetal port create $MAC --node $NODE
+    # node info may also be added or updated later on
+    baremetal node set $NODE --driver-info fake_driver_info=fake
+    baremetal node set $NODE --extra extradata=isfun
 
     # view the information for the node
     baremetal node show $NODE
@@ -217,12 +209,12 @@ help with that, but are not an exhaustive troubleshooting guide::
 
   # reinstall ironic modules
   cd ~/ironic
-  . .tox/venv/bin/activate
+  . .tox/local-ironic-dev/bin/activate
   pip uninstall ironic
   pip install -e .
 
   # install and upgrade ironic and all python dependencies
   cd ~/ironic
-  . .tox/venv/bin/activate
+  . .tox/local-ironic-dev/bin/activate
   pip install -U -e .
 
