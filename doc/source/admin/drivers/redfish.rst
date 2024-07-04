@@ -70,48 +70,44 @@ set to ``redfish``.
 The following properties are specified in the node's ``driver_info``
 field:
 
-- ``redfish_address``: The URL address to the Redfish controller. It must
-                       include the authority portion of the URL, and can
-                       optionally include the scheme. If the scheme is
-                       missing, https is assumed.
-                       For example: https://mgmt.vendor.com. This is required.
+``redfish_address``
+    The URL address to the Redfish controller. It must include the authority
+    portion of the URL, and can optionally include the scheme. If the scheme is
+    missing, https is assumed. For example: ``https://mgmt.vendor.com``. This
+    is required.
 
-- ``redfish_system_id``: The canonical path to the ComputerSystem resource
-                         that the driver will interact with. It should include
-                         the root service, version and the unique resource
-                         path to the ComputerSystem. This property is only
-                         required if target BMC manages more than one
-                         ComputerSystem. Otherwise ironic will pick the only
-                         available ComputerSystem automatically. For
-                         example: /redfish/v1/Systems/1.
+``redfish_system_id``
+    The canonical path to the ComputerSystem resource that the driver will
+    interact with. It should include the root service, version and the unique
+    resource path to the ComputerSystem. This property is only required if
+    target BMC manages more than one ComputerSystem. Otherwise ironic will pick
+    the only available ComputerSystem automatically. For example:
+    ``/redfish/v1/Systems/1``.
 
-- ``redfish_username``: User account with admin/server-profile access
-                        privilege. Although not required, it is highly
-                        recommended.
+``redfish_username``
+    User account with admin/server-profile access privilege. Although not
+    required, it is highly recommended.
 
-- ``redfish_password``: User account password. Although not required, it is
-                        highly recommended.
+``redfish_password``
+    User account password. Although not required, it is highly recommended.
 
-- ``redfish_verify_ca``: If redfish_address has the **https** scheme, the
-                         driver will use a secure (TLS_) connection when
-                         talking to the Redfish controller. By default
-                         (if this is not set or set to True), the driver
-                         will try to verify the host certificates. This
-                         can be set to the path of a certificate file or
-                         directory with trusted certificates that the
-                         driver will use for verification. To disable
-                         verifying TLS_, set this to False. This is optional.
+``redfish_verify_ca``
+    If ``redfish_address`` has the ``https://`` scheme, the driver will use a
+    secure (TLS_) connection when talking to the Redfish controller. By default
+    (if this is not set or set to ``True``), the driver will try to verify the
+    host certificates. This can be set to the path of a certificate file or
+    directory with trusted certificates that the driver will use for
+    verification. To disable verifying TLS_, set this to ``False``. This is
+    optional.
 
-- ``redfish_auth_type``: Redfish HTTP client authentication method. Can be
-                         "basic", "session" or "auto".
-                         The "auto" mode first tries "session" and falls back
-                         to "basic" if session authentication is not supported
-                         by the Redfish BMC. Default is set in ironic config
-                         as ``[redfish]auth_type``. Most operators should not
-                         need to leverage this setting. Session based
-                         authentication should generally be used in most
-                         cases as it prevents re-authentication every time
-                         a background task checks in with the BMC.
+``redfish_auth_type``
+    Redfish HTTP client authentication method. Can be ``basic``, ``session`` or
+    ``auto``.  The ``auto`` mode first tries ``session`` and falls back to
+    ``basic`` if session authentication is not supported by the Redfish BMC.
+    Default is set in ironic config as :oslo.config:option:`redfish.auth_type`.
+    Most operators should not need to leverage this setting. Session based
+    authentication should generally be used in most cases as it prevents
+    re-authentication every time a background task checks in with the BMC.
 
 .. note::
    The ``redfish_address``, ``redfish_username``, ``redfish_password``,
