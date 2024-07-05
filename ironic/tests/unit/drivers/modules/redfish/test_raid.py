@@ -102,7 +102,7 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         self.mock_storage.drives = mock_drives
         mock_controller = mock.Mock()
         mock_controller.raid_types = ['RAID1', 'RAID5', 'RAID10']
-        self.mock_storage.controllers = [mock_controller]
+        self.mock_storage.storage_controllers = [mock_controller]
         mock_volumes = mock.MagicMock()
         self.mock_storage.volumes = mock_volumes
         self.free_space_bytes = {d: d.capacity_bytes for d in
@@ -1137,7 +1137,9 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         nonraid_controller = mock.Mock()
         nonraid_controller.raid_types = []
         nonraid_storage = mock.MagicMock()
-        nonraid_storage.controllers = [nonraid_controller]
+        nonraid_storage.controllers = mock.MagicMock()
+        nonraid_storage.controllers.get_members.return_value = [
+            nonraid_controller]
         nonraid_storage.drives = [_mock_drive(
             identity='Drive1', block_size_bytes=512,
             capacity_bytes=899527000000,
@@ -1162,7 +1164,8 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         nonraid_controller = mock.Mock()
         nonraid_controller.raid_types = []
         nonraid_storage = mock.MagicMock()
-        nonraid_storage.controllers = [nonraid_controller]
+        nonraid_storage.controllers = None
+        nonraid_storage.storage_controllers = [nonraid_controller]
         nonraid_storage.drives = mock.Mock()
 
         mock_get_system.return_value.storage.get_members.return_value = [
@@ -1175,6 +1178,73 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
 
             self.assertEqual(storage, self.mock_storage)
             nonraid_storage.drives.assert_not_called()
+
+    def test__get_controller(self, mock_get_system):
+        nonraid_controller = mock.Mock()
+        nonraid_controller.raid_types = []
+        nonraid_storage = mock.MagicMock()
+        nonraid_storage.get_members.return_value = [nonraid_controller]
+        nonraid_storage.controllers = mock.MagicMock()
+        nonraid_storage.controllers.get_members.return_value = [
+            nonraid_controller]
+        nonraid_storage.drives = [_mock_drive(
+            identity='Drive1', block_size_bytes=512,
+            capacity_bytes=899527000000,
+            media_type='HDD', name='Drive', protocol='SAS')]
+
+        mock_get_system.return_value.storage.get_members.return_value = [
+            nonraid_storage, self.mock_storage]
+
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            storage = redfish_raid._get_storage_controller(
+                task.node, mock_get_system.return_value, ['32ADF365C6C1B7BD'])
+
+            self.assertEqual(storage, self.mock_storage)
+
+    def test__get_first_controller_controllers(self, mock_get_system):
+        controller1 = mock.Mock(name="controller")
+        controller2 = mock.Mock(name="storage_controller")
+
+        storage = mock.MagicMock()
+        storage.get_members.return_value = [controller1]
+
+        storage.storage_controllers = mock.MagicMock()
+        storage.controllers = mock.MagicMock()
+
+        storage.controllers.get_members.return_value = [controller1]
+        storage.storage_controllers.return_value = [controller2]
+
+        result = redfish_utils.get_first_controller(storage)
+        self.assertEqual(result, controller1)
+
+    def test__get_first_controller_storage_controllers(self, mock_get_system):
+        storage = mock.Mock()
+        controller_mock = mock.Mock()
+        storage.storage_controllers = [controller_mock]
+        type(storage).controllers = mock.PropertyMock(
+            side_effect=sushy.exceptions.MissingAttributeError)
+
+        result = redfish_utils.get_first_controller(storage)
+        self.assertEqual(result, controller_mock)
+
+    def test__get_controller_no_controllers(self, mock_get_system):
+        storage = mock.Mock()
+        storage.get_members.return_value = None
+        storage.controllers.return_value = None
+        storage.controllers.get_members.return_value = None
+        storage.storage_controllers.return_value = None
+
+        result = redfish_utils.get_first_controller(storage)
+        self.assertIsNone(result)
+
+    def test__get_first_controller_empty(self, mock_get_system):
+        storage = mock.Mock()
+        storage.controllers = mock.Mock()
+        storage.controllers.get_members.return_value = []
+
+        result = redfish_utils.get_first_controller(storage)
+        self.assertIsNone(result)
 
     @mock.patch.object(redfish_utils, 'get_task_monitor', autospec=True)
     @mock.patch.object(redfish_raid.LOG, 'info', autospec=True)
