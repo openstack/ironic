@@ -1,5 +1,5 @@
-Command References
-==================
+Administrator Command References
+================================
 
 Here are references for commands not elsewhere documented.
 

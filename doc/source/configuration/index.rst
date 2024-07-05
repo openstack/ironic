@@ -8,7 +8,7 @@ options that can be used to adjust the service to your particular
 situation.
 
 .. toctree::
-  :maxdepth: 1
+  :maxdepth: 2
 
   Configuration Options <config>
   Policies <policy>
