@@ -38,13 +38,6 @@ tox environments before pushing code as an extra check.
 
 More information about running tests in tox available in :ref:`unit`.
 
-.. toctree::
-   :hidden:
-
-   devstack-guide
-   bifrost-dev-guide
-   local-dev-guide
-
 .. _integrated:
 
 Integrated Testing Environments

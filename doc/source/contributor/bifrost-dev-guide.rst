@@ -1,6 +1,6 @@
-=====================================
-Bifrost Development Environment Guide
-=====================================
+===============================
+Bifrost Development Environment
+===============================
 
 Bifrost is a project that deploys and operates Ironic using ansible. It is
 generally used standalone, without many other services running alongside. This
