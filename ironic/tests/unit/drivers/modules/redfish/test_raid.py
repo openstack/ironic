@@ -102,7 +102,7 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         self.mock_storage.drives = mock_drives
         mock_controller = mock.Mock()
         mock_controller.raid_types = ['RAID1', 'RAID5', 'RAID10']
-        self.mock_storage.storage_controllers = [mock_controller]
+        self.mock_storage.controllers = [mock_controller]
         mock_volumes = mock.MagicMock()
         self.mock_storage.volumes = mock_volumes
         self.free_space_bytes = {d: d.capacity_bytes for d in
@@ -1137,7 +1137,7 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         nonraid_controller = mock.Mock()
         nonraid_controller.raid_types = []
         nonraid_storage = mock.MagicMock()
-        nonraid_storage.storage_controllers = [nonraid_controller]
+        nonraid_storage.controllers = [nonraid_controller]
         nonraid_storage.drives = [_mock_drive(
             identity='Drive1', block_size_bytes=512,
             capacity_bytes=899527000000,
@@ -1162,7 +1162,7 @@ class RedfishRAIDTestCase(db_base.DbTestCase):
         nonraid_controller = mock.Mock()
         nonraid_controller.raid_types = []
         nonraid_storage = mock.MagicMock()
-        nonraid_storage.storage_controllers = [nonraid_controller]
+        nonraid_storage.controllers = [nonraid_controller]
         nonraid_storage.drives = mock.Mock()
 
         mock_get_system.return_value.storage.get_members.return_value = [

@@ -242,8 +242,7 @@ class DracRedfishRAID(redfish_raid.RedfishRAID):
         """
         for storage in system.storage.get_members():
             if storage.identity == identity:
-                controller = (storage.storage_controllers[0]
-                              if storage.storage_controllers else None)
+                controller = redfish_utils.get_first_controller(storage)
                 if controller:
                     return storage, controller
 

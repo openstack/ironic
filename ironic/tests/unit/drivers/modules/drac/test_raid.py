@@ -238,11 +238,11 @@ class DracRedfishRAIDTestCase(test_utils.BaseDracTest):
             identity='Disk.Direct.0-0:AHCI.Slot.2-1')
 
         mock_controller1 = mock.Mock()
-        mock_storage1 = mock.Mock(storage_controllers=[mock_controller1],
+        mock_storage1 = mock.Mock(controllers=[mock_controller1],
                                   drives=[mock_drive1, mock_drive2],
                                   identity='RAID.Integrated.1-1')
         mock_controller2 = mock.Mock()
-        mock_storage2 = mock.Mock(storage_controllers=[mock_controller2],
+        mock_storage2 = mock.Mock(controllers=[mock_controller2],
                                   drives=[mock_drive3],
                                   identity='AHCI.Slot.2-1')
 

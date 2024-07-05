@@ -322,6 +322,19 @@ def get_event_service(node):
         raise exception.RedfishError(error=e)
 
 
+def get_first_controller(storage):
+    """Get the first storage controller from a storage object.
+
+    :param storage: a storage object
+    :returns: the first storage controller or None
+    """
+    if hasattr(storage, 'controllers'):
+        return storage.controllers[0]
+    elif hasattr(storage, 'storage_controllers'):
+        return storage.storage_controllers[0]
+    return None
+
+
 def get_system(node):
     """Get a Redfish System that represents a node.
 
