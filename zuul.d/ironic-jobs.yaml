@@ -240,7 +240,10 @@
         IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_DEPLOY_DRIVER: redfish
-        IRONIC_ENABLED_BOOT_INTERFACES: "ipxe,redfish-virtual-media,http-ipxe,pxe,http"
+        # NOTE(TheJulia): We test numerous boot interfaces here, but "http"
+        # with "grub2" is functionally unstable. Basically high odds of failure
+        # with VMs in EFI request handling with VMs.
+        IRONIC_ENABLED_BOOT_INTERFACES: "ipxe,redfish-virtual-media,http-ipxe,pxe"
         IRONIC_ENABLED_HARDWARE_TYPES: redfish
         IRONIC_ENABLED_POWER_INTERFACES: redfish
         IRONIC_ENABLED_MANAGEMENT_INTERFACES: redfish
