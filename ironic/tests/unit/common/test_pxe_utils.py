@@ -1248,7 +1248,7 @@ class TestPXEUtils(db_base.DbTestCase):
         def write_to_file(path, contents):
             self.assertIn('/grub/grub.cfg', path)
             self.assertIn(
-                'configfile /tftpboot/$net_default_mac.conf',
+                'source /tftpboot/$net_default_mac.conf',
                 contents
             )
 
