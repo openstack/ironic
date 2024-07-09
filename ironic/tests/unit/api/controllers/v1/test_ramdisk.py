@@ -247,6 +247,21 @@ class TestHeartbeat(test_api_base.BaseApiTest):
                                                topic='test-topic')
 
     @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
+    def test_ok_for_anaconda(self, mock_heartbeat):
+        node = obj_utils.create_test_node(self.context)
+        response = self.post_json(
+            '/heartbeat/%s' % node.uuid,
+            {'callback_url': '',
+             'agent_token': 'x'},
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
+        self.assertEqual(b'', response.body)
+        mock_heartbeat.assert_called_once_with(mock.ANY, mock.ANY,
+                                               node.uuid, '', None,
+                                               'x', None, None, None,
+                                               topic='test-topic')
+
+    @mock.patch.object(rpcapi.ConductorAPI, 'heartbeat', autospec=True)
     def test_ok_with_json(self, mock_heartbeat):
         headers = {api_base.Version.string: '1.90'}
         node = obj_utils.create_test_node(self.context)

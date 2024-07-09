@@ -236,10 +236,12 @@ class HeartbeatController(rest.RestController):
                 raise ValueError
             callback_url = parsed_url.geturl()
         except ValueError:
-            raise exception.InvalidParameterValue(
-                _('An issue with the supplied "callback_url" has been '
-                  'detected.'))
-
+            if callback_url != "":
+                # Anaconda deploy interface sends a empty callback url, since
+                # it is a one way heartbeat.
+                raise exception.InvalidParameterValue(
+                    _('An issue with the supplied "callback_url" has been '
+                      'detected.'))
         # If we have an agent_url on file, and we get something different
         # we should fail because this is unexpected behavior of the agent.
         if agent_url is not None and agent_url != callback_url:
