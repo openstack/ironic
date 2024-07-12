@@ -328,11 +328,15 @@ def get_first_controller(storage):
     :param storage: a storage object
     :returns: the first storage controller or None
     """
-    if hasattr(storage, 'controllers'):
-        return storage.controllers[0]
-    elif hasattr(storage, 'storage_controllers'):
-        return storage.storage_controllers[0]
-    return None
+    try:
+        controllers = storage.controllers
+        if not controllers:
+            raise sushy.exceptions.MissingAttributeError
+        members = controllers.get_members()
+        return members[0] if members else None
+    except sushy.exceptions.MissingAttributeError:
+        controllers = getattr(storage, 'storage_controllers', None)
+        return controllers[0] if controllers else None
 
 
 def get_system(node):
