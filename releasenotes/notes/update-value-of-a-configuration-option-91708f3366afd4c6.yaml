@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Update ``kernel_append_params`` to match the ``[pxe]`` configuration,
+    addressing a TODO from the Xena release.
