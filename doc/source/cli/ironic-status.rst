@@ -82,3 +82,8 @@ Upgrade
 
   * Adds a check to validate the configured policy file is not JSON
     based as JSON based policies have been deprecated.
+
+  **2024.2**
+
+  * Adds a check that hardware types and interfaces in the configuration exist,
+    and that nodes are configured with existing drivers and interfaces.

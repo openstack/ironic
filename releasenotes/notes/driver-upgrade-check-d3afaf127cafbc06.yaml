@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    Adds upgrade checks for the following situations:
+
+    * Error on unknown hardware types or interfaces in the configuration.
+    * Warning on deprecated hardware types or interfaces in the configuration.
+    * Warning on unknown hardware types or interfaces used on any nodes.

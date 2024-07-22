@@ -22,9 +22,11 @@ from oslo_upgradecheck import upgradecheck
 import sqlalchemy
 
 from ironic.cmd import dbsync
+from ironic.common import driver_factory
 from ironic.common.i18n import _
 from ironic.common import policy  # noqa importing to load policy config.
 import ironic.conf
+from ironic.db import api as db_api
 
 CONF = ironic.conf.CONF
 
@@ -131,6 +133,54 @@ class Checks(upgradecheck.UpgradeCommands):
         else:
             return upgradecheck.Result(upgradecheck.Code.SUCCESS)
 
+    def _check_hardware_types_interfaces(self):
+        try:
+            hw_types = driver_factory.hardware_types()
+        except Exception as exc:
+            # NOTE(dtantsur): if the hardware types failed to load, we cannot
+            # validate the hardware interfaces, so returning early.
+            msg = f"Some hardware types cannot be loaded: {exc}"
+            return upgradecheck.Result(upgradecheck.Code.FAILURE, details=msg)
+
+        try:
+            ifaces = driver_factory.all_interfaces()
+        except Exception as exc:
+            msg = f"Some hardware interfaces cannot be loaded: {exc}"
+            return upgradecheck.Result(upgradecheck.Code.FAILURE, details=msg)
+
+        warnings = []
+        for name, obj in hw_types.items():
+            if not obj.supported:
+                warnings.append(f"Hardware type {name} is deprecated or not "
+                                "supported")
+
+        for iface_type, iface_dict in ifaces.items():
+            iface_type = iface_type.capitalize()
+            for name, obj in iface_dict.items():
+                if not obj.supported:
+                    warnings.append(f"{iface_type} interface {name} is "
+                                    "deprecated or not supported")
+
+        dbapi = db_api.get_instance()
+        for node in dbapi.get_node_list():
+            if node.driver not in hw_types:
+                warnings.append(f"Node {node.uuid} uses an unknown driver "
+                                f"{node.driver}")
+            for iface_type, iface_dict in ifaces.items():
+                value = getattr(node, f"{iface_type}_interface")
+                # NOTE(dtantsur): the interface value can be empty if a new
+                # interface type has just been added, and nodes have not been
+                # updated yet.
+                if value and value not in iface_dict:
+                    warnings.append(f"Node {node.uuid} uses an unknown "
+                                    f"{iface_type} interface {value}")
+
+        if warnings:
+            msg = ". ".join(warnings)
+            return upgradecheck.Result(upgradecheck.Code.WARNING, details=msg)
+        else:
+            return upgradecheck.Result(upgradecheck.Code.SUCCESS)
+
     # A tuple of check tuples of (<name of check>, <check function>).
     # The name of the check will be used in the output of this command.
     # The check function takes no arguments and returns an
@@ -147,6 +197,8 @@ class Checks(upgradecheck.UpgradeCommands):
         # Victoria -> Wallaby migration
         (_('Policy File JSON to YAML Migration'),
          (common_checks.check_policy_json, {'conf': CONF})),
+        (_('Hardware Types and Interfaces Check'),
+         _check_hardware_types_interfaces),
     )
 
 
