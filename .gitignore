@@ -8,6 +8,7 @@
 _build
 doc/source/contributor/api/
 _static
+doc/source/admin/drivers/redfish/OpenStackIronicProfile.*.rst
 
 # release notes build
 releasenotes/build
