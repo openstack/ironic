@@ -2006,6 +2006,22 @@ def check_allow_deploy_steps(target, deploy_steps):
             msg, status_code=http_client.BAD_REQUEST)
 
 
+def check_allow_boot_mode(node_capabilities, disallowed_boot_modes):
+    """Check if boot mode is allowed"""
+
+    if (not node_capabilities) or (not disallowed_boot_modes):
+        return
+
+    disallowed_set = set(disallowed_boot_modes)
+
+    for capability in node_capabilities:
+        for item in capability.lower().split(','):
+            key, value = item.split(':')
+            if key.strip() == 'boot_mode' and value.strip() in disallowed_set:
+                raise exception.BootModeNotAllowed(mode=value.strip(),
+                                                   op=_('provisioning'))
+
+
 def check_allow_clean_disable_ramdisk(target, disable_ramdisk):
     if disable_ramdisk is None:
         return

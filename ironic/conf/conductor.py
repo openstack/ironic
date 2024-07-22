@@ -18,7 +18,9 @@
 from oslo_config import cfg
 from oslo_config import types
 
+from ironic.common import boot_modes
 from ironic.common.i18n import _
+
 
 opts = [
     cfg.IntOpt('workers_pool_size',
@@ -417,6 +419,16 @@ opts = [
                       'seconds, or 30 minutes. If you need to wait longer '
                       'than the maximum value, we recommend exploring '
                       'hold steps.')),
+    cfg.ListOpt('disallowed_deployment_boot_modes',
+                item_type=types.String(
+                    choices=[
+                        (boot_modes.UEFI, _('UEFI boot mode')),
+                        (boot_modes.LEGACY_BIOS, _('Legacy BIOS boot mode'))],
+                ),
+                default=[],
+                mutable=True,
+                help=_("Specifies a list of boot modes that are not allowed "
+                       "during deployment. Eg: ['bios']")),
 ]
 
 

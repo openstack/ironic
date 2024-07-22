@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Adds configuration options for operators to specify any or what boot modes
+    to disallow for enrollment (`disallowed_enrollment_boot_modes`) and/or
+    deployment (`disallowed_deployment_boot_modes`). Defaults are empty lists,
+    indicating all boot modes are allowed.

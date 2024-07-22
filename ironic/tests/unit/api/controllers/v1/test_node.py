@@ -2903,6 +2903,60 @@ class TestPatch(test_api_base.BaseApiTest):
         self.assertEqual('application/json', response.content_type)
         self.assertEqual(http_client.BAD_REQUEST, response.status_code)
 
+    def test_update_fails_on_disabled_bios_boot_mode(self):
+        self.config(disallowed_enrollment_boot_modes=['bios'], group='api')
+
+        patch = [{
+            'path': '/properties/capabilities',
+            'value': 'boot_mode:bios',
+            'op': 'replace'
+        }]
+
+        response = self.patch_json('/nodes/%s/' % self.node.uuid, patch,
+                                   expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertIn("'bios' boot mode is not allowed",
+                      response.json['error_message'])
+
+    def test_update_fails_on_disabled_uefi_boot_mode(self):
+        self.config(disallowed_enrollment_boot_modes=['uefi'], group='api')
+
+        patch = [{
+            'path': '/properties/capabilities',
+            'value': 'boot_mode:uefi',
+            'op': 'replace'
+        }]
+
+        response = self.patch_json('/nodes/%s/' % self.node.uuid, patch,
+                                   expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertIn("'uefi' boot mode is not allowed",
+                      response.json['error_message'])
+
+    def test_update_fails_on_invalid_boot_mode(self):
+        # NOTE(cid): This test might need updating if boot modes' naming
+        # convention changes
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_enrollment_boot_modes=['BIOS'],
+                          group='api')
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_enrollment_boot_modes=['Bios'],
+                          group='api')
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_enrollment_boot_modes=['UEFI'],
+                          group='api')
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_enrollment_boot_modes=['Uefi'],
+                          group='api')
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_enrollment_boot_modes=['blah'],
+                          group='api')
+
     def test_update_with_reset_interfaces(self):
         self.mock_update_node.return_value = self.node
         (self
@@ -4435,6 +4489,50 @@ class TestPost(test_api_base.BaseApiTest):
         self._test_create_node()
         self.assertFalse(mock_warning.called)
         self.assertFalse(mock_exception.called)
+
+    def test_create_node_fails_on_disabled_bios_boot_mode(self):
+        self.config(disallowed_enrollment_boot_modes=['bios'], group='api')
+        ndict = test_api_utils.post_get_test_node()
+        ndict['properties'] = {'capabilities': 'boot_mode:bios'}
+
+        response = self.post_json('/nodes', ndict, expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertIn("'bios' boot mode is not allowed",
+                      response.json['error_message'])
+
+    def test_create_node_fails_on_disabled_uefi_boot_mode(self):
+        self.config(disallowed_enrollment_boot_modes=['uefi'], group='api')
+        ndict = test_api_utils.post_get_test_node()
+        ndict['properties'] = {'capabilities': 'boot_mode:uefi'}
+
+        response = self.post_json('/nodes', ndict, expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_code)
+        self.assertIn("'uefi' boot mode is not allowed",
+                      response.json['error_message'])
+
+    def test_create_node_fails_on_invalid_boot_mode(self):
+        # NOTE(cid): This test might need updating if boot modes' naming
+        # convention changes
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_enrollment_boot_modes=['BIOS'],
+                          group='api')
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_enrollment_boot_modes=['Bios'],
+                          group='api')
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_enrollment_boot_modes=['UEFI'],
+                          group='api')
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_enrollment_boot_modes=['Uefi'],
+                          group='api')
+        self.assertRaises(ValueError,
+                          self.config,
+                          disallowed_enrollment_boot_modes=['blah'],
+                          group='api')
 
     def test_create_node_chassis_uuid_always_in_response(self):
         result = self._test_create_node(chassis_uuid=None)
