@@ -38,11 +38,11 @@ The ``idrac`` hardware type supports the following Ironic interfaces:
 Prerequisites
 -------------
 
-The ``idrac`` hardware type requires the ``sushy`` library
+The ``idrac`` hardware type requires the ``sushy`` library and the vendor extensions
 to be installed on the ironic conductor node(s) if an Ironic node is
 configured to use an ``idrac-redfish`` interface implementation, for example::
 
-   sudo pip install 'python-dracclient>=3.1.0' 'sushy>=2.0.0'
+   sudo pip install 'sushy>=2.0.0' 'sushy-oem-idrac>=2.0.0'
 
 Enabling
 --------
