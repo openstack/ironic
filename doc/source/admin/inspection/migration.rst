@@ -26,7 +26,10 @@ This list currently includes:
   <https://docs.openstack.org/api-ref/baremetal-introspection/#reapply-introspection-on-data>`_
 * :doc:`discovery` is no longer based on plug-ins.
 * Introspection of nodes in the ``active`` provision state.
-* PXE filters based on ``iptables``
+* PXE filters based on ``iptables``.
+* Certain client commands are not available in ironicclient_, for example, the
+  ones that `display the network interface information from the LLDP data
+  <https://docs.openstack.org/python-ironic-inspector-client/latest/cli/index.html#list-interface-data>`_.
 
 :ironic-inspector-doc:`Inspection rules <user/usage.html#introspection-rules>`
 are also currently not implemented but are planned for the 2024.2 release or
@@ -162,3 +165,9 @@ Migration process
                 baremetal node set --inspect-interface agent "$uuid"
             fi
         done
+
+11. Make sure your scripts use ironicclient_ and the Bare Metal API in
+    OpenStackSDK instead of the client API that is specific to
+    ironic-inspector.
+
+.. _ironicclient: https://docs.openstack.org/python-ironicclient/latest/
