@@ -194,6 +194,26 @@ class RedfishFirmware(base.FirmwareInterface):
             to be executed.
         """
         fw_upd = settings[0]
+        # NOTE(janders) try to get the collection of Systems on the BMC
+        # to determine if there may be more than one System
+        try:
+            systems_collection = redfish_utils.get_system_collection(node)
+        except exception.RedfishError as e:
+            LOG.error('Failed getting Redfish Systems Collection'
+                      ' for node %(node)s. Error %(error)s',
+                      {'node': node.uuid, 'error': e})
+            raise exception.RedfishError(error=e)
+        count = len(systems_collection.members_identities)
+        # NOTE(janders) if we see more than one System on the BMC, assume that
+        # we need to explicitly specify Target parameter when calling
+        # SimpleUpdate. This is needed for compatibility with sushy-tools
+        # in automated testing using VMs.
+        if count > 1:
+            target = node.driver_info.get('redfish_system_id')
+            targets = [target]
+        else:
+            targets = None
+
         component_url, cleanup = self._stage_firmware_file(node, fw_upd)
 
         LOG.debug('Applying new firmware %(url)s for %(component)s on node '
@@ -201,7 +221,11 @@ class RedfishFirmware(base.FirmwareInterface):
                   {'url': fw_upd['url'], 'component': fw_upd['component'],
                    'node_uuid': node.uuid})
         try:
-            task_monitor = update_service.simple_update(component_url)
+            if targets is not None:
+                task_monitor = update_service.simple_update(component_url,
+                                                            targets=targets)
+            else:
+                task_monitor = update_service.simple_update(component_url)
         except sushy.exceptions.MissingAttributeError as e:
             LOG.error('The attribute #UpdateService.SimpleUpdate is missing '
                       'on node %(node)s. Error: %(error)s',

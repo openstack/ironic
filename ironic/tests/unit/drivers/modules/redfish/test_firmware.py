@@ -12,6 +12,7 @@
 #    under the License.
 
 import datetime
+import json
 from unittest import mock
 
 from oslo_utils import timeutils
@@ -228,7 +229,9 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_fw, 'LOG', autospec=True)
     @mock.patch.object(redfish_utils, 'get_update_service', autospec=True)
-    def test_missing_simple_update_action(self, update_service_mock, log_mock):
+    @mock.patch.object(redfish_utils, 'get_system_collection', autospec=True)
+    def test_missing_simple_update_action(self, get_systems_collection_mock,
+                                          update_service_mock, log_mock):
         settings = [{'component': 'bmc', 'url': 'http://upfwbmc/v2.0.0'}]
         update_service = update_service_mock.return_value
         update_service.simple_update.side_effect = \
@@ -790,7 +793,9 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
 
     @mock.patch.object(redfish_fw, 'LOG', autospec=True)
     @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
-    def test_continue_updates_more_updates(self, node_power_action_mock,
+    @mock.patch.object(redfish_utils, 'get_system_collection', autospec=True)
+    def test_continue_updates_more_updates(self, get_system_collection_mock,
+                                           node_power_action_mock,
                                            log_mock):
         self._generate_new_driver_internal_info(['bmc', 'bios'])
 
@@ -823,3 +828,55 @@ class RedfishFirmwareTestCase(db_base.DbTestCase):
                 'https://bios/v1.0.1')
             task.node.save.assert_called_once_with()
             node_power_action_mock.assert_called_once_with(task, states.REBOOT)
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system_collection', autospec=True)
+    def test__execute_firmware_update_no_targets(self,
+                                                 get_system_collection_mock,
+                                                 system_mock):
+        self._generate_new_driver_internal_info(['bios'])
+        with open('ironic/tests/json_samples/'
+                  'systems_collection_single.json') as f:
+            response_obj = json.load(f)
+        system_collection_mock = mock.MagicMock()
+        system_collection_mock.get_members.return_value = response_obj[
+            'Members']
+        get_system_collection_mock.return_value = system_collection_mock
+
+        task_monitor_mock = mock.Mock()
+        task_monitor_mock.task_monitor_uri = '/task/2'
+        update_service_mock = mock.Mock()
+        update_service_mock.simple_update.return_value = task_monitor_mock
+        firmware = redfish_fw.RedfishFirmware()
+
+        settings = [{'component': 'bios', 'url': 'https://bios/v1.0.1'}]
+        firmware._execute_firmware_update(self.node, update_service_mock,
+                                          settings)
+        update_service_mock.simple_update.assert_called_once_with(
+            'https://bios/v1.0.1')
+
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system_collection', autospec=True)
+    def test__execute_firmware_update_targets(self,
+                                              get_system_collection_mock,
+                                              system_mock):
+        self._generate_new_driver_internal_info(['bios'])
+        with open('ironic/tests/json_samples/'
+                  'systems_collection_dual.json') as f:
+            response_obj = json.load(f)
+        system_collection_mock = mock.MagicMock()
+        system_collection_mock.members_identities = response_obj[
+            'Members']
+        get_system_collection_mock.return_value = system_collection_mock
+
+        task_monitor_mock = mock.Mock()
+        task_monitor_mock.task_monitor_uri = '/task/2'
+        update_service_mock = mock.Mock()
+        update_service_mock.simple_update.return_value = task_monitor_mock
+        firmware = redfish_fw.RedfishFirmware()
+
+        settings = [{'component': 'bios', 'url': 'https://bios/v1.0.1'}]
+        firmware._execute_firmware_update(self.node, update_service_mock,
+                                          settings)
+        update_service_mock.simple_update.assert_called_once_with(
+            'https://bios/v1.0.1', targets=[mock.ANY])

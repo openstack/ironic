@@ -227,6 +227,25 @@ class RedfishUtilsTestCase(db_base.DbTestCase):
         self.assertRaises(exception.RedfishError,
                           redfish_utils.get_event_service, self.node)
 
+    def test_get_system_collection(self):
+        redfish_utils._get_connection = mock.Mock()
+        mock_system_collection = mock.Mock()
+        redfish_utils._get_connection.return_value = mock_system_collection
+
+        result = redfish_utils.get_system_collection(self.node)
+
+        self.assertEqual(mock_system_collection, result)
+
+    def test_get_system_collection_error(self):
+        redfish_utils._get_connection = mock.Mock()
+        redfish_utils._get_connection.side_effect =\
+            sushy.exceptions.ResourceNotFoundError('GET',
+                                                   '/',
+                                                   requests.Response())
+
+        self.assertRaises(exception.RedfishError,
+                          redfish_utils.get_system_collection, self.node)
+
 
 class RedfishUtilsAuthTestCase(db_base.DbTestCase):
 

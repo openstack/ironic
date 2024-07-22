@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds support for updating BIOS in configurations where a single BMC is
+    managing multiple systems (e.g. sushy-tools emulator with multiple VMs).
+    In such cases, Targets parameter is added to SimpleUpdate API call.

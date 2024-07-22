@@ -362,6 +362,29 @@ def get_system(node):
         raise exception.RedfishError(error=e)
 
 
+def get_system_collection(node):
+    """Get a Redfish System Collection that includes the node
+
+    :param node: an Ironic node object
+    :raises: RedfishConnectionError when it fails to connect to Redfish
+    :raises: RedfishError if the System is not registered in Redfish
+    """
+    driver_info = parse_driver_info(node)
+    system_id = driver_info['system_id']
+
+    try:
+        return _get_connection(
+            node,
+            lambda conn, system_id: conn.get_system_collection(),
+            system_id)
+    except sushy.exceptions.ResourceNotFoundError as e:
+        LOG.error('The Redfish Systems Collection "%(system)s" was not found'
+                  ' for node %(node)s. Error %(error)s',
+                  {'system': system_id or '<default>',
+                   'node': node.uuid, 'error': e})
+        raise exception.RedfishError(error=e)
+
+
 def get_task_monitor(node, uri):
     """Get a TaskMonitor for a node.
 
