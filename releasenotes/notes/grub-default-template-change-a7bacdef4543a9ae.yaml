@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes the default grub initial configuration to be simpler and directly
+    load the generated configuration file. The template also includes output
+    which also help operators understand the context as to where the node is
+    booting from, should issues be encountered.
