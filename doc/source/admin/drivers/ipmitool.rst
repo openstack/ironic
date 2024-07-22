@@ -82,6 +82,28 @@ with an IPMItool-based driver. For example::
         --driver-info ipmi_username=<username> \
         --driver-info ipmi_password=<password>
 
+
+Changing The Default IPMI Credential Persistence Method
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- ``store_cred_in_env``: :oslo.config:option:`ipmi.store_cred_in_env`.
+
+The `store_cred_in_env` configuration option allow users to switch
+between file-based and environment variable persistence methods for
+IPMI password.
+
+For the temporary file option, long lived IPMI sessions, such as those for
+console support, leave files with credentials on the conductor disk for the
+duration of the session.
+
+To switch to environment variable persistence, set the
+``store_cred_in_env`` parameter to ``True`` in the configuration file:
+
+.. code-block:: ini
+
+  [ipmi]
+  store_cred_in_env = True
+
 Advanced configuration
 ======================
 

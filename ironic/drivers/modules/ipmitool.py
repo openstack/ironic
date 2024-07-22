@@ -71,9 +71,9 @@ REQUIRED_PROPERTIES = {
 }
 OPTIONAL_PROPERTIES = {
     'ipmi_password': _("password. Optional."),
-    'ipmi_hex_kg_key': _('Kg key for IPMIv2 authentication. '
-                         'The key is expected in hexadecimal format. '
-                         'Optional.'),
+    'ipmi_hex_kg_key': _("Kg key for IPMIv2 authentication. "
+                         "The key is expected in hexadecimal format. "
+                         "Optional."),
     'ipmi_port': _("remote IPMI RMCP port. Optional."),
     'ipmi_priv_level': _("privilege level; default is ADMINISTRATOR. One of "
                          "%s. Optional.") % ', '.join(VALID_PRIV_LEVELS),
@@ -280,37 +280,42 @@ def _console_pwfile_path(uuid):
 
 
 @contextlib.contextmanager
-def _make_password_file(password):
-    """Makes a temporary file that contains the password.
+def _prepare_ipmi_password(driver_info):
+    """Prepares the IPMI password by either setting it in the environment
 
-    :param password: the password
-    :returns: the absolute pathname of the temporary file
+    or creating a temporary file.
+
+    :param driver_info: the ipmitool parameters for accessing a node.
+    :returns: the absolute pathname of the password
     :raises: PasswordFileFailedToCreate from creating or writing to the
              temporary file
     """
-    f = None
-    try:
-        f = tempfile.NamedTemporaryFile(mode='w', dir=CONF.tempdir)
-        f.write(str(password))
-        f.flush()
-    except (IOError, OSError) as exc:
-        if f is not None:
-            f.close()
-        raise exception.PasswordFileFailedToCreate(error=exc)
-    except Exception:
-        with excutils.save_and_reraise_exception():
+    if CONF.ipmi.store_cred_in_env:
+        yield _persist_ipmi_password(driver_info)
+    else:
+        f = None
+        try:
+            f = tempfile.NamedTemporaryFile(mode='w', dir=CONF.tempdir)
+            f.write(str(driver_info['password'] or '\0'))
+            f.flush()
+        except (IOError, OSError) as exc:
             if f is not None:
                 f.close()
+            raise exception.PasswordFileFailedToCreate(error=exc)
+        except Exception:
+            with excutils.save_and_reraise_exception():
+                if f is not None:
+                    f.close()
 
-    try:
-        # NOTE(jlvillal): This yield can not be in the try/except block above
-        # because an exception by the caller of this function would then get
-        # changed to a PasswordFileFailedToCreate exception which would mislead
-        # about the problem and its cause.
-        yield f.name
-    finally:
-        if f is not None:
-            f.close()
+        try:
+            # NOTE(jlvillal): This yield can not be in the try/except block
+            # above because an exception by the caller of this function would
+            # then get changed to a PasswordFileFailedToCreate exception which
+            # would mislead about the problem and its cause.
+            yield ('-f', f.name)
+        finally:
+            if f is not None:
+                f.close()
 
 
 def is_bridging_enabled(node):
@@ -495,6 +500,25 @@ def _get_ipmitool_args(driver_info, pw_file=None):
     return args
 
 
+def _persist_ipmi_password(driver_info):
+    """Persists IPMI password for passing to the ipmitool
+
+    :param driver_info: driver info with the ipmitool parameters
+    """
+    env = {}
+    if CONF.ipmi.store_cred_in_env:
+        password = driver_info.get('password')
+        if password:
+            env = {'IPMI_PASSWORD': password}
+        return '-E', env
+
+    path = _console_pwfile_path(driver_info['uuid'])
+    pw_file = console_utils.make_persistent_password_file(
+        path, driver_info['password'] or '\0')
+
+    return '-f', pw_file
+
+
 def _ipmitool_timing_args():
     if not _is_option_supported('timing'):
         return []
@@ -644,10 +668,15 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
         # 'ipmitool' command will prompt password if there is no '-f'
         # option, we set it to '\0' to write a password file to support
         # empty password
-        with _make_password_file(driver_info['password'] or '\0') as pw_file:
-            cmd_args.append('-f')
-            cmd_args.append(pw_file)
+
+        with _prepare_ipmi_password(driver_info) as (flag, env_path):
+            cmd_args.append(flag)
+            if CONF.ipmi.store_cred_in_env:
+                extra_args['env_variables'] = env_path
+            else:
+                cmd_args.append(env_path)
             cmd_args.extend(command.split(" "))
+
             try:
                 out, err = utils.execute(*cmd_args, **extra_args)
                 return out, err
@@ -679,6 +708,7 @@ def _exec_ipmitool(driver_info, command, check_exit_code=None,
                                     'Error: %(error)s',
                                     {'node': driver_info['uuid'],
                                      'cmd': e.cmd, 'error': e})
+
             finally:
                 LAST_CMD_TIME[driver_info['address']] = time.time()
 
@@ -1543,17 +1573,17 @@ class IPMIConsole(base.ConsoleInterface):
                  created
         :raises: ConsoleSubprocessFailed when invoking the subprocess failed
         """
-        path = _console_pwfile_path(driver_info['uuid'])
-        pw_file = console_utils.make_persistent_password_file(
-            path, driver_info['password'] or '\0')
-        ipmi_cmd = self._get_ipmi_cmd(driver_info, pw_file)
-        ipmi_cmd += ' sol activate'
-
         try:
-            start_method(driver_info['uuid'], driver_info['port'], ipmi_cmd)
-        except (exception.ConsoleError, exception.ConsoleSubprocessFailed):
-            with excutils.save_and_reraise_exception():
-                ironic_utils.unlink_without_raise(path)
+            cmd = self._get_ipmi_cmd(driver_info, pw_file=None)
+            cmd += ' sol activate'
+            start_method(driver_info['uuid'], driver_info['port'], cmd)
+        except (exception.ConsoleError,
+                exception.ConsoleSubprocessFailed) as e:
+            LOG.exception('IPMI Error while attempting "%(cmd)s" '
+                          'for node %(node)s. Error: %(error)s',
+                          {'node': driver_info['uuid'],
+                           'cmd': cmd, 'error': e})
+            raise
 
 
 class IPMIShellinaboxConsole(IPMIConsole):

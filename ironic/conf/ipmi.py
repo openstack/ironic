@@ -75,6 +75,11 @@ opts = [
                        'additional debugging output. This is a separate '
                        'option as ipmitool can log a substantial amount '
                        'of misleading text when in this mode.')),
+    cfg.BoolOpt('store_cred_in_env',
+                default=False,
+                help=_('Boolean flag to determine IPMI password persistence '
+                       'method. Defaults to False (file-based persistence). '
+                       )),
     cfg.ListOpt('cipher_suite_versions',
                 default=[],
                 help=_('List of possible cipher suites versions that can '
