@@ -23,6 +23,7 @@ from ironic.common import async_steps
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
+from ironic.common import lessee_sources
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import notification_utils as notify_utils
@@ -64,6 +65,75 @@ def validate_node(task, event='deploy'):
                                            op=_('provisioning'))
 
 
+def apply_automatic_lessee(task):
+    """Apply a automatic lessee to the node, if applicable
+
+    First of all, until removed next cycle, we check to see if
+    CONF.automatic_lessee was explicitly set "False" by an operator -- if so,
+    we do not apply a lessee.
+
+    When CONF.conductor.automatic_lessee_source is instance:
+    - Take the lessee from instance_info[project_id] (e.g. as set by nova)
+
+    When CONF.conductor.automatic_lessee_source is request:
+    - Take the lessee from request context (e.g. from keystone)
+
+    When CONF.conductor.automatic_lessee_source is none:
+    OR the legacy CONF.automatic_lessee is explicitly set by an operator to
+    False (regardless of lessee_source)
+    - Don't apply a lessee to the node
+
+    :param task: a TaskManager instance.
+    :returns: True if node had a lessee applied
+    """
+    node = task.node
+    applied = False
+    # TODO(JayF): During 2025.1 cycle, remove automatic_lessee boolean config.
+    if CONF.conductor.automatic_lessee:
+        project = None
+        if CONF.conductor.automatic_lessee_source == lessee_sources.REQUEST:
+            project = utils.get_token_project_from_request(task.context)
+            if project is None:
+                LOG.debug('Could not automatically save lessee: No project '
+                          'found in request context for node %(uuid)s.',
+                          {'uuid': node.uuid})
+
+        elif CONF.conductor.automatic_lessee_source == lessee_sources.INSTANCE:
+            # NOTE(JayF): If we have a project_id explicitly set (typical nova
+            #  case), use it. Otherwise, try to derive it from the context of
+            #  the request (typical standalone+keystone) case.
+            project = node.instance_info.get('project_id')
+            if project is None:
+                LOG.debug('Could not automatically save lessee: node['
+                          '\'instance_info\'][\'project_id\'] is unset for '
+                          'node %(uuid)s.',
+                          {'uuid': node.uuid})
+
+        # NOTE(JayF): the CONF.conductor.automatic_lessee_source == 'none'
+        # falls through since project will never be set.
+        if project:
+            if node.lessee is None:
+                LOG.debug('Adding lessee %(project)s to node %(uuid)s.',
+                          {'project': project,
+                           'uuid': node.uuid})
+                node.set_driver_internal_info('automatic_lessee', True)
+                node.lessee = project
+                applied = True
+            else:
+                # Since the model is a bit of a matrix and we're largely
+                # just empowering operators, lets at least log a warning
+                # since they may need to remedy something here. Or maybe
+                # not.
+                LOG.warning('Could not automatically save lessee '
+                            '%(project)s to node %(uuid)s. Node already '
+                            'has a defined lessee of %(lessee)s.',
+                            {'project': project,
+                             'uuid': node.uuid,
+                             'lessee': node.lessee})
+
+        return applied
+
+
 @METRICS.timer('start_deploy')
 @task_manager.require_exclusive_lock
 def start_deploy(task, manager, configdrive=None, event='deploy',
@@ -92,31 +162,14 @@ def start_deploy(task, manager, configdrive=None, event='deploy',
             instance_info.pop('kernel', None)
             instance_info.pop('ramdisk', None)
             node.instance_info = instance_info
-    elif CONF.conductor.automatic_lessee:
-        # This should only be on deploy...
-        project = utils.get_token_project_from_request(task.context)
-        if (project and node.lessee is None):
-            LOG.debug('Adding lessee $(project)s to node %(uuid)s.',
-                      {'project': project,
-                       'uuid': node.uuid})
-            node.set_driver_internal_info('automatic_lessee', True)
-            node.lessee = project
-        elif project and node.lessee is not None:
-            # Since the model is a bit of a matrix and we're largely
-            # just empowering operators, lets at least log a warning
-            # since they may need to remedy something here. Or maybe
-            # not.
-            LOG.warning('Could not automatically save lessee '
-                        '$(project)s to node %(uuid)s. Node already '
-                        'has a defined lessee of %(lessee)s.',
-                        {'project': project,
-                         'uuid': node.uuid,
-                         'lessee': node.lessee})
+    else:
+        # NOTE(JayF): Don't apply lessee when rebuilding
+        auto_lessee = apply_automatic_lessee(task)
 
     # Infer the image type to make sure the deploy driver
     # validates only the necessary variables for different
     # image types.
-    if utils.update_image_type(task.context, task.node):
+    if utils.update_image_type(task.context, task.node) or auto_lessee:
         node.save()
 
     try:

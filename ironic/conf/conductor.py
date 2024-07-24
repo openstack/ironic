@@ -20,6 +20,7 @@ from oslo_config import types
 
 from ironic.common import boot_modes
 from ironic.common.i18n import _
+from ironic.common import lessee_sources
 
 
 opts = [
@@ -345,15 +346,36 @@ opts = [
                         'for multiple steps. If set to 0, this specific step '
                         'will not run during verification. ')),
     cfg.BoolOpt('automatic_lessee',
-                default=False,
+                default=True,
                 mutable=True,
-                help=_('If the conductor should record the Project ID '
-                       'indicated by Keystone for a requested deployment. '
-                       'Allows rights to be granted to directly access the '
-                       'deployed node as a lessee within the RBAC security '
-                       'model. The conductor does *not* record this value '
-                       'otherwise, and this information is not backfilled '
-                       'for prior instances which have been deployed.')),
+                help=_('Deprecated. If Ironic should set the node.lessee '
+                       'field at deployment. Use '
+                       '[\'conductor\']/automatic_lessee_source instead.'),
+                deprecated_for_removal=True),
+    cfg.StrOpt('automatic_lessee_source',
+               help=_('Source for Project ID the Ironic should '
+                      'record at deployment time in node.lessee field. If set '
+                      'to none, Ironic will not set a lessee field. '
+                      'If set to instance (default), uses Project ID '
+                      'indicated in instance metadata set by Nova or '
+                      'another external deployment service. '
+                      'If set to keystone, Ironic uses Project ID indicated '
+                      'by Keystone context. '),
+               choices=[
+                   (lessee_sources.INSTANCE, _(  # 'instance'
+                    'Populates node.lessee field using metadata from '
+                    'node.instance_info[\'project_id\'] at deployment '
+                    'time. Useful for Nova-fronted deployments.')),
+                   (lessee_sources.REQUEST, _(  # 'request'
+                    'Populates node.lessee field using metadata '
+                    'from request context. Only useful for direct '
+                    'deployment requests to Ironic; not those proxied '
+                    'via an external service like Nova.')),
+                   (lessee_sources.NONE, _(  # 'none'
+                    'Ironic will not populate the node.lessee field.'))
+               ],
+               default='instance',
+               mutable=True),
     cfg.IntOpt('max_concurrent_deploy',
                default=250,
                min=1,

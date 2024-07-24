@@ -21,6 +21,7 @@ from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common import images
+from ironic.common import lessee_sources
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import deployments
@@ -391,19 +392,29 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                            mock_validate_deploy_user_steps_and_templates,
                            mock_deploy_validate,
                            mock_power_validate, mock_process_event,
-                           automatic_lessee=False):
+                           automatic_lessee=None, iinfo=None,
+                           automatic_lessee_source=None):
         self.context.auth_token_info = {
             'token': {'project': {'id': 'user-project'}}
         }
-        if automatic_lessee:
-            self.config(automatic_lessee=True, group='conductor')
+        if iinfo is None:
+            iinfo = {}
+
+        if automatic_lessee is not None:
+            self.config(automatic_lessee=automatic_lessee, group='conductor')
+
+        if automatic_lessee_source is not None:
+            self.config(automatic_lessee_source=automatic_lessee_source,
+                        group='conductor')
+
         self._start_service()
         mock_iwdi.return_value = False
         deploy_steps = [{"interface": "bios", "step": "factory_reset",
                          "priority": 95}]
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=states.AVAILABLE,
-                                          target_provision_state=states.ACTIVE)
+                                          target_provision_state=states.ACTIVE,
+                                          instance_info=iinfo)
         task = task_manager.TaskManager(self.context, node.uuid)
 
         deployments.start_deploy(task, self.service, configdrive=None,
@@ -422,18 +433,87 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             mock.ANY, 'deploy', call_args=(
                 deployments.do_node_deploy, task, 1, None, deploy_steps),
             callback=mock.ANY, err_handler=mock.ANY)
-        if automatic_lessee:
-            self.assertEqual('user-project', node.lessee)
+        expected_project = iinfo.get('project_id', 'user-project')
+        if (automatic_lessee_source not in [None, lessee_sources.NONE]
+                and automatic_lessee in [None, True]):
+            self.assertEqual(expected_project, node.lessee)
             self.assertIn('automatic_lessee', node.driver_internal_info)
         else:
             self.assertIsNone(node.lessee)
             self.assertNotIn('automatic_lessee', node.driver_internal_info)
 
-    def test_start_deploy(self):
+    def test_start_deploy_lessee_legacy_false(self):
         self._test_start_deploy(automatic_lessee=False)
 
-    def test_start_deploy_records_lessee(self):
-        self._test_start_deploy(automatic_lessee=True)
+    def test_start_deploy_lessee_source_none(self):
+        self._test_start_deploy(automatic_lessee_source=lessee_sources.NONE)
+
+    def test_start_deploy_lessee_source_request(self):
+        """Validates that project_id from request context is the lessee."""
+        self._test_start_deploy(automatic_lessee_source=lessee_sources.REQUEST)
+
+    def test_start_deploy_lessee_source_instance(self):
+        """Validates that project_id from instance info is the lessee."""
+        self._test_start_deploy(
+            automatic_lessee_source=lessee_sources.INSTANCE,
+            iinfo={'project_id': 'user-project-iinfo'})
+
+    @mock.patch.object(task_manager.TaskManager, 'process_event',
+                       autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
+                autospec=True)
+    @mock.patch('ironic.drivers.modules.fake.FakeDeploy.validate',
+                autospec=True)
+    @mock.patch.object(conductor_steps,
+                       'validate_user_deploy_steps_and_templates',
+                       autospec=True)
+    @mock.patch.object(conductor_utils, 'validate_instance_info_traits',
+                       autospec=True)
+    @mock.patch.object(images, 'is_whole_disk_image', autospec=True)
+    def test_start_deploy_lessee_legacy_false_even_if_src_set(
+            self, mock_iwdi, mock_validate_traits,
+            mock_validate_deploy_user_steps_and_templates,
+            mock_deploy_validate, mock_power_validate, mock_process_event):
+        self.context.auth_token_info = {
+            'token': {'project': {'id': 'user-project'}}
+        }
+        iinfo = {'project_id': 'user-project-iinfo'}
+
+        # Legacy lessee is disabled
+        self.config(automatic_lessee=False, group='conductor')
+        # but source is also set -- we should respect the disablement above all
+        self.config(automatic_lessee_source=lessee_sources.INSTANCE,
+                    group='conductor')
+
+        self._start_service()
+        mock_iwdi.return_value = False
+        deploy_steps = [{"interface": "bios", "step": "factory_reset",
+                         "priority": 95}]
+        node = obj_utils.create_test_node(self.context, driver='fake-hardware',
+                                          provision_state=states.AVAILABLE,
+                                          target_provision_state=states.ACTIVE,
+                                          instance_info=iinfo)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        deployments.start_deploy(task, self.service, configdrive=None,
+                                 event='deploy', deploy_steps=deploy_steps)
+        node.refresh()
+        mock_iwdi.assert_called_once_with(task.context,
+                                          task.node.instance_info)
+        self.assertFalse(node.driver_internal_info['is_whole_disk_image'])
+        self.assertEqual('partition', node.instance_info['image_type'])
+        mock_power_validate.assert_called_once_with(task.driver.power, task)
+        mock_deploy_validate.assert_called_once_with(task.driver.deploy, task)
+        mock_validate_traits.assert_called_once_with(task.node)
+        mock_validate_deploy_user_steps_and_templates.assert_called_once_with(
+            task, deploy_steps, skip_missing=True)
+        mock_process_event.assert_called_with(
+            mock.ANY, 'deploy', call_args=(
+                deployments.do_node_deploy, task, 1, None, deploy_steps),
+            callback=mock.ANY, err_handler=mock.ANY)
+
+        self.assertIsNone(node.lessee)
+        self.assertNotIn('automatic_lessee', node.driver_internal_info)
 
     @mock.patch.object(images, 'is_source_a_path', autospec=True)
     @mock.patch.object(task_manager.TaskManager, 'process_event',

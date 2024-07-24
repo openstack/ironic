@@ -257,6 +257,25 @@ How do I assign a lessee?
 
    # baremetal node set --lessee <project_id> <node>
 
+Ironic will, by default, automatically manage lessee at deployment time,
+setting the lessee field on deploy of a node and unset it before the node
+begins cleaning.
+
+Operators can customize or disable this behavior via
+:oslo.config:option:`conductor.automatic_lessee_source` configuration.
+
+If :oslo.config:option:`conductor.automatic_lessee_source` is set to
+``instance`` (the default), this uses ``node.instance_info['project_id']``,
+which is set when OpenStack Nova deploys an instance.
+
+If :oslo.config:option:`conductor.automatic_lessee_source` is set to
+``request``, the lessee is set to the project_id in the request context --
+ideal for standalone Ironic deployments still utilizing OpenStack Keystone.
+
+If :oslo.config:option:`conductor.automatic_lessee_source` is set to to
+``none``, Ironic not will set a lessee on deploy.
+
+
 What is the difference between an owner and lessee?
 ---------------------------------------------------
 
