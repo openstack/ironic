@@ -1,0 +1,7 @@
+---
+security:
+  - |
+    Log the node UUID instead of the full node object in
+    ironic/conductor/cleaning.py, to avoid logging the node's driver_info
+    property (containing its BMC username and password).
+
