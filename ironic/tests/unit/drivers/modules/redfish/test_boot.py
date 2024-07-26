@@ -1487,6 +1487,26 @@ class RedfishVirtualMediaBootTestCase(db_base.DbTestCase):
                 redfish_boot._insert_vmedia,
                 task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
 
+    @mock.patch('time.sleep', lambda *args, **kwargs: None)
+    @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    def test__insert_vmedia_empty_media_type(self, mock_sys, mock_vmd_sys):
+        mock_vmd_sys.return_value = False
+        with task_manager.acquire(self.context, self.node.uuid,
+                                  shared=True) as task:
+            mock_vmedia_empty_media_type = mock.MagicMock(
+                inserted=False,
+                media_types=[])
+            mock_manager = mock.MagicMock()
+
+            mock_manager.virtual_media.get_members.return_value = [
+                mock_vmedia_empty_media_type]
+
+            self.assertRaises(
+                exception.InvalidParameterValue,
+                redfish_boot._insert_vmedia,
+                task, [mock_manager], 'img-url', sushy.VIRTUAL_MEDIA_CD)
+
     @mock.patch.object(image_utils, 'cleanup_disk_image', autospec=True)
     @mock.patch.object(image_utils, 'cleanup_iso_image', autospec=True)
     @mock.patch.object(redfish_boot, '_has_vmedia_via_systems', autospec=True)
