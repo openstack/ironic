@@ -1,7 +1,7 @@
 .. _enrollment:
 
-Enrollment
-==========
+Enrolling hardware with Ironic
+==============================
 
 After all the services have been properly configured, you should enroll your
 hardware with the Bare Metal service, and confirm that the Compute service sees
