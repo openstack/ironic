@@ -54,7 +54,7 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False):
         how = ('API' if node.automated_clean is False else 'configuration')
         LOG.info('Automated cleaning is disabled via %(how)s, node %(node)s '
                  'has been successfully moved to AVAILABLE state',
-                 {'how': how, 'node': node})
+                 {'how': how, 'node': node.uuid})
         return
 
     # NOTE(dtantsur): this is only reachable during automated cleaning,
