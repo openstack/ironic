@@ -258,8 +258,7 @@ opts = [
                help=_('Password hash algorithm to be used for the rescue '
                       'password.')),
     cfg.BoolOpt('require_rescue_password_hashed',
-                # TODO(TheJulia): Change this to True in Victoria.
-                default=False,
+                default=True,
                 mutable=True,
                 help=_('Option to cause the conductor to not fallback to '
                        'an un-hashed version of the rescue password, '
