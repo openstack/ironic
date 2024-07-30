@@ -122,7 +122,6 @@ The following projects have ``bugfix/X.Y`` branches in addition to standard
 openstack ``stable/NAME`` branches:
 
 * ironic
-* ironic-inspector
 * ironic-python-agent
 
 These projects receive releases every six months as part of the coordinated
@@ -355,8 +354,6 @@ After the release:
   take jobs definitions from. See the following examples:
 
   * `ironic 18.1 <https://review.opendev.org/c/openstack/ironic/+/801876>`_
-  * `ironic-inspector 10.7
-    <https://review.opendev.org/c/openstack/ironic-inspector/+/801873>`_
   * `ironic-python-agent 8.1
     <https://review.opendev.org/c/openstack/ironic-python-agent/+/801898>`_
 
