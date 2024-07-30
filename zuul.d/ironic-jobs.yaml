@@ -101,6 +101,7 @@
         s-container: False
         s-object: False
         s-proxy: False
+        openstack-cli-server: True
 
 - job:
     name: ironic-standalone-aarch64
