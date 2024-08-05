@@ -48,7 +48,7 @@ User Guide
   :maxdepth: 1
 
   API Concept Guide <contributor/webapi>
-  API Reference (latest) <https://docs.openstack.org/api-ref/baremetal/>
+  API Reference for Ironic <https://docs.openstack.org/api-ref/baremetal/>
   API Version History <contributor/webapi-version-history>
 
 Administrator Guide
