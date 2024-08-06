@@ -114,7 +114,7 @@ CLI commands below specify it for completeness.
    The mode and properties values are described in the
    `kernel documentation on bonding`_. The default port group mode is
    ``active-backup``, and this default can be changed by setting the
-   ``[DEFAULT]default_portgroup_mode`` configuration option in the ironic API
+   :oslo.config:option:`DEFAULT.default_portgroup_mode` configuration option in the ironic API
    service configuration file.
 
 #. Associate ports with the created port group.

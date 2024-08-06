@@ -69,7 +69,7 @@ Currently booting from a volume requires:
 Conductor Configuration
 =======================
 In ironic.conf, you can specify a list of enabled storage interfaces. Check
-``[DEFAULT]enabled_storage_interfaces`` in your ironic.conf to ensure that
+:oslo.config:option:`DEFAULT.enabled_storage_interfaces` in your ironic.conf to ensure that
 your desired interface is enabled. For example, to enable the ``cinder`` and
 ``noop`` storage interfaces::
 
@@ -77,7 +77,7 @@ your desired interface is enabled. For example, to enable the ``cinder`` and
   enabled_storage_interfaces = cinder,noop
 
 If you want to specify a default storage interface rather than setting the
-storage interface on a per node basis, set ``[DEFAULT]default_storage_interface``
+storage interface on a per node basis, set :oslo.config:option:`DEFAULT.default_storage_interface`
 in ironic.conf. The ``default_storage_interface`` will be used for any node that
 doesn't have a storage interface defined.
 

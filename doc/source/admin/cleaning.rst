@@ -379,7 +379,7 @@ iterations, use the following configuration option::
 Overriding step priority
 ------------------------
 
-``[conductor]clean_step_priority_override`` is a new configuration option
+:oslo.config:option:`conductor.clean_step_priority_override` is a new configuration option
 which allows specifying priority of each step using multiple configuration
 values:
 

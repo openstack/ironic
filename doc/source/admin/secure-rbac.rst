@@ -279,7 +279,7 @@ This functionality is enabled by default, and automatically
 imparts ``owner`` privileges to the created Bare Metal node.
 
 This functionality can be disabled by setting
-``[api]project_admin_can_manage_own_nodes`` to ``False``.
+:oslo.config:option:`api.project_admin_can_manage_own_nodes` to ``False``.
 
 Can I use a service role?
 -------------------------
@@ -297,7 +297,7 @@ usage of the service via a service account.
 A project scoped user with the ``service`` role is able to create
 baremetal nodes, but is not able to delete them. To disable the
 ability to create nodes, set the
-``[api]project_admin_can_manage_own_nodes`` setting to ``False``.
+:oslo.config:option:`api.project_admin_can_manage_own_nodes` setting to ``False``.
 The nodes which can be accessed/managed in the project scope also align
 with the ``owner`` and ``lessee`` access model, and thus if nodes are not
 matching the user's ``project_id``, then Ironic's API will appear not to

@@ -131,7 +131,7 @@ the service catalog or configured in the ``[service_catalog]`` section:
 
 In case you need specific URLs for each node, you can use the
 ``driver_info[external_http_url]`` node property. When used it overrides the
-``[deploy]http_url`` and ``[deploy]external_http_url`` settings in the
+:oslo.config:option:`deploy.http_url` and :oslo.config:option:`deploy.external_http_url` settings in the
 configuration file.
 
 .. code-block:: bash

@@ -94,7 +94,7 @@ The ``ilo`` hardware type supports following hardware interfaces:
 
 * bios
     Supports ``ilo`` and ``no-bios``. The default is ``ilo``.
-    They can be enabled by using the ``[DEFAULT]enabled_bios_interfaces``
+    They can be enabled by using the :oslo.config:option:`DEFAULT.enabled_bios_interfaces`
     option in ``ironic.conf`` as given below:
 
     .. code-block:: ini
@@ -110,7 +110,7 @@ The ``ilo`` hardware type supports following hardware interfaces:
     media to boot up the bare metal node. The ``ilo-pxe`` and ``ilo-ipxe``
     interfaces use PXE and iPXE respectively for deployment(just like
     :ref:`pxe-boot`). These interfaces do not require iLO Advanced license.
-    They can be enabled by using the ``[DEFAULT]enabled_boot_interfaces``
+    They can be enabled by using the :oslo.config:option:`DEFAULT.enabled_boot_interfaces`
     option in ``ironic.conf`` as given below:
 
     .. code-block:: ini
@@ -121,7 +121,7 @@ The ``ilo`` hardware type supports following hardware interfaces:
 
 * console
     Supports ``ilo`` and ``no-console``. The default is ``ilo``.
-    They can be enabled by using the ``[DEFAULT]enabled_console_interfaces``
+    They can be enabled by using the :oslo.config:option:`DEFAULT.enabled_console_interfaces`
     option in ``ironic.conf`` as given below:
 
     .. code-block:: ini
@@ -139,7 +139,7 @@ The ``ilo`` hardware type supports following hardware interfaces:
 
 * inspect
     Supports ``ilo`` and ``inspector``. The default is ``ilo``. They
-    can be enabled by using the ``[DEFAULT]enabled_inspect_interfaces`` option
+    can be enabled by using the :oslo.config:option:`DEFAULT.enabled_inspect_interfaces` option
     in ``ironic.conf`` as given below:
 
     .. code-block:: ini
@@ -154,7 +154,7 @@ The ``ilo`` hardware type supports following hardware interfaces:
 
 * management
     Supports only ``ilo``. It can be enabled by using the
-    ``[DEFAULT]enabled_management_interfaces`` option in ``ironic.conf`` as
+    :oslo.config:option:`DEFAULT.enabled_management_interfaces` option in ``ironic.conf`` as
     given below:
 
     .. code-block:: ini
@@ -165,7 +165,7 @@ The ``ilo`` hardware type supports following hardware interfaces:
 
 * power
     Supports only ``ilo``. It can be enabled by using the
-    ``[DEFAULT]enabled_power_interfaces`` option in ``ironic.conf`` as given
+    :oslo.config:option:`DEFAULT.enabled_power_interfaces` option in ``ironic.conf`` as given
     below:
 
     .. code-block:: ini
@@ -176,7 +176,7 @@ The ``ilo`` hardware type supports following hardware interfaces:
 
 * raid
     Supports ``agent`` and ``no-raid``. The default is ``no-raid``.
-    They can be enabled by using the ``[DEFAULT]enabled_raid_interfaces``
+    They can be enabled by using the :oslo.config:option:`DEFAULT.enabled_raid_interfaces`
     option in ``ironic.conf`` as given below:
 
     .. code-block:: ini
@@ -187,7 +187,7 @@ The ``ilo`` hardware type supports following hardware interfaces:
 
 * storage
     Supports ``cinder`` and ``noop``. The default is ``noop``.
-    They can be enabled by using the ``[DEFAULT]enabled_storage_interfaces``
+    They can be enabled by using the :oslo.config:option:`DEFAULT.enabled_storage_interfaces`
     option in ``ironic.conf`` as given below:
 
     .. code-block:: ini
@@ -204,7 +204,7 @@ The ``ilo`` hardware type supports following hardware interfaces:
 
 * rescue
     Supports ``agent`` and ``no-rescue``. The default is ``no-rescue``.
-    They can be enabled by using the ``[DEFAULT]enabled_rescue_interfaces``
+    They can be enabled by using the :oslo.config:option:`DEFAULT.enabled_rescue_interfaces`
     option in ``ironic.conf`` as given below:
 
     .. code-block:: ini
@@ -216,7 +216,7 @@ The ``ilo`` hardware type supports following hardware interfaces:
 * vendor
     Supports ``ilo``, ``ilo-redfish`` and ``no-vendor``. The default is
     ``ilo``. They can be enabled by using the
-    ``[DEFAULT]enabled_vendor_interfaces`` option in ``ironic.conf`` as given
+    :oslo.config:option:`DEFAULT.enabled_vendor_interfaces` option in ``ironic.conf`` as given
     below:
 
     .. code-block:: ini
@@ -232,7 +232,7 @@ except for ``boot`` and ``raid`` interfaces. The details of ``boot`` and
 
 * raid
     Supports ``ilo5`` and ``no-raid``. The default is ``ilo5``.
-    They can be enabled by using the ``[DEFAULT]enabled_raid_interfaces``
+    They can be enabled by using the :oslo.config:option:`DEFAULT.enabled_raid_interfaces`
     option in ``ironic.conf`` as given below:
 
     .. code-block:: ini
@@ -244,7 +244,7 @@ except for ``boot`` and ``raid`` interfaces. The details of ``boot`` and
 * boot
     Supports ``ilo-uefi-https`` apart from the other boot interfaces supported
     by ``ilo`` hardware type.
-    This can be enabled by using the ``[DEFAULT]enabled_boot_interfaces``
+    This can be enabled by using the :oslo.config:option:`DEFAULT.enabled_boot_interfaces`
     option in ``ironic.conf`` as given below:
 
     .. code-block:: ini
@@ -1532,9 +1532,9 @@ An example of a manual clean step with ``create_csr`` as the only clean step cou
         }
     }]
 
-The ``[ilo]cert_path`` option in ``ironic.conf`` is used as the directory path for
+The :oslo.config:option:`ilo.cert_path` option in ``ironic.conf`` is used as the directory path for
 creating the CSR, which defaults to ``/var/lib/ironic/ilo``. The CSR is created in the directory location
-given in ``[ilo]cert_path`` in ``node_uuid`` directory as <node_uuid>.csr.
+given in :oslo.config:option:`ilo.cert_path` in ``node_uuid`` directory as <node_uuid>.csr.
 
 
 Add HTTPS Certificate as manual clean step
@@ -1556,7 +1556,7 @@ An example of a manual clean step with ``add_https_certificate`` as the only cle
 Argument ``cert_file`` is mandatory. The ``cert_file`` takes the path or url of the certificate file.
 The url schemes supported are: ``file``, ``http`` and ``https``.
 The CSR generated in step ``create_csr`` needs to be signed by a valid CA and the resultant HTTPS certificate should
-be provided in ``cert_file``. It copies the ``cert_file`` to ``[ilo]cert_path`` under ``node.uuid`` as <node_uuid>.crt
+be provided in ``cert_file``. It copies the ``cert_file`` to :oslo.config:option:`ilo.cert_path` under ``node.uuid`` as <node_uuid>.crt
 before adding it to iLO.
 
 RAID Support
@@ -1881,7 +1881,7 @@ soft power operations on a server:
         [--power-timeout <power-timeout>] <node>
 
 .. note::
-   The configuration ``[conductor]soft_power_off_timeout`` is used as a
+   The configuration :oslo.config:option:`conductor.soft_power_off_timeout` is used as a
    default timeout value when no timeout is provided while invoking
    hard or soft power operations.
 

@@ -185,7 +185,7 @@ older code, and start up a service using newer code with minimal impact.
 
 Nodes that are being acted upon by an ironic-conductor process, which are not in
 a stable state, will be put into a failed state when
-``[DEFAULT]graceful_shutdown_timeout`` is reached. Node failures that occur
+:oslo.config:option:`DEFAULT.graceful_shutdown_timeout` is reached. Node failures that occur
 during an upgrade are likely due to timeouts, resulting from delays involving
 messages being processed and acted upon by a conductor during long running,
 multi-step processes such as deployment or cleaning.
@@ -197,9 +197,9 @@ A drain shutdown is similar to graceful shutdown, differing in the following way
 
 * Triggered by sending signal ``SIGUSR2`` to the process instead of ``SIGTERM``
 * The timeout for process termination is determined by
-  ``[DEFAULT]drain_shutdown_timeout`` instead of ``[DEFAULT]graceful_shutdown_timeout``
+  :oslo.config:option:`DEFAULT.drain_shutdown_timeout` instead of :oslo.config:option:`DEFAULT.graceful_shutdown_timeout`
 
-``[DEFAULT]drain_shutdown_timeout`` is set long enough so that any node in a not
+:oslo.config:option:`DEFAULT.drain_shutdown_timeout` is set long enough so that any node in a not
 stable state will have time to reach a stable state (complete or failed) before
 the ironic-conductor process terminates.
 

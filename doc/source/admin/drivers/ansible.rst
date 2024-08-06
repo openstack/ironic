@@ -378,26 +378,26 @@ Those values are then accessible in your plays as well
     passed inside this variable. Some extra notes and fields:
 
     - ``mem_req`` is calculated from image size (if available) and config
-      option ``[ansible]extra_memory``.
+      option :oslo.config:option:`ansible.extra_memory`.
     - if ``checksum`` is not in the form ``<hash-algo>:<hash-sum>``, hashing
       algorithm is assumed to be ``md5`` (default in Glance).
     - ``validate_certs`` - boolean (``yes/no``) flag that turns validating
       image store SSL certificate on or off (default is 'yes').
-      Governed by ``[ansible]image_store_insecure`` option
+      Governed by :oslo.config:option:`ansible.image_store_insecure` option
       in ironic configuration file.
     - ``cafile`` - custom CA bundle to use for validating image store
       SSL certificate.
-      Takes value of ``[ansible]image_store_cafile`` if that is defined.
+      Takes value of :oslo.config:option:`ansible.image_store_cafile` if that is defined.
       Currently is not used by default playbooks, as Ansible has no way to
       specify the custom CA bundle to use for single HTTPS actions,
       however you can use this value in your custom playbooks to for example
       upload and register this CA in the ramdisk at deploy time.
     - ``client_cert`` - cert file for client-side SSL authentication.
-      Takes value of ``[ansible]image_store_certfile`` option if defined.
+      Takes value of :oslo.config:option:`ansible.image_store_certfile` option if defined.
       Currently is not used by default playbooks,
       however you can use this value in your custom playbooks.
     - ``client_key`` - private key file for client-side SSL authentication.
-      Takes value of ``[ansible]image_store_keyfile`` option if defined.
+      Takes value of :oslo.config:option:`ansible.image_store_keyfile` option if defined.
       Currently is not used by default playbooks,
       however you can use this value in your custom playbooks.
 

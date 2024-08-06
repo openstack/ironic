@@ -366,7 +366,7 @@ Storage setup
 
 To start using these steps, configure the storage location. The settings can be
 found in the ``[molds]`` section. Configure the storage type from the
-``[molds]storage`` setting. Currently, ``swift``, which is enabled by default,
+:oslo.config:option:`molds.storage` setting. Currently, ``swift``, which is enabled by default,
 and ``http`` are supported.
 
 In the setup input parameters, the complete HTTP URL is used. This requires
@@ -398,7 +398,7 @@ To use HTTP server with configuration molds,
 #. Enable HTTP PUT support.
 #. Create the directory to be used for the configuration mold storage.
 #. Configure read/write access for HTTP Basic access authentication and provide
-   user credentials in ``[molds]user`` and ``[molds]password`` fields.
+   user credentials in :oslo.config:option:`molds.user` and :oslo.config:option:`molds.password` fields.
 
 The HTTP web server does not support multitenancy and is intended to be used in
 a stand-alone Ironic, or single-tenant OpenStack environment.
@@ -588,7 +588,7 @@ Nodes go into maintenance mode
 After some period of time, nodes managed by the ``idrac`` hardware type may go
 into maintenance mode in Ironic. This issue can be worked around by changing
 the Ironic power state poll interval to 70 seconds. See
-``[conductor]sync_power_state_interval`` in ``/etc/ironic/ironic.conf``.
+:oslo.config:option:`conductor.sync_power_state_interval` in ``/etc/ironic/ironic.conf``.
 
 PXE reset with "factory_reset" BIOS clean step
 ----------------------------------------------

@@ -185,7 +185,7 @@ For extra context, unmanaged introspection is when you ask ironic-inspector
 to inspect a machine *instead* of asking ironic. In other words, using
 ``openstack baremetal introspection start <node>`` versus
 ``baremetal node inspect <node>`` commands. This does require the
-``[inspector]require_managed_boot`` setting be set to ``true``.
+:oslo.config:option:`inspector.require_managed_boot` setting be set to ``true``.
 
 Driver support for Deployment with Secure Boot
 ----------------------------------------------
@@ -242,7 +242,7 @@ is required in ironic.conf.::
   loader_file_paths = bootx64.efi:/usr/lib/shimx64.efi.signed,grubx64.efi:/usr/lib/grub/x86_64-efi-signed/grubnetx64.efi.signed
 
 .. NOTE::
-   You may want to leverage the ``[pxe]loader_file_paths`` feature, which
+   You may want to leverage the :oslo.config:option:`pxe.loader_file_paths` feature, which
    automatically copies boot loaders into the ``tftp_root`` folder, but this
    functionality is not required if you manually copy the named files into
    the Preboot eXecution Environment folder(s), by default the [pxe]tftp_root,
@@ -385,8 +385,8 @@ operators to restrict concurrent, long running, destructive actions.
 The overall use case this was implemented for was to help provide
 backstop for runaway processes and actions which one may apply to
 an environment, such as batch deletes of nodes. The appropriate
-settings for these settings are the ``[conductor]max_concurrent_deploy``
-with a default value of 250, and ``[conductor]max_concurrent_clean``
+settings for these settings are the :oslo.config:option:`conductor.max_concurrent_deploy`
+with a default value of 250, and :oslo.config:option:`conductor.max_concurrent_clean`
 with a default value of 50. These settings are reasonable defaults
 for medium to large deployments, but depending on load and usage
 patterns and can be safely tuned to be in line with an operator's
@@ -400,7 +400,7 @@ can consume large amounts of memory, for example, disk image format
 conversions as part of a deployment operations. The Ironic conductor
 service has a minimum memory available check which is executed before
 launching these operations. It defaults to ``1024`` Megabytes, and can
-be tuned using the ``[DEFAULT]minimum_required_memory`` setting.
+be tuned using the :oslo.config:option:`DEFAULT.minimum_required_memory` setting.
 
 Operators with a higher level of concurrency may wish to increase the
 default value.

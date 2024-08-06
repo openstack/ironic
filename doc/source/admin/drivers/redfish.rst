@@ -355,16 +355,16 @@ Limitations & Issues
 ~~~~~~~~~~~~~~~~~~~~
 
 Ironic contains two different ways of providing an HTTP(S) URL
-to a remote BMC. The first is Swift, enabled when ``[redfish]use_swift``
+to a remote BMC. The first is Swift, enabled when :oslo.config:option:`redfish.use_swift`
 is set to ``true``. Ironic uploads files to Swift, which are then shared as
 Temporary Swift URLs. While highly scalable, this method does suffer from
 issues where some vendors BMCs reject URLs with **&** or **?** characters.
 There is no available workaround to leverage Swift in this state.
 
-When the ``[redfish]use_swift`` setting is set to ``false``, Ironic will house
-the files locally in the ``[deploy]http_root`` folder structure, and then
+When the :oslo.config:option:`redfish.use_swift` setting is set to ``false``, Ironic will house
+the files locally in the :oslo.config:option:`deploy.http_root` folder structure, and then
 generate a URL pointing the BMC to connect to the HTTP service configured
-via ``[deploy]http_url``.
+via :oslo.config:option:`deploy.http_url`.
 
 Out-Of-Band inspection
 ======================

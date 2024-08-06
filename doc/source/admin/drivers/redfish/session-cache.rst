@@ -17,7 +17,7 @@ The session cache default size is ``1000`` sessions per conductor.
 If you are operating a deployment with a larger number of Redfish
 BMCs, it is advised that you do appropriately tune that number.
 This can be tuned via the API service configuration file,
-``[redfish]connection_cache_size``.
+:oslo.config:option:`redfish.connection_cache_size`.
 
 Session Cache Expiration
 ~~~~~~~~~~~~~~~~~~~~~~~~

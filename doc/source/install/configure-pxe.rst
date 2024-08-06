@@ -301,7 +301,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
    .. note::
       Most UEFI systems have integrated networking which means the
-      ``[pxe]uefi_ipxe_bootfile_name`` setting should be set to
+      :oslo.config:option:`pxe.uefi_ipxe_bootfile_name` setting should be set to
       ``snponly.efi`` or ``ipxe-snponly-x86_64.efi`` if it's available for
       your distribution.
 
@@ -313,12 +313,13 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
 
 #. Ensure iPXE is the default PXE, if applicable.
 
-   In earlier versions of ironic, a ``[pxe]ipxe_enabled`` setting allowing
-   operators to declare the behavior of the conductor to exclusively operate
-   as if only iPXE was to be used. As time moved on, iPXE functionality was
-   moved to it's own ``ipxe`` boot interface.
+   In earlier versions of ironic, a now deprecated and removed
+   ``[pxe]ipxe_enabled`` setting allowed operators to declare the behavior of
+   the conductor to exclusively operate as if only iPXE was to be used.
+   As time moved on, iPXE functionality was moved to it's own ``ipxe``
+   boot interface.
 
-   If you want to emulate that same hehavior, set the following in the
+   If you want to emulate that same behavior, set the following in the
    configuration file (/etc/ironic/ironic.conf):
 
    .. code-block:: ini
@@ -328,7 +329,7 @@ on the Bare Metal service node(s) where ``ironic-conductor`` is running.
       enabled_boot_interfaces=ipxe,pxe
 
    .. note::
-      The ``[DEFAULT]enabled_boot_interfaces`` setting may be exclusively set
+      The :oslo.config:option:`DEFAULT.enabled_boot_interfaces` setting may be exclusively set
       to ``ipxe``, however ironic has multiple interfaces available depending
       on the hardware types available for use.
 
@@ -387,7 +388,7 @@ PXE multi-architecture setup
 It is possible to deploy servers of different architecture by one conductor.
 To use this feature, architecture-specific boot and template files must
 be configured using the configuration options
-``[pxe]pxe_bootfile_name_by_arch`` and ``[pxe]pxe_config_template_by_arch``
+:oslo.config:option:`pxe.pxe_bootfile_name_by_arch` and :oslo.config:option:`pxe.pxe_config_template_by_arch`
 respectively, in the Bare Metal service's configuration file
 (/etc/ironic/ironic.conf).
 
@@ -437,9 +438,9 @@ nodes will be deployed by 'grubaa64.efi', and ppc64 nodes by 'bootppc64'::
    instead.
 
 .. note::
-   A ``[pxe]ipxe_bootfile_name_by_arch`` setting is available for multi-arch
+   A :oslo.config:option:`pxe.ipxe_bootfile_name_by_arch` setting is available for multi-arch
    iPXE based deployment, and defaults to the same behavior as the comperable
-   ``[pxe]pxe_bootfile_name_by_arch`` setting for standard PXE.
+   :oslo.config:option:`pxe.pxe_bootfile_name_by_arch` setting for standard PXE.
 
 .. note::
    When booting PowerPC based machines, the firmware loader directly boots
@@ -493,8 +494,8 @@ a configuration similar to this example.
 
 If you choose to use relative paths as part of your destination,
 those paths will be created using configuration parameter
-``[pxe]dir_permission`` where as actual files copied are set with
-the configuration parameter ``[pxe]file_permission``. Absolute destination
+:oslo.config:option:`pxe.dir_permission` where as actual files copied are set with
+the configuration parameter :oslo.config:option:`pxe.file_permission`. Absolute destination
 paths are not supported and will result in ironic failing to start up as
 it is a misconfiguration of the deployment.
 
@@ -654,7 +655,7 @@ and overall mechanism style.
   capabilities of iPXE.
 
 To enable the boot interfaces, you will need to add them to your
-``[DEFAULT]enabled_boot_interfaces`` configuration entry.
+:oslo.config:option:`DEFAULT.enabled_boot_interfaces` configuration entry.
 
 .. code-block:: ini
 
