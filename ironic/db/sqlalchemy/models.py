@@ -516,6 +516,51 @@ class FirmwareComponent(Base):
     last_version_flashed = Column(String(255), nullable=True)
 
 
+class Runbook(Base):
+    """Represents a runbook."""
+
+    __tablename__ = 'runbooks'
+    __table_args__ = (
+        schema.UniqueConstraint('uuid', name='uniq_runbooks0uuid'),
+        schema.UniqueConstraint('name', name='uniq_runbooks0name'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(36))
+    name = Column(String(255), nullable=False)
+    public = Column(Boolean, default=False)
+    owner = Column(String(255), nullable=True)
+    disable_ramdisk = Column(Boolean, default=False)
+    extra = Column(db_types.JsonEncodedDict)
+    steps: orm.Mapped[List['RunbookStep']] = orm.relationship(  # noqa
+        "RunbookStep",
+        back_populates="runbook",
+        lazy="selectin")
+
+
+class RunbookStep(Base):
+    """Represents a deployment step in a runbook."""
+
+    __tablename__ = 'runbook_steps'
+    __table_args__ = (
+        Index('runbook_id', 'runbook_id'),
+        Index('runbook_steps_interface_idx', 'interface'),
+        Index('runbook_steps_step_idx', 'step'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    runbook_id = Column(Integer, ForeignKey('runbooks.id'), nullable=False)
+    interface = Column(String(255), nullable=False)
+    step = Column(String(255), nullable=False)
+    args = Column(db_types.JsonEncodedDict, nullable=False)
+    order = Column(Integer, nullable=False)
+    runbook = orm.relationship(
+        "Runbook",
+        primaryjoin=(
+            'and_(RunbookStep.runbook_id == '
+            'Runbook.id)'),
+        foreign_keys=runbook_id
+    )
+
+
 def get_class(model_name):
     """Returns the model class with the specified name.
 

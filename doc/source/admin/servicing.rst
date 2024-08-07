@@ -109,6 +109,15 @@ configuration, and then the vendor interface's ``send_raw`` step would be
 called to send a raw command to the BMC. Please note, ``send_raw`` is only
 available for the ``ipmi`` hardware type.
 
+Alternatively, you can specify a runbook instead of service_steps::
+
+  {
+    "target":"service",
+    "runbook": "<runbook_name_or_uuid>"
+  }
+
+The specified runbook must match one of the node's traits to be used.
+
 Starting servicing via "openstack baremetal" CLI
 ------------------------------------------------
 
@@ -136,6 +145,23 @@ Or with stdin::
 
     cat my-clean-steps.txt | baremetal node service <node> \
         --service-steps -
+
+To use a runbook instead of specifying service steps:
+
+    baremetal node service <node> --runbook <runbook_name_or_uuid>
+
+Using Runbooks for Servicing
+----------------------------
+Similar to manual cleaning, you can use runbooks for node servicing.
+Runbooks provide a predefined list of service steps associated with nodes
+via traits.
+
+To use a runbook for servicing:
+
+    baremetal node service <node> --runbook <runbook_name_or_uuid>
+
+Ensure that the runbook matches one of the node's traits before using it
+for servicing.
 
 Available Steps in Ironic
 -------------------------

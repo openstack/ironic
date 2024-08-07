@@ -1,5 +1,10 @@
 values:
   skip_reason: "These are fake reference values for YAML templating"
+  # Project scoped admin token
+  project_admin_headers: &project_admin_headers
+    X-Auth-Token: 'owner-admin-token'
+    X-Roles: admin,manager,member,reader
+    X-Project-Id: 70e5e25a-2ca2-4cb1-8ae8-7d8739cee205
   # System scoped admin token
   admin_headers: &admin_headers
     X-Auth-Token: 'baremetal-admin-token'
@@ -2584,3 +2589,186 @@ nodes_firmware_component_get_reader:
   method: get
   headers: *reader_headers
   assert_status: 200
+
+# Runbooks - https://docs.openstack.org/api-ref/baremetal/#runbooks-templates
+
+runbooks_post_admin:
+  path: '/v1/runbooks'
+  method: post
+  body: &runbook_body
+    name: 'CUSTOM_NAME'
+    steps:
+      - interface: 'raid'
+        step: 'noop'
+        args: {}
+        order: 0
+  headers: *admin_headers
+  assert_status: 201
+
+runbooks_post_member:
+  path: '/v1/runbooks'
+  method: post
+  body: *runbook_body
+  headers: *scoped_member_headers
+  assert_status: 201
+
+runbooks_post_reader:
+  path: '/v1/runbooks'
+  method: post
+  body: *runbook_body
+  headers: *reader_headers
+  assert_status: 403
+
+runbooks_get_admin:
+  path: '/v1/runbooks'
+  method: get
+  headers: *admin_headers
+  assert_status: 200
+
+runbooks_get_member:
+  path: '/v1/runbooks'
+  method: get
+  headers: *scoped_member_headers
+  assert_status: 200
+
+runbooks_get_reader:
+  path: '/v1/runbooks'
+  method: get
+  headers: *reader_headers
+  assert_status: 200
+
+runbooks_runbook_id_get_admin:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: get
+  headers: *admin_headers
+  assert_status: 200
+
+runbooks_runbook_id_get_member:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: get
+  headers: *scoped_member_headers
+  assert_status: 200
+
+runbooks_runbook_id_get_reader:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: get
+  headers: *reader_headers
+  assert_status: 200
+
+runbooks_runbook_id_patch_admin:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: &runbook_name_patch
+    - op: replace
+      path: /name
+      value: 'CUSTOM_NAME'
+  headers: *admin_headers
+  assert_status: 200
+
+runbooks_runbook_id_patch_member:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_name_patch
+  headers: *scoped_member_headers
+  assert_status: 200
+
+runbooks_runbook_id_patch_reader:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_name_patch
+  headers: *reader_headers
+  assert_status: 403
+
+runbooks_runbook_id_patch_public_admin:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: &runbook_public_patch
+    - op: replace
+      path: /public
+      value: true
+  headers: *admin_headers
+  assert_status: 200
+
+runbooks_runbook_id_patch_public_member:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_public_patch
+  headers: *scoped_member_headers
+  assert_status: 200
+
+runbooks_runbook_id_patch_public_reader:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_public_patch
+  headers: *reader_headers
+  assert_status: 403
+
+runbooks_runbook_id_patch_owner_admin:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: &runbook_owner_patch
+    - op: replace
+      path: /owner
+      value: 'new_owner'
+  headers: *admin_headers
+  assert_status: 200
+
+runbooks_runbook_id_patch_owner_member:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_owner_patch
+  headers: *scoped_member_headers
+  assert_status: 200
+
+runbooks_runbook_id_patch_owner_reader:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_owner_patch
+  headers: *reader_headers
+  assert_status: 403
+
+runbooks_runbook_id_delete_admin:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: delete
+  headers: *admin_headers
+  assert_status: 204
+
+runbooks_runbook_id_delete_member:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: delete
+  headers: *scoped_member_headers
+  assert_status: 204
+
+runbooks_runbook_id_delete_reader:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: delete
+  headers: *reader_headers
+  assert_status: 403
+
+runbooks_post_project_admin:
+  path: '/v1/runbooks'
+  method: post
+  body: *runbook_body
+  headers: *project_admin_headers
+  assert_status: 201
+
+runbooks_runbook_id_patch_public_admin:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_public_patch
+  headers: *admin_headers
+  assert_status: 200
+
+public_runbooks_post_admin:
+  path: '/v1/runbooks'
+  method: post
+  body: &runbook_body_public
+    name: 'CUSTOM_NAME'
+    public: true
+    steps:
+      - interface: 'raid'
+        step: 'noop'
+        args: {}
+        order: 0
+  headers: *admin_headers
+  assert_status: 201

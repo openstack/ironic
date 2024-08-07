@@ -27,6 +27,7 @@ from ironic.api.controllers.v1 import deploy_template as dt_controller
 from ironic.api.controllers.v1 import node as node_controller
 from ironic.api.controllers.v1 import port as port_controller
 from ironic.api.controllers.v1 import portgroup as portgroup_controller
+from ironic.api.controllers.v1 import runbook as rb_controller
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import volume_connector as vc_controller
 from ironic.api.controllers.v1 import volume_target as vt_controller
@@ -201,6 +202,25 @@ def deploy_template_post_data(**kw):
         template, dt_controller.TEMPLATE_SCHEMA['properties'])
 
 
+def runbook_post_data(**kw):
+    """Return a Runbook object without internal attributes."""
+    runbook = db_utils.get_test_runbook(**kw)
+    # These values are not part of the API object
+    runbook.pop('version')
+    # Remove internal attributes from each step.
+    step_internal = api_utils.RUNBOOK_STEP_SCHEMA['properties']
+    runbook['steps'] = [remove_other_fields(step, step_internal)
+                        for step in runbook['steps']]
+    # Remove internal attributes from the runbook.
+    return remove_other_fields(
+        runbook, rb_controller.RUNBOOK_SCHEMA['properties'])
+
+
 def post_get_test_deploy_template(**kw):
     """Return a DeployTemplate object with appropriate attributes."""
     return deploy_template_post_data(**kw)
+
+
+def post_get_test_runbook(**kw):
+    """Return a Runbook object with appropriate attributes."""
+    return runbook_post_data(**kw)

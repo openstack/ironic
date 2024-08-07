@@ -3978,3 +3978,314 @@ service_cannot_get_firmware_components:
   method: get
   headers: *service_headers
   assert_status: 404
+
+# Runbooks - https://docs.openstack.org/api-ref/baremetal/#runbooks-templates
+
+runbooks_post_admin:
+  path: '/v1/runbooks'
+  method: post
+  body: &runbook_body
+    name: 'CUSTOM_NAME'
+    steps:
+      - interface: 'raid'
+        step: 'noop'
+        args: {}
+        order: 0
+  headers: *owner_admin_headers
+  assert_status: 201
+
+runbooks_post_manager:
+  path: '/v1/runbooks'
+  method: post
+  body: *runbook_body
+  headers: *owner_manager_headers
+  assert_status: 201
+
+service_post_runbook:
+  path: '/v1/runbooks'
+  method: post
+  body: *runbook_body
+  headers: *service_headers_owner_project
+  assert_status: 201
+
+third_party_admin_post_runbook:
+  path: '/v1/runbooks'
+  method: post
+  body: *runbook_body
+  headers: *third_party_admin_headers
+  assert_status: 201
+
+runbooks_post_public_admin:
+  path: '/v1/runbooks'
+  method: post
+  body: &runbook_body_public
+    name: 'CUSTOM_NAME'
+    public: true
+    steps:
+      - interface: 'raid'
+        step: 'noop'
+        args: {}
+        order: 0
+  headers: *owner_admin_headers
+  assert_status: 400
+
+runbooks_post_public_admin:
+  path: '/v1/runbooks'
+  method: post
+  body: *runbook_body_public
+  headers: *owner_manager_headers
+  assert_status: 400
+
+runbooks_post_public_service:
+  path: '/v1/runbooks'
+  method: post
+  body: *runbook_body_public
+  headers: *owner_admin_headers
+  assert_status: 400
+
+runbooks_patch_admin:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: &runbook_patch
+    - op: replace
+      path: /name
+      value: 'CUSTOM_NAME'
+  headers: *owner_admin_headers
+  assert_status: 200
+
+runbooks_patch_manager:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_patch
+  headers: *owner_manager_headers
+  assert_status: 200
+
+service_patch_runbook:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_patch
+  headers: *service_headers_owner_project
+  assert_status: 200
+
+project_admin_delete_runbook:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: delete
+  headers: *owner_admin_headers
+  assert_status: 204
+
+project_manager_delete_runbook:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: delete
+  headers: *owner_manager_headers
+  assert_status: 204
+
+service_get_runbooks:
+  path: '/v1/runbooks'
+  method: get
+  headers: *service_headers_owner_project
+  assert_status: 200
+
+service_patch_runbook:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_patch
+  headers: *service_headers_owner_project
+  assert_status: 200
+
+runbooks_project_admin:
+  path: '/v1/runbooks'
+  method: get
+  headers: *owner_admin_headers
+  assert_status: 200
+
+runbooks_runbook_id_get_project_admin:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: get
+  headers: *owner_admin_headers
+  assert_status: 200
+
+project_admin_patch_runbook:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_patch
+  headers: *owner_admin_headers
+  assert_status: 200
+
+runbooks_project_manager:
+  path: '/v1/runbooks'
+  method: get
+  headers: *owner_manager_headers
+  assert_status: 200
+
+runbooks_runbook_id_get_project_manager:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: get
+  headers: *owner_manager_headers
+  assert_status: 200
+
+project_manager_patch_runbook:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_patch
+  headers: *owner_manager_headers
+  assert_status: 200
+
+runbooks_project_member:
+  path: '/v1/runbooks'
+  method: get
+  headers: *owner_member_headers
+  assert_status: 200
+
+runbooks_runbook_id_get_project_member:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: get
+  headers: *owner_member_headers
+  assert_status: 200
+
+runbooks_list_project_reader:
+  path: '/v1/runbooks'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+
+runbooks_runbook_id_get_project_reader:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: get
+  headers: *owner_reader_headers
+  assert_status: 200
+
+runbooks_list_third_party_admin:
+  path: '/v1/runbooks'
+  method: get
+  headers: *third_party_admin_headers
+  assert_status: 200
+
+project_reader_cannot_post_runbook:
+  path: '/v1/runbooks'
+  method: post
+  body: *runbook_body
+  headers: *owner_reader_headers
+  assert_status: 403
+
+project_reader_cannot_patch_runbook:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_patch
+  headers: *owner_reader_headers
+  assert_status: 403
+
+project_reader_cannot_set_runbook_owner:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: &runbook_owner_patch
+    - op: replace
+      path: /owner
+      value: 'new_owner'
+  headers: *owner_reader_headers
+  assert_status: 403
+
+project_reader_cannot_set_runbook_public:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: &runbook_public_patch
+    - op: replace
+      path: /public
+      value: true
+  headers: *owner_reader_headers
+  assert_status: 403
+
+project_reader_cannot_delete_runbook:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: delete
+  headers: *owner_reader_headers
+  assert_status: 403
+
+project_member_cannot_post_runbook:
+  path: '/v1/runbooks'
+  method: post
+  body: *runbook_body
+  headers: *owner_member_headers
+  assert_status: 403
+
+project_member_cannot_patch_runbook:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_patch
+  headers: *owner_member_headers
+  assert_status: 403
+
+project_member_cannot_set_runbook_owner:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_owner_patch
+  headers: *owner_member_headers
+  assert_status: 403
+
+project_member_cannot_set_runbook_public:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_public_patch
+  headers: *owner_member_headers
+  assert_status: 403
+
+project_member_cannot_delete_runbook:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: delete
+  headers: *owner_member_headers
+  assert_status: 403
+
+project_manager_cannot_set_runbook_owner:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_owner_patch
+  headers: *owner_manager_headers
+  assert_status: 403
+
+project_manager_cannot_set_runbook_public:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_public_patch
+  headers: *owner_manager_headers
+  assert_status: 403
+
+project_admin_cannot_set_runbook_owner:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_owner_patch
+  headers: *owner_admin_headers
+  assert_status: 403
+
+project_admin_cannot_set_runbook_public:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_public_patch
+  headers: *owner_admin_headers
+  assert_status: 403
+
+service_cannot_patch_runbook_owner:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_owner_patch
+  headers: *service_headers_owner_project
+  assert_status: 403
+
+service_cannot_patch_runbook_public:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_public_patch
+  headers: *service_headers_owner_project
+  assert_status: 403
+
+third_party_admin_cannot_patch_runbook_owner:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_owner_patch
+  headers: *third_party_admin_headers
+  assert_status: 403
+
+third_party_admin_cannot_patch_runbook_public:
+  path: '/v1/runbooks/{runbook_ident}'
+  method: patch
+  body: *runbook_public_patch
+  headers: *third_party_admin_headers
+  assert_status: 403

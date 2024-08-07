@@ -7117,6 +7117,113 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
         self.assertEqual('application/json', ret.content_type)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
+    @mock.patch.object(api_utils, 'check_runbook_policy_and_retrieve',
+                       autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_service',
+                       autospec=True)
+    def test_service_with_runbooks(self, mock_dns, mock_policy):
+        objects.TraitList.create(self.context, self.node.id, ['CUSTOM_1'])
+        self.node.refresh
+
+        self.node.provision_state = states.SERVICEHOLD
+        self.node.save()
+
+        runbook = mock.Mock()
+        runbook.name = 'CUSTOM_1'
+        runbook.steps = [{"step": "upgrade_firmware", "interface": "deploy",
+                          "args": {}}]
+        mock_policy.return_value = runbook
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['service'],
+                             'runbook': runbook.name},
+                            headers={api_base.Version.string:
+                                     str(api_v1.max_version())})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        mock_policy.assert_has_calls([mock.call('baremetal:runbook:use',
+                                                runbook.name)]),
+        mock_dns.assert_called_once_with(mock.ANY, mock.ANY,
+                                         self.node.uuid, runbook.steps,
+                                         mock.ANY, topic='test-topic')
+
+    @mock.patch.object(api_utils, 'check_runbook_policy_and_retrieve',
+                       autospec=True)
+    @mock.patch.object(rpcapi.ConductorAPI, 'do_node_clean', autospec=True)
+    @mock.patch.object(api_node, '_check_clean_steps', autospec=True)
+    def test_clean_with_runbooks(self, mock_check, mock_rpcapi, mock_policy):
+        objects.TraitList.create(self.context, self.node.id, ['CUSTOM_1'])
+        self.node.refresh
+
+        self.node.provision_state = states.MANAGEABLE
+        self.node.save()
+
+        step = {"step": "configure raid", "interface": "raid", "args": {},
+                "order": 1}
+
+        runbook = mock.Mock()
+        runbook.name = 'CUSTOM_1'
+        runbook.steps = [step]
+        mock_policy.return_value = runbook
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['clean'],
+                             'runbook': runbook.name},
+                            headers={api_base.Version.string:
+                                     str(api_v1.max_version())})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        mock_policy.assert_has_calls([mock.call('baremetal:runbook:use',
+                                                runbook.name)]),
+        mock_check.assert_called_once_with(runbook.steps)
+        mock_rpcapi.assert_called_once_with(mock.ANY, mock.ANY, self.node.uuid,
+                                            runbook.steps, mock.ANY,
+                                            topic='test-topic')
+
+    @mock.patch.object(api_utils, 'check_runbook_policy_and_retrieve',
+                       autospec=True)
+    def test_service_with_runbooks_unapproved(self, mock_policy):
+        objects.TraitList.create(self.context, self.node.id, ['CUSTOM_2'])
+        self.node.refresh
+
+        self.node.provision_state = states.SERVICEHOLD
+        self.node.save()
+
+        runbook = mock.Mock()
+        runbook.name = 'CUSTOM_1'
+        runbook.steps = [{'step': 'meow', 'interface': 'raid', 'args': {},
+                          'order': 1}]
+        mock_policy.return_value = runbook
+
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['service'],
+                             'runbook': runbook.name},
+                            expect_errors=True,
+                            headers={api_base.Version.string:
+                                     str(api_v1.max_version())})
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
+
+    @mock.patch.object(api_utils, 'check_runbook_policy_and_retrieve',
+                       autospec=True)
+    def test_clean_with_runbooks_unapproved(self, mock_policy):
+        objects.TraitList.create(self.context, self.node.id, ['CUSTOM_2'])
+        self.node.refresh
+
+        self.node.provision_state = states.MANAGEABLE
+        self.node.save()
+
+        runbook = mock.Mock()
+        runbook.name = 'CUSTOM_1'
+        runbook.steps = [{'step': 'meow', 'interface': 'deploy', 'args': {},
+                          'order': 1}]
+        mock_policy.return_value = runbook
+
+        ret = self.put_json('/nodes/%s/states/provision' % self.node.uuid,
+                            {'target': states.VERBS['clean'],
+                             'runbook': runbook.name},
+                            expect_errors=True,
+                            headers={api_base.Version.string:
+                                     str(api_v1.max_version())})
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_int)
+
 
 class TestCheckCleanSteps(db_base.DbTestCase):
     def test__check_clean_steps_not_list(self):

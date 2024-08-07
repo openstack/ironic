@@ -724,6 +724,9 @@ expected_object_fingerprints = {
     'NodeInventory': '1.0-97692fec24e20ab02022b9db54e8f539',
     'FirmwareComponent': '1.0-0e0720dab959e20247bbcfd5f28958c5',
     'FirmwareComponentList': '1.0-33a2e1bb91ad4082f9f63429b77c1244',
+    'Runbook': '1.0-7a9c65b49b5f7b45686b6a674e703629',
+    'RunbookCRUDNotification': '1.0-59acc533c11d306f149846f922739c15',
+    'RunbookCRUDPayload': '1.0-f0c97f4ff29eb3401e53b34550a95e30',
 }
 
 

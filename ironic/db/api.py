@@ -1348,6 +1348,101 @@ class Connection(object, metaclass=abc.ABCMeta):
         """
 
     @abc.abstractmethod
+    def create_runbook(self, values):
+        """Create a runbook.
+
+        :param values: A dict describing the runbook. For example:
+
+                     ::
+
+                      {
+                       'uuid': uuidutils.generate_uuid(),
+                       'name': 'CUSTOM_DT1',
+                      }
+        :raises: RunbookDuplicateName if a runbook with the same
+            name exists.
+        :raises: RunbookAlreadyExists if a runbook with the same
+            UUID exists.
+        :returns: A runbook.
+        """
+
+    @abc.abstractmethod
+    def update_runbook(self, runbook_id, values):
+        """Update a runbook.
+
+        :param runbook_id: ID of the runbook to update.
+        :param values: A dict describing the runbook. For example:
+
+                     ::
+
+                      {
+                       'uuid': uuidutils.generate_uuid(),
+                       'name': 'CUSTOM_DT1',
+                      }
+        :raises: RunbookDuplicateName if a runbook with the same
+            name exists.
+        :raises: RunbookNotFound if the runbook does not exist.
+        :returns: A runbook.
+        """
+
+    @abc.abstractmethod
+    def destroy_runbook(self, runbook_id):
+        """Destroy a runbook.
+
+        :param runbook_id: ID of the runbook to destroy.
+        :raises: RunbookNotFound if the runbook does not exist.
+        """
+
+    @abc.abstractmethod
+    def get_runbook_by_id(self, runbook_id):
+        """Retrieve a runbook by ID.
+
+        :param runbook_id: ID of the runbook to retrieve.
+        :raises: RunbookNotFound if the runbook does not exist.
+        :returns: A runbook.
+        """
+
+    @abc.abstractmethod
+    def get_runbook_by_uuid(self, runbook_uuid):
+        """Retrieve a runbook by UUID.
+
+        :param runbook_uuid: UUID of the runbook to retrieve.
+        :raises: RunbookNotFound if the runbook does not exist.
+        :returns: A runbook.
+        """
+
+    @abc.abstractmethod
+    def get_runbook_by_name(self, runbook_name):
+        """Retrieve a runbook by name.
+
+        :param runbook_name: name of the runbook to retrieve.
+        :raises: RunbookNotFound if the runbook does not exist.
+        :returns: A runbook.
+        """
+
+    @abc.abstractmethod
+    def get_runbook_list(self, limit=None, marker=None, filters=None,
+                         sort_key=None, sort_dir=None):
+        """Retrieve a list of runbooks.
+
+        :param limit: Maximum number of runbooks to return.
+        :param marker: The last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: Direction in which results should be sorted.
+                         (asc, desc)
+        :returns: A list of runbooks.
+        """
+
+    @abc.abstractmethod
+    def get_runbook_list_by_names(self, names):
+        """Return a list of runbooks with one of a list of names.
+
+        :param names: List of names to filter by.
+        :returns: A list of runbooks.
+        """
+
+    @abc.abstractmethod
     def create_node_history(self, values):
         """Create a new history record.
 

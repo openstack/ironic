@@ -716,6 +716,22 @@ class InvalidDeployTemplate(Invalid):
     _msg_fmt = _("Deploy template invalid: %(err)s.")
 
 
+class RunbookDuplicateName(Conflict):
+    _msg_fmt = _("A runbook with name %(name)s already exists.")
+
+
+class RunbookAlreadyExists(Conflict):
+    _msg_fmt = _("A runbook with UUID %(uuid)s already exists.")
+
+
+class RunbookNotFound(NotFound):
+    _msg_fmt = _("Runbook %(runbook)s could not be found.")
+
+
+class InvalidRunbook(Invalid):
+    _msg_fmt = _("Runbook invalid: %(err)s.")
+
+
 class InvalidKickstartTemplate(Invalid):
     _msg_fmt = _("The kickstart template is missing required variables")
 

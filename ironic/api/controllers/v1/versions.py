@@ -129,6 +129,7 @@ BASE_VERSION = 1
 # v1.89: Add API for attaching/detaching virtual media
 # v1.90: Accept ovn vtep switch metadata schema to port.local_link_connection
 # v1.91: Remove special treatment of .json for API objects
+# v1.92: Add runbooks API
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -222,6 +223,7 @@ MINOR_88_PORT_NAME = 88
 MINOR_89_ATTACH_DETACH_VMEDIA = 89
 MINOR_90_OVN_VTEP = 90
 MINOR_91_DOT_JSON = 91
+MINOR_92_RUNBOOKS = 92
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -229,7 +231,7 @@ MINOR_91_DOT_JSON = 91
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_91_DOT_JSON
+MINOR_MAX_VERSION = MINOR_92_RUNBOOKS
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

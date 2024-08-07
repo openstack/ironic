@@ -358,6 +358,41 @@ def get_payloads_with_schemas(from_module):
     return payloads
 
 
+def get_test_runbook(ctxt, **kw):
+    """Return a Runbook object with appropriate attributes.
+
+    NOTE: The object leaves the attributes marked as changed, such
+    that a create() could be used to commit it to the DB.
+    """
+    db_runbook = db_utils.get_test_runbook(**kw)
+    # Let DB generate ID if it isn't specified explicitly
+    if 'id' not in kw:
+        del db_runbook['id']
+    if 'steps' not in kw:
+        for step in db_runbook['steps']:
+            del step['id']
+            del step['runbook_id']
+    else:
+        for kw_step, runbook_step in zip(kw['steps'], db_runbook['steps']):
+            if 'id' not in kw_step and 'id' in runbook_step:
+                del runbook_step['id']
+    runbook = objects.Runbook(ctxt)
+    for key in db_runbook:
+        setattr(runbook, key, db_runbook[key])
+    return runbook
+
+
+def create_test_runbook(ctxt, **kw):
+    """Create and return a test runbook object.
+
+    NOTE: The object leaves the attributes marked as changed, such
+    that a create() could be used to commit it to the DB.
+    """
+    runbook = get_test_runbook(ctxt, **kw)
+    runbook.create()
+    return runbook
+
+
 class SchemasTestMixIn(object):
     def _check_payload_schemas(self, from_module, fields):
         """Assert that the Payload SCHEMAs have the expected properties.

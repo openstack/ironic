@@ -32,6 +32,7 @@ from ironic.objects import node_history
 from ironic.objects import node_inventory
 from ironic.objects import port
 from ironic.objects import portgroup
+from ironic.objects import runbook
 from ironic.objects import trait
 from ironic.objects import volume_connector
 from ironic.objects import volume_target
@@ -671,6 +672,59 @@ def create_test_deploy_template(**kw):
             if 'id' not in kw_step:
                 del template_step['id']
     return dbapi.create_deploy_template(template)
+
+
+def get_test_runbook(**kw):
+    default_uuid = uuidutils.generate_uuid()
+    return {
+        'version': kw.get('version', runbook.Runbook.VERSION),
+        'created_at': kw.get('created_at'),
+        'updated_at': kw.get('updated_at'),
+        'id': kw.get('id', 234),
+        'name': kw.get('name', u'CUSTOM_DT1'),
+        'uuid': kw.get('uuid', default_uuid),
+        'steps': kw.get('steps', [get_test_runbook_step(
+            runbook_id=kw.get('id', 234))]),
+        'disable_ramdisk': kw.get('disable_ramdisk', False),
+        'extra': kw.get('extra', {}),
+        'public': kw.get('public', False),
+        'owner': kw.get('owner', None),
+    }
+
+
+def get_test_runbook_step(**kw):
+    return {
+        'created_at': kw.get('created_at'),
+        'updated_at': kw.get('updated_at'),
+        'id': kw.get('id', 345),
+        'runbook_id': kw.get('runbook_id', 234),
+        'interface': kw.get('interface', 'raid'),
+        'step': kw.get('step', 'create_configuration'),
+        'args': kw.get('args', {'logical_disks': []}),
+        'order': kw.get('order', 1)
+    }
+
+
+def create_test_runbook(**kw):
+    """Create a runbook in the DB and return Runbook model.
+
+    :param kw: kwargs with overriding values for the runbook.
+    :returns: Test Runbook DB object.
+    """
+    runbook = get_test_runbook(**kw)
+    dbapi = db_api.get_instance()
+    # Let DB generate an ID if one isn't specified explicitly.
+    if 'id' not in kw:
+        del runbook['id']
+    if 'steps' not in kw:
+        for step in runbook['steps']:
+            del step['id']
+            del step['runbook_id']
+    else:
+        for kw_step, runbook_step in zip(kw['steps'], runbook['steps']):
+            if 'id' not in kw_step:
+                del runbook_step['id']
+    return dbapi.create_runbook(runbook)
 
 
 def get_test_history(**kw):

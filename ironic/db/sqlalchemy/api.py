@@ -169,6 +169,16 @@ def _get_deploy_template_select_with_steps():
     ).options(selectinload(models.DeployTemplate.steps))
 
 
+def _get_runbook_select_with_steps():
+    """Return a select object for the Runbook joined with steps.
+
+    :returns: a select object.
+    """
+    return sa.select(
+        models.Runbook
+    ).options(selectinload(models.Runbook.steps))
+
+
 def model_query(model, *args, **kwargs):
     """Query helper for simpler session usage.
 
@@ -471,6 +481,13 @@ class Connection(api.Connection):
                      | set(_NODE_IN_QUERY_FIELDS)
                      | set(_NODE_NON_NULL_FILTERS))
 
+    _RUNBOOK_QUERY_FIELDS = {'id', 'uuid', 'name', 'public', 'owner',
+                             'disable_ramdisk'}
+    _RUNBOOK_IN_QUERY_FIELDS = {'%s_in' % field: field
+                                for field in ('id', 'uuid', 'name')}
+    _RUNBOOK_FILTERS = ({'project'} | _RUNBOOK_QUERY_FIELDS
+                        | set(_RUNBOOK_IN_QUERY_FIELDS))
+
     def __init__(self):
         pass
 
@@ -539,6 +556,31 @@ class Connection(api.Connection):
 
         # The presence of ``include_children`` as a filter results in
         # a full list of both parents and children being conveyed.
+        return query
+
+    def _validate_runbooks_filters(self, filters):
+        if filters is None:
+            filters = dict()
+        unsupported_filters = set(filters).difference(self._RUNBOOK_FILTERS)
+        if unsupported_filters:
+            msg = _("SqlAlchemy API does not support "
+                    "filtering by %s") % ', '.join(unsupported_filters)
+            raise ValueError(msg)
+        return filters
+
+    def _add_runbooks_filters(self, query, filters):
+        filters = self._validate_runbooks_filters(filters)
+        for field in self._RUNBOOK_QUERY_FIELDS:
+            if field in filters:
+                query = query.filter_by(**{field: filters[field]})
+        for key, field in self._RUNBOOK_IN_QUERY_FIELDS.items():
+            if key in filters:
+                query = query.filter(
+                    getattr(models.Runbook, field).in_(filters[key]))
+        if 'project' in filters:
+            project = filters['project']
+            query = query.filter((models.Runbook.owner == project)
+                                 | (models.Runbook.public))
         return query
 
     def _add_allocations_filters(self, query, filters):
@@ -2624,6 +2666,171 @@ class Connection(api.Connection):
             res = session.execute(
                 query.where(
                     models.DeployTemplate.name.in_(names)
+                )
+            ).all()
+            return [r[0] for r in res]
+
+    @staticmethod
+    def _get_runbook_steps(steps, runbook_id=None):
+        results = []
+        for values in steps:
+            step = models.RunbookStep()
+            step.update(values)
+            if runbook_id:
+                step['runbook_id'] = runbook_id
+            results.append(step)
+        return results
+
+    @oslo_db_api.retry_on_deadlock
+    def create_runbook(self, values):
+        steps = values.get('steps', [])
+        values['steps'] = self._get_runbook_steps(steps)
+
+        runbook = models.Runbook()
+        runbook.update(values)
+        with _session_for_write() as session:
+            try:
+                session.add(runbook)
+                session.flush()
+            except db_exc.DBDuplicateEntry as e:
+                if 'name' in e.columns:
+                    raise exception.RunbookDuplicateName(
+                        name=values['name'])
+                raise exception.RunbookAlreadyExists(
+                    uuid=values['uuid'])
+        return runbook
+
+    def _update_runbook_steps(self, session, runbook_id, steps):
+        """Update the steps for a runbook.
+
+        :param session: DB session object.
+        :param runbook_id: runbook ID.
+        :param steps: list of steps that should exist for the runbook.
+        """
+
+        def _step_key(step):
+            """Compare two runbook steps."""
+            # NOTE(mgoddard): In python 3, dicts are not orderable so cannot be
+            # used as a sort key. Serialise the step arguments to a JSON string
+            # for comparison. Taken from https://stackoverflow.com/a/22003440.
+            sortable_args = json.dumps(step.args, sort_keys=True)
+            return step.interface, step.step, sortable_args, step.order
+
+        # List all existing steps for the runbook.
+        current_steps = (session.query(models.RunbookStep)
+                         .filter_by(runbook_id=runbook_id))
+
+        # List the new steps for the runbook.
+        new_steps = self._get_runbook_steps(steps, runbook_id)
+
+        # The following is an efficient way to ensure that the steps in the
+        # database match those that have been requested. We compare the current
+        # and requested steps in a single pass using the _zip_matching
+        # function.
+        steps_to_create = []
+        step_ids_to_delete = []
+        for current_step, new_step in _zip_matching(current_steps, new_steps,
+                                                    _step_key):
+            if current_step is None:
+                # No matching current step found for this new step - create.
+                steps_to_create.append(new_step)
+            elif new_step is None:
+                # No matching new step found for this current step - delete.
+                step_ids_to_delete.append(current_step.id)
+            # else: steps match, no work required.
+
+        # Delete and create steps in bulk as necessary.
+        if step_ids_to_delete:
+            ((session.query(models.RunbookStep)
+              .filter(models.RunbookStep.id.in_(step_ids_to_delete)))
+             .delete(synchronize_session=False))
+        if steps_to_create:
+            session.bulk_save_objects(steps_to_create)
+
+    @oslo_db_api.retry_on_deadlock
+    def update_runbook(self, runbook_id, values):
+        if 'uuid' in values:
+            msg = _("Cannot overwrite UUID for an existing runbook.")
+            raise exception.InvalidParameterValue(err=msg)
+
+        try:
+            with _session_for_write() as session:
+                # NOTE(mgoddard): Don't issue a joined query for the update as
+                # this does not work with PostgreSQL.
+                query = session.query(models.Runbook)
+                query = add_identity_filter(query, runbook_id)
+                ref = query.with_for_update().one()
+                # First, update non-step columns.
+                steps = values.pop('steps', None)
+                ref.update(values)
+                # If necessary, update steps.
+                if steps is not None:
+                    self._update_runbook_steps(session, ref.id, steps)
+                session.flush()
+
+            with _session_for_read() as session:
+                # Return the updated runbook joined with all relevant fields.
+                query = _get_runbook_select_with_steps()
+                query = add_identity_filter(query, runbook_id)
+                res = session.execute(query).one()[0]
+            return res
+        except db_exc.DBDuplicateEntry as e:
+            if 'name' in e.columns:
+                raise exception.RunbookDuplicateName(
+                    name=values['name'])
+            raise
+        except NoResultFound:
+            # TODO(TheJulia): What would unified core raise?!?
+            raise exception.RunbookNotFound(
+                runbook=runbook_id)
+
+    @oslo_db_api.retry_on_deadlock
+    def destroy_runbook(self, runbook_id):
+        with _session_for_write() as session:
+            session.query(models.RunbookStep).filter_by(
+                runbook_id=runbook_id).delete()
+            count = session.query(models.Runbook).filter_by(
+                id=runbook_id).delete()
+            if count == 0:
+                raise exception.RunbookNotFound(runbook=runbook_id)
+
+    def _get_runbook(self, field, value):
+        """Helper method for retrieving a runbook."""
+        query = (_get_runbook_select_with_steps()
+                 .where(field == value))
+        try:
+            with _session_for_read() as session:
+                res = session.execute(query).one()[0]
+            return res
+        except NoResultFound:
+            raise exception.RunbookNotFound(runbook=value)
+
+    def get_runbook_by_id(self, runbook_id):
+        return self._get_runbook(models.Runbook.id,
+                                 runbook_id)
+
+    def get_runbook_by_uuid(self, runbook_uuid):
+        return self._get_runbook(models.Runbook.uuid,
+                                 runbook_uuid)
+
+    def get_runbook_by_name(self, runbook_name):
+        return self._get_runbook(models.Runbook.name,
+                                 runbook_name)
+
+    def get_runbook_list(self, limit=None, marker=None, filters=None,
+                         sort_key=None, sort_dir=None):
+        query = (sa.select(models.Runbook)
+                 .options(selectinload(models.Runbook.steps)))
+        query = self._add_runbooks_filters(query, filters)
+        return _paginate_query(models.Runbook, limit, marker,
+                               sort_key, sort_dir, query)
+
+    def get_runbook_list_by_names(self, names):
+        query = _get_runbook_select_with_steps()
+        with _session_for_read() as session:
+            res = session.execute(
+                query.where(
+                    models.Runbook.name.in_(names)
                 )
             ).all()
             return [r[0] for r in res]
