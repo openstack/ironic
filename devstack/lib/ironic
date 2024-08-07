@@ -1600,6 +1600,8 @@ function configure_ironic {
     iniset $IRONIC_CONF_FILE agent deploy_logs_collect $IRONIC_DEPLOY_LOGS_COLLECT
     iniset $IRONIC_CONF_FILE agent deploy_logs_storage_backend $IRONIC_DEPLOY_LOGS_STORAGE_BACKEND
     iniset $IRONIC_CONF_FILE agent deploy_logs_local_path $IRONIC_DEPLOY_LOGS_LOCAL_PATH
+    # Allow ironic to set permissions for the tftp test usage.
+    iniset $IRONIC_CONF_FILE pxe dir_permission 493
     # Set image_download_source for direct interface
     if [[ -n "$IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE" ]]; then
         iniset $IRONIC_CONF_FILE agent image_download_source $IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE
