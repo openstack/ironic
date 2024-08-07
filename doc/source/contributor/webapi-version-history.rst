@@ -2,6 +2,21 @@
 REST API Version History
 ========================
 
+1.92 (Dalmatian)
+-----------------------
+
+Adds runbooks, a predefined list of steps that can be run on
+nodes associated via traits and used in place of an explicit
+list of steps for manual cleaning or servicing, to enable
+self-service of maintenance items by project members.
+
+* Adds a new REST API endpoint `/v1/runbooks/` with basic CRUD support.
+* Extends the `/v1/nodes/<node>/states/provision` API to accept a runbook
+  identifier (name or UUID) instead of `clean_steps` or `service_steps` for
+  servicing or manual cleaning.
+* Implements RBAC-aware lifecycle management for runbooks, allowing projects
+  to limit who can CRUD and use a runbook.
+
 1.91 (Dalmatian)
 -----------------------
 

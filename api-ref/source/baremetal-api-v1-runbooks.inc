@@ -37,8 +37,8 @@ Request
    - uuid: req_uuid
    - extra: req_extra
 
-Request Step
-------------
+Request Runbook Step
+--------------------
 
 .. rest_parameters:: parameters.yaml
 

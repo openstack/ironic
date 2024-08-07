@@ -1,0 +1,12 @@
+{
+    "target":"service",
+    "sevice_steps": [
+        {
+            "interface": "raid",
+            "step": "apply_configuration",
+            "args": {
+                "create_nonroot_volumes": "True"
+            }
+        }
+    ]
+}

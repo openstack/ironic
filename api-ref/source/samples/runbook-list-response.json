@@ -1,0 +1,18 @@
+{
+  "runbooks": [
+    {
+      "links": [
+        {
+          "href": "http://10.60.253.180:6385/v1/runbooks/fc6b1709-8dd5-86b0-2d34-5203d1c29127",
+          "rel": "self"
+        },
+        {
+          "href": "http://10.60.253.180:6385/runbooks/fc6b1709-8dd5-86b0-2d34-5203d1c29127",
+          "rel": "bookmark"
+        }
+      ],
+      "name": "CUSTOM_AWESOME",
+      "uuid": "fc6b1709-8dd5-86b0-2d34-5203d1c29127"
+    }
+  ]
+}
