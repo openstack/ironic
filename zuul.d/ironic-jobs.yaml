@@ -401,7 +401,7 @@
 - job:
     name: ironic-inspector-tempest-uefi-redfish-vmedia
     description: "Inspect and deploy ironic node over Redfish virtual media using UEFI"
-    parent: ironic-tempest-partition-uefi-redfish-vmedia
+    parent: ironic-tempest-uefi-redfish-vmedia
     required-projects:
       - opendev.org/openstack/ironic-inspector
     vars:
