@@ -874,3 +874,7 @@ class ConcurrentActionLimit(IronicException):
 class SwiftObjectStillExists(IronicException):
     _msg_fmt = _("Clean up failed for swift object %(obj)s during deletion"
                  " of node %(node)s.")
+
+
+class InvalidImage(ImageUnacceptable):
+    _msg_fmt = _("The requested image is not valid for use.")
