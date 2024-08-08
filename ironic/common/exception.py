@@ -883,3 +883,7 @@ class FirmwareComponentNotFound(NotFound):
 
 class InvalidNodeInventory(Invalid):
     _msg_fmt = _("Inventory for node %(node)s is invalid: %(reason)s")
+
+
+class InvalidImage(ImageUnacceptable):
+    _msg_fmt = _("The requested image is not valid for use.")
