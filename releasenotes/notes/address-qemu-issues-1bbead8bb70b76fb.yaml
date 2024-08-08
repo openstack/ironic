@@ -1,0 +1,108 @@
+---
+security:
+  - |
+    Ironic now checks the supplied image format value against the detected
+    format of the image file, and will prevent deployments should the
+    values mismatch. If being used with Glance and a mismatch in metadata
+    is identified, it will require images to be re-uploaded with a new image
+    ID to represent corrected metadata.
+    This is the result of CVE-2024-44082 tracked as
+    `bug 2071740 <https://bugs.launchpad.net/ironic/+bug/2071740>`_.
+  - |
+    Ironic *always* inspects the supplied user image content for safety prior
+    to deployment of a node should the image pass through the conductor,
+    even if the image is supplied in ``raw`` format. This is utilized to
+    identify the format of the image and the overall safety
+    of the image, such that source images with unknown or unsafe feature
+    usage are explicitly rejected. This can be disabled by setting
+    ``[conductor]disable_deep_image_inspection`` to ``True``.
+    This is the result of CVE-2024-44082 tracked as
+    `bug 2071740 <https://bugs.launchpad.net/ironic/+bug/2071740>`_.
+  - |
+    Ironic can also inspect images which would normally be provided as a URL
+    for direct download by the ``ironic-python-agent`` ramdisk. This is not
+    enabled by default as it will increase the overall network traffic and
+    disk space utilization of the conductor. This level of inspection can be
+    enabled by setting ``[conductor]conductor_always_validates_images`` to
+    ``True``. Once the ``ironic-python-agent`` ramdisk has been updated,
+    it will perform similar image security checks independently, should an
+    image conversion be required.
+    This is the result of CVE-2024-44082 tracked as
+    `bug 2071740 <https://bugs.launchpad.net/ironic/+bug/2071740>`_.
+  - |
+    Ironic now explicitly enforces a list of permitted image types for
+    deployment via the ``[conductor]permitted_image_formats`` setting,
+    which defaults to "raw", "qcow2", and "iso".
+    While the project has classically always declared permissible
+    images as "qcow2" and "raw", it was previously possible to supply other
+    image formats known to ``qemu-img``, and the utility would attempt to
+    convert the images. The "iso" support is required for "boot from ISO"
+    ramdisk support.
+  - |
+    Ironic now explicitly passes the source input format to executions of
+    ``qemu-img`` to limit the permitted qemu disk image drivers which may
+    evaluate an image to prevent any mismatched format attacks against
+    ``qemu-img``.
+  - |
+    The ``ansible`` deploy interface example playbooks now supply an input
+    format to execution of ``qemu-img``. If you are using customized
+    playbooks, please add "-f {{ ironic.image.disk_format }}" to your
+    invocations of ``qemu-img``. If you do not do so, ``qemu-img`` will
+    automatically try and guess which can lead to known security issues
+    with the incorrect source format driver.
+  - |
+    Operators who have implemented any custom deployment drivers or additional
+    functionality like machine snapshot, should review their downstream code
+    to ensure they are properly invoking ``qemu-img``. If there are any
+    questions or concerns, please reach out to the Ironic project developers.
+  - |
+    Operators are reminded that they should utilize cleaning in their
+    environments. Disabling any security features such as cleaning or image
+    inspection are at **your** **own** **risk**. Should you have any issues
+    with security related features, please don't hesitate to open a bug with
+    the project.
+  - |
+    The ``[conductor]disable_deep_image_inspection`` setting is
+    conveyed to the ``ironic-python-agent`` ramdisks automatically, and
+    will prevent those operating ramdisks from performing deep inspection
+    of images before they are written.
+  - The ``[conductor]permitted_image_formats`` setting is conveyed to the
+    ``ironic-python-agent`` ramdisks automatically. Should a need arise
+    to explicitly permit an additional format, that should take place in
+    the Ironic service configuration.
+fixes:
+  - |
+    Fixes multiple issues in the handling of images as it relates to the
+    execution of the ``qemu-img`` utility, which is used for image format
+    conversion, where a malicious user could craft a disk image to potentially
+    extract information from an ``ironic-conductor`` process's operating
+    environment.
+
+    Ironic now explicitly enforces a list of approved image
+    formats as a ``[conductor]permitted_image_formats`` list, which mirrors
+    the image formats the Ironic project has historically tested and expressed
+    as known working. Testing is not based upon file extension, but upon
+    content fingerprinting of the disk image files.
+    This is tracked as CVE-2024-44082 via
+    `bug 2071740 <https://bugs.launchpad.net/ironic/+bug/2071740>`_.
+upgrade:
+  - |
+    When upgrading Ironic to address the ``qemu-img`` image conversion
+    security issues, the ``ironic-python-agent`` ramdisks will also need
+    to be upgraded.
+  - |
+    When upgrading Ironic to address the ``qemu-img`` image conversion
+    security issues, the ``[conductor]conductor_always_validates_images``
+    setting may be set to ``True`` as a short term remedy while
+    ``ironic-python-agent`` ramdisks are being updated. Alternatively it
+    may be advisable to also set the ``[agent]image_download_source``
+    setting to ``local`` to minimize redundant network data transfers.
+  - |
+    As a result of security fixes to address ``qemu-img`` image conversion
+    security issues, a new configuration parameter has been added to
+    Ironic, ``[conductor]permitted_image_formats`` with a default value of
+    "raw,qcow2,iso". Raw and qcow2 format disk images are the image formats
+    the Ironic community has consistently stated as what is supported
+    and expected for use with Ironic. These formats also match the formats
+    which the Ironic community tests. Operators who leverage other disk image
+    formats, may need to modify this setting further.

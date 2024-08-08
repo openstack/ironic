@@ -28,6 +28,39 @@ Many distributions publish their own cloud images. These are usually whole disk
 images that are built for legacy boot mode (not UEFI), with Ubuntu being an
 exception (they publish images that work in both modes).
 
+Supported Disk Image Formats
+----------------------------
+
+The following formats are tested by Ironic and are expected to work as
+long as no unknown or unsafe special features are being used
+
+* raw - A file containing bytes as they would exist on a disk or other
+  block storage device. This is the simplest format.
+* qcow2 - An updated file format based upon the `QEMU <https://www.qemu.org>`_
+  Copy-on-Write format.
+
+A special mention exists for ``iso`` formatted "CD" images. While Ironic uses
+the ISO9660 filesystems in some of it's processes for aspects such as virtual
+media, it does *not* support writing them to the remote block storage device.
+
+Image formats we believe may work due to third party reports, but do not test:
+
+* vmdk - A file format derived from the image format originally created
+  by VMware for their hypervisor product line. Specifically we believe
+  a single file VMDK formatted image should work. As there are
+  are several subformats, some of which will not work and may result
+  in unexpected behavior such as failed deployments.
+* vdi - A file format used by
+  `Oracle VM Virtualbox <https://www.virtualbox.org>`_ hypervisor.
+
+As Ironic does not support these formats, their usage is normally blocked
+due security considerations by default. Please consult with your Ironic Operator.
+
+It is important to highlight that Ironic enforces and matches the file type
+based upon signature, and not file extension. If there is a mismatch,
+the input and or remote service records such as in the Image service
+must be corrected.
+
 disk-image-builder
 ------------------
 

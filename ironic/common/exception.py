@@ -905,3 +905,7 @@ class UnsupportedHardwareFeature(Invalid):
 
 class BootModeNotAllowed(Invalid):
     _msg_fmt = _("'%(mode)s' boot mode is not allowed for %(op)s operation.")
+
+
+class InvalidImage(ImageUnacceptable):
+    _msg_fmt = _("The requested image is not valid for use.")

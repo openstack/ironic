@@ -3,6 +3,24 @@
 Add images to the Image service
 ===============================
 
+Supported Image Formats
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Ironic officially supports and tests use of ``qcow2`` formatted images as well
+as ``raw`` format images. Other types of disk images, like ``vdi``, and single
+file ``vmdk`` files have been reported by users as working in their specific
+cases, but are not tested upstream. We advise operators to convert the image
+and properly upload the image to Glance.
+
+Ironic enforces the list of supported and permitted image formats utilizing
+the ``[conductor]permitted_image_formats`` option in ironic.conf. This setting
+defaults to "raw" and "qcow2".
+
+A detected format mismatch between Glance and what the actual contents of
+the disk image file are detected as will result in a failed deployment.
+To correct such a situation, the image must be re-uploaded with the
+declared ``--disk-format`` or actual image file format corrected.
+
 Instance (end-user) images
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -10,6 +28,10 @@ Build or download the user images as described in :doc:`/user/creating-images`.
 
 Load all the created images into the Image service, and note the image UUIDs in
 the Image service for each one as it is generated.
+
+.. note::
+   Images from Glance used by Ironic must be flagged as ``public``, which
+   requires administrative privileges with the Glance image service to set.
 
 - For *whole disk images* just upload the image:
 

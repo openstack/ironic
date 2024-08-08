@@ -428,6 +428,49 @@ opts = [
                 mutable=True,
                 help=_("Specifies a list of boot modes that are not allowed "
                        "during deployment. Eg: ['bios']")),
+    cfg.BoolOpt('disable_deep_image_inspection',
+                default=False,
+                # Normally such an option would be mutable, but this is,
+                # a security guard and operators should not expect to change
+                # this option under normal circumstances.
+                mutable=False,
+                help=_('Security Option to permit an operator to disable '
+                       'file content inspections. Under normal conditions, '
+                       'the conductor will inspect requested image contents '
+                       'which are transferred through the conductor. '
+                       'Disabling this option is not advisable and opens '
+                       'the risk of unsafe images being processed which may '
+                       'allow an attacker to leverage unsafe features in '
+                       'various disk image formats to perform a variety of '
+                       'unsafe and potentially compromising actions. '
+                       'This option is *not* mutable, and '
+                       'requires a service restart to change.')),
+    cfg.BoolOpt('conductor_always_validates_images',
+                default=False,
+                # Normally mutable, however from a security context we do want
+                # all logging to be generated from this option to be changed,
+                # and as such is set to False to force a conductor restart.
+                mutable=False,
+                help=_('Security Option to enable the conductor to *always* '
+                       'inspect the image content of any requested deploy, '
+                       'even if the deployment would have normally bypassed '
+                       'the conductor\'s cache. When this is set to False, '
+                       'the Ironic-Python-Agent is responsible '
+                       'for any necessary image checks. Setting this to '
+                       'True will result in a higher utilization of '
+                       'resources (disk space, network traffic) '
+                       'as the conductor will evaluate *all* images. '
+                       'This option is *not* mutable, and requires a '
+                       'service restart to change. This option requires '
+                       '[conductor]disable_deep_image_inspection to be set '
+                       'to False.')),
+    cfg.ListOpt('permitted_image_formats',
+                default=['raw', 'qcow2', 'iso'],
+                mutable=True,
+                help=_('The supported list of image formats which are '
+                       'permitted for deployment with Ironic. If an image '
+                       'format outside of this list is detected, the image '
+                       'validation logic will fail the deployment process.')),
 ]
 
 

@@ -1259,3 +1259,27 @@ To resolve this case, you can either supply new configuration drive contents
 with your request, or disable configuration from being stored in Swift for
 new baremetal node deployments by changing setting
 :oslo.config:option:`deploy.configdrive_use_object_store` to ``false``.
+
+Ironic says my Image is Invalid
+===============================
+
+As a result of security fixes which were added to Ironic, resulting from the
+security posture of the ``qemu-img`` utility, Ironic enforces certain aspects
+related to image files.
+
+* Enforces that the file format of a disk image matches what Ironic is
+  told by an API user. Any mismatch will result in the image being declared
+  as invalid. A mismatch with the file contents and what is stored in the
+  Image service will necessitate uploading a new image as that property
+  cannot be changed in the image service *after* creation of an image.
+* Enforces that the input file format to be written is ``qcow2`` or ``raw``.
+  This can be extended by modifying ``[conductor]permitted_image_formats`` in
+  ``ironic.conf``.
+* Performs safety and sanity check assessment against the file, which can be
+  disabled by modifying ``[conductor]disable_deep_image_inspection`` and
+  setting it to ``True``. Doing so is not considered safe and should only
+  be done by operators accepting the inherent risk that the image they
+  are attempting to use may have a bad or malicious structure.
+  Image safety checks are generally performed as the deployment process begins
+  and stages artifacts, however a late stage check is performed when
+  needed by the ironic-python-agent.
