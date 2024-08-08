@@ -822,3 +822,7 @@ class AgentInProgress(IronicException):
 class InsufficentMemory(IronicException):
     _msg_fmt = _("Available memory at %(free)s, Insufficent as %(required)s "
                  "is required to proceed at this time.")
+
+
+class InvalidImage(ImageUnacceptable):
+    _msg_fmt = _("The requested image is not valid for use.")
