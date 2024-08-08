@@ -818,3 +818,7 @@ class UnknownAttribute(ClientSideError):
 class AgentInProgress(IronicException):
     _msg_fmt = _('Node %(node)s command "%(command)s" failed. Agent is '
                  'presently executing a command. Error %(error)s')
+
+
+class InvalidImage(ImageUnacceptable):
+    _msg_fmt = _("The requested image is not valid for use.")
