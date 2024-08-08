@@ -57,6 +57,8 @@ def config(token):
         # explicit True statement for newer agents to lock the setting
         # and behavior into place.
         'agent_token_required': True,
+        'disable_deep_image_inspection': CONF.conductor.disable_deep_image_inspection,  # noqa
+        'permitted_image_formats': CONF.conductor.permitted_image_formats,
     }
 
 
