@@ -79,6 +79,8 @@ class TestLookup(test_api_base.BaseApiTest):
             'heartbeat_timeout': CONF.api.ramdisk_heartbeat_timeout,
             'agent_token': mock.ANY,
             'agent_token_required': True,
+            'disable_deep_image_inspection': CONF.conductor.disable_deep_image_inspection,  # noqa
+            'permitted_image_formats': CONF.conductor.permitted_image_formats,
         }
         self.assertEqual(expected_config, data['config'])
         self.assertIsNotNone(data['config']['agent_token'])
