@@ -835,3 +835,7 @@ class IncorrectConfiguration(IronicException):
 
 class NodeVerifyFailure(IronicException):
     _msg_fmt = _("Failed to verify node %(node)s: %(reason)s")
+
+
+class InvalidImage(ImageUnacceptable):
+    _msg_fmt = _("The requested image is not valid for use.")
