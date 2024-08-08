@@ -165,7 +165,7 @@ class RedfishInspect(base.InspectInterface):
         missing_keys = valid_keys - set(inspected_properties)
         if missing_keys:
             error = (_('Failed to discover the following properties: '
-                       '%(missing_keys)s on node %(node)s'),
+                       '%(missing_keys)s on node %(node)s') %
                      {'missing_keys': ', '.join(missing_keys),
                       'node': task.node.uuid})
             raise exception.HardwareInspectionFailure(error=error)
