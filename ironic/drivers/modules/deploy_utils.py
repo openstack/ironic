@@ -26,6 +26,7 @@ from oslo_utils import fileutils
 from oslo_utils import strutils
 
 from ironic.common import async_steps
+from ironic.common import context
 from ironic.common import exception
 from ironic.common import faults
 from ironic.common.glance_service import service_utils
@@ -204,7 +205,8 @@ def check_for_missing_params(info_dict, error_msg, param_prefix=''):
                        'missing_info': missing_info})
 
 
-def fetch_images(ctx, cache, images_info, force_raw=True):
+def fetch_images(ctx, cache, images_info, force_raw=True,
+                 expected_format=None):
     """Check for available disk space and fetch images using ImageCache.
 
     :param ctx: context
@@ -212,7 +214,11 @@ def fetch_images(ctx, cache, images_info, force_raw=True):
     :param images_info: list of tuples (image href, destination path)
     :param force_raw: boolean value, whether to convert the image to raw
                       format
+    :param expected_format: The expected format of the image.
     :raises: InstanceDeployFailure if unable to find enough disk space
+    :raises: InvalidImage if the supplied image metadata or contents are
+             deemed to be invalid, unsafe, or not matching the expectations
+             asserted by configuration supplied or set.
     """
 
     try:
@@ -224,8 +230,14 @@ def fetch_images(ctx, cache, images_info, force_raw=True):
     # if disk space is used between the check and actual download.
     # This is probably unavoidable, as we can't control other
     # (probably unrelated) processes
+    image_list = []
     for href, path in images_info:
-        cache.fetch_image(href, path, ctx=ctx, force_raw=force_raw)
+        # NOTE(TheJulia): Href in this case can be an image UUID or a URL.
+        image_format = cache.fetch_image(href, path, ctx=ctx,
+                                         force_raw=force_raw,
+                                         expected_format=expected_format)
+        image_list.append((href, path, image_format))
+    return image_list
 
 
 def set_failed_state(task, msg, collect_logs=True):
@@ -1060,7 +1072,7 @@ class InstanceImageCache(image_cache.ImageCache):
 
 
 @METRICS.timer('cache_instance_image')
-def cache_instance_image(ctx, node, force_raw=None):
+def cache_instance_image(ctx, node, force_raw=None, expected_format=None):
     """Fetch the instance's image from Glance
 
     This method pulls the disk image and writes them to the appropriate
@@ -1069,8 +1081,12 @@ def cache_instance_image(ctx, node, force_raw=None):
     :param ctx: context
     :param node: an ironic node object
     :param force_raw: whether convert image to raw format
+    :param expected_format: The expected format of the disk image contents.
     :returns: a tuple containing the uuid of the image and the path in
         the filesystem where image is cached.
+    :raises: InvalidImage if the requested image is invalid and cannot be
+        used for deployed based upon contents of the image or the metadata
+        surrounding the image not matching the configured image.
     """
     # NOTE(dtantsur): applying the default here to make the option mutable
     if force_raw is None:
@@ -1084,10 +1100,9 @@ def cache_instance_image(ctx, node, force_raw=None):
     LOG.debug("Fetching image %(image)s for node %(uuid)s",
               {'image': uuid, 'uuid': node.uuid})
 
-    fetch_images(ctx, InstanceImageCache(), [(uuid, image_path)],
-                 force_raw)
-
-    return (uuid, image_path)
+    image_list = fetch_images(ctx, InstanceImageCache(), [(uuid, image_path)],
+                              force_raw, expected_format=expected_format)
+    return (uuid, image_path, image_list[0][2])
 
 
 @METRICS.timer('destroy_images')
@@ -1128,13 +1143,39 @@ def destroy_http_instance_images(node):
     destroy_images(node.uuid)
 
 
-def _validate_image_url(node, url, secret=False):
+def _validate_image_url(node, url, secret=False, inspect_image=None,
+                        expected_format=None):
     """Validates image URL through the HEAD request.
 
     :param url: URL to be validated
     :param secret: if URL is secret (e.g. swift temp url),
         it will not be shown in logs.
+    :param inspect_image: If the requested URL should have extensive
+        content checking applied. Defaults to the value provided by
+        the [conductor]conductor_always_validates_images configuration
+        parameter setting, but is also able to be turned off by supplying
+        False where needed to perform a redirect or URL head request only.
+    :param expected_format: The expected image format, if known, for
+        the image inspection logic.
+    :returns: Returns a dictionary with basic information about the
+              requested image if image introspection is
     """
+    if inspect_image is not None:
+        # The caller has a bit more context and we can rely upon it,
+        # for example if it knows we cannot or should not inspect
+        # the image contents.
+        inspect = inspect_image
+    elif not CONF.conductor.disable_deep_image_inspection:
+        inspect = CONF.conductor.conductor_always_validates_images
+    else:
+        # If we're here, file inspection has been explicitly disabled.
+        inspect = False
+
+    # NOTE(TheJulia): This method gets used in two different ways.
+    # The first is as a "i did a thing, let me make sure my url works."
+    # The second is to validate a remote URL is valid. In the remote case
+    # we will grab the file and proceed from there.
+    image_info = {}
     try:
         # NOTE(TheJulia): This method only validates that an exception
         # is NOT raised. In other words, that the endpoint does not
@@ -1146,20 +1187,50 @@ def _validate_image_url(node, url, secret=False):
             LOG.error("The specified URL is not a valid HTTP(S) URL or is "
                       "not reachable for node %(node)s: %(msg)s",
                       {'node': node.uuid, 'msg': e})
+    if inspect:
+        LOG.info("Inspecting image contents for %(node)s with url %(url)s. "
+                 "Expecting user supplied format: %(expected)s",
+                 {'node': node.uuid,
+                  'expected': expected_format,
+                  'url': url})
+        # Utilizes the file cache since it knows how to pull files down
+        # and handles pathing and caching and all that fun, however with
+        # force_raw set as false.
+
+        # The goal here being to get the file we would normally just point
+        # IPA at, be it via swift transfer *or* direct URL request, and
+        # perform the safety check on it before allowing it to proceed.
+        ctx = context.get_admin_context()
+        # NOTE(TheJulia): Because we're using the image cache here, we
+        # let it run the image validation checking as it's normal course
+        # of action, and save what it tells us the image format is.
+        # if there *was* a mismatch, it will raise the error.
+        _, image_path, img_format = cache_instance_image(
+            ctx,
+            node,
+            force_raw=False,
+            expected_format=expected_format)
+        # NOTE(TheJulia): We explicitly delete this file because it has no use
+        # in the cache after this point.
+        il_utils.unlink_without_raise(image_path)
+        image_info['disk_format'] = img_format
+    return image_info
 
 
 def _cache_and_convert_image(task, instance_info, image_info=None):
     """Cache an image locally and convert it to RAW if needed."""
     # Ironic cache and serve images from httpboot server
     force_raw = direct_deploy_should_convert_raw_image(task.node)
-    _, image_path = cache_instance_image(task.context, task.node,
-                                         force_raw=force_raw)
-    if force_raw or image_info is None:
-        if image_info is None:
-            initial_format = instance_info.get('image_disk_format')
-        else:
-            initial_format = image_info.get('disk_format')
 
+    if image_info is None:
+        initial_format = instance_info.get('image_disk_format')
+    else:
+        initial_format = image_info.get('disk_format')
+    _, image_path, img_format = cache_instance_image(
+        task.context, task.node,
+        force_raw=force_raw,
+        expected_format=initial_format)
+    if force_raw or image_info is None:
         if force_raw:
             instance_info['image_disk_format'] = 'raw'
         else:
@@ -1240,7 +1311,11 @@ def _cache_and_convert_image(task, instance_info, image_info=None):
          task.node.uuid])
     if file_extension:
         http_image_url = http_image_url + file_extension
-    _validate_image_url(task.node, http_image_url, secret=False)
+    # We don't inspect the image in our url check because we just need to do
+    # an quick path validity check here, we should be checking contents way
+    # earlier on in this method.
+    _validate_image_url(task.node, http_image_url, secret=False,
+                        inspect_image=False)
     instance_info['image_url'] = http_image_url
 
 
@@ -1265,12 +1340,23 @@ def build_instance_info_for_deploy(task):
     instance_info = node.instance_info
     iwdi = node.driver_internal_info.get('is_whole_disk_image')
     image_source = instance_info['image_source']
+
+    # Flag if we know the source is a path, used for Anaconda
+    # deploy interface where you can just tell anaconda to
+    # consume artifacts from a path. In this case, we are not
+    # doing any image conversions, we're just passing through
+    # a URL in the form of configuration.
     isap = node.driver_internal_info.get('is_source_a_path')
+
     # If our url ends with a /, i.e. we have been supplied with a path,
     # we can only deploy this in limited cases for drivers and tools
     # which are aware of such. i.e. anaconda.
     image_download_source = get_image_download_source(node)
     boot_option = get_boot_option(task.node)
+
+    # There is no valid reason this should already be set, and
+    # and gets replaced at various points in this sequence.
+    instance_info['image_url'] = None
 
     if service_utils.is_glance_image(image_source):
         glance = image_service.GlanceImageService(context=task.context)
@@ -1278,16 +1364,33 @@ def build_instance_info_for_deploy(task):
         LOG.debug('Got image info: %(info)s for node %(node)s.',
                   {'info': image_info, 'node': node.uuid})
         if image_download_source == 'swift':
+            # In this case, we are getting a file *from* swift for a glance
+            # image which is backed by swift. IPA downloads the file directly
+            # from swift, but cannot get any metadata related to it otherwise.
             swift_temp_url = glance.swift_temp_url(image_info)
-            _validate_image_url(node, swift_temp_url, secret=True)
+            image_format = image_info.get('disk_format')
+            # In the process of validating the URL is valid, we will perform
+            # the requisite safety checking of the asset as we can end up
+            # converting it in the agent, or needing the disk format value
+            # to be correct for the Ansible deployment interface.
+            validate_results = _validate_image_url(
+                node, swift_temp_url, secret=True,
+                expected_format=image_format)
+            # Values are explicitly set into the instance info field
+            # so IPA have the values available.
             instance_info['image_url'] = swift_temp_url
             instance_info['image_checksum'] = image_info['checksum']
-            instance_info['image_disk_format'] = image_info['disk_format']
+            instance_info['image_disk_format'] = \
+                validate_results.get('disk_format', image_format)
             instance_info['image_os_hash_algo'] = image_info['os_hash_algo']
             instance_info['image_os_hash_value'] = image_info['os_hash_value']
         else:
+            # In this case, we're directly downloading the glance image and
+            # hosting it locally for retrieval by the IPA.
             _cache_and_convert_image(task, instance_info, image_info)
 
+        # We're just populating extra information for a glance backed image in
+        # case a deployment interface driver needs them at some point.
         instance_info['image_container_format'] = (
             image_info['container_format'])
         instance_info['image_tags'] = image_info.get('tags', [])
@@ -1298,20 +1401,80 @@ def build_instance_info_for_deploy(task):
             instance_info['ramdisk'] = image_info['properties']['ramdisk_id']
     elif (image_source.startswith('file://')
           or image_download_source == 'local'):
+        # In this case, we're explicitly downloading (or copying a file)
+        # hosted locally so IPA can download it directly from Ironic.
+
         # NOTE(TheJulia): Intentionally only supporting file:/// as image
         # based deploy source since we don't want to, nor should we be in
         # in the business of copying large numbers of files as it is a
         # huge performance impact.
+
         _cache_and_convert_image(task, instance_info)
     else:
+        # This is the "all other cases" logic for aspects like the user
+        # has supplied us a direct URL to reference. In cases like the
+        # anaconda deployment interface where we might just have a path
+        # and not a file, or where a user may be supplying a full URL to
+        # a remotely hosted image, we at a minimum need to check if the url
+        # is valid, and address any redirects upfront.
         try:
-            _validate_image_url(node, image_source)
+            # NOTE(TheJulia): In the case we're here, we not doing an
+            # integrated image based deploy, but we may also be doing
+            # a path based anaconda base deploy, in which case we have
+            # no backing image, but we need to check for a URL
+            # redirection. So, if the source is a path (i.e. isap),
+            # we don't need to inspect the image as there is no image
+            # in the case for the deployment to drive.
+            validated_results = {}
+            if isap:
+                # This is if the source is a path url, such as one used by
+                # anaconda templates to to rely upon bootstrapping defaults.
+                _validate_image_url(node, image_source, inspect_image=False)
+            else:
+                # When not isap, we can just let _validate_image_url make a
+                # the required decision on if contents need to be sampled,
+                # or not. We try to pass the image_disk_format which may be
+                # declared by the user, and if not we set expected_format to
+                # None.
+                validate_results = _validate_image_url(
+                    node,
+                    image_source,
+                    expected_format=instance_info.get('image_disk_format',
+                                                      None))
             # image_url is internal, and used by IPA and some boot templates.
             # in most cases, it needs to come from image_source explicitly.
+            if 'disk_format' in validated_results:
+                # Ensure IPA has the value available, so write what we detect,
+                # if anything. This is also an item which might be needful
+                # with ansible deploy interface, when used in standalone mode.
+                instance_info['image_disk_format'] = \
+                    validate_results.get('disk_format')
             instance_info['image_url'] = image_source
         except exception.ImageRefIsARedirect as e:
+            # At this point, we've got a redirect response from the webserver,
+            # and we're going to try to handle it as a single redirect action,
+            # as requests, by default, only lets a single redirect to occur.
+            # This is likely a URL pathing fix, like a trailing / on a path,
+            # or move to HTTPS from a user supplied HTTP url.
             if e.redirect_url:
+                # Since we've got a redirect, we need to carry the rest of the
+                # request logic as well, which includes recording a disk
+                # format, if applicable.
                 instance_info['image_url'] = e.redirect_url
+                # We need to save the image_source back out so it caches
+                instance_info['image_source'] = e.redirect_url
+                task.node.instance_info = instance_info
+                if not isap:
+                    # The redirect doesn't relate to a path being used, so
+                    # the target is a filename, likely cause is webserver
+                    # telling the client to use HTTPS.
+                    validated_results = _validate_image_url(
+                        node, e.redirect_url,
+                        expected_format=instance_info.get('image_disk_format',
+                                                          None))
+                    if 'disk_format' in validated_results:
+                        instance_info['image_disk_format'] = \
+                            validated_results.get('disk_format')
             else:
                 raise
 
@@ -1326,7 +1489,6 @@ def build_instance_info_for_deploy(task):
         # Call central parsing so we retain things like config drives.
         i_info = parse_instance_info(node, image_deploy=False)
         instance_info.update(i_info)
-
     return instance_info
 
 
