@@ -82,6 +82,8 @@ class TestLookup(test_api_base.BaseApiTest):
             'agent_token': mock.ANY,
             'agent_token_required': True,
             'agent_md5_checksum_enable': CONF.agent.allow_md5_checksum,
+            'disable_deep_image_inspection': CONF.conductor.disable_deep_image_inspection,  # noqa
+            'permitted_image_formats': CONF.conductor.permitted_image_formats,
         }
         self.assertEqual(expected_config, data['config'])
         self.assertIsNotNone(data['config']['agent_token'])

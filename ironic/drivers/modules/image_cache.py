@@ -65,7 +65,8 @@ class ImageCache(object):
         if master_dir is not None:
             fileutils.ensure_tree(master_dir)
 
-    def fetch_image(self, href, dest_path, ctx=None, force_raw=True):
+    def fetch_image(self, href, dest_path, ctx=None, force_raw=True,
+                    expected_format=None):
         """Fetch image by given href to the destination path.
 
         Does nothing if destination path exists and is up to date with cache
@@ -80,6 +81,7 @@ class ImageCache(object):
         :param ctx: context
         :param force_raw: boolean value, whether to convert the image to raw
                           format
+        :param expected_format: The expected image format.
         """
         img_download_lock_name = 'download-image'
         if self.master_dir is None:
@@ -140,13 +142,14 @@ class ImageCache(object):
                      {'href': href})
             self._download_image(
                 href, master_path, dest_path, img_info,
-                ctx=ctx, force_raw=force_raw)
+                ctx=ctx, force_raw=force_raw,
+                expected_format=expected_format)
 
         # NOTE(dtantsur): we increased cache size - time to clean up
         self.clean_up()
 
     def _download_image(self, href, master_path, dest_path, img_info,
-                        ctx=None, force_raw=True):
+                        ctx=None, force_raw=True, expected_format=None):
         """Download image by href and store at a given path.
 
         This method should be called with uuid-specific lock taken.
@@ -158,6 +161,7 @@ class ImageCache(object):
         :param ctx: context
         :param force_raw: boolean value, whether to convert the image to raw
                           format
+        :param expected_format: The expected original format for the image.
         :raise ImageDownloadFailed: when the image cache and the image HTTP or
                                     TFTP location are on different file system,
                                     causing hard link to fail.
@@ -169,7 +173,7 @@ class ImageCache(object):
 
         try:
             with _concurrency_semaphore:
-                _fetch(ctx, href, tmp_path, force_raw)
+                _fetch(ctx, href, tmp_path, force_raw, expected_format)
 
             if img_info.get('no_cache'):
                 LOG.debug("Caching is disabled for image %s", href)
@@ -333,34 +337,59 @@ def _free_disk_space_for(path):
     return stat.f_frsize * stat.f_bavail
 
 
-def _fetch(context, image_href, path, force_raw=False):
+def _fetch(context, image_href, path, force_raw=False, expected_format=None):
     """Fetch image and convert to raw format if needed."""
     path_tmp = "%s.part" % path
     if os.path.exists(path_tmp):
         LOG.warning("%s exist, assuming it's stale", path_tmp)
         os.remove(path_tmp)
     images.fetch(context, image_href, path_tmp, force_raw=False)
+    # By default, the image format is unknown
+    image_format = None
+    disable_dii = CONF.conductor.disable_deep_image_inspection
+    if not disable_dii:
+        if not expected_format:
+            # Call of last resort to check the image format. Caching other
+            # artifacts like kernel/ramdisks are not going to have an expected
+            # format known even if they are not passed to qemu-img.
+            remote_image_format = images.image_show(
+                context,
+                image_href).get('disk_format')
+        else:
+            remote_image_format = expected_format
+        image_format = images.safety_check_image(path_tmp)
+        images.check_if_image_format_is_permitted(
+            image_format, remote_image_format)
+
     # Notes(yjiang5): If glance can provide the virtual size information,
     # then we can firstly clean cache and then invoke images.fetch().
-    if force_raw:
-        if images.force_raw_will_convert(image_href, path_tmp):
-            required_space = images.converted_size(path_tmp, estimate=False)
-            directory = os.path.dirname(path_tmp)
+    if (force_raw
+            and ((disable_dii
+                 and images.force_raw_will_convert(image_href, path_tmp))
+                 or (not disable_dii and image_format != 'raw'))):
+        # NOTE(TheJulia): What is happening here is the rest of the logic
+        # is hinged on force_raw, but also we don't need to take the entire
+        # path *if* the image on disk is *already* raw. Depending on settings,
+        # the path differs slightly because if we have deep image inspection,
+        # we can just rely upon the inspection image format, otherwise we
+        # need to ask the image format.
+
+        required_space = images.converted_size(path_tmp, estimate=False)
+        directory = os.path.dirname(path_tmp)
+        try:
+            _clean_up_caches(directory, required_space)
+        except exception.InsufficientDiskSpace:
+
+            # try again with an estimated raw size instead of the full size
+            required_space = images.converted_size(path_tmp, estimate=True)
             try:
                 _clean_up_caches(directory, required_space)
             except exception.InsufficientDiskSpace:
-
-                # try again with an estimated raw size instead of the full size
-                required_space = images.converted_size(path_tmp, estimate=True)
-                try:
-                    _clean_up_caches(directory, required_space)
-                except exception.InsufficientDiskSpace:
-                    LOG.warning('Not enough space for estimated image size. '
-                                'Consider lowering '
-                                '[DEFAULT]raw_image_growth_factor=%s',
-                                CONF.raw_image_growth_factor)
-                    raise
-
+                LOG.error('Not enough space for estimated image size. '
+                          'Consider lowering '
+                          '[DEFAULT]raw_image_growth_factor=%s',
+                          CONF.raw_image_growth_factor)
+                raise
         images.image_to_raw(image_href, path, path_tmp)
     else:
         os.rename(path_tmp, path)
