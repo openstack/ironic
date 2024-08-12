@@ -245,7 +245,7 @@ IRONIC_ENABLED_BIOS_INTERFACES=${IRONIC_ENABLED_BIOS_INTERFACES:-"fake,no-bios"}
 IRONIC_ENABLED_BOOT_INTERFACES=${IRONIC_ENABLED_BOOT_INTERFACES:-"fake,ipxe"}
 IRONIC_ENABLED_CONSOLE_INTERFACES=${IRONIC_ENABLED_CONSOLE_INTERFACES:-"fake,no-console"}
 IRONIC_ENABLED_DEPLOY_INTERFACES=${IRONIC_ENABLED_DEPLOY_INTERFACES:-"fake,direct,ramdisk"}
-IRONIC_ENABLED_INSPECT_INTERFACES=${IRONIC_ENABLED_INSPECT_INTERFACES:-"fake,no-inspect"}
+IRONIC_ENABLED_INSPECT_INTERFACES=${IRONIC_ENABLED_INSPECT_INTERFACES:-"fake,agent,no-inspect"}
 IRONIC_ENABLED_MANAGEMENT_INTERFACES=${IRONIC_ENABLED_MANAGEMENT_INTERFACES:-""}
 IRONIC_ENABLED_NETWORK_INTERFACES=${IRONIC_ENABLED_NETWORK_INTERFACES:-"flat,noop"}
 IRONIC_ENABLED_POWER_INTERFACES=${IRONIC_ENABLED_POWER_INTERFACES:-""}
@@ -266,6 +266,9 @@ IRONIC_DEFAULT_RAID_INTERFACE=${IRONIC_DEFAULT_RAID_INTERFACE:-}
 IRONIC_DEFAULT_RESCUE_INTERFACE=${IRONIC_DEFAULT_RESCUE_INTERFACE:-}
 IRONIC_DEFAULT_STORAGE_INTERFACE=${IRONIC_DEFAULT_STORAGE_INTERFACE:-}
 IRONIC_DEFAULT_VENDOR_INTERFACE=${IRONIC_DEFAULT_VENDOR_INTERFACE:-}
+
+IRONIC_UNMANAGED_INSPECTION=$(trueorfalse False IRONIC_UNMANAGED_INSPECTION)
+
 # If IRONIC_VM_ENGINE is explicitly set to "auto" or "kvm",
 # devstack will attempt to use hardware virtualization
 # (aka nested kvm). We do not enable it in the infra gates
@@ -1942,6 +1945,21 @@ function configure_ironic_conductor {
     isolinux=$(find -L /usr -type f -name "isolinux.bin" | head -1)
     if [[ -n "$isolinux" ]]; then
         iniset $IRONIC_CONF_FILE DEFAULT isolinux_bin "$isolinux"
+    fi
+
+    configure_inspection
+}
+
+# configure_inspection() - Set up in-band inspection
+function configure_inspection {
+    local allow_unmanaged="$IRONIC_UNMANAGED_INSPECTION"
+    # Note: IRONIC_INSPECTOR_MANAGED_BOOT is defined in the ironic-inspector's devstack plugin
+    if [[ "$IRONIC_ENABLED_INSPECT_INTERFACES" =~ inspector ]] && [[ "${IRONIC_INSPECTOR_MANAGED_BOOT:-False}" != True ]]; then
+        allow_unmanaged=True
+    fi
+
+    if [[ "$allow_unmanaged" == False ]]; then
+        iniset "$IRONIC_CONF_FILE" inspector require_managed_boot True
     fi
 }
 
