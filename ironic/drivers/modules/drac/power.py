@@ -27,4 +27,5 @@ class DracRedfishPower(redfish_power.RedfishPower):
     specific incompatibilities and introduction of vendor value added
     should be implemented by this class.
     """
-    pass
+    # NOTE(cardoe): deprecated in favor of plain Redfish
+    supported = False

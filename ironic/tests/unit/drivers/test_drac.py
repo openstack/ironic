@@ -21,6 +21,7 @@ from ironic.drivers.modules import inspector
 from ironic.drivers.modules import ipxe
 from ironic.drivers.modules.network import flat as flat_net
 from ironic.drivers.modules import noop
+from ironic.drivers.modules import redfish
 from ironic.drivers.modules.storage import noop as noop_storage
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -35,7 +36,7 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
                     enabled_boot_interfaces=[
                         'idrac-redfish-virtual-media', 'ipxe', 'pxe'],
                     enabled_management_interfaces=['idrac-redfish'],
-                    enabled_power_interfaces=['idrac-redfish'],
+                    enabled_power_interfaces=['idrac-redfish', 'redfish'],
                     enabled_inspect_interfaces=[
                         'idrac-redfish', 'inspector',
                         'no-inspect'],
@@ -43,8 +44,10 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
                     enabled_raid_interfaces=[
                         'idrac-redfish', 'no-raid',
                         'agent'],
-                    enabled_vendor_interfaces=['idrac-redfish', 'no-vendor'],
-                    enabled_bios_interfaces=['idrac-redfish', 'no-bios'])
+                    enabled_vendor_interfaces=[
+                        'idrac-redfish', 'redfish', 'no-vendor'],
+                    enabled_bios_interfaces=[
+                        'idrac-redfish', 'redfish', 'no-bios'])
 
     def _validate_interfaces(self, driver, **kwargs):
         self.assertIsInstance(
@@ -120,30 +123,37 @@ class IDRACHardwareTestCase(db_base.DbTestCase):
             self._validate_interfaces(task.driver,
                                       raid=drac.raid.DracRedfishRAID)
 
-    def test_override_no_vendor(self):
-        node = obj_utils.create_test_node(self.context, driver='idrac',
-                                          vendor_interface='no-vendor')
-        with task_manager.acquire(self.context, node.id) as task:
-            self._validate_interfaces(task.driver,
-                                      vendor=noop.NoVendor)
+    def test_override_with_redfish_vendor(self):
+        for iface, impl in [('redfish',
+                             redfish.vendor.RedfishVendorPassthru),
+                            ('no-vendor', noop.NoVendor)]:
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              driver='idrac',
+                                              vendor_interface=iface)
+            with task_manager.acquire(self.context, node.id) as task:
+                self._validate_interfaces(task.driver,
+                                          vendor=impl)
 
     def test_override_with_redfish_management_and_power(self):
         node = obj_utils.create_test_node(self.context, driver='idrac',
                                           management_interface='idrac-redfish',
-                                          power_interface='idrac-redfish')
+                                          power_interface='redfish')
         with task_manager.acquire(self.context, node.id) as task:
             self._validate_interfaces(
                 task.driver,
                 management=drac.management.DracRedfishManagement,
-                power=drac.power.DracRedfishPower)
+                power=redfish.power.RedfishPower)
 
     def test_override_with_redfish_bios(self):
-        node = obj_utils.create_test_node(self.context, driver='idrac',
-                                          bios_interface='idrac-redfish')
-        with task_manager.acquire(self.context, node.id) as task:
-            self._validate_interfaces(
-                task.driver,
-                bios=drac.bios.DracRedfishBIOS)
+        for iface, impl in [('redfish', redfish.bios.RedfishBIOS),
+                            ('no-bios', noop.NoBIOS)]:
+            node = obj_utils.create_test_node(self.context,
+                                              uuid=uuidutils.generate_uuid(),
+                                              driver='idrac',
+                                              bios_interface=iface)
+            with task_manager.acquire(self.context, node.id) as task:
+                self._validate_interfaces(task.driver, bios=impl)
 
     def test_override_with_redfish_inspect(self):
         node = obj_utils.create_test_node(self.context, driver='idrac',

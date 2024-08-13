@@ -26,7 +26,8 @@ Key features of the Dell iDRAC driver include:
 Ironic Features
 ---------------
 
-The ``idrac`` hardware type supports the following Ironic interfaces:
+The ``idrac`` hardware type extends the ``redfish`` hardware type
+and supports the following Ironic interfaces:
 
 * `BIOS Interface`_: BIOS management
 * `Inspect Interface`_: Hardware inspection
@@ -61,7 +62,7 @@ To enable the ``idrac`` hardware type, add the following to your
     [DEFAULT]
     enabled_hardware_types=idrac
     enabled_management_interfaces=idrac-redfish
-    enabled_power_interfaces=idrac-redfish
+    enabled_power_interfaces=redfish
 
 To enable all optional features (BIOS, inspection, RAID, and vendor passthru),
 use the following configuration:
@@ -70,7 +71,7 @@ use the following configuration:
 
     [DEFAULT]
     enabled_hardware_types=idrac
-    enabled_bios_interfaces=idrac-redfish
+    enabled_bios_interfaces=redfish
     enabled_firmware_interfaces=redfish
     enabled_inspect_interfaces=idrac-redfish
     enabled_management_interfaces=idrac-redfish
@@ -85,7 +86,8 @@ order:
 Interface            Supported Implementations
 ================     ===================================================
 ``bios``             ``idrac-redfish``, ``no-bios``
-``boot``             ``ipxe``, ``pxe``, ``idrac-redfish-virtual-media``
+``boot``             ``ipxe``, ``pxe``, ``http-ipxe``, ``http``,
+                     ``redfish-https``, ``idrac-redfish-virtual-media``
 ``console``          ``no-console``
 ``deploy``           ``direct``, ``ansible``, ``ramdisk``
 ``firmware``         ``redfish``, ``no-firmware``
@@ -93,11 +95,11 @@ Interface            Supported Implementations
                      ``inspector``, ``no-inspect``
 ``management``       ``idrac-redfish``
 ``network``          ``flat``, ``neutron``, ``noop``
-``power``            ``idrac-redfish``
+``power``            ``redfish``, ``idrac-redfish``
 ``raid``             ``idrac-redfish``, ``no-raid``
 ``rescue``           ``no-rescue``, ``agent``
 ``storage``          ``noop``, ``cinder``, ``external``
-``vendor``           ``idrac-redfish``,
+``vendor``           ``redfish``, ``idrac-redfish``,
                      ``no-vendor``
 ================     ===================================================
 
@@ -135,12 +137,12 @@ hardware type using Redfish for all interfaces:
         --driver-info redfish_password=pa$$w0rd \
         --driver-info redfish_address=drac.host \
         --driver-info redfish_system_id=/redfish/v1/Systems/System.Embedded.1 \
-        --bios-interface idrac-redfish \
+        --bios-interface redfish \
         --inspect-interface idrac-redfish \
         --management-interface idrac-redfish \
-        --power-interface idrac-redfish \
+        --power-interface redfish \
         --raid-interface idrac-redfish \
-        --vendor-interface idrac-redfish
+        --vendor-interface redfish
 
 BIOS Interface
 ==============
