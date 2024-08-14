@@ -225,4 +225,4 @@ Servicing Network
 If you are using the Neutron DHCP provider (the default) you will also need to
 ensure you have configured a servicing network. This network will be used to
 boot the ramdisk for in-band service operations. This setting is configured
-utilizing the ``[neutron]servicing_network`` configuration parameter.
+utilizing the :oslo.config:option:`neutron.servicing_network` configuration parameter.

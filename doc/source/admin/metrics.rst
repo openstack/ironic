@@ -76,7 +76,7 @@ Regardless if you're using Ceilometer,
 `ironic-prometheus-exporter <https://docs.openstack.org/ironic-prometheus-exporter/latest/>`_,
 or some scripting you wrote to consume the message bus notifications,
 metrics data can be sent to the message bus notifier from the timer methods
-*and* additional gauge counters by utilizing the ``[metrics]backend``
+*and* additional gauge counters by utilizing the :oslo.config:option:`metrics.backend`
 configuration option and setting it to ``collector``. When this is the case,
 Information is cached locally and periodically sent along with the general sensor
 data update to the messaging notifier, which can consumed off of the message bus,

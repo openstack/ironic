@@ -137,10 +137,6 @@ file, for example:
 
 See :doc:`/install/enabling-drivers` for more details.
 
-.. note::
-    The configuration option ``[inspector]enabled`` does not affect hardware
-    types.
-
 Then you can tell your nodes to use this interface, for example:
 
 .. code-block:: console
@@ -250,9 +246,9 @@ passthru methods from different vendor passthru implementations:
    (property ``supported_vendor_interfaces`` of the Python class
    that defines your hardware type).
 #. Ensure all required vendor interfaces are enabled in the ironic
-   configuration file under the ``[DEFAULT]enabled_vendor_interfaces``
+   configuration file under the :oslo.config:option:`DEFAULT.enabled_vendor_interfaces`
    option.
-   You should also consider setting the ``[DEFAULT]default_vendor_interface``
+   You should also consider setting the :oslo.config:option:`DEFAULT.default_vendor_interface`
    option to specify the vendor interface for nodes that do not have one set
    explicitly.
 #. Before invoking a specific vendor passthru method,

@@ -35,7 +35,7 @@ provisioning will happen in a multi-tenant environment (which means using the
    interface explicitly specified in the creation request.
 
    If this configuration option is not set, the default network interface is
-   determined by looking at the ``[dhcp]dhcp_provider`` configuration option
+   determined by looking at the :oslo.config:option:`dhcp.dhcp_provider` configuration option
    value. If it is ``neutron``, then ``flat`` network interface becomes the
    default, otherwise ``noop`` is the default.
 

@@ -521,9 +521,9 @@ Again, these sorts of cases will depend upon the exact configuration of the
 deployment, but hopefully these are areas where these actions can occur.
 
 * Conversion to raw image files upon download to the conductor, from the
-  ``[DEFAULT]force_raw_images`` option. Users using Glance may also experience
+  :oslo.config:option:`DEFAULT.force_raw_images` option. Users using Glance may also experience
   issues here as the conductor will cache the image to be written which takes
-  place when the ``[agent]image_download_source`` is set to ``http`` instead of
+  place when the :oslo.config:option:`agent.image_download_source` is set to ``http`` instead of
   ``swift``.
 
 .. note::
@@ -867,11 +867,11 @@ This can be addressed a few different ways:
 * Add swap space.
 * Reduce concurrency, possibly via another conductor or changing the
   nova-compute.conf ``max_concurrent_builds`` parameter.
-* Or finally, adjust the ``[DEFAULT]minimum_required_memory`` parameter
+* Or finally, adjust the :oslo.config:option:`DEFAULT.minimum_required_memory` parameter
   in your ironic.conf file. The default should be considered a "default
   of last resort" and you may need to reserve additional memory. You may
-  also wish to adjust the ``[DEFAULT]minimum_memory_wait_retries`` and
-  ``[DEFAULT]minimum_memory_wait_time`` parameters.
+  also wish to adjust the :oslo.config:option:`DEFAULT.minimum_memory_wait_retries` and
+  :oslo.config:option:`DEFAULT.minimum_memory_wait_time` parameters.
 
 Why does API return "Node is locked by host"?
 =============================================
@@ -984,7 +984,7 @@ for cleaning operations is *50* and should be suitable for the majority of
 baremetal operators.
 
 These settings can be modified by using the
-``[conductor]max_concurrent_deploy`` and ``[conductor]max_concurrent_clean``
+:oslo.config:option:`conductor.max_concurrent_deploy` and :oslo.config:option:`conductor.max_concurrent_clean`
 settings from the ironic.conf file supporting the ``ironic-conductor``
 service. Neither setting can be explicitly disabled, however there is also no
 upper limit to the setting.
@@ -1258,4 +1258,4 @@ longer accessible and no new configuration drive has been supplied to Ironic.
 To resolve this case, you can either supply new configuration drive contents
 with your request, or disable configuration from being stored in Swift for
 new baremetal node deployments by changing setting
-``[conductor]configdrive_use_object_store`` to ``false``.
+:oslo.config:option:`deploy.configdrive_use_object_store` to ``false``.

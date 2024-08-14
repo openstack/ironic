@@ -22,7 +22,7 @@ This change takes effect after all the ironic conductors have been
 restarted.
 
 The default kickstart template is specified via the configuration option
-``[anaconda]default_ks_template``. It is set to this `ks.cfg.template`_
+:oslo.config:option:`anaconda.default_ks_template`. It is set to this `ks.cfg.template`_
 but can be modified to be some other template.
 
 .. code-block::  ini
@@ -280,14 +280,14 @@ part due to the general defaults being set to much lower values for image
 based deployments, but the way the anaconda deployment interface works,
 you may need to make some adjustments.
 
-* ``[conductor]deploy_callback_timeout`` likely needs to be adjusted
+* :oslo.config:option:`conductor.deploy_callback_timeout` likely needs to be adjusted
   for most ``anaconda`` deployment interface users. By default this
   is a timer which looks for "agents" which have not checked in with
   Ironic, or agents which may have crashed or failed after they
   started. If the value is reached, then the current operation is failed.
   This value should be set to a number of seconds which exceeds your
   average anaconda deployment time.
-* ``[pxe]boot_retry_timeout`` can also be triggered and result in
+* :oslo.config:option:`pxe.boot_retry_timeout` can also be triggered and result in
   an anaconda deployment in progress getting reset as it is intended
   to reboot nodes which might have failed their initial PXE operation.
   Depending on sizes of images, and the exact nature of what was deployed,

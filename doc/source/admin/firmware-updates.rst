@@ -101,7 +101,7 @@ Next, construct the JSON for the firmware update cleaning step to be executed.
 When launching the firmware update, the JSON may be specified on the command
 line directly or in a file. The following example shows one cleaning step that
 installs four firmware updates. All except 3rd entry that has explicit
-``source`` added, uses setting from ``[redfish]firmware_source`` to determine
+``source`` added, uses setting from :oslo.config:option:`redfish.firmware_source` to determine
 if and where to stage the files:
 
 .. code-block:: json

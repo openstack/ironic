@@ -58,14 +58,14 @@ Steps to enable proxies
    sensitive information. Refer to your proxy server's documentation to
    complete this step.
 
-#. Set ``[glance]swift_temp_url_cache_enabled`` in the ironic conductor config
+#. Set :oslo.config:option:`glance.swift_temp_url_cache_enabled` in the ironic conductor config
    file to ``True``. The conductor will reuse the cached swift temporary URLs
    instead of generating new ones each time an image is requested, so that the
    proxy server does not create new cache entries for the same image, based on
    the query part of the URL (as it contains some query parameters that change
    each time it is regenerated).
 
-#. Set ``[glance]swift_temp_url_expected_download_start_delay`` option in the
+#. Set :oslo.config:option:`glance.swift_temp_url_expected_download_start_delay` option in the
    ironic conductor config file to the value appropriate for your hardware.
    This is the delay (in seconds) from the time of the deploy request (when
    the swift temporary URL is generated) to when the URL is used for the image
@@ -74,15 +74,15 @@ Steps to enable proxies
    temporary URL duration is large enough to let the image download begin. Also
    if temporary URL caching is enabled, this will determine if a cached entry
    will still be valid when the download starts. It is used only if
-   ``[glance]swift_temp_url_cache_enabled`` is ``True``.
+   :oslo.config:option:`glance.swift_temp_url_cache_enabled` is ``True``.
 
-#. Increase ``[glance]swift_temp_url_duration`` option in the ironic conductor
+#. Increase :oslo.config:option:`glance.swift_temp_url_duration` option in the ironic conductor
    config file, as only non-expired links to images will be returned from the
    swift temporary URLs cache. This means that if
    ``swift_temp_url_duration=1200`` then after 20 minutes a new image will be
    cached by the proxy server as the query in its URL will change. The value of
    this option must be greater than or equal to
-   ``[glance]swift_temp_url_expected_download_start_delay``.
+   :oslo.config:option:`glance.swift_temp_url_expected_download_start_delay`.
 
 #. Add one or more of ``image_http_proxy``, ``image_https_proxy``,
    ``image_no_proxy`` to driver_info properties in each node that will use the

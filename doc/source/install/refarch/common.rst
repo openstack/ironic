@@ -265,12 +265,12 @@ the space requirements are different:
 
 * The deployment kernel and ramdisk are always cached during the deployment.
 
-* When ``[agent]image_download_source`` is set to ``http`` and Glance is used,
+* When :oslo.config:option:`agent.image_download_source` is set to ``http`` and Glance is used,
   the conductor will download instances images locally to serve them from its
   HTTP server. Use ``swift`` to publish images using temporary URLs and convert
   them on the node's side.
 
-  When ``[agent]image_download_source`` is set to ``local``, it will happen
+  When :oslo.config:option:`agent.image_download_source` is set to ``local``, it will happen
   even for HTTP(s) URLs. For standalone case use ``http`` to avoid unnecessary
   caching of images.
 
