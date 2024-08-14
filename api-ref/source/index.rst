@@ -29,6 +29,7 @@
 .. include:: baremetal-api-v1-allocation.inc
 .. include:: baremetal-api-v1-node-allocation.inc
 .. include:: baremetal-api-v1-deploy-templates.inc
+.. include:: baremetal-api-v1-runbooks.inc
 .. include:: baremetal-api-v1-nodes-history.inc
 .. include:: baremetal-api-v1-nodes-inventory.inc
 .. include:: baremetal-api-v1-shards.inc

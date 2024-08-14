@@ -116,6 +116,12 @@ portgroup_ident:
   in: path
   required: true
   type: string
+runbook_ident:
+  description: |
+    The UUID or name of the runbook.
+  in: path
+  required: true
+  type: string
 trait:
   description: |
     A single trait for this node.
@@ -1671,6 +1677,13 @@ req_description:
   in: body
   required: false
   type: string
+req_disable_ramdisk:
+  description: |
+    Whether to boot ramdisk while using a runbook for cleaning or servicing
+    operation.
+  in: body
+  required: false
+  type: boolean
 req_driver_info:
   description: |
     All the metadata required by the driver to manage this Node. List of fields
@@ -2024,6 +2037,60 @@ retired_reason:
   in: body
   required: false
   type: string
+runbook_name:
+  description: |
+    The unique name of the runbook. It must be prefixed with ``CUSTOM_``,
+    which makes it conform to the TRAITS_SCHEMA format. The runbook name must
+    match a node trait indicating it can run on a node.
+  in: body
+  required: true
+  type: string
+runbook_owner:
+  description: |
+    The unique identifier of the runbook owner.
+    This must be ``null`` if ``runbook_public`` is ``true``.
+  in: body
+  required: false
+  type: string
+runbook_public:
+  description: |
+    Indicates whether a runbook is available for public use or not.
+    This must be ``false`` if ``runbook_owner`` is not ``null``.
+  in: body
+  required: false
+  type: boolean
+runbook_step_args:
+  description: |
+    A dictionary of arguments that are passed to the runbook step method.
+  in: body
+  required: true
+  type: object
+runbook_step_interface:
+  description: |
+    The name of the driver interface.
+  in: body
+  required: true
+  type: string
+runbook_step_order:
+  description: |
+    A non-negative integer order for the step.
+  in: body
+  required: true
+  type: integer
+runbook_step_step:
+  description: |
+    The name of the runbook step method on the driver interface.
+  in: body
+  required: true
+  type: string
+runbook_steps:
+  description: |
+    The runbook steps of the runbook template. Must be a list of dictionaries
+    containing at least one runbook step. See `Request Runbook Step`_ for step
+    parameters.
+  in: body
+  required: true
+  type: array
 secure_boot:
   description: |
     Indicates whether node is currently booted with secure_boot turned on.

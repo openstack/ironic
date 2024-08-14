@@ -454,6 +454,12 @@ detailed documentation of the Ironic State Machine is available
    A node can be serviced by setting the provision target state to ``service``
    with a list of ``service_steps``.
 
+.. versionadded:: 1.92
+   Added the ability to allow for predefined sets of steps to be executed
+   during provisioning by passing in a ``runbook_ident`` that's already
+   approved for the given node, as an alternative to providing ``clean_steps``
+   or ``service_steps`` dictionary.
+
 Normal response code: 202
 
 Error codes:
@@ -475,6 +481,7 @@ Request
     - service_steps: service_steps
     - rescue_password: rescue_password
     - disable_ramdisk: disable_ramdisk
+    - runbook: runbook_ident
 
 **Example request to deploy a Node, using a configdrive served via local webserver:**
 
@@ -488,6 +495,17 @@ Request
 
 .. literalinclude:: samples/node-set-clean-state.json
 
+**Example request to service a Node, with custom service step:**
+
+.. literalinclude:: samples/node-set-service-state.json
+
+**Example request to set provision state for a Node with a runbook:**
+
+.. literalinclude:: samples/node-set-provision-state.json
+
+.. note:: Use ``runbook`` as an alternative to ``clean_steps`` or
+  ``service_steps``. If ``runbook`` is provided, ``clean_steps`` or
+  ``service_steps`` must not be included in the request.
 
 Set RAID Config
 ===============
