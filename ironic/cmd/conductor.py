@@ -73,7 +73,7 @@ def warn_about_max_wait_parameters(conf):
                     'configuration parameter exceeds the value of '
                     '[conductor]%s, which could create a condition where '
                     'tasks may timeout. Ironic recommends a low default '
-                    'value for [conductor]max_conductor_wait_step_seconds ',
+                    'value for [conductor]max_conductor_wait_step_seconds '
                     'please re-evaluate your configuration.', error_with)
 
 
