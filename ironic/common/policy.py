@@ -1088,6 +1088,15 @@ node_policies = [
             {'path': '/nodes/{node_ident}/vmedia', 'method': 'DELETE'}
         ],
     ),
+    policy.DocumentedRuleDefault(
+        name='baremetal:node:vmedia:get',
+        check_str=SYSTEM_OR_PROJECT_READER,
+        scope_types=['system', 'project'],
+        description='Get virtual media device details from a node',
+        operations=[
+            {'path': '/nodes/{node_ident}/vmedia', 'method': 'GET'}
+        ],
+    ),
 ]
 
 deprecated_port_reason = """

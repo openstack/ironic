@@ -197,6 +197,57 @@ def _has_vmedia_via_manager(manager):
         return False
 
 
+def _get_vmedia(task, managers):
+    """GET virtual media details
+
+    :param task: A task from Task   Manager.
+    :param managers: A list of System managers.
+    :raises: InvalidParameterValue, if no suitable virtual CD or DVD is
+        found on the node.
+    """
+
+    err_msgs = []
+    vmedia_list = []
+    system = redfish_utils.get_system(task.node)
+    if _has_vmedia_via_systems(system):
+        vmedia_get = _get_vmedia_resources(task, system, err_msgs)
+        if vmedia_get:
+            for vmedia in vmedia_get:
+                media_type_list = []
+                for media_type in vmedia.media_types:
+                    media_type_list.append(media_type.value)
+
+                media = {
+                    "media_types": media_type_list,
+                    "inserted": vmedia.inserted,
+                    "image": vmedia.image
+                }
+                vmedia_list.append(media)
+            return vmedia_list
+    else:
+        for manager in managers:
+            vmedia_get = _get_vmedia_resources(task, manager, err_msgs)
+            if vmedia_get:
+                for vmedia in vmedia_get:
+                    media_type_list = []
+                    for media_type in vmedia.media_types:
+                        media_type_list.append(media_type.value)
+
+                    media = {
+                        "media_types": media_type_list,
+                        "inserted": vmedia.inserted,
+                        "image": vmedia.image
+                    }
+                    vmedia_list.append(media)
+                return vmedia_list
+    if err_msgs:
+        exc_msg = ("All virtual media GET attempts failed. "
+                   "Most recent error: ", err_msgs[-1])
+    else:
+        exc_msg = 'No suitable virtual media device found'
+    raise exception.InvalidParameterValue(exc_msg)
+
+
 def _insert_vmedia(task, managers, boot_url, boot_device):
     """Insert bootable ISO image into virtual CD or DVD
 
@@ -340,6 +391,23 @@ def _eject_vmedia(task, managers, boot_device=None):
     return found
 
 
+@tenacity.retry(retry=tenacity.retry_if_exception(_test_retry),
+                stop=tenacity.stop_after_attempt(3),
+                wait=tenacity.wait_fixed(3),
+                reraise=True)
+def _get_vmedia_resources(task, resource, err_msgs):
+    """Get virtual media for a given redfish resource (System/Manager)
+
+    :param task: A task from TaskManager.
+    :param resource: A redfish resource either a System or Manager.
+    :param err_msgs: A list that will contain all errors found
+    """
+    LOG.info("Get virtual media details for node=%(node)s",
+             {'node': task.node.uuid})
+
+    return resource.virtual_media.get_members()
+
+
 def _eject_vmedia_from_resource(task, resource, boot_device=None):
     """Eject virtual media from a given redfish resource (System/Manager)
 
@@ -381,6 +449,20 @@ def _eject_vmedia_from_resource(task, resource, boot_device=None):
                       'already': '' if inserted else ' already',
                       'boot_device': v_media.name})
     return found
+
+
+def get_vmedia(task):
+    """Get the attached virtual CDs and DVDs for a node
+
+        :param task: A task from TaskManager.
+        :raises: InvalidParameterValue, if no suitable virtual CD or DVD is
+            found on the node.
+        """
+    LOG.info('Called redfish.boot.get_vmedia, for '
+             'node=%(node)s',
+             {'node': task.node.uuid})
+    system = redfish_utils.get_system(task.node)
+    return _get_vmedia(task, system.managers)
 
 
 def insert_vmedia(task, image_url, device_type):
