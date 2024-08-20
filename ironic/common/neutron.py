@@ -557,6 +557,10 @@ def get_neutron_port_data(port_id, vif_id, client=None, context=None):
         ],
         'networks': [
 
+        ],
+
+        'services': [
+
         ]
     }
 
@@ -623,6 +627,14 @@ def get_neutron_port_data(port_id, vif_id, client=None, context=None):
             network['routes'].append(route)
 
         network_data['networks'].append(network)
+
+        for dns_nameserver in subnet_config['dns_nameservers']:
+            service = {
+                'type': 'dns',
+                'address': dns_nameserver
+            }
+
+            network_data['services'].append(service)
 
     return network_data
 

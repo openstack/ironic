@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The network_data fetched from Neutron contained 'links',
+    'networks' but was missing 'services'. This patch brings
+    in 'services' to include dns nameservers that can be
+    configured by Glean or cloud-init during cleaning and
+    provisioning operations, especially when virtual media
+    boot is used without DHCP.
