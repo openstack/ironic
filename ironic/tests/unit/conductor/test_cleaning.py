@@ -165,9 +165,10 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
     def test__do_node_clean_automated_cache_bios_unsupported(self):
         self._test__do_node_clean_cache_bios(enable_unsupported=True)
 
+    @mock.patch.object(cleaning, 'LOG', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
                 autospec=True)
-    def test__do_node_clean_automated_disabled(self, mock_validate):
+    def test__do_node_clean_automated_disabled(self, mock_validate, mock_log):
         self.config(automated_clean=False, group='conductor')
 
         node = obj_utils.create_test_node(
@@ -187,6 +188,12 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         self.assertEqual({}, node.clean_step)
         self.assertNotIn('clean_steps', node.driver_internal_info)
         self.assertNotIn('clean_step_index', node.driver_internal_info)
+        mock_log.info.assert_called_once_with("Automated cleaning is disabled "
+                                              "via %(how)s, node %(node)s has "
+                                              "been successfully moved to "
+                                              "AVAILABLE state",
+                                              {'how': 'configuration',
+                                               'node': node.uuid})
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.validate',
                 autospec=True)
