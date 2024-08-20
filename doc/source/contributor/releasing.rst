@@ -144,7 +144,53 @@ version.
 Currently releases and retirements from bugfix branches cannot be automated and
 must be done by the release team manually.
 
-After the creation of a bugfix branch it is of the utmost importance to update
+There are usually 3 bugfix branches present at all time, the latest 2 are
+actively maintained, while the third one is considered unmaintained.
+After creating a new bugfix branch, the oldest bugfix branch
+should be tagged as EoL and deleted.
+
+Only members of the ironic-core or ironic-release groups can delete branches,
+please refer to this procedure to remove the oldest bugfix branch after
+the creation of a new one:
+
+* checkout locally the bugfix branch to move to EoL, if it does not exist
+  locally it's possible to checkout it from remote and switch to it using
+  ``git checkout -t``, for example for bugfix/24.0 use:
+
+.. code-block:: bash
+
+   git checkout -t origin/bugfix/24.0
+
+* fast forward to latest change using:
+
+.. code-block:: bash
+
+   git pull --ff-only
+
+* add a signed tag to the latest commit of the bugfix branch named ``bugfix-X.Y-eol``
+  and add "EOL bugfix/X.Y" as description, for example
+  for bugfix/24.0 add the tag bugfix-24.0-eol; use the ``git tag``
+  command for that, for example for bugfix/24.0 the syntax would be:
+
+.. code-block:: bash
+
+   git tag -s bugfix-24.0-eol -m "EOL bugfix/24.0"
+
+* push the new tag to gerrit using ``git push gerrit TAG_NAME``, for example
+  for bugfix/24.0 use:
+
+.. code-block:: bash
+
+   git push gerrit bugfix-24.0-eol
+
+* delete the bugfix branch on gerrit using ``git push gerrit --delete BUGFIX_BRANCH_NAME``,
+  again for bugfix/24.0 would be:
+
+.. code-block:: bash
+
+   git push gerrit --delete bugfix/24.0
+
+After the creation of a bugfix branch it may be necessary to update
 the upper-constraints link for the tests in the tox.ini file, plus override
 the branch for the requirements project to be sure to use the correct
 upper-constraints; for example see the following change:
