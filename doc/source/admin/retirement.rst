@@ -1,8 +1,8 @@
 .. _retirement:
 
-===============
-Node retirement
-===============
+=========================
+Retiring a node in Ironic
+=========================
 
 Overview
 ========

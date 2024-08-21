@@ -1,6 +1,6 @@
-===============
-Node Deployment
-===============
+================================
+Using deploy steps and templates
+================================
 
 .. contents::
   :depth: 2
