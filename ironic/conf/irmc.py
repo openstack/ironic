@@ -130,8 +130,7 @@ opts = [
                       'Foreground Initialization (FGI) will start 5 minutes '
                       'after creating virtual drives.')),
     cfg.StrOpt('kernel_append_params',
-               # TODO(dtantsur): set to the same value as in [pxe] after Xena
-               default=None,
+               default='nofb vga=normal',
                mutable=True,
                help=_('Additional kernel parameters to pass down to the '
                       'instance kernel. These parameters can be consumed by '
