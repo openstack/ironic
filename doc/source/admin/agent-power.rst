@@ -26,7 +26,7 @@ The expected workflow is as follows:
    power only requires to be able to connect to the agent.
 
 #. The operator moves the node to `available`. Cleaning happens normally via
-   the already running agent. If reboot is needed, it is done by telling the
+   the already running agent. If a reboot is needed, it is done by telling the
    agent to reboot the node in-band.
 
 #. A user deploys the node. Deployment happens normally via the already
@@ -70,7 +70,7 @@ Limitations
 
 * Undeploy and rescue are not supported, you need to add BMC credentials first.
 
-* If any errors happens in the process, recovery will likely require BMC
+* If any errors happen in the process, recovery will likely require BMC
   credentials.
 
 * Only rebooting is possible through the API, power on/off commands will fail.
