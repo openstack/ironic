@@ -26,8 +26,8 @@ specified, then this is equivalent to ``wait 0``, meaning that it will not
 wait and immediately proceed with the next firmware update if there is one,
 or complete the cleaning step if not.
 
-How it works
-------------
+How it works - via Management Interface
+---------------------------------------
 
 The ``update_firmware`` cleaning step accepts JSON in the following format::
 
@@ -58,7 +58,7 @@ The different attributes of the ``update_firmware`` cleaning step are as follows
 
     "``interface``", "Interface of the cleaning step.  Must be ``management`` for firmware update"
     "``step``", "Name of cleaning step.  Must be ``update_firmware`` for firmware update"
-    "``args``", "Keyword-argument entry (<name>: <value>) being passed to cleaning step"
+    "``args``", "Keyword-argument entry (<name>: <value>) being passed to the step"
     "``args.firmware_images``", "Ordered list of dictionaries of firmware images to be applied"
 
 Each firmware image dictionary, is of the form::
@@ -158,3 +158,132 @@ In the following example, the JSON is specified directly on the command line:
    Warning: Removing power from a server while it is in the process of updating
    firmware may result in devices in the server, or the server itself becoming
    inoperable.
+
+How it works - via Firmware Interface
+-------------------------------------
+
+The ``update`` step can be used via cleaning or servicing, it accepts a JSON in
+the following format::
+
+    [{
+        "interface": "firmware",
+        "step": "update",
+        "args": {
+            "settings":[
+                {
+                    "component": "bmc"
+                    "url": "<url_to_firmware_image1>"
+                    "wait": <number_of_seconds_to_wait>
+                },
+                {
+                    "component": "bios"
+                    "url": "<url_to_firmware_image2>"
+                },
+                ...
+            ]
+        }
+    }]
+
+The different attributes of the ``update`` step are as follows:
+
+.. csv-table::
+    :header: "Attribute", "Description"
+    :widths: 30, 120
+
+    "``interface``", "Interface of the step.  Must be ``firmware`` for firmware update"
+    "``step``", "Name of the step.  Must be ``update`` for firmware update"
+    "``args``", "Keyword-argument entry (<name>: <value>) being passed to the step"
+    "``args.settings``", "Ordered list of dictionaries of firmware updates to be applied"
+
+Each firmware image dictionary, is of the form::
+
+    {
+      "component": "The desired component to have the firmware updated, only bios and bmc are currently supported",
+      "url": "<URL of firmware image file>",
+      "wait": <Optional time in seconds to wait after applying update>
+    }
+
+The ``component`` and ``url`` arguments in the firmware image dictionary are
+mandatory, while the ``wait`` argument is optional.
+
+For ``url`` currently ``http``, ``https``, ``swift`` and ``file`` schemes are
+supported.
+
+
+Applying updates
+----------------
+
+To perform a firmware update, first download the firmware to a web server,
+Swift or filesystem that the Ironic conductor or BMC has network access to.
+This could be the ironic conductor web server or another web server on the BMC
+network. Using a web browser, curl, or similar tool on a server that has
+network access to the BMC or Ironic conductor, try downloading the firmware to
+verify that the URLs are correct and that the web server is configured
+properly.
+
+Next, construct the JSON for the firmware update step to be executed.
+When launching the firmware update, the JSON may be specified on the command
+line directly or in a file. The following example shows one step that
+installs two firmware updates.
+
+.. code-block:: json
+
+    [{
+        "interface": "firmware",
+        "step": "update",
+        "args": {
+            "settings":[
+                {
+                    "component": "bmc",
+                    "url": "http://192.0.2.10/BMC_4_22_00_00.EXE",
+                    "wait": 300
+                },
+                {
+                    "component": "bios",
+                    "url": "https://192.0.2.10/BIOS_19.0.12_A00.EXE"
+                },
+
+            ]
+        }
+    }]
+
+
+It is also possible to use `runbooks` for firmware updates.
+
+.. code-block:: console
+
+    $ baremetal runbook create --name <RUNBOOK> --steps \
+        '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bmc", "url":"http://192.168.0.8:8080/ilo5278.bin"}]}}]'
+    $ baremetal node add trait <ironic_node_uuid> <RUNBOOK>
+    $ baremetal node <clean or service>  <ironic_node_uuid> --runbook <RUNBOOK>
+
+Finally, launch the firmware update step against the node. The
+following example assumes the above JSON is in a file named
+``update.json``:
+
+.. code-block:: console
+
+   $ baremetal node clean <ironic_node_uuid> --clean-steps update.json
+   $ baremetal node service <ironic_node_uuid> --service-steps update.json
+
+In the following example, the JSON is specified directly on the command line:
+
+.. code-block:: console
+
+   $ baremetal node clean <ironic_node_uuid> --clean-steps \
+       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bmc", "url":"http://192.168.0.8:8080/ilo5278.bin"}]}}]'
+   $ baremetal node clean <ironic_node_uuid> --clean-steps \
+       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bios", "url":"http://192.168.0.8:8080/bios.bin"}]}}]'
+   $ baremetal node service <ironic_node_uuid> --service-steps \
+       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bmc", "url":"http://192.168.0.8:8080/ilo5278.bin"}]}}]'
+   $ baremetal node service <ironic_node_uuid> --service-steps \
+       '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bios", "url":"http://192.168.0.8:8080/bios.bin"}]}}]'
+
+.. note::
+   For Dell machines you must extract the firmimgFIT.d9 from the iDRAC.exe
+   This can be done using the command `7za e iDRAC_<VERSION>.exe`.
+
+.. note::
+   For HPE machines you must extract the ilo5_<version>.bin from the
+   ilo5_<version>.fwpkg
+   This can be done using the command `7za e ilo<version>.fwpkg`.

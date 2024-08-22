@@ -153,7 +153,8 @@ class AutomatedStepsDirective(rst.Directive):
 
         result = ViewList()
 
-        for interface_name in ['power', 'management', 'deploy', 'bios', 'raid']:
+        for interface_name in ['power', 'management', 'firmware',
+                               'deploy', 'bios', 'raid']:
             interface_info = _clean_steps.get(interface_name, {})
             if not interface_info:
                 continue
