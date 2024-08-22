@@ -441,10 +441,11 @@ class PXEBaseMixin(object):
         """
         try:
             self._validate_common(task)
-        except exception.MissingParameterValue:
+        except exception.MissingParameterValue as exc:
             # Fall back to non-managed in-band inspection
             raise exception.UnsupportedDriverExtension(
-                driver=task.node.driver, extension='inspection')
+                _("Insufficient information provided for managed "
+                  "inspection: %s") % exc)
 
     _RETRY_ALLOWED_STATES = {states.DEPLOYWAIT, states.CLEANWAIT,
                              states.RESCUEWAIT}
