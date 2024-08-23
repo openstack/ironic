@@ -4,8 +4,8 @@
 API Audit Logging
 =================
 
-Audit middleware supports delivery of CADF audit events via Oslo messaging
-notifier capability. Based on `notification_driver` configuration, audit events
+Audit middleware supports the delivery of CADF audit events via the Oslo messaging
+notifier capability. Based on the `notification_driver` configuration, audit events
 can be routed to messaging infrastructure (notification_driver = messagingv2)
 or can be routed to a log file (`[oslo_messaging_notifications]/driver = log`).
 
@@ -30,17 +30,17 @@ to ``/etc/ironic/ironic.conf``.
     enabled=true
 
 #. To customize auditing API requests, the audit middleware requires the audit_map_file setting
-   to be defined. Update the value of configuration setting 'audit_map_file' to set its
+   to be defined. Update the value of the configuration setting 'audit_map_file' to set its
    location. Audit map file configuration options for the Bare Metal service are included
    in the etc/ironic/ironic_api_audit_map.conf.sample file. To understand CADF format
-   specified in ironic_api_audit_map.conf file refer to `CADF Format.
+   specified in ironic_api_audit_map.conf file, refer to `CADF Format.
    <http://www.dmtf.org/sites/default/files/standards/documents/DSP2038_1.0.0.pdf>`_::
 
     [audit]
     ...
     audit_map_file=/etc/ironic/api_audit_map.conf
 
-#. Comma separated list of Ironic REST API HTTP methods to be ignored during audit.
+#. Comma-separated list of Ironic REST API HTTP methods to be ignored during audit.
    It is used only when API audit is enabled. For example::
 
     [audit]
@@ -50,7 +50,7 @@ to ``/etc/ironic/ironic.conf``.
 Sample Audit Event
 ==================
 
-Following is the sample of audit event for ironic node list request.
+Following is the sample of the audit event for the ironic node list request.
 
 .. code-block:: json
 

@@ -64,7 +64,7 @@ package groups that need to be in the image:
         install cloud-init
         ts run
 
-An OS tarball can be created using following set of commands, along with the above
+An OS tarball can be created using the following set of commands, along with the above
 ``baremetal.yum`` file:
 
 .. code-block:: shell
@@ -155,12 +155,12 @@ ironic node:
 
 .. warning::
    In the Ironic Project terminology, the word ``template`` often refers to
-   a file which is supplied to the deployment, which Ironic supplies
+   a file that is supplied to the deployment, which Ironic supplies
    parameters to render a specific output. One critical example of this in
    the Ironic workflow, specifically with this driver, is that the generated
    ``agent token`` is conveyed to the booting ramdisk, facilitating it to call
    back to Ironic and indicate the state. This token is randomly generated
-   for every deploy, and is required. Specifically this is leveraged in the
+   for every deploy, and is required. Specifically, this is leveraged in the
    template's ``pre``, ``onerror``, and ``post`` steps.
    For more information on Agent Token, please see :doc:`/admin/agent-token`.
 
@@ -168,7 +168,7 @@ Standalone deployments
 ----------------------
 
 While this deployment interface driver was developed around the use of other
-OpenStack services, it is not explicitly required. For example HTTP(S) URLs
+OpenStack services, it is not explicitly required. For example, HTTP(S) URLs
 can be supplied by the API user to explicitly set the expected baremetal node
 ``instance_info`` fields
 
@@ -182,7 +182,7 @@ can be supplied by the API user to explicitly set the expected baremetal node
 
 When doing so, you may wish to also utilize a customized kickstart template,
 which can also be a URL. Please reference the ironic community provided
-template *ks.cfg.template* and use it as a basis of your own kickstart
+template *ks.cfg.template* and use it as a basis for your own kickstart
 as it accounts for the particular stages and appropriate callbacks to
 Ironic.
 
@@ -252,7 +252,7 @@ parameter, and the node deployed.
 Deployment Process
 ------------------
 
-At a high level, the mechanics of the anaconda driver works in the following
+At a high level, the mechanics of the anaconda driver work in the following
 flow, where we also note the stages and purpose of each part for informational
 purposes.
 
@@ -281,16 +281,16 @@ based deployments, but the way the anaconda deployment interface works,
 you may need to make some adjustments.
 
 * :oslo.config:option:`conductor.deploy_callback_timeout` likely needs to be adjusted
-  for most ``anaconda`` deployment interface users. By default this
-  is a timer which looks for "agents" which have not checked in with
+  for most ``anaconda`` deployment interface users. By default, this
+  is a timer that looks for "agents" that have not checked in with
   Ironic, or agents which may have crashed or failed after they
   started. If the value is reached, then the current operation is failed.
   This value should be set to a number of seconds which exceeds your
   average anaconda deployment time.
 * :oslo.config:option:`pxe.boot_retry_timeout` can also be triggered and result in
   an anaconda deployment in progress getting reset as it is intended
-  to reboot nodes which might have failed their initial PXE operation.
-  Depending on sizes of images, and the exact nature of what was deployed,
+  to reboot nodes that might have failed their initial PXE operation.
+  Depending on the sizes of images, and the exact nature of what was deployed,
   it may be necessary to ensure this is a much higher value.
 
 Limitations
