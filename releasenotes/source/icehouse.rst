@@ -1,6 +1,6 @@
-===============================
-Icehouse (2014.1) Release Notes
-===============================
+======================================
+Icehouse Series (2014.1) Release Notes
+======================================
 
 Icehouse is the first release of the Ironic project that should be considered "a stable beta." Since there are no prior releases, this highlights the most significant difference between Ironic and nova-baremetal, and lists the major known issues at the time of the Icehouse release.
 
