@@ -646,6 +646,19 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
 
         self.assertEqual(expected_network, network_data['networks'][0])
 
+        expected_services = [
+            {
+                'type': 'dns',
+                'address': '192.0.2.253'
+            },
+            {
+                'type': 'dns',
+                'address': '192.0.2.254'
+            }
+        ]
+
+        self.assertEqual(expected_services, network_data['services'])
+
     def load_ipv6_files(self):
         port_show_file = os.path.join(
             os.path.dirname(__file__), 'json_samples',
@@ -704,6 +717,13 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         }
 
         self.assertEqual(expected_network, network_data['networks'][0])
+
+        expected_service = {
+            'type': 'dns',
+            'address': '2001:db8::ffff:c000:2fe'
+        }
+
+        self.assertEqual(expected_service, network_data['services'][0])
 
     def test_get_node_portmap(self):
         with task_manager.acquire(self.context, self.node.uuid) as task:
