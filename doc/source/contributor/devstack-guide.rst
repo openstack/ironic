@@ -254,10 +254,22 @@ enabled and use the ``ipmi`` hardware type with this config::
 
     END
 
-
 .. note::
   For adding :ref:`tempest` support to this configuration, see the
   :ref:`tempest` section of this document.
+
+
+Stable Branch Configuration
+---------------------------
+If you want to run Ironic in a branch other than master, you need to specify
+the correct version Ironic you want at the end of the enable_plugin line, e.g.
+``enable_plugin ironic https://opendev.org/openstack/ironic stable/2024.1``.
+
+In almost all situations, you'll also want any other associated OpenStack
+services to run in that version, too. Just add this config:
+
+``TARGET_BRANCH=stable/2024.1``
+
 
 Other Devstack Configurations
 -----------------------------
@@ -279,7 +291,7 @@ This section assumes you already have a working, deployed Ironic with Nova
 configured as laid out above.
 
 First, set the user to the admin demo (Note
-that all the user options can be seen in `/etc/openstack/clouds.yaml`)::
+that all the user options can be seen in ``/etc/openstack/clouds.yaml``)::
 
     export OS_CLOUD=devstack-admin-demo
 
