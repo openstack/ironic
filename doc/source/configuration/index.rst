@@ -1,6 +1,6 @@
-=======================
-Configuration Reference
-=======================
+==================================
+Configuration Reference for Ironic
+==================================
 
 Many aspects of the Bare Metal service are specific to the environment
 it is deployed in. The following pages describe configuration
