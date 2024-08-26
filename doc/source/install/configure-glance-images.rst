@@ -39,14 +39,14 @@ the Image service for each one as it is generated.
   .. code-block:: console
 
      $ openstack image create my-kernel --public \
-       --disk-format aki --container-format aki --file my-image.vmlinuz
+       --disk-format raw --container-format bare --file my-image.vmlinuz
 
   Store the image uuid obtained from the above step as ``MY_VMLINUZ_UUID``.
 
   .. code-block:: console
 
      $ openstack image create my-image.initrd --public \
-       --disk-format ari --container-format ari --file my-image.initrd
+       --disk-format raw --container-format bare --file my-image.initrd
 
   Store the image UUID obtained from the above step as ``MY_INITRD_UUID``.
 
@@ -80,7 +80,7 @@ Deploy ramdisk images
    .. code-block:: console
 
       $ openstack image create deploy-vmlinuz --public \
-        --disk-format aki --container-format aki \
+        --disk-format raw --container-format bare \
         --file ironic-python-agent.vmlinuz
 
    Store the image UUID obtained from the above step as ``DEPLOY_VMLINUZ_UUID``
@@ -89,7 +89,7 @@ Deploy ramdisk images
    .. code-block:: console
 
       $ openstack image create deploy-initrd --public \
-        --disk-format ari --container-format ari \
+        --disk-format raw --container-format bare \
         --file ironic-python-agent.initramfs
 
    Store the image UUID obtained from the above step as ``DEPLOY_INITRD_UUID``
