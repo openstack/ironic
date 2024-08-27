@@ -121,12 +121,12 @@ glance:
 
 .. code-block:: shell
 
-        openstack image create --file ./vmlinuz --container-format aki \
-            --disk-format aki --shared anaconda-kernel-<version>
-        openstack image create --file ./initrd.img --container-format ari \
-            --disk-format ari --shared anaconda-ramdisk-<version>
-        openstack image create --file ./squashfs.img --container-format ari \
-            --disk-format ari --shared anaconda-stage-<version>
+        openstack image create --file ./vmlinuz --container-format bare \
+            --disk-format raw --shared anaconda-kernel-<version>
+        openstack image create --file ./initrd.img --container-format bare \
+            --disk-format raw --shared anaconda-ramdisk-<version>
+        openstack image create --file ./squashfs.img --container-format bare \
+            --disk-format raw --shared anaconda-stage-<version>
         openstack image create --file ./os-image.tar.gz \
             --container-format bare --disk-format raw --shared \
             --property kernel_id=<glance_uuid_vmlinuz> \

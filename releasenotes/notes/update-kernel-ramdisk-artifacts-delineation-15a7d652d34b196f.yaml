@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Replaces `ari/aki` format references with appropriate artifacts
+    for kernel and ramdisk  in the documentation and Ironic DevStack plugin.

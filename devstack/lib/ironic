@@ -3228,8 +3228,8 @@ function upload_baremetal_ironic_deploy {
             IRONIC_DEPLOY_KERNEL_ID=$(openstack --os-cloud devstack-admin \
                 image create \
                 $ironic_deploy_kernel_name \
-                --public --disk-format=aki \
-                --container-format=aki \
+                --public --disk-format=raw \
+                --container-format=bare \
                 --file $(readlink -f $IRONIC_DEPLOY_KERNEL)  | \
                 grep ' id ' | get_field 2)
             die_if_not_set $LINENO IRONIC_DEPLOY_KERNEL_ID "Failed to load kernel image into glance"
@@ -3237,8 +3237,8 @@ function upload_baremetal_ironic_deploy {
             IRONIC_DEPLOY_RAMDISK_ID=$(openstack --os-cloud devstack-admin \
                 image create \
                 $ironic_deploy_ramdisk_name \
-                --public --disk-format=ari \
-                --container-format=ari \
+                --public --disk-format=raw \
+                --container-format=bare \
                 --file $(readlink -f $IRONIC_DEPLOY_RAMDISK)  | \
                 grep ' id ' | get_field 2)
             die_if_not_set $LINENO IRONIC_DEPLOY_RAMDISK_ID "Failed to load ramdisk image into glance"
