@@ -23,3 +23,5 @@ class DracRedfishVendorPassthru(redfish_vendor.RedfishVendorPassthru):
 
     Use the Redfish implementation for vendor passthru.
     """
+    # NOTE(cardoe): deprecated in favor of plain Redfish
+    supported = False

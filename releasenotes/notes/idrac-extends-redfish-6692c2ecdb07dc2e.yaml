@@ -1,0 +1,15 @@
+---
+features:
+  - |
+    Make the ``idrac`` hardware type inherit from the ``redfish`` hardware
+    type since the ``idrac`` hardware type is an extension of the ``redfish``
+    with Dell specific overrides. This will ensure that features available
+    to the ``redfish`` hardware type will always be available to ``idrac``.
+    Added ``redfish`` interface as available for the ``bios``, ``power``
+    and ``vendor`` interfaces of the ``idrac`` hardware type.
+deprecations:
+  - |
+    Deprecates the ``idrac-redfish`` interfaces in favor of the ``redfish``
+    interfaces for the ``bios``, ``power``, and ``vendor`` interfaces. This
+    is a no-op change as these interfaces wrapped the ``redfish`` interface
+    with no change already.

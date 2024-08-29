@@ -17,7 +17,6 @@ DRAC Driver for remote system management using Dell Remote Access Card.
 
 from oslo_config import cfg
 
-from ironic.drivers import generic
 from ironic.drivers.modules.drac import bios
 from ironic.drivers.modules.drac import boot
 from ironic.drivers.modules.drac import inspect as drac_inspect
@@ -25,16 +24,16 @@ from ironic.drivers.modules.drac import management
 from ironic.drivers.modules.drac import power
 from ironic.drivers.modules.drac import raid
 from ironic.drivers.modules.drac import vendor_passthru
-from ironic.drivers.modules import ipxe
-from ironic.drivers.modules import noop
-from ironic.drivers.modules import pxe
-from ironic.drivers.modules.redfish import firmware as redfish_firmware
+from ironic.drivers.modules.redfish import boot as redfish_boot
+from ironic.drivers.modules.redfish import inspect as redfish_inspect
+from ironic.drivers.modules.redfish import raid as redfish_raid
+from ironic.drivers import redfish
 
 
 CONF = cfg.CONF
 
 
-class IDRACHardware(generic.GenericHardware):
+class IDRACHardware(redfish.RedfishHardware):
     """integrated Dell Remote Access Controller hardware type"""
 
     # Required hardware interfaces
@@ -42,7 +41,11 @@ class IDRACHardware(generic.GenericHardware):
     @property
     def supported_boot_interfaces(self):
         """List of supported boot interfaces."""
-        return [ipxe.iPXEBoot, pxe.PXEBoot, boot.DracRedfishVirtualMediaBoot]
+        inherited = super().supported_boot_interfaces
+        # remove the generic redfish one in favor of the Dell specific
+        idx = inherited.index(redfish_boot.RedfishVirtualMediaBoot)
+        inherited[idx] = boot.DracRedfishVirtualMediaBoot
+        return inherited
 
     @property
     def supported_management_interfaces(self):
@@ -52,18 +55,16 @@ class IDRACHardware(generic.GenericHardware):
     @property
     def supported_power_interfaces(self):
         """List of supported power interfaces."""
-        return [power.DracRedfishPower]
+        return ([power.DracRedfishPower]
+                + super().supported_power_interfaces)
 
     # Optional hardware interfaces
 
     @property
     def supported_bios_interfaces(self):
         """List of supported bios interfaces."""
-        return [bios.DracRedfishBIOS, noop.NoBIOS]
-
-    @property
-    def supported_firmware_interfaces(self):
-        return [redfish_firmware.RedfishFirmware, noop.NoFirmware]
+        return ([bios.DracRedfishBIOS]
+                + super().supported_bios_interfaces)
 
     @property
     def supported_inspect_interfaces(self):
@@ -71,17 +72,23 @@ class IDRACHardware(generic.GenericHardware):
         # Inspector support should have a higher priority than NoInspect
         # if it is enabled by an operator (implying that the service is
         # installed).
-        return [drac_inspect.DracRedfishInspect] + super(
-            IDRACHardware, self).supported_inspect_interfaces
+        inherited = super().supported_inspect_interfaces
+        # remove the generic redfish one in favor of the Dell specific
+        idx = inherited.index(redfish_inspect.RedfishInspect)
+        inherited[idx] = drac_inspect.DracRedfishInspect
+        return inherited
 
     @property
     def supported_raid_interfaces(self):
         """List of supported raid interfaces."""
-        return [raid.DracRedfishRAID] + super(
-            IDRACHardware, self).supported_raid_interfaces
+        inherited = super().supported_raid_interfaces
+        # remove the generic redfish one in favor of the Dell specific
+        idx = inherited.index(redfish_raid.RedfishRAID)
+        inherited[idx] = raid.DracRedfishRAID
+        return inherited
 
     @property
     def supported_vendor_interfaces(self):
         """List of supported vendor interfaces."""
-        return [vendor_passthru.DracRedfishVendorPassthru,
-                noop.NoVendor]
+        return ([vendor_passthru.DracRedfishVendorPassthru]
+                + super().supported_vendor_interfaces)

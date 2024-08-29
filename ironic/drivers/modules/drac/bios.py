@@ -26,3 +26,5 @@ class DracRedfishBIOS(redfish_bios.RedfishBIOS):
     specific incompatibilities and introduction of vendor value added
     should be implemented by this class.
     """
+    # NOTE(cardoe): deprecated in favor of plain Redfish
+    supported = False
