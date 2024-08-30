@@ -1,0 +1,18 @@
+features:
+  - |
+    A new module, ``ironic.wsgi`` has been enabled as an entrypoint for WSGI
+    runners. For example, if using uWSGI then now instead of:
+
+    .. code-block:: ini
+
+        [uwsgi]
+        wsgi-file = /bin/ironic-api-wsgi
+
+    You can now use:
+
+    .. code-block:: ini
+
+        [uwsgi]
+        module = ironic.wsgi:application
+
+    Legacy installed wsgi scripts will be removed in a future version of Ironic.
