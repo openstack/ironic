@@ -14,6 +14,15 @@ is the only way to conduct inspection using :ref:`redfish-virtual-media` or
 with :doc:`/admin/dhcp-less`. This mode is engaged automatically when the node
 has sufficient information to configure boot (e.g. ports in case of iPXE).
 
+For network interfaces based on OpenStack Networking (e.g. ``flat`` and
+``neutron``), the UUID or name of the inspection network must be provided via
+configuration or ``driver_info``, for example:
+
+.. code-block:: ini
+
+   [neutron]
+   inspection_network = <NETWORK UUID>
+
 There are a few configuration options that tune managed inspection, the most
 important is ``extra_kernel_params``, which allows adding kernel parameters for
 inspection specifically. This is where you can configure

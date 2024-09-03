@@ -230,6 +230,9 @@ and may be combined if desired.
         --driver-info cleaning_network=$CLEAN_UUID_OR_NAME \
         --driver-info provisioning_network=$PROVISION_UUID_OR_NAME
 
+   If you use :doc:`managed inspection </admin/inspection/managed>`, you may
+   also configure ``inspection_network`` the same way.
+
    See :doc:`configure-tenant-networks` for details.
 
 #. You must also inform the Bare Metal service of the network interface cards

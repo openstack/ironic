@@ -1032,10 +1032,11 @@ class NeutronNetworkInterfaceMixin(object):
         """
         try:
             self.get_inspection_network_uuid(task)
-        except exception.MissingParameterValue:
+        except exception.MissingParameterValue as exc:
             # Fall back to non-managed in-band inspection
             raise exception.UnsupportedDriverExtension(
-                driver=task.node.driver, extension='inspection')
+                _("Insufficient information provided for managed "
+                  "inspection: %s") % exc)
 
     def get_servicing_network_uuid(self, task):
         servicing_network = (
