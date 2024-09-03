@@ -180,6 +180,7 @@ IRONIC_VM_VOLUME_COUNT=${IRONIC_VM_VOLUME_COUNT:-1}
 IRONIC_VM_MACS_CSV_FILE=${IRONIC_VM_MACS_CSV_FILE:-$IRONIC_DATA_DIR/ironic_macs.csv}
 IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-${IRONIC_PROVISION_NETWORK_NAME:-${PRIVATE_NETWORK_NAME}}}
 IRONIC_RESCUE_NET_NAME=${IRONIC_RESCUE_NET_NAME:-${IRONIC_CLEAN_NET_NAME}}
+IRONIC_INSPECTION_NET_NAME=${IRONIC_INSPECTION_NET_NAME:-${IRONIC_CLEAN_NET_NAME}}
 IRONIC_EXTRA_PXE_PARAMS=${IRONIC_EXTRA_PXE_PARAMS:-}
 IRONIC_TTY_DEV=${IRONIC_TTY_DEV:-ttyS0,115200}
 
@@ -1433,6 +1434,8 @@ function configure_ironic_networks {
     configure_ironic_rescue_network
     echo_summary "Configuring Neutron Private Subnet, if needed."
     configure_ironic_private_subnet
+    echo_summary "Configuring Ironic inspection network"
+    configure_ironic_inspection_network
 }
 
 function configure_ironic_private_subnet {
@@ -1450,6 +1453,10 @@ function configure_ironic_cleaning_network {
 
 function configure_ironic_rescue_network {
     iniset $IRONIC_CONF_FILE neutron rescuing_network $IRONIC_RESCUE_NET_NAME
+}
+
+function configure_ironic_inspection_network {
+    iniset $IRONIC_CONF_FILE neutron inspection_network $IRONIC_INSPECTION_NET_NAME
 }
 
 function configure_ironic_provision_network {
@@ -3466,6 +3473,7 @@ function ironic_configure_tempest {
     iniset $TEMPEST_CONFIG baremetal enabled_deploy_interfaces $IRONIC_ENABLED_DEPLOY_INTERFACES
     iniset $TEMPEST_CONFIG baremetal enabled_boot_interfaces $IRONIC_ENABLED_BOOT_INTERFACES
     iniset $TEMPEST_CONFIG baremetal enabled_rescue_interfaces $IRONIC_ENABLED_RESCUE_INTERFACES
+    iniset $TEMPEST_CONFIG baremetal enabled_inspect_interfaces $IRONIC_ENABLED_INSPECT_INTERFACES
     iniset $TEMPEST_CONFIG baremetal default_rescue_interface $IRONIC_DEFAULT_RESCUE_INTERFACE
     # Driver for API tests
     iniset $TEMPEST_CONFIG baremetal driver fake-hardware
@@ -3489,6 +3497,7 @@ function ironic_configure_tempest {
         iniset $TEMPEST_CONFIG baremetal power_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
         iniset $TEMPEST_CONFIG baremetal rescue_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
         iniset $TEMPEST_CONFIG baremetal unrescue_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
+        iniset $TEMPEST_CONFIG baremetal inspect_timeout $IRONIC_TEMPEST_BUILD_TIMEOUT
     fi
 
     if [[ $IRONIC_VM_VOLUME_COUNT -gt 1 ]]; then
