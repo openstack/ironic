@@ -40,8 +40,13 @@
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
-        - metalsmith-integration-glance-centos9-legacy
-        - metal3-integration
+        # NOTE(rpittau): Currently broken because of an issue with parted
+        - metalsmith-integration-glance-centos9-legacy:
+            voting: false
+        # NOTE(TheJulia): At present, metal3 doesn't leverage
+        # stable branches, and as far as we are aware these jobs
+        # can be removed once this branch is made stable.
+        # - metal3-integration
         # Non-voting jobs
         - ironic-inspector-tempest:
             voting: false
@@ -86,8 +91,12 @@
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
-        - metalsmith-integration-glance-centos9-legacy
-        - metal3-integration
+        # NOTE(rpittau): Currently broken because of an issue with parted
+        #- metalsmith-integration-glance-centos9-legacy
+        # NOTE(TheJulia): At present, metal3 doesn't leverage
+        # stable branches, and as far as we are aware these jobs
+        # can be removed once this branch is made stable.
+        # - metal3-integration
     experimental:
       jobs:
         # TODO(dtantsur): these jobs are useful but currently hopelessly
