@@ -23,7 +23,6 @@ import os
 import shutil
 import time
 
-from ironic_lib import qemu_img
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import fileutils
@@ -32,7 +31,9 @@ import pycdlib
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
+from ironic.common import image_format_inspector
 from ironic.common import image_service as service
+from ironic.common import qemu_img
 from ironic.common import utils
 from ironic.conf import CONF
 
@@ -388,28 +389,18 @@ def fetch_into(context, image_href, image_file):
 def fetch(context, image_href, path, force_raw=False):
     with fileutils.remove_path_on_error(path):
         fetch_into(context, image_href, path)
-
     if force_raw:
         image_to_raw(image_href, path, "%s.part" % path)
 
 
 def get_source_format(image_href, path):
-    data = qemu_img.image_info(path)
-
-    fmt = data.file_format
-    if fmt is None:
+    try:
+        img_format = image_format_inspector.detect_file_format(path)
+    except image_format_inspector.ImageFormatError:
         raise exception.ImageUnacceptable(
-            reason=_("'qemu-img info' parsing failed."),
+            reason=_("parsing of the image failed."),
             image_id=image_href)
-
-    backing_file = data.backing_file
-    if backing_file is not None:
-        raise exception.ImageUnacceptable(
-            image_id=image_href,
-            reason=_("fmt=%(fmt)s backed by: %(backing_file)s") %
-            {'fmt': fmt, 'backing_file': backing_file})
-
-    return fmt
+    return str(img_format)
 
 
 def force_raw_will_convert(image_href, path_tmp):
@@ -422,24 +413,46 @@ def force_raw_will_convert(image_href, path_tmp):
 
 def image_to_raw(image_href, path, path_tmp):
     with fileutils.remove_path_on_error(path_tmp):
-        fmt = get_source_format(image_href, path_tmp)
+        if not CONF.conductor.disable_deep_image_inspection:
+            fmt = safety_check_image(path_tmp)
 
-        if fmt != "raw":
+            if fmt not in CONF.conductor.permitted_image_formats:
+                LOG.error("Security: The requested image %(image_href)s "
+                          "is of format image %(format)s and is not in "
+                          "the [conductor]permitted_image_formats list.",
+                          {'image_href': image_href,
+                           'format': fmt})
+                raise exception.InvalidImage()
+        else:
+            fmt = get_source_format(image_href, path)
+            LOG.warning("Security: Image safety checking has been disabled. "
+                        "This is unsafe operation. Attempting to continue "
+                        "the detected format %(img_fmt)s for %(path)s.",
+                        {'img_fmt': fmt,
+                         'path': path})
+
+        if fmt != "raw" and fmt != "iso":
+            # When the target format is NOT raw, we need to convert it.
+            # however, we don't need nor want to do that when we have
+            # an ISO image. If we have an ISO because it was requested,
+            # we have correctly fingerprinted it. Prior to proper
+            # image detection, we thought we had a raw image, and we
+            # would end up asking for a raw image to be made a raw image.
             staged = "%s.converted" % path
 
             utils.is_memory_insufficient(raise_if_fail=True)
             LOG.debug("%(image)s was %(format)s, converting to raw",
                       {'image': image_href, 'format': fmt})
             with fileutils.remove_path_on_error(staged):
-                qemu_img.convert_image(path_tmp, staged, 'raw')
+                qemu_img.convert_image(path_tmp, staged, 'raw',
+                                       source_format=fmt)
                 os.unlink(path_tmp)
-
-                data = qemu_img.image_info(staged)
-                if data.file_format != "raw":
+                new_fmt = get_source_format(image_href, staged)
+                if new_fmt != "raw":
                     raise exception.ImageConvertFailed(
                         image_id=image_href,
                         reason=_("Converted to raw, but format is "
-                                 "now %s") % data.file_format)
+                                 "now %s") % new_fmt)
 
                 os.rename(staged, path)
         else:
@@ -470,7 +483,7 @@ def converted_size(path, estimate=False):
         the original image scaled by the configuration value
         `raw_image_growth_factor`.
     """
-    data = qemu_img.image_info(path)
+    data = image_format_inspector.detect_file_format(path)
     if not estimate:
         return data.virtual_size
     growth_factor = CONF.raw_image_growth_factor
@@ -787,3 +800,92 @@ def _get_deploy_iso_files(deploy_iso, mountdir):
     # present in deploy iso. This path varies for different OS vendors.
     # e_img_rel_path: is required by mkisofs to generate boot iso.
     return uefi_path_info, e_img_rel_path, grub_rel_path
+
+
+def __node_or_image_cache(node):
+    """A helper for logging to determine if image cache or node uuid."""
+    if not node:
+        return 'image cache'
+    else:
+        return node.uuid
+
+
+def safety_check_image(image_path, node=None):
+    """Performs a safety check on the supplied image.
+
+    This method triggers the image format inspector's to both identify the
+    type of the supplied file and safety check logic to identify if there
+    are any known unsafe features being leveraged, and return the detected
+    file format in the form of a string for the caller.
+
+    :param image_path: A fully qualified path to an image which needs to
+                       be evaluated for safety.
+    :param node: A Node object, optional. When supplied logging indicates the
+                 node which triggered this issue, but the node is not
+                 available in all invocation cases.
+    :returns: a string representing the the image type which is used.
+    :raises: InvalidImage when the supplied image is detected as unsafe,
+             or the image format inspector has failed to parse the supplied
+             image's contents.
+    """
+    id_string = __node_or_image_cache(node)
+    try:
+        img_class = image_format_inspector.detect_file_format(image_path)
+        if not img_class.safety_check():
+            LOG.error("Security: The requested image for "
+                      "deployment of node %(node)s fails safety sanity "
+                      "checking.",
+                      {'node': id_string})
+            raise exception.InvalidImage()
+        image_format_name = str(img_class)
+    except image_format_inspector.ImageFormatError:
+        LOG.error("Security: The requested user image for the "
+                  "deployment node %(node)s failed to be able "
+                  "to be parsed by the image format checker.",
+                  {'node': id_string})
+        raise exception.InvalidImage()
+    return image_format_name
+
+
+def check_if_image_format_is_permitted(img_format,
+                                       expected_format=None,
+                                       node=None):
+    """Checks image format consistency.
+
+    :params img_format: The determined image format by name.
+    :params expected_format: Optional, the expected format based upon
+        supplied configuration values.
+    :params node: A node object or None implying image cache.
+    :raises: InvalidImage if the requested image format is not permitted
+             by configuration, or the expected_format does not match the
+             determined format.
+    """
+
+    id_string = __node_or_image_cache(node)
+    if img_format not in CONF.conductor.permitted_image_formats:
+        LOG.error("Security: The requested deploy image for node %(node)s "
+                  "is of format image %(format)s and is not in the "
+                  "[conductor]permitted_image_formats list.",
+                  {'node': id_string,
+                   'format': img_format})
+        raise exception.InvalidImage()
+    if expected_format is not None and img_format != expected_format:
+        if expected_format in ['ari', 'aki']:
+            # In this case, we have an ari or aki, meaning we're pulling
+            # down a kernel/ramdisk, and this is rooted in a misunderstanding.
+            # They should be raw. The detector should be detecting this *as*
+            # raw anyway, so the data just mismatches from a common
+            # misunderstanding, and that is okay in this case as they are not
+            # passed to qemu-img.
+            # TODO(TheJulia): Add a log entry to warn here at some point in
+            # the future as we begin to shift the perception around this.
+            # See: https://bugs.launchpad.net/ironic/+bug/2074090
+            return
+        LOG.error("Security: The requested deploy image for node %(node)s "
+                  "has a format (%(format)s) which does not match the "
+                  "expected image format (%(expected)s) based upon "
+                  "supplied or retrieved information.",
+                  {'node': id_string,
+                   'format': img_format,
+                   'expected': expected_format})
+        raise exception.InvalidImage()
