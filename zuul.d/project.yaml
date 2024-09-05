@@ -34,9 +34,6 @@
         - ironic-tempest-uefi-redfish-vmedia
         # NOTE(TheJulia): Disabling until we can sort out the various
         # breaks with CI on this branch.
-        - ironic-tempest-wholedisk-bios-snmp-pxe:
-            voting: false
-        - ironic-tempest-partition-uefi-ipmi-pxe
         # NOTE(TheJulia) Marking multinode non-voting on 20210311
         # Due to a high failure rate on limestone where the compute1
         # machine never appears to be able to communicate across the
@@ -47,20 +44,14 @@
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
-        - metalsmith-integration-glance-centos8-legacy:
-            voting: false
         # Non-voting jobs
         - ironic-tox-bandit:
             voting: false
         - ironic-inspector-tempest:
             voting: false
-        - ironic-inspector-tempest-managed-non-standalone:
-            voting: false
         - ironic-inspector-tempest-uefi-redfish-vmedia:
             voting: false
         - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
-            voting: false
-        - ironic-tempest-ipxe-ipv6:
             voting: false
         - ironic-standalone-anaconda:
             voting: false
@@ -69,10 +60,6 @@
         - bifrost-integration-tinyipa-ubuntu-focal:
             voting: false
         - bifrost-integration-redfish-vmedia-uefi-centos-9:
-            voting: false
-        - ironic-tempest-pxe_ipmitool-postgres:
-            voting: false
-        - bifrost-benchmark-ironic:
             voting: false
     gate:
       jobs:
@@ -94,10 +81,6 @@
         # - ironic-standalone-redfish
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
-        # NOTE(TheJulia): disabling until we can sort out the various
-        # CI issues impacting this branch.
-        # - ironic-tempest-wholedisk-bios-snmp-pxe:
-        - ironic-tempest-partition-uefi-ipmi-pxe
         # NOTE(TheJulia): Disabled multinode on 20210311 due to Limestone
         # seeming to be 
         # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
@@ -106,7 +89,6 @@
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
         # NOTE(TheJulia): Disabling until we can the competing
         # gate fixes merged
-        # - metalsmith-integration-glance-centos8-legacy
     experimental:
       jobs:
         # TODO(dtantsur): these jobs are useful but currently hopelessly
