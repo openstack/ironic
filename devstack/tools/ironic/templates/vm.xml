@@ -46,6 +46,7 @@
       <driver name='qemu' type='{{ disk_format }}' cache='unsafe'/>
       <source file='{{ imagefile }}'/>
       <target dev='vd{{ letter }}'/>
+      <blockio logical_block_size="{{ block_size }}" physical_block_size="{{ block_size }}" discard_granularity="{{ block_size }}"/>
     </disk>
     {% endfor %}
     {% for n in range(1, interface_count+1) %}

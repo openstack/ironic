@@ -91,6 +91,8 @@ def main():
                         help=('The absolute path of the non-volatile memory '
                               'to store the UEFI variables. Should be used '
                               'only when --uefi-loader is also specified.'))
+    parser.add_argument('--block-size', default='512',
+                        help='The block size for the block storage.')
     args = parser.parse_args()
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(templatedir))
@@ -117,6 +119,7 @@ def main():
         'disk_format': args.disk_format,
         'uefi_loader': args.uefi_loader,
         'uefi_nvram': args.uefi_nvram,
+        'block_size': args.block_size,
     }
 
     if args.emulator:

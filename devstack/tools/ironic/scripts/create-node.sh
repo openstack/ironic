@@ -12,7 +12,7 @@ export PS4='+ ${BASH_SOURCE:-}:${FUNCNAME[0]:-}:L${LINENO:-}:   '
 # Keep track of the DevStack directory
 TOP_DIR=$(cd $(dirname "$0")/.. && pwd)
 
-while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:D:v:P:t:" arg; do
+while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:D:v:P:t:B:" arg; do
     case $arg in
         n) NAME=$OPTARG;;
         c) CPU=$OPTARG;;
@@ -37,6 +37,7 @@ while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:D:v:P:t:" arg; do
         v) VOLUME_COUNT=$OPTARG;;
         P) STORAGE_POOL=$OPTARG;;
         t) MACHINE_TYPE=$OPTARG;;
+        B) BLOCK_SIZE=$OPTARG;;
     esac
 done
 
@@ -76,6 +77,8 @@ if [ ! -z "$UEFI_LOADER" ]; then
         UEFI_OPTS+=" --uefi-nvram $UEFI_NVRAM"
     fi
 fi
+
+BLOCK_SIZE=${BLOCK_SIZE:-512}
 
 # Create bridge and add VM interface to it.
 # Additional interface will be added to this bridge and
@@ -129,7 +132,8 @@ if ! virsh list --all | grep -q $NAME; then
         --bootdev network --name $NAME \
         --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
         --disk-format $DISK_FORMAT $VM_LOGGING --engine $ENGINE $UEFI_OPTS $vm_opts \
-        --interface-count $INTERFACE_COUNT $MAC_ADDRESS --machine_type $MACHINE_TYPE >&2
+        --interface-count $INTERFACE_COUNT $MAC_ADDRESS --machine_type $MACHINE_TYPE \
+        --block-size $BLOCK_SIZE >&2
 fi
 
 # echo mac in format mac1,ovs-node-0i1;mac2,ovs-node-0i2;...;macN,ovs-node0iN
