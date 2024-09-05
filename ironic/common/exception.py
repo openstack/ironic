@@ -893,3 +893,7 @@ class UnsupportedHardwareFeature(Invalid):
     _msg_fmt = _("Node %(node)s hardware does not support feature "
                  "%(feature)s, which is required based upon the "
                  "requested configuration.")
+
+
+class InvalidImage(ImageUnacceptable):
+    _msg_fmt = _("The requested image is not valid for use.")
