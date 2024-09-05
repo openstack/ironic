@@ -1,0 +1,24 @@
+features:
+  - |
+    Ironic now supports automatically setting node.lessee at deployment time
+    using metadata provided at deploy time, typically by OpenStack Nova. When
+    ``[conductor]/automatic_lessee_source`` is set to ``instance``,
+    Ironic will set the lessee field on the node and remove it before cleaning.
+upgrade:
+  - |
+    ``[conductor]/automatic_lessee`` has been deprecated in favor of
+    ``[conductor]/automatic_lessee_source``.
+
+    Standalone Ironic deployments previously setting ``automatic_lessee`` to
+    ``True`` now may want to set ``automatic_lessee_source`` to ``request`` to
+    retain existing behavior.
+
+    Deployers explicitly setting ``automatic_lessee`` to false may want to set
+    ``automatic_lessee_source`` to ``none`` to retain existing behavior. The
+    old configuration option, when explicitly set, will be honored until
+    fully removed.
+  - |
+    Ironic will now automatically set the node.lessee field for all
+    deployments by default when provided in node instance_info at deployment
+    time. Deployers are encouraged to review their security settings and
+    Ironic Secure RBAC documentation to ensure no unexpected access is granted.
