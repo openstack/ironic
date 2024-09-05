@@ -21,7 +21,10 @@
         - ironic-grenade
         - ironic-standalone:
             voting: false
-        - ironic-standalone-redfish
+        # NOTE(TheJulia): disabling because of (at least)
+        # https://bugs.launchpad.net/ironic/+bug/2079023
+        - ironic-standalone-redfish:
+            voting: false
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
@@ -81,7 +84,9 @@
         # NOTE(TheJulia): Disabling because of weird networking failures
         # on standalone job, also redfish handles the bulk of the need.
         # - ironic-standalone
-        - ironic-standalone-redfish
+        # NOTE(TheJulia): disabling because of (at least)
+        # https://bugs.launchpad.net/ironic/+bug/2079023
+        #- ironic-standalone-redfish
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
