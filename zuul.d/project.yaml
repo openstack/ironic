@@ -14,52 +14,19 @@
         - ironic-cross-sushy:
             voting: false
         - ironic-tempest-functional-python3
-        # NOTE(JayF): This job is failing and is being fixed in master. It
-        # should be re-enabled in stable when it's re-enabled on master.
-        # commented out 2023-05-19
-        - ironic-tempest-functional-rbac-scope-enforced:
-            voting: false
-        - ironic-grenade:
-            voting: false
         - ironic-standalone:
             voting: false
-        - ironic-standalone-redfish
+        - ironic-standalone-redfish:
+            voting: false
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
         - ironic-tempest-partition-bios-ipmi-pxe
         - ironic-tempest-partition-uefi-ipmi-pxe
-        # NOTE(TheJulia) Marking multinode non-voting on 20210311
-        # Due to a high failure rate on limestone where the compute1
-        # machine never appears to be able to communicate across the
-        # vxlan tunnel, possible mtu issue, but non-voting until we
-        # understand it in mind for the upcoming release.
-        - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode:
-            voting: false
-        - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
-        - metalsmith-integration-glance-localboot-centos8-uefi
         # Non-voting jobs
         - ironic-tox-bandit:
-            voting: false
-        - ironic-inspector-tempest:
-            voting: false
-        - ironic-inspector-tempest-managed-non-standalone:
-            voting: false
-        - ironic-inspector-tempest-partition-bios-redfish-vmedia:
-            voting: false
-        - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
-            voting: false
-        - ironic-inspector-tempest-rbac-scope-enforced:
-            voting: false
-        - bifrost-integration-tinyipa-ubuntu-focal:
-            voting: false
-        - bifrost-integration-redfish-vmedia-uefi-centos-8:
-            voting: false
-        - ironic-tempest-pxe_ipmitool-postgres:
-            voting: false
-        - bifrost-benchmark-ironic:
             voting: false
     gate:
       jobs:
@@ -72,30 +39,22 @@
         # should be re-enabled in stable when it's re-enabled on master.
         # commented out 2023-05-19
         #- ironic-tempest-functional-rbac-scope-enforced
-        # - ironic-grenade
         # NOTE(TheJulia): Disabling because of weird networking failures
         # on standalone job, also redfish handles the bulk of the need.
         # - ironic-standalone
-        - ironic-standalone-redfish
+        # - ironic-standalone-redfish
         - ironic-tempest-partition-bios-redfish-pxe
         - ironic-tempest-partition-uefi-redfish-vmedia
         - ironic-tempest-wholedisk-bios-snmp-pxe
         - ironic-tempest-partition-bios-ipmi-pxe
         - ironic-tempest-partition-uefi-ipmi-pxe
-        # NOTE(TheJulia): Disabled multinode on 20210311 due to Limestone
-        # seeming to be 
-        # - ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
-        - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
-        - metalsmith-integration-glance-localboot-centos8-uefi
     experimental:
       jobs:
         # TODO(dtantsur): these jobs are useful but currently hopelessly
         # broken. Fix them and bring back to the gate.
         - ironic-tempest-ipxe-ipv6:
-            voting: false
-        - ironic-grenade-multinode-multitenant:
             voting: false
         - ironic-inspector-tempest-discovery-fast-track:
             voting: false
