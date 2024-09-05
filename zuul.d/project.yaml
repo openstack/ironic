@@ -22,7 +22,10 @@
         - ironic-grenade-skip-level:
             voting: false
         - ironic-standalone
-        - ironic-standalone-redfish
+        # NOTE(dtantsur): disabling because of (at least)
+        # https://bugs.launchpad.net/ironic/+bug/2079023
+        - ironic-standalone-redfish:
+            voting: false
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         # NOTE(TheJulia): Moving to not-voting due to bug
@@ -79,7 +82,9 @@
         #- ironic-tempest-functional-rbac-scope-enforced
         - ironic-grenade
         - ironic-standalone
-        - ironic-standalone-redfish
+        # NOTE(dtantsur): disabling because of (at least)
+        # https://bugs.launchpad.net/ironic/+bug/2079023
+        # - ironic-standalone-redfish
         - ironic-tempest-bios-redfish-pxe
         - ironic-tempest-uefi-redfish-vmedia
         # NOTE(stevebaker): Disabled due to bug
