@@ -18,9 +18,6 @@
         # see also https://review.opendev.org/c/openstack/ironic-tempest-plugin/+/882312
         - ironic-tempest-functional-rbac-scope-enforced:
             voting: false
-        - ironic-grenade
-        - ironic-grenade-skip-level:
-            voting: false
         - ironic-standalone
         # NOTE(dtantsur): disabling because of (at least)
         # https://bugs.launchpad.net/ironic/+bug/2079023
@@ -80,7 +77,6 @@
         # NOTE(rpittau) disabled until we fix the tests
         # see also https://review.opendev.org/c/openstack/ironic-tempest-plugin/+/882312
         #- ironic-tempest-functional-rbac-scope-enforced
-        - ironic-grenade
         - ironic-standalone
         # NOTE(dtantsur): disabling because of (at least)
         # https://bugs.launchpad.net/ironic/+bug/2079023
@@ -101,7 +97,5 @@
       jobs:
         # TODO(dtantsur): these jobs are useful but currently hopelessly
         # broken. Fix them and bring back to the gate.
-        - ironic-grenade-multinode-multitenant:
-            voting: false
         - ironic-inspector-tempest-discovery-fast-track:
             voting: false
