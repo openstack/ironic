@@ -10,11 +10,7 @@
     check:
       jobs:
         - ironic-tox-unit-with-driver-libs
-        - metalsmith-integration-glance-localboot-centos8-uefi
         # Non-voting jobs
-        - bifrost-integration-tinyipa-ubuntu-focal:
-            voting: false
     gate:
       jobs:
         - ironic-tox-unit-with-driver-libs
-        - metalsmith-integration-glance-localboot-centos8-uefi
