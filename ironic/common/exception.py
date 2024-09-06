@@ -861,3 +861,7 @@ class ConcurrentActionLimit(IronicException):
                  "The concurrent action limit for %(task_type)s "
                  "has been reached. Please contact your administrator "
                  "and try again later.")
+
+
+class InvalidImage(ImageUnacceptable):
+    _msg_fmt = _("The requested image is not valid for use.")
