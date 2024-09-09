@@ -831,3 +831,7 @@ class NodeHistoryNotFound(NotFound):
 class IncorrectConfiguration(IronicException):
     _msg_fmt = _("Supplied configuration is incorrect and must be fixed. "
                  "Error: %(error)s")
+
+
+class InvalidImage(ImageUnacceptable):
+    _msg_fmt = _("The requested image is not valid for use.")
