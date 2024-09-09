@@ -21,12 +21,15 @@ from urllib import parse as urlparse
 
 from ironic_lib import disk_utils
 from ironic_lib import metrics_utils
+from ironic_lib import utils as irlib_utils
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import images
+from ironic.common import qemu_img
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -286,7 +289,7 @@ def deploy_partition_image(
     # NOTE(dtantsur): CONF.default_boot_option is mutable, don't use it in
     # the function signature!
     boot_option = boot_option or deploy_utils.get_default_boot_option()
-    image_mb = disk_utils.get_image_mb(image_path)
+    image_mb = images.get_image_mb(image_path)
     if image_mb > root_mb:
         msg = (_('Root partition is too small for requested image. Image '
                  'virtual size: %(image_mb)d MB, Root size: %(root_mb)d MB')
@@ -323,7 +326,7 @@ def deploy_disk_image(address, port, iqn, lun,
     """
     with _iscsi_setup_and_handle_errors(address, port, iqn,
                                         lun) as dev:
-        disk_utils.populate_image(image_path, dev, conv_flags=conv_flags)
+        _populate_image(image_path, dev, conv_flags=conv_flags)
 
         if configdrive:
             disk_utils.create_config_drive_partition(node_uuid, dev,
@@ -351,7 +354,7 @@ def check_image_size(task):
 
     i_info = deploy_utils.parse_instance_info(task.node)
     image_path = deploy_utils._get_image_file_path(task.node.uuid)
-    image_mb = disk_utils.get_image_mb(image_path)
+    image_mb = images.get_image_mb(image_path)
     root_mb = 1024 * int(i_info['root_gb'])
     if image_mb > root_mb:
         msg = (_('Root partition is too small for requested image. Image '
@@ -651,19 +654,23 @@ class ISCSIDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
         :returns: deploy state DEPLOYWAIT.
         """
         node = task.node
+        initial_format = task.node.instance_info.get('image_disk_format')
+
         if manager_utils.is_fast_track(task):
             # NOTE(mgoddard): For fast track we can mostly skip this step and
             # proceed to the next step (i.e. write_image).
             LOG.debug('Performing a fast track deployment for %(node)s.',
                       {'node': task.node.uuid})
-            deploy_utils.cache_instance_image(task.context, node)
+            deploy_utils.cache_instance_image(task.context, node,
+                                              expected_format=initial_format)
             check_image_size(task)
             # NOTE(dtantsur): while the node is up and heartbeating, we don't
             # necessary have the deploy steps cached. Force a refresh here.
             self.refresh_steps(task, 'deploy')
         elif task.driver.storage.should_write_image(task):
             # Standard deploy process
-            deploy_utils.cache_instance_image(task.context, node)
+            deploy_utils.cache_instance_image(task.context, node,
+                                              expected_format=initial_format)
             check_image_size(task)
             # Check if the driver has already performed a reboot in a previous
             # deploy step.
@@ -806,3 +813,183 @@ class ISCSIDeploy(agent_base.AgentDeployMixin, agent_base.AgentBaseMixin,
         if utils.pop_node_nested_field(task.node, 'driver_internal_info',
                                        'deployment_uuids'):
             task.node.save()
+
+
+def _populate_image(src, dst, conv_flags=None):
+    """Populate the disk iamge to the target device.
+
+    This is a modified version of the ironic-lib provided populate_image
+    method which has been modified to operate inside of necessary model
+    to supply the source image format.
+
+    :param src: The source to write to the dst target.
+    :param dst: The target device, typically an iSCSI disk.
+    :param conv_flags: Optional flags.
+    :raises: ImageInvalid if the supplied image's format is invalid.
+    """
+    # NOTE(TheJulia): This method has been taken from ironic-lib 4.6.1
+    # (wallaby) to enable an inline fix for bug 2071740.
+    fmt = images.get_source_format(src, src)
+    if fmt == 'raw':
+        disk_utils.dd(src, dst, conv_flags=conv_flags)
+    else:
+        qemu_img.convert_image(src, dst, 'raw', True, sparse_size='0',
+                               source_format=fmt)
+
+
+def _work_on_disk(dev, root_mb, swap_mb, ephemeral_mb, ephemeral_format,
+                  image_path, node_uuid, preserve_ephemeral=False,
+                  configdrive=None, boot_option="netboot", boot_mode="bios",
+                  tempdir=None, disk_label=None, cpu_arch="",
+                  conv_flags=None):
+    """Create partitions and copy an image to the root partition.
+
+    :param dev: Path for the device to work on.
+    :param root_mb: Size of the root partition in megabytes.
+    :param swap_mb: Size of the swap partition in megabytes.
+    :param ephemeral_mb: Size of the ephemeral partition in megabytes. If 0,
+        no ephemeral partition will be created.
+    :param ephemeral_format: The type of file system to format the ephemeral
+        partition.
+    :param image_path: Path for the instance's disk image. If ``None``,
+        the root partition is prepared but not populated.
+    :param node_uuid: node's uuid. Used for logging.
+    :param preserve_ephemeral: If True, no filesystem is written to the
+        ephemeral block device, preserving whatever content it had (if the
+        partition table has not changed).
+    :param configdrive: Optional. Base64 encoded Gzipped configdrive content
+                        or configdrive HTTP URL.
+    :param boot_option: Can be "local" or "netboot". "netboot" by default.
+    :param boot_mode: Can be "bios" or "uefi". "bios" by default.
+    :param tempdir: A temporary directory
+    :param disk_label: The disk label to be used when creating the
+        partition table. Valid values are: "msdos", "gpt" or None; If None
+        Ironic will figure it out according to the boot_mode parameter.
+    :param cpu_arch: Architecture of the node the disk device belongs to.
+        When using the default value of None, no architecture specific
+        steps will be taken. This default should be used for x86_64. When
+        set to ppc64*, architecture specific steps are taken for booting a
+        partition image locally.
+    :param conv_flags: Flags that need to be sent to the dd command, to control
+        the conversion of the original file when copying to the host. It can
+        contain several options separated by commas.
+    :returns: a dictionary containing the following keys:
+        'root uuid': UUID of root partition
+        'efi system partition uuid': UUID of the uefi system partition
+        (if boot mode is uefi).
+        `partitions`: mapping of partition types to their device paths.
+        NOTE: If key exists but value is None, it means partition doesn't
+        exist.
+    """
+    # NOTE(TheJulia): This method has been taken from ironic-lib 4.6.1
+    # (wallaby) to enable an inline fix for bug 2071740.
+
+    # the only way for preserve_ephemeral to be set to true is if we are
+    # rebuilding an instance with --preserve_ephemeral.
+    commit = not preserve_ephemeral
+    # now if we are committing the changes to disk clean first.
+    if commit:
+        disk_utils.destroy_disk_metadata(dev, node_uuid)
+
+    try:
+        # If requested, get the configdrive file and determine the size
+        # of the configdrive partition
+        configdrive_mb = 0
+        configdrive_file = None
+        if configdrive:
+            configdrive_mb, configdrive_file = disk_utils._get_configdrive(
+                configdrive, node_uuid, tempdir=tempdir)
+
+        part_dict = disk_utils.make_partitions(
+            dev, root_mb, swap_mb, ephemeral_mb,
+            configdrive_mb, node_uuid,
+            commit=commit,
+            boot_option=boot_option,
+            boot_mode=boot_mode,
+            disk_label=disk_label,
+            cpu_arch=cpu_arch)
+        LOG.info("Successfully completed the disk device"
+                 " %(dev)s partitioning for node %(node)s",
+                 {'dev': dev, "node": node_uuid})
+
+        ephemeral_part = part_dict.get('ephemeral')
+        swap_part = part_dict.get('swap')
+        configdrive_part = part_dict.get('configdrive')
+        root_part = part_dict.get('root')
+
+        if not disk_utils.is_block_device(root_part):
+            raise exception.InstanceDeployFailure(
+                _("Root device '%s' not found") % root_part)
+
+        for part in ('swap', 'ephemeral', 'configdrive',
+                     'efi system partition', 'PReP Boot partition'):
+            part_device = part_dict.get(part)
+            LOG.debug("Checking for %(part)s device (%(dev)s) on node "
+                      "%(node)s.", {'part': part, 'dev': part_device,
+                                    'node': node_uuid})
+            if part_device and not disk_utils.is_block_device(part_device):
+                raise exception.InstanceDeployFailure(
+                    _("'%(partition)s' device '%(part_device)s' not found") %
+                    {'partition': part, 'part_device': part_device})
+
+        # If it's a uefi localboot, then we have created the efi system
+        # partition.  Create a fat filesystem on it.
+        if boot_mode == "uefi" and boot_option == "local":
+            efi_system_part = part_dict.get('efi system partition')
+            irlib_utils.mkfs(fs='vfat', path=efi_system_part, label='efi-part')
+
+        if configdrive_part:
+            # Copy the configdrive content to the configdrive partition
+            disk_utils.dd(configdrive_file, configdrive_part,
+                          conv_flags=conv_flags)
+            LOG.info("Configdrive for node %(node)s successfully copied "
+                     "onto partition %(partition)s",
+                     {'node': node_uuid, 'partition': configdrive_part})
+
+    finally:
+        # If the configdrive was requested make sure we delete the file
+        # after copying the content to the partition
+        if configdrive_file:
+            irlib_utils.unlink_without_raise(configdrive_file)
+
+    if image_path is not None:
+        _populate_image(image_path, root_part, conv_flags=conv_flags)
+        LOG.info("Image for %(node)s successfully populated",
+                 {'node': node_uuid})
+    else:
+        LOG.debug("Root partition for %s was created, but not populated",
+                  node_uuid)
+
+    if swap_part:
+        irlib_utils.mkfs(fs='swap', path=swap_part, label='swap1')
+        LOG.info("Swap partition %(swap)s successfully formatted "
+                 "for node %(node)s",
+                 {'swap': swap_part, 'node': node_uuid})
+
+    if ephemeral_part and not preserve_ephemeral:
+        irlib_utils.mkfs(fs=ephemeral_format, path=ephemeral_part,
+                         label="ephemeral0")
+        LOG.info("Ephemeral partition %(ephemeral)s successfully "
+                 "formatted for node %(node)s",
+                 {'ephemeral': ephemeral_part, 'node': node_uuid})
+
+    uuids_to_return = {
+        'root uuid': root_part,
+        'efi system partition uuid': part_dict.get('efi system partition'),
+    }
+
+    if cpu_arch.startswith('ppc'):
+        uuids_to_return[
+            'PReP Boot partition uuid'
+        ] = part_dict.get('PReP Boot partition')
+
+    try:
+        for part, part_dev in uuids_to_return.items():
+            if part_dev:
+                uuids_to_return[part] = disk_utils.block_uuid(part_dev)
+
+    except processutils.ProcessExecutionError:
+        with excutils.save_and_reraise_exception():
+            LOG.error("Failed to detect %s", part)
+
+    return dict(partitions=part_dict, **uuids_to_return)

@@ -705,6 +705,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             validate_href_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, storage_driver_info_mock,
             storage_attach_volumes_mock):
+        CONF.set_override('conductor_always_validates_images', False,
+                          'conductor')
         node = self.node
         node.network_interface = 'neutron'
         instance_info = node.instance_info
@@ -756,6 +758,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             validate_href_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, storage_driver_info_mock,
             storage_attach_volumes_mock):
+        CONF.set_override('conductor_always_validates_images', False,
+                          'conductor')
         node = self.node
         node.network_interface = 'neutron'
         node.save()
@@ -803,6 +807,8 @@ class TestAgentDeploy(db_base.DbTestCase):
             validate_href_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, storage_driver_info_mock,
             storage_attach_volumes_mock):
+        CONF.set_override('conductor_always_validates_images', False,
+                          'conductor')
         node = self.node
         node.network_interface = 'neutron'
         instance_info = node.instance_info

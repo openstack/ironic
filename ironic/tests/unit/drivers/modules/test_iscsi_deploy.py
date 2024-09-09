@@ -31,7 +31,9 @@ import testtools
 from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
+from ironic.common import images
 from ironic.common import pxe_utils
+from ironic.common import qemu_img
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -112,7 +114,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
         }
         self.node = obj_utils.create_test_node(self.context, **n)
 
-    @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
+    @mock.patch.object(images, 'get_image_mb', autospec=True)
     def test_check_image_size(self, get_image_mb_mock):
         get_image_mb_mock.return_value = 1000
         with task_manager.acquire(self.context, self.node.uuid,
@@ -122,7 +124,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             get_image_mb_mock.assert_called_once_with(
                 deploy_utils._get_image_file_path(task.node.uuid))
 
-    @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
+    @mock.patch.object(images, 'get_image_mb', autospec=True)
     def test_check_image_size_whole_disk_image(self, get_image_mb_mock):
         get_image_mb_mock.return_value = 1025
         with task_manager.acquire(self.context, self.node.uuid,
@@ -133,7 +135,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             iscsi_deploy.check_image_size(task)
             self.assertFalse(get_image_mb_mock.called)
 
-    @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
+    @mock.patch.object(images, 'get_image_mb', autospec=True)
     def test_check_image_size_whole_disk_image_no_root(self,
                                                        get_image_mb_mock):
         get_image_mb_mock.return_value = 1025
@@ -145,7 +147,7 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
             iscsi_deploy.check_image_size(task)
             self.assertFalse(get_image_mb_mock.called)
 
-    @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
+    @mock.patch.object(images, 'get_image_mb', autospec=True)
     def test_check_image_size_fails(self, get_image_mb_mock):
         get_image_mb_mock.return_value = 1025
         with task_manager.acquire(self.context, self.node.uuid,
@@ -166,10 +168,12 @@ class IscsiDeployMethodsTestCase(db_base.DbTestCase):
                     group='pxe')
         fileutils.ensure_tree(CONF.pxe.instance_master_path)
 
-        (uuid, image_path) = deploy_utils.cache_instance_image(None, self.node)
+        (uuid, image_path, img_format) = deploy_utils.cache_instance_image(
+            None, self.node)
         mock_fetch_image.assert_called_once_with(None,
                                                  mock.ANY,
-                                                 [(uuid, image_path)], True)
+                                                 [(uuid, image_path)], True,
+                                                 expected_format=None)
         self.assertEqual('glance://image_uuid', uuid)
         self.assertEqual(os.path.join(temp_dir,
                                       self.node.uuid,
@@ -809,12 +813,15 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
     @mock.patch.object(deploy_utils, 'cache_instance_image', autospec=True)
     def test_deploy(self, mock_cache_instance_image,
                     mock_check_image_size, mock_node_power_action):
+        i_info = self.node.instance_info
+        i_info['image_disk_format'] = 'qcow2'
+        self.node.instance_info = i_info
         with task_manager.acquire(self.context,
                                   self.node.uuid, shared=False) as task:
             state = task.driver.deploy.deploy(task)
             self.assertEqual(state, states.DEPLOYWAIT)
             mock_cache_instance_image.assert_called_once_with(
-                self.context, task.node)
+                self.context, task.node, expected_format=None)
             mock_check_image_size.assert_called_once_with(task)
             mock_node_power_action.assert_called_once_with(task, states.REBOOT)
 
@@ -833,7 +840,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             state = task.driver.deploy.deploy(task)
             self.assertEqual(state, states.DEPLOYWAIT)
             mock_cache_instance_image.assert_called_once_with(
-                self.context, task.node)
+                self.context, task.node,
+                expected_format=None)
             mock_check_image_size.assert_called_once_with(task)
             self.assertFalse(mock_node_power_action.called)
             self.assertNotIn(
@@ -885,7 +893,8 @@ class ISCSIDeployTestCase(db_base.DbTestCase):
             self.assertEqual(states.DEPLOYING, task.node.provision_state)
             self.assertEqual(states.ACTIVE,
                              task.node.target_provision_state)
-            cache_image_mock.assert_called_with(mock.ANY, task.node)
+            cache_image_mock.assert_called_with(mock.ANY, task.node,
+                                                expected_format=None)
             check_image_size_mock.assert_called_with(task)
             self.assertFalse(write_image_mock.called)
             refresh_mock.assert_called_once_with(task.driver.deploy,
@@ -1282,7 +1291,7 @@ class PhysicalWorkTestCase(tests_base.TestCase):
 
     @mock.patch.object(disk_utils, 'work_on_disk', autospec=True)
     @mock.patch.object(disk_utils, 'is_block_device', autospec=True)
-    @mock.patch.object(disk_utils, 'get_image_mb', autospec=True)
+    @mock.patch.object(images, 'get_image_mb', autospec=True)
     @mock.patch.object(iscsi_deploy, 'logout_iscsi', autospec=True)
     @mock.patch.object(iscsi_deploy, 'login_iscsi', autospec=True)
     @mock.patch.object(iscsi_deploy, 'discovery', autospec=True)
@@ -1421,15 +1430,18 @@ class PhysicalWorkTestCase(tests_base.TestCase):
     def test_deploy_partition_image_with_cpu_arch(self):
         self._test_deploy_partition_image(cpu_arch='generic')
 
+    @mock.patch.object(qemu_img, 'convert_image', autospec=True)
+    @mock.patch.object(images, 'get_source_format', autospec=True)
     @mock.patch.object(disk_utils, 'create_config_drive_partition',
                        autospec=True)
     @mock.patch.object(disk_utils, 'get_disk_identifier', autospec=True)
-    def test_deploy_whole_disk_image(self, mock_gdi, create_config_drive_mock):
+    def test_deploy_whole_disk_image(self, mock_gdi, create_config_drive_mock,
+                                     get_src_fmt_mock, qemu_img_convert_mock):
         """Check loosely all functions are called with right args."""
-
+        get_src_fmt_mock.return_value = 'qcow2'
         name_list = ['discovery', 'login_iscsi',
                      'logout_iscsi', 'delete_iscsi']
-        disk_utils_name_list = ['is_block_device', 'populate_image']
+        disk_utils_name_list = ['is_block_device']
 
         iscsi_mock = self._mock_calls(name_list, iscsi_deploy)
 
@@ -1443,31 +1455,40 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                                        self.iqn),
                                 mock.call.delete_iscsi(self.address, self.port,
                                                        self.iqn)]
-        disk_utils_calls_expected = [mock.call.is_block_device(self.dev),
-                                     mock.call.populate_image(self.image_path,
-                                                              self.dev,
-                                                              conv_flags=None)]
+        disk_utils_calls_expected = [mock.call.is_block_device(self.dev)]
         uuid_dict_returned = iscsi_deploy.deploy_disk_image(
             self.address, self.port, self.iqn, self.lun, self.image_path,
             self.node_uuid)
+
+        get_src_fmt_mock.assert_called_once_with('/tmp/xyz/image',
+                                                 '/tmp/xyz/image')
+        qemu_img_convert_mock.assert_called_once_with(
+            '/tmp/xyz/image',
+            '/dev/disk/by-path/ip-127.0.0.1:3306-iscsi-iqn.xyz-lun-1',
+            'raw', True, sparse_size='0', source_format='qcow2')
 
         self.assertEqual(utils_calls_expected, iscsi_mock.mock_calls)
         self.assertEqual(disk_utils_calls_expected, disk_utils_mock.mock_calls)
         self.assertFalse(create_config_drive_mock.called)
         self.assertEqual('0x12345678', uuid_dict_returned['disk identifier'])
 
+    @mock.patch.object(disk_utils, 'dd', autospec=True)
+    @mock.patch.object(images, 'get_source_format', autospec=True)
     @mock.patch.object(disk_utils, 'create_config_drive_partition',
                        autospec=True)
     @mock.patch.object(disk_utils, 'get_disk_identifier', autospec=True)
     def test_deploy_whole_disk_image_with_config_drive(self, mock_gdi,
-                                                       create_partition_mock):
+                                                       create_partition_mock,
+                                                       get_src_fmt_mock,
+                                                       dd_mock):
         """Check loosely all functions are called with right args."""
+        get_src_fmt_mock.return_value = 'raw'
         config_url = 'http://1.2.3.4/cd'
 
         iscsi_list = ['discovery', 'login_iscsi', 'logout_iscsi',
                       'delete_iscsi']
 
-        disk_utils_list = ['is_block_device', 'populate_image']
+        disk_utils_list = ['is_block_device']
         iscsi_mock = self._mock_calls(iscsi_list, iscsi_deploy)
         disk_utils_mock = self._mock_calls(disk_utils_list, disk_utils)
         disk_utils_mock.is_block_device.return_value = True
@@ -1480,14 +1501,14 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                 mock.call.delete_iscsi(self.address, self.port,
                                                        self.iqn)]
 
-        disk_utils_calls_expected = [mock.call.is_block_device(self.dev),
-                                     mock.call.populate_image(self.image_path,
-                                                              self.dev,
-                                                              conv_flags=None)]
+        disk_utils_calls_expected = [mock.call.is_block_device(self.dev)]
 
         uuid_dict_returned = iscsi_deploy.deploy_disk_image(
             self.address, self.port, self.iqn, self.lun, self.image_path,
             self.node_uuid, configdrive=config_url)
+        get_src_fmt_mock.assert_called_once_with('/tmp/xyz/image',
+                                                 '/tmp/xyz/image')
+        dd_mock.assert_has_calls([])
 
         iscsi_mock.assert_has_calls(utils_calls_expected)
         disk_utils_mock.assert_has_calls(disk_utils_calls_expected)
@@ -1495,15 +1516,20 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                                       config_url)
         self.assertEqual('0x12345678', uuid_dict_returned['disk identifier'])
 
+    @mock.patch.object(disk_utils, 'dd', autospec=True)
+    @mock.patch.object(images, 'get_source_format', autospec=True)
     @mock.patch.object(disk_utils, 'create_config_drive_partition',
                        autospec=True)
     @mock.patch.object(disk_utils, 'get_disk_identifier', autospec=True)
     def test_deploy_whole_disk_image_sparse(self, mock_gdi,
-                                            create_config_drive_mock):
+                                            create_config_drive_mock,
+                                            get_src_fmt_mock,
+                                            dd_mock):
         """Check loosely all functions are called with right args."""
         iscsi_name_list = ['discovery', 'login_iscsi',
                            'logout_iscsi', 'delete_iscsi']
         disk_utils_name_list = ['is_block_device', 'populate_image']
+        get_src_fmt_mock.return_value = 'raw'
 
         iscsi_mock = self._mock_calls(iscsi_name_list, iscsi_deploy)
 
@@ -1517,15 +1543,16 @@ class PhysicalWorkTestCase(tests_base.TestCase):
                                                        self.iqn),
                                 mock.call.delete_iscsi(self.address, self.port,
                                                        self.iqn)]
-        disk_utils_calls_expected = [mock.call.is_block_device(self.dev),
-                                     mock.call.populate_image(
-                                         self.image_path, self.dev,
-                                         conv_flags='sparse')]
+        disk_utils_calls_expected = [mock.call.is_block_device(self.dev)]
 
         uuid_dict_returned = iscsi_deploy.deploy_disk_image(
             self.address, self.port, self.iqn, self.lun, self.image_path,
             self.node_uuid, configdrive=None, conv_flags='sparse')
 
+        dd_mock.assert_called_once_with(
+            '/tmp/xyz/image',
+            '/dev/disk/by-path/ip-127.0.0.1:3306-iscsi-iqn.xyz-lun-1',
+            conv_flags='sparse')
         self.assertEqual(utils_calls_expected, iscsi_mock.mock_calls)
         self.assertEqual(disk_utils_calls_expected, disk_utils_mock.mock_calls)
         self.assertFalse(create_config_drive_mock.called)
@@ -1681,8 +1708,9 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         self.assertIsInstance(mock_log.warning.call_args[0][1],
                               processutils.ProcessExecutionError)
 
+    @mock.patch.object(images, 'get_image_mb', autospec=True)
     @mock.patch.object(disk_utils, 'is_block_device', lambda d: True)
-    def test_always_logout_and_delete_iscsi(self):
+    def test_always_logout_and_delete_iscsi(self, mock_get_image_mb):
         """Check if logout_iscsi() and delete_iscsi() are called.
 
         Make sure that logout_iscsi() and delete_iscsi() are called once
@@ -1706,33 +1734,35 @@ class PhysicalWorkTestCase(tests_base.TestCase):
         iscsi_name_list = ['discovery', 'login_iscsi',
                            'logout_iscsi', 'delete_iscsi']
 
-        disk_utils_name_list = ['get_image_mb', 'work_on_disk']
+        disk_utils_name_list = ['work_on_disk']
 
         iscsi_mock = self._mock_calls(iscsi_name_list, iscsi_deploy)
 
         disk_utils_mock = self._mock_calls(disk_utils_name_list, disk_utils)
-        disk_utils_mock.get_image_mb.return_value = 1
+        mock_get_image_mb.return_value = 1
         disk_utils_mock.work_on_disk.side_effect = TestException
         utils_calls_expected = [mock.call.discovery(address, port),
                                 mock.call.login_iscsi(address, port, iqn),
                                 mock.call.logout_iscsi(address, port, iqn),
                                 mock.call.delete_iscsi(address, port, iqn)]
-        disk_utils_calls_expected = [mock.call.get_image_mb(image_path),
-                                     mock.call.work_on_disk(
-                                         self.dev, root_mb, swap_mb,
-                                         ephemeral_mb,
-                                         ephemeral_format, image_path,
-                                         node_uuid, configdrive=None,
-                                         preserve_ephemeral=False,
-                                         boot_option="local",
-                                         boot_mode="bios",
-                                         disk_label=None,
-                                         cpu_arch="")]
+        disk_utils_calls_expected = [
+            mock.call.work_on_disk(
+                self.dev, root_mb, swap_mb,
+                ephemeral_mb,
+                ephemeral_format, image_path,
+                node_uuid, configdrive=None,
+                preserve_ephemeral=False,
+                boot_option="local",
+                boot_mode="bios",
+                disk_label=None,
+                cpu_arch="")
+        ]
 
         self.assertRaises(TestException, iscsi_deploy.deploy_partition_image,
                           address, port, iqn, lun, image_path,
                           root_mb, swap_mb, ephemeral_mb, ephemeral_format,
                           node_uuid)
+        mock_get_image_mb.assert_called_once_with(image_path)
 
         self.assertEqual(utils_calls_expected, iscsi_mock.mock_calls)
         self.assertEqual(disk_utils_calls_expected, disk_utils_mock.mock_calls)
