@@ -502,6 +502,19 @@ class TestContinueInspection(test_api_base.BaseApiTest):
             mock.ANY, mock.ANY, self.node.uuid, inventory=self.inventory,
             plugin_data={'test': 42}, topic='test-topic')
 
+    def test_bmc_address_as_none(self, mock_lookup, mock_continue):
+        mock_lookup.return_value = self.node
+        self.inventory['bmc_address'] = None
+        self.inventory['bmc_v6address'] = None
+        response = self.post_json('/continue_inspection', self.data)
+        self.assertEqual(http_client.ACCEPTED, response.status_int)
+        self.assertEqual({'uuid': self.node.uuid}, response.json)
+        mock_lookup.assert_called_once_with(
+            mock.ANY, self.addresses, [], node_uuid=None)
+        mock_continue.assert_called_once_with(
+            mock.ANY, mock.ANY, self.node.uuid, inventory=self.inventory,
+            plugin_data={'test': 42}, topic='test-topic')
+
     @mock.patch.object(rpcapi.ConductorAPI, 'get_node_with_token',
                        autospec=True)
     def test_new_api(self, mock_get_node, mock_lookup, mock_continue):
