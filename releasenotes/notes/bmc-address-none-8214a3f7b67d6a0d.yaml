@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes inspection failure when ``bmc_address`` or ``bmc_v6address`` is
+    ``null`` in the inventory received from the ramdisk.
