@@ -22,9 +22,12 @@ if [ $local_mtu -gt $PUBLIC_BRIDGE_MTU ]; then
 fi
 
 # 50 bytes is overhead for vxlan (which is greater than GRE
-# allowing us to use either overlay option with this MTU.
+# allowing us to use either overlay option with this MTU).
 # However, if traffic is flowing over IPv6 tunnels, then
-# The overhead is essentially another 100 bytes. In order to
+# The overhead is essentially another 78 bytes. In order to
 # handle both cases, lets go ahead and drop the maximum by
-# 100 bytes.
-PUBLIC_BRIDGE_MTU=${OVERRIDE_PUBLIC_BRIDGE_MTU:-$((local_mtu - 100))}
+# 78 bytes, while not going below 1280 to make IPv6 work at all.
+PUBLIC_BRIDGE_MTU=${OVERRIDE_PUBLIC_BRIDGE_MTU:-$((local_mtu - 78))}
+if [ $PUBLIC_BRIDGE_MTU -lt 1280 ]; then
+    PUBLIC_BRIDGE_MTU=1280
+fi
