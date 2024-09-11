@@ -275,8 +275,8 @@ DATA_VALIDATOR = args.schema({
         'inventory': {
             'type': 'object',
             'properties': {
-                'bmc_address': {'type': 'string'},
-                'bmc_v6address': {'type': 'string'},
+                'bmc_address': {'type': ['string', 'null']},
+                'bmc_v6address': {'type': ['string', 'null']},
                 'interfaces': {
                     'type': 'array',
                     'items': {
