@@ -2238,6 +2238,18 @@ class FastTrackTestCase(db_base.DbTestCase):
                 self.context, self.node.uuid, shared=False) as task:
             self.assertFalse(conductor_utils.is_fast_track(task))
 
+    def test_is_fast_track_inspected_no_heartbeat(self, mock_get_power):
+        mock_get_power.return_value = states.POWER_ON
+        self.node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            uuid=uuidutils.generate_uuid(),
+            inspection_finished_at=timeutils.utcnow(),
+            power_state=states.POWER_ON
+        )
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.assertTrue(conductor_utils.is_fast_track(task))
+
     def test_is_fast_track_powered_after_heartbeat(self, mock_get_power):
         mock_get_power.return_value = states.POWER_ON
         with task_manager.acquire(

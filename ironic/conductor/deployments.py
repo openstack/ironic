@@ -240,6 +240,11 @@ def do_node_deploy(task, conductor_id=None, configdrive=None,
 
     try:
         task.driver.deploy.prepare(task)
+    except exception.AgentConnectionFailed:
+        LOG.info('Agent is not yet running on node %(node)s, waiting for agent'
+                 ' to come up for fast track', {'node': node.uuid})
+        task.process_event('wait')
+        return
     except exception.IronicException as e:
         with excutils.save_and_reraise_exception():
             utils.deploying_error_handler(
