@@ -361,9 +361,9 @@ def _fetch(context, image_href, path, force_raw=False, expected_format=None):
     # Notes(yjiang5): If glance can provide the virtual size information,
     # then we can firstly clean cache and then invoke images.fetch().
     if (force_raw
-            and (disable_dii
+            and ((disable_dii
                  and images.force_raw_will_convert(image_href, path_tmp))
-            or (not disable_dii and image_format != 'raw')):
+                 or (not disable_dii and image_format != 'raw'))):
 
         required_space = images.converted_size(path_tmp, estimate=False)
         directory = os.path.dirname(path_tmp)
