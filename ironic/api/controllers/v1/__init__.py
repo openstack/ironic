@@ -141,8 +141,7 @@ class Controller(object):
         # NOTE: The reason why v1() it's being called for every
         #       request is because we need to get the host url from
         #       the request object to make the links.
-        self._add_version_attributes()
-        if api.request.method != "GET":
+        if api.request.method not in ('GET', 'HEAD'):
             pecan.abort(http_client.METHOD_NOT_ALLOWED)
 
         return v1()
@@ -169,7 +168,7 @@ class Controller(object):
                  'max': versions.max_version_string()},
                 headers=headers)
 
-    def _add_version_attributes(self):
+    def add_version_attributes(self):
         v = base.Version(api.request.headers, versions.min_version_string(),
                          versions.max_version_string())
 
@@ -186,7 +185,6 @@ class Controller(object):
 
     @pecan.expose()
     def _lookup(self, primary_key, *remainder):
-        self._add_version_attributes()
 
         controller = self._subcontroller_map.get(primary_key)
         if not controller:

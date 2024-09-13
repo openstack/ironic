@@ -29,6 +29,28 @@ class TestV1Routing(api_base.BaseApiTest):
                                                     mock.ANY,
                                                     mock.ANY)
 
+    def test_microversion_headers(self):
+        # Check root endpoint
+        response = self.app.head('/')
+        self.assertEqual(200, response.status_int)
+        self.assertIn('X-OpenStack-Ironic-API-Minimum-Version',
+                      response.headers)
+        self.assertIn('X-OpenStack-Ironic-API-Maximum-Version',
+                      response.headers)
+
+        self._check_version.reset_mock()
+
+        # Check v1 endpoint
+        response = self.app.head('/v1')
+        self.assertEqual(200, response.status_int)
+        self.assertIn('X-OpenStack-Ironic-API-Minimum-Version',
+                      response.headers)
+        self.assertIn('X-OpenStack-Ironic-API-Maximum-Version',
+                      response.headers)
+
+        # -check_version should be called only once
+        self.assertEqual(1, self._check_version.call_count)
+
     def test_min_version(self):
         response = self.get_json(
             '/',
