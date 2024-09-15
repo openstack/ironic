@@ -160,7 +160,7 @@ ironic node:
    the Ironic workflow, specifically with this driver, is that the generated
    ``agent token`` is conveyed to the booting ramdisk, facilitating it to call
    back to Ironic and indicate the state. This token is randomly generated
-   for every deploy, and is required. Specifically, this is leveraged in the
+   for every deploy and is required. Specifically, this is leveraged in the
    template's ``pre``, ``onerror``, and ``post`` steps.
    For more information on Agent Token, please see :doc:`/admin/agent-token`.
 
@@ -223,7 +223,7 @@ At this point, you should be able to request the baremetal node to deploy.
 Standalone using a repository
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Anaconda supports a concept of passing a repository as opposed to a dedicated
+Anaconda supports the concept of passing a repository as opposed to a dedicated
 URL path which has a ``.treeinfo`` file, which tells the initial boot scripts
 where to get various dependencies, such as what would be used as the anaconda
 ``stage2`` ramdisk. Unfortunately, this functionality is not well documented.
@@ -256,7 +256,7 @@ At a high level, the mechanics of the anaconda driver work in the following
 flow, where we also note the stages and purpose of each part for informational
 purposes.
 
-#. Network Boot Program (Such as iPXE) downloads the kernel, and initial
+#. Network Boot Program (Such as iPXE) downloads the kernel and initial
    ramdisk.
 #. Kernel launches, uncompresses initial ramdisk, and executes init inside
    of the ramdisk.

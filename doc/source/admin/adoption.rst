@@ -18,7 +18,7 @@ states, which will prevent the node from being seen by the Compute
 service as ready for use.
 
 This feature is leveraged as part of the state machine workflow,
-where a node in ``manageable`` can be moved to ``active`` state
+where a node in ``manageable`` can be moved to an ``active`` state
 via the provision_state verb ``adopt``.  To view the state
 transition capabilities, please see :ref:`states`.
 
@@ -48,7 +48,7 @@ required boot image, or boot ISO image and then places any PXE or virtual
 media configuration necessary for the node should it be required.
 
 The adoption process makes no changes to the physical node, with the
-exception of operator supplied configurations where virtual media is
+exception of operator-supplied configurations where virtual media is
 used to boot the node under normal circumstances. An operator should
 ensure that any supplied configuration defining the node is sufficient
 for the continued operation of the node moving forward.
@@ -56,7 +56,7 @@ for the continued operation of the node moving forward.
 Possible Risk
 =============
 
-The main risk with this feature is that supplied configuration may ultimately
+The main risk with this feature is that the supplied configuration may ultimately
 be incorrect or invalid which could result in potential operational issues:
 
 * ``rebuild`` verb - Rebuild is intended to allow a user to re-deploy the node
@@ -143,7 +143,7 @@ from the ``manageable`` state to ``active`` state::
 
 .. NOTE::
    In the above example, the image_source setting must reference a valid
-   image or file, however that image or file can ultimately be empty.
+   image or file, however, that image or file can ultimately be empty.
 
 .. NOTE::
    The above example utilizes a capability that defines the boot operation
@@ -154,7 +154,7 @@ from the ``manageable`` state to ``active`` state::
    The above example will fail a re-deployment as a fake image is
    defined and no instance_info/image_checksum value is defined.
    As such any actual attempt to write the image out will fail as the
-   image_checksum value is only validated at time of an actual
+   image_checksum value is only validated at the time of an actual
    deployment operation.
 
 .. NOTE::
@@ -176,7 +176,7 @@ Troubleshooting
 Should an adoption operation fail for a node, the error that caused the
 failure will be logged in the node's ``last_error`` field when viewing the
 node. This error, in the case of node adoption, will largely be due to
-failure of a validation step. Validation steps are dependent
+the failure of a validation step. Validation steps are dependent
 upon what driver is selected for the node.
 
 Any node that is in the ``adopt failed`` state can have the ``adopt`` verb
@@ -205,18 +205,18 @@ Adoption with Nova
 
 Since there is no mechanism to create bare metal instances in Nova when nodes
 are adopted into Ironic, the node adoption feature described above cannot be
-used to add in production nodes to deployments which use Ironic together with
+used to add in production nodes to deployments that use Ironic together with
 Nova.
 
-One option to add in production nodes to an Ironic/Nova deployment is to use
+One option to add production nodes to an Ironic/Nova deployment is to use
 the fake drivers. The overall idea is that for Nova the nodes are instantiated
 normally to ensure the instances are properly created in the compute project
 while Ironic does not touch them.
 
-Here are some high level steps to be used as a guideline:
+Here are some high-level steps to be used as a guideline:
 
 * create a bare metal flavor and a hosting project for the instances
-* enroll the nodes into Ironic, create the ports, move them to manageable
+* enroll the nodes into Ironic, create the ports, and move them to manageable
 * change the hardware type and the interfaces to fake drivers
 * provide the nodes to make them available
 * one by one, add the nodes to the placement aggregate and create instances

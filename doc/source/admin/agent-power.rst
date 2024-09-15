@@ -16,7 +16,7 @@ How it works
 
 The expected workflow is as follows:
 
-#. The node is discovered by manually powering it on and gets the
+#. The node is discovered by manually powering it on and getting the
    `manual-management` hardware type and `agent` power interface.
 
    If discovery is not used, a node can be enrolled through the API and then
@@ -32,7 +32,7 @@ The expected workflow is as follows:
 #. A user deploys the node. Deployment happens normally via the already
    running agent.
 
-#. In the end of the deployment, the node is rebooted via the reboot command
+#. At the end of the deployment, the node is rebooted via the reboot command
    instead of power off+on.
 
 Enabling
