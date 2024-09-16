@@ -19,8 +19,6 @@
         - ironic-tempest-functional-python3
         # NOTE(rpittau) moving to non-voting until we fix the tests
         # see also https://review.opendev.org/c/openstack/ironic-tempest-plugin/+/882312
-        - ironic-tempest-functional-rbac-scope-enforced:
-            voting: false
         - ironic-grenade
         - ironic-grenade-skip-level:
             voting: false
@@ -65,8 +63,6 @@
             voting: false
         - ironic-standalone-anaconda:
             voting: false
-        - ironic-inspector-tempest-rbac-scope-enforced:
-            voting: false
         - bifrost-integration-tinyipa-ubuntu-jammy:
             voting: false
         - bifrost-integration-redfish-vmedia-uefi-centos-9:
@@ -82,9 +78,6 @@
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
-        # NOTE(rpittau) disabled until we fix the tests
-        # see also https://review.opendev.org/c/openstack/ironic-tempest-plugin/+/882312
-        # - ironic-tempest-functional-rbac-scope-enforced
         - ironic-grenade
         # NOTE(JayF): Disabling standalone jobs on 20240228 from voting, there's a
         # dnsmasq bug only exposed on these jobs.
