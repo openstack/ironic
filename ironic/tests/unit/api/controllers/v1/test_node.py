@@ -17,7 +17,6 @@ import datetime
 from http import client as http_client
 import json
 import os
-import sys
 import tempfile
 from unittest import mock
 from urllib import parse as urlparse
@@ -151,10 +150,6 @@ class TestListNodes(test_api_base.BaseApiTest):
     @mock.patch.object(policy, 'check_policy', autospec=True)
     def test_one_field_specific_santization(self, mock_check_policy,
                                             mock_check):
-        py_ver = sys.version_info
-        if py_ver.major == 3 and py_ver.minor == 6:
-            self.skipTest('Test fails to work on python 3.6 when '
-                          'matching mock.ANY.')
         obj_utils.create_test_node(self.context,
                                    chassis_id=self.chassis.id,
                                    last_error='meow')
