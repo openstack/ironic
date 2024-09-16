@@ -1,0 +1,15 @@
+---
+prelude: >
+    The Ironic project is pleased to announce the release Ironic 26.1,
+    also known as the ``2024.2`` or ``Dalmatian`` release. This release adds
+    functionality to enable the creation and use of ``runbooks`` of repeated
+    steps in ``cleaning`` and ``service`` states. Furthermore, cloud admins
+    are now able to ``lease`` baremetal nodes to Nova users automatically
+    through the use of metadata provided by Nova. Firmware updates have
+    improved capability and ease-of-use on BMCs which manage multiple hosts.
+    Also users of the ``redfish`` hardware type can now invoke firmware updates
+    as a ``service`` step. Operators seeking to migrate away from BIOS booting
+    now have additional options to help enforce migration mandates.
+    Coupled with numerous bug fixes and other minor enhancements, this release
+    of Ironic will improve the life of operators for years to come.
+    We hope you enjoy!
