@@ -16,7 +16,6 @@
 
 import os
 import re
-import time
 
 from ironic_lib import metrics_utils
 from ironic_lib import utils as il_utils
@@ -26,6 +25,7 @@ from oslo_utils import fileutils
 from oslo_utils import strutils
 
 from ironic.common import async_steps
+from ironic.common import checksum_utils
 from ironic.common import context
 from ironic.common import exception
 from ironic.common import faults
@@ -59,6 +59,7 @@ RESCUE_LIKE_STATES = (states.RESCUING, states.RESCUEWAIT, states.RESCUEFAIL,
                       states.UNRESCUING, states.UNRESCUEFAIL)
 
 DISK_LAYOUT_PARAMS = ('root_gb', 'swap_mb', 'ephemeral_gb')
+
 
 # All functions are called from deploy() directly or indirectly.
 # They are split for stub-out.
@@ -206,7 +207,8 @@ def check_for_missing_params(info_dict, error_msg, param_prefix=''):
 
 
 def fetch_images(ctx, cache, images_info, force_raw=True,
-                 expected_format=None):
+                 expected_format=None, expected_checksum=None,
+                 expected_checksum_algo=None):
     """Check for available disk space and fetch images using ImageCache.
 
     :param ctx: context
@@ -215,6 +217,10 @@ def fetch_images(ctx, cache, images_info, force_raw=True,
     :param force_raw: boolean value, whether to convert the image to raw
                       format
     :param expected_format: The expected format of the image.
+    :param expected_checksum: The expected image checksum, to be used if we
+           need to convert the image to raw prior to deploying.
+    :param expected_checksum_algo: The checksum algo in use, if separately
+           set.
     :raises: InstanceDeployFailure if unable to find enough disk space
     :raises: InvalidImage if the supplied image metadata or contents are
              deemed to be invalid, unsafe, or not matching the expectations
@@ -233,9 +239,12 @@ def fetch_images(ctx, cache, images_info, force_raw=True,
     image_list = []
     for href, path in images_info:
         # NOTE(TheJulia): Href in this case can be an image UUID or a URL.
-        image_format = cache.fetch_image(href, path, ctx=ctx,
-                                         force_raw=force_raw,
-                                         expected_format=expected_format)
+        image_format = cache.fetch_image(
+            href, path, ctx=ctx,
+            force_raw=force_raw,
+            expected_format=expected_format,
+            expected_checksum=expected_checksum,
+            expected_checksum_algo=expected_checksum_algo)
         image_list.append((href, path, image_format))
     return image_list
 
@@ -1072,7 +1081,8 @@ class InstanceImageCache(image_cache.ImageCache):
 
 
 @METRICS.timer('cache_instance_image')
-def cache_instance_image(ctx, node, force_raw=None, expected_format=None):
+def cache_instance_image(ctx, node, force_raw=None, expected_format=None,
+                         expected_checksum=None, expected_checksum_algo=None):
     """Fetch the instance's image from Glance
 
     This method pulls the disk image and writes them to the appropriate
@@ -1082,6 +1092,10 @@ def cache_instance_image(ctx, node, force_raw=None, expected_format=None):
     :param node: an ironic node object
     :param force_raw: whether convert image to raw format
     :param expected_format: The expected format of the disk image contents.
+    :param expected_checksum: The expected image checksum, to be used if we
+           need to convert the image to raw prior to deploying.
+    :param expected_checksum_algo: The checksum algo in use, if separately
+           set.
     :returns: a tuple containing the uuid of the image and the path in
         the filesystem where image is cached.
     :raises: InvalidImage if the requested image is invalid and cannot be
@@ -1101,7 +1115,9 @@ def cache_instance_image(ctx, node, force_raw=None, expected_format=None):
               {'image': uuid, 'uuid': node.uuid})
 
     image_list = fetch_images(ctx, InstanceImageCache(), [(uuid, image_path)],
-                              force_raw, expected_format=expected_format)
+                              force_raw, expected_format=expected_format,
+                              expected_checksum=expected_checksum,
+                              expected_checksum_algo=expected_checksum_algo)
     return (uuid, image_path, image_list[0][2])
 
 
@@ -1119,17 +1135,11 @@ def destroy_images(node_uuid):
 @METRICS.timer('compute_image_checksum')
 def compute_image_checksum(image_path, algorithm='md5'):
     """Compute checksum by given image path and algorithm."""
-    time_start = time.time()
-    LOG.debug('Start computing %(algo)s checksum for image %(image)s.',
-              {'algo': algorithm, 'image': image_path})
-    checksum = fileutils.compute_file_checksum(image_path,
-                                               algorithm=algorithm)
-    time_elapsed = time.time() - time_start
-    LOG.debug('Computed %(algo)s checksum for image %(image)s in '
-              '%(delta).2f seconds, checksum value: %(checksum)s.',
-              {'algo': algorithm, 'image': image_path, 'delta': time_elapsed,
-               'checksum': checksum})
-    return checksum
+    # NOTE(TheJulia): This likely wouldn't be removed, but if we do
+    # significant refactoring we could likely just change everything
+    # over to the images common code, if we don't need the metrics
+    # data anymore.
+    return checksum_utils.compute_image_checksum(image_path, algorithm)
 
 
 def remove_http_instance_symlink(node_uuid):
@@ -1205,6 +1215,11 @@ def _validate_image_url(node, url, secret=False, inspect_image=None,
         # let it run the image validation checking as it's normal course
         # of action, and save what it tells us the image format is.
         # if there *was* a mismatch, it will raise the error.
+
+        # NOTE(TheJulia): We don't need to supply the checksum here, because
+        # we are not converting the image. The net result is the deploy
+        # interface or remote agent has the responsibility to checksum the
+        # image.
         _, image_path, img_format = cache_instance_image(
             ctx,
             node,
@@ -1226,10 +1241,14 @@ def _cache_and_convert_image(task, instance_info, image_info=None):
         initial_format = instance_info.get('image_disk_format')
     else:
         initial_format = image_info.get('disk_format')
+    checksum, checksum_algo = checksum_utils.get_checksum_and_algo(
+        instance_info)
     _, image_path, img_format = cache_instance_image(
         task.context, task.node,
         force_raw=force_raw,
-        expected_format=initial_format)
+        expected_format=initial_format,
+        expected_checksum=checksum,
+        expected_checksum_algo=checksum_algo)
     if force_raw or image_info is None:
         if force_raw:
             instance_info['image_disk_format'] = 'raw'
@@ -1265,7 +1284,8 @@ def _cache_and_convert_image(task, instance_info, image_info=None):
                       '%(node)s due to image conversion',
                       {'image': image_path, 'node': task.node.uuid})
             instance_info['image_checksum'] = None
-            hash_value = compute_image_checksum(image_path, os_hash_algo)
+            hash_value = checksum_utils.compute_image_checksum(image_path,
+                                                               os_hash_algo)
         else:
             instance_info['image_checksum'] = old_checksum
 
@@ -1363,6 +1383,11 @@ def build_instance_info_for_deploy(task):
         image_info = glance.show(image_source)
         LOG.debug('Got image info: %(info)s for node %(node)s.',
                   {'info': image_info, 'node': node.uuid})
+        # Values are explicitly set into the instance info field
+        # so IPA have the values available.
+        instance_info['image_checksum'] = image_info['checksum']
+        instance_info['image_os_hash_algo'] = image_info['os_hash_algo']
+        instance_info['image_os_hash_value'] = image_info['os_hash_value']
         if image_download_source == 'swift':
             # In this case, we are getting a file *from* swift for a glance
             # image which is backed by swift. IPA downloads the file directly
@@ -1376,14 +1401,9 @@ def build_instance_info_for_deploy(task):
             validate_results = _validate_image_url(
                 node, swift_temp_url, secret=True,
                 expected_format=image_format)
-            # Values are explicitly set into the instance info field
-            # so IPA have the values available.
             instance_info['image_url'] = swift_temp_url
-            instance_info['image_checksum'] = image_info['checksum']
             instance_info['image_disk_format'] = \
                 validate_results.get('disk_format', image_format)
-            instance_info['image_os_hash_algo'] = image_info['os_hash_algo']
-            instance_info['image_os_hash_value'] = image_info['os_hash_value']
         else:
             # In this case, we're directly downloading the glance image and
             # hosting it locally for retrieval by the IPA.
