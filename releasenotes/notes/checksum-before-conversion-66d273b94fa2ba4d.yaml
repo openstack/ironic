@@ -1,0 +1,44 @@
+---
+security:
+  - |
+    An issue in Ironic has been resolved where image checksums would not be
+    checked prior to the conversion of an image to a ``raw`` format image from
+    another image format.
+
+    With default settings, this normally would not take place, however the
+    ``image_download_source`` option, which is available to be set at a
+    ``node`` level for a single deployment, by default for that baremetal node
+    in all cases, or via the ``[agent]image_download_source`` configuration
+    option when set to ``local``. By default, this setting is ``http``.
+
+    This was in concert with the ``[DEFAULT]force_raw_images`` when set to
+    ``True``, which caused Ironic to download and convert the file.
+
+    In a fully integrated context of Ironic's use in a larger OpenStack
+    deployment, where images are coming from the Glance image service, the
+    previous pattern was not problematic. The overall issue was introduced as
+    a result of the capability to supply, cache, and convert a disk image
+    provided as a URL by an authenticated user.
+
+    Ironic will now validate the user supplied checksum prior to image
+    conversion on the conductor. This can be disabled using the
+    ``[conductor]disable_file_checksum`` configuration option.
+fixes:
+  - |
+    Fixes a security issue where Ironic would fail to checksum disk image
+    files it downloads when Ironic had been requested to download and convert
+    the image to a raw image format. This required the
+    ``image_download_source`` to be explicitly set to ``local``, which is not
+    the default.
+
+    This fix can be disabled by setting
+    ``[conductor]disable_file_checksum`` to ``True``, however this
+    option will be removed in new major Ironic releases.
+
+    As a result of this, parity has been introduced to align Ironic to
+    Ironic-Python-Agent's support for checksums used by ``standalone``
+    users of Ironic. This includes support for remote checksum files to be
+    supplied by URL, in order to prevent breaking existing users which may
+    have inadvertently been leveraging the prior code path. This support can
+    be disabled by setting
+    ``[conductor]disable_support_for_checksum_files`` to ``True``.
