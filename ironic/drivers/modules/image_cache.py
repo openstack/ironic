@@ -62,7 +62,8 @@ class ImageCache(object):
             fileutils.ensure_tree(master_dir)
 
     def fetch_image(self, href, dest_path, ctx=None, force_raw=True,
-                    expected_format=None):
+                    expected_format=None, expected_checksum=None,
+                    expected_checksum_algo=None):
         """Fetch image by given href to the destination path.
 
         Does nothing if destination path exists and is up to date with cache
@@ -78,15 +79,31 @@ class ImageCache(object):
         :param force_raw: boolean value, whether to convert the image to raw
                           format
         :param expected_format: The expected image format.
+        :param expected_checksum: The expected image checksum
+        :param expected_checksum_algo: The expected image checksum algorithm,
+                                       if needed/supplied.
         """
         img_download_lock_name = 'download-image'
         if self.master_dir is None:
             # NOTE(ghe): We don't share images between instances/hosts
+            # NOTE(TheJulia): These is a weird code path, because master_dir
+            # has to be None, which by default it never should be unless
+            # an operator forces it to None, which is a path we just never
+            # expect.
+            # TODO(TheJulia): This may be dead-ish code and likely needs
+            # to be removed. Likely originated *out* of just the iscsi
+            # deployment interface and local image caching.
             if not CONF.parallel_image_downloads:
                 with lockutils.lock(img_download_lock_name):
-                    _fetch(ctx, href, dest_path, force_raw)
+                    _fetch(ctx, href, dest_path, force_raw,
+                           expected_format=expected_format,
+                           expected_checksum=expected_checksum,
+                           expected_checksum_algo=expected_checksum_algo)
             else:
-                _fetch(ctx, href, dest_path, force_raw)
+                _fetch(ctx, href, dest_path, force_raw,
+                       expected_format=expected_format,
+                       expected_checksum=expected_checksum,
+                       expected_checksum_algo=expected_checksum_algo)
             return
 
         # TODO(ghe): have hard links and counts the same behaviour in all fs
@@ -136,13 +153,17 @@ class ImageCache(object):
             self._download_image(
                 href, master_path, dest_path,
                 ctx=ctx, force_raw=force_raw,
-                expected_format=expected_format)
+                expected_format=expected_format,
+                expected_checksum=expected_checksum,
+                expected_checksum_algo=expected_checksum_algo)
 
         # NOTE(dtantsur): we increased cache size - time to clean up
         self.clean_up()
 
     def _download_image(self, href, master_path, dest_path,
-                        ctx=None, force_raw=True, expected_format=None):
+                        ctx=None, force_raw=True, expected_format=None,
+                        expected_checksum=None,
+                        expected_checksum_algo=None):
         """Download image by href and store at a given path.
 
         This method should be called with uuid-specific lock taken.
@@ -154,6 +175,8 @@ class ImageCache(object):
         :param force_raw: boolean value, whether to convert the image to raw
                           format
         :param expected_format: The expected original format for the image.
+        :param expected_checksum: The expected image checksum.
+        :param expected_checksum_algo: The expected image checksum algorithm.
         :raise ImageDownloadFailed: when the image cache and the image HTTP or
                                     TFTP location are on different file system,
                                     causing hard link to fail.
@@ -164,7 +187,9 @@ class ImageCache(object):
         tmp_path = os.path.join(tmp_dir, os.path.basename(master_path))
 
         try:
-            _fetch(ctx, href, tmp_path, force_raw, expected_format)
+            _fetch(ctx, href, tmp_path, force_raw, expected_format,
+                   expected_checksum=expected_checksum,
+                   expected_checksum_algo=expected_checksum_algo)
 
             # NOTE(dtantsur): no need for global lock here - master_path
             # will have link count >1 at any moment, so won't be cleaned up
@@ -312,10 +337,13 @@ def _free_disk_space_for(path):
     return stat.f_frsize * stat.f_bavail
 
 
-def _fetch(context, image_href, path, force_raw=False, expected_format=None):
+def _fetch(context, image_href, path, force_raw=False, expected_format=None,
+           expected_checksum=None, expected_checksum_algo=None):
     """Fetch image and convert to raw format if needed."""
     path_tmp = "%s.part" % path
-    images.fetch(context, image_href, path_tmp, force_raw=False)
+    images.fetch(context, image_href, path_tmp, force_raw=False,
+                 checksum=expected_checksum,
+                 checksum_algo=expected_checksum_algo)
     # By default, the image format is unknown
     image_format = None
     disable_dii = CONF.conductor.disable_deep_image_inspection
