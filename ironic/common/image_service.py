@@ -287,6 +287,43 @@ class HttpImageService(BaseImageService):
             'no_cache': no_cache,
         }
 
+    @staticmethod
+    def get(image_href):
+        """Downloads content and returns the response text.
+
+        :param image_href: Image reference.
+        :raises: exception.ImageRefValidationFailed if GET request returned
+            response code not equal to 200.
+        :raises: exception.ImageDownloadFailed if:
+            * IOError happened during file write;
+            * GET request failed.
+        """
+
+        try:
+
+            verify = strutils.bool_from_string(CONF.webserver_verify_ca,
+                                               strict=True)
+        except ValueError:
+            verify = CONF.webserver_verify_ca
+
+        try:
+            auth = HttpImageService.gen_auth_from_conf_user_pass(image_href)
+            response = requests.get(image_href, stream=False, verify=verify,
+                                    timeout=CONF.webserver_connection_timeout,
+                                    auth=auth)
+            if response.status_code != http_client.OK:
+                raise exception.ImageRefValidationFailed(
+                    image_href=image_href,
+                    reason=_("Got HTTP code %s instead of 200 in response "
+                             "to GET request.") % response.status_code)
+
+            return response.text
+
+        except (OSError, requests.ConnectionError, requests.RequestException,
+                IOError) as e:
+            raise exception.ImageDownloadFailed(image_href=image_href,
+                                                reason=str(e))
+
 
 class FileImageService(BaseImageService):
     """Provides retrieval of disk images available locally on the conductor."""
