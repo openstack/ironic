@@ -28,6 +28,7 @@ from oslo_log import log as logging
 from oslo_utils import fileutils
 import pycdlib
 
+from ironic.common import checksum_utils
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
@@ -386,9 +387,13 @@ def fetch_into(context, image_href, image_file):
               {'image_href': image_href, 'time': time.time() - start})
 
 
-def fetch(context, image_href, path, force_raw=False):
+def fetch(context, image_href, path, force_raw=False,
+          checksum=None, checksum_algo=None):
     with fileutils.remove_path_on_error(path):
         fetch_into(context, image_href, path)
+        if (not CONF.conductor.disable_file_checksum
+                and checksum):
+            checksum_utils.validate_checksum(path, checksum, checksum_algo)
     if force_raw:
         image_to_raw(image_href, path, "%s.part" % path)
 
