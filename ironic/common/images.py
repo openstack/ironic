@@ -27,6 +27,7 @@ from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import fileutils
 
+from ironic.common import checksum_utils
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
@@ -345,7 +346,8 @@ def create_esp_image_for_uefi(
             raise exception.ImageCreationFailed(image_type='iso', error=e)
 
 
-def fetch(context, image_href, path, force_raw=False):
+def fetch(context, image_href, path, force_raw=False,
+          checksum=None, checksum_algo=None):
     # TODO(vish): Improve context handling and add owner and auth data
     #             when it is added to glance.  Right now there is no
     #             auth checking in glance, so we assume that access was
@@ -359,7 +361,9 @@ def fetch(context, image_href, path, force_raw=False):
     with fileutils.remove_path_on_error(path):
         with open(path, "wb") as image_file:
             image_service.download(image_href, image_file)
-
+        if (not CONF.conductor.disable_file_checksum
+                and checksum):
+            checksum_utils.validate_checksum(path, checksum, checksum_algo)
     if force_raw:
         image_to_raw(image_href, path, "%s.part" % path)
 
