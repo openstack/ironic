@@ -19,6 +19,40 @@ OpenStack deployment.
 
 .. TODO: add "Multi-tenancy Considerations" section
 
+Image Checksums
+===============
+
+Ironic has long provided a capacity to supply and check a checksum for disk
+images being deployed. However, one aspect which Ironic has not asserted is
+"Why?" in terms of "Is it for security?" or "Is it for data integrity?".
+
+The answer is both to ensure a higher level of security with remote
+image files, *and* provide faster feedback should a image being transferred
+happens to be corrupted.
+
+Normally checksums are verified by the ``ironic-python-agent`` **OR** the
+deployment interface responsible for overall deployment operation. That being
+said, not *every* deployment interface relies on disk images which have
+checksums, and those deployment interfaces are for specific use cases which
+Ironic users leverage, outside of the "general" use case capabilities provided
+by the ``direct`` deployment interface.
+
+.. NOTE::
+   Use of the node ``instance_info/image_checksum`` field is discouraged
+   for integrated OpenStack Users as usage of the matching Glance Image
+   Service field is also deprecated. That being said, Ironic retains this
+   feature by popular demand while also enabling also retain simplified
+   operator interaction.
+   The newer field values supported by Glance are also specifically
+   supported by Ironic as ``instance_info/image_os_hash_value`` for
+   checksum values and ``instance_info/image_os_hash_algo`` field for
+   the checksum algorithm.
+
+.. WARNING::
+   Setting a checksum value to a URL is supported, *however* doing this is
+   making a "tradeoff" with security as the remote checksum *can* change.
+   Conductor support this functionality can be disabled using the
+   :oslo.config:option:`conductor.disable_support_for_checksum_files` setting.
 
 REST API: user roles and policy settings
 ========================================
