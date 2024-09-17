@@ -909,3 +909,25 @@ class BootModeNotAllowed(Invalid):
 
 class InvalidImage(ImageUnacceptable):
     _msg_fmt = _("The requested image is not valid for use.")
+
+
+class ImageChecksumError(InvalidImage):
+    """Exception indicating checksum failed to match."""
+    _msg_fmt = _("The supplied image checksum is invalid or does not match.")
+
+
+class ImageChecksumAlgorithmFailure(InvalidImage):
+    """Cannot load the requested or required checksum algorithm."""
+    _msg_fmt = _("The requested image checksum algorithm cannot be loaded.")
+
+
+class ImageChecksumURLNotSupported(InvalidImage):
+    """Exception indicating we cannot support the remote checksum file."""
+    _msg_fmt = _("Use of remote checksum files is not supported.")
+
+
+class ImageChecksumFileReadFailure(InvalidImage):
+    """An OSError was raised when trying to read the file."""
+    _msg_fmt = _("Failed to read the file from local storage "
+                 "to perform a checksum operation.")
+    code = http_client.SERVICE_UNAVAILABLE
