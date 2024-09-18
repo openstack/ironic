@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Adds microversion headers to the root ('/') endpoint.
