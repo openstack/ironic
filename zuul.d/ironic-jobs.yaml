@@ -736,7 +736,6 @@
       - ^ironic/tests/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
-      - ^tools/(?!bandit\.yml).*$
       - ^tox.ini$
 
 - job:
