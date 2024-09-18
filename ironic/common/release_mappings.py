@@ -704,6 +704,73 @@ RELEASE_MAPPING = {
             'FirmwareComponent': ['1.0'],
         }
     },
+    '25.0': {
+        'api': '1.91',
+        'rpc': '1.59',
+        'objects': {
+            'Allocation': ['1.1'],
+            'BIOSSetting': ['1.1'],
+            'Node': ['1.40', '1.39', '1.38', '1.37'],
+            'NodeHistory': ['1.0'],
+            'NodeInventory': ['1.0'],
+            'Conductor': ['1.4'],
+            'Chassis': ['1.3'],
+            'Deployment': ['1.0'],
+            'DeployTemplate': ['1.1'],
+            'Port': ['1.11'],
+            'Portgroup': ['1.5'],
+            'Trait': ['1.0'],
+            'TraitList': ['1.0'],
+            'VolumeConnector': ['1.0'],
+            'VolumeTarget': ['1.0'],
+            'FirmwareComponent': ['1.0'],
+        }
+    },
+    '26.0': {
+        'api': '1.91',
+        'rpc': '1.60',
+        'objects': {
+            'Allocation': ['1.1'],
+            'BIOSSetting': ['1.1'],
+            'Node': ['1.40', '1.39', '1.38', '1.37'],
+            'NodeHistory': ['1.0'],
+            'NodeInventory': ['1.0'],
+            'Conductor': ['1.4'],
+            'Chassis': ['1.3'],
+            'Deployment': ['1.0'],
+            'DeployTemplate': ['1.1'],
+            'Port': ['1.11'],
+            'Portgroup': ['1.5'],
+            'Trait': ['1.0'],
+            'TraitList': ['1.0'],
+            'VolumeConnector': ['1.0'],
+            'VolumeTarget': ['1.0'],
+            'FirmwareComponent': ['1.0'],
+        }
+    },
+    '26.1': {
+        'api': '1.93',
+        'rpc': '1.61',
+        'objects': {
+            'Allocation': ['1.1'],
+            'BIOSSetting': ['1.1'],
+            'Node': ['1.40', '1.39', '1.38', '1.37'],
+            'NodeHistory': ['1.0'],
+            'NodeInventory': ['1.0'],
+            'Conductor': ['1.4'],
+            'Chassis': ['1.3'],
+            'Deployment': ['1.0'],
+            'DeployTemplate': ['1.1'],
+            'Port': ['1.11'],
+            'Portgroup': ['1.5'],
+            'Trait': ['1.0'],
+            'TraitList': ['1.0'],
+            'VolumeConnector': ['1.0'],
+            'VolumeTarget': ['1.0'],
+            'FirmwareComponent': ['1.0'],
+            'Runbook': ['1.0'],
+        }
+    },
     # NOTE(TheJulia): Items above this line are for shipped versions
     # for the mappings. If your making a non-release related change,
     # make it below. To release, we will preserve a version matching
@@ -714,7 +781,7 @@ RELEASE_MAPPING = {
         'objects': {
             'Allocation': ['1.1'],
             'BIOSSetting': ['1.1'],
-            'Node': ['1.40', '1.39', '1.38', '1.37'],
+            'Node': ['1.40'],
             'NodeHistory': ['1.0'],
             'NodeInventory': ['1.0'],
             'Conductor': ['1.4'],
@@ -750,6 +817,7 @@ RELEASE_MAPPING['antelope'] = RELEASE_MAPPING['21.4']
 RELEASE_MAPPING['2023.1'] = RELEASE_MAPPING['21.4']
 RELEASE_MAPPING['2023.2'] = RELEASE_MAPPING['23.0']
 RELEASE_MAPPING['2024.1'] = RELEASE_MAPPING['24.1']
+RELEASE_MAPPING['2024.2'] = RELEASE_MAPPING['26.1']
 
 # List of available versions with named versions first; 'master' is excluded.
 RELEASE_VERSIONS = sorted(set(RELEASE_MAPPING) - {'master'}, reverse=True)

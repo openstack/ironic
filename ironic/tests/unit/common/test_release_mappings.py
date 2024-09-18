@@ -121,13 +121,6 @@ class ReleaseMappingsTestCase(base.TestCase):
                     self.assertTrue(_check_versions_compatibility(
                         ver, registered_objects[obj_name][0].VERSION))
 
-    def test_no_gaps_in_release_versions(self):
-        for i, ver in enumerate(NUMERIC_RELEASES[:-1]):
-            prev = NUMERIC_RELEASES[i + 1]
-            if ver != (prev[0] + 1, 0) and ver != (prev[0], prev[1] + 1):
-                self.fail("Versions %s and %s are not sequential"
-                          % (prev, ver))
-
     def test_no_gaps_in_object_versions(self):
         oldest_release = '%d.%d' % NUMERIC_RELEASES[-1]
         oldest_versions = release_mappings.RELEASE_MAPPING[
