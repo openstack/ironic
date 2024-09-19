@@ -26,13 +26,13 @@ import time
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import fileutils
+from oslo_utils.imageutils import format_inspector as image_format_inspector
 import pycdlib
 
 from ironic.common import checksum_utils
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
-from ironic.common import image_format_inspector
 from ironic.common import image_service as service
 from ironic.common import qemu_img
 from ironic.common import utils
@@ -401,7 +401,14 @@ def fetch(context, image_href, path, force_raw=False,
 def get_source_format(image_href, path):
     try:
         img_format = image_format_inspector.detect_file_format(path)
-    except image_format_inspector.ImageFormatError:
+    except image_format_inspector.ImageFormatError as exc:
+        LOG.error("Parsing of the image %s failed: %s", image_href, exc)
+        raise exception.ImageUnacceptable(
+            reason=_("parsing of the image failed."),
+            image_id=image_href)
+    if img_format is None:
+        LOG.error("Parsing of the image %s failed: format not recognized",
+                  image_href)
         raise exception.ImageUnacceptable(
             reason=_("parsing of the image failed."),
             image_id=image_href)
@@ -411,9 +418,7 @@ def get_source_format(image_href, path):
 def force_raw_will_convert(image_href, path_tmp):
     with fileutils.remove_path_on_error(path_tmp):
         fmt = get_source_format(image_href, path_tmp)
-    if fmt != "raw":
-        return True
-    return False
+    return fmt not in RAW_IMAGE_FORMATS
 
 
 def image_to_raw(image_href, path, path_tmp):
@@ -421,7 +426,7 @@ def image_to_raw(image_href, path, path_tmp):
         if not CONF.conductor.disable_deep_image_inspection:
             fmt = safety_check_image(path_tmp)
 
-            if fmt not in CONF.conductor.permitted_image_formats:
+            if not image_format_permitted(fmt):
                 LOG.error("Security: The requested image %(image_href)s "
                           "is of format image %(format)s and is not in "
                           "the [conductor]permitted_image_formats list.",
@@ -436,7 +441,7 @@ def image_to_raw(image_href, path, path_tmp):
                         {'img_fmt': fmt,
                          'path': path})
 
-        if fmt != "raw" and fmt != "iso":
+        if fmt not in RAW_IMAGE_FORMATS and fmt != "iso":
             # When the target format is NOT raw, we need to convert it.
             # however, we don't need nor want to do that when we have
             # an ISO image. If we have an ISO because it was requested,
@@ -453,7 +458,7 @@ def image_to_raw(image_href, path, path_tmp):
                                        source_format=fmt)
                 os.unlink(path_tmp)
                 new_fmt = get_source_format(image_href, staged)
-                if new_fmt != "raw":
+                if new_fmt not in RAW_IMAGE_FORMATS:
                     raise exception.ImageConvertFailed(
                         image_id=image_href,
                         reason=_("Converted to raw, but format is "
@@ -836,20 +841,54 @@ def safety_check_image(image_path, node=None):
     id_string = __node_or_image_cache(node)
     try:
         img_class = image_format_inspector.detect_file_format(image_path)
-        if not img_class.safety_check():
-            LOG.error("Security: The requested image for "
-                      "deployment of node %(node)s fails safety sanity "
-                      "checking.",
+        if img_class is None:
+            LOG.error("Security: The requested user image for the "
+                      "deployment node %(node)s does not match any known "
+                      "format",
                       {'node': id_string})
             raise exception.InvalidImage()
+        img_class.safety_check()
         image_format_name = str(img_class)
-    except image_format_inspector.ImageFormatError:
+    except image_format_inspector.ImageFormatError as exc:
         LOG.error("Security: The requested user image for the "
                   "deployment node %(node)s failed to be able "
-                  "to be parsed by the image format checker.",
-                  {'node': id_string})
+                  "to be parsed by the image format checker: %(exc)s",
+                  {'node': id_string, 'exc': exc})
+        raise exception.InvalidImage()
+    except image_format_inspector.SafetyCheckFailed as exc:
+        LOG.error("Security: The requested image for "
+                  "deployment of node %(node)s fails safety sanity "
+                  "checking: %(exc)s",
+                  {'node': id_string, 'exc': exc})
         raise exception.InvalidImage()
     return image_format_name
+
+
+RAW_IMAGE_FORMATS = {'raw', 'gpt'}  # gpt is a whole-disk image
+
+
+def image_format_permitted(img_format):
+    permitted = set(CONF.conductor.permitted_image_formats)
+    if 'raw' in permitted:
+        permitted.update(RAW_IMAGE_FORMATS)
+    return img_format in permitted
+
+
+def image_format_matches(actual_format, expected_format):
+    if expected_format in ['ari', 'aki']:
+        # In this case, we have an ari or aki, meaning we're pulling
+        # down a kernel/ramdisk, and this is rooted in a misunderstanding.
+        # They should be raw. The detector should be detecting this *as*
+        # raw anyway, so the data just mismatches from a common
+        # misunderstanding, and that is okay in this case as they are not
+        # passed to qemu-img.
+        # TODO(TheJulia): Add a log entry to warn here at some point in
+        # the future as we begin to shift the perception around this.
+        # See: https://bugs.launchpad.net/ironic/+bug/2074090
+        return True
+    if expected_format == 'raw' and actual_format in RAW_IMAGE_FORMATS:
+        return True
+    return expected_format == actual_format
 
 
 def check_if_image_format_is_permitted(img_format,
@@ -867,25 +906,15 @@ def check_if_image_format_is_permitted(img_format,
     """
 
     id_string = __node_or_image_cache(node)
-    if img_format not in CONF.conductor.permitted_image_formats:
+    if not image_format_permitted(img_format):
         LOG.error("Security: The requested deploy image for node %(node)s "
                   "is of format image %(format)s and is not in the "
                   "[conductor]permitted_image_formats list.",
                   {'node': id_string,
                    'format': img_format})
         raise exception.InvalidImage()
-    if expected_format is not None and img_format != expected_format:
-        if expected_format in ['ari', 'aki']:
-            # In this case, we have an ari or aki, meaning we're pulling
-            # down a kernel/ramdisk, and this is rooted in a misunderstanding.
-            # They should be raw. The detector should be detecting this *as*
-            # raw anyway, so the data just mismatches from a common
-            # misunderstanding, and that is okay in this case as they are not
-            # passed to qemu-img.
-            # TODO(TheJulia): Add a log entry to warn here at some point in
-            # the future as we begin to shift the perception around this.
-            # See: https://bugs.launchpad.net/ironic/+bug/2074090
-            return
+    if (expected_format is not None
+            and not image_format_matches(img_format, expected_format)):
         LOG.error("Security: The requested deploy image for node %(node)s "
                   "has a format (%(format)s) which does not match the "
                   "expected image format (%(expected)s) based upon "

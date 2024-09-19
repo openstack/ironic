@@ -24,10 +24,10 @@ from unittest import mock
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_utils import fileutils
+from oslo_utils.imageutils import format_inspector as image_format_inspector
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
-from ironic.common import image_format_inspector
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import qemu_img
@@ -174,7 +174,6 @@ class IronicImagesTestCase(base.TestCase):
         info = mock.MagicMock()
         # In the case the image looks okay, but it is not in our permitted
         # format list, we need to ensure we still fail appropriately.
-        info.safety_check.return_value = True
         info.__str__.return_value = 'vhd'
         detect_format_mock.return_value = info
 
@@ -189,7 +188,8 @@ class IronicImagesTestCase(base.TestCase):
     def test_image_to_raw_fails_safety_check(self, detect_format_mock):
         info = mock.MagicMock()
         info.__str__.return_value = 'qcow2'
-        info.safety_check.return_value = False
+        info.safety_check.side_effect = \
+            image_format_inspector.SafetyCheckFailed({"I'm a teapot": True})
         detect_format_mock.return_value = info
 
         e = self.assertRaises(exception.ImageUnacceptable, images.image_to_raw,
@@ -197,6 +197,8 @@ class IronicImagesTestCase(base.TestCase):
         info.safety_check.assert_called_once()
         detect_format_mock.assert_called_once_with('path_tmp')
         self.assertIn("The requested image is not valid for use.", str(e))
+        # Do not disclose the actual error message to evil hackers
+        self.assertNotIn("I'm a teapot", str(e))
 
     @mock.patch.object(os, 'rename', autospec=True)
     @mock.patch.object(os, 'unlink', autospec=True)
@@ -209,11 +211,71 @@ class IronicImagesTestCase(base.TestCase):
         info = mock.MagicMock()
         info.__str__.side_effect = iter(['qcow2', 'raw'])
         info.backing_file = None
-        info.saftey_check.return_value = True
         detect_format_mock.return_value = info
 
         def convert_side_effect(source, dest, out_format, source_format):
             info.file_format = 'raw'
+        convert_image_mock.side_effect = convert_side_effect
+
+        images.image_to_raw('image_href', 'path', 'path_tmp')
+        info.safety_check.assert_called_once()
+        self.assertEqual(2, info.__str__.call_count)
+        detect_format_mock.assert_has_calls([
+            mock.call('path_tmp'),
+            mock.call('path.converted')])
+        convert_image_mock.assert_called_once_with('path_tmp',
+                                                   'path.converted', 'raw',
+                                                   source_format='qcow2')
+        unlink_mock.assert_called_once_with('path_tmp')
+        rename_mock.assert_called_once_with('path.converted', 'path')
+
+    @mock.patch.object(os, 'rename', autospec=True)
+    @mock.patch.object(os, 'unlink', autospec=True)
+    @mock.patch.object(qemu_img, 'convert_image', autospec=True)
+    @mock.patch.object(image_format_inspector, 'detect_file_format',
+                       autospec=True)
+    def test_image_to_gpt(self, detect_format_mock, convert_image_mock,
+                          unlink_mock, rename_mock):
+        CONF.set_override('force_raw_images', True)
+        info = mock.MagicMock()
+        info.__str__.side_effect = iter(['qcow2', 'gpt'])
+        info.backing_file = None
+        detect_format_mock.return_value = info
+
+        def convert_side_effect(source, dest, out_format, source_format):
+            info.file_format = 'gpt'
+        convert_image_mock.side_effect = convert_side_effect
+
+        images.image_to_raw('image_href', 'path', 'path_tmp')
+        info.safety_check.assert_called_once()
+        self.assertEqual(2, info.__str__.call_count)
+        detect_format_mock.assert_has_calls([
+            mock.call('path_tmp'),
+            mock.call('path.converted')])
+        convert_image_mock.assert_called_once_with('path_tmp',
+                                                   'path.converted', 'raw',
+                                                   source_format='qcow2')
+        unlink_mock.assert_called_once_with('path_tmp')
+        rename_mock.assert_called_once_with('path.converted', 'path')
+
+    @mock.patch.object(os, 'rename', autospec=True)
+    @mock.patch.object(os, 'unlink', autospec=True)
+    @mock.patch.object(qemu_img, 'convert_image', autospec=True)
+    @mock.patch.object(image_format_inspector, 'detect_file_format',
+                       autospec=True)
+    def test_image_to_gpt_backward_compatibility(self, detect_format_mock,
+                                                 convert_image_mock,
+                                                 unlink_mock, rename_mock):
+        CONF.set_override('force_raw_images', True)
+        CONF.set_override('permitted_image_formats', 'raw,qcow2',
+                          group='conductor')
+        info = mock.MagicMock()
+        info.__str__.side_effect = iter(['qcow2', 'gpt'])
+        info.backing_file = None
+        detect_format_mock.return_value = info
+
+        def convert_side_effect(source, dest, out_format, source_format):
+            info.file_format = 'gpt'
         convert_image_mock.side_effect = convert_side_effect
 
         images.image_to_raw('image_href', 'path', 'path_tmp')
@@ -242,7 +304,6 @@ class IronicImagesTestCase(base.TestCase):
         info = mock.MagicMock()
         info.__str__.side_effect = iter(['vmdk', 'raw'])
         info.backing_file = None
-        info.saftey_check.return_value = None
         detect_format_mock.return_value = info
 
         def convert_side_effect(source, dest, out_format, source_format):
@@ -274,7 +335,6 @@ class IronicImagesTestCase(base.TestCase):
         info = mock.MagicMock()
         info.__str__.return_value = 'vmdk'
         info.backing_file = None
-        info.saftey_check.return_value = None
         detect_format_mock.return_value = info
 
         self.assertRaises(exception.ImageConvertFailed,
@@ -309,7 +369,6 @@ class IronicImagesTestCase(base.TestCase):
                                                    source_format='qcow2')
         unlink_mock.assert_called_once_with('path_tmp')
         info.safety_check.assert_called_once()
-        info.safety_check.assert_called_once()
         self.assertEqual(2, info.__str__.call_count)
         detect_format_mock.assert_has_calls([
             mock.call('path_tmp'),
@@ -328,6 +387,21 @@ class IronicImagesTestCase(base.TestCase):
 
         rename_mock.assert_called_once_with('path_tmp', 'path')
         info.safety_check.assert_called_once()
+        self.assertEqual(1, info.__str__.call_count)
+        detect_format_mock.assert_called_once_with('path_tmp')
+
+    @mock.patch.object(os, 'rename', autospec=True)
+    @mock.patch.object(image_format_inspector, 'detect_file_format',
+                       autospec=True)
+    def test_image_to_raw_already_gpt_format(self, detect_format_mock,
+                                             rename_mock):
+        info = mock.MagicMock()
+        info.__str__.return_value = 'gpt'
+        detect_format_mock.return_value = info
+
+        images.image_to_raw('image_href', 'path', 'path_tmp')
+
+        rename_mock.assert_called_once_with('path_tmp', 'path')
         info.safety_check.assert_called_once()
         self.assertEqual(1, info.__str__.call_count)
         detect_format_mock.assert_called_once_with('path_tmp')
