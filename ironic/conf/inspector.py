@@ -171,7 +171,7 @@ pxe_filter_opts = [
     cfg.IntOpt('sync_period',
                default=45, mutable=True,
                help=_("Period (in seconds) between synchronizing the state "
-                      "if dnsmasq with the database.")),
+                      "of dnsmasq with the database.")),
 ]
 
 
