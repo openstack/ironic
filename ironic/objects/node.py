@@ -82,7 +82,8 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.38: Add parent_node field
     # Version 1.39: Add firmware_interface field
     # Version 1.40: Add service_step field
-    VERSION = '1.40'
+    # Version 1.41: Add disable_power_off field
+    VERSION = '1.41'
 
     dbapi = db_api.get_instance()
 
@@ -182,6 +183,7 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
         'secure_boot': object_fields.BooleanField(nullable=True),
         'shard': object_fields.StringField(nullable=True),
         'parent_node': object_fields.StringField(nullable=True),
+        'disable_power_off': objects.fields.BooleanField(nullable=True),
     }
 
     def as_dict(self, secure=False, mask_configdrive=True):
@@ -695,18 +697,18 @@ class Node(base.IronicObject, object_base.VersionedObjectDictCompat):
             self._adjust_field_to_version(name, None, target_version,
                                           1, minor, remove_unavailable_fields)
 
-        # NOTE(dtantsur): the default is False for protected
-        self._adjust_field_to_version('protected', False, target_version,
-                                      1, 29, remove_unavailable_fields)
+        boolean_fields = [('protected', 29, False),
+                          ('retired', 33, False),
+                          ('disable_power_off', 41, False)]
+
+        for name, minor, default in boolean_fields:
+            self._adjust_field_to_version(name, default, target_version,
+                                          1, minor, remove_unavailable_fields)
 
         self._convert_deploy_step_field(target_version,
                                         remove_unavailable_fields)
         self._convert_conductor_group_field(target_version,
                                             remove_unavailable_fields)
-
-        self._adjust_field_to_version('retired', False, target_version,
-                                      1, 33, remove_unavailable_fields)
-
         self._convert_network_data_field(target_version,
                                          remove_unavailable_fields)
 
@@ -790,6 +792,7 @@ class NodePayload(notification.NotificationPayloadBase):
         'created_at': ('node', 'created_at'),
         'deploy_step': ('node', 'deploy_step'),
         'description': ('node', 'description'),
+        'disable_power_off': ('node', 'disable_power_off'),
         'driver': ('node', 'driver'),
         'extra': ('node', 'extra'),
         'boot_mode': ('node', 'boot_mode'),
@@ -849,7 +852,8 @@ class NodePayload(notification.NotificationPayloadBase):
     # Version 1.14: Add retired and retired_reason fields exposed via API.
     # Version 1.15: Add node lessee field.
     # Version 1.16: Add boot_mode and secure_boot fields.
-    VERSION = '1.16'
+    # Version 1.17: Add disable_power_off field.
+    VERSION = '1.17'
     fields = {
         'clean_step': object_fields.FlexibleDictField(nullable=True),
         'conductor_group': object_fields.StringField(nullable=True),
@@ -857,6 +861,7 @@ class NodePayload(notification.NotificationPayloadBase):
         'created_at': object_fields.DateTimeField(nullable=True),
         'deploy_step': object_fields.FlexibleDictField(nullable=True),
         'description': object_fields.StringField(nullable=True),
+        'disable_power_off': objects.fields.BooleanField(nullable=True),
         'driver': object_fields.StringField(nullable=True),
         'extra': object_fields.FlexibleDictField(nullable=True),
         'boot_mode': object_fields.StringField(nullable=True),
@@ -941,7 +946,8 @@ class NodeSetPowerStatePayload(NodePayload):
     # Version 1.14: Parent NodePayload version 1.14
     # Version 1.15: Parent NodePayload version 1.15
     # Version 1.16: Parent NodePayload version 1.16
-    VERSION = '1.16'
+    # Version 1.17: Parent NodePayload version 1.17
+    VERSION = '1.17'
 
     fields = {
         # "to_power" indicates the future target_power_state of the node. A
@@ -998,7 +1004,8 @@ class NodeCorrectedPowerStatePayload(NodePayload):
     # Version 1.14: Parent NodePayload version 1.14
     # Version 1.15: Parent NodePayload version 1.15
     # Version 1.16: Parent NodePayload version 1.16
-    VERSION = '1.16'
+    # Version 1.17: Parent NodePayload version 1.17
+    VERSION = '1.17'
 
     fields = {
         'from_power': object_fields.StringField(nullable=True)
@@ -1040,7 +1047,8 @@ class NodeSetProvisionStatePayload(NodePayload):
     # Version 1.15: Parent NodePayload version 1.15
     # Version 1.16: add driver_internal_info
     # Version 1.17: Parent NodePayload version 1.16
-    VERSION = '1.17'
+    # Version 1.18: Parent NodePayload version 1.17
+    VERSION = '1.18'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info'),
@@ -1090,7 +1098,8 @@ class NodeCRUDPayload(NodePayload):
     # Version 1.12: Parent NodePayload version 1.14
     # Version 1.13: Parent NodePayload version 1.15
     # Version 1.14: Parent NodePayload version 1.16
-    VERSION = '1.14'
+    # Version 1.15: Parent NodePayload version 1.17
+    VERSION = '1.15'
 
     SCHEMA = dict(NodePayload.SCHEMA,
                   **{'instance_info': ('node', 'instance_info'),

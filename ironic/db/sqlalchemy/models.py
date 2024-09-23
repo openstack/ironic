@@ -218,6 +218,8 @@ class NodeBase(Base):
     shard = Column(String(255), nullable=True)
     parent_node = Column(String(36), nullable=True)
     service_step = Column(db_types.JsonEncodedDict)
+    disable_power_off = Column(Boolean, nullable=True, default=False,
+                               server_default=false())
 
 
 class Node(NodeBase):
