@@ -7,7 +7,7 @@ Boot From Volume
 Overview
 ========
 The Bare Metal service supports booting from a Cinder iSCSI volume as of the
-Pike release. This guide will primarily deal with this use case, but will be
+Pike release. This guide will primarily deal with this use case but will be
 updated as more paths for booting from a volume, such as FCoE, are introduced.
 
 The boot from volume is supported on both legacy BIOS and
@@ -25,12 +25,12 @@ the node OR the iPXE boot templates such that the node CAN be booted.
    :width: 100%
 
 In this example, the boot interface does the heavy lifting. For drivers the
-``irmc`` and ``ilo`` hardware types with hardware type specific boot
-interfaces, they are able to signal via an out of band mechanism to the
+``irmc`` and ``ilo`` hardware types with hardware type-specific boot
+interfaces, they are able to signal via an out-of-band mechanism to the
 baremetal node's BMC that the integrated iSCSI initiators are to connect
 to the supplied volume target information.
 
-In most hardware this would be the network cards of the machine.
+In most hardware, this would be the network cards of the machine.
 
 In the case of the ``ipxe`` boot interface, templates are created on disk
 which point to the iscsi target information that was either submitted
@@ -39,7 +39,7 @@ requested as the baremetal's boot from volume disk upon requesting the
 instance.
 
 In terms of network access, both interface methods require connectivity
-to the iscsi target. In the vendor driver specific path, additional network
+to the iscsi target. In the vendor driver-specific path, additional network
 configuration options may be available to allow separation of standard
 network traffic and instance network traffic. In the iPXE case, this is
 not possible as the OS userspace re-configures the iSCSI connection
@@ -47,7 +47,7 @@ after detection inside the OS ramdisk boot.
 
 An iPXE user *may* be able to leverage multiple VIFs, one specifically
 set to be set with ``pxe_enabled`` to handle the initial instance boot
-and back-end storage traffic where as external facing network traffic
+and back-end storage traffic whereas external-facing network traffic
 occurs on a different interface. This is a common pattern in iSCSI
 based deployments in the physical realm.
 
@@ -146,7 +146,7 @@ be utilized to attach the remote volume.
 In addition to the connectors, we have a concept of a `target` that can be
 defined via the API. While a user of this feature through the Compute
 service would automatically have a new target record created for them,
-it is not explicitly required, and can be performed manually.
+it is not explicitly required and can be performed manually.
 
 A target record can be created using a command similar to the example below::
 
@@ -176,7 +176,7 @@ the node should or could boot from a remote volume.
 
 It must be noted that minimal configuration or value validation occurs
 with the ``external`` storage interface. The ``cinder`` storage interface
-contains more extensive validation, that is likely un-necessary in a
+contains more extensive validation, that is likely unnecessary in a
 ``external`` scenario.
 
 Setting the external storage interface::
@@ -228,7 +228,7 @@ contain support for multi-attach volumes.
 When support for storage interfaces was added to the Bare Metal service,
 specifically for the ``cinder`` storage interface, the concept of volume
 multi-attach was accounted for, however has not been fully tested,
-and is unlikely to be fully tested until there is Compute service integration
+and is unlikely to be fully tested until there is a Compute service integration
 as well as volume driver support.
 
 The data model for storage of volume targets in the Bare Metal service

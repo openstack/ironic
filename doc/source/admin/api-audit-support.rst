@@ -9,7 +9,7 @@ notifier capability. Based on the `notification_driver` configuration, audit eve
 can be routed to messaging infrastructure (notification_driver = messagingv2)
 or can be routed to a log file (`[oslo_messaging_notifications]/driver = log`).
 
-Audit middleware creates two events per REST API interaction. First event has
+Audit middleware creates two events per REST API interaction. The first event has
 information extracted from request data and the second one has request outcome
 (response).
 

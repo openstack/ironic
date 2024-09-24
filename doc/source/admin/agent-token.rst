@@ -33,7 +33,7 @@ In both cases, the tokens are randomly generated using the Python
 ``secrets`` library. As of mid-2020, the default length is 43 characters.
 
 Once the token has been provided, the token cannot be retrieved or accessed.
-It remains available to the conductors, and is stored in the memory of the
+It remains available to the conductors and is stored in the memory of the
 ``ironic-python-agent``.
 
 .. note::
@@ -76,7 +76,7 @@ Agent Configuration
 An additional setting that may be leveraged with the ``ironic-python-agent``
 is a ``agent_token_required`` setting. Under normal circumstances, this
 setting can be asserted via the configuration supplied from the Bare Metal
-service deployment upon the ``lookup`` action, but can be asserted via the
+service deployment upon the ``lookup`` action but can be asserted via the
 embedded configuration for the agent in the ramdisk. This setting is also
-available via kernel command line as ``ipa-agent-token-required``.
+available via the kernel command line as ``ipa-agent-token-required``.
 
