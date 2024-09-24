@@ -104,7 +104,10 @@ def abort_inspection(task):
                               error=True,
                               user=task.context.user_id)
     utils.wipe_token_and_url(task)
-    task.process_event('abort')
+    if task.node.provision_state != states.INSPECTFAIL:
+        task.process_event('abort')
+    else:
+        task.node.save()
     LOG.info('Successfully aborted inspection of node %(node)s',
              {'node': node.uuid})
 
