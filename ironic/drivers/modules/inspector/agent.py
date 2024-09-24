@@ -76,10 +76,10 @@ class AgentInspect(common.Common):
 
         :param task: a task from TaskManager.
         """
-        error = _("By request, the inspection operation has been aborted")
-        inspect_utils.clear_lookup_addresses(task.node)
-        common.inspection_error_handler(task, error, raise_exc=False,
-                                        clean_up=True)
+        if inspect_utils.clear_lookup_addresses(task.node):
+            task.node.save()
+
+        common.clean_up(task, finish=False)
 
     def continue_inspection(self, task, inventory, plugin_data):
         """Continue in-band hardware inspection.
