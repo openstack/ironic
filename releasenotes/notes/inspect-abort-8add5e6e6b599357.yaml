@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes aborting in-band inspection. Previously, it would fail with
+    ``Can not transition from state 'inspect failed' on event 'abort'``.
