@@ -67,8 +67,6 @@
             voting: false
         - ironic-tempest-pxe_ipmitool-postgres:
             voting: false
-        - bifrost-benchmark-ironic:
-            voting: false
     gate:
       jobs:
         - ironic-tox-bandit
@@ -99,6 +97,9 @@
         - metal3-integration
     experimental:
       jobs:
+        # NOTE(dtantsur): this job is rarely used, no need to run it always.
+        - bifrost-benchmark-ironic:
+            voting: false
         # TODO(dtantsur): these jobs are useful but currently hopelessly
         # broken. Fix them and bring back to the gate.
         - ironic-grenade-multinode-multitenant:
