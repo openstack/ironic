@@ -136,3 +136,43 @@ class ContinueInspectionTestCase(db_base.DbTestCase):
             self.assertEqual(states.INSPECTING, task.node.provision_state)
 
         self.assertIsNone(result)
+
+
+@mock.patch.object(common, 'tear_down_managed_boot', autospec=True)
+class AbortInspectionTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super().setUp()
+        CONF.set_override('enabled_inspect_interfaces',
+                          ['agent', 'no-inspect'])
+        self.node = obj_utils.create_test_node(
+            self.context,
+            driver_internal_info={
+                'lookup_bmc_addresses': [42],
+            },
+            inspect_interface='agent',
+            provision_state=states.INSPECTWAIT)
+        self.iface = inspector.AgentInspect()
+
+    def test_success(self, mock_tear_down):
+        mock_tear_down.return_value = None
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.iface.abort(task)
+            mock_tear_down.assert_called_once_with(task)
+
+        self.node.refresh()
+        # Keep the state - it will be changed on the conductor level
+        self.assertEqual(states.INSPECTWAIT, self.node.provision_state)
+        self.assertNotIn('lookup_bmc_addresses',
+                         self.node.driver_internal_info)
+
+    def test_cleanup_failed(self, mock_tear_down):
+        mock_tear_down.return_value = ['boom']
+        with task_manager.acquire(self.context, self.node.id) as task:
+            self.iface.abort(task)
+            mock_tear_down.assert_called_once_with(task)
+
+        self.node.refresh()
+        self.assertEqual(states.INSPECTFAIL, self.node.provision_state)
+        self.assertIn('boom', self.node.last_error)
+        self.assertNotIn('lookup_bmc_addresses',
+                         self.node.driver_internal_info)
