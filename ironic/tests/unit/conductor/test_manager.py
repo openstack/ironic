@@ -8500,14 +8500,14 @@ class NodeTraitsTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
 
 
 @mgr_utils.mock_record_keepalive
+@mock.patch('ironic.drivers.modules.fake.FakeInspect.abort', autospec=True)
+@mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
 class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
                                  mgr_utils.ServiceSetUpMixin,
                                  db_base.DbTestCase):
     @mock.patch.object(inspection, 'LOG', autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort', autospec=True)
-    @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
-    def test_do_inspect_abort_interface_not_support(self, mock_acquire,
-                                                    mock_abort, mock_log):
+    def test_do_inspect_abort_interface_not_support(self, mock_log,
+                                                    mock_acquire, mock_abort):
         node = obj_utils.create_test_node(self.context,
                                           driver='fake-hardware',
                                           provision_state=states.INSPECTWAIT)
@@ -8525,10 +8525,9 @@ class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
         self.assertTrue(mock_log.error.called)
 
     @mock.patch.object(inspection, 'LOG', autospec=True)
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort', autospec=True)
-    @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
-    def test_do_inspect_abort_interface_return_failed(self, mock_acquire,
-                                                      mock_abort, mock_log):
+    def test_do_inspect_abort_interface_return_failed(self, mock_log,
+                                                      mock_acquire,
+                                                      mock_abort):
         mock_abort.side_effect = exception.IronicException('Oops')
         self._start_service()
         node = obj_utils.create_test_node(self.context,
@@ -8544,8 +8543,6 @@ class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
         self.assertTrue(mock_log.exception.called)
         self.assertIn('Failed to abort inspection', node.last_error)
 
-    @mock.patch('ironic.drivers.modules.fake.FakeInspect.abort', autospec=True)
-    @mock.patch('ironic.conductor.task_manager.acquire', autospec=True)
     def test_do_inspect_abort_succeeded(self, mock_acquire, mock_abort):
         self._start_service()
         node = obj_utils.create_test_node(
@@ -8559,7 +8556,30 @@ class DoNodeInspectAbortTestCase(mgr_utils.CommonMixIn,
         self.service.do_provisioning_action(self.context, task.node.uuid,
                                             "abort")
         node.refresh()
-        self.assertEqual('inspect failed', node.provision_state)
+        self.assertEqual(states.INSPECTFAIL, node.provision_state)
+        self.assertIn('Inspection was aborted', node.last_error)
+        self.assertNotIn('agent_url', node.driver_internal_info)
+        self.assertNotIn('agent_secret_token', node.driver_internal_info)
+
+    def test_do_inspect_abort_state_set_by_driver(self, mock_acquire,
+                                                  mock_abort):
+        def abort(driver, task):
+            task.process_event('abort')
+
+        mock_abort.side_effect = abort
+        self._start_service()
+        node = obj_utils.create_test_node(
+            self.context,
+            driver='fake-hardware',
+            provision_state=states.INSPECTWAIT,
+            driver_internal_info={'agent_url': 'url',
+                                  'agent_secret_token': 'token'})
+        task = task_manager.TaskManager(self.context, node.uuid)
+        mock_acquire.side_effect = self._get_acquire_side_effect(task)
+        self.service.do_provisioning_action(self.context, task.node.uuid,
+                                            "abort")
+        node.refresh()
+        self.assertEqual(states.INSPECTFAIL, node.provision_state)
         self.assertIn('Inspection was aborted', node.last_error)
         self.assertNotIn('agent_url', node.driver_internal_info)
         self.assertNotIn('agent_secret_token', node.driver_internal_info)
