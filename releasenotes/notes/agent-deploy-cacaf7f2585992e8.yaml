@@ -1,0 +1,14 @@
+---
+upgrade:
+  - |
+    Because of the code reorganization, some metrics have been removed: all
+    metrics prefixed with ``AgentDeployMixin`` are now prefixed with
+    ``CustomAgentDeploy`` or ``AgentDeploy`` instead.
+other:
+  - |
+    The ``AgentDeployMixin`` class has been removed from ``agent_base.py``.
+    Third-party deploy interfaces that inherit it most probably want to
+    inherit ``ironic.drivers.modules.agent.CustomAgentDeploy`` instead.
+
+    If you rely on the ``prepare_instance_to_boot`` or ``configure_local_boot``
+    helper methods, inherit from ``AgentDeploy`` instead.
