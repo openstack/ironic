@@ -177,6 +177,7 @@ IRONIC_VM_ENGINE=${IRONIC_VM_ENGINE:-qemu}
 IRONIC_VM_NETWORK_BRIDGE=${IRONIC_VM_NETWORK_BRIDGE:-brbm}
 IRONIC_VM_INTERFACE_COUNT=${IRONIC_VM_INTERFACE_COUNT:-2}
 IRONIC_VM_VOLUME_COUNT=${IRONIC_VM_VOLUME_COUNT:-1}
+IRONIC_VM_BLOCK_SIZE=${IRONIC_VM_BLOCK_SIZE:-512}
 IRONIC_VM_MACS_CSV_FILE=${IRONIC_VM_MACS_CSV_FILE:-$IRONIC_DATA_DIR/ironic_macs.csv}
 IRONIC_CLEAN_NET_NAME=${IRONIC_CLEAN_NET_NAME:-${IRONIC_PROVISION_NETWORK_NAME:-${PRIVATE_NETWORK_NAME}}}
 IRONIC_RESCUE_NET_NAME=${IRONIC_RESCUE_NET_NAME:-${IRONIC_CLEAN_NET_NAME}}
@@ -393,6 +394,15 @@ if [[ -z "$IRONIC_DIB_RAMDISK_OPTIONS" ]]; then
 fi
 # DHCP timeout for the dhcp-all-interfaces element.
 IRONIC_DIB_DHCP_TIMEOUT=${IRONIC_DIB_DHCP_TIMEOUT:-60}
+
+# Options for building a DIB image
+IRONIC_BUILD_DIB_IMAGE=${IRONIC_BUILD_DIB_IMAGE:-False}
+IRONIC_DIB_IMAGE_OPTIONS=${IRONIC_DIB_IMAGE_OPTIONS:-}
+IRONIC_DIB_IMAGE_OS=${IRONIC_DIB_IMAGE_OS:-centos}
+IRONIC_DIB_IMAGE_RELEASE=${IRONIC_DIB_IMAGE_RELEASE:-9-stream}
+if [[ -z "$IRONIC_DIB_IMAGE_OPTIONS" ]]; then
+    IRONIC_DIB_IMAGE_OPTIONS="$IRONIC_DIB_IMAGE_OS bootloader block-device-efi"
+fi
 
 # Some drivers in Ironic require deploy ramdisk in bootable ISO format.
 # Set this variable to "true" to build an ISO for deploy ramdisk and
@@ -2302,7 +2312,7 @@ function create_bridge_and_vms {
                 -a $IRONIC_HW_ARCH -b $IRONIC_VM_NETWORK_BRIDGE $vm_opts -p $vbmc_port -o $pdu_outlet \
                 -i $IRONIC_VM_INTERFACE_COUNT -f $IRONIC_VM_SPECS_DISK_FORMAT -M $PUBLIC_BRIDGE_MTU $log_arg \
                 -v $IRONIC_VM_VOLUME_COUNT -P $LIBVIRT_STORAGE_POOL \
-                -t $IRONIC_MACHINE_TYPE >> $IRONIC_VM_MACS_CSV_FILE
+                -t $IRONIC_MACHINE_TYPE -B $IRONIC_VM_BLOCK_SIZE >> $IRONIC_VM_MACS_CSV_FILE
 SUBSHELL
 
         if is_deployed_by_ipmi; then
@@ -3066,6 +3076,27 @@ function build_ipa_dib_ramdisk {
     rm -rf $tempdir
 }
 
+function build_dib_image {
+    local target_path=$1
+    local tempdir
+    tempdir=$(mktemp -d --tmpdir=${DEST})
+
+    # install diskimage-builder if not present
+    if ! $(type -P disk-image-create > /dev/null); then
+        install_diskimage_builder
+    fi
+    # NOTE(TheJulia): Explicitly setting an release is likely not
+    # needed, but just in case!
+    DIB_BLOCK_SIZE=$IRONIC_VM_BLOCK_SIZE \
+    DIB_RELEASE=$IRONIC_DIB_IMAGE_RELEASE \
+        disk-image-create "$IRONIC_DIB_IMAGE_OPTIONS" \
+        -x -t qcow2 -o  "$tempdir/target-os-image"
+    chmod -R +r $tempdir
+    mv "$tempdir/target-os-image.qcow2" "$target_path"
+    rm -rf $tempdir
+}
+
+
 function upload_image_if_needed {
     if [[ "$IRONIC_PARTITIONED_IMAGE_NAME" =~ cirros ]] && is_service_enabled glance; then
         echo Building a Cirros image suitable for local boot
@@ -3102,6 +3133,31 @@ function upload_image_if_needed {
         if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" != True ]]; then
             IRONIC_IMAGE_NAME=$IRONIC_PARTITIONED_IMAGE_NAME
             DEFAULT_IMAGE_NAME=$IRONIC_IMAGE_NAME
+        fi
+    fi
+}
+
+function upload_dib_image_if_needed {
+    if [[ "$IRONIC_BUILD_DIB_IMAGE" == "True" ]] && is_service_enabled glance; then
+        echo "Building a DIB image suitable for local boot"
+
+        IRONIC_IMAGE_NAME="ironic-dib-image.img"
+
+        local dest
+        dest="$FILES/$IRONIC_IMAGE_NAME"
+
+        build_dib_image "$dest"
+
+        openstack image create $IRONIC_IMAGE_NAME \
+            --public --disk-format qcow2 --container-format bare \
+            --file $(readlink -f "$dest")
+
+        # Change the default image only if the provided settings prevent the
+        # default cirros image from working.
+        if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" != True ]]; then
+            IRONIC_IMAGE_NAME=$IRONIC_IMAGE_NAME
+            DEFAULT_IMAGE_NAME=$IRONIC_IMAGE_NAME
+            IRONIC_WHOLEDISK_IMAGE_NAME=$IRONIC_IMAGE_NAME
         fi
     fi
 }
@@ -3305,6 +3361,7 @@ function prepare_baremetal_basic_ops {
     fi
 
     upload_image_if_needed
+    upload_dib_image_if_needed
 
     configure_tftpd
     configure_iptables
