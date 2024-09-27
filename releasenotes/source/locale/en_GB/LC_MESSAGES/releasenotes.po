@@ -9,11 +9,11 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Ironic Release Notes\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-09-21 11:03+0000\n"
+"POT-Creation-Date: 2024-09-25 11:26+0000\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"PO-Revision-Date: 2024-09-01 01:13+0000\n"
+"PO-Revision-Date: 2024-09-26 06:13+0000\n"
 "Last-Translator: Andi Chandler <andi@gowling.com>\n"
 "Language-Team: English (United Kingdom)\n"
 "Language: en_GB\n"
@@ -237,6 +237,9 @@ msgstr "16.0.4"
 msgid "16.0.5"
 msgstr "16.0.5"
 
+msgid "16.0.5-19"
+msgstr "16.0.5-19"
+
 msgid "17.0.0"
 msgstr "17.0.0"
 
@@ -252,6 +255,9 @@ msgstr "17.0.4"
 msgid "17.1.0"
 msgstr "17.1.0"
 
+msgid "17.1.0-21"
+msgstr "17.1.0-21"
+
 msgid "18.2.0"
 msgstr "18.2.0"
 
@@ -263,6 +269,9 @@ msgstr "18.2.2"
 
 msgid "18.3.0"
 msgstr "18.3.0"
+
+msgid "18.3.0-15"
+msgstr "18.3.0-15"
 
 msgid "20.1.0"
 msgstr "20.1.0"
@@ -276,6 +285,9 @@ msgstr "20.1.2"
 msgid "20.1.3"
 msgstr "20.1.3"
 
+msgid "20.1.3-8"
+msgstr "20.1.3-8"
+
 msgid "21.1.0"
 msgstr "21.1.0"
 
@@ -285,6 +297,9 @@ msgstr "21.1.1"
 msgid "21.1.2"
 msgstr "21.1.2"
 
+msgid "21.1.2-4"
+msgstr "21.1.2-4"
+
 msgid "21.4.0"
 msgstr "21.4.0"
 
@@ -293,6 +308,9 @@ msgstr "21.4.1"
 
 msgid "21.4.2"
 msgstr "21.4.2"
+
+msgid "21.4.3"
+msgstr "21.4.3"
 
 msgid "22.0.0"
 msgstr "22.0.0"
@@ -305,6 +323,9 @@ msgstr "23.0.0"
 
 msgid "23.0.1"
 msgstr "23.0.1"
+
+msgid "23.0.2"
+msgstr "23.0.2"
 
 msgid "23.1.0"
 msgstr "23.1.0"
@@ -1689,6 +1710,13 @@ msgstr ""
 "they begin sending the X-OpenStack-Ironic-API-Version header with a value >= "
 "1.11."
 
+msgid ""
+"Configdrives may be used with the \"agent\" drivers in lieu of a metadata "
+"service, if desired."
+msgstr ""
+"Configdrives may be used with the \"agent\" drivers in lieu of a metadata "
+"service, if desired."
+
 msgid "Current Series Release Notes"
 msgstr "Current Series Release Notes"
 
@@ -1735,6 +1763,13 @@ msgstr ""
 "using the Japanese locale"
 
 msgid ""
+"For servers with varied local disks, hints may be supplied that affect which "
+"disk device the OS is provisioned to."
+msgstr ""
+"For servers with varied local disks, hints may be supplied that affect which "
+"disk device the OS is provisioned to."
+
+msgid ""
 "IPMI Passwords are now obfuscated in REST API responses. This may be "
 "disabled by changing API policy settings."
 msgstr ""
@@ -1762,6 +1797,13 @@ msgstr "Known issues"
 msgid "Liberty Series (4.0.0 - 4.2.5) Release Notes"
 msgstr "Liberty Series (4.0.0 - 4.2.5) Release Notes"
 
+msgid ""
+"Logical names may be used to address Nodes, in addition to their canonical "
+"UUID."
+msgstr ""
+"Logical names may be used to address Nodes, in addition to their canonical "
+"UUID."
+
 msgid "Migrations from Nova \"baremetal\" have been removed"
 msgstr "Migrations from Nova \"baremetal\" have been removed"
 
@@ -1771,8 +1813,18 @@ msgstr "Mitaka Series (4.3.0 - 5.1.x) Release Notes"
 msgid "Newton Series (6.0.0 - 6.2.x) Release Notes"
 msgstr "Newton Series (6.0.0 - 6.2.x) Release Notes"
 
+msgid ""
+"Nodes may be placed into maintenance mode via REST API calls. An optional "
+"maintenance reason may be specified when doing so."
+msgstr ""
+"Nodes may be placed into maintenance mode via REST API calls. An optional "
+"maintenance reason may be specified when doing so."
+
 msgid "Ocata Series (7.0.0 - 7.0.x) Release Notes"
 msgstr "Ocata Series (7.0.0 - 7.0.x) Release Notes"
+
+msgid "Other Changes"
+msgstr "Other Changes"
 
 msgid ""
 "Out of tree drivers may be broken by this release. The AgentDeploy and "
@@ -1826,11 +1878,27 @@ msgstr "Removed deprecated 'admin_api' policy rule"
 msgid "Rocky Series (11.0.0 - 11.1.x) Release Notes"
 msgstr "Rocky Series (11.0.0 - 11.1.x) Release Notes"
 
+msgid "Running more than one nova-compute process is not officially supported."
+msgstr ""
+"Running more than one Nova-compute process is not officially supported."
+
+msgid "SeaMicro driver supports serial console"
+msgstr "SeaMicro driver supports serial console"
+
 msgid "Several hardware drivers have been added or enhanced"
 msgstr "Several hardware drivers have been added or enhanced"
 
 msgid "Stein Series (12.0.0 - 12.1.x) Release Notes"
 msgstr "Stein Series (12.0.0 - 12.1.x) Release Notes"
+
+msgid ""
+"Support for fetching kernel, ramdisk, and instance images from HTTP[S] "
+"sources directly has been added to remove the dependency on Glance. Using "
+"ironic as a standalone service"
+msgstr ""
+"Support for fetching kernel, ramdisk, and instance images from HTTP[S] "
+"sources directly has been added to remove the dependency on Glance. Using "
+"Ironic as a standalone service"
 
 msgid "Support for the new ENROLL workflow during Node creation"
 msgstr "Support for the new ENROLL workflow during Node creation"
@@ -1875,6 +1943,16 @@ msgstr ""
 "agent to deploy an image. An optional config [agent]memory_consumed_by_agent "
 "is provided. When Ironic does this check, this config option may be set to "
 "factor in the amount of RAM to reserve for running the agent."
+
+msgid ""
+"The driver_info parameters of \"pxe_deploy_kernel\" and \"pxe_deploy_ramdisk"
+"\" are deprecated in favour of \"deploy_kernel\" and \"deploy_ramdisk\"."
+msgstr ""
+"The driver_info parameters of \"pxe_deploy_kernel\" and \"pxe_deploy_ramdisk"
+"\" are deprecated in favour of \"deploy_kernel\" and \"deploy_ramdisk\"."
+
+msgid "The following enhancements were made to existing drivers:"
+msgstr "The following enhancements were made to existing drivers:"
 
 msgid ""
 "The older bash ramdisk built by diskimage-builder is now deprecated and "
@@ -1981,6 +2059,9 @@ msgstr "Ussuri Series (14.0.0 - 15.0.x) Release Notes"
 
 msgid "Victoria Series (15.1.0 - 16.0.x) Release Notes"
 msgstr "Victoria Series (15.1.0 - 16.0.x) Release Notes"
+
+msgid "VirtualBox (testing driver only)"
+msgstr "VirtualBox (testing driver only)"
 
 msgid "Wallaby Series (16.1.0 - 17.0.x) Release Notes"
 msgstr "Wallaby Series (16.1.0 - 17.0.x) Release Notes"
