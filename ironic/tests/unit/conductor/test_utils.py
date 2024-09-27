@@ -355,7 +355,8 @@ class NodePowerActionTestCase(db_base.DbTestCase):
 
     @mock.patch.object(fake.FakePower, 'reboot', autospec=True)
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
-    def test_node_power_action_power_reboot(self, get_power_mock, reboot_mock):
+    def _test_node_power_action_power_reboot(self, get_power_mock, reboot_mock,
+                                             disable_power_off=False):
         """Test for reboot a node."""
         dii = {'agent_secret_token': 'token',
                'agent_cached_deploy_steps': ['steps']}
@@ -363,7 +364,8 @@ class NodePowerActionTestCase(db_base.DbTestCase):
                                           uuid=uuidutils.generate_uuid(),
                                           driver='fake-hardware',
                                           power_state=states.POWER_ON,
-                                          driver_internal_info=dii)
+                                          driver_internal_info=dii,
+                                          disable_power_off=disable_power_off)
         task = task_manager.TaskManager(self.context, node.uuid)
 
         conductor_utils.node_power_action(task, states.REBOOT)
@@ -375,6 +377,12 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         self.assertIsNone(node['target_power_state'])
         self.assertIsNone(node['last_error'])
         self.assertNotIn('agent_secret_token', node['driver_internal_info'])
+
+    def test_node_power_action_power_reboot(self):
+        self._test_node_power_action_power_reboot()
+
+    def test_node_power_action_power_reboot_with_disable_power_off(self):
+        self._test_node_power_action_power_reboot(disable_power_off=True)
 
     @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
     def test_node_power_action_invalid_state(self, get_power_mock):
@@ -403,6 +411,30 @@ class NodePowerActionTestCase(db_base.DbTestCase):
         node.refresh()
         self.assertEqual(states.POWER_OFF, node['power_state'])
         self.assertIsNone(node['target_power_state'])
+        self.assertIsNone(node['last_error'])
+
+    @mock.patch.object(fake.FakePower, 'get_power_state', autospec=True)
+    def test_node_power_action_disable_power_off(self, get_power_mock):
+        """Test for exception when power off is disabled."""
+        node = obj_utils.create_test_node(self.context,
+                                          uuid=uuidutils.generate_uuid(),
+                                          driver='fake-hardware',
+                                          power_state=states.POWER_ON,
+                                          disable_power_off=True)
+        task = task_manager.TaskManager(self.context, node.uuid)
+
+        get_power_mock.return_value = states.POWER_ON
+
+        self.assertRaises(exception.PowerStateFailure,
+                          conductor_utils.node_power_action,
+                          task, states.POWER_OFF)
+
+        node.refresh()
+        get_power_mock.assert_not_called()
+        self.assertEqual(states.POWER_ON, node['power_state'])
+        self.assertIsNone(node['target_power_state'])
+        # Not updating last_error - this condition should be caught on the API
+        # level and reported immediately.
         self.assertIsNone(node['last_error'])
 
     @mock.patch('ironic.objects.node.NodeSetPowerStateNotification',

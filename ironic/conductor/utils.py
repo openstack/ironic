@@ -297,6 +297,12 @@ def node_power_action(task, new_state, timeout=None):
         new_state)
     node = task.node
 
+    target_state = _calculate_target_state(new_state)
+    if target_state == states.POWER_OFF and node.disable_power_off:
+        LOG.error("Refusing to power off node %s with disable_power_off "
+                  "flag set", node.uuid)
+        raise exception.PowerStateFailure(pstate=new_state)
+
     if _can_skip_state_change(task, new_state):
         # NOTE(TheJulia): Even if we are not changing the power state,
         # we need to wipe the token out, just in case for some reason
@@ -306,7 +312,6 @@ def node_power_action(task, new_state, timeout=None):
             wipe_internal_info_on_power_off(node)
             node.save()
         return
-    target_state = _calculate_target_state(new_state)
 
     # Set the target_power_state and clear any last_error, if we're
     # starting a new operation. This will expose to other processes
