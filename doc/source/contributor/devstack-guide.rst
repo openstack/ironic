@@ -270,6 +270,20 @@ services to run in that version, too. Just add this config:
 
 ``TARGET_BRANCH=stable/2024.1``
 
+.. _ir-vm-size:
+
+VM Sizing and Config
+--------------------
+Ironic devstack uses VMs to masquerade as baremetal for testing.
+
+You can change the size and number of fake baremetal VMs spun up via
+``IRONIC_VM_COUNT``, ``IRONIC_VM_SPECS_RAM`` and, ``IRONIC_VM_SPECS_DISK`` in
+your devstack ``local.conf``.
+
+If you want to test fully-featured DIB ramdisks in one of these configs,
+increase the value of ``IRONIC_VM_SPECS_RAM``. A value of
+``IRONIC_VM_SPECS_RAM=4096`` should be sufficient. If necessary, you can
+reduce the ``IRONIC_VM_COUNT`` to free up additional ram for fewer, larger VMs.
 
 Other Devstack Configurations
 -----------------------------
@@ -497,3 +511,9 @@ a branch or tag::
 For more details, see the
 `devstack plugin interface documentation
 <https://docs.openstack.org/devstack/latest/plugins.html#plugin-interface>`_.
+
+Custom Ironic-Python-Agent ramdisk raising kernel panic
+-------------------------------------------------------
+The above devstack configurations configure VMs for 2GB ram, which is
+insufficient to run anything but the TinyIPA CI ramdisk. See :ref:`ir-vm-size`
+for instructions on raising this value.
