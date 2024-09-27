@@ -46,23 +46,12 @@ if pysnmp:
     snmp_auth_protocols = {
         'md5': snmp.usmHMACMD5AuthProtocol,
         'sha': snmp.usmHMACSHAAuthProtocol,
+        'sha224': snmp.usmHMAC128SHA224AuthProtocol,
+        'sha256': snmp.usmHMAC192SHA256AuthProtocol,
+        'sha384': snmp.usmHMAC256SHA384AuthProtocol,
+        'sha512': snmp.usmHMAC384SHA512AuthProtocol,
         'none': snmp.usmNoAuthProtocol,
     }
-
-    # available since pysnmp 4.4.1
-    try:
-        snmp_auth_protocols.update(
-            {
-                'sha224': snmp.usmHMAC128SHA224AuthProtocol,
-                'sha256': snmp.usmHMAC192SHA256AuthProtocol,
-                'sha384': snmp.usmHMAC256SHA384AuthProtocol,
-                'sha512': snmp.usmHMAC384SHA512AuthProtocol,
-
-            }
-        )
-
-    except AttributeError:
-        pass
 
     snmp_priv_protocols = {
         'des': snmp.usmDESPrivProtocol,
@@ -70,21 +59,10 @@ if pysnmp:
         'aes': snmp.usmAesCfb128Protocol,
         'aes192': snmp.usmAesCfb192Protocol,
         'aes256': snmp.usmAesCfb256Protocol,
+        'aes192blmt': snmp.usmAesBlumenthalCfb192Protocol,
+        'aes256blmt': snmp.usmAesBlumenthalCfb256Protocol,
         'none': snmp.usmNoPrivProtocol,
     }
-
-    # available since pysnmp 4.4.3
-    try:
-        snmp_priv_protocols.update(
-            {
-                'aes192blmt': snmp.usmAesBlumenthalCfb192Protocol,
-                'aes256blmt': snmp.usmAesBlumenthalCfb256Protocol,
-
-            }
-        )
-
-    except AttributeError:
-        pass
 
 else:
     snmp = None
