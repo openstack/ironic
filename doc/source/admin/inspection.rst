@@ -18,10 +18,9 @@ There are three kinds of inspection supported by Bare Metal service:
    including ``ilo``, ``idrac`` and ``irmc``.
 
 #. :doc:`In-band inspection </admin/inspection/inspector>` utilizing
-   the ironic-inspector_ project.
+   the ironic-inspector_ project. This is now deprecated.
 
-#. New experimental built-in :doc:`in-band inspection
-   </admin/inspection/index>`.
+#. New built-in :doc:`in-band inspection </admin/inspection/index>`.
 
 The node should be in the ``manageable`` state before inspection is initiated.
 If it is in the ``enroll`` or ``available`` state, move it to ``manageable``
