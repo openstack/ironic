@@ -2214,3 +2214,8 @@ def allow_attach_detach_vmedia():
 def allow_get_vmedia():
     """Check if we should support get virtual media action."""
     return api.request.version.minor >= versions.MINOR_93_GET_VMEDIA
+
+
+def allow_node_ident_as_param_for_port_creation():
+    """Check if 'node_ident' parameter is allowed for port creation."""
+    return api.request.version.minor >= versions.MINOR_94_PORT_NODENAME

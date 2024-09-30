@@ -1958,6 +1958,75 @@ class TestPost(test_api_base.BaseApiTest):
         mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
                                             'test-topic')
 
+    def test_create_port_missing_address_fails(self, mock_create):
+        pdict = post_get_test_port(node_uuid=self.node.uuid)
+        del pdict['address']
+
+        response = self.post_json('/ports', pdict, headers=self.headers,
+                                  expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+        self.assertIn("'address' is a required property",
+                      response.json['error_message'])
+        self.assertFalse(mock_create.called)
+
+    def test_create_port_with_node_uuid(self, mock_create):
+        pdict = post_get_test_port(node_uuid=self.node.uuid)
+        response = self.post_json('/ports', pdict, headers=self.headers)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        result = self.get_json('/ports/%s' % response.json['uuid'],
+                               headers=self.headers)
+        self.assertEqual(self.node.uuid, result['node_uuid'])
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
+
+    def test_create_port_with_node_ident(self, mock_create):
+        self.node.name = 'test-node-name'
+        self.node.save()
+
+        pdict = post_get_test_port()
+        pdict['node_ident'] = self.node.name
+        del pdict['node_uuid']
+
+        response = self.post_json('/ports', pdict, headers=self.headers)
+        self.assertEqual(http_client.CREATED, response.status_int)
+        result = self.get_json('/ports/%s' % response.json['uuid'],
+                               headers=self.headers)
+        self.assertEqual(self.node.uuid, result['node_uuid'])
+        mock_create.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                            'test-topic')
+
+    def test_create_port_with_both_node_ident_and_node_uuid(self,
+                                                            mock_create):
+        self.node.name = 'test-node-name'
+        self.node.save()
+
+        pdict = post_get_test_port(node_uuid=self.node.uuid)
+        pdict['node_ident'] = self.node.name
+        response = self.post_json('/ports', pdict, headers=self.headers,
+                                  expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_create_port_without_node_or_node_uuid(self, mock_create):
+        pdict = post_get_test_port(node_uuid=self.node.uuid)
+        del pdict['node_uuid']
+        response = self.post_json('/ports', pdict, headers=self.headers,
+                                  expect_errors=True)
+        self.assertEqual(http_client.BAD_REQUEST, response.status_int)
+
+    def test_create_port_with_node_ident_unsupported_api_version(self,
+                                                                 mock_create):
+        headers = {api_base.Version.string: '1.93'}
+        self.node.name = 'test-node-name'
+        self.node.save()
+
+        pdict = post_get_test_port(node_uuid=self.node.uuid)
+        pdict['node_ident'] = self.node.name
+        del pdict['node_uuid']
+
+        response = self.post_json('/ports', pdict, headers=headers,
+                                  expect_errors=True)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
     @mock.patch.object(notification_utils, '_emit_api_notification',
                        autospec=True)
     def test_create_port_error(self, mock_notify, mock_create):
