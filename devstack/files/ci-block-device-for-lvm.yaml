@@ -1,0 +1,73 @@
+- local_loop:
+    name: image0
+
+- partitioning:
+    base: image0
+    label: gpt
+    partitions:
+      - name: ESP
+        type: 'EF00'
+        size: 350MiB
+        mkfs:
+          type: vfat
+          mount:
+            mount_point: /boot/efi
+            fstab:
+              options: "defaults"
+              fsck-passno: 2
+      - name: BSP
+        type: 'EF02'
+        size: 8MiB
+      - name: root
+        flags: [ boot ]
+        size: 6G
+- lvm:
+    name: lvm
+    base: [ root ]
+    pvs:
+        - name: pv
+          base: root
+          options: [ "--force" ]
+    vgs:
+        - name: vg
+          base: [ "pv" ]
+          options: [ "--force" ]
+    lvs:
+        - name: lv_root
+          base: vg
+          extents: 50%VG
+        - name: lv_var
+          base: vg
+          extents: 15%VG
+        - name: lv_home
+          base: vg
+          extents: 10%VG
+- mkfs:
+    name: fs_root
+    base: lv_root
+    type: xfs
+    label: "img-rootfs"
+    mount:
+        mount_point: /
+        fstab:
+            options: "rw,relatime"
+            fsck-passno: 1
+- mkfs:
+    name: fs_var
+    base: lv_var
+    type: ext4
+    mount:
+        mount_point: /var
+        fstab:
+            options: "rw,relatime"
+            fsck-passno: 2
+- mkfs:
+    name: fs_home
+    base: lv_home
+    type: ext4
+    mount:
+        mount_point: /home
+        fstab:
+            options: "rw,nodev,relatime"
+            fsck-passno: 2
+

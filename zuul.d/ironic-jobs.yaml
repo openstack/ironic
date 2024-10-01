@@ -1023,9 +1023,15 @@
     description: "Build 4k disk artifacts with 4k VMs"
     parent: ironic-tempest-uefi-redfish-vmedia
     vars:
+      tempest_test_timeout: 2800
       devstack_localrc:
+        # NOTE(TheJulia): This job takes a while because it is blending
+        # vmedia *and* 4k block device layouts which requires mastering and
+        # streaming a real image as opposed to cirros.
+        BUILD_TIMEOUT: 2400
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
         IRONIC_VM_COUNT: 1
+        IRONIC_VM_SPECS_DISK: 20
         IRONIC_VM_BLOCK_SIZE: 4096
         IRONIC_BUILD_DIB_IMAGE: True
         SWIFT_ENABLE_TEMPURLS: False

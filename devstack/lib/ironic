@@ -401,7 +401,7 @@ IRONIC_DIB_IMAGE_OPTIONS=${IRONIC_DIB_IMAGE_OPTIONS:-}
 IRONIC_DIB_IMAGE_OS=${IRONIC_DIB_IMAGE_OS:-centos}
 IRONIC_DIB_IMAGE_RELEASE=${IRONIC_DIB_IMAGE_RELEASE:-9-stream}
 if [[ -z "$IRONIC_DIB_IMAGE_OPTIONS" ]]; then
-    IRONIC_DIB_IMAGE_OPTIONS="$IRONIC_DIB_IMAGE_OS bootloader block-device-efi"
+    IRONIC_DIB_IMAGE_OPTIONS="$IRONIC_DIB_IMAGE_OS bootloader block-device-efi-lvm growvols dracut-regenerate"
 fi
 
 # Some drivers in Ironic require deploy ramdisk in bootable ISO format.
@@ -3085,12 +3085,13 @@ function build_dib_image {
     if ! $(type -P disk-image-create > /dev/null); then
         install_diskimage_builder
     fi
-    # NOTE(TheJulia): Explicitly setting an release is likely not
-    # needed, but just in case!
+    DIB_GROWVOLS_TRIGGER=systemd \
+    DIB_GROWVOLS_ARGS="img-rootfs=60%" \
     DIB_BLOCK_SIZE=$IRONIC_VM_BLOCK_SIZE \
     DIB_RELEASE=$IRONIC_DIB_IMAGE_RELEASE \
+    DIB_BLOCK_DEVICE_CONFIG=file://$IRONIC_DEVSTACK_FILES_DIR/ci-block-device-for-lvm.yaml \
         disk-image-create "$IRONIC_DIB_IMAGE_OPTIONS" \
-        -x -t qcow2 -o  "$tempdir/target-os-image"
+        -x -t qcow2 -o  "$tempdir/target-os-image" --image-size 7
     chmod -R +r $tempdir
     mv "$tempdir/target-os-image.qcow2" "$target_path"
     rm -rf $tempdir
