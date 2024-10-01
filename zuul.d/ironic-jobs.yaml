@@ -421,19 +421,6 @@
         ironic-inspector: True
         ironic-inspector-dhcp: True
 
-- job:
-    name: ironic-tempest-pxe_ipmitool-postgres
-    description: ironic-tempest-pxe_ipmitool-postgres
-    parent: ironic-base
-    vars:
-      devstack_localrc:
-        IRONIC_ENABLED_BOOT_INTERFACES: "fake,pxe"
-        IRONIC_IPXE_ENABLED: False
-        IRONIC_AUTOMATED_CLEAN_ENABLED: False
-      devstack_services:
-        mysql: False
-        postgresql: True
-
 # NOTE(rpittau): converted job but not running for now as there
 # could be an issue with the lookup in ironic-python-agent
 - job:

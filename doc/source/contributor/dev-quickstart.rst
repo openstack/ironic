@@ -95,15 +95,15 @@ environment on most current distributions.
 
 - Ubuntu/Debian::
 
-    sudo apt-get install build-essential python3-dev libssl-dev python3-pip libmysqlclient-dev libxml2-dev libxslt-dev libpq-dev git git-review libffi-dev gettext ipmitool psmisc graphviz libjpeg-dev qemu-utils
+    sudo apt-get install build-essential python3-dev libssl-dev python3-pip libmysqlclient-dev libxml2-dev libxslt-dev git git-review libffi-dev gettext ipmitool psmisc graphviz libjpeg-dev qemu-utils
 
 - RHEL/CentOS/Fedora::
 
-    sudo dnf install python3-devel openssl-devel python3-pip mysql-devel libxml2-devel libxslt-devel postgresql-devel git git-review libffi-devel gettext ipmitool psmisc graphviz gcc libjpeg-turbo-devel qemu-img
+    sudo dnf install python3-devel openssl-devel python3-pip mysql-devel libxml2-devel libxslt-devel git git-review libffi-devel gettext ipmitool psmisc graphviz gcc libjpeg-turbo-devel qemu-img
 
 - openSUSE/SLE::
 
-    sudo zypper install git git-review libffi-devel libmysqlclient-devel libopenssl-devel libxml2-devel libxslt-devel postgresql-devel python3-devel python-nose python3-pip gettext-runtime psmisc qemu-img
+    sudo zypper install git git-review libffi-devel libmysqlclient-devel libopenssl-devel libxml2-devel libxslt-devel python3-devel python-nose python3-pip gettext-runtime psmisc qemu-img
 
 To run the tests locally, it is a requirement that your terminal emulator
 supports unicode with the ``en_US.UTF8`` locale. If you use locale-gen to
