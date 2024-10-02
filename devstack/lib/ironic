@@ -3861,47 +3861,6 @@ function build_dib_image {
     rm -rf $tempdir
 }
 
-
-function upload_image_if_needed {
-    if [[ "$IRONIC_PARTITIONED_IMAGE_NAME" =~ cirros ]] && is_service_enabled glance; then
-        echo Building a Cirros image suitable for local boot
-
-        local dest
-        IRONIC_PARTITIONED_IMAGE_NAME=cirros-${CIRROS_VERSION}-${IRONIC_HW_ARCH}-partition
-
-        dest="$IRONIC_DATA_DIR/$IRONIC_PARTITIONED_IMAGE_NAME.img"
-
-        # Export some variables that the script is using.
-        CIRROS_ARCH=$IRONIC_HW_ARCH CIRROS_VERSION=$CIRROS_VERSION \
-            IRONIC_TTY_DEV=$IRONIC_TTY_DEV VERBOSE=$VERBOSE \
-            $IRONIC_SCRIPTS_DIR/cirros-partition.sh "$dest"
-
-        # TODO(dtantsur): stop uploading kernel/ramdisk when image_type support
-        # lands.
-        local kernel_id
-        kernel_id=$(openstack image list -f value -c ID -c Name \
-            | awk '/cirros.*kernel/ { print $1; exit 0; }')
-        die_if_not_set $LINENO kernel_id "Cannot find cirros kernel"
-
-        local ramdisk_id
-        ramdisk_id=$(openstack image list -f value -c ID -c Name \
-            | awk '/cirros.*ramdisk/ { print $1; exit 0; }')
-        die_if_not_set $LINENO ramdisk_id "Cannot find cirros ramdisk"
-
-        openstack image create $IRONIC_PARTITIONED_IMAGE_NAME \
-            --public --disk-format raw --container-format bare \
-            --property kernel_id=$kernel_id --property ramdisk_id=$ramdisk_id \
-            --file $(readlink -f "$dest")
-
-        # Change the default image only if the provided settings prevent the
-        # default cirros image from working.
-        if [[ "$IRONIC_TEMPEST_WHOLE_DISK_IMAGE" != True ]]; then
-            IRONIC_IMAGE_NAME=$IRONIC_PARTITIONED_IMAGE_NAME
-            DEFAULT_IMAGE_NAME=$IRONIC_IMAGE_NAME
-        fi
-    fi
-}
-
 function upload_dib_image_if_needed {
     if [[ "$IRONIC_BUILD_DIB_IMAGE" == "True" ]] && is_service_enabled glance; then
         echo "Building a DIB image suitable for local boot"
@@ -4125,7 +4084,6 @@ function prepare_baremetal_basic_ops {
         upload_baremetal_ironic_efiboot
     fi
 
-    upload_image_if_needed
     upload_dib_image_if_needed
 
     configure_tftpd
