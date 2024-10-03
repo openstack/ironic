@@ -574,6 +574,40 @@ class HttpImageServiceTestCase(base.TestCase):
                                              verify=True,
                                              timeout=15, auth=None)
 
+    @mock.patch.object(requests, 'get', autospec=True)
+    def test_get_success(self, req_get_mock):
+        response_mock = req_get_mock.return_value
+        response_mock.status_code = http_client.OK
+        response_mock.text = 'value'
+        self.assertEqual('value', self.service.get('http://url'))
+        req_get_mock.assert_called_once_with('http://url', stream=False,
+                                             verify=True, timeout=60,
+                                             auth=None)
+
+    @mock.patch.object(requests, 'get', autospec=True)
+    def test_get_handles_exceptions(self, req_get_mock):
+        for exc in [OSError, requests.ConnectionError,
+                    requests.RequestException, IOError]:
+            req_get_mock.reset_mock()
+            req_get_mock.side_effect = exc
+            self.assertRaises(exception.ImageDownloadFailed,
+                              self.service.get,
+                              'http://url')
+            req_get_mock.assert_called_once_with('http://url', stream=False,
+                                                 verify=True, timeout=60,
+                                                 auth=None)
+
+    @mock.patch.object(requests, 'get', autospec=True)
+    def test_get_success_verify_false(self, req_get_mock):
+        cfg.CONF.set_override('webserver_verify_ca', False)
+        response_mock = req_get_mock.return_value
+        response_mock.status_code = http_client.OK
+        response_mock.text = 'value'
+        self.assertEqual('value', self.service.get('http://url'))
+        req_get_mock.assert_called_once_with('http://url', stream=False,
+                                             verify=False, timeout=60,
+                                             auth=None)
+
 
 class FileImageServiceTestCase(base.TestCase):
     def setUp(self):
