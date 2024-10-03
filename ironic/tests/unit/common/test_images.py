@@ -373,7 +373,7 @@ class IronicImagesTestCase(base.TestCase):
                        autospec=True)
     def test_converted_size_estimate_default(self, image_info_mock):
         info = self.FakeImgInfo()
-        info.disk_size = 2
+        info.actual_size = 2
         info.virtual_size = 10 ** 10
         image_info_mock.return_value = info
         size = images.converted_size('path', estimate=True)
@@ -385,7 +385,7 @@ class IronicImagesTestCase(base.TestCase):
     def test_converted_size_estimate_custom(self, image_info_mock):
         CONF.set_override('raw_image_growth_factor', 3)
         info = self.FakeImgInfo()
-        info.disk_size = 2
+        info.actual_size = 2
         info.virtual_size = 10 ** 10
         image_info_mock.return_value = info
         size = images.converted_size('path', estimate=True)
@@ -397,7 +397,7 @@ class IronicImagesTestCase(base.TestCase):
     def test_converted_size_estimate_raw_smaller(self, image_info_mock):
         CONF.set_override('raw_image_growth_factor', 3)
         info = self.FakeImgInfo()
-        info.disk_size = 2
+        info.actual_size = 2
         info.virtual_size = 5
         image_info_mock.return_value = info
         size = images.converted_size('path', estimate=True)
