@@ -493,6 +493,28 @@ opts = [
                        'permitted for deployment with Ironic. If an image '
                        'format outside of this list is detected, the image '
                        'validation logic will fail the deployment process.')),
+    cfg.BoolOpt('disable_file_checksum',
+                default=False,
+                mutable=False,
+                help=_('Deprecated Security option: In the default case, '
+                       'image files have their checksums verified before '
+                       'undergoing additional conductor side actions such '
+                       'as image conversion. '
+                       'Enabling this option opens the risk of files being '
+                       'replaced at the source without the user\'s '
+                       'knowledge.'),
+                deprecated_for_removal=True),
+    cfg.BoolOpt('disable_support_for_checksum_files',
+                default=False,
+                mutable=False,
+                help=_('Security option: By default Ironic will attempt to '
+                       'retrieve a remote checksum file via HTTP(S) URL in '
+                       'order to validate an image download. This is '
+                       'functionality aligning with ironic-python-agent '
+                       'support for standalone users. Disabling this '
+                       'functionality by setting this option to True will '
+                       'create a more secure environment, however it may '
+                       'break users in an unexpected fashion.')),
 ]
 
 
