@@ -25,6 +25,7 @@ from ironic_lib import metrics_utils
 from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
+from oslo_utils import netutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -843,12 +844,9 @@ class IRMCVolumeBootMixIn(object):
     def _set_iscsi_target(self, task, viom_conf, target):
         """Set information for iSCSI boot to VIOM configuration."""
         connectors = self._get_volume_connectors_by_type(task)
-        target_portal = target.properties['target_portal']
-        if ':' in target_portal:
-            target_host, target_port = target_portal.split(':')
-        else:
-            target_host = target_portal
-            target_port = None
+        target_host, target_port = netutils.parse_host_port(
+            target.properties['target_portal'])
+
         if target.properties.get('auth_method') == 'CHAP':
             chap_user = target.properties.get('auth_username')
             chap_secret = target.properties.get('auth_password')

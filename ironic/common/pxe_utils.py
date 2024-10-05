@@ -26,6 +26,7 @@ from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import fileutils
+from oslo_utils import netutils
 
 from ironic.common import dhcp_factory
 from ironic.common import exception
@@ -1089,10 +1090,8 @@ def get_volume_pxe_options(task):
         return __return_item_or_first_if_list(properties.get(key + 's', ''))
 
     def __format_portal(portal, iqn, lun):
-        if ':' in portal:
-            host, port = portal.split(':')
-        else:
-            host = portal
+        host, port = netutils.parse_host_port(portal)
+        if port is None:
             port = ''
         return ("iscsi:%(host)s::%(port)s:%(lun)x:%(iqn)s" %
                 {'host': host, 'port': port, 'lun': lun, 'iqn': iqn})
