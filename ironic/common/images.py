@@ -492,7 +492,7 @@ def converted_size(path, estimate=False):
     if not estimate:
         return data.virtual_size
     growth_factor = CONF.raw_image_growth_factor
-    return int(min(data.disk_size * growth_factor, data.virtual_size))
+    return int(min(data.actual_size * growth_factor, data.virtual_size))
 
 
 def get_image_properties(context, image_href, properties="all"):
