@@ -170,6 +170,13 @@ opts = [
                       'ramdisk doing the cleaning. If the timeout is reached '
                       'the node will be put in the "clean failed" provision '
                       'state. Set to 0 to disable timeout.')),
+    cfg.IntOpt('service_callback_timeout',
+               default=1800,
+               min=0,
+               help=_('Timeout (seconds) to wait for a callback from the '
+                      'ramdisk doing the servicing. If the timeout is reached '
+                      'the node will be put in the "service failed" provision '
+                      'state. Set to 0 to disable timeout.')),
     cfg.IntOpt('rescue_callback_timeout',
                default=1800,
                min=0,
