@@ -9,6 +9,12 @@ which disk it should pick for the deployment. The list of supported hints is:
 * model (STRING): device identifier
 * vendor (STRING): device vendor
 * serial (STRING): disk serial number
+
+  .. note::
+    Some RAID controllers will generate serial numbers to represent volumes
+    provided to the operating system which do not match or align to physical
+    disks in a system.
+
 * size (INT): size of the device in GiB
 
   .. note::
@@ -18,7 +24,9 @@ which disk it should pick for the deployment. The list of supported hints is:
     should be the actual size. For example, for a 128 GiB disk ``local_gb``
     will be 127, but size hint will be 128.
 
-* wwn (STRING): unique storage identifier
+* wwn (STRING): unique storage identifier and typically mapping to a device.
+  This can be a single device, or a SAN storage controller,
+  or a RAID controller.
 * wwn_with_extension (STRING): unique storage identifier with the vendor extension appended
 * wwn_vendor_extension (STRING): unique vendor storage identifier
 * rotational (BOOLEAN): whether it's a rotational device or not. This
@@ -28,6 +36,11 @@ which disk it should pick for the deployment. The list of supported hints is:
   e.g '1:0:0:0'
 * by_path (STRING): the alternate device name corresponding to a particular
   PCI or iSCSI path, e.g /dev/disk/by-path/pci-0000:00
+
+  .. note::
+    Device identification by-path may not be reliable on Linux kernels using
+    asynchronous device initialization.
+
 * name (STRING): the device name, e.g /dev/md0
 
 
@@ -39,6 +52,13 @@ which disk it should pick for the deployment. The list of supported hints is:
      devices like /dev/sda and /dev/sdb `switching around at boot time
      <https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/7/html/Storage_Administration_Guide/persistent_naming.html>`_.
 
+  .. warning::
+     Furthermore, recent move to asynchronous device initialization among
+     some Linux distribution kernels means that the actual device name string
+     is entirely unreliable when multiple devices are present in the host, as
+     the device name is claimed by the device which responded first, as opposed
+     to the previous pattern where it was the first initialized device in
+     a synchronous process.
 
 To associate one or more hints with a node, update the node's properties
 with a ``root_device`` key, for example::

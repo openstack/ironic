@@ -1283,3 +1283,62 @@ related to image files.
   Image safety checks are generally performed as the deployment process begins
   and stages artifacts, however a late stage check is performed when
   needed by the ironic-python-agent.
+
+Using /dev/sda does not write to the first disk
+===============================================
+
+Alternative name: I chose /dev/sda but I found it as /dev/sdb after rebooting.
+
+Historically, Linux users have grown accustom to a context where /dev/sda is
+the first device in a physical machine. Meaning, if you look at the device
+by_path information or the HCTL, or device LUN, the device ends with a zero.
+
+For example, assuming 3 disks, two controllers, with a single disk on the
+second controller would look something like this:
+
+* /dev/sda maps to a device with lun 0, HCTL 0:0:0:0
+* /dev/sdb maps to a device with lun 1, HCTL 0:0:1:0
+* /dev/sdc maps to a device with lun 2, HCTL 0:1:0:0
+
+However, this was a pattern we grew accustom to because the order of device
+discovery was sequential *and* synchronous. In other words the kernel stepped
+through all possible devices one at a time. Where this breaks is when the
+kernel is operating in a mode where device initialization is asynchronous as
+some distributions have decided to adopt.
+
+The result of a move to an asynchronous initialization is /dev/sda has always
+been the *first* device to initialize, *not* the first device in the system.
+As a result, we can end up with something looking like:
+
+* /dev/sda maps to a device with lun 1, HCTL 0:0:1:0
+* /dev/sdb maps to a device with lun 2, HCTL 0:1:0:0
+* /dev/sdc maps to a device with lun 0, HCTL 0:0:0:0
+
+Generally, most operators might then consider referencing the
+/dev/disk/by-path structure to match disk devices because that seems to imply
+a static order, *however* a kernel operating with asynchronous device
+initialization will order *everything*, including PCI devices the same way,
+meaning by-path can also be unreliable. Furthermore, if your server hardware
+is using multipath IO, you should be operating with multipath enabled such
+that the device is used.
+
+The net result is the best criteria to match on is:
+
+* Serial Number
+* World Wide Name
+* Device HCTL, which *does* appear to be static in these cases, but is not
+  applicable for hosts using multipathing. It may, ultimately, not be static
+  enough, just depending on the hardware in use.
+
+.. NOTE: Some RAID controllers will generate fake WWN and Serial numbers for
+   "disks" being supplied by the RAID controller. Some may also use the same
+   WWN for *all* devices, which is a valid approach as the device Logical Unit
+   Numbers or Device identifier number would be different. Ultimately this
+   means labels on disks may not be able to be matched to volumes through a
+   RAID controller, and operators will need to simply "know their hardware"
+   to navigate the best path depending on the configuration and behavior of
+   their hardware.
+
+.. NOTE: Centos Stream-9 appears to have a probe_type="sync" option which
+   reverts this behavior. For more information please see
+   this `centos stream-9 changeset <https://gitlab.com/redhat/centos-stream/src/kernel/centos-stream-9/-/merge_requests/2819/diffs?commit_id=a93f405246083f0c2e81d0e6c37ba31c6c1b29c3>`_.
