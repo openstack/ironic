@@ -23,6 +23,7 @@ from unittest import mock
 
 from oslo_concurrency import processutils
 from oslo_config import cfg
+from oslo_utils import fileutils
 
 from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
@@ -67,6 +68,100 @@ class IronicImagesTestCase(base.TestCase):
 
         images.fetch('context', 'image_href', 'path', force_raw=True)
 
+        open_mock.assert_called_once_with('path', 'wb')
+        image_service_mock.return_value.download.assert_called_once_with(
+            'image_href', 'file')
+        image_to_raw_mock.assert_called_once_with(
+            'image_href', 'path', 'path.part')
+
+    @mock.patch.object(fileutils, 'compute_file_checksum',
+                       autospec=True)
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    @mock.patch.object(images, 'image_to_raw', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
+    def test_fetch_image_service_force_raw_with_checksum(
+            self, open_mock, image_to_raw_mock,
+            image_service_mock, mock_checksum):
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
+        mock_file_handle.__enter__.return_value = 'file'
+        open_mock.return_value = mock_file_handle
+        mock_checksum.return_value = 'f00'
+
+        images.fetch('context', 'image_href', 'path', force_raw=True,
+                     checksum='f00', checksum_algo='sha256')
+
+        mock_checksum.assert_called_once_with('path', algorithm='sha256')
+        open_mock.assert_called_once_with('path', 'wb')
+        image_service_mock.return_value.download.assert_called_once_with(
+            'image_href', 'file')
+        image_to_raw_mock.assert_called_once_with(
+            'image_href', 'path', 'path.part')
+
+    @mock.patch.object(fileutils, 'compute_file_checksum',
+                       autospec=True)
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    @mock.patch.object(images, 'image_to_raw', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
+    def test_fetch_image_service_with_checksum_mismatch(
+            self, open_mock, image_to_raw_mock,
+            image_service_mock, mock_checksum):
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
+        mock_file_handle.__enter__.return_value = 'file'
+        open_mock.return_value = mock_file_handle
+        mock_checksum.return_value = 'a00'
+
+        self.assertRaises(exception.ImageChecksumError,
+                          images.fetch, 'context', 'image_href',
+                          'path', force_raw=True,
+                          checksum='f00', checksum_algo='sha256')
+
+        mock_checksum.assert_called_once_with('path', algorithm='sha256')
+        open_mock.assert_called_once_with('path', 'wb')
+        image_service_mock.return_value.download.assert_called_once_with(
+            'image_href', 'file')
+        # If the checksum fails, then we don't attempt to convert the image.
+        image_to_raw_mock.assert_not_called()
+
+    @mock.patch.object(fileutils, 'compute_file_checksum',
+                       autospec=True)
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    @mock.patch.object(images, 'image_to_raw', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
+    def test_fetch_image_service_force_raw_no_checksum_algo(
+            self, open_mock, image_to_raw_mock,
+            image_service_mock, mock_checksum):
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
+        mock_file_handle.__enter__.return_value = 'file'
+        open_mock.return_value = mock_file_handle
+        mock_checksum.return_value = 'f00'
+
+        images.fetch('context', 'image_href', 'path', force_raw=True,
+                     checksum='f00')
+
+        mock_checksum.assert_called_once_with('path', algorithm='md5')
+        open_mock.assert_called_once_with('path', 'wb')
+        image_service_mock.return_value.download.assert_called_once_with(
+            'image_href', 'file')
+        image_to_raw_mock.assert_called_once_with(
+            'image_href', 'path', 'path.part')
+
+    @mock.patch.object(fileutils, 'compute_file_checksum',
+                       autospec=True)
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    @mock.patch.object(images, 'image_to_raw', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
+    def test_fetch_image_service_force_raw_combined_algo(
+            self, open_mock, image_to_raw_mock,
+            image_service_mock, mock_checksum):
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
+        mock_file_handle.__enter__.return_value = 'file'
+        open_mock.return_value = mock_file_handle
+        mock_checksum.return_value = 'f00'
+
+        images.fetch('context', 'image_href', 'path', force_raw=True,
+                     checksum='sha512:f00')
+
+        mock_checksum.assert_called_once_with('path', algorithm='sha512')
         open_mock.assert_called_once_with('path', 'wb')
         image_service_mock.return_value.download.assert_called_once_with(
             'image_href', 'file')
