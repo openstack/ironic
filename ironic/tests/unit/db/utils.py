@@ -235,6 +235,7 @@ def get_test_node(**kw):
         'shard': kw.get('shard', None),
         'parent_node': kw.get('parent_node', None),
         'service_step': kw.get('service_step'),
+        'disable_power_off': kw.get('disable_power_off', False),
     }
 
     for iface in drivers_base.ALL_INTERFACES:

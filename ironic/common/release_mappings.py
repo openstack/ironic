@@ -781,7 +781,7 @@ RELEASE_MAPPING = {
         'objects': {
             'Allocation': ['1.1'],
             'BIOSSetting': ['1.1'],
-            'Node': ['1.40'],
+            'Node': ['1.41'],
             'NodeHistory': ['1.0'],
             'NodeInventory': ['1.0'],
             'Conductor': ['1.4'],
