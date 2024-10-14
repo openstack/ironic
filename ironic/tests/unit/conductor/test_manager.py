@@ -5569,6 +5569,22 @@ class ManagerDoSyncPowerStateTestCase(db_base.DbTestCase):
         mock_power_update.assert_called_once_with(
             self.task.context, self.node.instance_uuid, states.POWER_OFF)
 
+    @mock.patch.object(nova, 'power_update', autospec=True)
+    def test_state_changed_no_sync_with_disable_power_off(self,
+                                                          mock_power_update,
+                                                          node_power_action):
+        self.config(force_power_state_during_sync=True, group='conductor')
+        self.node.disable_power_off = True
+        self._do_sync_power_state(states.POWER_ON, states.POWER_OFF)
+
+        self.power.validate.assert_not_called()
+        self.power.get_power_state.assert_called_once_with(self.task)
+        node_power_action.assert_not_called()
+        self.assertEqual(states.POWER_OFF, self.node.power_state)
+        self.task.upgrade_lock.assert_called_once_with()
+        mock_power_update.assert_called_once_with(
+            self.task.context, self.node.instance_uuid, states.POWER_OFF)
+
     @mock.patch('ironic.objects.node.NodeCorrectedPowerStateNotification',
                 autospec=True)
     @mock.patch.object(nova, 'power_update', autospec=True)

@@ -884,6 +884,10 @@ class NodeStatesController(rest.RestController):
                 action=target, node=node_ident,
                 state=rpc_node.provision_state)
 
+        elif (target in (ir_states.POWER_OFF, ir_states.SOFT_POWER_OFF)
+              and rpc_node.disable_power_off):
+            raise exception.PowerStateFailure(pstate=target)
+
         api.request.rpcapi.change_node_power_state(api.request.context,
                                                    rpc_node.uuid, target,
                                                    timeout=timeout,

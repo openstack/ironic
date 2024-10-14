@@ -5548,6 +5548,18 @@ class TestPut(test_api_base.BaseApiTest):
         self._test_power_state_failure(
             states.SOFT_POWER_OFF, http_client.NOT_ACCEPTABLE, 0, "1.26")
 
+    def test_power_state_power_off_with_disable_power_off(self):
+        self.node.disable_power_off = True
+        self.node.save()
+        self._test_power_state_failure(
+            states.POWER_OFF, http_client.CONFLICT, None, None)
+
+    def test_power_state_soft_power_off_with_disable_power_off(self):
+        self.node.disable_power_off = True
+        self.node.save()
+        self._test_power_state_failure(
+            states.SOFT_POWER_OFF, http_client.CONFLICT, None, "1.27")
+
     def test_power_state_by_name_unsupported(self):
         response = self.put_json('/nodes/%s/states/power' % self.node.name,
                                  {'target': states.POWER_ON},

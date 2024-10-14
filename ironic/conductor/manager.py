@@ -4133,7 +4133,8 @@ def do_sync_power_state(task, count):
         return count
 
     if (CONF.conductor.force_power_state_during_sync
-            and task.driver.power.supports_power_sync(task)):
+            and task.driver.power.supports_power_sync(task)
+            and not node.disable_power_off):
         LOG.warning("During sync_power_state, node %(node)s state "
                     "'%(actual)s' does not match expected state. "
                     "Changing hardware state to '%(state)s'.",
