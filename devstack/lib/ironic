@@ -75,19 +75,10 @@ IRONIC_AUTH_CACHE_DIR=${IRONIC_AUTH_CACHE_DIR:-/var/cache/ironic}
 IRONIC_CONF_DIR=${IRONIC_CONF_DIR:-/etc/ironic}
 IRONIC_CONF_FILE=$IRONIC_CONF_DIR/ironic.conf
 IRONIC_MACHINE_TYPE=${IRONIC_MACHINE_TYPE:-q35}
-# Deploy Ironic API under uwsgi (NOT mod_wsgi) server.
-# Devstack aims to remove mod_wsgi support, so ironic shouldn't use it too.
-# If set to False that will fall back to use the eventlet server that
-# can happen on grenade runs.
-# The (confusing) name IRONIC_USE_MOD_WSGI is left for backward compatibility,
-# for example during grenade runs
-# TODO(pas-ha) remove IRONIC_USE_MOD_WSGI var after oldest supported
-# stable branch is stable/rocky
-IRONIC_USE_MOD_WSGI=$(trueorfalse $ENABLE_HTTPD_MOD_WSGI_SERVICES IRONIC_USE_MOD_WSGI)
 # If True, will deploy Ironic API under WSGI server, currently supported one
 # is uwsgi.
 # Defaults to the (now confusingly named) IRONIC_USE_MOD_WSGI for backward compat
-IRONIC_USE_WSGI=$(trueorfalse $IRONIC_USE_MOD_WSGI IRONIC_USE_WSGI)
+IRONIC_USE_WSGI=$(trueorfalse $ENABLE_HTTPD_MOD_WSGI_SERVICES IRONIC_USE_WSGI)
 
 # Whether DevStack will be setup for bare metal or VMs
 IRONIC_IS_HARDWARE=$(trueorfalse False IRONIC_IS_HARDWARE)
