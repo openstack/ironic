@@ -75,10 +75,6 @@ IRONIC_AUTH_CACHE_DIR=${IRONIC_AUTH_CACHE_DIR:-/var/cache/ironic}
 IRONIC_CONF_DIR=${IRONIC_CONF_DIR:-/etc/ironic}
 IRONIC_CONF_FILE=$IRONIC_CONF_DIR/ironic.conf
 IRONIC_MACHINE_TYPE=${IRONIC_MACHINE_TYPE:-q35}
-# If True, will deploy Ironic API under WSGI server, currently supported one
-# is uwsgi.
-# Defaults to the (now confusingly named) IRONIC_USE_MOD_WSGI for backward compat
-IRONIC_USE_WSGI=$(trueorfalse $ENABLE_HTTPD_MOD_WSGI_SERVICES IRONIC_USE_WSGI)
 
 # Whether DevStack will be setup for bare metal or VMs
 IRONIC_IS_HARDWARE=$(trueorfalse False IRONIC_IS_HARDWARE)
@@ -418,12 +414,7 @@ fi
 IRONIC_SERVICE_PROTOCOL=${IRONIC_SERVICE_PROTOCOL:-$SERVICE_PROTOCOL}
 IRONIC_SERVICE_PORT=${IRONIC_SERVICE_PORT:-6385}
 IRONIC_SERVICE_PORT_INT=${IRONIC_SERVICE_PORT_INT:-16385}
-# If ironic api running under apache or UWSGI we use the path rather than port
-if [[ "$IRONIC_USE_WSGI" == "True" ]]; then
-    IRONIC_HOSTPORT=${IRONIC_HOSTPORT:-$SERVICE_HOST/baremetal}
-else
-    IRONIC_HOSTPORT=${IRONIC_HOSTPORT:-$SERVICE_HOST:$IRONIC_SERVICE_PORT}
-fi
+IRONIC_HOSTPORT=${IRONIC_HOSTPORT:-$SERVICE_HOST/baremetal}
 
 # Enable iPXE
 IRONIC_IPXE_ENABLED=$(trueorfalse True IRONIC_IPXE_ENABLED)
@@ -1205,9 +1196,7 @@ function install_ironic {
 
     setup_develop $IRONIC_DIR
 
-    if [[ "$IRONIC_USE_WSGI" == "True" ]] || is_http_server_required; then
-        install_apache_wsgi
-    fi
+    install_apache_wsgi
 
     if is_redfish_enabled || is_deployed_by_redfish; then
         setup_sushy
@@ -1259,9 +1248,7 @@ function _cleanup_ironic_apache_additions {
         disable_apache_site ipxe-ironic
         sudo rm -f $(apache_site_config_for ipxe-ironic)
     fi
-    if [[ "$IRONIC_USE_WSGI" == "True" ]]; then
-        remove_uwsgi_config "$IRONIC_UWSGI_CONF" "$IRONIC_UWSGI"
-    fi
+    remove_uwsgi_config "$IRONIC_UWSGI_CONF" "$IRONIC_UWSGI"
     restart_apache_server
 }
 
@@ -1290,9 +1277,7 @@ function cleanup_ironic {
     cleanup_ironic_config_files
 
     # Cleanup additions made to Apache
-    if [[ "$IRONIC_USE_WSGI" == "True" ]] || is_http_server_required; then
-        _cleanup_ironic_apache_additions
-    fi
+    _cleanup_ironic_apache_additions
 
     cleanup_virtualbmc
     cleanup_virtualpdu
@@ -1667,9 +1652,7 @@ function configure_ironic {
     fi
 
     # Adds uWSGI for Ironic API
-    if [[ "$IRONIC_USE_WSGI" == "True" ]]; then
-        write_uwsgi_config "$IRONIC_UWSGI_CONF" "$IRONIC_UWSGI" "/baremetal"
-    fi
+    write_uwsgi_config "$IRONIC_UWSGI_CONF" "$IRONIC_UWSGI" "/baremetal"
 
     if [[ "$os_VENDOR" =~ (Debian|Ubuntu) ]]; then
         # The groups change with newer libvirt. Older Ubuntu used
@@ -1730,14 +1713,7 @@ function configure_ironic_api {
     iniset $IRONIC_CONF_FILE DEFAULT auth_strategy $IRONIC_AUTH_STRATEGY
     configure_keystone_authtoken_middleware $IRONIC_CONF_FILE ironic
     iniset $IRONIC_CONF_FILE keystone_authtoken service_token_roles_required True
-    if [[ "$IRONIC_USE_WSGI" == "True" ]]; then
-        iniset $IRONIC_CONF_FILE oslo_middleware enable_proxy_headers_parsing True
-    elif is_service_enabled tls-proxy; then
-        iniset $IRONIC_CONF_FILE oslo_middleware enable_proxy_headers_parsing True
-        iniset $IRONIC_CONF_FILE api port $IRONIC_SERVICE_PORT_INT
-    else
-        iniset $IRONIC_CONF_FILE api port $IRONIC_SERVICE_PORT
-    fi
+    iniset $IRONIC_CONF_FILE oslo_middleware enable_proxy_headers_parsing True
 }
 
 # configure_client_for() - is used by configure_ironic_conductor.
@@ -2067,13 +2043,8 @@ function start_ironic_api {
         service_protocol="http"
     fi
 
-    if [[ "$IRONIC_USE_WSGI" == "True" ]]; then
-        run_process "ir-api" "$(which uwsgi) --procname-prefix ironic-api --ini $IRONIC_UWSGI_CONF"
-        ironic_url=$service_protocol://$SERVICE_HOST/baremetal
-    else
-        run_process ir-api "$IRONIC_BIN_DIR/ironic-api --config-file=$IRONIC_CONF_FILE"
-        ironic_url=$service_protocol://$SERVICE_HOST:$service_port
-    fi
+    run_process "ir-api" "$(which uwsgi) --procname-prefix ironic-api --ini $IRONIC_UWSGI_CONF"
+    ironic_url=$service_protocol://$SERVICE_HOST/baremetal
 
     echo "Waiting for ir-api ($ironic_url) to start..."
     if ! timeout $SERVICE_TIMEOUT sh -c "while ! wget --no-proxy -q -O- $ironic_url; do sleep 1; done"; then
@@ -2871,22 +2842,14 @@ function configure_iptables {
 
     ################ Webserver/API
     # To use named /baremetal endpoint we should open default apache port
-    if [[ "$IRONIC_USE_WSGI" == "False" ]]; then
-        sudo iptables -I INPUT -d $HOST_IP -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
-        sudo ip6tables -I INPUT -d $HOST_IP -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
-        # open ironic API on baremetal network
-        sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
-        # allow IPA to connect to ironic API on subnode
-        sudo iptables -I FORWARD -p tcp --dport $IRONIC_SERVICE_PORT -j ACCEPT || true
-    else
-        sudo iptables -I INPUT -d $HOST_IP -p tcp --dport 80 -j ACCEPT || true
-        sudo iptables -I INPUT -d $HOST_IP -p tcp --dport 443 -j ACCEPT || true
-        # open ironic API on baremetal network
-        sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport 80 -j ACCEPT || true
-        sudo ip6tables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport 80 -j ACCEPT || true
-        sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport 443 -j ACCEPT || true
-        sudo ip6tables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport 443 -j ACCEPT || true
-    fi
+    sudo iptables -I INPUT -d $HOST_IP -p tcp --dport 80 -j ACCEPT || true
+    sudo iptables -I INPUT -d $HOST_IP -p tcp --dport 443 -j ACCEPT || true
+    # open ironic API on baremetal network
+    sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport 80 -j ACCEPT || true
+    sudo ip6tables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport 80 -j ACCEPT || true
+    sudo iptables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport 443 -j ACCEPT || true
+    sudo ip6tables -I INPUT -d $IRONIC_HTTP_SERVER -p tcp --dport 443 -j ACCEPT || true
+
     if is_deployed_by_agent; then
         # agent ramdisk gets instance image from swift
         sudo iptables -I INPUT -d $HOST_IP -p tcp --dport ${SWIFT_DEFAULT_BIND_PORT:-8080} -j ACCEPT || true
