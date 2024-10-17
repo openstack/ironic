@@ -1020,7 +1020,8 @@ function install_virtualbmc {
 
     local cmd
 
-    cmd=$(which vbmcd)
+    BIN_DIR=$(get_python_exec_prefix)
+    cmd=$BIN_DIR/vbmcd
     cmd+=" --foreground"
 
     write_user_unit_file $IRONIC_VBMC_SYSTEMD_SERVICE "$cmd" "" "$STACK_USER"

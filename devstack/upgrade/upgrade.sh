@@ -96,7 +96,7 @@ $IRONIC_BIN_DIR/ironic-dbsync --config-file=$IRONIC_CONF_FILE
 if [[ "${HOST_TOPOLOGY}" == "multinode" ]]; then
     iniset $IRONIC_CONF_FILE DEFAULT pin_release_version ${BASE_DEVSTACK_BRANCH#*/}
 else
-    ironic-dbsync online_data_migrations
+    $IRONIC_BIN_DIR/ironic-dbsync online_data_migrations
 fi
 
 ensure_started='ironic-conductor nova-compute '

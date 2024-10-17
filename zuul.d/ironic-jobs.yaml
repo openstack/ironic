@@ -1096,9 +1096,6 @@
           # Required as different access rights are used by default
           # and the classic devstack config which is defaulted doesn't work.
           IRONIC_ENFORCE_SCOPE: True
-          # By default Grenade works on virtual env but Ironic need more work
-          # to enable it. Once Ironic is ready we can remove the below setting. 
-          GLOBAL_VENV: false
         old:
           IRONIC_VM_LOG_DIR: '{{ devstack_bases.old }}/ironic-bm-logs'
       grenade_localrc:
@@ -1207,9 +1204,6 @@
           EBTABLES_RACE_FIX: True
           LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
           IRONIC_VM_LOG_DIR: '/opt/stack/ironic-bm-logs'
-          # By default Grenade works on virtual env but Ironic need more work
-          # to enable it. Once Ironic is ready we can remove the below setting.
-          GLOBAL_VENV: false
       grenade_localrc:
         BASE_RUN_SMOKE: False
       devstack_plugins:
