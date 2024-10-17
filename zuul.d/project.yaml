@@ -41,6 +41,7 @@
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
+        - ironic-tempest-uefi-redfish-vmedia-4k
         # NOTE(rpittau): Currently broken because of an issue with parted
         - metalsmith-integration-glance-centos9-legacy:
             voting: false
@@ -89,6 +90,7 @@
         - ironic-tempest-bios-ipmi-direct-tinyipa
         - ironic-tempest-bfv
         - ironic-tempest-ipa-partition-uefi-pxe-grub2
+        - ironic-tempest-uefi-redfish-vmedia-4k
         # NOTE(rpittau): Currently broken because of an issue with parted
         #- metalsmith-integration-glance-centos9-legacy
         # NOTE(TheJulia): At present, metal3 doesn't leverage
