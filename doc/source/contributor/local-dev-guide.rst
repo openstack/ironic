@@ -218,3 +218,53 @@ help with that, but are not an exhaustive troubleshooting guide::
   . .tox/local-ironic-dev/bin/activate
   pip install -U -e .
 
+Changing the Ironic Localdev Microversion
+_________________________________________
+
+Localdev supports testing against a specific microversion, which is useful
+for testing backwards compatibility or evaluating external tools with
+different versions of the API.
+
+Steps to Change the Microversion
+--------------------------------
+
+To change the microversion, modify the ``ironic.conf.localdev`` file.
+Instead of directly modifying the microversion, you should set the release
+version corresponding to the microversion you intend to test. The mappings
+between release versions and microversions (for the REST API) are maintained
+in ``ironic/common/release_mappings.py``.
+
+For example, to set the microversion to **16.2**, you would adjust
+the ``pin_release_version`` parameter:
+
+.. code-block:: ini
+
+    [DEFAULT]
+    # Set the release version corresponding to microversion 16.2
+    pin_release_version = 16.2
+
+You can review the full configuration and release version mappings
+in the `sample configuration documentation <https://docs.openstack.org/ironic/latest/configuration/sample-config.html>`_.
+
+Resetting Localdev Setup
+------------------------
+
+After changing the microversion, you need to reset the local development environment.
+
+1. Delete the existing database file:
+
+.. code-block:: bash
+
+    rm -f ironic/ironic.sqlite
+
+2. Reinstall Ironic in the virtual environment:
+
+.. code-block:: bash
+
+    . .tox/local-ironic-dev/bin/activate
+    pip uninstall ironic
+    pip install -e .
+
+This change ensures that the APIs from the selected Ironic version
+will be applied, based on the release-to-microversion mapping in
+the Ironic codebase.
