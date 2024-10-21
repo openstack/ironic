@@ -1721,12 +1721,19 @@ class IPMIToolPrivateMethodTestCase(
             'Problem\n\nError: Unable to establish IPMI v2 / RMCP+ session\n',
             'UnsupportedciphersuiteID:17\n\n'
         ]
+        invalid_role_error = 'Error in open session response message : ' \
+            'invalid role\n\nError: ' \
+            'Unable to establish IPMI v2 / RMCP+ session\n'
         no_matching_error = 'Error in open session response message : ' \
             'no matching cipher suite\n\nError: ' \
             'Unable to establish IPMI v2 / RMCP+ session\n'
         unsupported_error = 'Unsupported cipher suite ID : 17\n\n' \
             'Error: Unable to establish IPMI v2 / RMCP+ session\n'
-        valid_errors_stderr = [no_matching_error, unsupported_error]
+        valid_errors_stderr = [
+            invalid_role_error,
+            no_matching_error,
+            unsupported_error,
+        ]
         for invalid_err in invalid_errors_stderr:
             self.assertFalse(ipmi.check_cipher_suite_errors(invalid_err))
         for valid_err in valid_errors_stderr:
