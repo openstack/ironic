@@ -6,6 +6,25 @@ The ``redfish`` hardware type supports sending hardware metrics via the
 a notification will be set to ``hardware.redfish.metrics`` (where ``redfish``
 may be replaced by a different driver name for hardware types derived from it).
 
+Enabling redfish hardware metrics requires some ironic.conf configuration file
+updates:
+
+.. code-block:: ini
+
+    [oslo_messaging_notifications]
+    # The Drivers(s) to handle sending notifications. Possible
+    # values are messaging, messagingv2, routing, log, test, noop,
+    # prometheus_exporter (multi valued)
+    # Example using the messagingv2 driver:
+    driver = messagingv2
+
+    [sensor_data]
+    send_sensor_data = true
+
+    [metrics]
+    backend = collector
+
+
 The payload of each notification is a mapping where keys are sensor types
 (``Fan``, ``Temperature``, ``Power`` or ``Drive``) and values are also mappings
 from sensor identifiers to the sensor data.
