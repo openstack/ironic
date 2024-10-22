@@ -139,7 +139,22 @@ opts = [
                        'DateTime fields. '
                        'This helps avoid TLS certificate issues '
                        'caused by incorrect BMC time.')),
-
+    cfg.StrOpt('default_inspection_hooks',
+               default='validate-interfaces,ports,architecture',
+               help=_('A comma-separated lists of inspection hooks that are '
+                      'run by default for the "agent" inspection interface. '
+                      'In most cases, the operators will not '
+                      'modify this. The default (somewhat conservative) hooks '
+                      'validate interfaces in the inventory, create '
+                      'ports and set the node\'s cpu architecture property.')),
+    cfg.StrOpt('inspection_hooks',
+               default='$default_inspection_hooks',
+               help=_('Comma-separated list of enabled hooks for processing '
+                      'pipeline when using the "redfish" inspection '
+                      'interface. The default for this is '
+                      '$default_inspection_hooks. Hooks can be added before '
+                      'or after the defaults like this: '
+                      '"prehook,$default_hooks,posthook".')),
 ]
 
 

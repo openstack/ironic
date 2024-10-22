@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Adds inspection hooks in the redfish inspect interface for processing data
+    received during inspection. The three default configuration hooks
+    `validate-interfaces`, `ports` and `architecture` are added. A new
+    configuration option `inspection_hooks` is added in the `redfish`
+    configuration section.
