@@ -175,10 +175,8 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             expected_ret = states.DEPLOYWAIT
         data = step_data['argsinfo'].get('settings', None)
         step = step_data['step']
-        if step == 'factory_reset':
-            check_fields.append('post_factory_reset_reboot_requested')
-        elif step == 'apply_configuration':
-            check_fields.append('post_config_reboot_requested')
+        check_fields.append('post_bios_reboot_requested')
+        if step == 'apply_configuration':
             attributes = {s['name']: s['value'] for s in data}
         mock_build_agent_options.return_value = {'a': 'b'}
         with task_manager.acquire(self.context, self.node.uuid,
@@ -263,8 +261,7 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             step_data = self.node.clean_step
         data = step_data['argsinfo'].get('settings', None)
         step = step_data['step']
-        if step == 'factory_reset':
-            check_fields = ['post_factory_reset_reboot_requested']
+        check_fields = ['post_bios_reboot_requested']
         if step == 'apply_configuration':
             mock_bios = mock.Mock()
             # if attributes after reboot not provided then mimic success
@@ -275,8 +272,7 @@ class RedfishBiosTestCase(db_base.DbTestCase):
             mock_system = mock.Mock()
             mock_system.bios = mock_bios
             mock_get_system.return_value = mock_system
-            check_fields = ['post_config_reboot_requested',
-                            'requested_bios_attrs']
+            check_fields.append('requested_bios_attrs')
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=False) as task:
             if step == 'factory_reset':
@@ -293,7 +289,7 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                                 'step': 'factory_reset', 'argsinfo': {}}
         node = self.node
         driver_internal_info = node.driver_internal_info
-        driver_internal_info['post_factory_reset_reboot_requested'] = True
+        driver_internal_info['post_bios_reboot_requested'] = True
         node.driver_internal_info = driver_internal_info
         node.save()
         self._test_step_post_reboot()
@@ -303,7 +299,7 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                                  'step': 'factory_reset', 'argsinfo': {}}
         node = self.node
         driver_internal_info = node.driver_internal_info
-        driver_internal_info['post_factory_reset_reboot_requested'] = True
+        driver_internal_info['post_bios_reboot_requested'] = True
         node.driver_internal_info = driver_internal_info
         node.save()
         self._test_step_post_reboot()
@@ -322,7 +318,7 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                            'NicBoot1': 'NetworkBoot'}
         node = self.node
         driver_internal_info = node.driver_internal_info
-        driver_internal_info['post_config_reboot_requested'] = True
+        driver_internal_info['post_bios_reboot_requested'] = True
         driver_internal_info['requested_bios_attrs'] = requested_attrs
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
@@ -342,7 +338,7 @@ class RedfishBiosTestCase(db_base.DbTestCase):
         attributes_after_reboot = {'ProcTurboMode': 'Disabled'}
         node = self.node
         driver_internal_info = node.driver_internal_info
-        driver_internal_info['post_config_reboot_requested'] = True
+        driver_internal_info['post_bios_reboot_requested'] = True
         driver_internal_info['requested_bios_attrs'] = requested_attrs
         self.node.driver_internal_info = driver_internal_info
         self.node.provision_state = states.CLEANING
@@ -363,7 +359,7 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                            'NicBoot1': 'NetworkBoot'}
         node = self.node
         driver_internal_info = node.driver_internal_info
-        driver_internal_info['post_config_reboot_requested'] = True
+        driver_internal_info['post_bios_reboot_requested'] = True
         driver_internal_info['requested_bios_attrs'] = requested_attrs
         self.node.driver_internal_info = driver_internal_info
         self.node.save()
@@ -381,7 +377,7 @@ class RedfishBiosTestCase(db_base.DbTestCase):
         attributes_after_reboot = {'ProcTurboMode': 'Disabled'}
         node = self.node
         driver_internal_info = node.driver_internal_info
-        driver_internal_info['post_config_reboot_requested'] = True
+        driver_internal_info['post_bios_reboot_requested'] = True
         driver_internal_info['requested_bios_attrs'] = requested_attrs
         self.node.driver_internal_info = driver_internal_info
         self.node.provision_state = states.DEPLOYWAIT
@@ -432,7 +428,7 @@ class RedfishBiosTestCase(db_base.DbTestCase):
                                   shared=False) as task:
             attributes = mock_get_system(task.node).bios.attributes
             task.node.driver_internal_info[
-                'post_config_reboot_requested'] = True
+                'post_bios_reboot_requested'] = True
             task.node.driver_internal_info[
                 'requested_bios_attrs'] = requested_attrs
             task.driver.bios._check_bios_attrs = mock.MagicMock()
