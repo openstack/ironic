@@ -338,6 +338,8 @@ This includes:
 
 * In the new stable branch:
 
+  .. NOTE:: OpenStack Release tooling does this automatically.
+
   * a change to point ``.gitreview`` at the branch
   * a change to update the upper constraints file used by ``tox``
 
@@ -349,10 +351,10 @@ This includes:
     typically submit a follow-up patch to do that. An example of this patch is
     `here <https://review.opendev.org/685070>`__.
 
-  * update the `templates` in `.zuul.yaml` or `zuul.d/project.yaml`.
+  * update the ``templates`` in ``.zuul.yaml`` or ``zuul.d/project.yaml``.
 
     The update is necessary to use the job for the next release
-    `openstack-python3-<next_release>-jobs`. An example of this patch is
+    ``openstack-python3-<next_release>-jobs``. An example of this patch is
     `here <https://review.opendev.org/#/c/689705/>`__.
 
 We need to submit patches for changes in the stable branch to:
@@ -364,6 +366,14 @@ We need to submit patches for changes in the stable branch to:
   ``TEMPEST_BAREMETAL_MAX_MICROVERSION`` in ``devstack/lib/ironic`` to make sure
   that unsupported API tempest tests are skipped on stable branches. E.g.
   `patch 495319 <https://review.opendev.org/495319>`_.
+* remove any CI jobs which are *not* required. Mainly this revolves around the
+  metal3-integration CI job, however other non-voting jobs can also be removed
+  safely. This can be achieved by editing the ``.zuul.d/project.yaml`` file.
+
+.. NOTE:: It is normal to reduce the number of CI jobs present on a stable
+   branch the longer the branch exists. This is a mix of challenges related
+   to distributions, dependencies, and CI resources. Maintainers should
+   anticipate this as a normal activity and should avoid heroic efforts.
 
 We need to submit patches for changes on master to:
 
