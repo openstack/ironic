@@ -25,6 +25,9 @@ updates:
     backend = collector
 
 
+A full list of ``[oslo_messaging_notifications]`` configuration options can be found in the
+`oslo.messaging documentation <https://docs.openstack.org/oslo.messaging/latest/configuration/opts.html#oslo-messaging-notifications>`_
+
 The payload of each notification is a mapping where keys are sensor types
 (``Fan``, ``Temperature``, ``Power`` or ``Drive``) and values are also mappings
 from sensor identifiers to the sensor data.
