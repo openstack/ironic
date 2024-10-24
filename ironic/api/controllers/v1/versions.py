@@ -131,6 +131,7 @@ BASE_VERSION = 1
 # v1.91: Remove special treatment of .json for API objects
 # v1.92: Add runbooks API
 # v1.93: Add GET API for virtual media
+# v1.94: Add node name support for port creation
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -226,6 +227,7 @@ MINOR_90_OVN_VTEP = 90
 MINOR_91_DOT_JSON = 91
 MINOR_92_RUNBOOKS = 92
 MINOR_93_GET_VMEDIA = 93
+MINOR_94_PORT_NODENAME = 94
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -233,7 +235,7 @@ MINOR_93_GET_VMEDIA = 93
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_93_GET_VMEDIA
+MINOR_MAX_VERSION = MINOR_94_PORT_NODENAME
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

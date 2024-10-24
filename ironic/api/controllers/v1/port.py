@@ -46,6 +46,7 @@ PORT_SCHEMA = {
         'extra': {'type': ['object', 'null']},
         'is_smartnic': {'type': ['string', 'boolean', 'null']},
         'local_link_connection': {'type': ['null', 'object']},
+        'node_ident': {'type': 'string'},
         'node_uuid': {'type': 'string'},
         'physical_network': {'type': ['string', 'null'], 'maxLength': 64},
         'portgroup_uuid': {'type': ['string', 'null']},
@@ -53,7 +54,11 @@ PORT_SCHEMA = {
         'uuid': {'type': ['string', 'null']},
         'name': {'type': ['string', 'null']},
     },
-    'required': ['address', 'node_uuid'],
+    'required': ['address'],
+    'oneOf': [
+        {'required': ['node_ident']},
+        {'required': ['node_uuid']},
+    ],
     'additionalProperties': False,
 }
 
@@ -65,6 +70,7 @@ PATCH_ALLOWED_FIELDS = [
     'extra',
     'is_smartnic',
     'local_link_connection',
+    'node_ident',
     'node_uuid',
     'physical_network',
     'portgroup_uuid',
@@ -554,8 +560,17 @@ class PortsController(rest.RestController):
         node = None
         owner = None
         lessee = None
-        node_uuid = port.get('node_uuid')
+        node_uuid = port.get('node_uuid', None)
+        node_ident = port.get('node_ident', None)
+
+        if node_ident:
+            if not api_utils.allow_node_ident_as_param_for_port_creation():
+                raise exception.NotAcceptable()
+
+        ident = node_ident or node_uuid
         try:
+            node = api_utils.get_rpc_node(ident)
+            port['node_uuid'] = node['uuid']
             node = api_utils.replace_node_uuid_with_id(port)
             owner = node.owner
             lessee = node.lessee

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Add support for passing either a node's name or UUID through the
+    'node_ident' parameter during port creation. The 'node_uuid' parameter is
+    now deprecated.

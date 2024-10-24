@@ -119,6 +119,9 @@ This method requires a Node UUID and the physical hardware address for the Port
   of ``vtep-logical-switch``, ``vtep-physical-switch`` and ``port_id``
   to identify ovn vtep switches.
 
+.. versionadded:: 1.94
+  Added support to create ports passing in either the node name or UUID.
+
 Normal response code: 201
 
 Request
@@ -126,7 +129,7 @@ Request
 
 .. rest_parameters:: parameters.yaml
 
-    - node_uuid: req_node_uuid
+    - node_ident: node_ident
     - address: req_port_address
     - portgroup_uuid: req_portgroup_uuid
     - name: req_port_name
@@ -136,6 +139,9 @@ Request
     - extra: req_extra
     - is_smartnic: req_is_smartnic
     - uuid: req_uuid
+
+.. note::
+   Either `node_ident` or `node_uuid` is a valid parameter.
 
 **Example Port creation request:**
 
