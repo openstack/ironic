@@ -2349,13 +2349,14 @@ class NodesController(rest.RestController):
 
     @pecan.expose()
     def _lookup(self, ident, *remainder):
-
         if ident in self._subcontroller_map:
             pecan.abort(http_client.NOT_FOUND)
 
         try:
             ident = args.uuid_or_name('node', ident)
         except exception.InvalidParameterValue as e:
+            pecan.abort(http_client.BAD_REQUEST, e.args[0])
+        except exception.InvalidUuidOrName as e:
             pecan.abort(http_client.BAD_REQUEST, e.args[0])
         if not remainder:
             return

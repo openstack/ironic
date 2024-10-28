@@ -2581,6 +2581,20 @@ class TestListNodes(test_api_base.BaseApiTest):
         mock_vdi.assert_called_once_with(mock.ANY, mock.ANY,
                                          node.uuid, 'test-topic')
 
+    @mock.patch.object(api_utils, 'get_rpc_node', autospec=True)
+    def test_validate_invalid_uuid_or_name(self, mock_rpc_node):
+        invalid_ident = '1234~1234~1234'
+        mock_rpc_node.side_effect = exception.InvalidUuidOrName(
+            name=invalid_ident)
+
+        ret = self.get_json('/nodes/%s' % invalid_ident,
+                            headers={api_base.Version.string: "1.5"},
+                            expect_errors=True)
+
+        self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
+        self.assertIn('Expected a logical name or UUID',
+                      ret.json['error_message'])
+
     @mock.patch.object(rpcapi.ConductorAPI, 'get_indicator_state',
                        autospec=True)
     def test_get_indicator_state(self, mock_gis):
