@@ -4,13 +4,11 @@
             "name": "system",
             "links": [
                 {
-                    "href": "http://127.0.0.1:6385/v1/nodes/Compute0/
-                    management/indicators/system",
+                    "href": "http://127.0.0.1:6385/v1/nodes/Compute0/management/indicators/system",
                     "rel": "self"
                 },
                 {
-                    "href": "http://127.0.0.1:6385/nodes/Compute0/
-                    management/indicators/system",
+                    "href": "http://127.0.0.1:6385/nodes/Compute0/management/indicators/system",
                     "rel": "bookmark"
                 }
             ]
@@ -19,13 +17,11 @@
             "name": "chassis",
             "links": [
                 {
-                    "href": "http://127.0.0.1:6385/v1/nodes/Compute0/
-                    management/indicators/chassis",
+                    "href": "http://127.0.0.1:6385/v1/nodes/Compute0/management/indicators/chassis",
                     "rel": "self"
                 },
                 {
-                    "href": "http://127.0.0.1:6385/nodes/Compute0/
-                    management/indicators/chassis",
+                    "href": "http://127.0.0.1:6385/nodes/Compute0/management/indicators/chassis",
                     "rel": "bookmark"
                 }
             ]

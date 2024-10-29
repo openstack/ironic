@@ -16,12 +16,12 @@
     "value": "Enabled",
     "attribute_type": "Enumeration",
     "allowable_values": ["Enabled", "Disabled"],
-    "lower_bound": None,
-    "max_length": None,
-    "min_length": None,
+    "lower_bound": null,
+    "max_length": null,
+    "min_length": null,
     "read_only": false,
-    "reset_required": None,
-    "unique": None,
-    "upper_bound": None
+    "reset_required": null,
+    "unique": null,
+    "upper_bound": null
   }
 }
