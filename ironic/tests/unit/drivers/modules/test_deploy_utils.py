@@ -159,12 +159,12 @@ set timeout=5
 set hidden_timeout_quiet=false
 
 menuentry "deploy"  {
-    linuxefi deploy_kernel "ro text"
-    initrdefi deploy_ramdisk
+    linux deploy_kernel "ro text"
+    initrd deploy_ramdisk
 }
 
 menuentry "boot_whole_disk"  {
-    linuxefi chain.c32 mbr:(( DISK_IDENTIFIER ))
+    linux chain.c32 mbr:(( DISK_IDENTIFIER ))
 }
 """
 
@@ -174,12 +174,12 @@ set timeout=5
 set hidden_timeout_quiet=false
 
 menuentry "deploy"  {
-    linuxefi deploy_kernel "ro text"
-    initrdefi deploy_ramdisk
+    linux deploy_kernel "ro text"
+    initrd deploy_ramdisk
 }
 
 menuentry "boot_whole_disk"  {
-    linuxefi chain.c32 mbr:0x12345678
+    linux chain.c32 mbr:0x12345678
 }
 """
 

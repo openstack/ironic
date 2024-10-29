@@ -654,8 +654,8 @@ class FsImageTestCase(base.TestCase):
                         "set hidden_timeout_quiet=false\n"
                         "\n"
                         "menuentry \"boot_partition\" {\n"
-                        "linuxefi /vmlinuz key1=value1 key2 --\n"
-                        "initrdefi /initrd\n"
+                        "linux /vmlinuz key1=value1 key2 --\n"
+                        "initrd /initrd\n"
                         "}")
 
         cfg = images._generate_cfg(kernel_params,

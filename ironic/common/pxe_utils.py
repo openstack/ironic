@@ -351,11 +351,9 @@ def create_pxe_config(task, pxe_options, template=None, ipxe_enabled=False):
         pxe_config_root_tag = '(( ROOT ))'
         pxe_config_disk_ident = '(( DISK_IDENTIFIER ))'
 
-        # Determine the appropriate commands based on the CPU architecture
-        arch = task.node.properties.get('cpu_arch', 'x86_64')
         commands = {
-            'linux_cmd': 'linuxefi' if arch != 'aarch64' else 'linux',
-            'initrd_cmd': 'initrdefi' if arch != 'aarch64' else 'initrd'
+            'linux_cmd': 'linux',
+            'initrd_cmd': 'initrd'
         }
         pxe_options.update(commands)
     else:
