@@ -88,7 +88,7 @@ Changing The Default IPMI Credential Persistence Method
 
 - ``store_cred_in_env``: :oslo.config:option:`ipmi.store_cred_in_env`.
 
-The `store_cred_in_env` configuration option allow users to switch
+The ``store_cred_in_env`` configuration option allow users to switch
 between file-based and environment variable persistence methods for
 IPMI password.
 
@@ -227,7 +227,7 @@ a value that can be used from the list provided (from last to first):
   cipher_suite_versions = 1,2,3,6,7,8,11,12
 
 To find the suitable values for this configuration, you can check the field
-`RMCP+ Cipher Suites` after running an ``ipmitool`` command, e.g:
+``RMCP+ Cipher Suites`` after running an ``ipmitool`` command, e.g:
 
 .. code-block:: console
 

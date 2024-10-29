@@ -370,7 +370,7 @@ Node configuration
 
 * The  following parameters are mandatory in ``driver_info``
   if ``ilo-inspect`` inspect interface is used and SNMPv3 inspection
-  (`SNMPv3 Authentication` in `HPE iLO4 User Guide`_) is desired:
+  (``SNMPv3 Authentication`` in `HPE iLO4 User Guide`_) is desired:
 
   * ``snmp_auth_user`` : The SNMPv3 user.
 
@@ -899,7 +899,7 @@ The hardware type ``ilo`` supports hardware inspection.
      an error. This feature is available in proliantutils release
      version >= 2.2.0.
    * The iLO must be updated with SNMPv3 authentication details.
-     Please refer to the section `SNMPv3 Authentication` in `HPE iLO4 User Guide`_
+     Please refer to the section ``SNMPv3 Authentication`` in `HPE iLO4 User Guide`_
      for setting up authentication details on iLO.
      The  following parameters are mandatory to be given in driver_info
      for SNMPv3 inspection:
@@ -1583,7 +1583,7 @@ configuration of RAID:
 DIB support for Proliant Hardware Manager
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Install ``ironic-python-agent-builder`` following the guide [1]_
+Install `ironic-python-agent-builder`_
 
 To create an agent ramdisk with ``Proliant Hardware Manager``,
 use the ``proliant-tools`` element in DIB::
@@ -1615,7 +1615,7 @@ This clean step is performed as part of automated cleaning and it is disabled
 by default. See :ref:`InbandvsOutOfBandCleaning` for more information on
 enabling/disabling a clean step.
 
-Install ``ironic-python-agent-builder`` following the guide [1]_
+Install `ironic-python-agent-builder`_.
 
 To create an agent ramdisk with ``Proliant Hardware Manager``, use the
 ``proliant-tools`` element in DIB::
@@ -1835,7 +1835,7 @@ the node's ``driver_info``. To update SSL certificates into iLO,
 refer to `HPE Integrated Lights-Out Security Technology Brief <http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c04530504>`_.
 Use iLO hostname or IP address as a 'Common Name (CN)' while
 generating Certificate Signing Request (CSR). Use the same value as
-`ilo_address` while enrolling node to Bare Metal service to avoid SSL
+``ilo_address`` while enrolling node to Bare Metal service to avoid SSL
 certificate validation errors related to hostname mismatch.
 
 Rescue mode support
@@ -2072,5 +2072,5 @@ more information.
 .. _`Guidelines for SPP ISO`: https://h17007.www1.hpe.com/us/en/enterprise/servers/products/service_pack/spp
 .. _`SUM`: https://h17007.www1.hpe.com/us/en/enterprise/servers/products/service_pack/hpsum/index.aspx
 .. _`SUM User Guide`: https://h20565.www2.hpe.com/hpsc/doc/public/display?docId=c05210448
-.. [1] `ironic-python-agent-builder`: https://docs.openstack.org/ironic-python-agent-builder/latest/install/index.html
+.. _`ironic-python-agent-builder`: https://docs.openstack.org/ironic-python-agent-builder/latest/install/index.html
 .. _`HPE Integrated Lights-Out Security Technology Brief`: http://h20564.www2.hpe.com/hpsc/doc/public/display?docId=c04530504

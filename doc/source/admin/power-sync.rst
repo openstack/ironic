@@ -34,7 +34,7 @@ Compute-Baremetal Power Sync
 Each ``nova-compute`` process in the Compute service runs a periodic task which
 synchronizes the power state of servers between its database and the compute
 driver. If enabled, it runs at an interval defined by the
-`sync_power_state_interval` config option on the ``nova-compute`` process.
+``sync_power_state_interval`` config option on the ``nova-compute`` process.
 In case of the compute driver being baremetal driver, this sync will happen
 between the databases of the compute and baremetal services. Since the sync
 happens on the ``nova-compute`` process, the state in the compute database

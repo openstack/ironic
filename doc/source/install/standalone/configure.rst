@@ -30,8 +30,8 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
     auth_strategy=http_basic
     http_basic_auth_user_file=/etc/ironic/htpasswd
 
-   Only the ``bcrypt`` format is supported, and the Apache `htpasswd` utility can
-   be used to populate the file with entries, for example:
+   Only the ``bcrypt`` format is supported, and the Apache ``htpasswd``
+   utility can be used to populate the file with entries, for example:
 
    .. code-block:: shell
 

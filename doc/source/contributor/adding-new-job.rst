@@ -40,10 +40,10 @@ Create a new Job
 ================
 
 Identify among the existing jobs the one that most closely resembles the
-scenario you want to test, the existing job will be used as `parent` in your
+scenario you want to test, the existing job will be used as ``parent`` in your
 job definition.
 Now you will only need to either overwrite or add variables to your job
-definition under the `vars` section to represent the desired scenario.
+definition under the ``vars`` section to represent the desired scenario.
 
 The code block below shows the minimal structure of a new job definition that
 you need to add to ironic-jobs.yaml_.
@@ -58,8 +58,8 @@ you need to add to ironic-jobs.yaml_.
          <var1>: <new value>
 
 After having the definition of your new job you just need to add the job name
-to the project.yaml_ under `check` and `gate`. Only jobs that are voting
-should be in the `gate` section.
+to the project.yaml_ under ``check`` and ``gate``. Only jobs that are voting
+should be in the ``gate`` section.
 
 .. code-block:: yaml
 

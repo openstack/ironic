@@ -31,7 +31,7 @@ for the individual tests will be outlined below.
 CPU burn-in
 ===========
 
-The options, following a `agent_burnin_` + stress-ng stressor (`cpu`) +
+The options, following a ``agent_burnin_`` + stress-ng stressor (``cpu``) +
 stress-ng option schema, are:
 
 * ``agent_burnin_cpu_timeout`` (default: 24 hours)
@@ -57,7 +57,7 @@ Then launch the test with:
 Memory burn-in
 ==============
 
-The options, following a `agent_burnin_` + stress-ng stressor (`vm`) +
+The options, following a ``agent_burnin_`` + stress-ng stressor (``vm``) +
 stress-ng option schema, are:
 
 * ``agent_burnin_vm_timeout`` (default: 24 hours)
@@ -85,7 +85,7 @@ Then launch the test with:
 Disk burn-in
 ============
 
-The options, following a `agent_burnin_` + fio stressor (`fio_disk`) +
+The options, following a ``agent_burnin_`` + fio stressor (``fio_disk``) +
 fio option schema, are:
 
 * agent_burnin_fio_disk_runtime (default: 0, meaning no time limit)

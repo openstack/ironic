@@ -208,7 +208,7 @@ directory back::
 API Errors
 ==========
 
-The `debug_tracebacks_in_api` config option may be set to return tracebacks
+The ``debug_tracebacks_in_api`` config option may be set to return tracebacks
 in the API response for all 4xx and 5xx errors.
 
 .. _retrieve_deploy_ramdisk_logs:
@@ -428,7 +428,7 @@ the IPMI port to be unreachable through ipmitool, as shown:
     $ ipmitool -I lan -H ipmi_host -U ipmi_user -P ipmi_pass chassis power status
     Error: Unable to establish LAN session
 
-To fix this, enable `IPMI over lan` setting using your BMC tool or web app.
+To fix this, enable ``IPMI over lan`` setting using your BMC tool or web app.
 
 Troubleshooting lanplus interface
 ---------------------------------
@@ -441,7 +441,7 @@ When working with lanplus interfaces, you may encounter the following error:
     Error in open session response message : insufficient resources for session
     Error: Unable to establish IPMI v2 / RMCP+ session
 
-To fix that issue, please enable `RMCP+ Cipher Suite3 Configuration` setting
+To fix that issue, please enable ``RMCP+ Cipher Suite3 Configuration`` setting
 using your BMC tool or web app.
 
 Why are my nodes stuck in a "-ing" state?

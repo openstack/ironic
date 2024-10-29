@@ -309,7 +309,7 @@ command, for example:
 Building a config drive on the conductor side
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Starting with the Stein release and `ironicclient` 2.7.0, you can request
+Starting with the Stein release and ``ironicclient`` 2.7.0, you can request
 building a configdrive on the server side by providing a JSON with keys
 ``meta_data``, ``user_data`` and ``network_data`` (all optional), e.g.:
 

@@ -117,7 +117,7 @@ Format of JSON for deploy steps argument is described in `Deploy step format`_
 section.
 
 .. note::
-    Starting with `ironicclient` 4.6.0 you can provide a YAML file for
+    Starting with ``ironicclient`` 4.6.0 you can provide a YAML file for
     ``--deploy-steps``.
 
 Excluding the default steps
@@ -190,7 +190,7 @@ An invocation of a deploy step is defined in a deploy template as follows::
     }
 
 A deploy template contains a list of one or more such steps. Each combination
-of `interface` and `step` may only be specified once in a deploy template.
+of ``interface`` and ``step`` may only be specified once in a deploy template.
 
 Matching deploy templates
 -------------------------

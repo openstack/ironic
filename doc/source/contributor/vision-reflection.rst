@@ -40,7 +40,7 @@ Design Goals - Graphical User Interface
 * While a graphical interface was developed for Horizon in the form of
   `ironic-ui <https://git.openstack.org/cgit/openstack/ironic-ui>`_,
   currently ironic-ui receives only minimal housekeeping.
-  As Ironic has evolved, ironic-ui is stuck on version `1.34` and knows
+  As Ironic has evolved, ironic-ui is stuck on version ``1.34`` and knows
   nothing of our evolution since. Ironic ultimately needs a contributor
   with sufficient time to pick up ``ironic-ui`` or to completely
   replace it as a functional and customizable user interface.

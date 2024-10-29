@@ -8,7 +8,7 @@ Configure the Bare Metal service for cleaning
           (which is enabled by default), you will need to set the
           ``cleaning_network`` configuration option.
 
-#. Note the network UUID (the `id` field) of the network you created in
+#. Note the network UUID (the ``id`` field) of the network you created in
    :ref:`configure-networking` or another network you created for cleaning:
 
    .. code-block:: console

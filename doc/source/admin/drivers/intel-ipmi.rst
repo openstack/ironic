@@ -94,8 +94,8 @@ A node with Intel SST-PP can be configured to use it via
 * ``intel_speedselect_config``:
   Hexadecimal code of Intel SST-PP configuration. Accepted values are
   '0x00', '0x01', '0x02'. These values correspond to
-  `Intel SST-PP Config Base`, `Intel SST-PP Config 1`,
-  `Intel SST-PP Config 2` respectively. The input value must be a string.
+  ``Intel SST-PP Config Base``, ``Intel SST-PP Config 1``,
+  ``Intel SST-PP Config 2`` respectively. The input value must be a string.
 
 * ``socket_count``:
   Number of sockets in the node. The input value must be a positive

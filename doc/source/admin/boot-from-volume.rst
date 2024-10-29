@@ -140,10 +140,10 @@ Use without the Compute Service
 -------------------------------
 
 As discussed in other sections, the Bare Metal service has a concept of a
-`connector` that is used to represent an interface that is intended to
+``connector`` that is used to represent an interface that is intended to
 be utilized to attach the remote volume.
 
-In addition to the connectors, we have a concept of a `target` that can be
+In addition to the connectors, we have a concept of a ``target`` that can be
 defined via the API. While a user of this feature through the Compute
 service would automatically have a new target record created for them,
 it is not explicitly required and can be performed manually.
