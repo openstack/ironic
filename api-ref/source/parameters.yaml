@@ -1060,6 +1060,12 @@ firmware_components:
   in: body
   required: true
   type: array
+firmware_interface:
+  description: |
+    Firmware interface for a node, e.g. “redfish”.
+  in: body
+  required: true
+  type: string
 history_event:
   description: |
     The event message body which has been logged related to the node for
@@ -2096,6 +2102,15 @@ secure_boot:
     Indicates whether node is currently booted with secure_boot turned on.
   in: body
   type: boolean
+service_step:
+  description: |
+    A dictionary containing the interface and step to be executed on the node.
+    The dictionary must contain the keys 'interface' and 'step'. If specified,
+    the value for 'args' is a keyword variable argument dictionary that is
+    passed to the cleaning step method.
+  in: body
+  required: true
+  type: JSON
 service_steps:
   description: |
     An ordered list of service steps that will be performed on the node. A
