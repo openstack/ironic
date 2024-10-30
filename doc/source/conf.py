@@ -32,7 +32,9 @@ sys.path.insert(0, os.path.join(os.path.abspath('.'), '_exts'))
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.viewcode',
+extensions = ['sphinx.ext.autodoc',
+              'sphinx.ext.autosummary',
+              'sphinx.ext.viewcode',
               'sphinx.ext.graphviz',
               'sphinxcontrib.apidoc',
               'sphinxcontrib.rsvgconverter',
@@ -61,6 +63,10 @@ apidoc_separate_modules = True
 autodoc_default_options = {
     'special-members': '__call__',
 }
+
+autosummary_mock_imports = [
+    'ironic.wsgi',
+]
 
 redfish_interop_source = \
     '../../redfish-interop-profiles/OpenStackIronicProfile.v1_1_0.json'

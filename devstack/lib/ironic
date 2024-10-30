@@ -411,7 +411,7 @@ fi
 # Support entry points installation of console scripts
 IRONIC_BIN_DIR=$(get_python_exec_prefix)
 IRONIC_UWSGI_CONF=$IRONIC_CONF_DIR/ironic-uwsgi.ini
-IRONIC_UWSGI=$IRONIC_BIN_DIR/ironic-api-wsgi
+IRONIC_UWSGI=${IRONIC_UWSGI:-ironic.wsgi:application}
 
 # Lets support IPv6 testing!
 IRONIC_IP_VERSION=${IRONIC_IP_VERSION:-${IP_VERSION:-4}}
@@ -1663,7 +1663,7 @@ function configure_ironic {
     fi
 
     # Adds uWSGI for Ironic API
-    write_uwsgi_config "$IRONIC_UWSGI_CONF" "$IRONIC_UWSGI" "/baremetal"
+    write_uwsgi_config "$IRONIC_UWSGI_CONF" "$IRONIC_UWSGI" "/baremetal" "" "ironic-api"
 
     if [[ "$os_VENDOR" =~ (Debian|Ubuntu) ]]; then
         # The groups change with newer libvirt. Older Ubuntu used
