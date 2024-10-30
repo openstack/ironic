@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Updates the patch validation logic to support special characters
+    (``~`` and ``/``) in field keys, provided they align with the
+    escaping rules defined in RFC 6901 (JSON Pointer) as required for
+    the `path` field specified in RFC 6902 (JSON Patch).

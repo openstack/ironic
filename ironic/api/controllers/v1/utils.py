@@ -399,6 +399,17 @@ def patched_validate_with_schema(patched_dict, schema, validator=None):
     validator('patch', patched_dict)
 
 
+def allow_special_characters_in_patch_fields():
+    """Check if special characters are allowed in patch field keys."""
+    return (api.request.version.minor
+            >= versions.MINOR_98_SUPPORT_SPECIAL_CHAR_IN_ATTRIBUTES)
+
+
+def decode_json_pointer(path):
+    """Decode JSON pointer as per RFC 6901 to support '~' and '/'."""
+    return path.replace('~1', '/').replace('~0', '~')
+
+
 def patch_validate_allowed_fields(patch, allowed_fields):
     """Validate that a patch list only modifies allowed fields.
 
@@ -410,7 +421,10 @@ def patch_validate_allowed_fields(patch, allowed_fields):
     """
     fields = set()
     for p in patch:
-        path = p['path'].split('/')[1]
+        if allow_special_characters_in_patch_fields():
+            path = decode_json_pointer(p['path'].split('/')[1])
+        else:
+            path = p['path'].split('/')[1]
         if path not in allowed_fields:
             msg = _("Cannot patch %s. Only the following can be updated: %s")
             raise exception.Invalid(

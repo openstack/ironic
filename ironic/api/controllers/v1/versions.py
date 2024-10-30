@@ -135,6 +135,7 @@ BASE_VERSION = 1
 # v1.95: Add node support for disable_power_off
 # v1.96: Migrate inspection rules from Inspector
 # v1.97: Add description field to port.
+# v1.98: Add support for object attributes with keys containing ~ or /.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -234,6 +235,7 @@ MINOR_94_PORT_NODENAME = 94
 MINOR_95_DISABLE_POWER_OFF = 95
 MINOR_96_INSPECTION_RULES = 96
 MINOR_97_PORT_DESCRIPTION = 97
+MINOR_98_SUPPORT_SPECIAL_CHAR_IN_ATTRIBUTES = 98
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -241,7 +243,7 @@ MINOR_97_PORT_DESCRIPTION = 97
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_97_PORT_DESCRIPTION
+MINOR_MAX_VERSION = MINOR_98_SUPPORT_SPECIAL_CHAR_IN_ATTRIBUTES
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

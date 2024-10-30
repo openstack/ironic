@@ -2,6 +2,10 @@
 REST API Version History
 ========================
 
+1.98 (Flamingo)
+
+Add support for patching object attributes with keys containing ~ or /.
+
 1.97 (Flamingo)
 -----------------------
 

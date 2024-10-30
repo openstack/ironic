@@ -90,6 +90,62 @@ class TestApiUtils(base.TestCase):
         self.assertRaises(exception.PatchError,
                           utils.apply_jsonpatch, doc, patch)
 
+    def test_apply_jsonpatch_with_tilde(self):
+        """Unescaped tilde fails."""
+        doc = {"foo": {"bar~baz": "value"}}
+        patch = [{"op": "replace", "path": "/foo/bar~baz",
+                  "value": "new_value"}]
+        self.assertRaises(exception.PatchError,
+                          utils.apply_jsonpatch, doc, patch)
+
+    def test_apply_jsonpatch_with_slash(self):
+        """Unescaped forward slash fails."""
+        doc = {"foo": {"bar/baz": "value"}}
+        patch = [{"op": "replace", "path": "/foo/bar/baz",
+                  "value": "new_value"}]
+        self.assertRaises(exception.PatchError,
+                          utils.apply_jsonpatch, doc, patch)
+
+    def test_apply_jsonpatch_with_escaped_tilde(self):
+        """Escaped tilde (~0) should work per RFC 6902."""
+        doc = {"foo": {"bar~baz": "value"}}
+        patch = [{"op": "replace", "path": "/foo/bar~0baz",
+                  "value": "new_value"}]
+        expected = {"foo": {"bar~baz": "new_value"}}
+        result = utils.apply_jsonpatch(doc, patch)
+        self.assertEqual(expected, result)
+
+    def test_apply_jsonpatch_with_escaped_slash(self):
+        """Escaped slash (~1) should work per RFC 6902."""
+        doc = {"foo": {"bar/baz": "value"}}
+        patch = [{"op": "replace", "path": "/foo/bar~1baz",
+                  "value": "new_value"}]
+        expected = {"foo": {"bar/baz": "new_value"}}
+        result = utils.apply_jsonpatch(doc, patch)
+        self.assertEqual(expected, result)
+
+    def test_apply_jsonpatch_with_escaped_complex_path(self):
+        doc = {"foo": {"~bar/baz~": "value"}}
+        patch = [{"op": "replace", "path": "/foo/~0bar~1baz~0",
+                  "value": "new_value"}]
+        expected = {"foo": {"~bar/baz~": "new_value"}}
+        result = utils.apply_jsonpatch(doc, patch)
+        self.assertEqual(expected, result)
+
+    def test_apply_jsonpatch_with_invalid_escape_sequence(self):
+        doc = {"foo": {"bar": "value"}}
+        patch = [{"op": "replace", "path": "/foo/bar~2baz",
+                  "value": "new_value"}]
+        self.assertRaises(exception.PatchError,
+                          utils.apply_jsonpatch, doc, patch)
+
+    def test_apply_jsonpatch_with_incomplete_escape(self):
+        doc = {"foo": {"bar": "value"}}
+        patch = [{"op": "replace", "path": "/foo/bar~",
+                  "value": "new_value"}]
+        self.assertRaises(exception.PatchError,
+                          utils.apply_jsonpatch, doc, patch)
+
     def test_get_patch_values_no_path(self):
         patch = [{'path': '/name', 'op': 'update', 'value': 'node-0'}]
         path = '/invalid'
@@ -300,10 +356,12 @@ class TestApiUtils(base.TestCase):
                               validate)
         self.assertIn("big ouch", str(e))
 
-    def test_patch_validate_allowed_fields(self):
-        allowed_fields = ['one', 'two', 'three']
+    @mock.patch.object(api, 'request', autospec=False)
+    def test_patch_validate_allowed_fields(self, mock_request):
+        mock_request.version.minor = 94
+        allowed_fields = ['one', 'two', 'three', 'four/five']
 
-        # patch all
+        # patch all (except 'four/five')
         self.assertEqual(
             {'one', 'two', 'three'},
             utils.patch_validate_allowed_fields([
@@ -319,6 +377,13 @@ class TestApiUtils(base.TestCase):
                 {'path': '/one'},
             ], allowed_fields))
 
+        # patch one (special field not supported)
+        self.assertRaises(
+            exception.Invalid,
+            utils.patch_validate_allowed_fields,
+            [{'path': '/four~1five'}],
+            allowed_fields)
+
         # patch invalid field
         e = self.assertRaises(
             exception.Invalid,
@@ -330,8 +395,31 @@ class TestApiUtils(base.TestCase):
                       "one, two, three", str(e))
 
     @mock.patch.object(api, 'request', autospec=False)
-    def test_sanitize_dict(self, mock_req):
-        mock_req.public_url = 'http://192.0.2.1:5050'
+    def test_patch_validate_allowed_special_fields(self, mock_request):
+        mock_request.version.minor = 98
+        allowed_fields = ['one', 'two', 'three', 'four/five', 'four~five']
+
+        # patch all
+        self.assertEqual(
+            {'one', 'two', 'three', 'four/five', 'four~five'},
+            utils.patch_validate_allowed_fields([
+                {'path': '/one'},
+                {'path': '/two'},
+                {'path': '/three'},
+                {'path': '/four~0five'},
+                {'path': '/four~1five'},
+            ], allowed_fields))
+
+        # patch one (special field)
+        self.assertEqual(
+            {'four/five'},
+            utils.patch_validate_allowed_fields([
+                {'path': '/four~1five'},
+            ], allowed_fields))
+
+    @mock.patch.object(api, 'request', autospec=False)
+    def test_sanitize_dict(self, mock_request):
+        mock_request.public_url = 'http://192.0.2.1:5050'
 
         node = obj_utils.get_test_node(
             self.context,
