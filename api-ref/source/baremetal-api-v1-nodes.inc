@@ -496,6 +496,14 @@ Response
     - retired: retired
     - retired_reason: retired_reason
     - network_data: network_data
+    - automated_clean: automated_clean
+    - service_step: service_step
+    - firmware_interface: firmware_interface
+    - provision_updated_at: provision_updated_at
+    - inspection_started_at: inspection_started_at
+    - inspection_finished_at: inspection_finished_at
+    - created_at: created_at
+    - updated_at: updated_at
 
 **Example detailed list of Nodes:**
 
