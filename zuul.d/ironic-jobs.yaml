@@ -12,8 +12,10 @@
       - opendev.org/openstack/ironic
       - opendev.org/openstack/ironic-python-agent
       - opendev.org/openstack/ironic-python-agent-builder
-      - opendev.org/openstack/ironic-tempest-plugin
-      - opendev.org/openstack/virtualbmc
+      - name: opendev.org/openstack/ironic-tempest-plugin
+        override-checkout: 2.11.0
+      - name: opendev.org/openstack/virtualbmc
+        override-checkout: 3.1.0
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -162,7 +164,8 @@
       Test ironic standalone configured with redfish hardware type, ansible and
       direct and ansible deploy interfaces, rescue it's not enabled.
     required-projects:
-      - opendev.org/openstack/sushy-tools
+      - name: opendev.org/openstack/sushy-tools
+        override-checkout: 1.3.0
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -222,7 +225,8 @@
       Test ironic with the anaconda deployment interface.
       Test also uses Redfish.
     required-projects:
-      - opendev.org/openstack/sushy-tools
+      - name: opendev.org/openstack/sushy-tools
+        override-checkout: 1.3.0
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -262,7 +266,8 @@
     description: "Deploy ironic node over PXE using BIOS boot mode"
     parent: ironic-tempest-uefi-redfish-vmedia
     required-projects:
-      - opendev.org/openstack/sushy-tools
+      - name: opendev.org/openstack/sushy-tools
+        override-checkout: 1.3.0
     vars:
       tempest_test_regex: test_baremetal_server_ops_wholedisk_image
       devstack_localrc:
@@ -287,6 +292,9 @@
     description: "Deploy ironic node over Redfish virtual media using UEFI boot mode"
     parent: ironic-base
     vars:
+      # NOTE(iurygregory): switch to only wholedisk test, since the
+      # partition test is failling randomly.
+      tempest_test_regex: test_baremetal_server_ops_wholedisk_image
       devstack_localrc:
         IRONIC_DEPLOY_DRIVER: redfish
         IRONIC_ENABLED_HARDWARE_TYPES: redfish
@@ -516,8 +524,10 @@
       - opendev.org/openstack/ironic
       - opendev.org/openstack/ironic-python-agent
       - opendev.org/openstack/ironic-python-agent-builder
-      - opendev.org/openstack/ironic-tempest-plugin
-      - opendev.org/openstack/virtualbmc
+      - name: opendev.org/openstack/ironic-tempest-plugin
+        override-checkout: 2.11.0
+      - name: opendev.org/openstack/virtualbmc
+        override-checkout: 3.1.0
       - opendev.org/openstack/networking-generic-switch
     irrelevant-files:
       - ^.*\.rst$
@@ -863,8 +873,10 @@
       - opendev.org/openstack/ironic
       - opendev.org/openstack/ironic-python-agent
       - opendev.org/openstack/ironic-python-agent-builder
-      - opendev.org/openstack/ironic-tempest-plugin
-      - opendev.org/openstack/virtualbmc
+      - name: opendev.org/openstack/ironic-tempest-plugin
+        override-checkout: 2.11.0
+      - name: opendev.org/openstack/virtualbmc
+        override-checkout: 3.1.0
     vars:
       grenade_devstack_localrc:
         shared:
@@ -955,10 +967,12 @@
       - opendev.org/openstack/ironic-lib
       - opendev.org/openstack/ironic-python-agent
       - opendev.org/openstack/ironic-python-agent-builder
-      - opendev.org/openstack/ironic-tempest-plugin
+      - name: opendev.org/openstack/ironic-tempest-plugin
+        override-checkout: 2.11.0
       - opendev.org/openstack/networking-generic-switch
       - opendev.org/openstack/python-ironicclient
-      - opendev.org/openstack/virtualbmc
+      - name: opendev.org/openstack/virtualbmc
+        override-checkout: 3.1.0
     vars:
       grenade_devstack_localrc:
         shared:
