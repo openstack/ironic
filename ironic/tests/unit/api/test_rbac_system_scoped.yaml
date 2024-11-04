@@ -1091,7 +1091,7 @@ nodes_portgroups_get_service_project:
   assert_status: 200
   enable_service_project: true
 
-nodes_portgroups_get_service_project:
+nodes_portgroups_get_service_project_disabled:
   path: '/v1/nodes/{node_ident}/portgroups'
   method: get
   headers: *service_project_headers
@@ -1129,7 +1129,7 @@ nodes_portgroups_detail_get_service_project:
   assert_status: 200
   enable_service_project: true
 
-nodes_portgroups_detail_get_service_project:
+nodes_portgroups_detail_get_service_project_disabled:
   path: '/v1/nodes/{node_ident}/portgroups/detail'
   method: get
   headers: *service_project_headers
@@ -1697,7 +1697,7 @@ volume_volume_target_id_get_service:
 
 # NOTE(TheJulia): This triggers a call to the conductor and
 # thus will fail, but does not return a 403 which means success.
-volume_volume_target_id_patch_admin:
+volume_volume_target_id_patch_admin_extra:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: patch
   body: &volume_target_patch
@@ -1721,7 +1721,7 @@ volume_volume_target_id_patch_reader:
   headers: *reader_headers
   assert_status: 403
 
-volume_volume_target_id_patch_service:
+volume_volume_target_id_patch_service_disabled:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: patch
   body: *volume_target_patch
@@ -1973,7 +1973,7 @@ drivers_vendor_passthru_delete_admin:
   headers: *admin_headers
   assert_status: 404
 
-drivers_vendor_passthru_delete_reader:
+drivers_vendor_passthru_delete_member:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: delete
   headers: *scoped_member_headers
@@ -2751,13 +2751,6 @@ runbooks_post_project_admin:
   body: *runbook_body
   headers: *project_admin_headers
   assert_status: 201
-
-runbooks_runbook_id_patch_public_admin:
-  path: '/v1/runbooks/{runbook_ident}'
-  method: patch
-  body: *runbook_public_patch
-  headers: *admin_headers
-  assert_status: 200
 
 public_runbooks_post_admin:
   path: '/v1/runbooks'

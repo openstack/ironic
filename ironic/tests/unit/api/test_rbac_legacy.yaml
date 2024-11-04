@@ -530,7 +530,7 @@ nodes_states_console_get_member:
   assert_status: 404
   deprecated: true
 
-nodes_states_console_get_admin:
+nodes_states_console_get_observer:
   path: '/v1/nodes/{node_ident}/states/console'
   method: get
   headers: *observer_headers
@@ -1831,13 +1831,6 @@ drivers_vendor_passthru_delete_observer:
   path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
   method: delete
   headers: *member_headers
-  assert_status: 403
-  skip_reason: not updated for scope testing
-
-drivers_vendor_passthru_delete_observer:
-  path: '/v1/drivers/{driver_name}/vendor_passthru?method=test'
-  method: delete
-  headers: *observer_headers
   assert_status: 403
   skip_reason: not updated for scope testing
 

@@ -1411,7 +1411,7 @@ owner_member_can_set_raid_config:
   body: *raid_body
   assert_status: 503
 
-owner_member_can_set_raid_config:
+service_owner_can_set_raid_config:
   path: '/v1/nodes/{lessee_node_ident}/states/raid'
   method: put
   headers: *service_headers_owner_project
@@ -1850,7 +1850,7 @@ owner_reader_get_traits:
   headers: *owner_reader_headers
   assert_status: 200
 
-owner_reader_get_traits:
+owner_reader_get_traits_service:
   path: '/v1/nodes/{owner_node_ident}/traits'
   method: get
   headers: *service_headers_owner_project
@@ -1927,7 +1927,7 @@ third_party_admin_cannot_put_traits:
   assert_status: 404
   body: *traits_body
 
-third_party_admin_cannot_put_traits:
+third_party_admin_cannot_put_traits_service:
   path: '/v1/nodes/{lessee_node_ident}/traits'
   method: put
   headers: *service_headers
@@ -2910,7 +2910,7 @@ third_party_admin_cannot_get_volume_connector:
   headers: *third_party_admin_headers
   assert_status: 404
 
-lessee_member_cannot_patch_volume_connectors:
+lessee_member_cannot_patch_volume_connectors_extra:
   path: '/v1/volume/connectors/{volume_connector_ident}'
   method: patch
   headers: *lessee_member_headers
@@ -3183,7 +3183,7 @@ owner_manager_can_delete_volume_target:
   headers: *owner_manager_headers
   assert_status: 503
 
-owner_manager_can_delete_volume_target:
+owner_manager_can_delete_volume_target_service:
   path: '/v1/volume/targets/{volume_target_ident}'
   method: delete
   headers: *service_headers_owner_project
@@ -3821,7 +3821,7 @@ third_party_admin_cannot_get_node_history:
   headers: *third_party_admin_headers
   assert_status: 404
 
-node_history_get_entry_admin:
+node_history_get_entry_third_party_admin:
   path: '/v1/nodes/{owner_node_ident}/history/{owned_history_ident}'
   method: get
   headers: *third_party_admin_headers
@@ -4029,7 +4029,7 @@ runbooks_post_public_admin:
   headers: *owner_admin_headers
   assert_status: 400
 
-runbooks_post_public_admin:
+runbooks_post_public_manager:
   path: '/v1/runbooks'
   method: post
   body: *runbook_body_public
@@ -4082,13 +4082,6 @@ project_manager_delete_runbook:
 service_get_runbooks:
   path: '/v1/runbooks'
   method: get
-  headers: *service_headers_owner_project
-  assert_status: 200
-
-service_patch_runbook:
-  path: '/v1/runbooks/{runbook_ident}'
-  method: patch
-  body: *runbook_patch
   headers: *service_headers_owner_project
   assert_status: 200
 
