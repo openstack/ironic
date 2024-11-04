@@ -1002,7 +1002,7 @@ node_policies = [
     policy.DocumentedRuleDefault(
         name='baremetal:node:disable_cleaning',
         check_str=SYSTEM_ADMIN,
-        scope_types=['system'],
+        scope_types=['system', 'project'],
         description='Disable Node disk cleaning',
         operations=[
             {'path': '/nodes/{node_ident}', 'method': 'PATCH'}
