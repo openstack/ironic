@@ -12,7 +12,7 @@ endpoints: A driver vendor passthru and a node vendor passthru.
 
 * The ``VendorInterface`` allows hardware types to expose a custom top-level
   functionality which is not specific to a Node. For example, let's say
-  the driver `ipmi` exposed a method called `authentication_types`
+  the driver ``ipmi`` exposed a method called ``authentication_types``
   that would return what are the authentication types supported. It could
   be accessed via the Ironic API like:
 
@@ -26,9 +26,9 @@ endpoints: A driver vendor passthru and a node vendor passthru.
       This limitation will be lifted in the future.
 
 * The node vendor passthru allows drivers to expose custom functionality
-  on per-node basis. For example the same driver `ipmi` exposing a
-  method called `send_raw` that would send raw bytes to the BMC, the method
-  also receives a parameter called `raw_bytes` which the value would be
+  on per-node basis. For example the same driver ``ipmi`` exposing a
+  method called ``send_raw`` that would send raw bytes to the BMC, the method
+  also receives a parameter called ``raw_bytes`` which the value would be
   the bytes to be sent. It could be accessed via the Ironic API like:
 
   ::
@@ -52,22 +52,22 @@ to do is write a class inheriting from the `VendorInterface`_ class:
       def validate(self, task, **kwargs):
           pass
 
-The `get_properties` is a method that all driver interfaces have, it
+The ``get_properties`` is a method that all driver interfaces have, it
 should return a dictionary of <property>:<description> telling in the
 description whether that property is required or optional so the node
 can be manageable by that driver. For example, a required property for a
-`ipmi` driver would be `ipmi_address` which is the IP address or hostname
+``ipmi`` driver would be ``ipmi_address`` which is the IP address or hostname
 of the node. We are returning an empty dictionary in our example to make
 it simpler.
 
-The `validate` method is responsible for validating the parameters passed
+The ``validate`` method is responsible for validating the parameters passed
 to the vendor methods. Ironic will not introspect into what is passed
 to the drivers, it's up to the developers writing the vendor method to
 validate that data.
 
-Let's extend the `ExampleVendor` class to support two methods, the
-`authentication_types` which will be exposed on the driver vendor
-passthru endpoint; And the `send_raw` method that will be exposed on
+Let's extend the ``ExampleVendor`` class to support two methods, the
+``authentication_types`` which will be exposed on the driver vendor
+passthru endpoint; And the ``send_raw`` method that will be exposed on
 the node vendor passthru endpoint:
 
 .. code-block:: python
@@ -96,15 +96,15 @@ That's it!
 Writing a node or driver vendor passthru method is pretty much the
 same, the only difference is how you decorate the methods and the first
 parameter of the method (ignoring self). A method decorated with the
-`@passthru` decorator should expect a Task object as first parameter and
-a method decorated with the `@driver_passthru` decorator should expect
+``@passthru`` decorator should expect a Task object as first parameter and
+a method decorated with the ``@driver_passthru`` decorator should expect
 a Context object as first parameter.
 
 Both decorators accept these parameters:
 
 * http_methods: A list of what the HTTP methods supported by that vendor
   function. To know what HTTP method that function was invoked with, a
-  `http_method` parameter will be present in the `kwargs`. Supported HTTP
+  ``http_method`` parameter will be present in the ``kwargs``. Supported HTTP
   methods are *POST*, *PUT*, *GET* and *PATCH*.
 
 * method: By default the method name is the name of the python function,
@@ -127,7 +127,7 @@ Both decorators accept these parameters:
 
   .. note:: This parameter was previously called "async".
 
-The node vendor passthru decorator (`@passthru`) also accepts the following
+The node vendor passthru decorator (``@passthru``) also accepts the following
 parameter:
 
 * require_exclusive_lock: A boolean value determining whether this method

@@ -134,6 +134,6 @@ volume with tempest in the environment::
 
 Please note that the storage interface will only indicate errors based upon
 the state of the node and the configuration present. As such a node does not
-exclusively have to boot via a remote volume, and as such `validate` actions
-upon nodes may be slightly misleading. If an appropriate `volume target` is
+exclusively have to boot via a remote volume, and as such ``validate`` actions
+upon nodes may be slightly misleading. If an appropriate ``volume target`` is
 defined, no error should be returned for the boot interface.

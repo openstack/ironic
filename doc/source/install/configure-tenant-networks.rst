@@ -61,7 +61,7 @@ provisioning will happen in a multi-tenant environment (which means using the
 
    .. note::
       If these ``provisioning_network`` and ``cleaning_network`` values are
-      not specified in node's `driver_info` then ironic falls back to the
+      not specified in node's ``driver_info`` then ironic falls back to the
       configuration in the ``neutron`` section.
 
    Please refer to :doc:`configure-cleaning` for more information about

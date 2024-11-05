@@ -16,16 +16,16 @@ How it works
 
 The expected workflow is as follows:
 
-#. The node is discovered by manually powering it on and getting the
-   `manual-management` hardware type and `agent` power interface.
+#. The node is discovered by manually powering it on and gets the
+   ``manual-management`` hardware type and ``agent`` power interface.
 
    If discovery is not used, a node can be enrolled through the API and then
    powered on manually.
 
-#. The operator moves the node to `manageable`. It works because the `agent`
+#. The operator moves the node to ``manageable``. It works because the ``agent``
    power only requires to be able to connect to the agent.
 
-#. The operator moves the node to `available`. Cleaning happens normally via
+#. The operator moves the node to ``available``. Cleaning happens normally via
    the already running agent. If a reboot is needed, it is done by telling the
    agent to reboot the node in-band.
 

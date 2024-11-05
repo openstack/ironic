@@ -5,9 +5,10 @@ API Audit Logging
 =================
 
 Audit middleware supports the delivery of CADF audit events via the Oslo messaging
-notifier capability. Based on the `notification_driver` configuration, audit events
-can be routed to messaging infrastructure (notification_driver = messagingv2)
-or can be routed to a log file (`[oslo_messaging_notifications]/driver = log`).
+notifier capability. Based on the ``notification_driver`` configuration, audit
+event can be routed to messaging infrastructure (notification_driver =
+messagingv2) or can be routed to a log file (
+``[oslo_messaging_notifications]/driver = log``).
 
 Audit middleware creates two events per REST API interaction. The first event has
 information extracted from request data and the second one has request outcome
@@ -16,8 +17,8 @@ information extracted from request data and the second one has request outcome
 Enabling API Audit Logging
 ==========================
 
-Audit middleware is available as part of `keystonemiddleware` (>= 1.6) library.
-For information regarding how audit middleware functions refer
+Audit middleware is available as part of ``keystonemiddleware`` (>= 1.6)
+library. For information regarding how audit middleware functions refer
 :keystonemiddleware-doc:`here <audit.html>`.
 
 Auditing can be enabled for the Bare Metal service by making the following changes

@@ -485,8 +485,8 @@ RAID deployments where Ironic does not have access to any image metadata
 Using RAID in nova flavor for scheduling
 ========================================
 
-The operator can specify the `raid_level` capability in nova flavor for node to be selected
-for scheduling::
+The operator can specify the ``raid_level`` capability in nova flavor for node
+to be selected for scheduling::
 
   openstack flavor set my-baremetal-flavor --property capabilities:raid_level="1+0"
 

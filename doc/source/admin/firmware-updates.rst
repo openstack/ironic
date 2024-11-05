@@ -248,7 +248,7 @@ installs two firmware updates.
     }]
 
 
-It is also possible to use `runbooks` for firmware updates.
+It is also possible to use ``runbooks`` for firmware updates.
 
 .. code-block:: console
 
@@ -281,9 +281,9 @@ In the following example, the JSON is specified directly on the command line:
 
 .. note::
    For Dell machines you must extract the firmimgFIT.d9 from the iDRAC.exe
-   This can be done using the command `7za e iDRAC_<VERSION>.exe`.
+   This can be done using the command ``7za e iDRAC_<VERSION>.exe``.
 
 .. note::
    For HPE machines you must extract the ilo5_<version>.bin from the
    ilo5_<version>.fwpkg
-   This can be done using the command `7za e ilo<version>.fwpkg`.
+   This can be done using the command ``7za e ilo<version>.fwpkg``.

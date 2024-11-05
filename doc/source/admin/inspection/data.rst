@@ -14,7 +14,7 @@ After a successful inspection, you can get both parts as JSON with:
 
    $ baremetal node inventory save <NODE>
 
-Use `jq` to filter the parts you need, e.g. only the inventory itself:
+Use ``jq`` to filter the parts you need, e.g. only the inventory itself:
 
 .. code-block:: console
 

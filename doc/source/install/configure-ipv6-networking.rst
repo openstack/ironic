@@ -46,17 +46,17 @@ Provisioning with IPv6 stateful addressing
 ------------------------------------------
 
 When using stateful addressing DHCPv6 is providing both addresses and other
-configuration via DHCPv6 options such as the bootfile-url and bootfile-
-parameters.
+configuration via DHCPv6 options such as the bootfile-url and
+bootfile-parameters.
 
 The "identity-association" (IA) construct used by DHCPv6 is challenging when
 booting over the network. Firmware, and ramdisks typically end up using
-different DUID/IAID combinations and it is not always possible for one chain-
-booting stage to release its address before giving control to the next step. In
-case the DHCPv6 server is configured with static reservations only the result is
-that booting will fail because the DHCPv6 server has no addresses available. To
-get past this issue either configure the DHCPv6 server with multiple address
-reservations for each host, or use a dynamic range.
+different DUID/IAID combinations and it is not always possible for one
+chain-booting stage to release its address before giving control to the next
+step. In case the DHCPv6 server is configured with static reservations only
+the result is that booting will fail because the DHCPv6 server has no
+addresses available. To get past this issue either configure the DHCPv6 server
+with multiple address reservations for each host, or use a dynamic range.
 
 .. Note:: Support for multiple address reservations requires dnsmasq version
           2.81 or later. Some distributions may backport this feature to

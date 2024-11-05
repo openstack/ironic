@@ -25,7 +25,7 @@ influences how the ironic conductor calculates (and thus allocates)
 baremetal nodes under ironic's management. This calculation is performed
 independently by each operating conductor and as such if a conductor has
 a :oslo.config:option:`conductor.conductor_group` configuration option defined in its
-`ironic.conf` configuration file, the conductor will then be limited to
+``ironic.conf`` configuration file, the conductor will then be limited to
 only managing nodes with a matching ``conductor_group`` string.
 
 .. note::

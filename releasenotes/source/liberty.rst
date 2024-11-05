@@ -113,7 +113,7 @@ Known issues
   that use these deploy classes, an error will be thrown during
   deployment. There is a simple fix. For drivers that expect these deploy
   classes to handle PXE booting, one can add the following code to the driver's
-  `__init__` method::
+  ``__init__`` method::
 
     from ironic.drivers.modules import pxe
 
@@ -133,8 +133,8 @@ Known issues
             # ...
             self.boot = fake.FakeBoot()
 
-  Additionally, as mentioned before, `ironic.drivers.modules.pxe.PXEDeploy`
-  has moved to `ironic.drivers.modules.iscsi_deploy.ISCSIDeploy`, which will
+  Additionally, as mentioned before, ``ironic.drivers.modules.pxe.PXEDeploy``
+  has moved to ``ironic.drivers.modules.iscsi_deploy.ISCSIDeploy``, which will
   break drivers that use this class.
 
   The Ironic team apologizes profusely for this inconvenience.

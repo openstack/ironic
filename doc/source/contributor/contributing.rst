@@ -83,7 +83,7 @@ Feature Submission Process
    about the RFE, and whether to approve it will occur. If the RFE has not
    been triaged and you'd like it to receive immediate attention, add it to
    the Open Discussion section of our
-   `weekly meeting agenda <https://wiki.openstack.org/wiki/Meetings/Ironic>`,
+   `weekly meeting agenda <https://wiki.openstack.org/wiki/Meetings/Ironic>`_,
    and, timezone permitting, attend the meeting to advocate for your RFE.
 
 #. Contributors will evaluate the RFE and may advise the submitter to file a
@@ -111,7 +111,7 @@ Change Tracking
 Please ensure work related to a bug or RFE is tagged with the bug. This
 generally is a "Closes-bug", "Partial-bug" or "Related-bug" tag as described
 in the
-`Git Commit messages guide <https://wiki.openstack.org/wiki/GitCommitMessages#Including_external_references>``.
+`Git Commit messages guide <https://wiki.openstack.org/wiki/GitCommitMessages#Including_external_references>`_.
 
 .. note:: **RFEs may only be approved by members of the ironic-core team**.
 
@@ -253,8 +253,8 @@ Ironic Specs Process
 Specifications must follow the template which can be found at
 `specs/template.rst <https://opendev.org/openstack/ironic-specs/src/branch/
 master/specs/template.rst>`_, which is quite self-documenting. Specifications are
-proposed by adding them to the `specs/approved` directory, adding a soft link
-to it from the `specs/not-implemented` directory, and posting it for
+proposed by adding them to the ``specs/approved`` directory, adding a soft link
+to it from the ``specs/not-implemented`` directory, and posting it for
 review to Gerrit. For more information, please see the `README <https://git.
 openstack.org/cgit/openstack/ironic-specs/tree/README.rst>`_.
 

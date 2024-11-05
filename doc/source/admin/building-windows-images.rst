@@ -36,7 +36,7 @@ Preparation:
       - Variable value: C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files\Git\bin
 
   - Rename virtual switch name in Windows Server 2012R2/ 2016 in
-    ``Virtual Switch Manager`` into `external`.
+    ``Virtual Switch Manager`` into ``external``.
 
 Implementation:
 ~~~~~~~~~~~~~~~
@@ -56,7 +56,7 @@ Implementation:
 
     git clone https://github.com/cloudbase/windows-openstack-imaging-tools.git
 
-* ``Step 5``: Create & running script `create-windows-cloud-image.ps1`:
+* ``Step 5``: Create & running script ``create-windows-cloud-image.ps1``:
 
   .. code-block:: console
 
