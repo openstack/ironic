@@ -882,28 +882,6 @@
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
 
 - job:
-    # Security testing for known issues
-    name: ironic-tox-bandit
-    parent: openstack-tox
-    timeout: 2400
-    vars:
-      tox_envlist: bandit
-    required-projects:
-      - opendev.org/openstack/ironic
-    irrelevant-files:
-      - ^.*\.rst$
-      - ^api-ref/.*$
-      - ^doc/.*$
-      - ^driver-requirements.txt$
-      - ^install-guide/.*$
-      - ^ironic/locale/.*$
-      - ^ironic/tests/.*$
-      - ^redfish-interop-profiles/.*$
-      - ^releasenotes/.*$
-      - ^setup.cfg$
-      - ^tox.ini$
-
-- job:
     name: ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib
     parent: ironic-base
     vars:
@@ -1325,10 +1303,3 @@
       grenade_localrc:
         # NOTE(iurygregory): This is required for skip upgrades.
         NOVA_ENABLE_UPGRADE_WORKAROUND: True
-
-- job:
-    name: ironic-tox-codespell
-    parent: openstack-tox
-    timeout: 7200
-    vars:
-      tox_envlist: codespell

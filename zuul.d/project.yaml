@@ -10,8 +10,6 @@
       - release-notes-jobs-python3
     check:
       jobs:
-        - ironic-tox-bandit
-        - ironic-tox-codespell
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-driver-libs
         - ironic-cross-sushy:
@@ -70,8 +68,6 @@
             voting: false
     gate:
       jobs:
-        - ironic-tox-bandit
-        - ironic-tox-codespell
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3

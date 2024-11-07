@@ -7,9 +7,23 @@ repos:
     rev: v4.5.0
     hooks:
       - id: trailing-whitespace
+        # NOTE(JayF): We shouldn't modify release notes after their
+        #  associated release. Instead, ignore these minor lint issues.
+        exclude: |
+          (?x)(
+          ^releasenotes/notes/redfish-raid-get-drives-fix-18d46f3e7275b0ef.yaml$|
+          ^releasenotes/notes/provide_mountpoint-58cfd25b6dd4cfde.yaml$|
+          ^releasenotes/notes/ipmi-retries-min-command-interval-070cd7eff5eb74dd.yaml$|
+          ^releasenotes/notes/deprecate-ibmc-9106cc3a81171738.yaml$|
+          ^releasenotes/notes/fix-cve-2016-4985-b62abae577025365.yaml$
+          )
       - id: mixed-line-ending
         args: ['--fix', 'lf']
-        exclude: '.*\.(svg)$'
+        exclude: |
+          (?x)(
+          .*.svg$|
+          ^releasenotes/notes/ibmc-driver-45fcf9f50ebf0193.yaml$|
+          )
       - id: fix-byte-order-marker
       - id: check-merge-conflict
       - id: debug-statements
@@ -17,6 +31,7 @@ repos:
         files: .*\.json$
       - id: check-yaml
         files: .*\.(yaml|yml)$
+        exclude: releasenotes/.*$
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.4
     hooks:
@@ -37,5 +52,44 @@ repos:
     hooks:
       - id: sphinx-lint
         args: [--enable=default-role]
-        files: ^doc/|releasenotes|api-guide
+        files: ^doc/|releasenotes|api-ref
         types: [rst]
+  - repo: https://opendev.org/openstack/bashate
+    rev: 2.1.0
+    hooks:
+      - id: bashate
+        args: ["-iE006,E044", "-eE005,E042"]
+        name: bashate
+        description: This hook runs bashate for linting shell scripts
+        entry: bashate
+        language: python
+        types: [shell]
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.10
+    hooks:
+      - id: bandit
+        args: ["-x", "tests/", "-n5", "-ll", "-c", "tools/bandit.yml"]
+        name: bandit
+        description: 'Bandit is a tool for finding common security issues in Python code'
+        entry: bandit
+        language: python
+        language_version: python3
+        types: [ python ]
+        require_serial: true
+  - repo: https://github.com/PyCQA/doc8
+    rev: v1.1.1
+    hooks:
+      - id: doc8
+        args: ["--ignore", "D001"]
+        name: doc8
+        description: This hook runs doc8 for linting docs
+        entry: python -m doc8
+        language: python
+        files: \.rst$
+        require_serial: true
+  - repo: local
+    hooks:
+      - id: check-releasenotes
+        name: check-releasenotes
+        language: python
+        entry: python tools/check-releasenotes.py
