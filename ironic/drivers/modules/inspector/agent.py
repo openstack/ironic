@@ -79,7 +79,7 @@ class AgentInspect(common.Common):
         if inspect_utils.clear_lookup_addresses(task.node):
             task.node.save()
 
-        common.clean_up(task, finish=False)
+        common.clean_up(task, finish=False, always_power_off=True)
 
     def continue_inspection(self, task, inventory, plugin_data):
         """Continue in-band hardware inspection.
@@ -90,8 +90,7 @@ class AgentInspect(common.Common):
         """
         # Run the inspection hooks
         run_inspection_hooks(task, inventory, plugin_data, self.hooks)
-
-        common.clean_up(task, finish=False)
+        common.clean_up(task, finish=False, always_power_off=True)
 
 
 def _store_logs(plugin_data, node):
@@ -115,7 +114,6 @@ def run_inspection_hooks(task, inventory, plugin_data, hooks):
 
     try:
         _run_post_hooks(task, inventory, plugin_data, hooks)
-        _power_off_node(task)
     except exception.HardwareInspectionFailure:
         with excutils.save_and_reraise_exception():
             _store_logs(plugin_data, task.node)
@@ -180,20 +178,3 @@ def _run_post_hooks(task, inventory, plugin_data, hooks):
         LOG.debug('Running inspection hook %(hook)s for node %(node)s',
                   {'hook': hook.name, 'node': task.node.uuid})
         hook.obj.__call__(task, inventory, plugin_data)
-
-
-def _power_off_node(task):
-    power_off = CONF.inspector.power_off
-    if not power_off:
-        return
-
-    node = task.node
-    LOG.debug('Forcing power off of node %(node)s', {'node': node.uuid})
-    try:
-        cond_utils.node_power_action(task, states.POWER_OFF)
-    except Exception as exc:
-        msg = _("Failed to power off node %(node)s after inspection. Check "
-                "its power management configuration. Error: %(error)s" %
-                {'node': node.uuid, "error": exc})
-        raise exception.HardwareInspectionFailure(msg)
-    LOG.info('Node %(node)s powered off', {'node': node.uuid})

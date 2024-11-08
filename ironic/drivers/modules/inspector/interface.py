@@ -62,29 +62,30 @@ def _get_callback_endpoint(client):
                                 parts.query, parts.fragment))
 
 
-def tear_down_managed_boot(task):
+def tear_down_managed_boot(task, always_power_off=False):
     errors = []
 
     ironic_manages_boot = utils.pop_node_nested_field(
         task.node, 'driver_internal_info', _IRONIC_MANAGES_BOOT)
-    if not ironic_manages_boot:
-        return errors
 
-    try:
-        task.driver.boot.clean_up_ramdisk(task)
-    except Exception as exc:
-        errors.append(_('unable to clean up ramdisk boot: %s') % exc)
-        LOG.exception('Unable to clean up ramdisk boot for node %s',
-                      task.node.uuid)
-    try:
-        with cond_utils.power_state_for_network_configuration(task):
-            task.driver.network.remove_inspection_network(task)
-    except Exception as exc:
-        errors.append(_('unable to remove inspection ports: %s') % exc)
-        LOG.exception('Unable to remove inspection network for node %s',
-                      task.node.uuid)
+    if ironic_manages_boot:
+        try:
+            task.driver.boot.clean_up_ramdisk(task)
+        except Exception as exc:
+            errors.append(_('unable to clean up ramdisk boot: %s') % exc)
+            LOG.exception('Unable to clean up ramdisk boot for node %s',
+                          task.node.uuid)
+        try:
+            with cond_utils.power_state_for_network_configuration(task):
+                task.driver.network.remove_inspection_network(task)
+        except Exception as exc:
+            errors.append(_('unable to remove inspection ports: %s') % exc)
+            LOG.exception('Unable to remove inspection network for node %s',
+                          task.node.uuid)
 
-    if CONF.inspector.power_off and not utils.fast_track_enabled(task.node):
+    if ((ironic_manages_boot or always_power_off)
+            and CONF.inspector.power_off
+            and not utils.fast_track_enabled(task.node)):
         try:
             cond_utils.node_power_action(task, states.POWER_OFF)
         except Exception as exc:
@@ -363,8 +364,8 @@ def _check_status(task):
                                             task.context)
 
 
-def clean_up(task, finish=True):
-    errors = tear_down_managed_boot(task)
+def clean_up(task, finish=True, always_power_off=False):
+    errors = tear_down_managed_boot(task, always_power_off=always_power_off)
     if errors:
         errors = ', '.join(errors)
         LOG.error('Inspection clean up failed for node %(uuid)s: %(err)s',
