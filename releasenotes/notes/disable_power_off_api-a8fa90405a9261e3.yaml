@@ -1,0 +1,9 @@
+---
+features:
+  - |
+    Adds support for setting ``disable_power_off`` on node creation along with
+    set/unset ``disable_power_off`` on existing nodes.
+    If set to ``true``, power off for the node is explicitly disabled, instead, a
+    reboot will be used in place of power on/off.  Additionally, when possible,
+    the node will be disabled (i.e., its API agent will be rendered unusable
+    and network configurationwill be removed) instead of being powered off.

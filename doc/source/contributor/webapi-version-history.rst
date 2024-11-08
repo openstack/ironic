@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+1.95 (Epoxy)
+-----------------------
+
+Add support to set/unset disable_power_off on nodes.
+
 1.94 (Epoxy)
 -----------------------
 
