@@ -13,6 +13,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
+
 from oslo_log import log
 import sushy
 
@@ -62,6 +64,10 @@ def _set_power_state(task, system, power_state, timeout=None):
     """
     system.reset_system(SET_POWER_STATE_MAP.get(power_state))
     target_state = TARGET_STATE_MAP.get(power_state, power_state)
+    if power_state == states.REBOOT:
+        LOG.debug('Waiting 15 seconds to give the node %s a chance to power '
+                  'off before checking its power state', task.node.uuid)
+        time.sleep(15)
     cond_utils.node_wait_for_power_state(task, target_state,
                                          timeout=timeout)
 
@@ -140,14 +146,20 @@ class RedfishPower(base.PowerInterface):
 
         try:
             if current_power_state == states.POWER_ON:
-                next_state = states.POWER_OFF
-                _set_power_state(task, system, next_state, timeout=timeout)
+                if task.node.disable_power_off:
+                    # Skip powering off, reboot after restoring the boot device
+                    next_state = states.REBOOT
+                else:
+                    next_state = states.POWER_OFF
+                    _set_power_state(task, system, next_state, timeout=timeout)
+                    next_state = states.POWER_ON
+            else:
+                next_state = states.POWER_ON
 
             if isinstance(task.driver.management,
                           redfish_mgmt.RedfishManagement):
                 task.driver.management.restore_boot_device(task, system)
 
-            next_state = states.POWER_ON
             _set_power_state(task, system, next_state, timeout=timeout)
         except sushy.exceptions.SushyError as e:
             error_msg = (_('Reboot failed for node %(node)s when setting '
