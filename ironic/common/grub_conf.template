@@ -3,6 +3,6 @@ set timeout=5
 set hidden_timeout_quiet=false
 
 menuentry "boot_partition" {
-linuxefi {{ linux }} {{ kernel_params }} --
-initrdefi {{ initrd }}
+linux {{ linux }} {{ kernel_params }} --
+initrd {{ initrd }}
 }

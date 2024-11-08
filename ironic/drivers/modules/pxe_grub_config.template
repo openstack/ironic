@@ -3,20 +3,20 @@ set timeout=5
 set hidden_timeout_quiet=false
 
 menuentry "deploy"  {
-    {{ pxe_options.linux_cmd|default('linuxefi', true) }} {{ pxe_options.deployment_aki_path }} selinux=0 troubleshoot=0 text {{ pxe_options.pxe_append_params|default("", true) }} boot_server={{pxe_options.tftp_server}}
-    {{ pxe_options.initrd_cmd|default('initrdefi', true) }} {{ pxe_options.deployment_ari_path }}
+    {{ pxe_options.linux_cmd|default('linux', true) }} {{ pxe_options.deployment_aki_path }} selinux=0 troubleshoot=0 text {{ pxe_options.pxe_append_params|default("", true) }} boot_server={{pxe_options.tftp_server}}
+    {{ pxe_options.initrd_cmd|default('initrd', true) }} {{ pxe_options.deployment_ari_path }}
 }
 
 menuentry "boot_ramdisk"  {
-    {{ pxe_options.linux_cmd|default('linuxefi', true) }} {{ pxe_options.aki_path }} root=/dev/ram0 text {{ pxe_options.pxe_append_params|default("", true) }} {{ pxe_options.ramdisk_opts|default('', true) }}
-    {{ pxe_options.initrd_cmd|default('initrdefi', true) }} {{ pxe_options.ari_path }}
+    {{ pxe_options.linux_cmd|default('linux', true) }} {{ pxe_options.aki_path }} root=/dev/ram0 text {{ pxe_options.pxe_append_params|default("", true) }} {{ pxe_options.ramdisk_opts|default('', true) }}
+    {{ pxe_options.initrd_cmd|default('initrd', true) }} {{ pxe_options.ari_path }}
 }
 
 menuentry "boot_whole_disk"  {
-    {{ pxe_options.linux_cmd|default('linuxefi', true) }} chain.c32 mbr:{{ DISK_IDENTIFIER }}
+    {{ pxe_options.linux_cmd|default('linux', true) }} chain.c32 mbr:{{ DISK_IDENTIFIER }}
 }
 
 menuentry "boot_anaconda" {
-     {{ pxe_options.linux_cmd|default('linuxefi', true) }} {{ pxe_options.aki_path }} text {{ pxe_options.pxe_append_params|default("", true) }} inst.ks={{ pxe_options.ks_cfg_url }} {% if pxe_options.repo_url %}inst.repo={{ pxe_options.repo_url }}{% else %}inst.stage2={{ pxe_options.stage2_url }}{% endif %}
-     {{ pxe_options.initrd_cmd|default('initrdefi', true) }} {{ pxe_options.ari_path }}
+     {{ pxe_options.linux_cmd|default('linux', true) }} {{ pxe_options.aki_path }} text {{ pxe_options.pxe_append_params|default("", true) }} inst.ks={{ pxe_options.ks_cfg_url }} {% if pxe_options.repo_url %}inst.repo={{ pxe_options.repo_url }}{% else %}inst.stage2={{ pxe_options.stage2_url }}{% endif %}
+     {{ pxe_options.initrd_cmd|default('initrd', true) }} {{ pxe_options.ari_path }}
 }
