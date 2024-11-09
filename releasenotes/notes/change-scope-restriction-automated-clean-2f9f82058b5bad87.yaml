@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes the policy scope checking for the RBAC Policy
+    ``baremetal:node:disable_cleaning``, which previously
+    restricted to ``system`` user scope. The scope restriction
+    has been revised to permit ``project`` scoped matching,
+    but the default RBAC policy has not been revised.
