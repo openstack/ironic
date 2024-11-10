@@ -742,7 +742,7 @@ class Connection(api.Connection):
             # Nothing updated and node exists. Must already be
             # locked. Identify who holds it and log.
             if utils.is_ironic_using_sqlite():
-                lock_holder = CONF.hostname
+                lock_holder = CONF.host
             else:
                 lock_holder = self._get_node_reservation(node.id).reservation
             raise exception.NodeLocked(node=node.uuid, host=lock_holder)

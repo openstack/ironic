@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fix issue on SQLite database usage. Previously ironic node provisioning may
+    fail with error related accessing the hostname.
+    For more details please see
+    `bug 2086682 <https://bugs.launchpad.net/ironic/+bug/2086682>`_.
