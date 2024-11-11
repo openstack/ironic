@@ -894,3 +894,78 @@ class TestAgentClientAttempts(base.TestCase):
             params={'wait': 'false'},
             timeout=60,
             verify=True)
+
+
+@mock.patch('time.sleep', autospec=True)
+@mock.patch.object(agent_client.AgentClient, 'get_commands_status',
+                   autospec=True)
+@mock.patch.object(agent_client.AgentClient, '_command', autospec=True)
+class TestLockDown(base.TestCase):
+    def setUp(self):
+        super().setUp()
+        self.client = agent_client.AgentClient()
+        self.node = MockNode()
+
+    def test_okay(self, mock_command, mock_status, mock_sleep):
+        mock_status.side_effect = [
+            {},
+            {},
+            exception.AgentConnectionFailed(reason=''),
+        ]
+
+        self.client.lockdown(self.node)
+
+        mock_command.assert_has_calls([
+            mock.call(self.client, node=self.node,
+                      method='standby.sync', params={}, wait=True),
+            mock.call(self.client, node=self.node,
+                      method='system.lockdown', params={}),
+        ])
+        mock_status.assert_called_with(self.client, self.node,
+                                       expect_errors=True)
+        self.assertEqual(3, mock_status.call_count)
+        mock_sleep.assert_called_with(5)
+
+    def test_okay_with_fail_if_unavailable(self, mock_command, mock_status,
+                                           mock_sleep):
+        mock_status.side_effect = [
+            {},
+            {},
+            exception.AgentConnectionFailed(reason=''),
+        ]
+
+        self.client.lockdown(self.node, fail_if_unavailable=False)
+
+        mock_command.assert_has_calls([
+            mock.call(self.client, node=self.node,
+                      method='standby.sync', params={}, wait=True),
+            mock.call(self.client, node=self.node,
+                      method='system.lockdown', params={}),
+        ])
+        mock_status.assert_called_with(self.client, self.node,
+                                       expect_errors=True)
+        self.assertEqual(3, mock_status.call_count)
+        mock_sleep.assert_called_with(5)
+
+    def test_agent_already_down(self, mock_command, mock_status, mock_sleep):
+        mock_status.side_effect = exception.AgentConnectionFailed(reason='')
+
+        self.client.lockdown(self.node, fail_if_unavailable=False)
+
+        mock_command.assert_not_called()
+        mock_status.assert_called_once_with(self.client, self.node,
+                                            expect_errors=True)
+
+    def test_timeout(self, mock_command, mock_status, mock_sleep):
+        self.assertRaises(exception.AgentCommandTimeout,
+                          self.client.lockdown, self.node)
+
+        mock_command.assert_has_calls([
+            mock.call(self.client, node=self.node,
+                      method='standby.sync', params={}, wait=True),
+            mock.call(self.client, node=self.node,
+                      method='system.lockdown', params={}),
+        ])
+        mock_status.assert_called_with(self.client, self.node,
+                                       expect_errors=True)
+        mock_sleep.assert_called_with(5)

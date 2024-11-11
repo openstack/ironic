@@ -15,10 +15,12 @@
 from http import client as http_client
 import os
 import ssl
+import time
 
 from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_serialization import jsonutils
+from oslo_utils import excutils
 from oslo_utils import strutils
 import requests
 import tenacity
@@ -839,3 +841,75 @@ class AgentClient(object):
                 return self._command(node=node,
                                      method='rescue.finalize_rescue',
                                      params=params)
+
+    @METRICS.timer('AgentClient.lockdown')
+    def lockdown(self, node, fail_if_unavailable=True):
+        """Lock down the agent so that it's not usable any more.
+
+        :param node: A Node object.
+        :param fail_if_unavailable: Whether to fail this call if the agent is
+                                    already unavailable.
+        :raises: IronicException when failed to issue the request or there was
+                 a malformed response from the agent.
+        :raises: AgentAPIError when agent failed to execute specified command.
+        :raises: AgentInProgress when the command fails to execute as the agent
+                 is presently executing the prior command.
+        """
+        if not fail_if_unavailable:
+            try:
+                self.get_commands_status(node, expect_errors=True)
+            except exception.AgentConnectionFailed:
+                LOG.debug('Agent is already down when trying to lock down '
+                          'node %s', node.uuid)
+                return
+            except Exception:
+                LOG.exception('Unexpected exception when checking agent '
+                              'status on node %s, proceeding with lockdown',
+                              node.uuid)
+
+        wait = CONF.agent.post_deploy_get_power_state_retry_interval
+        attempts = CONF.agent.post_deploy_get_power_state_retries + 1
+
+        @tenacity.retry(stop=tenacity.stop_after_attempt(attempts),
+                        retry=tenacity.retry_unless_exception_type(
+                            exception.AgentConnectionFailed),
+                        wait=tenacity.wait_fixed(wait),
+                        sleep=time.sleep,  # for unit testing
+                        reraise=True)
+        def _wait_until_locked_down(node):
+            self.get_commands_status(node, expect_errors=True)
+            LOG.debug('Agent is still available on node %s, waiting for the '
+                      'lockdown command to take effect', node.uuid)
+
+        self.sync(node)
+
+        try:
+            self._command(node=node, method='system.lockdown', params={})
+        except Exception as e:
+            with excutils.save_and_raise_exception():
+                LOG.error('Failed to lock down node %(node_uuid)s. '
+                          '%(cls)s: %(error)s',
+                          {'node_uuid': node.uuid,
+                           'cls': e.__class__.__name__, 'error': e},
+                          exc_info=not isinstance(
+                              e, exception.IronicException))
+
+        try:
+            _wait_until_locked_down(node)
+        except exception.AgentConnectionFailed:
+            pass  # expected
+        except tenacity.RetryError:
+            LOG.error('Failed to lock down node %(node_uuid)s in at least '
+                      '%(timeout)d seconds: agent is still available',
+                      {'node_uuid': node.uuid,
+                       'timeout': (wait * (attempts - 1))})
+            raise exception.AgentCommandTimeout(command='system.lockdown',
+                                                node=node.uuid)
+        except Exception as e:
+            with excutils.save_and_reraise_exception():
+                LOG.error('Failed to lock down node %(node_uuid)s. '
+                          '%(cls)s: %(error)s',
+                          {'node_uuid': node.uuid,
+                           'cls': e.__class__.__name__, 'error': e},
+                          exc_info=not isinstance(
+                              e, exception.IronicException))
