@@ -47,13 +47,13 @@ repos:
     rev: v2.2.6
     hooks:
     - id: codespell
+      args: [--write-changes]
   - repo: https://github.com/sphinx-contrib/sphinx-lint
-    rev: v0.6.8
+    rev: v1.0.0
     hooks:
       - id: sphinx-lint
         args: [--enable=default-role]
         files: ^doc/|releasenotes|api-ref
-        types: [rst]
   - repo: https://opendev.org/openstack/bashate
     rev: 2.1.0
     hooks:
@@ -77,16 +77,9 @@ repos:
         types: [ python ]
         require_serial: true
   - repo: https://github.com/PyCQA/doc8
-    rev: v1.1.1
+    rev: v1.1.2
     hooks:
       - id: doc8
-        args: ["--ignore", "D001"]
-        name: doc8
-        description: This hook runs doc8 for linting docs
-        entry: python -m doc8
-        language: python
-        files: \.rst$
-        require_serial: true
   - repo: local
     hooks:
       - id: check-releasenotes
