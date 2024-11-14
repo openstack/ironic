@@ -51,7 +51,6 @@ with OSProfiler and ceilometer. In addition to the setup described at
 
 Add the following to ``localrc`` to enable OSProfiler and ceilometer::
 
-    enable_plugin panko https://opendev.org/openstack/panko
     enable_plugin ceilometer https://opendev.org/openstack/ceilometer
     enable_plugin osprofiler https://opendev.org/openstack/osprofiler
 
