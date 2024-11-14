@@ -1206,11 +1206,32 @@ class NodeStatesController(rest.RestController):
 
         api_utils.check_allow_management_verbs(target)
 
+        # Secondary RBAC policy checking...
+        # done first because RBAC policies must be asserted in order
+        # of visibility to can I make a change upfront, before diving
+        # into if the change is valid to make.
+        if not runbook:
+            if clean_steps:
+                api_utils.check_owner_policy(
+                    'node',
+                    'baremetal:node:set_provision_state:clean_steps',
+                    rpc_node['owner'], rpc_node['lessee'],
+                    conceal_node=False)
+            if service_steps:
+                api_utils.check_owner_policy(
+                    'node',
+                    'baremetal:node:set_provision_state:service_steps',
+                    rpc_node['owner'], rpc_node['lessee'],
+                    conceal_node=False)
+
         if (target in (ir_states.ACTIVE, ir_states.REBUILD)
                 and rpc_node.maintenance):
             raise exception.NodeInMaintenance(op=_('provisioning'),
                                               node=rpc_node.uuid)
 
+        # This code does upfront state sanity checking, in that we're past
+        # basic RBAC policy checking, and we're shifting gears to content
+        # validation.
         m = ir_states.machine.copy()
         m.initialize(rpc_node.provision_state)
         if not m.is_actionable_event(ir_states.VERBS.get(target, target)):
@@ -1236,13 +1257,6 @@ class NodeStatesController(rest.RestController):
             clean_steps, service_steps, disable_ramdisk = self._handle_runbook(
                 rpc_node, target, runbook, clean_steps, service_steps
             )
-        else:
-            if clean_steps:
-                api_utils.check_policy(
-                    'baremetal:node:set_provision_state:clean_steps')
-            if service_steps:
-                api_utils.check_policy(
-                    'baremetal:node:set_provision_state:service_steps')
 
         if clean_steps and target != ir_states.VERBS['clean']:
             msg = (_('"clean_steps" is only valid when setting target '
