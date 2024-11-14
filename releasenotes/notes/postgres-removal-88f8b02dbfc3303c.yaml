@@ -1,0 +1,13 @@
+---
+upgrade:
+  - |
+    Deployers using PostgreSQL must migrate to a supported mysql-compatible
+    database, such as MySQL or MariaDB.
+deprecations:
+  - |
+    Use of postgresql has been deprecated for all OpenStack projects,
+    including ironic, for several years. However, in an effort to avoid
+    breaking existing installs, we had tested database migrations and
+    performed a basic functionality test against PostgreSQL. This test has
+    now been removed, and operators deployed on PostgreSQL must migrate to
+    a MySQL-compatible database, such as MySQL or MariaDB, before upgrade.

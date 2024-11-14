@@ -111,9 +111,3 @@ The description of each jobs that runs in the CI when you submit a patch for
   * - bifrost-integration-redfish-vmedia-uefi-centos-9
     - Tests the integration between Ironic and Bifrost using redfish vmedia and
       a dib image based on centos stream 9.
-  * - ironic-tempest-pxe_ipmitool-postgres
-    - Deploys Ironic in DevStack, configured to use tinyipa ramdisk partition
-      image with ``pxe`` boot and ``ipmi`` driver and postgres instead of mysql.
-      Runs tempest tests that match the regex
-      ``ironic_tempest_plugin.tests.scenario``, also deploys 1 virtual
-      baremetal.

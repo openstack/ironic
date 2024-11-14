@@ -15,23 +15,14 @@
 #    under the License.
 
 """
-Tests for database migrations. There are "opportunistic" tests for both mysql
-and postgresql in here, which allows testing against these databases in a
-properly configured unit test environment.
+Tests for database migrations. There are "opportunistic" tests for mysql in
+here, which allow testing against a database in a properly configured unit
+test environment.
 
 For the opportunistic testing you need to set up a db named 'openstack_citest'
 with user 'openstack_citest' and password 'openstack_citest' on localhost.
-The test will then use that db and u/p combo to run the tests.
-
-For postgres on Ubuntu this can be done with the following commands:
-
-::
-
- sudo -u postgres psql
- postgres=# create user openstack_citest with createdb login password
-      'openstack_citest';
- postgres=# create database openstack_citest with owner openstack_citest;
-
+The test will then use that db and u/p combo to run the tests. See
+tools/test-setup.sh in the root of the repo for a full setup example.
 """
 
 import collections
@@ -1631,10 +1622,3 @@ class ModelsMigrationsSyncMysql(ModelsMigrationSyncMixin,
                                 test_fixtures.OpportunisticDBTestMixin,
                                 test_base.BaseTestCase):
     FIXTURE = test_fixtures.MySQLOpportunisticFixture
-
-
-class ModelsMigrationsSyncPostgres(ModelsMigrationSyncMixin,
-                                   test_migrations.ModelsMigrationsSync,
-                                   test_fixtures.OpportunisticDBTestMixin,
-                                   test_base.BaseTestCase):
-    FIXTURE = test_fixtures.PostgresqlOpportunisticFixture
