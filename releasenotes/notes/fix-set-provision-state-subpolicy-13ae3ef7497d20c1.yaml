@@ -1,0 +1,12 @@
+---
+fixes:
+  - |
+    Fixes newly added policy rules,
+    ``baremetal:node:set_provision_state:clean_steps`` and
+    ``baremetal:node:set_provision_state:service_steps``which impacted
+    ``project scoped`` users utilizing the ``2024.2`` release of Ironic
+    where they were attempting to invoke ``service`` or ``clean``
+    provision state commands.
+    This was due to a misunderstanding of the correct policy checker to
+    invoke, and additional testing has been added around these functions
+    to ensure they work as expected moving forward.
