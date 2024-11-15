@@ -1295,7 +1295,10 @@ class TFTPImageCache(image_cache.ImageCache):
             # MiB -> B
             cache_size=CONF.pxe.image_cache_size * 1024 * 1024,
             # min -> sec
-            cache_ttl=CONF.pxe.image_cache_ttl * 60)
+            cache_ttl=CONF.pxe.image_cache_ttl * 60,
+            # This is a cache for kernel, initramfs and anaconda artifacts,
+            # none of which can be validated
+            disable_validation=True)
 
 
 def cache_ramdisk_kernel(task, pxe_info, ipxe_enabled=False):
