@@ -1369,6 +1369,80 @@ service_cannot_change_provision_state:
   body: *provision_body
   assert_status: 404
 
+# The following tests fail on lock checking, which is fine,
+# as it demonstrates we're past API RBAC policy checking...
+# And these checks center around secondary policies, so the
+# what we send is more important.
+owner_member_can_set_provision_state_clean:
+  path: '/v1/nodes/{owner_node_ident}/states/provision'
+  method: put
+  headers: *owner_member_headers
+  body: &provision_body_clean_steps
+    target: clean
+    clean_steps:
+      - interface: deploy
+        step: update_firmware
+        args:
+          foo: bar
+        priority: 99
+  assert_status: 409
+
+owner_reader_cannot_set_provision_state_clean:
+  path: '/v1/nodes/{owner_node_ident}/states/provision'
+  method: put
+  headers: *owner_reader_headers
+  body: *provision_body_clean_steps
+  assert_status: 403
+
+lessee_admin_can_set_provision_state_clean:
+  path: '/v1/nodes/{lessee_node_ident}/states/provision'
+  method: put
+  headers: *lessee_admin_headers
+  body: *provision_body_clean_steps
+  assert_status: 409
+
+lessee_member_cannot_set_provision_state_clean:
+  path: '/v1/nodes/{lessee_node_ident}/states/provision'
+  method: put
+  headers: *lessee_member_headers
+  body: *provision_body_clean_steps
+  assert_status: 403
+
+owner_member_can_set_provision_state_service:
+  path: '/v1/nodes/{owner_node_ident}/states/provision'
+  method: put
+  headers: *owner_member_headers
+  body: &provision_body_service_steps
+    target: service
+    clean_steps:
+      - interface: deploy
+        step: update_firmware
+        args:
+          foo: bar
+        priority: 99
+  assert_status: 409
+
+owner_reader_cannot_set_provision_state_service:
+  path: '/v1/nodes/{owner_node_ident}/states/provision'
+  method: put
+  headers: *owner_reader_headers
+  body: *provision_body_service_steps
+  assert_status: 403
+
+lessee_admin_can_set_provision_state_service:
+  path: '/v1/nodes/{lessee_node_ident}/states/provision'
+  method: put
+  headers: *lessee_admin_headers
+  body: *provision_body_service_steps
+  assert_status: 409
+
+lessee_member_cannot_set_provision_state_service:
+  path: '/v1/nodes/{lessee_node_ident}/states/provision'
+  method: put
+  headers: *lessee_member_headers
+  body: *provision_body_service_steps
+  assert_status: 403
+
 # Raid configuration
 
 owner_admin_can_set_raid_config:
