@@ -675,8 +675,8 @@ IRONIC_GRUB2_SHIM_FILE=${IRONIC_GRUB2_SHIM_FILE:-}
 IRONIC_GRUB2_FILE=${IRONIC_GRUB2_FILE:-}
 IRONIC_GRUB2_NETWORK_FILE=${IRONIC_GRUB2_NETWORK_FILE:-}
 IRONIC_UEFI_FILES_DIR=${IRONIC_UEFI_FILES_DIR:-/var/lib/libvirt/images}
-UEFI_LOADER_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_CODE.fd
-UEFI_NVRAM_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_VARS.fd
+UEFI_LOADER_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_CODE_4M.fd
+UEFI_NVRAM_PATH=$IRONIC_UEFI_FILES_DIR/OVMF_VARS_4M.fd
 
 if [[ $IRONIC_HW_ARCH == "aarch64" ]]; then
     UEFI_LOADER_PATH=$IRONIC_UEFI_FILES_DIR/AAVMF_CODE.fd
@@ -693,7 +693,7 @@ if [[ $IRONIC_HW_ARCH == "x86_64" ]]; then
     fi
 elif [[ $IRONIC_HW_ARCH == "aarch64" ]]; then
     if is_ubuntu; then
-        install_package qemu-system-arm qemu-efi qemu-efi-aarch64
+        install_package qemu-system-arm qemu-efi-aarch64
     elif is_fedora; then
         install_package grub2-arm64-efi
     fi
@@ -830,7 +830,7 @@ function get_uefi_loader {
         fi
     else
         if is_ubuntu; then
-            echo /usr/share/OVMF/OVMF_CODE.fd
+            echo /usr/share/OVMF/OVMF_CODE_4M.fd
         elif is_fedora; then
             echo /usr/share/edk2/ovmf/OVMF_CODE.fd
         fi
@@ -846,7 +846,7 @@ function get_uefi_nvram {
         fi
     else
         if is_ubuntu; then
-            echo /usr/share/OVMF/OVMF_VARS.fd
+            echo /usr/share/OVMF/OVMF_VARS_4M.fd
         elif is_fedora; then
             echo /usr/share/edk2/ovmf/OVMF_VARS.fd
         fi

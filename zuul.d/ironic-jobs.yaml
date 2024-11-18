@@ -4,7 +4,7 @@
     abstract: true
     description: Base job for devstack/tempest based ironic jobs.
     parent: devstack-tempest
-    nodeset: openstack-single-node-jammy
+    nodeset: openstack-single-node-noble
     post-run: playbooks/ci-workarounds/get_extra_logging.yaml
     timeout: 10800
     required-projects:
@@ -475,8 +475,8 @@
         # representing June 2023 release. Ubuntu Kinetic is shipping Q3 2022
         # i.e. OVN 22.09, so likely possible to remove sometime *after*
         # Ubuntu Mantic OVN 2023.03.
-        OVN_BRANCH: v23.06.0
-        OVS_BRANCH: v3.1.1
+        OVN_BRANCH: v23.09.0
+        OVS_BRANCH: v3.2.0-20-g1d78a3f31
       devstack_services:
         q-agt: False
         q-dhcp: False
@@ -520,8 +520,8 @@
         # representing June 2023 release. Ubuntu Kinetic is shipping Q3 2022
         # i.e. OVN 22.09, so likely possible to remove sometime *after*
         # Ubuntu Mantic which is OVN 2023.03.
-        OVN_BRANCH: v23.06.0
-        OVS_BRANCH: v3.1.1
+        OVN_BRANCH: v23.09.0
+        OVS_BRANCH: v3.2.0-20-g1d78a3f31
       devstack_services:
         q-agt: False
         q-dhcp: False
@@ -647,7 +647,7 @@
     name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     parent: tempest-multinode-full-base
-    nodeset: openstack-two-node-jammy
+    nodeset: openstack-two-node-noble
     pre-run: playbooks/ci-workarounds/pre.yaml
     required-projects:
       - opendev.org/openstack/ironic
@@ -817,7 +817,7 @@
     name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode-shard
     description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode-shard
     parent: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
-    nodeset: openstack-two-node-jammy
+    nodeset: openstack-two-node-noble
     vars:
       tempest_test_regex: "BaremetalBasicOps"
       devstack_localrc:
@@ -943,14 +943,6 @@
         BUILD_TIMEOUT: 2000
         IRONIC_TEMPEST_BUILD_TIMEOUT: 2000
         IRONIC_PING_TIMEOUT: 1440
-        # TODO(TheJulia): Change this to UEFI once we have Ubuntu Jammy
-        # as it auto-attempts to UEFI boot PXE v4 and PXE v6. Prior just
-        # does IPv4 and we cannot easily edit the nvram to inject just v6.
-        # TODO(TheJulia): The devstack plugin also needs to be changed to
-        # dhcpv6-stateful instead of stateless when this is changed to UEFI
-        # as OVMF/E2DK does not support stateless.
-        IRONIC_BOOT_MODE: bios
-
 
 # NOTE(rpittau): OLD TINYIPA JOBS
 # Those jobs are used by other projects, we leave them here until
@@ -1258,7 +1250,7 @@
 
 - job:
     name: ironic-cross-sushy
-    nodeset: ubuntu-jammy
+    nodeset: ubuntu-noble
     description: Ironic unit tests run with Sushy from source
     parent: openstack-tox
     required-projects:
@@ -1273,8 +1265,8 @@
       - ^tools/.*$
     vars:
       # NOTE(dtantsur): change this every release cycle if needed.
-      bindep_profile: test py310
-      tox_envlist: py310
+      bindep_profile: test py312
+      tox_envlist: py312
       # This variable ensures that sushy is installed from source.
       tox_install_siblings: true
       # NOTE(dtantsur): this job will be run on sushy as well, so it's
