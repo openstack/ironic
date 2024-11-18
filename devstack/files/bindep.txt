@@ -53,8 +53,6 @@ libssl-dev [platform:dpkg test]
 libffi-dev [platform:dpkg test]
 libffi-devel [platform:rpm test]
 # these are needed by infra for python-* jobs
-libpq-dev [platform:dpkg test]
-libpq-devel [platform:rpm test]
 mariadb [platform:rpm]
 mariadb-server [platform:rpm]
 # mariadb-devel [platform:rpm]
