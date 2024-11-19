@@ -323,6 +323,89 @@ class InspectHardwareTestCase(BaseTestCase):
             self.task, 'power off', timeout=None)
 
 
+class TearDownManagedInspectionTestCase(BaseTestCase):
+
+    def test_unmanaged(self):
+        inspector.tear_down_managed_boot(self.task)
+
+        self.assertFalse(self.driver.network.remove_inspection_network.called)
+        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+        self.assertFalse(self.driver.power.set_power_state.called)
+
+    def test_unmanaged_force_power_off(self):
+        inspector.tear_down_managed_boot(self.task, always_power_off=True)
+
+        self.assertFalse(self.driver.network.remove_inspection_network.called)
+        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+        self.driver.power.set_power_state.assert_called_once_with(
+            self.task, 'power off', timeout=None)
+
+    def test_managed(self):
+        utils.set_node_nested_field(self.node, 'driver_internal_info',
+                                    'inspector_manage_boot', True)
+        self.node.save()
+
+        inspector.tear_down_managed_boot(self.task)
+
+        self.driver.network.remove_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+        self.driver.power.set_power_state.assert_called_once_with(
+            self.task, 'power off', timeout=None)
+
+    def test_managed_no_power_off(self):
+        CONF.set_override('power_off', False, group='inspector')
+        utils.set_node_nested_field(self.node, 'driver_internal_info',
+                                    'inspector_manage_boot', True)
+        self.node.save()
+
+        inspector.tear_down_managed_boot(self.task)
+
+        self.driver.network.remove_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+        self.assertFalse(self.driver.power.set_power_state.called)
+
+    def test_managed_no_power_off_on_fast_track(self):
+        CONF.set_override('fast_track', True, group='deploy')
+        utils.set_node_nested_field(self.node, 'driver_internal_info',
+                                    'inspector_manage_boot', True)
+        self.node.save()
+
+        inspector.tear_down_managed_boot(self.task)
+
+        self.driver.network.remove_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+        self.assertFalse(self.driver.power.set_power_state.called)
+
+    def _test_clean_up_failed(self):
+        utils.set_node_nested_field(self.node, 'driver_internal_info',
+                                    'inspector_manage_boot', True)
+        self.node.save()
+
+        result = inspector.tear_down_managed_boot(self.task)
+
+        self.assertIn("boom", result[0])
+
+    def test_boot_clean_up_failed(self):
+        self.driver.boot.clean_up_ramdisk.side_effect = RuntimeError('boom')
+
+        self._test_clean_up_failed()
+
+        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+
+    def test_network_clean_up_failed(self):
+        self.driver.network.remove_inspection_network.side_effect = \
+            RuntimeError('boom')
+
+        self._test_clean_up_failed()
+
+        self.driver.network.remove_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+
+
 @mock.patch.object(client, 'get_client', autospec=True)
 class CheckStatusTestCase(BaseTestCase):
     def setUp(self):
@@ -363,119 +446,34 @@ class CheckStatusTestCase(BaseTestCase):
         mock_get.assert_called_once_with(self.node.uuid)
         self.assertFalse(self.task.process_event.called)
 
-    def test_status_ok(self, mock_client):
+    @mock.patch.object(inspector, 'tear_down_managed_boot', autospec=True)
+    def test_status_ok(self, mock_tear_down, mock_client):
         mock_get = mock_client.return_value.get_introspection
         mock_get.return_value = mock.Mock(is_finished=True,
                                           error=None,
                                           spec=['is_finished', 'error'])
+        mock_tear_down.return_value = []
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid)
         self.task.process_event.assert_called_once_with('done')
-        self.assertFalse(self.driver.network.remove_inspection_network.called)
-        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
-        self.assertFalse(self.driver.power.set_power_state.called)
+        mock_tear_down.assert_called_once_with(
+            self.task, always_power_off=False)
 
-    def test_status_ok_managed(self, mock_client):
-        utils.set_node_nested_field(self.node, 'driver_internal_info',
-                                    'inspector_manage_boot', True)
-        self.node.save()
-        mock_get = mock_client.return_value.get_introspection
-        mock_get.return_value = mock.Mock(is_finished=True,
-                                          error=None,
-                                          spec=['is_finished', 'error'])
-        inspector._check_status(self.task)
-        mock_get.assert_called_once_with(self.node.uuid)
-        self.task.process_event.assert_called_once_with('done')
-        self.driver.network.remove_inspection_network.assert_called_once_with(
-            self.task)
-        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
-        self.driver.power.set_power_state.assert_called_once_with(
-            self.task, 'power off', timeout=None)
-
-    def test_status_ok_managed_no_power_off(self, mock_client):
-        CONF.set_override('power_off', False, group='inspector')
-        utils.set_node_nested_field(self.node, 'driver_internal_info',
-                                    'inspector_manage_boot', True)
-        self.node.save()
-        mock_get = mock_client.return_value.get_introspection
-        mock_get.return_value = mock.Mock(is_finished=True,
-                                          error=None,
-                                          spec=['is_finished', 'error'])
-        inspector._check_status(self.task)
-        mock_get.assert_called_once_with(self.node.uuid)
-        self.task.process_event.assert_called_once_with('done')
-        self.driver.network.remove_inspection_network.assert_called_once_with(
-            self.task)
-        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
-        self.assertFalse(self.driver.power.set_power_state.called)
-
-    def test_status_ok_managed_no_power_off_on_fast_track(self, mock_client):
-        CONF.set_override('fast_track', True, group='deploy')
-        utils.set_node_nested_field(self.node, 'driver_internal_info',
-                                    'inspector_manage_boot', True)
-        self.node.save()
-        mock_get = mock_client.return_value.get_introspection
-        mock_get.return_value = mock.Mock(is_finished=True,
-                                          error=None,
-                                          spec=['is_finished', 'error'])
-        inspector._check_status(self.task)
-        mock_get.assert_called_once_with(self.node.uuid)
-        self.task.process_event.assert_called_once_with('done')
-        self.driver.network.remove_inspection_network.assert_called_once_with(
-            self.task)
-        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
-        self.assertFalse(self.driver.power.set_power_state.called)
-
-    def test_status_error(self, mock_client):
+    @mock.patch.object(inspector, 'tear_down_managed_boot', autospec=True)
+    def test_status_error(self, mock_tear_down, mock_client):
         mock_get = mock_client.return_value.get_introspection
         mock_get.return_value = mock.Mock(is_finished=True,
                                           error='boom',
                                           spec=['is_finished', 'error'])
+        mock_tear_down.return_value = []
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid)
         self.task.process_event.assert_called_once_with('fail')
         self.assertIn('boom', self.node.last_error)
-        self.assertFalse(self.driver.network.remove_inspection_network.called)
-        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
-        self.assertFalse(self.driver.power.set_power_state.called)
+        mock_tear_down.assert_called_once_with(self.task)
 
-    def test_status_error_managed(self, mock_client):
-        utils.set_node_nested_field(self.node, 'driver_internal_info',
-                                    'inspector_manage_boot', True)
-        self.node.save()
-        mock_get = mock_client.return_value.get_introspection
-        mock_get.return_value = mock.Mock(is_finished=True,
-                                          error='boom',
-                                          spec=['is_finished', 'error'])
-        inspector._check_status(self.task)
-        mock_get.assert_called_once_with(self.node.uuid)
-        self.task.process_event.assert_called_once_with('fail')
-        self.assertIn('boom', self.node.last_error)
-        self.driver.network.remove_inspection_network.assert_called_once_with(
-            self.task)
-        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
-        self.driver.power.set_power_state.assert_called_once_with(
-            self.task, 'power off', timeout=None)
-
-    def test_status_error_managed_no_power_off(self, mock_client):
-        CONF.set_override('power_off', False, group='inspector')
-        utils.set_node_nested_field(self.node, 'driver_internal_info',
-                                    'inspector_manage_boot', True)
-        self.node.save()
-        mock_get = mock_client.return_value.get_introspection
-        mock_get.return_value = mock.Mock(is_finished=True,
-                                          error='boom',
-                                          spec=['is_finished', 'error'])
-        inspector._check_status(self.task)
-        mock_get.assert_called_once_with(self.node.uuid)
-        self.task.process_event.assert_called_once_with('fail')
-        self.assertIn('boom', self.node.last_error)
-        self.driver.network.remove_inspection_network.assert_called_once_with(
-            self.task)
-        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
-        self.assertFalse(self.driver.power.set_power_state.called)
-
-    def _test_status_clean_up_failed(self, mock_client):
+    @mock.patch.object(inspector, 'tear_down_managed_boot', autospec=True)
+    def test_status_clean_up_failed(self, mock_tear_down, mock_client):
         utils.set_node_nested_field(self.node, 'driver_internal_info',
                                     'inspector_manage_boot', True)
         self.node.save()
@@ -483,27 +481,13 @@ class CheckStatusTestCase(BaseTestCase):
         mock_get.return_value = mock.Mock(is_finished=True,
                                           error=None,
                                           spec=['is_finished', 'error'])
+        mock_tear_down.return_value = ["boom"]
         inspector._check_status(self.task)
         mock_get.assert_called_once_with(self.node.uuid)
         self.task.process_event.assert_called_once_with('fail')
         self.assertIn('boom', self.node.last_error)
-
-    def test_status_boot_clean_up_failed(self, mock_client):
-        self.driver.boot.clean_up_ramdisk.side_effect = RuntimeError('boom')
-
-        self._test_status_clean_up_failed(mock_client)
-
-        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
-
-    def test_status_network_clean_up_failed(self, mock_client):
-        self.driver.network.remove_inspection_network.side_effect = \
-            RuntimeError('boom')
-
-        self._test_status_clean_up_failed(mock_client)
-
-        self.driver.network.remove_inspection_network.assert_called_once_with(
-            self.task)
-        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+        mock_tear_down.assert_called_once_with(
+            self.task, always_power_off=False)
 
     @mock.patch.object(inspect_utils, 'store_inspection_data', autospec=True)
     def test_status_ok_store_inventory(self, mock_store_data, mock_client):

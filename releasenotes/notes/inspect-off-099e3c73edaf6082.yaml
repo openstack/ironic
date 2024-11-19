@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    The configuration option ``[inspector]power_off`` is now actually ignored
+    for nodes with fast track enabled, as documented in its help.
+  - |
+    Fixes the built-in in-band inspection implementation to power off the
+    node after aborting inspection on user's request, unless the node is
+    in the fast track mode or ``[inspector]power_off`` is set to ``False``.
