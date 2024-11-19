@@ -468,15 +468,6 @@
         ENABLE_CHASSIS_AS_GW: True
         ML2_L3_PLUGIN: "ovn-router,trunk"
         OVN_DBS_LOG_LEVEL: dbg
-        OVN_BUILD_FROM_SOURCE: True
-        Q_BUILD_OVS_FROM_GIT: True
-        # NOTE(TheJulia): Ubuntu ships an out of date OVN package, so
-        # we need to build from source. These are the minimum versions
-        # representing June 2023 release. Ubuntu Kinetic is shipping Q3 2022
-        # i.e. OVN 22.09, so likely possible to remove sometime *after*
-        # Ubuntu Mantic OVN 2023.03.
-        OVN_BRANCH: v23.09.0
-        OVS_BRANCH: v3.2.0-20-g1d78a3f31
       devstack_services:
         q-agt: False
         q-dhcp: False
@@ -513,15 +504,6 @@
         ENABLE_CHASSIS_AS_GW: True
         ML2_L3_PLUGIN: "ovn-router,trunk"
         OVN_DBS_LOG_LEVEL: dbg
-        OVN_BUILD_FROM_SOURCE: True
-        Q_BUILD_OVS_FROM_GIT: True
-        # NOTE(TheJulia): Ubuntu ships an out of date OVN package, so
-        # we need to build from source. These are the minimum versions
-        # representing June 2023 release. Ubuntu Kinetic is shipping Q3 2022
-        # i.e. OVN 22.09, so likely possible to remove sometime *after*
-        # Ubuntu Mantic which is OVN 2023.03.
-        OVN_BRANCH: v23.09.0
-        OVS_BRANCH: v3.2.0-20-g1d78a3f31
       devstack_services:
         q-agt: False
         q-dhcp: False
