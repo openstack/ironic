@@ -147,6 +147,8 @@ class PortgroupsController(pecan.rest.RestController):
             ident = args.uuid_or_name('portgroup', ident)
         except exception.InvalidParameterValue as e:
             pecan.abort(http_client.BAD_REQUEST, e.args[0])
+        except exception.InvalidUuidOrName as e:
+            pecan.abort(http_client.BAD_REQUEST, e.args[0])
         if not remainder:
             return
         subcontroller = self._subcontroller_map.get(remainder[0])
