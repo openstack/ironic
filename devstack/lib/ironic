@@ -3563,20 +3563,24 @@ function setup_vxlan_network {
 }
 
 function downgrade_dnsmasq {
-    # NOTE(TheJulia): The intent here is to use dnsmasq version
-    # which does not crash on segfaults or sigabort when configuration
-    # is updated. See https://bugs.launchpad.net/ironic/+bug/2026757
-    if dnsmasq --version | grep -q "Dnsmasq version 2.85"; then
+    # NOTE(JayF): This checks out the unreleased dnsmasq commit which
+    # includes the fix for the crash issue described in
+    # https://bugs.launchpad.net/ironic/+bug/2026757
+    # This patch has yet to be included in a release.
+    if dnsmasq --version | grep -q "Dnsmasq version 2.90deb2-8-gf006be7"; then
         # NOTE(JayF) Keep Ironic devstack plugin idempotent by skipping
         # downgrade if we already have the desired version.
         echo "Dnsmasq already downgraded, continuing..."
     else
         echo "Downgrading dnsmasq..."
         sudo dpkg -r dnsmasq-base
-        git clone http://thekelleys.org.uk/git/dnsmasq.git -b v2.85 --depth 1
+        # NOTE(JayF) Cannot shallow clone; need to checkout a commit that
+        # is not part of a named tag
+        git clone http://thekelleys.org.uk/git/dnsmasq.git
         pushd dnsmasq
-        sed -i 's|^PREFIX.*|PREFIX = /usr|' Makefile
-        sudo make install
+        # https://thekelleys.org.uk/gitweb/?p=dnsmasq.git;a=commitdiff;h=f006be7842104a9f86fbf419326b7aad08ade61d
+        git checkout f006be7842104a9f86fbf419326b7aad08ade61d
+        sudo make PREFIX=/usr install
         popd
     fi
 }
