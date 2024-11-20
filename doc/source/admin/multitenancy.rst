@@ -1,21 +1,39 @@
 .. _multitenancy:
 
-=======================================
-Multi-tenancy in the Bare Metal service
-=======================================
+===============================================
+Network Multi-tenancy in the Bare Metal service
+===============================================
 
 Overview
 ========
 
-It is possible to use dedicated tenant networks for provisioned nodes, which
-extends the current Bare Metal service capabilities of providing flat networks.
-This works in conjunction with the Networking service to allow provisioning of
-nodes in a separate provisioning network. The result of this is that multiple
-tenants can use nodes in an isolated fashion. However, this configuration does
-not support trunk ports belonging to multiple networks.
+Ironic contains several different networking use models and is largely built
+around an attachment being requested by the user, be it the ``nova-compute``
+service on behalf of a Nova user, or directly using the vif attachment
+(``openstack baremetal node vif attach`` or ``baremetal node vif attach``
+commands).
+
+Ironic manages the requested attachment state of the vif with the Networking
+service, and depending on the overall network-interfaces_ chosen, Ironic will
+perform additional actions such as attaching the node to an entirely separate
+provider network to improve the overall operational security.
+
+The underlying ``network_interface`` chosen, covered in network-interfaces_
+has significant power in the overall model and use of Ironic, and operators
+should choose accordingly.
 
 Concepts
 ========
+
+Terminology
+-----------
+
+- ``vif`` or ``VIF`` - Virtual Interface which is best described as a Neutron
+  port. VIFs are always referred to utilizing the port ID value.
+
+- ``ML2`` - ML2 is a plugin model for Neutron, the Networking service.
+  Advanced networking interactions including 3rd party plugins are utilized
+  in this model along with some community plugins to achieve various actions.
 
 .. _network-interfaces:
 
@@ -31,7 +49,8 @@ the Bare Metal service:
 
 - ``flat`` interface places all nodes into a single provider network that is
   pre-configured on the Networking service and physical equipment. Nodes remain
-  physically connected to this network during their entire life cycle.
+  physically connected to this network during their entire life cycle. The
+  supplied VIF attachment record is updated with new DHCP records as needed.
 
 - ``neutron`` interface provides tenant-defined networking through the
   Networking service, separating tenant networks from each other and from the
@@ -43,11 +62,11 @@ the Bare Metal service:
 Local link connection
 ---------------------
 
-The Bare Metal service allows ``local_link_connection`` information to be
-associated with Bare Metal ports. This information is provided to the
-Networking service's ML2 driver when a Virtual Interface (VIF) is attached. The
-ML2 driver uses the information to plug the specified port to the tenant
-network.
+Use of the ``neutron`` network-interfaces_ requires the Bare Metal port
+``local_link_connection`` information to be populated for each bare metal port
+on a node in ironic. This information is provided to the Networking service's
+ML2 driver when a Virtual Interface (VIF) is attached. The ML2 driver uses the
+information to plug the specified port to the tenant network.
 
 .. list-table:: ``local_link_connection`` fields
    :header-rows: 1
@@ -101,8 +120,8 @@ criteria are used to select a suitable unattached port or port group:
   port groups that do not have a physical network.
 * Prefer port groups to ports.  Prefer ports with PXE enabled.
 
-Configuring the Bare Metal service
-==================================
+Configuring and using Network Multi-tenancy
+===========================================
 
 See the :ref:`configure-tenant-networks` section in the installation guide for
 the Bare Metal service.
