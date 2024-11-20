@@ -69,6 +69,14 @@ class TestListShards(test_api_base.BaseApiTest):
             '/shards/shard1', expect_errors=True, headers=self.headers)
         self.assertEqual(http_client.NOT_FOUND, result.status_int)
 
+    def test_fail_get_one_wrong_version(self):
+        self._create_test_shard('shard1', 1)
+        # We should get the same response if we request with the wrong version
+        headers = {api_base.Version.string: '1.80'}
+        result = self.get_json(
+            '/shards/shard1', expect_errors=True, headers=headers)
+        self.assertEqual(http_client.NOT_FOUND, result.status_int)
+
     def test_fail_post(self):
         result = self.post_json(
             '/shards', {}, expect_errors=True, headers=self.headers)
