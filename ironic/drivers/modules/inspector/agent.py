@@ -53,16 +53,17 @@ class AgentInspect(common.Common):
             ep = f'{ep}/v1/continue_inspection'
 
         common.prepare_managed_inspection(task, ep)
-        cond_utils.node_power_action(task, states.POWER_ON)
+        self._power_on_or_reboot(task)
 
     def _start_unmanaged_inspection(self, task):
         """Start unmanaged inspection."""
         try:
-            cond_utils.node_power_action(task, states.POWER_OFF)
+            if not task.node.disable_power_off:
+                cond_utils.node_power_action(task, states.POWER_OFF)
             # Only network boot is supported for unmanaged inspection.
             cond_utils.node_set_boot_device(task, boot_devices.PXE,
                                             persistent=False)
-            cond_utils.node_power_action(task, states.POWER_ON)
+            self._power_on_or_reboot(task)
         except Exception as exc:
             LOG.exception('Unable to start unmanaged inspection for node '
                           '%(uuid)s: %(err)s',

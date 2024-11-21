@@ -322,6 +322,31 @@ class InspectHardwareTestCase(BaseTestCase):
         self.driver.power.set_power_state.assert_called_with(
             self.task, 'power off', timeout=None)
 
+    @mock.patch.object(redfish_utils, 'get_system', autospec=True)
+    @mock.patch.object(inspect_utils, 'create_ports_if_not_exist',
+                       autospec=True)
+    def test_managed_disable_power_off(self, mock_create_ports_if_not_exist,
+                                       mock_get_system, mock_client):
+        endpoint = 'http://192.169.0.42:5050/v1'
+        mock_client.return_value.get_endpoint.return_value = endpoint
+        mock_introspect = mock_client.return_value.start_introspection
+        self.node.disable_power_off = True
+        self.assertEqual(states.INSPECTWAIT,
+                         self.iface.inspect_hardware(self.task))
+        mock_introspect.assert_called_once_with(self.node.uuid,
+                                                manage_boot=False)
+        self.driver.boot.prepare_ramdisk.assert_called_once_with(
+            self.task, ramdisk_params={
+                'ipa-inspection-callback-url': endpoint + '/continue',
+            })
+        self.driver.network.add_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.power.reboot.assert_called_once_with(
+            self.task, timeout=None)
+        self.driver.power.set_power_state.assert_not_called()
+        self.assertFalse(self.driver.network.remove_inspection_network.called)
+        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+
 
 class TearDownManagedInspectionTestCase(BaseTestCase):
 
@@ -378,6 +403,20 @@ class TearDownManagedInspectionTestCase(BaseTestCase):
             self.task)
         self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
         self.assertFalse(self.driver.power.set_power_state.called)
+
+    def test_managed_disable_power_off(self):
+        utils.set_node_nested_field(self.node, 'driver_internal_info',
+                                    'inspector_manage_boot', True)
+        self.node.disable_power_off = True
+        self.node.save()
+
+        inspector.tear_down_managed_boot(self.task)
+
+        self.driver.network.remove_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.boot.clean_up_ramdisk.assert_called_once_with(self.task)
+        self.driver.power.reboot.assert_called_once_with(
+            self.task, timeout=None)
 
     def _test_clean_up_failed(self):
         utils.set_node_nested_field(self.node, 'driver_internal_info',

@@ -61,6 +61,24 @@ class InspectHardwareTestCase(db_base.DbTestCase):
         self.assertFalse(self.driver.network.remove_inspection_network.called)
         self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
 
+    def test_unmanaged_disable_power_off(self, mock_create_ports_if_not_exist):
+        CONF.set_override('require_managed_boot', False, group='inspector')
+        self.driver.boot.validate_inspection.side_effect = (
+            exception.UnsupportedDriverExtension(''))
+        self.node.disable_power_off = True
+        self.assertEqual(states.INSPECTWAIT,
+                         self.iface.inspect_hardware(self.task))
+        mock_create_ports_if_not_exist.assert_called_once_with(self.task)
+        self.assertFalse(self.driver.boot.prepare_ramdisk.called)
+        self.assertFalse(self.driver.network.add_inspection_network.called)
+        self.driver.management.set_boot_device.assert_called_once_with(
+            self.task, device=boot_devices.PXE, persistent=False)
+        self.driver.power.reboot.assert_called_once_with(
+            self.task, timeout=None)
+        self.driver.power.set_power_state.assert_not_called()
+        self.assertFalse(self.driver.network.remove_inspection_network.called)
+        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+
     def test_unmanaged_disallowed(self, mock_create_ports_if_not_exist):
         self.driver.boot.validate_inspection.side_effect = (
             exception.UnsupportedDriverExtension(''))
@@ -106,6 +124,27 @@ class InspectHardwareTestCase(db_base.DbTestCase):
             mock.call(self.task, states.POWER_OFF, timeout=None),
             mock.call(self.task, states.POWER_ON, timeout=None),
         ])
+        self.assertFalse(self.driver.network.remove_inspection_network.called)
+        self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
+
+    @mock.patch.object(deploy_utils, 'get_ironic_api_url', autospec=True)
+    def test_managed_disable_power_off(self, mock_get_url,
+                                       mock_create_ports_if_not_exist):
+        endpoint = 'http://192.169.0.42:6385/v1'
+        mock_get_url.return_value = endpoint
+        self.node.disable_power_off = True
+        self.assertEqual(states.INSPECTWAIT,
+                         self.iface.inspect_hardware(self.task))
+        self.driver.boot.prepare_ramdisk.assert_called_once_with(
+            self.task, ramdisk_params={
+                'ipa-inspection-callback-url':
+                f'{endpoint}/continue_inspection',
+            })
+        self.driver.network.add_inspection_network.assert_called_once_with(
+            self.task)
+        self.driver.power.reboot.assert_called_once_with(
+            self.task, timeout=None)
+        self.driver.power.set_power_state.assert_not_called()
         self.assertFalse(self.driver.network.remove_inspection_network.called)
         self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
 

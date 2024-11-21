@@ -86,11 +86,20 @@ def tear_down_managed_boot(task, always_power_off=False):
     if ((ironic_manages_boot or always_power_off)
             and CONF.inspector.power_off
             and not utils.fast_track_enabled(task.node)):
+        if task.node.disable_power_off:
+            LOG.debug('Rebooting node %s instead of powering it off because '
+                      'disable_power_off is set to True', task.node.uuid)
+            power_state = states.REBOOT
+            err_msg = _('unable to reboot the node: %s')
+        else:
+            power_state = states.POWER_OFF
+            err_msg = _('unable to power off the node: %s')
+
         try:
-            cond_utils.node_power_action(task, states.POWER_OFF)
+            cond_utils.node_power_action(task, power_state)
         except Exception as exc:
-            errors.append(_('unable to power off the node: %s') % exc)
-            LOG.exception('Unable to power off node %s', task.node.uuid)
+            errors.append(err_msg % exc)
+            LOG.exception(err_msg, task.node.uuid)
 
     return errors
 
@@ -146,7 +155,8 @@ def prepare_managed_inspection(task, endpoint):
     if utils.fast_track_enabled(task.node):
         params['ipa-api-url'] = deploy_utils.get_ironic_api_url()
 
-    cond_utils.node_power_action(task, states.POWER_OFF)
+    if not task.node.disable_power_off:
+        cond_utils.node_power_action(task, states.POWER_OFF)
     with cond_utils.power_state_for_network_configuration(task):
         task.driver.network.add_inspection_network(task)
     task.driver.boot.prepare_ramdisk(task, ramdisk_params=params)
@@ -232,6 +242,12 @@ class Common(base.InspectInterface):
             self._start_unmanaged_inspection(task)
         return states.INSPECTWAIT
 
+    def _power_on_or_reboot(self, task):
+        # Handles disable_power_off properly
+        next_state = (states.REBOOT if task.node.disable_power_off
+                      else states.POWER_ON)
+        cond_utils.node_power_action(task, next_state)
+
 
 class Inspector(Common):
     """In-band inspection via ironic-inspector project."""
@@ -242,7 +258,7 @@ class Inspector(Common):
         endpoint = _get_callback_endpoint(cli)
         prepare_managed_inspection(task, endpoint)
         cli.start_introspection(task.node.uuid, manage_boot=False)
-        cond_utils.node_power_action(task, states.POWER_ON)
+        self._power_on_or_reboot(task)
 
     def _start_unmanaged_inspection(self, task):
         """Call to inspector to start inspection."""
