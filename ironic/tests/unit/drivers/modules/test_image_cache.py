@@ -67,7 +67,7 @@ class TestImageCacheFetch(BaseTest):
         self.assertFalse(mock_download.called)
         mock_fetch.assert_called_once_with(
             None, self.uuid, self.dest_path, True,
-            None, None, None)
+            None, None, None, disable_validation=False)
         self.assertFalse(mock_clean_up.called)
         mock_image_service.assert_not_called()
 
@@ -85,7 +85,7 @@ class TestImageCacheFetch(BaseTest):
         self.assertFalse(mock_download.called)
         mock_fetch.assert_called_once_with(
             None, self.uuid, self.dest_path, True,
-            None, None, None)
+            None, None, None, disable_validation=False)
         self.assertFalse(mock_clean_up.called)
         mock_image_service.assert_not_called()
 
@@ -217,13 +217,26 @@ class TestImageCacheFetch(BaseTest):
             expected_checksum='f00', expected_checksum_algo='sha256')
         self.assertTrue(mock_clean_up.called)
 
+    @mock.patch.object(image_cache, '_fetch', autospec=True)
+    def test_fetch_image_no_master_dir_disable_validation(
+            self, mock_fetch, mock_download,
+            mock_clean_up, mock_image_service):
+        self.cache = image_cache.ImageCache(None, None, None,
+                                            disable_validation=True)
+        self.cache.fetch_image(self.uuid, self.dest_path)
+        mock_download.assert_not_called()
+        mock_fetch.assert_called_once_with(
+            None, self.uuid, self.dest_path, True,
+            None, None, None, disable_validation=True)
+        mock_clean_up.assert_not_called()
+        mock_image_service.assert_not_called()
+
 
 @mock.patch.object(image_cache, '_fetch', autospec=True)
 class TestImageCacheDownload(BaseTest):
 
     def test__download_image(self, mock_fetch):
-        def _fake_fetch(ctx, uuid, tmp_path, force_raw, expected_format,
-                        expected_checksum, expected_checksum_algo):
+        def _fake_fetch(ctx, uuid, tmp_path, *_args, **_kwargs):
             self.assertEqual(self.uuid, uuid)
             self.assertNotEqual(self.dest_path, tmp_path)
             self.assertNotEqual(os.path.dirname(tmp_path), self.master_dir)
@@ -245,8 +258,7 @@ class TestImageCacheDownload(BaseTest):
         # Make sure we don't use any parts of the URL anywhere.
         url = "http://example.com/image.iso?secret=%s" % ("x" * 1000)
 
-        def _fake_fetch(ctx, href, tmp_path, force_raw, expected_format,
-                        expected_checksum, expected_checksum_algo):
+        def _fake_fetch(ctx, href, tmp_path, *_args, **_kwargs):
             self.assertEqual(url, href)
             self.assertNotEqual(self.dest_path, tmp_path)
             self.assertNotEqual(os.path.dirname(tmp_path), self.master_dir)
@@ -281,6 +293,27 @@ class TestImageCacheDownload(BaseTest):
                           self.cache._download_image,
                           self.uuid, self.master_path,
                           self.dest_path, self.img_info)
+
+    def test__download_image_disable_validation(self, mock_fetch):
+        def _fake_fetch(ctx, uuid, tmp_path, *_args, disable_validation=False,
+                        **_kwargs):
+            self.assertEqual(self.uuid, uuid)
+            self.assertNotEqual(self.dest_path, tmp_path)
+            self.assertNotEqual(os.path.dirname(tmp_path), self.master_dir)
+            with open(tmp_path, 'w') as fp:
+                fp.write("TEST")
+            self.assertTrue(disable_validation)
+
+        mock_fetch.side_effect = _fake_fetch
+        self.cache._disable_validation = True
+        self.cache._download_image(self.uuid, self.master_path, self.dest_path,
+                                   self.img_info)
+        self.assertTrue(os.path.isfile(self.dest_path))
+        self.assertTrue(os.path.isfile(self.master_path))
+        self.assertEqual(os.stat(self.dest_path).st_ino,
+                         os.stat(self.master_path).st_ino)
+        with open(self.dest_path) as fp:
+            self.assertEqual("TEST", fp.read())
 
 
 @mock.patch.object(os, 'unlink', autospec=True)
@@ -530,8 +563,7 @@ class TestImageCacheCleanUp(base.TestCase):
     @mock.patch.object(utils, 'rmtree_without_raise', autospec=True)
     @mock.patch.object(image_cache, '_fetch', autospec=True)
     def test_temp_images_not_cleaned(self, mock_fetch, mock_rmtree):
-        def _fake_fetch(ctx, uuid, tmp_path, force_raw, expected_format,
-                        expected_checksum, expected_checksum_algo):
+        def _fake_fetch(ctx, uuid, tmp_path, *_args, **_kwargs):
             with open(tmp_path, 'w') as fp:
                 fp.write("TEST" * 10)
 
@@ -833,6 +865,39 @@ class TestFetchCleanup(base.TestCase):
         mock_format_inspector.assert_called_once_with('/foo/bar.part')
         image_check.safety_check.assert_not_called()
         self.assertEqual(1, image_check.__str__.call_count)
+
+    @mock.patch.object(image_format_inspector, 'detect_file_format',
+                       autospec=True)
+    @mock.patch.object(images, 'image_show', autospec=True)
+    @mock.patch.object(os, 'remove', autospec=True)
+    @mock.patch.object(images, 'converted_size', autospec=True)
+    @mock.patch.object(images, 'fetch', autospec=True)
+    @mock.patch.object(images, 'image_to_raw', autospec=True)
+    @mock.patch.object(image_cache, '_clean_up_caches', autospec=True)
+    def test__fetch_disable_validation(
+            self, mock_clean, mock_raw, mock_fetch,
+            mock_size, mock_remove, mock_show, mock_format_inspector):
+        image_check = mock.MagicMock()
+        image_check.__str__.side_effect = iter(['qcow2', 'raw'])
+        image_check.safety_check.return_value = True
+        mock_format_inspector.return_value = image_check
+        mock_show.return_value = {}
+        mock_size.return_value = 100
+        image_cache._fetch('fake', 'fake-uuid', '/foo/bar', force_raw=True,
+                           expected_checksum='1234',
+                           expected_checksum_algo='md5',
+                           disable_validation=True)
+        mock_fetch.assert_called_once_with('fake', 'fake-uuid',
+                                           '/foo/bar.part', force_raw=False,
+                                           checksum='1234',
+                                           checksum_algo='md5')
+        mock_clean.assert_called_once_with('/foo', 100)
+        mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
+                                         '/foo/bar.part')
+        mock_remove.assert_not_called()
+        mock_show.assert_not_called()
+        mock_format_inspector.assert_called_once_with('/foo/bar.part')
+        image_check.safety_check.assert_not_called()
 
     @mock.patch.object(image_format_inspector, 'detect_file_format',
                        autospec=True)

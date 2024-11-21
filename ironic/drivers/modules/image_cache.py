@@ -51,19 +51,22 @@ _concurrency_semaphore = threading.Semaphore(CONF.image_download_concurrency)
 class ImageCache(object):
     """Class handling access to cache for master images."""
 
-    def __init__(self, master_dir, cache_size, cache_ttl):
+    def __init__(self, master_dir, cache_size, cache_ttl,
+                 disable_validation=False):
         """Constructor.
 
         :param master_dir: cache directory to work on
                            Value of None disables image caching.
         :param cache_size: desired maximum cache size in bytes
         :param cache_ttl: cache entity TTL in seconds
+        :param disable_validation: disable security checks on cached images
         """
         self.master_dir = master_dir
         self._cache_size = cache_size
         self._cache_ttl = cache_ttl
         if master_dir is not None:
             fileutils.ensure_tree(master_dir)
+        self._disable_validation = disable_validation
 
     def fetch_image(self, href, dest_path, ctx=None, force_raw=True,
                     expected_format=None, expected_checksum=None,
@@ -87,6 +90,9 @@ class ImageCache(object):
         :param expected_checksum_algo: The expected image checksum algorithm,
                                        if needed/supplied.
         """
+        if expected_format is not None and self._disable_validation:
+            raise AssertionError("BUG: passing expected_format to caches with "
+                                 "disabled validation makes no sense")
         img_download_lock_name = 'download-image'
         if self.master_dir is None:
             # NOTE(ghe): We don't share images between instances/hosts
@@ -102,13 +108,15 @@ class ImageCache(object):
                     _fetch(ctx, href, dest_path, force_raw,
                            expected_format=expected_format,
                            expected_checksum=expected_checksum,
-                           expected_checksum_algo=expected_checksum_algo)
+                           expected_checksum_algo=expected_checksum_algo,
+                           disable_validation=self._disable_validation)
             else:
                 with _concurrency_semaphore:
                     _fetch(ctx, href, dest_path, force_raw,
                            expected_format=expected_format,
                            expected_checksum=expected_checksum,
-                           expected_checksum_algo=expected_checksum_algo)
+                           expected_checksum_algo=expected_checksum_algo,
+                           disable_validation=self._disable_validation)
             return
 
         # TODO(ghe): have hard links and counts the same behaviour in all fs
@@ -198,7 +206,8 @@ class ImageCache(object):
             with _concurrency_semaphore:
                 _fetch(ctx, href, tmp_path, force_raw, expected_format,
                        expected_checksum=expected_checksum,
-                       expected_checksum_algo=expected_checksum_algo)
+                       expected_checksum_algo=expected_checksum_algo,
+                       disable_validation=self._disable_validation)
 
             if img_info.get('no_cache'):
                 LOG.debug("Caching is disabled for image %s", href)
@@ -363,8 +372,10 @@ def _free_disk_space_for(path):
 
 
 def _fetch(context, image_href, path, force_raw=False, expected_format=None,
-           expected_checksum=None, expected_checksum_algo=None):
+           expected_checksum=None, expected_checksum_algo=None,
+           disable_validation=False):
     """Fetch image and convert to raw format if needed."""
+    assert not (disable_validation and expected_format)
     path_tmp = "%s.part" % path
     if os.path.exists(path_tmp):
         LOG.warning("%s exist, assuming it's stale", path_tmp)
@@ -374,7 +385,8 @@ def _fetch(context, image_href, path, force_raw=False, expected_format=None,
                  checksum_algo=expected_checksum_algo)
     # By default, the image format is unknown
     image_format = None
-    disable_dii = CONF.conductor.disable_deep_image_inspection
+    disable_dii = (disable_validation
+                   or CONF.conductor.disable_deep_image_inspection)
     if not disable_dii:
         if not expected_format:
             # Call of last resort to check the image format. Caching other
