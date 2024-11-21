@@ -207,6 +207,47 @@ def validate_http_provisioning_configuration(node):
     deploy_utils.check_for_missing_params(params, error_msg)
 
 
+def soft_power_off(task, client=None):
+    """Power off the node using the agent API."""
+    if client is None:
+        client = agent_client.get_client(task)
+
+    wait = CONF.agent.post_deploy_get_power_state_retry_interval
+    attempts = CONF.agent.post_deploy_get_power_state_retries + 1
+
+    @tenacity.retry(stop=tenacity.stop_after_attempt(attempts),
+                    retry=(tenacity.retry_if_result(
+                        lambda state: state != states.POWER_OFF)
+                        | tenacity.retry_if_exception_type(Exception)),
+                    wait=tenacity.wait_fixed(wait),
+                    reraise=True)
+    def _wait_until_powered_off(task):
+        return task.driver.power.get_power_state(task)
+
+    try:
+        client.power_off(task.node)
+    except Exception as e:
+        LOG.warning('Failed to soft power off node %(node_uuid)s. '
+                    '%(cls)s: %(error)s',
+                    {'node_uuid': task.node.uuid,
+                     'cls': e.__class__.__name__, 'error': e},
+                    exc_info=not isinstance(
+                        e, exception.IronicException))
+
+    # NOTE(dtantsur): in rare cases it may happen that the power
+    # off request comes through but we never receive the response.
+    # Check the power state before trying to force off.
+    try:
+        _wait_until_powered_off(task)
+    except Exception:
+        LOG.warning('Failed to soft power off node %(node_uuid)s '
+                    'in at least %(timeout)d seconds. Forcing '
+                    'hard power off and proceeding.',
+                    {'node_uuid': task.node.uuid,
+                     'timeout': (wait * (attempts - 1))})
+        manager_utils.node_power_action(task, states.POWER_OFF)
+
+
 class CustomAgentDeploy(agent_base.AgentBaseMixin,
                         agent_base.HeartbeatMixin,
                         agent_base.AgentOobStepsMixin,
@@ -357,18 +398,6 @@ class CustomAgentDeploy(agent_base.AgentBaseMixin,
 
         :param task: a TaskManager object containing the node
         """
-        wait = CONF.agent.post_deploy_get_power_state_retry_interval
-        attempts = CONF.agent.post_deploy_get_power_state_retries + 1
-
-        @tenacity.retry(stop=tenacity.stop_after_attempt(attempts),
-                        retry=(tenacity.retry_if_result(
-                            lambda state: state != states.POWER_OFF)
-                            | tenacity.retry_if_exception_type(Exception)),
-                        wait=tenacity.wait_fixed(wait),
-                        reraise=True)
-        def _wait_until_powered_off(task):
-            return task.driver.power.get_power_state(task)
-
         node = task.node
 
         if CONF.agent.deploy_logs_collect == 'always':
@@ -384,34 +413,13 @@ class CustomAgentDeploy(agent_base.AgentBaseMixin,
         client = agent_client.get_client(task)
         try:
             if not can_power_on:
-                LOG.info('Power interface of node %(node)s does not support '
+                LOG.info('Power interface of node %s does not support '
                          'power on, using reboot to switch to the instance',
                          node.uuid)
                 client.sync(node)
                 manager_utils.node_power_action(task, states.REBOOT)
             elif not oob_power_off:
-                try:
-                    client.power_off(node)
-                except Exception as e:
-                    LOG.warning('Failed to soft power off node %(node_uuid)s. '
-                                '%(cls)s: %(error)s',
-                                {'node_uuid': node.uuid,
-                                 'cls': e.__class__.__name__, 'error': e},
-                                exc_info=not isinstance(
-                                    e, exception.IronicException))
-
-                # NOTE(dtantsur): in rare cases it may happen that the power
-                # off request comes through but we never receive the response.
-                # Check the power state before trying to force off.
-                try:
-                    _wait_until_powered_off(task)
-                except Exception:
-                    LOG.warning('Failed to soft power off node %(node_uuid)s '
-                                'in at least %(timeout)d seconds. Forcing '
-                                'hard power off and proceeding.',
-                                {'node_uuid': node.uuid,
-                                 'timeout': (wait * (attempts - 1))})
-                    manager_utils.node_power_action(task, states.POWER_OFF)
+                soft_power_off(task, client)
             else:
                 # Flush the file system prior to hard rebooting the node
                 result = client.sync(node)
