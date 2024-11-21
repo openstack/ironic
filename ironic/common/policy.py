@@ -22,7 +22,6 @@ from oslo_concurrency import lockutils
 from oslo_config import cfg
 from oslo_log import log
 from oslo_log import versionutils
-from oslo_policy import opts
 from oslo_policy import policy
 
 from ironic.common import exception
@@ -31,14 +30,6 @@ _ENFORCER = None
 CONF = cfg.CONF
 LOG = log.getLogger(__name__)
 
-
-# TODO(gmann): Remove overriding the default value of config options
-# 'policy_file' once oslo_policy change its default value to what
-# is overridden here.
-DEFAULT_POLICY_FILE = 'policy.yaml'
-opts.set_defaults(
-    cfg.CONF,
-    DEFAULT_POLICY_FILE)
 
 # Generic policy check string for system administrators. These are the people
 # who need the highest level of authorization to operate the deployment.
