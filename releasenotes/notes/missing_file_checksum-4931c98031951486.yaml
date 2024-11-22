@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    The fix for CVE-2024-47211 results in image checksum being required in all
+    cases. However there is no checksum requirement for file://
+    based images. When checksum is missing for file:// based image_source it is
+    now calculated on-the-fly.
