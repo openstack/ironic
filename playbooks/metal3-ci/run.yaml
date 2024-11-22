@@ -7,6 +7,7 @@
         metal3_environment:
           ANSIBLE_VERBOSITY: 2
           CONTROL_PLANE_MACHINE_COUNT: 1
+          DOCKER_REGISTRY_IMAGE: "quay.io/libpod/registry:2.8"
           IMAGE_OS: ubuntu
           IMAGE_USERNAME: zuul
           IRONIC_FROM_SOURCE: "true"
