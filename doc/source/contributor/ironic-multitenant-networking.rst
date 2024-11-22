@@ -3,8 +3,10 @@ Ironic multitenant networking and DevStack
 ==========================================
 
 This guide will walk you through using OpenStack Ironic/Neutron with the ML2
-``networking-generic-switch`` plugin.
-
+``networking-generic-switch`` plugin. The intent is to provide context in
+order to help contributors who may be trying to use networking-generic-switch.
+This is *not* intended for production use, but purely for development
+purposes.
 
 Using VMs as baremetal servers
 ==============================
