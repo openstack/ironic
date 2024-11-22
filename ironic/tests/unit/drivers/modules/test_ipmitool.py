@@ -1864,6 +1864,26 @@ class IPMIToolPrivateMethodTestCase(
 
         self.assertEqual(expected, mock_exec.call_args_list)
 
+    @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
+    @mock.patch('oslo_utils.eventletutils.EventletEvent.wait', autospec=True)
+    def test__set_and_wait_explicit_reboot(self, sleep_mock, mock_exec):
+        def side_effect(driver_info, command, **kwargs):
+            resp_dict = {"power status": ["Chassis Power is on\n", None],
+                         "power reset": [None, None]}
+            return resp_dict.get(command, ["Bad\n", None])
+
+        mock_exec.side_effect = side_effect
+
+        expected = [mock.call(self.info, "power reset"),
+                    mock.call(self.info, "power status", kill_on_timeout=True)]
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            state = ipmi._set_and_wait(task, states.REBOOT, self.info)
+
+        self.assertEqual(expected, mock_exec.call_args_list)
+        self.assertEqual(states.POWER_ON, state)
+        self.mock_sleep.assert_any_call(15)
+
     @mock.patch.object(ipmi, '_power_status', autospec=True)
     @mock.patch.object(ipmi, '_exec_ipmitool', autospec=True)
     @mock.patch('oslo_utils.eventletutils.EventletEvent.wait', autospec=True)
@@ -3110,6 +3130,19 @@ class IPMIToolDriverTestCase(Base):
             mock_next_boot.assert_called_once_with(task, self.info)
 
         self.assertEqual(expected, manager.mock_calls)
+
+    @mock.patch.object(driver_utils, 'ensure_next_boot_device', autospec=True)
+    @mock.patch.object(ipmi, '_set_and_wait', autospec=True)
+    @mock.patch.object(ipmi, '_power_status',
+                       lambda driver_info: states.POWER_OFF)
+    def test_reboot_disable_power_off(self, mock_set_and_wait, mock_next_boot):
+        with task_manager.acquire(self.context,
+                                  self.node.uuid) as task:
+            task.node.disable_power_off = True
+            self.power.reboot(task)
+            mock_set_and_wait.assert_called_once_with(task, states.REBOOT,
+                                                      self.info, timeout=None)
+            mock_next_boot.assert_called_once_with(task, self.info)
 
     @mock.patch.object(driver_utils, 'ensure_next_boot_device', autospec=True)
     @mock.patch.object(ipmi, '_power_off', spec_set=types.FunctionType)

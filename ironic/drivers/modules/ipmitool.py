@@ -741,6 +741,9 @@ def _set_and_wait(task, power_action, driver_info, timeout=None):
         cmd_name = "soft"
         target_state = states.POWER_OFF
         timeout = timeout or CONF.conductor.soft_power_off_timeout
+    elif power_action == states.REBOOT:
+        cmd_name = "reset"
+        target_state = states.POWER_ON
 
     # NOTE(sambetts): Retries for ipmi power action failure will be handled by
     # the _exec_ipmitool function, so no need to wrap this call in its own
@@ -757,6 +760,10 @@ def _set_and_wait(task, power_action, driver_info, timeout=None):
                     "with error: %(error)s.",
                     {'node_id': driver_info['uuid'], 'cmd': cmd, 'error': e})
         raise exception.IPMIFailure(cmd=cmd)
+    if power_action == states.REBOOT:
+        LOG.debug('Sleeping 15 seconds to give the node %s a chance to power '
+                  'off before checking its state', task.node.uuid)
+        time.sleep(15)
     return cond_utils.node_wait_for_power_state(task, target_state,
                                                 timeout=timeout)
 
@@ -1086,6 +1093,11 @@ class IPMIPower(base.PowerInterface):
         elif power_state == states.SOFT_POWER_OFF:
             _soft_power_off(task, driver_info, timeout=timeout)
         elif power_state == states.SOFT_REBOOT:
+            if task.node.disable_power_off:
+                # There is no way to implement this in ipmitool, apparently
+                raise exception.UnsupportedHardwareFeature(
+                    node=task.node.uuid,
+                    feature=states.SOFT_POWER_OFF)
             _soft_power_off(task, driver_info, timeout=timeout)
             driver_utils.ensure_next_boot_device(task, driver_info)
             _power_on(task, driver_info, timeout=timeout)
@@ -1111,6 +1123,10 @@ class IPMIPower(base.PowerInterface):
 
         """
         driver_info = _parse_driver_info(task.node)
+        if task.node.disable_power_off:
+            driver_utils.ensure_next_boot_device(task, driver_info)
+            _set_and_wait(task, states.REBOOT, driver_info, timeout=timeout)
+            return
         # NOTE(jlvillal): Some BMCs will error if setting power state to off if
         # the node is already turned off.
         current_status = _power_status(driver_info)
