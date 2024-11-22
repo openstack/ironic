@@ -13,11 +13,12 @@
 from ironic_lib import metrics_utils
 from oslo_config import cfg
 import pecan
-from webob import exc as webob_exc
 
 from ironic import api
 from ironic.api.controllers.v1 import utils as api_utils
+from ironic.api.controllers.v1 import versions
 from ironic.api import method
+from ironic.api import validation
 from ironic.common.i18n import _
 
 
@@ -29,18 +30,12 @@ METRICS = metrics_utils.get_metrics_logger(__name__)
 class ShardController(pecan.rest.RestController):
     """REST controller for shards."""
 
-    @pecan.expose()
-    def _route(self, argv, request=None):
-        if not api_utils.allow_shards_endpoint():
-            msg = _("The API version does not allow shards")
-            if api.request.method in "GET":
-                raise webob_exc.HTTPNotFound(msg)
-            else:
-                raise webob_exc.HTTPMethodNotAllowed(msg)
-        return super(ShardController, self)._route(argv, request)
-
     @METRICS.timer('ShardController.get_all')
     @method.expose()
+    @validation.api_version(
+        min_version=versions.MINOR_82_NODE_SHARD,
+        message=_('The API version does not allow shards'),
+    )
     def get_all(self):
         """Retrieve a list of shards.
 
@@ -54,6 +49,10 @@ class ShardController(pecan.rest.RestController):
 
     @METRICS.timer('ShardController.get_one')
     @method.expose()
+    @validation.api_version(
+        min_version=versions.MINOR_82_NODE_SHARD,
+        message=_('The API version does not allow shards'),
+    )
     def get_one(self, __):
         """Explicitly do not support getting one."""
         pecan.abort(404)
