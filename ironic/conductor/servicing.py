@@ -55,6 +55,8 @@ def do_node_service(task, service_steps=None, disable_ramdisk=False):
                                   disable_ramdisk)
     task.node.save()
 
+    utils.node_update_cache(task)
+
     # Allow the deploy driver to set up the ramdisk again (necessary for IPA)
     try:
         if not disable_ramdisk:
@@ -228,6 +230,7 @@ def _tear_down_node_service(task, disable_ramdisk):
             return utils.servicing_error_handler(task, msg,
                                                  traceback=True,
                                                  tear_down_service=False)
+    utils.node_update_cache(task)
     LOG.info('Node %s service complete.', task.node.uuid)
     task.process_event('done')
 

@@ -272,6 +272,7 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
             return utils.cleaning_error_handler(task, msg,
                                                 traceback=True,
                                                 tear_down_cleaning=False)
+    utils.node_update_cache(task)
     LOG.info('Node %s cleaning complete', node.uuid)
     event = 'manage' if manual_clean or node.retired else 'done'
     # NOTE(rloo): No need to specify target prov. state; we're done
