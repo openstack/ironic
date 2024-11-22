@@ -157,4 +157,4 @@ provisioning will happen in a multi-tenant environment (which means using the
 
    where FILENAME is the file located at the TFTP server.
 
-See :ref:`multitenancy` for required node configuration.
+See :ref:`admin-networking` for required node configuration.
