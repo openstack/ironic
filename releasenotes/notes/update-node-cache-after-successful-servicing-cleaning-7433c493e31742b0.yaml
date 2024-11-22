@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Update the node cache after a successful servicing and cleaning.
+    This ensures the node information is correctly updated in the
+    database.
