@@ -156,8 +156,19 @@ def get_checksum_and_algo(instance_info):
         checksum_algo = instance_info.get('image_os_hash_algo')
     else:
         checksum = instance_info.get('image_checksum')
-        if is_checksum_url(checksum):
-            image_source = instance_info.get('image_source')
+        image_source = instance_info.get('image_source')
+
+        # NOTE(stevebaker): file:// images have no requirement to supply
+        # checksums but they are now mandatory for validation as part
+        # of the fix for CVE-2024-47211.
+        # The only practical option is to calculate it here.
+        if checksum is None and image_source.startswith('file:'):
+            checksum_algo = "sha256"
+            image_path = urlparse.urlparse(image_source).path
+            checksum = fileutils.compute_file_checksum(
+                image_path, algorithm=checksum_algo)
+
+        elif is_checksum_url(checksum):
             checksum = get_checksum_from_url(checksum, image_source)
 
         # NOTE(TheJulia): This is all based on SHA-2 lengths.
