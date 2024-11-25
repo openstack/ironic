@@ -494,7 +494,7 @@ opts = [
                        '[conductor]disable_deep_image_inspection to be set '
                        'to False.')),
     cfg.ListOpt('permitted_image_formats',
-                default=['raw', 'qcow2', 'iso'],
+                default=['raw', 'gpt', 'qcow2', 'iso'],
                 mutable=True,
                 help=_('The supported list of image formats which are '
                        'permitted for deployment with Ironic. If an image '

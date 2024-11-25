@@ -406,7 +406,8 @@ def _fetch(context, image_href, path, force_raw=False, expected_format=None,
     if (force_raw
             and ((disable_dii
                  and images.force_raw_will_convert(image_href, path_tmp))
-                 or (not disable_dii and image_format != 'raw'))):
+                 or (not disable_dii
+                     and image_format not in images.RAW_IMAGE_FORMATS))):
         # NOTE(TheJulia): What is happening here is the rest of the logic
         # is hinged on force_raw, but also we don't need to take the entire
         # path *if* the image on disk is *already* raw. Depending on settings,
