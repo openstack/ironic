@@ -3,10 +3,7 @@
     name: metal3-base
     abstract: true
     description: Base job for metal3-dev-env based ironic jobs.
-    # NOTE(rpittau): metal3-dev-env does not support ubuntu noble yet
-    # so migration will happen later, for more info see:
-    # https://github.com/metal3-io/metal3-dev-env/issues/1430
-    nodeset: openstack-single-node-jammy
+    nodeset: openstack-single-node-noble
     run: playbooks/metal3-ci/run.yaml
     post-run: playbooks/metal3-ci/post.yaml
     timeout: 10800
