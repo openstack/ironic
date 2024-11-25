@@ -412,7 +412,11 @@ class CustomAgentDeploy(agent_base.AgentBaseMixin,
 
         client = agent_client.get_client(task)
         try:
-            if not can_power_on:
+            if node.disable_power_off:
+                LOG.info("Node %s does not support power off, locking "
+                         "down the agent", node.uuid)
+                client.lockdown(node)
+            elif not can_power_on:
                 LOG.info('Power interface of node %s does not support '
                          'power on, using reboot to switch to the instance',
                          node.uuid)
@@ -486,7 +490,7 @@ class CustomAgentDeploy(agent_base.AgentBaseMixin,
                 LOG.debug('The agent for node %(node)s has recently checked '
                           'in, and the node power will remain unmodified.',
                           {'node': task.node.uuid})
-            else:
+            elif not node.disable_power_off:
                 # Powering off node to setup networking for port and
                 # ensure that the state is reset if it is inadvertently
                 # on for any unknown reason.
@@ -1136,24 +1140,23 @@ class AgentRescue(base.RescueInterface):
         :raises: any boot interface's prepare_ramdisk exceptions.
         :returns: Returns states.RESCUEWAIT
         """
-        manager_utils.node_power_action(task, states.POWER_OFF)
-        # NOTE(TheJulia): Revealing that the power is off at any time can
-        # cause external power sync to decide that the node must be off.
-        # This may result in a post-rescued instance being turned off
-        # unexpectedly after rescue has started.
-        # TODO(TheJulia): Once we have power/state callbacks to nova,
-        # the reset of the power_state can be removed.
-        task.node.power_state = states.POWER_ON
-        task.node.save()
+        with driver_utils.power_off_and_on(task):
+            # NOTE(TheJulia): Revealing that the power is off at any time can
+            # cause external power sync to decide that the node must be off.
+            # This may result in a post-rescued instance being turned off
+            # unexpectedly after rescue has started.
+            # TODO(TheJulia): Once we have power/state callbacks to nova,
+            # the reset of the power_state can be removed.
+            task.node.power_state = states.POWER_ON
+            task.node.save()
 
-        task.driver.boot.clean_up_instance(task)
-        with manager_utils.power_state_for_network_configuration(task):
-            task.driver.network.unconfigure_tenant_networks(task)
-            task.driver.network.add_rescuing_network(task)
-        if CONF.agent.manage_agent_boot:
-            # prepare_ramdisk will set the boot device
-            deploy_utils.prepare_agent_boot(task)
-        manager_utils.node_power_action(task, states.POWER_ON)
+            task.driver.boot.clean_up_instance(task)
+            with manager_utils.power_state_for_network_configuration(task):
+                task.driver.network.unconfigure_tenant_networks(task)
+                task.driver.network.add_rescuing_network(task)
+            if CONF.agent.manage_agent_boot:
+                # prepare_ramdisk will set the boot device
+                deploy_utils.prepare_agent_boot(task)
 
         return states.RESCUEWAIT
 
@@ -1171,22 +1174,20 @@ class AgentRescue(base.RescueInterface):
         :raises: any boot interface's prepare_instance exceptions.
         :returns: Returns states.ACTIVE
         """
-        manager_utils.node_power_action(task, states.POWER_OFF)
+        with driver_utils.power_off_and_on(task):
+            # NOTE(TheJulia): Revealing that the power is off at any time can
+            # cause external power sync to decide that the node must be off.
+            # This may result in a post-rescued instance being turned off
+            # unexpectedly after unrescue.
+            # TODO(TheJulia): Once we have power/state callbacks to nova,
+            # the reset of the power_state can be removed.
+            task.node.power_state = states.POWER_ON
+            task.node.save()
 
-        # NOTE(TheJulia): Revealing that the power is off at any time can
-        # cause external power sync to decide that the node must be off.
-        # This may result in a post-rescued instance being turned off
-        # unexpectedly after unrescue.
-        # TODO(TheJulia): Once we have power/state callbacks to nova,
-        # the reset of the power_state can be removed.
-        task.node.power_state = states.POWER_ON
-        task.node.save()
-
-        self.clean_up(task)
-        with manager_utils.power_state_for_network_configuration(task):
-            task.driver.network.configure_tenant_networks(task)
-        task.driver.boot.prepare_instance(task)
-        manager_utils.node_power_action(task, states.POWER_ON)
+            self.clean_up(task)
+            with manager_utils.power_state_for_network_configuration(task):
+                task.driver.network.configure_tenant_networks(task)
+            task.driver.boot.prepare_instance(task)
 
         return states.ACTIVE
 

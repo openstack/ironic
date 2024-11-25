@@ -755,7 +755,8 @@ class AgentBaseMixin(object):
         :raises: other exceptions by the node's power driver if something
              wrong occurred during the power action.
         """
-        manager_utils.node_power_action(task, states.POWER_OFF)
+        if not task.node.disable_power_off:
+            manager_utils.node_power_action(task, states.POWER_OFF)
         task.driver.storage.detach_volumes(task)
         deploy_utils.tear_down_storage_configuration(task)
         with manager_utils.power_state_for_network_configuration(task):
@@ -779,6 +780,11 @@ class AgentBaseMixin(object):
         task.driver.boot.clean_up_instance(task)
         provider = dhcp_factory.DHCPFactory()
         provider.clean_dhcp(task)
+        # NOTE(dtantsur): in a regular case, this is handled by tear_down, but
+        # we cannot power off the node there, so making sure it no longer runs
+        # the instance image by rebooting after boot.clean_up_instance.
+        if task.node.disable_power_off:
+            manager_utils.node_power_action(task, states.REBOOT)
 
     def take_over(self, task):
         """Take over management of this node from a dead conductor.
@@ -841,8 +847,14 @@ class AgentBaseMixin(object):
         :raises: NodeServiceFailure, NetworkError if the servicing ports
             cannot be removed
         """
-        deploy_utils.tear_down_inband_service(
-            task)
+        if task.node.disable_power_off:
+            LOG.debug('Locking down the agent on node %s before exiting '
+                      'servicing', task.node.uuid)
+            agent_client.get_client(task).lockdown(
+                # NOTE(dtantsur): we cannot assume the agent is still running
+                # hence fail_if_unavailable=False.
+                task.node, fail_if_unavailable=False)
+        deploy_utils.tear_down_inband_service(task)
 
     @METRICS.timer('AgentBaseMixin.get_clean_steps')
     def get_clean_steps(self, task):
@@ -1178,7 +1190,10 @@ class AgentOobStepsMixin(object):
         can_power_on = (states.POWER_ON in
                         task.driver.power.get_supported_power_states(task))
         try:
-            if can_power_on:
+            if task.node.disable_power_off:
+                # We haven't powered off the node yet - reset it now.
+                manager_utils.node_power_action(task, states.REBOOT)
+            elif can_power_on:
                 manager_utils.node_power_action(task, states.POWER_ON)
             else:
                 LOG.debug('Not trying to power on node %s that does not '

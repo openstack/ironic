@@ -342,6 +342,29 @@ class CommonTestsMixin:
             dhcp_factor_mock.assert_called_once_with()
             destroy_images_mock.assert_called_once_with(task.node)
 
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(deploy_utils, 'destroy_http_instance_images',
+                       autospec=True)
+    @mock.patch('ironic.common.dhcp_factory.DHCPFactory', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_instance', autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
+    def test_clean_up_disable_power_off(self, pxe_clean_up_ramdisk_mock,
+                                        pxe_clean_up_instance_mock,
+                                        dhcp_factor_mock,
+                                        destroy_images_mock,
+                                        node_power_action_mock):
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.disable_power_off = True
+            self.driver.clean_up(task)
+            pxe_clean_up_ramdisk_mock.assert_called_once_with(
+                task.driver.boot, task)
+            pxe_clean_up_instance_mock.assert_called_once_with(
+                task.driver.boot, task)
+            dhcp_factor_mock.assert_called_once_with()
+            destroy_images_mock.assert_called_once_with(task.node)
+            node_power_action_mock.assert_called_once_with(task, states.REBOOT)
+
 
 class TestCustomAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
     def setUp(self):
@@ -388,6 +411,7 @@ class TestCustomAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             show_mock.assert_not_called()
             validate_http_mock.assert_not_called()
 
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
     @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
@@ -408,7 +432,7 @@ class TestCustomAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             unconfigure_tenant_net_mock, add_provisioning_net_mock,
             build_instance_info_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, storage_driver_info_mock,
-            storage_attach_volumes_mock):
+            storage_attach_volumes_mock, node_power_action_mock):
         node = self.node
         node.network_interface = 'flat'
         node.save()
@@ -427,7 +451,10 @@ class TestCustomAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             build_options_mock.assert_called_once_with(task.node)
             pxe_prepare_ramdisk_mock.assert_called_once_with(
                 task.driver.boot, task, {'a': 'b'})
+            node_power_action_mock.assert_called_once_with(
+                task, states.POWER_OFF)
 
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
     @mock.patch('ironic.conductor.utils.is_fast_track', autospec=True)
     @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
                        autospec=True)
@@ -449,7 +476,8 @@ class TestCustomAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             unconfigure_tenant_net_mock, add_provisioning_net_mock,
             build_instance_info_mock, build_options_mock,
             pxe_prepare_ramdisk_mock, storage_driver_info_mock,
-            storage_attach_volumes_mock, is_fast_track_mock):
+            storage_attach_volumes_mock, is_fast_track_mock,
+            node_power_action_mock):
         # TODO(TheJulia): We should revisit this test. Smartnic
         # support didn't wire in tightly on testing for power in
         # these tests, and largely fast_track impacts power operations.
@@ -474,6 +502,50 @@ class TestCustomAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             # to work, reboots as part of deployment would need the ramdisk
             # present and ready.
             self.assertFalse(build_options_mock.called)
+            node_power_action_mock.assert_not_called()
+
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    @mock.patch.object(noop_storage.NoopStorage, 'attach_volumes',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'populate_storage_driver_internal_info',
+                       autospec=True)
+    @mock.patch.object(pxe.PXEBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_instance_info_for_deploy',
+                       autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'add_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'validate',
+                       spec_set=True, autospec=True)
+    def test_prepare_disable_power_off(
+            self, validate_net_mock,
+            unconfigure_tenant_net_mock, add_provisioning_net_mock,
+            build_instance_info_mock, build_options_mock,
+            pxe_prepare_ramdisk_mock, storage_driver_info_mock,
+            storage_attach_volumes_mock, node_power_action_mock):
+        node = self.node
+        node.network_interface = 'flat'
+        node.disable_power_off = True
+        node.save()
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            task.node.provision_state = states.DEPLOYING
+            build_options_mock.return_value = {'a': 'b'}
+            self.driver.prepare(task)
+            storage_driver_info_mock.assert_called_once_with(task)
+            validate_net_mock.assert_called_once_with(mock.ANY, task)
+            add_provisioning_net_mock.assert_called_once_with(mock.ANY, task)
+            unconfigure_tenant_net_mock.assert_called_once_with(mock.ANY, task)
+            storage_attach_volumes_mock.assert_called_once_with(
+                task.driver.storage, task)
+            build_instance_info_mock.assert_not_called()
+            build_options_mock.assert_called_once_with(task.node)
+            pxe_prepare_ramdisk_mock.assert_called_once_with(
+                task.driver.boot, task, {'a': 'b'})
+            node_power_action_mock.assert_not_called()
 
 
 class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
@@ -746,6 +818,41 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
                 self.context, self.node['uuid'], shared=False) as task:
             driver_return = self.driver.tear_down(task)
             power_mock.assert_called_once_with(task, states.POWER_OFF)
+            self.assertEqual(driver_return, states.DELETED)
+            unconfigure_tenant_nets_mock.assert_called_once_with(mock.ANY,
+                                                                 task)
+            remove_provisioning_net_mock.assert_called_once_with(mock.ANY,
+                                                                 task)
+            storage_detach_volumes_mock.assert_called_once_with(
+                task.driver.storage, task)
+        # Verify no volumes exist for new task instances.
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            self.assertEqual(0, len(task.volume_targets))
+
+    @mock.patch.object(noop_storage.NoopStorage, 'detach_volumes',
+                       autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'remove_provisioning_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork,
+                       'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch('ironic.conductor.utils.node_power_action', autospec=True)
+    def test_tear_down_disable_power_off(self, power_mock,
+                                         unconfigure_tenant_nets_mock,
+                                         remove_provisioning_net_mock,
+                                         storage_detach_volumes_mock):
+        object_utils.create_test_volume_target(
+            self.context, node_id=self.node.id)
+        node = self.node
+        node.network_interface = 'flat'
+        node.disable_power_off = True
+        node.save()
+        with task_manager.acquire(
+                self.context, self.node['uuid'], shared=False) as task:
+            driver_return = self.driver.tear_down(task)
+            power_mock.assert_not_called()
             self.assertEqual(driver_return, states.DELETED)
             unconfigure_tenant_nets_mock.assert_called_once_with(mock.ANY,
                                                                  task)
@@ -1193,8 +1300,19 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
     def test_tear_down_service(self, tear_down_service_mock):
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.driver.tear_down_service(task)
-            tear_down_service_mock.assert_called_once_with(
-                task)
+            tear_down_service_mock.assert_called_once_with(task)
+
+    @mock.patch.object(agent_client.AgentClient, 'lockdown', autospec=True)
+    @mock.patch.object(deploy_utils, 'tear_down_inband_service',
+                       autospec=True)
+    def test_tear_down_service_disable_power_off(self, tear_down_service_mock,
+                                                 lockdown_mock):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.disable_power_off = True
+            self.driver.tear_down_service(task)
+            tear_down_service_mock.assert_called_once_with(task)
+            lockdown_mock.assert_called_once_with(mock.ANY, task.node,
+                                                  fail_if_unavailable=False)
 
     @mock.patch.object(deploy_utils, 'tear_down_inband_cleaning',
                        autospec=True)
@@ -2080,6 +2198,32 @@ class AgentRescueTestCase(db_base.DbTestCase):
             self.assertFalse(mock_prepare_ramdisk.called)
             self.assertEqual(states.RESCUEWAIT, result)
 
+    @mock.patch.object(flat_network.FlatNetwork, 'add_rescuing_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'unconfigure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'prepare_ramdisk', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'clean_up_instance', autospec=True)
+    @mock.patch.object(deploy_utils, 'build_agent_options', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_agent_rescue_disable_power_off(
+            self, mock_node_power_action, mock_build_agent_opts,
+            mock_clean_up_instance, mock_prepare_ramdisk,
+            mock_unconf_tenant_net, mock_add_rescue_net):
+        self.config(manage_agent_boot=True, group='agent')
+        mock_build_agent_opts.return_value = {'ipa-api-url': 'fake-api'}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.disable_power_off = True
+            result = task.driver.rescue.rescue(task)
+            mock_node_power_action.assert_called_once_with(task, states.REBOOT)
+            mock_clean_up_instance.assert_called_once_with(mock.ANY, task)
+            mock_unconf_tenant_net.assert_called_once_with(mock.ANY, task)
+            mock_add_rescue_net.assert_called_once_with(mock.ANY, task)
+            mock_build_agent_opts.assert_called_once_with(task.node)
+            mock_prepare_ramdisk.assert_called_once_with(
+                mock.ANY, task, {'ipa-api-url': 'fake-api'})
+            self.assertEqual(states.RESCUEWAIT, result)
+
     @mock.patch.object(flat_network.FlatNetwork, 'remove_rescuing_network',
                        spec_set=True, autospec=True)
     @mock.patch.object(flat_network.FlatNetwork, 'configure_tenant_networks',
@@ -2123,6 +2267,30 @@ class AgentRescueTestCase(db_base.DbTestCase):
                 [mock.call(task, states.POWER_OFF),
                  mock.call(task, states.POWER_ON)])
             self.assertFalse(mock_clean_ramdisk.called)
+            mock_remove_rescue_net.assert_called_once_with(mock.ANY, task)
+            mock_conf_tenant_net.assert_called_once_with(mock.ANY, task)
+            mock_prepare_instance.assert_called_once_with(mock.ANY, task)
+            self.assertEqual(states.ACTIVE, result)
+
+    @mock.patch.object(flat_network.FlatNetwork, 'remove_rescuing_network',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(flat_network.FlatNetwork, 'configure_tenant_networks',
+                       spec_set=True, autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'prepare_instance', autospec=True)
+    @mock.patch.object(fake.FakeBoot, 'clean_up_ramdisk', autospec=True)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    def test_agent_unrescue_disable_power_off(
+            self, mock_node_power_action, mock_clean_ramdisk,
+            mock_prepare_instance, mock_conf_tenant_net,
+            mock_remove_rescue_net):
+        """Test unrescue in case where boot driver prepares instance reboot."""
+        self.config(manage_agent_boot=True, group='agent')
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            task.node.disable_power_off = True
+            result = task.driver.rescue.unrescue(task)
+            mock_node_power_action.assert_called_once_with(task, states.REBOOT)
+            mock_clean_ramdisk.assert_called_once_with(
+                mock.ANY, task)
             mock_remove_rescue_net.assert_called_once_with(mock.ANY, task)
             mock_conf_tenant_net.assert_called_once_with(mock.ANY, task)
             mock_prepare_instance.assert_called_once_with(mock.ANY, task)
@@ -2343,6 +2511,9 @@ class TearDownAgentTest(test_agent_base.AgentDeployMixinBaseTest):
     def setUp(self):
         super().setUp()
         self.deploy = agent.CustomAgentDeploy()
+        self.node.provision_state = states.DEPLOYING
+        self.node.target_provision_state = states.ACTIVE
+        self.node.save()
 
     @mock.patch.object(manager_utils, 'power_on_node_if_needed', autospec=True)
     @mock.patch.object(time, 'sleep', lambda seconds: None)
@@ -2357,9 +2528,6 @@ class TearDownAgentTest(test_agent_base.AgentDeployMixinBaseTest):
             node_power_action_mock, collect_mock,
             power_on_node_if_needed_mock):
         cfg.CONF.set_override('deploy_logs_collect', 'always', 'agent')
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
-        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             get_power_state_mock.side_effect = [states.POWER_ON,
                                                 states.POWER_OFF]
@@ -2383,9 +2551,6 @@ class TearDownAgentTest(test_agent_base.AgentDeployMixinBaseTest):
     def test_tear_down_agent_soft_poweroff_doesnt_complete(
             self, power_off_mock, get_power_state_mock,
             node_power_action_mock, mock_collect):
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
-        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             get_power_state_mock.return_value = states.POWER_ON
             self.deploy.tear_down_agent(task)
@@ -2408,9 +2573,6 @@ class TearDownAgentTest(test_agent_base.AgentDeployMixinBaseTest):
             self, power_off_mock, get_power_state_mock, node_power_action_mock,
             mock_collect):
         power_off_mock.side_effect = RuntimeError("boom")
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
-        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             get_power_state_mock.return_value = states.POWER_ON
             self.deploy.tear_down_agent(task)
@@ -2434,9 +2596,6 @@ class TearDownAgentTest(test_agent_base.AgentDeployMixinBaseTest):
         # Test the situation when soft power off works, but ironic doesn't
         # learn about it.
         power_off_mock.side_effect = RuntimeError("boom")
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
-        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             get_power_state_mock.side_effect = [states.POWER_ON,
                                                 states.POWER_OFF]
@@ -2458,9 +2617,6 @@ class TearDownAgentTest(test_agent_base.AgentDeployMixinBaseTest):
     def test_tear_down_agent_get_power_state_fails(
             self, power_off_mock, get_power_state_mock, node_power_action_mock,
             mock_collect, power_on_node_if_needed_mock):
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
-        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             get_power_state_mock.return_value = RuntimeError("boom")
             power_on_node_if_needed_mock.return_value = None
@@ -2483,9 +2639,6 @@ class TearDownAgentTest(test_agent_base.AgentDeployMixinBaseTest):
     def test_tear_down_agent_power_off_fails(
             self, power_off_mock, get_power_state_mock,
             node_power_action_mock, mock_collect):
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
-        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             get_power_state_mock.return_value = states.POWER_ON
             node_power_action_mock.side_effect = RuntimeError("boom")
@@ -2509,10 +2662,8 @@ class TearDownAgentTest(test_agent_base.AgentDeployMixinBaseTest):
         driver_info = self.node.driver_info
         driver_info['deploy_forces_oob_reboot'] = True
         self.node.driver_info = driver_info
-
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
         self.node.save()
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.deploy.tear_down_agent(task)
 
@@ -2534,10 +2685,8 @@ class TearDownAgentTest(test_agent_base.AgentDeployMixinBaseTest):
         driver_info = self.node.driver_info
         driver_info['deploy_forces_oob_reboot'] = True
         self.node.driver_info = driver_info
-
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
         self.node.save()
+
         with task_manager.acquire(self.context, self.node.uuid) as task:
             log_mock.reset_mock()
 
@@ -2568,9 +2717,6 @@ class TearDownAgentTest(test_agent_base.AgentDeployMixinBaseTest):
             self, sync_mock, node_power_action_mock, collect_mock,
             power_on_node_if_needed_mock):
         cfg.CONF.set_override('deploy_logs_collect', 'always', 'agent')
-        self.node.provision_state = states.DEPLOYING
-        self.node.target_provision_state = states.ACTIVE
-        self.node.save()
         with task_manager.acquire(self.context, self.node.uuid) as task:
             self.deploy.tear_down_agent(task)
             node_power_action_mock.assert_called_once_with(task, states.REBOOT)
@@ -2580,6 +2726,24 @@ class TearDownAgentTest(test_agent_base.AgentDeployMixinBaseTest):
             self.assertFalse(power_on_node_if_needed_mock.called)
             sync_mock.assert_called_once_with(agent_client.get_client(task),
                                               task.node)
+
+    @mock.patch.object(manager_utils, 'power_on_node_if_needed', autospec=True)
+    @mock.patch.object(time, 'sleep', lambda seconds: None)
+    @mock.patch.object(manager_utils, 'node_power_action', autospec=True)
+    @mock.patch.object(agent_client.AgentClient, 'lockdown', autospec=True)
+    def test_tear_down_agent_disable_power_off(
+            self, lockdown_mock, node_power_action_mock,
+            power_on_node_if_needed_mock):
+        self.node.disable_power_off = True
+        self.node.save()
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            power_on_node_if_needed_mock.return_value = None
+            self.deploy.tear_down_agent(task)
+            lockdown_mock.assert_called_once_with(mock.ANY, task.node)
+            node_power_action_mock.assert_not_called()
+            self.assertEqual(states.DEPLOYING, task.node.provision_state)
+            self.assertEqual(states.ACTIVE, task.node.target_provision_state)
+            self.assertIsNone(task.node.last_error)
 
 
 class SwitchToTenantNetworkTest(test_agent_base.AgentDeployMixinBaseTest):

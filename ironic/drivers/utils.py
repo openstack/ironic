@@ -12,6 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import contextlib
 import os
 import tempfile
 
@@ -504,3 +505,18 @@ def need_prepare_ramdisk(node):
                                     states.INSPECTWAIT,
                                     states.SERVICING,
                                     states.SERVICEWAIT)
+
+
+@contextlib.contextmanager
+def power_off_and_on(task):
+    """A context manager that handles a reboot.
+
+    If disable_power_off is False, the node is powered off before yielding and
+    powered back on afterwards. Otherwise, one reboot is issued in the end.
+    """
+    if not task.node.disable_power_off:
+        utils.node_power_action(task, states.POWER_OFF)
+    yield
+    next_state = (states.REBOOT if task.node.disable_power_off
+                  else states.POWER_ON)
+    utils.node_power_action(task, next_state)

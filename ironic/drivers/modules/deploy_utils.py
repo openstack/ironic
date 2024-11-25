@@ -772,7 +772,7 @@ def tear_down_inband_cleaning(task, manage_boot=True):
     node = task.node
     cleaning_failure = (node.fault == faults.CLEAN_FAILURE)
 
-    if not (fast_track or cleaning_failure):
+    if not (fast_track or cleaning_failure or node.disable_power_off):
         manager_utils.node_power_action(task, states.POWER_OFF)
 
     if manage_boot:
@@ -781,8 +781,11 @@ def tear_down_inband_cleaning(task, manage_boot=True):
     power_state_to_restore = manager_utils.power_on_node_if_needed(task)
     task.driver.network.remove_cleaning_network(task)
     if not (fast_track or cleaning_failure):
-        manager_utils.restore_power_state_if_needed(
-            task, power_state_to_restore)
+        if node.disable_power_off:
+            manager_utils.node_power_action(task, states.REBOOT)
+        else:
+            manager_utils.restore_power_state_if_needed(
+                task, power_state_to_restore)
 
 
 def prepare_inband_service(task):
@@ -797,24 +800,23 @@ def prepare_inband_service(task):
     :raises: any boot interface's prepare_ramdisk exceptions.
     :returns: Returns states.SERVICEWAIT
     """
-    manager_utils.node_power_action(task, states.POWER_OFF)
-    # NOTE(TheJulia): Revealing that the power is off at any time can
-    # cause external power sync to decide that the node must be off.
-    # This may result in a post-rescued instance being turned off
-    # unexpectedly after rescue has started.
-    # TODO(TheJulia): Once we have power/state callbacks to nova,
-    # the reset of the power_state can be removed.
-    task.node.power_state = states.POWER_ON
-    task.node.save()
+    with driver_utils.power_off_and_on(task):
+        # NOTE(TheJulia): Revealing that the power is off at any time can
+        # cause external power sync to decide that the node must be off.
+        # This may result in a post-rescued instance being turned off
+        # unexpectedly after rescue has started.
+        # TODO(TheJulia): Once we have power/state callbacks to nova,
+        # the reset of the power_state can be removed.
+        task.node.power_state = states.POWER_ON
+        task.node.save()
 
-    task.driver.boot.clean_up_instance(task)
-    with manager_utils.power_state_for_network_configuration(task):
-        task.driver.network.unconfigure_tenant_networks(task)
-        task.driver.network.add_servicing_network(task)
-    if CONF.agent.manage_agent_boot:
-        # prepare_ramdisk will set the boot device
-        prepare_agent_boot(task)
-    manager_utils.node_power_action(task, states.POWER_ON)
+        task.driver.boot.clean_up_instance(task)
+        with manager_utils.power_state_for_network_configuration(task):
+            task.driver.network.unconfigure_tenant_networks(task)
+            task.driver.network.add_servicing_network(task)
+        if CONF.agent.manage_agent_boot:
+            # prepare_ramdisk will set the boot device
+            prepare_agent_boot(task)
 
     return states.SERVICEWAIT
 
@@ -838,7 +840,7 @@ def tear_down_inband_service(task):
     node = task.node
     service_failure = (node.fault == faults.SERVICE_FAILURE)
 
-    if not service_failure:
+    if not service_failure and not node.disable_power_off:
         manager_utils.node_power_action(task, states.POWER_OFF)
 
     task.driver.boot.clean_up_ramdisk(task)
@@ -851,7 +853,9 @@ def tear_down_inband_service(task):
         task.driver.boot.prepare_instance(task)
         # prepare_instance does not power on the node, the deploy interface is
         # normally responsible for that.
-        manager_utils.node_power_action(task, states.POWER_ON)
+        next_state = (states.REBOOT if task.node.disable_power_off
+                      else states.POWER_ON)
+        manager_utils.node_power_action(task, next_state)
 
 
 def get_image_instance_info(node):
@@ -1652,7 +1656,8 @@ def reboot_to_finish_step(task, timeout=None):
     disable_ramdisk = task.node.driver_internal_info.get(
         'cleaning_disable_ramdisk')
     if not disable_ramdisk:
-        if manager_utils.is_fast_track(task):
+        if (manager_utils.is_fast_track(task)
+                and not task.node.disable_power_off):
             LOG.debug('Forcing power off on node %s for a clean reboot into '
                       'the agent image', task.node)
             manager_utils.node_power_action(task, states.POWER_OFF)
