@@ -5,7 +5,7 @@ Configuration and Operation
   :maxdepth: 1
 
    Ironic Python Agent <drivers/ipa>
-   Multi-tenant Networking <multitenancy>
+   Networking <networking>
    Port Groups <portgroups>
    Conductor Groups <conductor-groups>
    Security <security>
