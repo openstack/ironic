@@ -28,8 +28,18 @@ Concepts
 Terminology
 -----------
 
+- ``physical network`` - A physical network in the context of this document
+  is a logical network fabric which works together. This *can* be represented
+  for the purposes of modeling the infrastructure, and this terminology is
+  somewhat over-used due to the similar filed name ``physical_network``
+  which refers to the named and configured representation of the network
+  fabric.
+
 - ``vif`` or ``VIF`` - Virtual Interface which is best described as a Neutron
-  port. VIFs are always referred to utilizing the port ID value.
+  port. For Ironic, VIFs are always referred to utilizing the Neutron port ID
+  value, which is a UUID value. A VIF may be available across a limited number
+  of physical networks, dependent upon the cloud's operating configuration
+  and operating constraints.
 
 - ``ML2`` - ML2 is a plugin model for Neutron, the Networking service.
   Advanced networking interactions including 3rd party plugins are utilized
@@ -50,6 +60,12 @@ Terminology
   baremetal port is attached, enabling network switch fabric configuration
   be appropriately updated.
 
+- ``port`` - A port is the context of this document represents a physical
+  or logical connection. For example, in the context of Ironic, a port is
+  a possible physical connection which is connected for use to the underlying
+  ``physical network``. Whereas in the context of Neutron, a port is a
+  virtual network interface, or in Ironic terminology, a ``VIF``.
+
 - ``port group`` - A composite set of ports, created utilizing Ironic's API
   to represent LACP or otherwise bonded network interfaces which exist between
   a network fabric and the physical bare metal node.
@@ -61,7 +77,7 @@ Network interfaces
 
 Network interface is one of the driver interfaces that manages network
 switching for nodes. There are 3 network interfaces available in
-the Bare Metal service:
+the Ironic service:
 
 - ``noop`` interface is used for standalone deployments, and does not perform
   any network switching;
@@ -83,13 +99,13 @@ the Bare Metal service:
   the network fabric.
 
 To use these interfaces, they need to be enabled in *ironic.conf* utilizing
-the ``[DEFAULT]/enabled_network_interfaces`` setting.
+the :oslo.config:option:`enabled_network_interfaces` setting.
 
 VIF Attachment flow
 -------------------
 
 When creating a VIF, the action occurs against the Neutron Networking Service,
-such as by using the ``openstack port create`` command, and then the port UUID
+such as by using the ``openstack port create`` command, and then the port ID
 is submitted to Ironic to facilitate a VIF attachment.
 
 .. NOTE::
@@ -100,14 +116,17 @@ is submitted to Ironic to facilitate a VIF attachment.
    all VIFs the user requested to be attached into Ironic, and then generate
    user friendly metadata as a result.
 
-When virtual interface (VIF) is requested to be attached to a node via the
+When a virtual interface (VIF) is requested to be attached to a node via the
 Ironic API, the following ordered criteria are used to select a suitable
 unattached port or port group:
 
 * Require ports or port groups to not have a physical network or to have a
-  physical network that matches one of the VIF's allowed physical networks.
-* Prefer ports and port groups that have a physical network to ports and
-  port groups that do not have a physical network.
+  physical network that matches one of the VIF's available physical networks
+  which it may be configured across.
+
+* Prefer ports and port groups which have a physical network to ports and
+  port groups which do not have a physical network.
+
 * Prefer port groups to ports, prefer ports with PXE enabled.
 
 .. NOTE::
@@ -141,7 +160,9 @@ Basic Provisioning flow
 
 When provisioning, Ironic will attempt to attach all PXE enabled
 ports to the *provisioning network*. A modifier for this behavior is the
-``[neutron]add_all_ports`` option.
+:oslo.config:option:`neutron.add_all_ports` option, where ironic will
+attempt to bind all ports to the required service network beyond the
+ironic ports with ``pxe_enabled`` set to ``True``.
 
 After provisioning work has been completed, and prior to the node being
 moved to the ``ACTIVE`` ``provision_state``, the previously attached ports
@@ -177,15 +198,15 @@ it is needed.
 Physical networks
 -----------------
 
-A Bare Metal port may be associated with a physical network using its
+An Ironic port may be associated with a physical network using its
 ``physical_network`` field. Ironic uses this information when
 mapping between virtual ports in Neutron and physical ports and
 port groups.  A port's physical network field is optional, and if not
 set then any VIF may be mapped to that port, provided that no free
-Bare Metal port with a suitable physical network assignment exists.
+Ironic port with a suitable physical network assignment exists.
 
 The physical network of a port group is defined by the physical network of its
-constituent ports. The Bare Metal service ensures that all ports in a port
+constituent ports. The Ironic service ensures that all ports in a port
 group have the same value in their physical network field.
 
 The ``physical_network`` setting is used to have divided network fabrics which
@@ -195,8 +216,8 @@ multiple network fabrics into the overall operation with Neutron.
 Local link connection
 ---------------------
 
-Use of the ``neutron`` network-interfaces_ requires the Bare Metal port
-``local_link_connection`` information to be populated for each bare metal port
+Use of the ``neutron`` network-interfaces_ requires the Ironic  port
+``local_link_connection`` information to be populated for each Ironic port
 on a node in ironic. This information is provided to the Networking service's
 ML2 driver when a Virtual Interface (VIF) is attached. The ML2 driver uses the
 information to plug the specified port to the tenant network.
@@ -231,7 +252,9 @@ Example setting of local link connection information
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Below is an example command you can use as a basis to set the
-required information into Ironic.::
+required information into Ironic.
+
+.. code-block:: shell
 
   baremetal port create <physical_mac_address> --node <node_uuid> \
        --local-link-connection switch_id=<switch_mac_address> \
@@ -261,7 +284,9 @@ ff:00:00:00:00:00:02:00:00:02:c9:00:f4:52:14:03:00:38:39:81.
 
 Mellanox ConnectX Family Device's HW_MAC_ADDRESS consists of 6 bytes;
 the port GUID's lower 3 and higher 3 bytes. In this example it would be f4:52:14:38:39:81.
-Putting it all together, create an Infiniband port as follows::
+Putting it all together, create an Infiniband port as follows.
+
+.. code-block:: shell
 
   baremetal port create <physical_mac_address> --node <node_uuid> \
        --pxe-enabled true \
@@ -284,7 +309,9 @@ can be programmed remotely.
 To signal to Ironic the device and connection is supplied via a
 Smart NIC, use the following command. This requires the ``hostname``
 of the operating system inside the Smart NIC to asserted along with
-the ``port_id`` value to match the internal port represetntation name::
+the ``port_id`` value to match the internal port representation name.
+
+.. code-block:: shell
 
   baremetal port create <physical_mac_address> --node <node_uuid> \
        --local-link-connection hostname=<smartnic_hostname> \
@@ -297,7 +324,7 @@ Configuring and using Network Multi-tenancy
 ===========================================
 
 See the :ref:`configure-tenant-networks` section in the installation guide for
-the Bare Metal service.
+the Bare Metal (Ironic) service.
 
 
 Configuring the Networking service
@@ -328,7 +355,7 @@ at in the networking-baremetal installation documentation for the
 ``flat`` network interface
 --------------------------
 
-In order for Networking service ports to correctly operate with the Bare Metal
+In order for Networking service ports to correctly operate with the Ironic
 service ``flat`` network interface the ``baremetal`` ML2 mechanism driver from
 `networking-baremetal
 <https://opendev.org/openstack/networking-baremetal>`_ needs to be
