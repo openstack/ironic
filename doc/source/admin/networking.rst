@@ -303,11 +303,27 @@ the Bare Metal service.
 Configuring the Networking service
 ==================================
 
-In addition to configuring the Bare Metal service some additional configuration
-of the Networking service is required to ensure ports for bare metal servers
-are correctly programmed. This configuration will be determined by the Bare
-Metal service network interfaces you have enabled and which top of rack
-switches you have in your environment.
+In addition to configuring Ironic, some additional configuration
+of the Neutron is required to ensure ports for bare metal servers
+are correctly programmed *and* represent a proper state, depending on your
+use model.
+
+This configuration is determined by the Ironic network interface drivers
+you have enabled, which top of rack switches you have in your environment,
+and ultimately the structural model of your network, as in if your using
+``physical_network`` values.
+
+Physnet Mapping
+---------------
+
+When using physnet mapping, it is critical for proper instance scheduling for
+network resources to be informed of the physical network mappins which
+are represented in relation to the hosts in the deployment.
+
+This takes the form of the ``ironic-neutron-agent`` which operators should
+deploy. Information on how to setup and configure this agent can be located
+at in the networking-baremetal installation documentation for the
+`ironic-neutron-agent <https://docs.openstack.org/networking-baremetal/latest/install/index.html#configure-ironic-neutron-agent>`_.
 
 ``flat`` network interface
 --------------------------
@@ -316,10 +332,11 @@ In order for Networking service ports to correctly operate with the Bare Metal
 service ``flat`` network interface the ``baremetal`` ML2 mechanism driver from
 `networking-baremetal
 <https://opendev.org/openstack/networking-baremetal>`_ needs to be
-loaded into the Networking service configuration. This driver understands that
+loaded into the Neutron configuration. This driver understands that
 the switch should be already configured by the admin, and will mark the
 networking service ports as successfully bound as nothing else needs to be
-done.
+done for the ``VNIC_BAREMETAL`` binding requests which made by Ironic on
+behalf of users seeking their ports to be attached.
 
 #. Install the ``networking-baremetal`` library
 
@@ -335,6 +352,8 @@ done.
      [ml2]
      mechanism_drivers = ovs,baremetal
 
+#. Restart your Neutron API service, which houses the ML2 mechanism drivers.
+
 ``neutron`` network interface
 -----------------------------
 
@@ -344,20 +363,63 @@ mechanism driver which supports the ``baremetal`` VNIC type for the make and
 model of top of rack switch in the environment must be installed and enabled.
 
 This is a list of known top of rack ML2 mechanism drivers which work with the
-``neutron`` network interface:
+``neutron`` network interface.
 
-Cisco Nexus 9000 series
+Community ML2 Drivers
+~~~~~~~~~~~~~~~~~~~~~
+
+Community ML2 drivers are drivers maintained by the community, and can be
+expected to generally focus on the minimum viable need to facilitate use
+cases.
+
+Networking Generic Switch
+  This ML2 mechanism driver is generally viewed as the "go-to" solution to get
+  started. It is modeled upon remote switch configuration using text interfaces,
+  and the minimum feature for each switch is "setting a port on a vlan".
+  This ML2 driver is tested in CI as it also supports management of some virtual
+  machine networking as Ironic uses it in CI. It is also relatively simple to
+  modify to enable support for newer models, or changes in vendor command
+  lines. It also has some defects and issues, but is still viewed as the
+  first "go-to" solution to get started.
+  More information is available in the project's `README
+  <https://opendev.org/openstack/networking-generic-switch/src/branch/master/README.rst>`_.
+  The project's documentation can also be found
+  `here <https://docs.openstack.org/networking-generic-switch/latest/>`_.
+
+Networking Baremetal
+  This ML2 mechanism driver, which we briefly cover in the ``flat`` network
+  interface settings earlier in this document, also has support for asserting
+  configuration to remote switches using
+  `Netconf <https://en.wikipedia.org/wiki/NETCONF>`_ with the
+  `OpenConfig <https://www.openconfig.net/>`_ data model. This, similar to
+  the issues with DMTF Redfish, means that it doesn't work for every Netconf
+  supported switch.
+  More information can be found at networking-baremetal
+  `documentation <https://docs.openstack.org/networking-baremetal>`_
+  and
+  `device-drivers documentation <https://docs.openstack.org/networking-baremetal/latest/configuration/ml2/device_drivers/index.html>`_
+  with some additional detail covered on how to configure
+  `devices to manage <https://docs.openstack.org/networking-baremetal/latest/install/index.html#add-devices-switches-to-manage>`_.
+
+
+Vendor ML2 Drivers
+~~~~~~~~~~~~~~~~~~
+
+Cisco Nexus (networking-cisco)
   To install and configure this ML2 mechanism driver see `Nexus Mechanism
   Driver Installation Guide
   <https://networking-cisco.readthedocs.io/projects/test/en/latest/install/ml2-nexus.html#nexus-mechanism-driver-installation-guide>`_.
+  This driver does appear to be maintained by the vendor, but the Ironic
+  community is unaware of it's status otherwise.
 
-FUJITSU CFX2000
-  ``networking-fujitsu`` ML2 driver supports this switch. The documentation
-  is available `here
-  <https://opendev.org/x/networking-fujitsu/src/branch/master/doc/source/ml2_cfab.rst>`_.
+Arista (networking-arista)
+  The networking-arista project does appear to have some logic to handle
+  the VNIC_BAREMETAL requests, and Arista was deeply involved when the
+  overall model of ML2 switch orchustration was created.
+  Limited information is available, but the repository can be found at
+  on OpenDev in the `x/networking-arista <https://opendev.org/x/networking-arista>`_
+  repository.
 
-Networking Generic Switch
-  This is an ML2 mechanism driver built for testing against virtual bare metal
-  environments and some switches that are not covered by hardware specific ML2
-  mechanism drivers. More information is available in the project's `README
-  <https://opendev.org/openstack/networking-generic-switch/src/branch/master/README.rst>`_.
+Previously in this list we included networking-fujitsu, however it
+no longer appears maintained. Customers of Fujitsu products should
+inquire with Fujitsu directly.
