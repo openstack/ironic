@@ -145,6 +145,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('lessee', data['nodes'][0])
         self.assertNotIn('network_data', data['nodes'][0])
         self.assertNotIn('service_steps', data['nodes'][0])
+        self.assertNotIn('disable_power_off', data['nodes'][0])
 
     @mock.patch.object(policy, 'check', autospec=True)
     @mock.patch.object(policy, 'check_policy', autospec=True)
@@ -220,6 +221,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertNotIn('allocation_id', data)
         self.assertIn('allocation_uuid', data)
         self.assertIn('service_step', data)
+        self.assertIn('disable_power_off', data)
 
     def test_get_one_configdrive_dict(self):
         fake_instance_info = {
@@ -517,6 +519,30 @@ class TestListNodes(test_api_base.BaseApiTest):
                                  headers={api_base.Version.string: '1.75'})
             self.assertEqual(data['boot_mode'], 'uefi')
             self.assertEqual(data['secure_boot'], value)
+
+    def test_node_disable_power_off_hidden_in_lower_version(self):
+        self._test_node_field_hidden_in_lower_version('disable_power_off',
+                                                      '1.94', '1.95')
+
+    def test_node_disable_power_off_null_field(self):
+        node = obj_utils.create_test_node(self.context, disable_power_off=None)
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.95'})
+        # Default for disable_power_off is False (so not Null)
+        self.assertIs(data['disable_power_off'], False)
+
+    def test_node_disable_power_off_true_field(self):
+        node = obj_utils.create_test_node(self.context, disable_power_off=True)
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.95'})
+        self.assertEqual(data['disable_power_off'], True)
+
+    def test_node_disable_power_off_false_field(self):
+        node = obj_utils.create_test_node(self.context,
+                                          disable_power_off=False)
+        data = self.get_json('/nodes/%s' % node.uuid,
+                             headers={api_base.Version.string: '1.95'})
+        self.assertEqual(data['disable_power_off'], False)
 
     def test_get_one_custom_fields(self):
         node = obj_utils.create_test_node(self.context,
@@ -831,6 +857,14 @@ class TestListNodes(test_api_base.BaseApiTest):
         token_value = response['driver_internal_info']['agent_secret_token']
         self.assertEqual('******', token_value)
 
+    def test_get_disable_power_off_fields(self):
+        node = obj_utils.create_test_node(self.context,
+                                          disable_power_off=True)
+        fields = 'disable_power_off'
+        response = self.get_json('/nodes/%s?fields=%s' % (node.uuid, fields),
+                                 headers={api_base.Version.string: '1.95'})
+        self.assertIn('disable_power_off', response)
+
     def test_detail(self):
         node = obj_utils.create_test_node(self.context,
                                           chassis_id=self.chassis.id)
@@ -873,6 +907,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('retired', data['nodes'][0])
         self.assertIn('retired_reason', data['nodes'][0])
         self.assertIn('network_data', data['nodes'][0])
+        self.assertIn('disable_power_off', data['nodes'][0])
 
     def test_detail_snmpv3(self):
         driver_info = {
@@ -931,6 +966,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('retired', data['nodes'][0])
         self.assertIn('retired_reason', data['nodes'][0])
         self.assertIn('network_data', data['nodes'][0])
+        self.assertIn('disable_power_off', data['nodes'][0])
 
     def test_detail_instance_uuid(self):
         instance_uuid = '6eccd391-961c-4da5-b3c5-e2fa5cfbbd9d'
@@ -951,7 +987,8 @@ class TestListNodes(test_api_base.BaseApiTest):
             'network_interface', 'resource_class', 'owner', 'lessee',
             'storage_interface', 'traits', 'automated_clean',
             'conductor_group', 'protected', 'protected_reason',
-            'retired', 'retired_reason', 'allocation_uuid', 'network_data'
+            'retired', 'retired_reason', 'allocation_uuid', 'network_data',
+            'disable_power_off'
         ]
 
         for field in expected_fields:
@@ -1045,6 +1082,7 @@ class TestListNodes(test_api_base.BaseApiTest):
         self.assertIn('retired', data['nodes'][0])
         self.assertIn('retired_reason', data['nodes'][0])
         self.assertIn('network_data', data['nodes'][0])
+        self.assertIn('disable_power_off', data['nodes'][0])
 
     def test_detail_query_false(self):
         obj_utils.create_test_node(self.context)
@@ -5202,6 +5240,26 @@ class TestPost(test_api_base.BaseApiTest):
     def test_create_node_lessee_old_api_version(self):
         headers = {api_base.Version.string: '1.64'}
         ndict = test_api_utils.post_get_test_node(lessee='project')
+        response = self.post_json('/nodes', ndict, headers=headers,
+                                  expect_errors=True)
+        self.assertEqual('application/json', response.content_type)
+        self.assertEqual(http_client.NOT_ACCEPTABLE, response.status_int)
+
+    def test_create_node_disable_power_off(self):
+        ndict = test_api_utils.post_get_test_node(
+            disable_power_off=True)
+        response = self.post_json('/nodes', ndict,
+                                  headers={api_base.Version.string:
+                                           str(api_v1.max_version())})
+        self.assertEqual(http_client.CREATED, response.status_int)
+        result = self.get_json('/nodes/%s' % ndict['uuid'],
+                               headers={api_base.Version.string:
+                                        str(api_v1.max_version())})
+        self.assertEqual(True, result['disable_power_off'])
+
+    def test_create_node_disable_power_off_old_api_version(self):
+        headers = {api_base.Version.string: '1.94'}
+        ndict = test_api_utils.post_get_test_node(disable_power_off=True)
         response = self.post_json('/nodes', ndict, headers=headers,
                                   expect_errors=True)
         self.assertEqual('application/json', response.content_type)

@@ -119,6 +119,9 @@ supplied when the Node is created, or the resource may be updated later.
 .. versionadded: 1.83
   Introduced the ``parent_node`` field.
 
+.. versionadded: 1.95
+  Introduced the ``disable_power_off`` field.
+
 Normal response codes: 201
 
 Error codes: 400,403,406
@@ -132,6 +135,7 @@ Request
     - conductor_group: req_conductor_group
     - console_interface: req_console_interface
     - deploy_interface: req_deploy_interface
+    - disable_power_off: req_disable_power_off
     - driver_info: req_driver_info
     - driver: req_driver_name
     - extra: req_extra
@@ -178,7 +182,7 @@ and any defaults added for non-specified fields. Most fields default to "null"
 or "".
 
 The list and example below are representative of the response as of API
-microversion 1.81.
+microversion 1.95.
 
 .. rest_parameters:: parameters.yaml
 
@@ -239,6 +243,7 @@ microversion 1.81.
     - network_data: network_data
     - retired: retired
     - retired_reason: retired_reason
+    - disable_power_off: disable_power_off
 
 **Example JSON representation of a Node:**
 
@@ -504,6 +509,7 @@ Response
     - inspection_finished_at: inspection_finished_at
     - created_at: created_at
     - updated_at: updated_at
+    - disable_power_off: disable_power_off
 
 **Example detailed list of Nodes:**
 
@@ -561,6 +567,9 @@ only the specified set.
 
 .. versionadded:: 1.83
   Introduced the ``parent_node`` field.
+
+.. versionadded:: 1.95
+  Introduced the ``disable_power_off`` field.
 
 Normal response codes: 200
 
@@ -632,6 +641,7 @@ Response
     - conductor: conductor
     - allocation_uuid: allocation_uuid
     - network_data: network_data
+    - disable_power_off: disable_power_off
 
 **Example JSON representation of a Node:**
 
@@ -733,6 +743,7 @@ Response
     - conductor: conductor
     - allocation_uuid: allocation_uuid
     - network_data: network_data
+    - disable_power_off: disable_power_off
 
 **Example JSON representation of a Node:**
 

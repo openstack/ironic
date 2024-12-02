@@ -460,6 +460,9 @@ detailed documentation of the Ironic State Machine is available
    approved for the given node, as an alternative to providing ``clean_steps``
    or ``service_steps`` dictionary.
 
+.. versionadded:: 1.95
+   Added the ability to set/unset ``disable_power_off`` on a node.
+
 Normal response code: 202
 
 Error codes:

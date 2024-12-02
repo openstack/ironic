@@ -177,6 +177,7 @@ def node_schema():
             'deploy_interface': {'type': ['string', 'null']},
             'description': {'type': ['string', 'null'],
                             'maxLength': _NODE_DESCRIPTION_MAX_LENGTH},
+            'disable_power_off': {'type': ['string', 'boolean', 'null']},
             'driver': {'type': 'string'},
             'driver_info': {'type': ['object', 'null']},
             'extra': {'type': ['object', 'null']},
@@ -229,6 +230,7 @@ NODE_VALIDATE_EXTRA = args.dict_valid(
     automated_clean=args.boolean,
     chassis_uuid=args.uuid,
     console_enabled=args.boolean,
+    disable_power_off=args.boolean,
     instance_uuid=args.uuid,
     protected=args.boolean,
     maintenance=args.boolean,
@@ -270,6 +272,7 @@ PATCH_ALLOWED_FIELDS = [
     'console_interface',
     'deploy_interface',
     'description',
+    'disable_power_off',
     'driver',
     'driver_info',
     'extra',
@@ -1565,6 +1568,7 @@ def _get_fields_for_node_query(fields=None):
                     'conductor_group',
                     'console_enabled',
                     'console_interface',
+                    'disable_power_off',
                     'deploy_interface',
                     'deploy_step',
                     'description',
@@ -3050,7 +3054,8 @@ class NodesController(rest.RestController):
             ('/name', 'baremetal:node:update:name'),
             ('/retired', 'baremetal:node:update:retired'),
             ('/shard', 'baremetal:node:update:shard'),
-            ('/parent_node', 'baremetal:node:update:parent_node')
+            ('/parent_node', 'baremetal:node:update:parent_node'),
+            ('/disable_power_off', 'baremetal:node:update:disable_power_off')
         )
         for p in patch:
             # Process general direct path to policy map

@@ -894,6 +894,15 @@ description:
   in: body
   required: true
   type: string
+disable_power_off:
+  description: |
+    If set to true, power off for the node is explicitly disabled, instead, a
+    reboot will be used in place of power on/off. Additionally, when possible,
+    the node will be disabled (i.e., its API agent will be rendered unusable
+    and network configuration will be removed) instead of being powered off.
+  in: body
+  required: false
+  type: boolean
 disable_ramdisk:
   description: |
     If set to ``true``, the ironic-python-agent ramdisk will not be booted for
@@ -1683,6 +1692,15 @@ req_description:
   in: body
   required: false
   type: string
+req_disable_power_off:
+  description: |
+    If set to ``true``, power off for the node is explicitly disabled, instead, a
+    reboot will be used in place of power on/off. Additionally, when possible,
+    the node will be disabled (i.e., its API agent will be rendered unusable
+    and network configuration will be removed) instead of being powered off.
+  in: body
+  required: false
+  type: boolean
 req_disable_ramdisk:
   description: |
     Whether to boot ramdisk while using a runbook for cleaning or servicing

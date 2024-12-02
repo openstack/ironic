@@ -877,7 +877,8 @@ VERSIONED_FIELDS = {
     'shard': versions.MINOR_82_NODE_SHARD,
     'parent_node': versions.MINOR_83_PARENT_CHILD_NODES,
     'firmware_interface': versions.MINOR_86_FIRMWARE_INTERFACE,
-    'service_step': versions.MINOR_87_SERVICE
+    'service_step': versions.MINOR_87_SERVICE,
+    'disable_power_off': versions.MINOR_95_DISABLE_POWER_OFF,
 }
 
 for field in V31_FIELDS:
