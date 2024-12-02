@@ -65,7 +65,8 @@ class ISOCacheTestCase(base.TestCase):
         self.cache.fetch_image(self.uuid, self.dest_path)
         mock_fetch.assert_called_once_with(mock.ANY, self.uuid, self.dest_path,
                                            False, mock.ANY, mock.ANY, mock.ANY,
-                                           disable_validation=True)
+                                           disable_validation=True,
+                                           image_auth_data=None)
 
     @mock.patch.object(os, 'link', autospec=True)
     @mock.patch.object(image_cache, '_fetch', autospec=True)
@@ -75,7 +76,8 @@ class ISOCacheTestCase(base.TestCase):
                                    self.img_info)
         mock_fetch.assert_called_once_with(mock.ANY, self.uuid, mock.ANY,
                                            False, mock.ANY, mock.ANY, mock.ANY,
-                                           disable_validation=True)
+                                           disable_validation=True,
+                                           image_auth_data=None)
 
 
 class RedfishImageHandlerTestCase(db_base.DbTestCase):

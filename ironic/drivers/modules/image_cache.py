@@ -71,7 +71,8 @@ class ImageCache(object):
 
     def fetch_image(self, href, dest_path, ctx=None, force_raw=None,
                     expected_format=None, expected_checksum=None,
-                    expected_checksum_algo=None):
+                    expected_checksum_algo=None,
+                    image_auth_data=None):
         """Fetch image by given href to the destination path.
 
         Does nothing if destination path exists and is up to date with cache
@@ -111,14 +112,16 @@ class ImageCache(object):
                            expected_format=expected_format,
                            expected_checksum=expected_checksum,
                            expected_checksum_algo=expected_checksum_algo,
-                           disable_validation=self._disable_validation)
+                           disable_validation=self._disable_validation,
+                           image_auth_data=image_auth_data)
             else:
                 with _concurrency_semaphore:
                     _fetch(ctx, href, dest_path, force_raw,
                            expected_format=expected_format,
                            expected_checksum=expected_checksum,
                            expected_checksum_algo=expected_checksum_algo,
-                           disable_validation=self._disable_validation)
+                           disable_validation=self._disable_validation,
+                           image_auth_data=image_auth_data)
             return
 
         # TODO(ghe): have hard links and counts the same behaviour in all fs
@@ -142,6 +145,10 @@ class ImageCache(object):
         # TODO(dtantsur): lock expiration time
         with lockutils.lock(img_download_lock_name):
             img_service = image_service.get_image_service(href, context=ctx)
+            if img_service.is_auth_set_needed:
+                # We need to possibly authenticate based on what a user
+                # has supplied, so we'll send that along.
+                img_service.set_image_auth(href, image_auth_data)
             img_info = img_service.show(href)
             # NOTE(vdrok): After rebuild requested image can change, so we
             # should ensure that dest_path and master_path (if exists) are
@@ -172,14 +179,16 @@ class ImageCache(object):
                 ctx=ctx, force_raw=force_raw,
                 expected_format=expected_format,
                 expected_checksum=expected_checksum,
-                expected_checksum_algo=expected_checksum_algo)
+                expected_checksum_algo=expected_checksum_algo,
+                image_auth_data=image_auth_data)
 
         # NOTE(dtantsur): we increased cache size - time to clean up
         self.clean_up()
 
     def _download_image(self, href, master_path, dest_path, img_info,
                         ctx=None, force_raw=None, expected_format=None,
-                        expected_checksum=None, expected_checksum_algo=None):
+                        expected_checksum=None, expected_checksum_algo=None,
+                        image_auth_data=None):
         """Download image by href and store at a given path.
 
         This method should be called with uuid-specific lock taken.
@@ -194,6 +203,8 @@ class ImageCache(object):
         :param expected_format: The expected original format for the image.
         :param expected_checksum: The expected image checksum.
         :param expected_checksum_algo: The expected image checksum algorithm.
+        :param image_auth_data: Dictionary with credential details which may be
+                                required to download the file.
         :raise ImageDownloadFailed: when the image cache and the image HTTP or
                                     TFTP location are on different file system,
                                     causing hard link to fail.
@@ -208,7 +219,8 @@ class ImageCache(object):
                 _fetch(ctx, href, tmp_path, force_raw, expected_format,
                        expected_checksum=expected_checksum,
                        expected_checksum_algo=expected_checksum_algo,
-                       disable_validation=self._disable_validation)
+                       disable_validation=self._disable_validation,
+                       image_auth_data=image_auth_data)
 
             if img_info.get('no_cache'):
                 LOG.debug("Caching is disabled for image %s", href)
@@ -375,7 +387,7 @@ def _free_disk_space_for(path):
 def _fetch(context, image_href, path, force_raw=False,
            expected_format=None, expected_checksum=None,
            expected_checksum_algo=None,
-           disable_validation=False):
+           disable_validation=False, image_auth_data=None):
     """Fetch image and convert to raw format if needed."""
     assert not (disable_validation and expected_format)
     path_tmp = "%s.part" % path
@@ -384,7 +396,8 @@ def _fetch(context, image_href, path, force_raw=False,
         os.remove(path_tmp)
     images.fetch(context, image_href, path_tmp, force_raw=False,
                  checksum=expected_checksum,
-                 checksum_algo=expected_checksum_algo)
+                 checksum_algo=expected_checksum_algo,
+                 image_auth_data=image_auth_data)
     # By default, the image format is unknown
     image_format = None
     disable_dii = (disable_validation
@@ -396,7 +409,8 @@ def _fetch(context, image_href, path, force_raw=False,
             # format known even if they are not passed to qemu-img.
             remote_image_format = images.image_show(
                 context,
-                image_href).get('disk_format')
+                image_href,
+                image_auth_data=image_auth_data).get('disk_format')
         else:
             remote_image_format = expected_format
         image_format = images.safety_check_image(path_tmp)
@@ -469,7 +483,7 @@ def _clean_up_caches(directory, amount):
                                               )
 
 
-def clean_up_caches(ctx, directory, images_info):
+def clean_up_caches(ctx, directory, images_info, image_auth_data=None):
     """Explicitly cleanup caches based on their priority (if required).
 
     This cleans up the caches to free up the amount of space required for the
@@ -484,7 +498,8 @@ def clean_up_caches(ctx, directory, images_info):
     :raises: InsufficientDiskSpace exception, if we cannot free up enough space
              after trying all the caches.
     """
-    total_size = sum(images.download_size(ctx, uuid)
+    total_size = sum(images.download_size(ctx, uuid,
+                                          image_auth_data=image_auth_data)
                      for (uuid, path) in images_info)
     _clean_up_caches(directory, total_size)
 
@@ -517,6 +532,9 @@ def _delete_master_path_if_stale(master_path, href, img_info):
     """
     if service_utils.is_glance_image(href):
         # Glance image contents cannot be updated without changing image's UUID
+        return os.path.exists(master_path)
+    if image_service.is_container_registry_url(href):
+        # OCI Images cannot be changed without changing the digest values.
         return os.path.exists(master_path)
     if os.path.exists(master_path):
         img_mtime = img_info.get('updated_at')

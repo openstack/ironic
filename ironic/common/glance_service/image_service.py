@@ -420,3 +420,17 @@ class GlanceImageService(object):
             if (v.url_expires_at < max_valid_time)]
         for k in keys_to_remove:
             del self._cache[k]
+
+    # TODO(TheJulia): Here because the GlanceImageService class is not based
+    # upon the base image service class.
+    @property
+    def is_auth_set_needed(self):
+        """Property to notify the caller if it needs to set authentication."""
+        return False
+
+    @property
+    def transfer_verified_checksum(self):
+        """The transferred artifact checksum."""
+        # FIXME(TheJulia): We should look at and see if we wire
+        # this up in a future change.
+        return None

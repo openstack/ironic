@@ -26,3 +26,4 @@ Bare Metal Service Features
    Layer 3 or DHCP-less Ramdisk Booting <dhcp-less>
    Deploying with Anaconda <anaconda-deploy-interface>
    Node History <node-history>
+   OCI Container Registry Support <oci-container-registry>

@@ -364,7 +364,22 @@ def create_esp_image_for_uefi(
             raise exception.ImageCreationFailed(image_type='iso', error=e)
 
 
-def fetch_into(context, image_href, image_file):
+def fetch_into(context, image_href, image_file,
+               image_auth_data=None):
+    """Fetches image file contents into a file.
+
+    :param context: A context object.
+    :param image_href: The Image URL or reference to attempt to retrieve.
+    :param image_file: The file handler or file name to write the requested
+                       file contents to.
+    :param image_auth_data: Optional dictionary for credentials to be conveyed
+                            from the original task to the image download
+                            process, if required.
+    :returns: If a value is returned, that value was validated as the checksum.
+              Otherwise None indicating the process had been completed.
+    """
+    # TODO(TheJulia): We likely need to document all of the exceptions which
+    #                 can be raised by any of the various image services here.
     # TODO(vish): Improve context handling and add owner and auth data
     #             when it is added to glance.  Right now there is no
     #             auth checking in glance, so we assume that access was
@@ -376,6 +391,12 @@ def fetch_into(context, image_href, image_file):
                'image_href': image_href})
     start = time.time()
 
+    if image_service.is_auth_set_needed:
+        # Send a dictionary with username/password data,
+        # but send it in a dictionary since it fundimentally
+        # can differ dramatically by types.
+        image_service.set_image_auth(image_href, image_auth_data)
+
     if isinstance(image_file, str):
         with open(image_file, "wb") as image_file_obj:
             image_service.download(image_href, image_file_obj)
@@ -384,15 +405,32 @@ def fetch_into(context, image_href, image_file):
 
     LOG.debug("Image %(image_href)s downloaded in %(time).2f seconds.",
               {'image_href': image_href, 'time': time.time() - start})
+    if image_service.transfer_verified_checksum:
+        # TODO(TheJulia): The Glance Image service client does a
+        # transfer related check when it retrieves the file. We might want
+        # to shift the model some to do that upfront across most image
+        # services which are able to be used that way.
+
+        # We know, thanks to a value and not an exception, that
+        # we have a checksum which matches the transfer.
+        return image_service.transfer_verified_checksum
+    return None
 
 
 def fetch(context, image_href, path, force_raw=False,
-          checksum=None, checksum_algo=None):
+          checksum=None, checksum_algo=None,
+          image_auth_data=None):
     with fileutils.remove_path_on_error(path):
-        fetch_into(context, image_href, path)
-        if (not CONF.conductor.disable_file_checksum
+        transfer_checksum = fetch_into(context, image_href, path,
+                                       image_auth_data)
+        if (not transfer_checksum
+                and not CONF.conductor.disable_file_checksum
                 and checksum):
             checksum_utils.validate_checksum(path, checksum, checksum_algo)
+
+    # FIXME(TheJulia): need to check if we need to extract the file
+    # i.e. zstd... before forcing raw.
+
     if force_raw:
         image_to_raw(image_href, path, "%s.part" % path)
 
@@ -468,14 +506,20 @@ def image_to_raw(image_href, path, path_tmp):
             os.rename(path_tmp, path)
 
 
-def image_show(context, image_href, image_service=None):
+def image_show(context, image_href, image_service=None, image_auth_data=None):
     if image_service is None:
         image_service = service.get_image_service(image_href, context=context)
+    if image_service.is_auth_set_needed:
+        # We need to possibly authenticate, so we should attempt to do so.
+        image_service.set_image_auth(image_href, image_auth_data)
     return image_service.show(image_href)
 
 
-def download_size(context, image_href, image_service=None):
-    return image_show(context, image_href, image_service)['size']
+def download_size(context, image_href, image_service=None,
+                  image_auth_data=None):
+    return image_show(context, image_href,
+                      image_service=image_service,
+                      image_auth_data=image_auth_data)['size']
 
 
 def converted_size(path, estimate=False):
@@ -647,6 +691,11 @@ def is_whole_disk_image(ctx, instance_info):
 
         is_whole_disk_image = (not iproperties.get('kernel_id')
                                and not iproperties.get('ramdisk_id'))
+    elif service.is_container_registry_url(image_source):
+        # NOTE(theJulia): We can safely assume, at least outright,
+        # that all container images are whole disk images, unelss
+        # someone wants to add explicit support.
+        is_whole_disk_image = True
     else:
         # Non glance image ref
         if is_source_a_path(ctx, instance_info.get('image_source')):

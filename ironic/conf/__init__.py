@@ -45,6 +45,7 @@ from ironic.conf import metrics
 from ironic.conf import molds
 from ironic.conf import neutron
 from ironic.conf import nova
+from ironic.conf import oci
 from ironic.conf import pxe
 from ironic.conf import redfish
 from ironic.conf import sensor_data
@@ -84,6 +85,7 @@ metrics.register_opts(CONF)
 molds.register_opts(CONF)
 neutron.register_opts(CONF)
 nova.register_opts(CONF)
+oci.register_opts(CONF)
 pxe.register_opts(CONF)
 redfish.register_opts(CONF)
 sensor_data.register_opts(CONF)

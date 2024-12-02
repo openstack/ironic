@@ -162,6 +162,17 @@ class IronicChecksumUtilsTestCase(base.TestCase):
         self.assertEqual('f' * 64, csum)
         self.assertEqual('sha256', algo)
 
+    def test_validate_text_checksum(self):
+        csum = ('sha256:02edbb53017ded13c286e27d14285cb82f5a'
+                '87f6dcbae280d6c53b5d98477bb7')
+        res = checksum_utils.validate_text_checksum('me0w', csum)
+        self.assertIsNone(res)
+
+    def test_validate_text_checksum_invalid(self):
+        self.assertRaises(exception.ImageChecksumError,
+                          checksum_utils.validate_text_checksum,
+                          'me0w', 'sha256:f00')
+
 
 @mock.patch.object(image_service.HttpImageService, 'get',
                    autospec=True)

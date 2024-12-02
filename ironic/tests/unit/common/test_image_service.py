@@ -24,6 +24,8 @@ import requests
 from ironic.common import exception
 from ironic.common.glance_service import image_service as glance_v2_service
 from ironic.common import image_service
+from ironic.common.oci_registry import OciClient as ociclient
+from ironic.common.oci_registry import RegistrySessionHelper as rs_helper
 from ironic.tests import base
 
 
@@ -714,6 +716,396 @@ class FileImageServiceTestCase(base.TestCase):
         copy_mock.assert_called_once_with(self.href_path, 'file')
 
 
+class OciImageServiceTestCase(base.TestCase):
+    def setUp(self):
+        super(OciImageServiceTestCase, self).setUp()
+        self.service = image_service.OciImageService()
+        self.href = 'oci://localhost/podman/machine-os:5.3'
+        # NOTE(TheJulia): These test usesdata structures captured from
+        # requests from quay.io with podman's machine-os container
+        # image. As a result, they are a bit verbose and rather...
+        # annoyingly large, but they are as a result, accurate.
+        self.artifact_index = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.index.v1+json',
+            'manifests': [
+                {
+                    'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+                    'digest': ('sha256:9d046091b3dbeda26e1f4364a116ca8d942840'
+                               '00f103da7310e3a4703df1d3e4'),
+                    'size': 475,
+                    'annotations': {'disktype': 'applehv'},
+                    'platform': {'architecture': 'x86_64', 'os': 'linux'}},
+                {
+                    'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+                    'digest': ('sha256:f2981621c1bf821ce44c1cb31c507abe6293d8'
+                               'eea646b029c6b9dc773fa7821a'),
+                    'size': 476,
+                    'annotations': {'disktype': 'applehv'},
+                    'platform': {'architecture': 'aarch64', 'os': 'linux'}},
+                {
+                    'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+                    'digest': ('sha256:3e42f5c348842b9e28bdbc9382962791a791a2'
+                               'e5cdd42ad90e7d6807396c59db'),
+                    'size': 475,
+                    'annotations': {'disktype': 'hyperv'},
+                    'platform': {'architecture': 'x86_64', 'os': 'linux'}},
+                {
+                    'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+                    'digest': ('sha256:7efa5128a3a82e414cc8abd278a44f0c191a28'
+                               '067e91154c238ef8df39966008'),
+                    'size': 476,
+                    'annotations': {'disktype': 'hyperv'},
+                    'platform': {'architecture': 'aarch64', 'os': 'linux'}},
+                {
+                    'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+                    'digest': ('sha256:dfcb3b199378320640d78121909409599b58b8'
+                               '012ed93320dae48deacde44d45'),
+                    'size': 474,
+                    'annotations': {'disktype': 'qemu'},
+                    'platform': {'architecture': 'x86_64', 'os': 'linux'}},
+                {
+                    'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+                    'digest': ('sha256:1010f100f03dba1e5e2bad9905fd9f96ba8554'
+                               '158beb7e6f030718001fa335d8'),
+                    'size': 475,
+                    'annotations': {'disktype': 'qemu'},
+                    'platform': {'architecture': 'aarch64', 'os': 'linux'}},
+                {
+                    'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+                    'digest': ('sha256:605c96503253b2e8cd4d1eb46c68e633192bb9'
+                               'b61742cffb54ad7eb3aef7ad6b'),
+                    'size': 11538,
+                    'platform': {'architecture': 'amd64', 'os': 'linux'}},
+                {
+                    'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+                    'digest': ('sha256:d9add02195d33fa5ec9a2b35076caae88eea3a'
+                               '7fa15f492529b56c7813949a15'),
+                    'size': 11535,
+                    'platform': {'architecture': 'arm64', 'os': 'linux'}}
+            ]
+        }
+        self.empty_artifact_index = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.index.v1+json',
+            'manifests': []
+        }
+
+    @mock.patch.object(ociclient, 'get_manifest', autospec=True)
+    @mock.patch.object(ociclient, 'get_artifact_index',
+                       autospec=True)
+    def test_identify_specific_image_local(
+            self,
+            mock_get_artifact_index,
+            mock_get_manifest):
+
+        mock_get_artifact_index.return_value = self.artifact_index
+        mock_get_manifest.return_value = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'config': {
+                'mediaType': 'application/vnd.oci.empty.v1+json',
+                'digest': ('sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21'
+                           'fe77e8310c060f61caaff8a'),
+                'size': 2,
+                'data': 'e30='},
+            'layers': [
+                {
+                    'mediaType': 'application/zstd',
+                    'digest': ('sha256:bf53aea26da8c4b2e4ca2d52db138e20fc7e73'
+                               '0e6b34b866e9e8e39bcaaa2dc5'),
+                    'size': 1059455878,
+                    'annotations': {
+                        'org.opencontainers.image.title': ('podman-machine.'
+                                                           'x86_64.qemu.'
+                                                           'qcow2.zst')
+                    }
+                }
+            ]
+        }
+
+        expected_data = {
+            'image_checksum': 'bf53aea26da8c4b2e4ca2d52db138e20fc7e730e6b34b866e9e8e39bcaaa2dc5',  # noqa
+            'image_compression_type': 'zstd',
+            'image_container_manifest_digest': 'sha256:dfcb3b199378320640d78121909409599b58b8012ed93320dae48deacde44d45',  # noqa
+            'image_disk_format': 'qcow2',
+            'image_filename': 'podman-machine.x86_64.qemu.qcow2.zst',
+            'image_media_type': 'application/zstd',
+            'image_request_authorization_secret': None,
+            'image_size': 1059455878,
+            'image_url': 'https://localhost/v2/podman/machine-os/blobs/sha256:bf53aea26da8c4b2e4ca2d52db138e20fc7e730e6b34b866e9e8e39bcaaa2dc5',  # noqa
+            'oci_image_manifest_url': 'oci://localhost/podman/machine-os@sha256:dfcb3b199378320640d78121909409599b58b8012ed93320dae48deacde44d45'  # noqa
+        }
+        img_data = self.service.identify_specific_image(
+            self.href, image_download_source='local')
+        self.assertEqual(expected_data, img_data)
+        mock_get_artifact_index.assert_called_once_with(mock.ANY, self.href)
+        mock_get_manifest.assert_called_once_with(
+            mock.ANY, self.href,
+            'sha256:dfcb3b199378320640d78121909409599b58b8012ed93320dae48de'
+            'acde44d45')
+
+    @mock.patch.object(ociclient, 'get_manifest', autospec=True)
+    @mock.patch.object(ociclient, 'get_artifact_index', autospec=True)
+    def test_identify_specific_image(
+            self, mock_get_artifact_index, mock_get_manifest):
+
+        mock_get_artifact_index.return_value = self.artifact_index
+        mock_get_manifest.return_value = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'config': {
+                'mediaType': 'application/vnd.oci.empty.v1+json',
+                'digest': ('sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21'
+                           'fe77e8310c060f61caaff8a'),
+                'size': 2,
+                'data': 'e30='},
+            'layers': [
+                {
+                    'mediaType': 'application/zstd',
+                    'digest': ('sha256:047caa9c410038075055e1e41d520fc975a097'
+                               '97838541174fa3066e58ebd8ea'),
+                    'size': 1060062418,
+                    'annotations': {
+                        'org.opencontainers.image.title': ('podman-machine.'
+                                                           'x86_64.applehv.'
+                                                           'raw.zst')}
+                }
+            ]
+        }
+
+        expected_data = {
+            'image_checksum': '047caa9c410038075055e1e41d520fc975a09797838541174fa3066e58ebd8ea',  # noqa
+            'image_compression_type': 'zstd',
+            'image_container_manifest_digest': 'sha256:9d046091b3dbeda26e1f4364a116ca8d94284000f103da7310e3a4703df1d3e4', # noqa
+            'image_filename': 'podman-machine.x86_64.applehv.raw.zst',
+            'image_disk_format': 'raw',
+            'image_media_type': 'application/zstd',
+            'image_request_authorization_secret': None,
+            'image_size': 1060062418,
+            'image_url': 'https://localhost/v2/podman/machine-os/blobs/sha256:047caa9c410038075055e1e41d520fc975a09797838541174fa3066e58ebd8ea',  # noqa
+            'oci_image_manifest_url': 'oci://localhost/podman/machine-os@sha256:9d046091b3dbeda26e1f4364a116ca8d94284000f103da7310e3a4703df1d3e4'  # noqa
+        }
+        img_data = self.service.identify_specific_image(
+            self.href, cpu_arch='amd64')
+        self.assertEqual(expected_data, img_data)
+        mock_get_artifact_index.assert_called_once_with(mock.ANY, self.href)
+        mock_get_manifest.assert_called_once_with(
+            mock.ANY, self.href,
+            'sha256:9d046091b3dbeda26e1f4364a116ca8d94284000f103da7310e'
+            '3a4703df1d3e4')
+
+    @mock.patch.object(ociclient, 'get_manifest', autospec=True)
+    @mock.patch.object(ociclient, 'get_artifact_index',
+                       autospec=True)
+    def test_identify_specific_image_aarch64(
+            self,
+            mock_get_artifact_index,
+            mock_get_manifest):
+
+        mock_get_artifact_index.return_value = self.artifact_index
+        mock_get_manifest.return_value = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'config': {
+                'mediaType': 'application/vnd.oci.empty.v1+json',
+                'digest': ('sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21'
+                           'fe77e8310c060f61caaff8a'),
+                'size': 2,
+                'data': 'e30='},
+            'layers': [
+                {
+                    'mediaType': 'application/zstd',
+                    'digest': ('sha256:13b69bec70305ccd85d47a0bd6d2357381c95'
+                               '7cf87dceb862427aace4b964a2b'),
+                    'size': 1013782193,
+                    'annotations': {
+                        'org.opencontainers.image.title': ('podman-machine.'
+                                                           'aarch64.applehv'
+                                                           '.raw.zst')}
+                }
+            ]
+        }
+
+        expected_data = {
+            'image_checksum': '13b69bec70305ccd85d47a0bd6d2357381c957cf87dceb862427aace4b964a2b',  # noqa
+            'image_compression_type': 'zstd',
+            'image_container_manifest_digest': 'sha256:f2981621c1bf821ce44c1cb31c507abe6293d8eea646b029c6b9dc773fa7821a',  # noqa
+            'image_disk_format': 'raw',
+            'image_filename': 'podman-machine.aarch64.applehv.raw.zst',
+            'image_media_type': 'application/zstd',
+            'image_request_authorization_secret': None,
+            'image_size': 1013782193,
+            'image_url': 'https://localhost/v2/podman/machine-os/blobs/sha256:13b69bec70305ccd85d47a0bd6d2357381c957cf87dceb862427aace4b964a2b',  # noqa
+            'oci_image_manifest_url': 'oci://localhost/podman/machine-os@sha256:f2981621c1bf821ce44c1cb31c507abe6293d8eea646b029c6b9dc773fa7821a'  # noqa
+        }
+
+        img_data = self.service.identify_specific_image(
+            self.href, cpu_arch='aarch64')
+        self.assertEqual(expected_data, img_data)
+        mock_get_artifact_index.assert_called_once_with(mock.ANY, self.href)
+        mock_get_manifest.assert_called_once_with(
+            mock.ANY, self.href,
+            'sha256:f2981621c1bf821ce44c1cb31c507abe6293d8eea646b029c6b9'
+            'dc773fa7821a')
+
+    @mock.patch.object(ociclient, 'get_manifest', autospec=True)
+    @mock.patch.object(ociclient, 'get_artifact_index',
+                       autospec=True)
+    def test_identify_specific_image_bad_manifest(
+            self,
+            mock_get_artifact_index,
+            mock_get_manifest):
+        mock_get_artifact_index.return_value = self.empty_artifact_index
+        self.assertRaises(exception.ImageNotFound,
+                          self.service.identify_specific_image,
+                          self.href)
+        mock_get_artifact_index.assert_called_once_with(mock.ANY, self.href)
+        mock_get_manifest.assert_not_called()
+
+    @mock.patch.object(rs_helper, 'get', autospec=True)
+    @mock.patch('hashlib.new', autospec=True)
+    @mock.patch('builtins.open', autospec=True)
+    @mock.patch.object(ociclient, 'get_manifest', autospec=True)
+    def test_download_direct_manifest_reference(self, mock_get_manifest,
+                                                mock_open,
+                                                mock_hash,
+                                                mock_request):
+        mock_get_manifest.return_value = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'config': {},
+            'layers': [
+                {
+                    'mediaType': 'application/vnd.cyclonedx+json',
+                    'size': 402627,
+                    'digest': ('sha256:96f33f01d5347424f947e43ff05634915f422'
+                               'debc2ca1bb88307824ff0c4b00d')}
+            ]
+        }
+
+        response = mock_request.return_value
+        response.status_code = 200
+        response.headers = {}
+        response.iter_content.return_value = ['some', 'content']
+        file_mock = mock.Mock()
+        mock_open.return_value.__enter__.return_value = file_mock
+        file_mock.read.return_value = None
+        hexdigest_mock = mock_hash.return_value.hexdigest
+        hexdigest_mock.return_value = ('96f33f01d5347424f947e43ff05634915f422'
+                                       'debc2ca1bb88307824ff0c4b00d')
+        self.service.download(
+            'oci://localhost/project/container:latest@sha256:96f33'
+            'f01d5347424f947e43ff05634915f422debc2ca1bb88307824ff0c4b00d',
+            file_mock)
+        mock_request.assert_called_once_with(
+            mock.ANY,
+            'https://localhost/v2/project/container/blobs/sha256:96f33f01d53'
+            '47424f947e43ff05634915f422debc2ca1bb88307824ff0c4b00d',
+            stream=True, timeout=60)
+        write = file_mock.write
+        write.assert_any_call('some')
+        write.assert_any_call('content')
+        self.assertEqual(2, write.call_count)
+
+    @mock.patch.object(rs_helper, 'get', autospec=True)
+    @mock.patch('hashlib.new', autospec=True)
+    @mock.patch('builtins.open', autospec=True)
+    @mock.patch.object(ociclient, '_get_manifest', autospec=True)
+    def test_download_direct_manifest_reference_just_digest(
+            self, mock_get_manifest,
+            mock_open,
+            mock_hash,
+            mock_request):
+        # NOTE(TheJulia): This is ultimately exercising the interface between
+        # the oci image service, and the oci registry client, and ultimately
+        # the checksum_utils.TransferHelper logic.
+        mock_get_manifest.return_value = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'config': {},
+            'layers': [
+                {
+                    'mediaType': 'application/vnd.cyclonedx+json',
+                    'size': 402627,
+                    'digest': ('sha256:96f33f01d5347424f947e43ff05634915f422'
+                               'debc2ca1bb88307824ff0c4b00d')}
+            ]
+        }  # noqa
+        response = mock_request.return_value
+        response.status_code = 200
+        response.headers = {}
+        csum = ('96f33f01d5347424f947e43ff05634915f422'
+                'debc2ca1bb88307824ff0c4b00d')
+        response.iter_content.return_value = ['some', 'content']
+        file_mock = mock.Mock()
+        mock_open.return_value.__enter__.return_value = file_mock
+        file_mock.read.return_value = None
+        hexdigest_mock = mock_hash.return_value.hexdigest
+        hexdigest_mock.return_value = csum
+        self.service.download(
+            'oci://localhost/project/container@sha256:96f33f01d53'
+            '47424f947e43ff05634915f422debc2ca1bb88307824ff0c4b00d',
+            file_mock)
+        mock_request.assert_called_once_with(
+            mock.ANY,
+            'https://localhost/v2/project/container/blobs/sha256:96f33f01d53'
+            '47424f947e43ff05634915f422debc2ca1bb88307824ff0c4b00d',
+            stream=True, timeout=60)
+        write = file_mock.write
+        write.assert_any_call('some')
+        write.assert_any_call('content')
+        self.assertEqual(2, write.call_count)
+        self.assertEqual('sha256:' + csum,
+                         self.service.transfer_verified_checksum)
+
+    @mock.patch.object(ociclient, '_get_manifest', autospec=True)
+    def test_show(self, mock_get_manifest):
+        layer_csum = ('96f33f01d5347424f947e43ff05634915f422debc'
+                      '2ca1bb88307824ff0c4b00d')
+        mock_get_manifest.return_value = {
+            'schemaVersion': 2,
+            'mediaType': 'foo',
+            'config': {},
+            'layers': [{'mediaType': 'app/fee',
+                        'size': 402627,
+                        'digest': 'sha256:%s' % layer_csum}]
+        }
+        res = self.service.show(
+            'oci://localhost/project/container@sha256:96f33f01d53'
+            '47424f947e43ff05634915f422debc2ca1bb88307824ff0c4b00d')
+        self.assertEqual(402627, res['size'])
+        self.assertEqual(layer_csum, res['checksum'])
+        self.assertEqual('sha256:' + layer_csum, res['digest'])
+
+    @mock.patch.object(image_service.OciImageService, 'show', autospec=True)
+    def test_validate_href(self, mock_show):
+        self.service.validate_href("oci://foo")
+        mock_show.assert_called_once_with(mock.ANY, "oci://foo")
+
+    def test__validate_url_is_specific(self):
+        csum = 'f' * 64
+        self.service._validate_url_is_specific('oci://foo/bar@sha256:' + csum)
+        csum = 'f' * 128
+        self.service._validate_url_is_specific('oci://foo/bar@sha512:' + csum)
+
+    def test__validate_url_is_specific_bad_format(self):
+        self.assertRaises(exception.ImageRefValidationFailed,
+                          self.service._validate_url_is_specific,
+                          'oci://foo/bar@sha256')
+
+    def test__validate_url_is_specific_not_specific(self):
+        self.assertRaises(exception.OciImageNotSpecific,
+                          self.service._validate_url_is_specific,
+                          'oci://foo/bar')
+        self.assertRaises(exception.OciImageNotSpecific,
+                          self.service._validate_url_is_specific,
+                          'oci://foo/bar:baz')
+        self.assertRaises(exception.OciImageNotSpecific,
+                          self.service._validate_url_is_specific,
+                          'oci://foo/bar@baz:meow')
+
+
 class ServiceGetterTestCase(base.TestCase):
 
     @mock.patch.object(glance_v2_service.GlanceImageService, '__init__',
@@ -760,3 +1152,45 @@ class ServiceGetterTestCase(base.TestCase):
         for image_ref in invalid_refs:
             self.assertRaises(exception.ImageRefValidationFailed,
                               image_service.get_image_service, image_ref)
+
+    @mock.patch.object(image_service.OciImageService, '__init__',
+                       return_value=None, autospec=True)
+    def test_get_image_service_oci_url(self, oci_mock):
+        image_hrefs = [
+            'oci://fqdn.tld/user/image:tag@sha256:f00f',
+            'oci://fqdn.tld/user/image:latest',
+            'oci://fqdn.tld/user/image',
+        ]
+        for href in image_hrefs:
+            image_service.get_image_service(href)
+            oci_mock.assert_called_once_with(mock.ANY)
+            oci_mock.reset_mock()
+
+    def test_get_image_service_auth_override(self):
+        test_node = mock.Mock()
+        test_node.instance_info = {'image_pull_secret': 'foo'}
+        test_node.driver_info = {'image_pull_secret': 'bar'}
+        res = image_service.get_image_service_auth_override(test_node)
+        self.assertDictEqual({'username': '',
+                              'password': 'foo'}, res)
+
+    def test_get_image_service_auth_override_no_user_auth(self):
+        test_node = mock.Mock()
+        test_node.instance_info = {'image_pull_secret': 'foo'}
+        test_node.driver_info = {'image_pull_secret': 'bar'}
+        res = image_service.get_image_service_auth_override(
+            test_node, permit_user_auth=False)
+        self.assertDictEqual({'username': '',
+                              'password': 'bar'}, res)
+
+    def test_get_image_service_auth_override_no_data(self):
+        test_node = mock.Mock()
+        test_node.instance_info = {}
+        test_node.driver_info = {}
+        res = image_service.get_image_service_auth_override(test_node)
+        self.assertIsNone(res)
+
+    def test_is_container_registry_url(self):
+        self.assertFalse(image_service.is_container_registry_url(None))
+        self.assertFalse(image_service.is_container_registry_url('https://'))
+        self.assertTrue(image_service.is_container_registry_url('oci://.'))

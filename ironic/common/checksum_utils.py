@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import hashlib
 import os
 import re
 import time
@@ -267,3 +268,148 @@ def get_checksum_from_url(checksum, image_source):
         image_href=checksum,
         reason=(_("Checksum file does not contain name %s")
                 % expected_fname))
+
+
+class TransferHelper(object):
+
+    def __init__(self, response, checksum_algo, expected_checksum):
+        """Helper class to drive data download with concurrent checksum.
+
+        The TransferHelper can be used to help retrieve data from a
+        Python requests request invocation, where the request was set
+        with `stream=True`, which also builds the checksum digest as the
+        transfer is underway.
+
+        :param response: A populated requests.model.Response object.
+        :param checksum_algo: The expected checksum algorithm.
+        :param expected_checksum: The expected checksum of the data being
+                                  transferred.
+
+        """
+        # NOTE(TheJulia): Similar code exists in IPA in regards to
+        # downloading and checksumming a raw image while streaming.
+        # If a change is required here, it might be worthwhile to
+        # consider if a similar change is needed in IPA.
+        # NOTE(TheJulia): 1 Megabyte is an attempt to always exceed the
+        # minimum chunk size which may be needed for proper checksum
+        # generation and balance the memory required. We may want to
+        # tune this, but 1MB has worked quite well for IPA for some time.
+        # This may artificially throttle transfer speeds a little in
+        # high performance environments as the data may get held up
+        # in the kernel limiting the window from scaling.
+        self._chunk_size = 1024 * 1024  # 1MB
+        self._last_check_time = time.time()
+        self._request = response
+        self._bytes_transferred = 0
+        self._checksum_algo = checksum_algo
+        self._expected_checksum = expected_checksum
+        self._expected_size = self._request.headers.get(
+            'Content-Length')
+        # Determine the hash algorithm and value will be used for calculation
+        # and verification, fallback to md5 if algorithm is not set or not
+        # supported.
+        # NOTE(TheJulia): Regarding MD5, it is likely this will never be
+        # hit, but we will guard in case of future use for this method
+        # anyhow.
+        if checksum_algo == 'md5' and not CONF.agent.allow_md5_checksum:
+            # MD5 not permitted
+            LOG.error('MD5 checksum utilization is disabled by '
+                      'configuration.')
+            raise exception.ImageChecksumAlgorithmFailure()
+
+        if checksum_algo in hashlib.algorithms_available:
+            self._hash_algo = hashlib.new(checksum_algo)
+        else:
+            raise ValueError("Unable to process checksum processing "
+                             "for image transfer. Algorithm %s "
+                             "is not available." % checksum_algo)
+
+    def __iter__(self):
+        """Downloads and returns the next chunk of the image.
+
+        :returns: A chunk of the image. Size of 1MB.
+        """
+        self._last_chunk_time = None
+        for chunk in self._request.iter_content(self._chunk_size):
+            # Per requests forum posts/discussions, iter_content should
+            # periodically yield to the caller for the client to do things
+            # like stopwatch and potentially interrupt the download.
+            # While this seems weird and doesn't exactly seem to match the
+            # patterns in requests and urllib3, it does appear to be the
+            # case. Field testing in environments where TCP sockets were
+            # discovered in a read hanged state were navigated with
+            # this code in IPA.
+            if chunk:
+                self._last_chunk_time = time.time()
+                if isinstance(chunk, str):
+                    encoded_data = chunk.encode()
+                    self._hash_algo.update(encoded_data)
+                    self._bytes_transferred += len(encoded_data)
+                else:
+                    self._hash_algo.update(chunk)
+                    self._bytes_transferred += len(chunk)
+                yield chunk
+            elif (time.time() - self._last_chunk_time
+                  > CONF.image_download_connection_timeout):
+                LOG.error('Timeout reached waiting for a chunk of data from '
+                          'a remote server.')
+                raise exception.ImageDownloadError(
+                    self._image_info['id'],
+                    'Timed out reading next chunk from webserver')
+
+    @property
+    def checksum_matches(self):
+        """Verifies the checksum matches and returns True/False."""
+        checksum = self._hash_algo.hexdigest()
+        if checksum != self._expected_checksum:
+            # This is a property, let the caller figure out what it
+            # wants to do.
+            LOG.error('Verifying transfer checksum %(algo_name)s value '
+                      '%(checksum)s against %(xfer_checksum)s.',
+                      {'algo_name': self._hash_algo.name,
+                       'checksum': self._expected_checksum,
+                       'xfer_checksum': checksum})
+            return False
+        else:
+            LOG.debug('Verifying transfer checksum %(algo_name)s value '
+                      '%(checksum)s against %(xfer_checksum)s.',
+                      {'algo_name': self._hash_algo.name,
+                       'checksum': self._expected_checksum,
+                       'xfer_checksum': checksum})
+            return True
+
+    @property
+    def bytes_transferred(self):
+        """Property value to return the number of bytes transferred."""
+        return self._bytes_transferred
+
+    @property
+    def content_length(self):
+        """Property value to return the server indicated length."""
+        # If none, there is nothing we can do, the server didn't have
+        # a response.
+        return self._expected_size
+
+
+def validate_text_checksum(payload, digest):
+    """Compares the checksum of a payload versus the digest.
+
+    The purpose of this method is to take the payload string data,
+    and compare it to the digest value of the supplied input. The use
+    of this is to validate the the data in cases where we have data
+    and need to compare it. Useful in API responses, such as those
+    from an OCI Container Registry.
+
+    :param payload: The supplied string with an encode method.
+    :param digest: The checksum value in digest form of algorithm:checksum.
+    :raises: ImageChecksumError when the response payload does not match the
+             supplied digest.
+    """
+    split_digest = digest.split(':')
+    checksum_algo = split_digest[0]
+    checksum = split_digest[1]
+    hasher = hashlib.new(checksum_algo)
+    hasher.update(payload.encode())
+    if hasher.hexdigest() != checksum:
+        # Mismatch, something is wrong.
+        raise exception.ImageChecksumError()

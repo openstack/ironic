@@ -604,14 +604,35 @@ class OtherFunctionTestCase(db_base.DbTestCase):
             spec_set=['fetch_image', 'master_dir'], master_dir='master_dir')
         utils.fetch_images(None, mock_cache, [('uuid', 'path')])
         mock_clean_up_caches.assert_called_once_with(None, 'master_dir',
-                                                     [('uuid', 'path')])
+                                                     [('uuid', 'path')],
+                                                     None)
         mock_cache.fetch_image.assert_called_once_with(
             'uuid', 'path',
             ctx=None,
             force_raw=True,
             expected_format=None,
             expected_checksum=None,
-            expected_checksum_algo=None)
+            expected_checksum_algo=None,
+            image_auth_data=None)
+
+    @mock.patch.object(image_cache, 'clean_up_caches', autospec=True)
+    def test_fetch_images_with_auth(self, mock_clean_up_caches):
+
+        mock_cache = mock.MagicMock(
+            spec_set=['fetch_image', 'master_dir'], master_dir='master_dir')
+        utils.fetch_images(None, mock_cache, [('uuid', 'path')],
+                           image_auth_data='meow')
+        mock_clean_up_caches.assert_called_once_with(None, 'master_dir',
+                                                     [('uuid', 'path')],
+                                                     'meow')
+        mock_cache.fetch_image.assert_called_once_with(
+            'uuid', 'path',
+            ctx=None,
+            force_raw=True,
+            expected_format=None,
+            expected_checksum=None,
+            expected_checksum_algo=None,
+            image_auth_data='meow')
 
     @mock.patch.object(image_cache, 'clean_up_caches', autospec=True)
     def test_fetch_images_checksum(self, mock_clean_up_caches):
@@ -624,14 +645,16 @@ class OtherFunctionTestCase(db_base.DbTestCase):
                            expected_checksum='f00',
                            expected_checksum_algo='sha256')
         mock_clean_up_caches.assert_called_once_with(None, 'master_dir',
-                                                     [('uuid', 'path')])
+                                                     [('uuid', 'path')],
+                                                     None)
         mock_cache.fetch_image.assert_called_once_with(
             'uuid', 'path',
             ctx=None,
             force_raw=True,
             expected_format='qcow2',
             expected_checksum='f00',
-            expected_checksum_algo='sha256')
+            expected_checksum_algo='sha256',
+            image_auth_data=None)
 
     @mock.patch.object(image_cache, 'clean_up_caches', autospec=True)
     def test_fetch_images_fail(self, mock_clean_up_caches):
@@ -649,7 +672,8 @@ class OtherFunctionTestCase(db_base.DbTestCase):
                           mock_cache,
                           [('uuid', 'path')])
         mock_clean_up_caches.assert_called_once_with(None, 'master_dir',
-                                                     [('uuid', 'path')])
+                                                     [('uuid', 'path')],
+                                                     None)
 
     @mock.patch('ironic.common.keystone.get_auth', autospec=True)
     @mock.patch.object(utils, '_get_ironic_session', autospec=True)
@@ -2161,6 +2185,160 @@ class TestBuildInstanceInfoForDeploy(db_base.DbTestCase):
             parse_instance_info_mock.assert_called_once_with(task.node)
             mock_cache_image.assert_called_once_with(
                 mock.ANY, mock.ANY, force_raw=False, expected_format='qcow2')
+
+    @mock.patch.object(utils, 'cache_instance_image', autospec=True)
+    @mock.patch.object(image_service.OciImageService,
+                       'set_image_auth',
+                       autospec=True)
+    @mock.patch.object(image_service.OciImageService,
+                       'identify_specific_image',
+                       autospec=True)
+    @mock.patch.object(image_service.OciImageService, 'validate_href',
+                       autospec=True)
+    def test_build_instance_info_for_deploy_oci_url_remote_download(
+            self, validate_href_mock, identify_image_mock,
+            set_image_auth_mock, mock_cache_image):
+        cfg.CONF.set_override('image_download_source', 'http', group='agent')
+        specific_url = 'https://host/user/container/blobs/sha256/f00'
+        specific_source = 'oci://host/user/container@sha256:f00'
+        identify_image_mock.return_value = {
+            'image_url': specific_url,
+            'oci_image_manifest_url': specific_source
+        }
+        i_info = self.node.instance_info
+        driver_internal_info = self.node.driver_internal_info
+        i_info['image_source'] = 'oci://host/user/container'
+        i_info['image_pull_secret'] = 'meow'
+        i_info['image_url'] = 'prior_failed_url'
+        driver_internal_info['is_whole_disk_image'] = True
+        self.node.instance_info = i_info
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        mock_cache_image.return_value = ('fake', '/tmp/foo', 'qcow2')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            info = utils.build_instance_info_for_deploy(task)
+            self.assertIn('oci_image_manifest_url', info)
+            self.assertEqual(specific_url,
+                             info['image_url'])
+            validate_href_mock.assert_called_once_with(
+                mock.ANY, specific_source, False)
+            mock_cache_image.assert_not_called()
+            identify_image_mock.assert_called_with(
+                mock.ANY, 'oci://host/user/container', 'http',
+                'x86_64')
+            self.assertEqual(specific_source,
+                             task.node.driver_internal_info['image_source'])
+            set_image_auth_mock.assert_called_with(
+                mock.ANY,
+                specific_source,
+                {'username': '', 'password': 'meow'})
+
+    @mock.patch.object(utils, 'cache_instance_image', autospec=True)
+    @mock.patch.object(image_service.OciImageService,
+                       'set_image_auth',
+                       autospec=True)
+    @mock.patch.object(image_service.OciImageService,
+                       'identify_specific_image',
+                       autospec=True)
+    @mock.patch.object(image_service.OciImageService, 'validate_href',
+                       autospec=True)
+    def test_build_instance_info_for_deploy_oci_url_remote_download_rebuild(
+            self, validate_href_mock, identify_image_mock,
+            set_image_auth_mock, mock_cache_image):
+        # There is some special case handling in the method for rebuilds or bad
+        # image_disk_info, the intent of this test is to just make sure it is
+        # addressed.
+        cfg.CONF.set_override('image_download_source', 'http', group='agent')
+        specific_url = 'https://host/user/container/blobs/sha256/f00'
+        specific_source = 'oci://host/user/container@sha256:f00'
+        identify_image_mock.return_value = {
+            'image_url': specific_url,
+            'oci_image_manifest_url': specific_source,
+            'image_disk_format': 'unknown'
+        }
+        i_info = self.node.instance_info
+        driver_internal_info = self.node.driver_internal_info
+        i_info['image_source'] = 'oci://host/user/container'
+        i_info['image_pull_secret'] = 'meow'
+        i_info['image_url'] = 'prior_failed_url'
+        i_info['image_disk_format'] = 'raw'
+        driver_internal_info['is_whole_disk_image'] = True
+        driver_internal_info['image_source'] = 'foo'
+        self.node.instance_info = i_info
+        self.node.driver_internal_info = driver_internal_info
+        self.node.save()
+        mock_cache_image.return_value = ('fake', '/tmp/foo', 'qcow2')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            info = utils.build_instance_info_for_deploy(task)
+            self.assertIn('oci_image_manifest_url', info)
+            self.assertEqual(specific_url,
+                             info['image_url'])
+            validate_href_mock.assert_called_once_with(
+                mock.ANY, specific_source, False)
+            mock_cache_image.assert_not_called()
+            identify_image_mock.assert_called_with(
+                mock.ANY, 'oci://host/user/container', 'http',
+                'x86_64')
+            self.assertEqual(specific_source,
+                             task.node.driver_internal_info['image_source'])
+            set_image_auth_mock.assert_called_with(
+                mock.ANY,
+                specific_source,
+                {'username': '', 'password': 'meow'})
+            self.assertNotIn('image_disk_format', task.node.instance_info)
+
+    @mock.patch.object(utils, '_cache_and_convert_image', autospec=True)
+    @mock.patch.object(image_service.OciImageService,
+                       'identify_specific_image',
+                       autospec=True)
+    @mock.patch.object(image_service.OciImageService, 'validate_href',
+                       autospec=True)
+    def test_build_instance_info_for_deploy_oci_url_local_download(
+            self, validate_href_mock, identify_image_mock,
+            mock_cache_image):
+        cfg.CONF.set_override('image_download_source', 'local', group='agent')
+        specific_url = 'https://host/user/container/blobs/sha256/f00'
+        specific_source = 'oci://host/user/container@sha256:f00'
+        identify_image_mock.return_value = {
+            'image_url': specific_url,
+            'oci_image_manifest_url': specific_source,
+            'image_checksum': 'a' * 64,
+            'image_disk_format': 'raw'
+        }
+        i_info = self.node.instance_info
+        driver_internal_info = self.node.driver_internal_info
+        props = self.node.properties
+        i_info['image_source'] = 'oci://host/user/container'
+        i_info['image_url'] = 'prior_failed_url'
+        driver_internal_info['is_whole_disk_image'] = True
+        props['cpu_arch'] = 'aarch64'
+        self.node.instance_info = i_info
+        self.node.driver_internal_info = driver_internal_info
+        self.node.properties = props
+        self.node.save()
+        mock_cache_image.return_value = ('fake', '/tmp/foo', 'qcow2')
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+
+            info = utils.build_instance_info_for_deploy(task)
+            self.assertIn('oci_image_manifest_url', info)
+            self.assertEqual(specific_url,
+                             info['image_url'])
+            validate_href_mock.assert_not_called()
+            mock_cache_image.assert_called_once_with(
+                mock.ANY, task.node.instance_info)
+            identify_image_mock.assert_called_once_with(
+                mock.ANY, 'oci://host/user/container', 'local',
+                'aarch64')
+            self.assertEqual('oci://host/user/container',
+                             task.node.instance_info.get('image_source'))
+            self.assertEqual(
+                specific_source,
+                task.node.driver_internal_info.get('image_source'))
 
     @mock.patch.object(utils, 'cache_instance_image', autospec=True)
     @mock.patch.object(image_service.HttpImageService, 'validate_href',
