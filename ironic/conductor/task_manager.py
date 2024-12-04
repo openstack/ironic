@@ -338,6 +338,10 @@ class TaskManager(object):
         else:
             stop_after = tenacity.stop_after_attempt(1)
 
+        max_lock_time = \
+            CONF.conductor.node_locked_retry_interval * \
+            CONF.conductor.node_locked_retry_attempts
+
         # NodeLocked exceptions can be annoying. Let's try to alleviate
         # some of that pain by retrying our lock attempts.
         @tenacity.retry(
@@ -347,6 +351,13 @@ class TaskManager(object):
                 CONF.conductor.node_locked_retry_interval),
             reraise=True)
         def reserve_node():
+            if self._debug_timer.elapsed() > max_lock_time:
+                LOG.warning('We have exceeded the normal maximum time window '
+                            'to complete a node lock attempting to reserve '
+                            'node %(node)s for purpose %(purpose)s. At '
+                            '%(time).2f seconds.',
+                            {'node': self.node_id, 'purpose': self._purpose,
+                             'time': self._debug_timer.elapsed()})
             self.node = objects.Node.reserve(self.context, CONF.host,
                                              self.node_id)
             LOG.debug("Node %(node)s successfully reserved for %(purpose)s "

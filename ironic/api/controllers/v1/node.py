@@ -3223,7 +3223,6 @@ class NodesController(rest.RestController):
         chassis_uuid = api_node.get('chassis_uuid')
         notify.emit_end_notification(context, new_node, 'update',
                                      chassis_uuid=chassis_uuid)
-
         return api_node
 
     @METRICS.timer('NodesController.delete')
