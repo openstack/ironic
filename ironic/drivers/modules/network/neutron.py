@@ -45,6 +45,12 @@ class NeutronNetwork(common.NeutronVIFPortIDMixin,
         # the neutron network interface to function.
         self.get_cleaning_network_uuid(task)
         self.get_provisioning_network_uuid(task)
+        if (task.node.disable_power_off
+                and not CONF.neutron.allow_disabling_power_off):
+            raise exception.InvalidParameterValue(
+                _("Nodes with disable_power_off cannot be used with the "
+                  "neutron network interface (disallowed in the "
+                  "configuration)"))
 
     def _add_network(self, task, network, security_groups, process):
         # If we have left over ports from a previous process, remove them

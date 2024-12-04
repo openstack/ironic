@@ -101,6 +101,17 @@ class NeutronInterfaceTestCase(db_base.DbTestCase):
                                         context=task.context)],
                              validate_mock.call_args_list)
 
+    @mock.patch.object(neutron_common, 'validate_network', autospec=True)
+    def test_validate_with_disable_power_off(self, validate_mock):
+        with task_manager.acquire(self.context, self.node.id) as task:
+            task.node.disable_power_off = True
+            self.assertRaises(exception.InvalidParameterValue,
+                              self.interface.validate, task)
+
+            CONF.set_override('allow_disabling_power_off', True,
+                              group='neutron')
+            self.interface.validate(task)
+
     @mock.patch.object(neutron_common, 'validate_network',
                        side_effect=lambda n, t, context=None: n, autospec=True)
     @mock.patch.object(neutron_common, 'rollback_ports', autospec=True)

@@ -145,7 +145,13 @@ opts = [
                        '"neutron" network interface and not used for the '
                        '"flat" or "noop" network interfaces. If not '
                        'specified, the default security group is used.')),
-
+    cfg.BoolOpt('allow_disabling_power_off',
+                default=False,
+                help=_('By default, nodes with disable_power_off set to True '
+                       'cannot be used with the Neutron network interface '
+                       'because during tear-down they will be left with the '
+                       'instance image still running. Set this option to '
+                       'True to disable this validation.')),
 ]
 
 
