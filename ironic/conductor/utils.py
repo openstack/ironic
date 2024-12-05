@@ -13,7 +13,6 @@
 #    under the License.
 
 import contextlib
-import crypt
 import datetime
 import functools
 import os
@@ -26,6 +25,7 @@ from oslo_log import log
 from oslo_serialization import jsonutils
 from oslo_service import loopingcall
 from oslo_utils import excutils
+from oslo_utils import secretutils
 from oslo_utils import strutils
 from oslo_utils import timeutils
 
@@ -49,8 +49,8 @@ CONF = cfg.CONF
 
 
 PASSWORD_HASH_FORMAT = {
-    'sha256': crypt.METHOD_SHA256,
-    'sha512': crypt.METHOD_SHA512,
+    'sha256': 'SHA-256',
+    'sha512': 'SHA-512',
 }
 
 
@@ -1475,7 +1475,7 @@ def make_salt():
 
     :returns: a valid salt for use with crypt.crypt
     """
-    return crypt.mksalt(
+    return secretutils.crypt_mksalt(
         method=PASSWORD_HASH_FORMAT[
             CONF.conductor.rescue_password_hash_algorithm])
 
@@ -1485,7 +1485,7 @@ def hash_password(password=''):
 
     :param password: password to be hashed
     """
-    return crypt.crypt(password, make_salt())
+    return secretutils.crypt_password(password, make_salt())
 
 
 def get_attached_vif(port):
