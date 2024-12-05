@@ -217,11 +217,27 @@ multiple network fabrics into the overall operation with Neutron.
 Local link connection
 ---------------------
 
-Use of the ``neutron`` network-interfaces_ requires the Ironic  port
+Use of the ``neutron`` network-interfaces_ requires the Ironic port
 ``local_link_connection`` information to be populated for each Ironic port
-on a node in ironic. This information is provided to the Networking service's
-ML2 driver when a Virtual Interface (VIF) is attached. The ML2 driver uses the
-information to plug the specified port to the tenant network.
+on a node in Ironic. This information is provided to the Neutron networking
+service's ML2 driver when a Virtual Interface (VIF) is attached. The ML2
+driver uses the information to plug the specified port to the tenant network.
+
+This information is typically populated through the introspection process
+by using LLDP data being broadcast from the switches, but may need to be
+manually set or changed in the case of a physical networking change, such as
+when a baremetal port's cable has been moved to a different port on a switch,
+or the switch has been replaced.
+
+.. note::
+   For auto-discovery of values to work as part of introspection,
+   switches must have LLDP enabled.
+
+.. note::
+   Decoding LLDP data is performed as a best effort action. Some switch
+   vendors, or changes in switch vendor firmware may impact field decoding.
+   While this is rare, please report issues such as this to the Ironic
+   project as bugs.
 
 .. list-table:: ``local_link_connection`` fields
    :header-rows: 1
@@ -267,6 +283,16 @@ required information into Ironic.
 .. WARNING::
    Depending on your ML2 plugin, you may need different or additional data
    to be provided as part of the ``local_link_connection`` information.
+
+Alternatively, if you just need to update an existing value, such as the
+``port_id`` value due to a cabling change, you can use the *baremetal port
+set* command.
+
+.. code-block:: shell
+
+  baremetal port set --node <node_uuid> \
+      --local-link-connection port_id=<updated_switch_port_for_connection \
+      <baremetal_port_uuid>
 
 Example setting an Infiniband Port with local link connection information
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -393,7 +419,7 @@ model of top of rack switch in the environment must be installed and enabled.
 One case where you may wish to prefer the ``neutron`` network interface, even
 when your architecture is statically configured interfaces similar to ``flat``
 networks, is when your using IPv6. Various hardware, bootloader, and Operating
-System DHCP clients utilize different techneaques for generating the host
+System DHCP clients utilize different techniques for generating the host
 identifier string which DHCP servers utilize to track IPv6 hosts. The
 ``neutron`` interface generates additional IPv6 DHCP entries to account for
 situations such as this, where as the ``flat`` interface is unable to do so.
