@@ -164,7 +164,7 @@ class RedfishBIOS(base.BIOSInterface):
 
         node = task.node
         info = node.driver_internal_info
-        reboot_requested = info.get('post_factory_reset_reboot_requested')
+        reboot_requested = info.get('post_bios_reboot_requested')
         if not reboot_requested:
             LOG.debug('Factory reset BIOS configuration for node %(node)s',
                       {'node': node.uuid})
@@ -177,7 +177,7 @@ class RedfishBIOS(base.BIOSInterface):
                 LOG.error(error_msg)
                 raise exception.RedfishError(error=error_msg)
 
-            self._set_reboot(task)
+            self._set_reboot_requested(task, None)
             return self.post_reset(task)
         else:
             current_attrs = bios.attributes
@@ -213,7 +213,7 @@ class RedfishBIOS(base.BIOSInterface):
         attributes = {s['name']: s['value'] for s in settings}
 
         info = task.node.driver_internal_info
-        reboot_requested = info.get('post_config_reboot_requested')
+        reboot_requested = info.get('post_bios_reboot_requested')
 
         if not reboot_requested:
             # Step 1: Apply settings and issue a reboot
@@ -315,26 +315,17 @@ class RedfishBIOS(base.BIOSInterface):
             LOG.debug('Verification of BIOS settings for node %(node_uuid)s '
                       'successful.', {'node_uuid': task.node.uuid})
 
-    def _set_reboot(self, task):
-        """Set driver_internal_info flags for deployment or cleaning reboot.
-
-        :param task: a TaskManager instance containing the node to act on.
-        """
-        task.node.set_driver_internal_info(
-            'post_factory_reset_reboot_requested', True)
-        task.node.save()
-        deploy_utils.set_async_step_flags(task.node, reboot=True,
-                                          skip_current_step=False)
-
     def _set_reboot_requested(self, task, attributes):
         """Set driver_internal_info flags for reboot requested.
 
         :param task: a TaskManager instance containing the node to act on.
         :param attributes: the requested BIOS attributes to update.
         """
-        task.node.set_driver_internal_info('post_config_reboot_requested',
+        task.node.set_driver_internal_info('post_bios_reboot_requested',
                                            True)
-        task.node.set_driver_internal_info('requested_bios_attrs', attributes)
+        if attributes:
+            task.node.set_driver_internal_info('requested_bios_attrs',
+                                               attributes)
         task.node.save()
         deploy_utils.set_async_step_flags(task.node, reboot=True,
                                           skip_current_step=False)
@@ -345,8 +336,7 @@ class RedfishBIOS(base.BIOSInterface):
         :param task: a TaskManager instance containing the node to act on.
         """
         node = task.node
-        node.del_driver_internal_info('post_config_reboot_requested')
-        node.del_driver_internal_info('post_factory_reset_reboot_requested')
+        node.del_driver_internal_info('post_bios_reboot_requested')
         node.del_driver_internal_info('requested_bios_attrs')
         node.save()
 

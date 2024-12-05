@@ -1,0 +1,6 @@
+---
+upgrade:
+  - |
+    If you upgrade while running a redfish interface based BIOS job, you job
+    may not complete due to a change in the internal state variables stored.
+    Ensure none of these operations are in flight when upgrading.
