@@ -96,7 +96,8 @@ the Ironic service:
   support for the switches attached to the baremetal servers so they can be
   programmed. This interface generally requires use of ML2 plugins or other
   Neutron SDN integrations to facilitate the port configuration actions in
-  the network fabric.
+  the network fabric. When using IPv6, use of the ``neutron`` interface
+  is preferred.
 
 To use these interfaces, they need to be enabled in *ironic.conf* utilizing
 the :oslo.config:option:`enabled_network_interfaces` setting.
@@ -388,6 +389,14 @@ The ``neutron`` network interface allows the Networking service to program the
 physical top of rack switches for the bare metal servers. To do this an ML2
 mechanism driver which supports the ``baremetal`` VNIC type for the make and
 model of top of rack switch in the environment must be installed and enabled.
+
+One case where you may wish to prefer the ``neutron`` network interface, even
+when your architecture is statically configured interfaces similar to ``flat``
+networks, is when your using IPv6. Various hardware, bootloader, and Operating
+System DHCP clients utilize different techneaques for generating the host
+identifier string which DHCP servers utilize to track IPv6 hosts. The
+``neutron`` interface generates additional IPv6 DHCP entries to account for
+situations such as this, where as the ``flat`` interface is unable to do so.
 
 This is a list of known top of rack ML2 mechanism drivers which work with the
 ``neutron`` network interface.
