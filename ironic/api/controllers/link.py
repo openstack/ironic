@@ -33,10 +33,10 @@ def make_link(rel_name, url, resource, resource_args,
     """Build a dict representing a link"""
     href = build_url(resource, resource_args,
                      bookmark=bookmark, base_url=url)
-    l = {
+    link = {
         'href': href,
         'rel': rel_name
     }
     if type:
-        l['type'] = type
-    return l
+        link['type'] = type
+    return link
