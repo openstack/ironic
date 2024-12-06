@@ -16,6 +16,7 @@ from oslo_log import log
 import sushy
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.drivers.modules.redfish import utils as redfish_utils
 
 LOG = log.getLogger(__name__)
