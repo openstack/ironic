@@ -17,16 +17,16 @@ import functools
 from automaton import exceptions as automaton_exceptions
 from automaton import machines
 
+from ironic.common import exception as excp
+from ironic.common.i18n import _
+
+
 """State machine modelling.
 
 This is being used in the implementation of:
 
 http://specs.openstack.org/openstack/ironic-specs/specs/kilo/new-ironic-state-machine.html
 """
-
-
-from ironic.common import exception as excp
-from ironic.common.i18n import _
 
 
 def _translate_excp(func):
