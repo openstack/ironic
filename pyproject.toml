@@ -4,3 +4,22 @@ build-backend = "pbr.build"
 
 [tool.doc8]
 ignore = ["D001"]
+
+[tool.ruff]
+line-length = 79
+
+[tool.ruff.lint]
+select = [
+    "E",        # pycodestyle (error)
+    "F",        # pyflakes
+    "G",        # flake8-logging-format
+    "LOG",      # flake8-logging
+]
+
+[tool.ruff.lint.per-file-ignores]
+"ironic/tests/**/*.py" = [
+    "E402",     # module-import-not-at-top-of-file
+]
+"ironic/drivers/modules/drac/raid.py" = [
+    "G003",     # Logging statement uses `+`
+]
