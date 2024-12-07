@@ -4,7 +4,7 @@ Building images for Windows
 ---------------------------
 We can use ``New-WindowsOnlineImage`` in `windows-openstack-imaging-tools`_
 tool as an option to create Windows images (whole disk images) corresponding
-boot modes which will support for Windows NIC Teaming. And allow the
+boot modes which will support Windows NIC Teaming. And allow the
 utilization of link aggregation when the instance is spawned on hardware
 servers (Bare metals).
 
@@ -16,26 +16,25 @@ Requirements:
   ``PowerShell`` version >=4 supported,
   ``Windows Assessment and Deployment Kit``,
   in short ``Windows ADK``.
-* The windows Server compatible drivers.
+* The Windows Server compatible drivers.
 * Working git environment.
 
 Preparation:
 ~~~~~~~~~~~~
 
 * Download a Windows Server 2012R2/ 2016 installation ISO.
-* Install Windows Server 2012R2/ 2016 OS on workstation PC along with
+* Install Windows Server 2012R2/ 2016 OS on the workstation PC along with
   following feature:
 
   - Enable Hyper-V virtualization.
   - Install PowerShell 4.0.
-  - Install Git environment & import git proxy (if have).
-  - Create new ``Path`` in Microsoft Windows Server Operating System which
+  - Install Git environment & import git proxy (if you have).
+  - Create a new ``Path`` in the Microsoft Windows Server Operating System which
     support for submodule update via ``git submodule update –init`` command::
 
       - Variable name: Path
       - Variable value: C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Program Files\Git\bin
-
-  - Rename virtual switch name in Windows Server 2012R2/ 2016 in
+  - Rename the virtual switch name in Windows Server 2012R2/ 2016 in
     ``Virtual Switch Manager`` into ``external``.
 
 Implementation:
@@ -85,7 +84,7 @@ Implementation:
 
   .. note::
 
-    We can change ``SizeBytes``, ``CpuCores`` and ``Memory`` depending on requirements.
+    We can change ``SizeBytes``, ``CpuCores``, and ``Memory`` depending on requirements.
 
 .. _`example_windows_images`: https://github.com/cloudbase/windows-openstack-imaging-tools/blob/master/Examples
 .. _`windows-openstack-imaging-tools`: https://github.com/cloudbase/windows-openstack-imaging-tools
