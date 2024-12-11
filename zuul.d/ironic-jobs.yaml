@@ -23,6 +23,7 @@
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
+      - ^\.pre-commit-config\.yaml$
       - ^redfish-interop-profiles/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
@@ -116,6 +117,7 @@
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
+      - ^\.pre-commit-config\.yaml$
       - ^releasenotes/.*$
       - ^setup.cfg$
       - ^test-requirements.txt$
@@ -183,6 +185,7 @@
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
+      - ^\.pre-commit-config\.yaml$
       - ^redfish-interop-profiles/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
@@ -555,6 +558,7 @@
       # This job is also run on inspector
       - ^ironic_inspector/locale/.*$
       - ^ironic_inspector/test/.*$
+      - ^\.pre-commit-config\.yaml$
       - ^redfish-interop-profiles/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
@@ -646,6 +650,7 @@
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
+      - ^\.pre-commit-config\.yaml$
       - ^redfish-interop-profiles/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
@@ -992,6 +997,7 @@
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
+      - ^\.pre-commit-config\.yaml$
       - ^redfish-interop-profiles/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
@@ -1089,6 +1095,7 @@
       - ^install-guide/.*$
       - ^ironic/locale/.*$
       - ^ironic/tests/.*$
+      - ^\.pre-commit-config\.yaml$
       - ^redfish-interop-profiles/.*$
       - ^releasenotes/.*$
       - ^setup.cfg$
@@ -1243,6 +1250,7 @@
       - ^api-ref/.*$
       - ^devstack/.*$
       - ^doc/.*$
+      - ^\.pre-commit-config\.yaml$
       - ^releasenotes/.*$
       - ^tools/.*$
     vars:
