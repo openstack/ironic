@@ -1,0 +1,12 @@
+upgrade:
+  - The configuration option ``fatal_exception_format_errors`` has been removed
+    from the ``[DEFAULT]`` group.
+  - The ironic-lib library has been retired and is no longer required for
+    operation of Ironic.
+deprecations:
+  - The configuration option ``fatal_exception_format_errors`` is deprecated
+    from ``[ironic_lib]`` group and should be migrated to the
+    ``[errors]/fatal_exception_format_errors``.
+    The old location ``[ironic_lib]/fatal_exception_format_errors`` will be
+    respected during the deprecation period.
+

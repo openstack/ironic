@@ -14,11 +14,11 @@
 Ramdisk Deploy Interface
 """
 
-from ironic_lib import metrics_utils
 from oslo_log import log as logging
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils

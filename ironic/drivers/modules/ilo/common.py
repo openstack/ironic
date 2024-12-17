@@ -22,7 +22,6 @@ import shutil
 import tempfile
 from urllib import parse as urlparse
 
-from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 from oslo_utils import fileutils
 from oslo_utils import importutils
@@ -218,7 +217,7 @@ def remove_image_from_web_server(object_name):
                         from the web server root.
     """
     image_path = os.path.join(CONF.deploy.http_root, object_name)
-    ironic_utils.unlink_without_raise(image_path)
+    utils.unlink_without_raise(image_path)
 
 
 def copy_image_to_swift(source_file_path, destination_object_name):
@@ -901,10 +900,10 @@ def remove_single_or_list_of_files(file_location):
     # file_location is a list of files
     if isinstance(file_location, list):
         for location in file_location:
-            ironic_utils.unlink_without_raise(location)
+            utils.unlink_without_raise(location)
     # file_location is a single file path
     elif isinstance(file_location, str):
-        ironic_utils.unlink_without_raise(file_location)
+        utils.unlink_without_raise(file_location)
 
 
 def verify_image_checksum(image_location, expected_checksum):

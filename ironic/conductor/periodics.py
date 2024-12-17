@@ -18,10 +18,10 @@ import inspect
 
 import eventlet
 from futurist import periodics
-from ironic_lib import metrics_utils
 from oslo_log import log
 
 from ironic.common import exception
+from ironic.common import metrics_utils
 from ironic.conductor import base_manager
 from ironic.conductor import task_manager
 from ironic.drivers import base as driver_base

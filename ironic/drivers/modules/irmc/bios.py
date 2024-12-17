@@ -15,11 +15,11 @@
 """
 iRMC BIOS configuration specific methods
 """
-from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import exception
+from ironic.common import metrics_utils
 from ironic.drivers import base
 from ironic.drivers.modules.irmc import common as irmc_common
 from ironic import objects

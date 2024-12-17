@@ -18,13 +18,13 @@
 
 import collections
 
-from ironic_lib import metrics_utils
 from oslo_log import log
 
 from ironic.common import async_steps
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import cleaning

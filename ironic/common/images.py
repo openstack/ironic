@@ -101,7 +101,7 @@ def create_vfat_image(output_file, files_info=None, parameters=None,
              mounting, creating filesystem, copying files, etc.
     """
     try:
-        # TODO(sbaker): use ironic_lib.utils.dd when rootwrap has been removed
+        # TODO(sbaker): use utils.dd when rootwrap has been removed
         utils.execute('dd', 'if=/dev/zero', 'of=%s' % output_file, 'count=1',
                       'bs=%dKiB' % fs_size_kib)
     except processutils.ProcessExecutionError as e:
@@ -113,8 +113,7 @@ def create_vfat_image(output_file, files_info=None, parameters=None,
             # The label helps ramdisks to find the partition containing
             # the parameters (by using /dev/disk/by-label/ir-vfd-dev).
             # NOTE: FAT filesystem label can be up to 11 characters long.
-            # TODO(sbaker): use ironic_lib.utils.mkfs when rootwrap has been
-            #              removed
+            # TODO(sbaker): use utils.mkfs when rootwrap has been removed
             utils.execute('mkfs', '-t', 'vfat', '-n',
                           'ir-vfd-dev', output_file)
         except processutils.ProcessExecutionError as e:

@@ -16,14 +16,13 @@
 import itertools
 import math
 
-from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import units
 import sushy
 
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import raid as raid_common
+from ironic.common import metrics_utils
 from ironic.common import raid
 from ironic.common import states
 from ironic.conductor import periodics
@@ -705,7 +704,7 @@ def update_raid_config(node):
                     "type: %(vol_no_raid_type)s",
                     {'vol_no_raid_type': ", ".join(vol_no_raid_type)})
 
-    raid_common.update_raid_info(node, {'logical_disks': logical_disks})
+    raid.update_raid_info(node, {'logical_disks': logical_disks})
 
 
 class RedfishRAID(base.RAIDInterface):

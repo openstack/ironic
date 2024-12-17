@@ -14,9 +14,9 @@
 import subprocess
 from unittest import mock
 
-from ironic_lib import utils
 from oslo_concurrency import processutils
 
+from ironic.common import utils
 from ironic.tests import base
 
 
@@ -34,7 +34,7 @@ class BlockExecuteTestCase(base.TestCase):
             # get H202 error in 'pep8' check.
 
             self.assertEqual(
-                "Don't call ironic_lib.utils.execute() / "
+                "Don't call utils.execute() / "
                 "processutils.execute() or similar functions in tests!",
                 "%s" % exc)
 
@@ -53,14 +53,14 @@ class BlockExecuteTestCase(base.TestCase):
     def test_exception_raised_for_execute_parent_mocked(self, mock_exec):
         # Make sure that even if we mock the parent execute function, that we
         # still get an exception for a child. So in this case
-        # ironic_lib.utils.execute() calls processutils.execute(). Make sure an
+        # utils.execute() calls processutils.execute(). Make sure an
         # exception is raised even though we mocked processutils.execute()
         exc = self.assertRaises(Exception, utils.execute, "ls")  # noqa
         # Have to use 'noqa' as we are raising plain Exception and we will get
         # H202 error in 'pep8' check.
 
         self.assertEqual(
-            "Don't call ironic_lib.utils.execute() / "
+            "Don't call utils.execute() / "
             "processutils.execute() or similar functions in tests!",
             "%s" % exc)
 
@@ -73,7 +73,7 @@ class DontBlockExecuteTestCase(base.TestCase):
 
     @mock.patch.object(processutils, "execute", autospec=True)
     def test_no_exception_raised_for_execute(self, mock_exec):
-        # Make sure we can call ironic_lib.utils.execute() even though we
+        # Make sure we can call utils.execute() even though we
         # didn't mock it. We do mock processutils.execute() so we don't
         # actually execute anything.
         utils.execute("ls")

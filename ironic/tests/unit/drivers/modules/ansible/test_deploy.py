@@ -13,7 +13,6 @@
 import json
 from unittest import mock
 
-from ironic_lib import utils as irlib_utils
 from oslo_concurrency import processutils
 
 from ironic.common import exception
@@ -676,7 +675,7 @@ class TestAnsibleDeploy(AnsibleDeployTestCaseBase):
 
     @mock.patch.object(ansible_deploy, '_get_configdrive_path',
                        return_value='/path/test', autospec=True)
-    @mock.patch.object(irlib_utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(com_utils, 'unlink_without_raise', autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'clean_up_ramdisk', autospec=True)
     def test_clean_up(self, pxe_clean_up_mock, unlink_mock,
                       get_cfdrive_path_mock):

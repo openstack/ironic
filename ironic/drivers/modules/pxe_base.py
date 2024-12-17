@@ -13,7 +13,6 @@
 Base PXE Interface Methods
 """
 
-from ironic_lib import metrics_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 
@@ -21,6 +20,7 @@ from ironic.common import boot_devices
 from ironic.common import dhcp_factory
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.conductor import periodics

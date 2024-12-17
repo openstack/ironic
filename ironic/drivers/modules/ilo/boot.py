@@ -15,7 +15,6 @@
 Boot Interface for iLO drivers and its supporting methods.
 """
 
-from ironic_lib import metrics_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import excutils
@@ -27,6 +26,7 @@ from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import images
+from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.conductor import utils as manager_utils
 from ironic.drivers import base

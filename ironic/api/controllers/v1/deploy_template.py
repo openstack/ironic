@@ -12,7 +12,6 @@
 
 from http import client as http_client
 
-from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import uuidutils
@@ -29,6 +28,7 @@ from ironic.api import method
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 import ironic.conf
 from ironic import objects
 

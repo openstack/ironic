@@ -15,10 +15,9 @@
 iLO Deploy Driver(s) and supporting methods.
 """
 
-from ironic_lib import metrics_utils
-
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.drivers.modules.ilo import common as ilo_common
 from ironic.drivers.modules import ipmitool
 

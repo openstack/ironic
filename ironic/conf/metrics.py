@@ -20,6 +20,30 @@ from ironic.common.i18n import _
 
 
 opts = [
+    cfg.StrOpt('backend',
+               default='noop',
+               choices=[
+                   ('noop', 'Do nothing in relation to metrics.'),
+                   ('statsd', 'Transmits metrics data to a statsd backend.'),
+                   ('collector', 'Collects metrics data and saves it in '
+                                 'memory for use by the running application.'),
+               ],
+               help='Backend to use for the metrics system.'),
+    cfg.BoolOpt('prepend_host',
+                default=False,
+                help='Prepend the hostname to all metric names. '
+                     'The format of metric names is '
+                     '[global_prefix.][host_name.]prefix.metric_name.'),
+    cfg.BoolOpt('prepend_host_reverse',
+                default=True,
+                help='Split the prepended host value by "." and reverse it '
+                     '(to better match the reverse hierarchical form of '
+                     'domain names).'),
+    cfg.StrOpt('global_prefix',
+               help='Prefix all metric names with this value. '
+                    'By default, there is no global prefix. '
+                    'The format of metric names is '
+                    '[global_prefix.][host_name.]prefix.metric_name.'),
     # IPA config options: used by IPA to configure how it reports metric data
     cfg.StrOpt('agent_backend',
                default='noop',
@@ -51,5 +75,29 @@ opts = [
 ]
 
 
+statsd_opts = [
+    cfg.StrOpt('statsd_host',
+               default='localhost',
+               help='Host for use with the statsd backend.'),
+    cfg.PortOpt('statsd_port',
+                default=8125,
+                help='Port to use with the statsd backend.'),
+    cfg.StrOpt('agent_statsd_host',
+               default='localhost',
+               help=_('Host for the agent ramdisk to use with the statsd '
+                      'backend. This must be accessible from networks the '
+                      'agent is booted on.')),
+    cfg.PortOpt('agent_statsd_port',
+                default=8125,
+                help=_('Port for the agent ramdisk to use with the statsd '
+                       'backend.')),
+]
+
+
 def register_opts(conf):
     conf.register_opts(opts, group='metrics')
+    conf.register_opts(statsd_opts, group='metrics_statsd')
+
+
+def list_opts():
+    return [opts, statsd_opts]

@@ -45,7 +45,6 @@ import queue
 
 import eventlet
 from futurist import waiters
-from ironic_lib import metrics_utils
 from oslo_log import log
 import oslo_messaging as messaging
 from oslo_utils import excutils
@@ -57,6 +56,7 @@ from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import faults
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.common import network
 from ironic.common import nova
 from ironic.common import rpc
@@ -2741,15 +2741,6 @@ class ConductorManager(base_manager.BaseConductorManager):
             ev_type = 'ironic.metrics'
             message['event_type'] = ev_type + '.update'
             sensors_data = METRICS.get_metrics_data()
-        except AttributeError:
-            # TODO(TheJulia): Remove this at some point, but right now
-            # don't inherently break on version mismatches when people
-            # disregard requirements.
-            LOG.warning(
-                'get_sensors_data has been configured to collect '
-                'conductor metrics, however the installed ironic-lib '
-                'library lacks the functionality. Please update '
-                'ironic-lib to a minimum of version 5.4.0.')
         except Exception as e:
             LOG.exception(
                 "An unknown error occurred while attempting to collect "

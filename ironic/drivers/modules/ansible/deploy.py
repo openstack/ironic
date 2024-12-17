@@ -20,8 +20,6 @@ import os
 import shlex
 from urllib import parse as urlparse
 
-from ironic_lib import metrics_utils
-from ironic_lib import utils as irlib_utils
 from oslo_concurrency import processutils
 from oslo_log import log
 from oslo_utils import strutils
@@ -34,6 +32,7 @@ from ironic.common import exception
 from ironic.common import faults
 from ironic.common.i18n import _
 from ironic.common import images
+from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import steps as conductor_steps
@@ -511,8 +510,7 @@ class AnsibleDeploy(agent_base.HeartbeatMixin,
         task.driver.boot.clean_up_ramdisk(task)
         provider = dhcp_factory.DHCPFactory()
         provider.clean_dhcp(task)
-        irlib_utils.unlink_without_raise(
-            _get_configdrive_path(task.node.uuid))
+        utils.unlink_without_raise(_get_configdrive_path(task.node.uuid))
 
     def take_over(self, task):
         LOG.error("Ansible deploy does not support take over. "

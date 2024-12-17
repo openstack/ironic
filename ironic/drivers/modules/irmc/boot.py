@@ -21,8 +21,6 @@ import shutil
 import tempfile
 from urllib import parse as urlparse
 
-from ironic_lib import metrics_utils
-from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 from oslo_utils import netutils
@@ -33,7 +31,9 @@ from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import images
+from ironic.common import metrics_utils
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import utils as manager_utils
 from ironic.conf import CONF
 from ironic.drivers import base
@@ -450,7 +450,7 @@ def _remove_share_file(share_filename):
     """
     share_fullpathname = os.path.join(
         CONF.irmc.remote_image_share_root, share_filename)
-    ironic_utils.unlink_without_raise(share_fullpathname)
+    utils.unlink_without_raise(share_fullpathname)
 
 
 def _attach_virtual_cd(node, bootable_iso_filename):

@@ -15,7 +15,6 @@
 
 from http import client as http_client
 
-from ironic_lib import metrics_utils
 from pecan import rest
 
 from ironic import api
@@ -25,6 +24,7 @@ from ironic.api import method
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.drivers import base as driver_base
 
 

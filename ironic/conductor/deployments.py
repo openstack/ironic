@@ -14,7 +14,6 @@
 
 import tempfile
 
-from ironic_lib import metrics_utils
 from oslo_db import exception as db_exception
 from oslo_log import log
 from oslo_utils import excutils
@@ -24,6 +23,7 @@ from ironic.common import exception
 from ironic.common.glance_service import service_utils as glance_utils
 from ironic.common.i18n import _
 from ironic.common import lessee_sources
+from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.common import swift
 from ironic.conductor import notification_utils as notify_utils

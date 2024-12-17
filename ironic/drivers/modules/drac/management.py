@@ -22,7 +22,6 @@ DRAC management interface
 
 import json
 
-from ironic_lib import metrics_utils
 import jsonschema
 from jsonschema import exceptions as json_schema_exc
 from oslo_log import log as logging
@@ -31,6 +30,7 @@ import sushy
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.common import molds
 from ironic.common import states
 from ironic.conductor import periodics

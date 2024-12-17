@@ -17,12 +17,12 @@ import io
 import os
 import tempfile
 
-from ironic_lib import utils as ironic_utils
 from oslo_log import log as logging
 import pycdlib
 import requests
 
 from ironic.common import exception
+from ironic.common import utils
 from ironic.conf import CONF
 
 LOG = logging.getLogger(__name__)
@@ -153,7 +153,7 @@ def prepare_config_drive(task,
     if not config_drive:
         return ks_config_drive
 
-    if ironic_utils.is_http_url(config_drive):
+    if utils.is_http_url(config_drive):
         config_drive = _fetch_config_drive_from_url(config_drive)
 
     if not isinstance(config_drive, dict):

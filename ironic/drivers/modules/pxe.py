@@ -15,11 +15,11 @@
 PXE Boot Interface
 """
 
-from ironic_lib import metrics_utils
 from oslo_log import log as logging
 
 from ironic.common import boot_devices
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.common import pxe_utils
 from ironic.common import states
 from ironic.conductor import task_manager

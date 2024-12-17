@@ -15,10 +15,10 @@ import time
 
 import eventlet
 from eventlet import event
-from ironic_lib import metrics_utils
 from oslo_log import log
 
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.conf import CONF
 from ironic.db import api as dbapi

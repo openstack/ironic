@@ -23,7 +23,6 @@ import tempfile
 import unittest
 from unittest import mock
 
-from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_utils import uuidutils
 
@@ -33,6 +32,7 @@ from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import images
 from ironic.common import states
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules import boot_mode_utils
@@ -828,7 +828,7 @@ class IRMCDeployPrivateMethodsTestCase(test_common.BaseIRMCTest):
                  mock.call(_get_iso_name_mock(task.node, label='deploy')),
                  mock.call(_get_iso_name_mock(task.node, label='rescue'))])
 
-    @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
+    @mock.patch.object(utils, 'unlink_without_raise', spec_set=True,
                        autospec=True)
     def test__remove_share_file(self, unlink_without_raise_mock,
                                 check_share_fs_mounted_mock):

@@ -19,7 +19,6 @@ from http import client as http_client
 import json
 import urllib.parse
 
-from ironic_lib import metrics_utils
 import jsonschema
 from jsonschema import exceptions as json_schema_exc
 from oslo_log import log
@@ -46,6 +45,7 @@ from ironic.common import boot_devices
 from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.common import policy
 from ironic.common import states as ir_states
 from ironic.conductor import steps as conductor_steps
