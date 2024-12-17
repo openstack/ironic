@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 from urllib import parse as urlparse
 
 from oslo_log import log
@@ -21,12 +22,14 @@ import tenacity
 
 from ironic.common import async_steps
 from ironic.common import boot_devices
+from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import metrics_utils
+from ironic.common import oci_registry as oci
 from ironic.common import raid
 from ironic.common import states
 from ironic.common import utils
@@ -246,6 +249,51 @@ def soft_power_off(task, client=None):
                     {'node_uuid': task.node.uuid,
                      'timeout': (wait * (attempts - 1))})
         manager_utils.node_power_action(task, states.POWER_OFF)
+
+
+def set_boot_to_disk(task, target_boot_mode=None):
+    """Boot a node to disk.
+
+    This is a helper method to reduce duplication of code around
+    handling vendor specifics for setting boot modes between multiple
+    deployment interfaces inside of Ironic.
+
+    :param task: A Taskmanager object.
+    :param target_boot_mode: The target boot_mode, defaults to UEFI.
+    """
+    if not target_boot_mode:
+        target_boot_mode = boot_modes.UEFI
+    node = task.node
+    try:
+        persistent = True
+        # NOTE(TheJulia): We *really* only should be doing this in bios
+        # boot mode. In UEFI this might just get disregarded, or cause
+        # issues/failures.
+        if node.driver_info.get('force_persistent_boot_device',
+                                'Default') == 'Never':
+            persistent = False
+
+        vendor = task.node.properties.get('vendor', None)
+        if not (vendor and vendor.lower() == 'lenovo'
+                and target_boot_mode == 'uefi'):
+            # Lenovo hardware is modeled on a "just update"
+            # UEFI nvram model of use, and if multiple actions
+            # get requested, you can end up in cases where NVRAM
+            # changes are deleted as the host "restores" to the
+            # backup. For more information see
+            # https://bugs.launchpad.net/ironic/+bug/2053064
+            # NOTE(TheJulia): We likely just need to do this with
+            # all hosts in uefi mode, but libvirt VMs don't handle
+            # nvram only changes *and* this pattern is known to generally
+            # work for Ironic operators.
+            deploy_utils.try_set_boot_device(task, boot_devices.DISK,
+                                             persistent=persistent)
+    except Exception as e:
+        msg = (_("Failed to change the boot device to %(boot_dev)s "
+                 "when deploying node %(node)s: %(error)s") %
+               {'boot_dev': boot_devices.DISK, 'node': node.uuid,
+                'error': e})
+        agent_base.log_and_raise_deployment_error(task, msg, exc=e)
 
 
 class CustomAgentDeploy(agent_base.AgentBaseMixin,
@@ -910,38 +958,92 @@ class AgentDeploy(CustomAgentDeploy):
                         'error': agent_client.get_command_error(result)})
                 agent_base.log_and_raise_deployment_error(task, msg)
 
-        try:
-            persistent = True
-            # NOTE(TheJulia): We *really* only should be doing this in bios
-            # boot mode. In UEFI this might just get disregarded, or cause
-            # issues/failures.
-            if node.driver_info.get('force_persistent_boot_device',
-                                    'Default') == 'Never':
-                persistent = False
-
-            vendor = task.node.properties.get('vendor', None)
-            if not (vendor and vendor.lower() == 'lenovo'
-                    and target_boot_mode == 'uefi'):
-                # Lenovo hardware is modeled on a "just update"
-                # UEFI nvram model of use, and if multiple actions
-                # get requested, you can end up in cases where NVRAM
-                # changes are deleted as the host "restores" to the
-                # backup. For more information see
-                # https://bugs.launchpad.net/ironic/+bug/2053064
-                # NOTE(TheJulia): We likely just need to do this with
-                # all hosts in uefi mode, but libvirt VMs don't handle
-                # nvram only changes *and* this pattern is known to generally
-                # work for Ironic operators.
-                deploy_utils.try_set_boot_device(task, boot_devices.DISK,
-                                                 persistent=persistent)
-        except Exception as e:
-            msg = (_("Failed to change the boot device to %(boot_dev)s "
-                     "when deploying node %(node)s: %(error)s") %
-                   {'boot_dev': boot_devices.DISK, 'node': node.uuid,
-                    'error': e})
-            agent_base.log_and_raise_deployment_error(task, msg, exc=e)
-
+        set_boot_to_disk(task, target_boot_mode)
         LOG.info('Local boot successfully configured for node %s', node.uuid)
+
+
+class BootcAgentDeploy(CustomAgentDeploy):
+    """Interface for deploy-related actions."""
+
+    @METRICS.timer('AgentBootcDeploy.validate')
+    def validate(self, task):
+        """Validate the driver-specific Node deployment info.
+
+        This method validates whether the properties of the supplied node
+        contain the required information for this driver to deploy images to
+        the node.
+
+        :param task: a TaskManager instance
+        :raises: MissingParameterValue, if any of the required parameters are
+            missing.
+        :raises: InvalidParameterValue, if any of the parameters have invalid
+            value.
+        """
+        super().validate(task)
+
+        node = task.node
+
+        image_source = node.instance_info.get('image_source')
+        if not image_source or not image_source.startswith('oci://'):
+            raise exception.InvalidImageRef(image_href=image_source)
+
+    @METRICS.timer('AgentBootcDeploy.execute_bootc_install')
+    @base.deploy_step(priority=80)
+    @task_manager.require_exclusive_lock
+    def execute_bootc_install(self, task):
+        node = task.node
+        image_source = node.instance_info.get('image_source')
+        # FIXME(TheJulia): We likely, either need to grab/collect creds
+        # and pass them along in the step call, or initialize the client.
+        # bootc runs in the target container as well, so ... hmmm
+        configdrive = manager_utils.get_configdrive_image(node)
+
+        img_auth = image_service.get_image_service_auth_override(task.node)
+
+        if not img_auth:
+            fqdn = urlparse.urlparse(image_source).netloc
+            img_auth = oci.RegistrySessionHelper.get_token_from_config(
+                fqdn)
+        else:
+            # Internally, image data is a username and password, and we
+            # only currently support pull secrets which are just transmitted
+            # via the password value.
+            img_auth = img_auth.get('password')
+        if img_auth:
+            # This is not encryption, but obfustication.
+            img_auth = base64.standard_b64encode(img_auth.encode())
+        # Now switch into the corresponding in-band deploy step and let the
+        # result be polled normally.
+        new_step = {'interface': 'deploy',
+                    'step': 'execute_bootc_install',
+                    'args': {'image_source': image_source,
+                             'configdrive': configdrive,
+                             'oci_pull_secret': img_auth}}
+        client = agent_client.get_client(task)
+        return agent_base.execute_step(task, new_step, 'deploy',
+                                       client=client)
+
+    @METRICS.timer('AgentBootcDeploy.set_boot_to_disk')
+    @base.deploy_step(priority=60)
+    @task_manager.require_exclusive_lock
+    def set_boot_to_disk(self, task):
+        """Sets the node to boot from disk.
+
+        In some cases, other steps may handle aspects like bootloaders
+        and UEFI NVRAM entries required to boot. That leaves one last
+        aspect, resetting the node to boot from disk.
+
+        This primarily exists for compatibility reasons of flow
+        for Ironic, but we know some BMCs *really* need to be
+        still told to boot from disk. The exception to this is
+        Lenovo hardware, where we skip the action because it
+        can create a UEFI NVRAM update failure case, which
+        reverts the NVRAM state to "last known good configuration".
+
+        :param task: A Taskmanager object.
+        """
+        # Call the helper to de-duplicate code.
+        set_boot_to_disk(task)
 
 
 class AgentRAID(base.RAIDInterface):

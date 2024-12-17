@@ -190,3 +190,116 @@ completely orchestrate writing the instance image using
 responsible to provide all necessary deploy steps with priorities between
 61 and 99 (see :ref:`node-deployment-core-steps` for information on
 priorities).
+
+Bootc Agent Deploy
+==================
+
+The ``bootc`` deploy interface is designed to enable operators to deploy
+containers directly from a container image registry without intermediate
+conversion steps, such as creating custom disk images for modifications.
+This deployment interface utilizes the
+`bootc project <https://containers.github.io/bootc/>`_.
+
+Ultimately this enables a streamlined flow, where a user of the deployment
+interface *can* create updated containers rapidly and the deployment interface
+will deploy that container image in a streamlined fashion without the need
+to create intermediate disk images and post the disk images in a location
+where they can be accessed for deployment.
+
+Ultimately this interface enables a streamlined flow, and offers
+limited flexibility in the model of deployment. As a result, this
+interface consumes the entire target disk on the host being deployed
+and offers no customization in terms of partitioning. This is largely
+because the overall security model of a bootc deployment, which leverages
+os-tree, is also fundamentally different than the model to leverage
+partition separation.
+
+.. NOTE::
+   This interface should be considered experimental and may evolve
+   to include additional features as the Ironic project maintainers
+   receive additional feedback.
+
+.. NOTE::
+   This interface is dependent upon the existence of ``bootc`` within a
+   container image along with sufficient memory on the baremetal
+   node being deployed to enable a complete download and extraction of image
+   contents within system memory. It is this memory constraint which is
+   why this interface is not actively tested in upstream CI.
+   The possible failure modes of this interface are mainly focused upon
+   the ability of the ramdisk being able to download, launch, and
+   run bootc to trigger the installation which also isolates most risk
+   to the actual bootc process execution.
+
+Features
+--------
+
+While this ``deploy_interface`` supports deploying configuration drives
+like most other Ironic supplied deploy interfaces, some additional
+parameters can be supplied via ``instance_info`` to enable
+tuning of deploy-time behavior by the user which cannot be modified
+post-deployment.
+
+* ``bootc_authorized_keys`` - This option allows injection of a
+  root user authorized keys file which is preserved inside of the deployed
+  container on the host. This option is for actual key file content and can
+  be one or more keys with a new line character.
+* ``bootc_tpm2_luks`` - A boolean option, default False, enabling bootc
+  to attempt to utilize auto-encryption of the deployed host filesystem
+  upon which the container is deployed. This is not enabled by default
+  due to a lack of software TPMs in Ironic CI. If operators would like
+  this setting default changed, please discuss with Ironic developers.
+
+Additionally, this interface also supports the passing of a pull secret
+to enable download from the remote image registry, which is part of the
+support for retrieval of artifacts from OCI Container registires.
+This parameter is ``image_pull_secret``.
+
+Caveats
+-------
+
+* This deployment interface was not designed to be compatible with the
+  OpenStack Compute service. This is because OpenStack focuses on
+  disk images from Glance as to what to deploy, where as this interface
+  is modeled to utilize a container image registry.
+* Performance wise, this deployment interface performs many smaller actions,
+  which at some times need to performed in a specific sequence, such as
+  when unpacking layers. As a result, when comparing similar size
+  containers to disk images, this interface is slower than the ``direct``
+  deploy interface.
+* Container Images *must* have the bootc command present along with
+  the applicable bootloader and artifacts required for whatever platform
+  is being deployed.
+* Because of how `bootc <https://containers.github.io/bootc/>`_ works,
+  there is no concept of "image streaming" directly to disk. This is because
+  the way this interface works, `podman <https://podman.io/>`_ is used to
+  download all container image layer artifacts, along with extracting the
+  layers. At which point ``bootc`` is executed and it begins to setup the
+  disk for the host. As a result, most of the time a deploy is in progress
+  will be observable as ``deploy wait`` while ``bootc`` executes.
+* The memory requirements of the ramdisk, due to the way this interface
+  works, requires the ability to download a container image, copy, and
+  ultimatley extract all layers into the in-memory filesystem. Due to the way
+  the kernel launches and allocates ramdisk memory for filesystem usage,
+  a 600MB container image may require upwards of 10GB of RAM to be available
+  on the overall host.
+* This deployment interface explicitly signals to ``bootc`` that it should
+  not execute it's internal post-deployment "fetch check" to ensure upgrades
+  are working. This is because this action may require authentication
+  to succeed, **and** thus require credentials in the container to
+  work. Configuration of credentials for **day-2** operations
+  such as the execution of ``bootc upgrade``, must be addressed
+  post-deployment.
+* If you intend SELinux to be enabled on the deployed host, it must also
+  be enabled inside of the ironic-python-agent ramdisk. This is a design
+  limitation of bootc outside of Ironic's control.
+
+Limitations
+-----------
+
+* At present, this interface does not support use of caching proxies. This
+  may be addressed in the future.
+* This deployment interface directly downloads artifacts from the requested
+  Container Registry. Caching the container artifacts on the
+  ``ironic-conductor`` host is not available. If you need the contaitainer
+  content localized to the conductor, consider utilizing your own container
+  registry.
