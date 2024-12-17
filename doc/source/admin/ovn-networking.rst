@@ -143,6 +143,18 @@ This can be configured manually, but *should* (as far as Ironic is aware) be
 configured by Neutron and set on interfaces matching the bridge mappings. At
 least, it works that way in Devstack.
 
+Outbound SNAT
+-------------
+
+Outbound connectivity (that traverses the Neutron/OVN router) is known to be problematic
+due to a bug in the way External port priority is handled differently than port assignment
+than the Chassis Gateway, the very same mentioned previously. Ultimately this can create
+a mismatch between the ports and results in intermittent traffic loss. A known workaround
+is to manually update the HA Chassis Group and Gateway Chassis priorities so these are in sync
+for a given Neutron network and associated router.
+
+This is being tracked as `bug 1995078 <https://bugs.launchpad.net/neutron/+bug/1995078>`_.
+
 ML2 Plugins
 -----------
 
