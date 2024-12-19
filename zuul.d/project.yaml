@@ -15,11 +15,6 @@
         - ironic-cross-sushy:
             voting: false
         - ironic-tempest-functional-python3
-        # NOTE(rpittau) moving to non-voting until we fix the tests
-        # see also https://review.opendev.org/c/openstack/ironic-tempest-plugin/+/882312
-        - ironic-grenade
-        - ironic-grenade-skip-level:
-            voting: false
         - ironic-standalone-redfish:
             voting: false
         - ironic-tempest-bios-redfish-pxe
@@ -43,6 +38,16 @@
         # NOTE(rpittau): Currently broken because of an issue with parted
         - metalsmith-integration-glance-centos9-legacy:
             voting: false
+        #####################################################################
+        # Grenade should be removed in advance of the unmaintained branches #
+        # as it doesn't know how to upgrade from an unmaintained branch.    #
+        #####################################################################
+        - ironic-grenade
+        - ironic-grenade-skip-level:
+            voting: false
+        ###############################################################
+        # CI Jobs Below this line may be *removed* on Stable Branches #
+        ###############################################################
         # NOTE(TheJulia): At present, metal3 doesn't leverage
         # stable branches, and as far as we are aware these jobs
         # can be removed once this branch is made stable.
