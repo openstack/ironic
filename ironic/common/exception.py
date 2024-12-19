@@ -931,3 +931,17 @@ class ImageChecksumFileReadFailure(InvalidImage):
     _msg_fmt = _("Failed to read the file from local storage "
                  "to perform a checksum operation.")
     code = http_client.SERVICE_UNAVAILABLE
+
+
+class ParentNodeLocked(Conflict):
+    _msg_fmt = _("Node %(node)s parent_node %(parent)s is presently locked "
+                 "and we are unable to perform any action on it at this "
+                 "time. Please retry after the current operation is "
+                 "completed.")
+
+
+class ChildNodeLocked(Conflict):
+    _msg_fmt = _("Node %(node)s child_node %(child)s is presently locked "
+                 "and we are unable to perform any action on it at this "
+                 "time. Please retry after the current operation is "
+                 "completed.")

@@ -1006,8 +1006,8 @@ class DoNodeServiceAbortTestCase(db_base.DbTestCase):
 class DoNodeCleanTestChildNodes(db_base.DbTestCase):
     def setUp(self):
         super(DoNodeCleanTestChildNodes, self).setUp()
-        self.power_off_parent = {
-            'step': 'power_off', 'priority': 4, 'interface': 'power'}
+        self.power_on_parent = {
+            'step': 'power_on', 'priority': 4, 'interface': 'power'}
         self.power_on_children = {
             'step': 'power_on', 'priority': 5, 'interface': 'power',
             'execute_on_child_nodes': True}
@@ -1017,14 +1017,15 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
         self.reboot_children = {
             'step': 'reboot', 'priority': 5, 'interface': 'power',
             'execute_on_child_nodes': True}
-        self.power_on_parent = {
-            'step': 'power_on', 'priority': 15, 'interface': 'power'}
+        self.power_off_children = {
+            'step': 'power_off', 'priority': 15, 'interface': 'power',
+            'execute_on_child_nodes': True}
         self.service_steps = [
-            self.power_off_parent,
+            self.power_on_parent,
             self.power_on_children,
             self.update_firmware_on_children,
             self.reboot_children,
-            self.power_on_parent]
+            self.power_off_children]
         self.node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
             provision_state=states.SERVICING,
@@ -1034,6 +1035,8 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
             driver_internal_info={'agent_secret_token': 'old',
                                   'service_steps': self.service_steps})
 
+    @mock.patch('ironic.drivers.modules.fake.FakePower.get_power_state',
+                autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.reboot',
                 autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakePower.set_power_state',
@@ -1050,7 +1053,7 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
                 autospec=True)
     def test_do_next_clean_step_with_children(
             self, mock_deploy, mock_mgmt, mock_power, mock_pv, mock_nv,
-            mock_sps, mock_reboot):
+            mock_sps, mock_reboot, mock_gps):
         child_node1 = obj_utils.create_test_node(
             self.context,
             uuid=uuidutils.generate_uuid(),
@@ -1066,6 +1069,13 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
             power_state=states.POWER_OFF,
             parent_node=self.node.uuid)
 
+        mock_gps.side_effect = [
+            states.POWER_OFF,
+            states.POWER_ON,
+            states.POWER_OFF,
+            states.POWER_ON,
+            states.POWER_OFF,
+            states.POWER_ON]
         mock_deploy.return_value = None
         mock_mgmt.return_value = None
         mock_power.return_value = None
@@ -1097,12 +1107,12 @@ class DoNodeCleanTestChildNodes(db_base.DbTestCase):
         self.assertEqual(0, mock_power.call_count)
         self.assertEqual(0, mock_nv.call_count)
         self.assertEqual(0, mock_pv.call_count)
-        self.assertEqual(4, mock_sps.call_count)
+        self.assertEqual(3, mock_sps.call_count)
         self.assertEqual(2, mock_reboot.call_count)
         mock_sps.assert_has_calls([
-            mock.call(mock.ANY, mock.ANY, 'power off', timeout=None),
             mock.call(mock.ANY, mock.ANY, 'power on', timeout=None),
-            mock.call(mock.ANY, mock.ANY, 'power on', timeout=None)])
+            mock.call(mock.ANY, mock.ANY, 'power on', timeout=None),
+            mock.call(mock.ANY, mock.ANY, 'power off', timeout=None)])
 
     @mock.patch('ironic.drivers.modules.fake.FakePower.set_power_state',
                 autospec=True)

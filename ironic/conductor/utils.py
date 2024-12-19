@@ -290,7 +290,12 @@ def node_power_action(task, new_state, timeout=None):
              storage interface upon setting power on.
     :raises: other exceptions by the node's power driver if something
              wrong occurred during the power action.
-
+    :raises: ChildNodeLocked when a child node must be acted upon due
+             to this request, but we cannot act upon it due to a lock
+             being held.
+    :raises: ParentNodeLocked when a parent node must be acted upon
+             due to this request, but we cannot act upon it due to a
+             lock being held.
     """
     notify_utils.emit_power_set_notification(
         task, fields.NotificationLevel.INFO, fields.NotificationStatus.START,
@@ -312,6 +317,15 @@ def node_power_action(task, new_state, timeout=None):
             wipe_internal_info_on_power_off(node)
             node.save()
         return
+
+    # Parent node power required?
+    if task.node.parent_node:
+        # If we have a parent node defined for the device, we likely
+        # need to turn the power on.
+        parent_power_needed = not task.node.driver_info.get(
+            'has_dedicated_power_supply', False)
+    else:
+        parent_power_needed = False
 
     # Set the target_power_state and clear any last_error, if we're
     # starting a new operation. This will expose to other processes
@@ -336,6 +350,12 @@ def node_power_action(task, new_state, timeout=None):
             task.driver.storage.attach_volumes(task)
 
         if new_state != states.REBOOT:
+            if new_state == states.POWER_ON and parent_power_needed:
+                _handle_child_power_on(task, target_state, timeout)
+            if new_state == states.POWER_OFF:
+                _handle_child_power_off(task, target_state, timeout)
+            # Parent/Child dependencies handled, we can take care of
+            # the original node now.
             task.driver.power.set_power_state(task, new_state, timeout=timeout)
         else:
             # TODO(TheJulia): We likely ought to consider toggling
@@ -382,6 +402,68 @@ def node_power_action(task, new_state, timeout=None):
                 LOG.warning("Volume detachment for node %(node)s "
                             "failed: %(error)s",
                             {'node': node.uuid, 'error': e})
+
+
+def _handle_child_power_on(task, target_state, timeout):
+    """Actions related to powering on a parent for a child node."""
+    with task_manager.acquire(
+            task.context, task.node.parent_node,
+            shared=True,
+            purpose='power on parent node') as pn_task:
+        if (pn_task.driver.power.get_power_state(pn_task)
+                != states.POWER_ON):
+            try:
+                pn_task.upgrade_lock()
+            except exception.NodeLocked as e:
+                LOG.error('Cannot power on parent_node %(pn)s '
+                          'as it is locked by %(host)s. We are '
+                          'unable to proceed with the current '
+                          'operation for child node %(node)s. '
+                          'Error: %(error)s',
+                          {'pn': pn_task.node.uuid,
+                           'host': pn_task.node.reservation,
+                           'node': task.node.uuid,
+                           'error': e})
+                raise exception.ParentNodeLocked(
+                    node=task.node.uuid, parent=pn_task.node.uuid)
+            node_power_action(pn_task, target_state, timeout)
+
+
+def _handle_child_power_off(task, target_state, timeout):
+    """Actions related to powering off child nodes."""
+    child_nodes = task.node.list_child_node_ids(exclude_dedicated_power=True)
+    cn_tasks = []
+    try:
+        for child in child_nodes:
+            # Get the task for the node, check the status, add
+            # the list of locks to act upon.
+            cn_task = task_manager.acquire(
+                task.context, child, shared=True,
+                purpose='child node power off')
+            if (cn_task.driver.power.get_power_state(cn_task)
+                != states.POWER_OFF):
+                cn_task.upgrade_lock()
+                cn_tasks.append(cn_task)
+        for cn_task in cn_tasks:
+            node_power_action(cn_task, target_state, timeout)
+    except exception.NodeLocked as e:
+        LOG.error(
+            'Cannot power off child node %(cn)s '
+            'as it is locked by %(host)s. We are '
+            'unable to proceed with the current '
+            'operation for parent node %(node)s. '
+            'Error: %(error)s',
+            {'cn': cn_task.node.uuid,
+             'host': cn_task.node.reservation,
+             'node': task.node.uuid,
+             'error': e})
+        raise exception.ChildNodeLocked(
+            node=task.node.uuid, child=cn_task.node.uuid)
+    finally:
+        for cn_task in cn_tasks:
+            # We don't need to do anything else with the child node,
+            # and we need to release the child task's lock.
+            cn_task.release_resources()
 
 
 @task_manager.require_exclusive_lock

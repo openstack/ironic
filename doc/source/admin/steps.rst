@@ -99,3 +99,31 @@ a ``clean hold`` state.
 Once you have completed whatever action which needed to be performed while
 the node was in a held state, you will need to issue an unhold provision
 state command, via the API or command line to inform the node to proceed.
+
+Set the environment
+===================
+
+When using steps with the functionality to execute on child nodes,
+i.e. nodes who a populated ``parent_node`` field, you always want to
+ensure you have set the environment appropriately for your next action.
+
+For example, if you are executing steps against a parent node, which then
+execute against a child node via the ``execute_on_child_nodes`` step option,
+and it requires power to be on, you will want to explicitly
+ensure the power is on for the parent node **unless** the child node can
+operate independently, as signaled through the driver_info option
+``has_dedicated_power_supply`` on the child node. Power is an obvious
+case because Ironic has guarding logic internally to attempt to power-on the
+parent node, but it cannot be an after thought due to internal task locking.
+
+Power specifically aside, the general principle applies to the execution
+of all steps. You need always want to build upon the prior step or existing
+existing known state of the system.
+
+.. NOTE::
+   Ironic will attempt to ensure power is active for a ``parent_node`` when
+   powering on a child node. Conversely, Ironic will also attempt to power
+   down child nodes if a parent node is requested to be turned off, unless
+   the ``has_dedicated_power_supply`` option is set for the child node.
+   This pattern of behavior prevents parent nodes from being automatically
+   powered back on should a child node be left online.

@@ -1616,3 +1616,21 @@ class Connection(object, metaclass=abc.ABCMeta):
         :returns: A list of FirmwareComponent objects.
         :raises: NodeNotFound if the node is not found.
         """
+
+    @abc.abstractclassmethod
+    def get_child_node_ids_by_parent_uuid(self, node_uuid,
+                                          exclude_dedicated_power=False):
+        """Retrieve a list of child node IDs for a given parent UUID.
+
+        This is an "internal" method, intended for use with power
+        management logic to facilitate power actions upon nodes,
+        where we obtain a list of nodes which requires additional
+        actions, and return *only* the required node IDs in order
+        to launch new tasks for power management activities.
+
+        :param node_uuid: The uuid of the parent node, in order to
+            directly match the "parent_node" field.
+        :param exclude_dedicated_power: Boolean, False, if the list
+            should include child nodes with their own power supplies.
+        :returns: A list of tuples.
+        """

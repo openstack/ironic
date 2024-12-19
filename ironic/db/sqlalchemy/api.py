@@ -3148,3 +3148,24 @@ class Connection(api.Connection):
                       .filter_by(node_id=node_id)
                       .all())
         return result
+
+    def get_child_node_ids_by_parent_uuid(
+            self, node_uuid, exclude_dedicated_power=False):
+        with _session_for_read() as session:
+            nodes = []
+            res = session.execute(sa.select(
+                models.Node.id,
+                models.Node.driver_info
+            ).where(models.Node.parent_node == node_uuid)).all()
+            for r in res:
+                # NOTE(TheJulia): Dtantsur has noted we don't typically
+                # evaluate content data inside of the db api, and that
+                # we typically have the caller do it. We should likely
+                # refactor this, at some point for consistency if
+                # we're okay with the likely additional overhead
+                # to post filter an an initial result set.
+                if (exclude_dedicated_power
+                    and r[1].get('has_dedicated_power_supply')):
+                    continue
+                nodes.append(r[0])
+            return nodes
