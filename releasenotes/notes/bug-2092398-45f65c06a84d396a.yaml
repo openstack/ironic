@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    [`Bug 2092398 <https://bugs.launchpad.net/ironic/+bug/2092398>`_]
+    Fixes an issue with node servicing/cleaning that caused the node to enter
+    into `service failed` or `clean failed` state after doing a bmc firmware
+    update, due to the BMC being unresponsive to requests during the update.
+    Now when doing a BMC update, we wait some time before proceeding with the
+    reboot to finish the update.
+    The time is configurable and can be changed via the config option
+    ``[redfish]firmware_update_wait_unresponsive_bmc`` (default, 300 seconds)
+    or by setting ``firmware_update_unresponsive_bmc_wait`` in the
+    ``driver-info``.

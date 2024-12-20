@@ -71,7 +71,12 @@ OPTIONAL_PROPERTIES = {
     'redfish_auth_type': _('Redfish HTTP client authentication method. Can be '
                            '"basic", "session" or "auto". If not set, the '
                            'default value is taken from Ironic '
-                           'configuration as ``[redfish]auth_type`` option.')
+                           'configuration as ``[redfish]auth_type`` option.'),
+    'firmware_update_unresponsive_bmc_wait': _(
+        'Number of seconds to wait to avoid the BMC becoming unresponsive '
+        'during firmware updates. If not set, the default value is taken from '
+        'the Ironic configuration ``firmware_update_wait_unresponsive_bmc`` '
+        'in the ``[redfish]`` section.')
 }
 
 COMMON_PROPERTIES = REQUIRED_PROPERTIES.copy()
@@ -192,6 +197,10 @@ def parse_driver_info(node):
                     'node_uuid': node.uuid}
     if root_prefix:
         sushy_params['root_prefix'] = root_prefix
+
+    unres_bmc_wait = driver_info.get('firmware_update_unresponsive_bmc_wait')
+    if unres_bmc_wait:
+        sushy_params['firmware_update_unresponsive_bmc_wait'] = unres_bmc_wait
 
     return sushy_params
 

@@ -90,6 +90,11 @@ opts = [
                default=60,
                help=_('Number of seconds to wait between checking for '
                       'failed firmware update tasks')),
+    cfg.IntOpt('firmware_update_wait_unresponsive_bmc',
+               min=0,
+               default=300,
+               help=_('Number of seconds to wait before proceeding with the '
+                      'reboot to finish the BMC firmware update step')),
     cfg.StrOpt('firmware_source',
                choices=[('http', _('If firmware source URL is also HTTP, then '
                                    'serve from original location, otherwise '
