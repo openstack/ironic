@@ -155,7 +155,9 @@ class ISOImageCache(image_cache.ImageCache):
             # MiB -> B
             cache_size=CONF.deploy.iso_cache_size * 1024 * 1024,
             # min -> sec
-            cache_ttl=CONF.deploy.iso_cache_ttl * 60)
+            cache_ttl=CONF.deploy.iso_cache_ttl * 60,
+            # disable image format inspection and safety checks for ISO
+            disable_validation=True, force_raw=False)
 
 
 def _get_name(node, prefix='', suffix=''):
