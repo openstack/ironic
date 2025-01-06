@@ -272,7 +272,8 @@ class Parameters(Directive):
         for field_name in input_dict:
             old_field_body = input_dict[field_name]
             if old_field_body in yaml_data.keys():
-                input_dict[field_name] = yaml_data[old_field_body]["description"]
+                input_dict[field_name] = \
+                    yaml_data[old_field_body]["description"]
 
         # Convert dictionary to bullet list format
         params_build_env = self.state.document.settings.env
@@ -327,7 +328,8 @@ class Return(Directive):
             failure_detail = create_bullet_list(failure_dict, ret_build_env)
             ret_table_contents += failure_detail
 
-        if len(initial_list) > 0 or len(success_list) > 0 or len(proc_fail_list) > 0:
+        if (len(initial_list) > 0 or len(success_list) > 0 or
+            len(proc_fail_list) > 0):
             # Create a table to display the final Returns directive output
             ret_table = create_table('Returns', ret_table_contents)
             return [ret_table]

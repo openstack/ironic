@@ -121,10 +121,12 @@ master_doc = 'index'
 # General information about the project.
 copyright = 'OpenStack Foundation'
 
-config_generator_config_file = '../../tools/config/ironic-config-generator.conf'
+config_generator_config_file = \
+    '../../tools/config/ironic-config-generator.conf'
 sample_config_basename = '_static/ironic'
 
-policy_generator_config_file = '../../tools/policy/ironic-policy-generator.conf'
+policy_generator_config_file = \
+    '../../tools/policy/ironic-policy-generator.conf'
 sample_policy_basename = '_static/ironic'
 
 # A list of ignored prefixes for module index sorting.
