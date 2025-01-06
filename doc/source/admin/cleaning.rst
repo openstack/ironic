@@ -84,8 +84,8 @@ Clean steps specific to storage are ``erase_devices``,
 ``erase_devices_metadata`` and (added in Yoga) ``erase_devices_express``.
 
 ``erase_devices`` aims to ensure that the data is removed in the most secure
-way available. On devices that support hardware assisted secure erasure
-(many NVMe and some ATA drives) this is the preferred option. If
+way available. On devices that support hardware-assisted secure erasure
+(many NVMe and some ATA drives), this is the preferred option. If
 hardware-assisted secure erasure is not available and if
 :oslo.config:option:`deploy.continue_if_disk_secure_erase_fails` is set to
 ``True``, cleaning will fall back to using ``shred`` to overwrite the
@@ -95,24 +95,24 @@ data security.
 
 .. note::
    ``erase_devices`` may take a very long time (hours or even days) to
-   complete, unless fast, hardware assisted data erasure is supported by
+   complete, unless fast, hardware-assisted data erasure is supported by
    all the devices in a system.
 
 ``erase_devices_metadata`` clean step doesn't provide as strong assurance
 of irreversible destruction of data as ``erase_devices``. However, it has the
 advantage of a reasonably quick runtime (seconds to minutes). It operates by
-destroying metadata of the storage device without erasing every bit of the
-data itself. Attempts of restoring data after running
+destroying the metadata of the storage device without erasing every bit of the
+data itself. Attempts to restore data after running
 ``erase_devices_metadata`` may be successful but would certainly require
 relevant expertise and specialized tools.
 
 Lastly, ``erase_devices_express`` combines some of the perks of both
 ``erase_devices`` and ``erase_devices_metadata``. It attempts to utilize
-hardware assisted data erasure features if available (currently only NVMe
-devices are supported). In case hardware-asssisted data erasure is not
+hardware-assisted data erasure features if available (currently only NVMe
+devices are supported). In case hardware-assisted data erasure is not
 available, it falls back to metadata erasure for the device (which is
 identical to ``erase_devices_metadata``). It can be considered a
-time optimized mode of storage cleaning, aiming to perform as thorough
+time-optimized mode of storage cleaning, aiming to perform as thorough
 data erasure as it is possible within a short period of time.
 This clean step is particularly well suited for environments with hybrid
 NVMe-HDD storage configuration as it allows fast and secure erasure of data
@@ -120,7 +120,7 @@ stored on NVMes combined with equally fast but more basic metadata-based
 erasure of data on commodity HDDs.
 
 By default, Ironic will use ``erase_devices_metadata`` early in cleaning
-for reliability (ensuring a node cannot reboot into it's old workload) and
+for reliability (ensuring a node cannot reboot into its old workload) and
 ``erase_devices`` later in cleaning to securely erase the drive;
 ``erase_devices_express`` is disabled.
 
@@ -161,7 +161,7 @@ This list may not be comprehensive. Please review ironic.conf.sample
 
 .. warning::
   Ironic automated cleaning is defaulted to a secure configuration. You should
-  not modify settings related to it unless you are have special hardware needs,
+  not modify settings related to it unless you have special hardware needs
   or a unique use case. Misconfigurations can lead to data exposure
   vulnerabilities.
 
@@ -173,7 +173,7 @@ This list may not be comprehensive. Please review ironic.conf.sample
 Manual cleaning
 ===============
 
-``Manual cleaning`` is typically used to handle long running, manual, or
+``Manual cleaning`` is typically used to handle long-running, manual, or
 destructive tasks that an operator wishes to perform either before the first
 workload has been assigned to a node or between workloads. When initiating a
 manual clean, the operator specifies the cleaning steps to be performed.
@@ -381,7 +381,7 @@ priority.
 
 Changing the priority of an in-band (ironic-python-agent) cleaning step
 requires use of :oslo.config:option:`conductor.clean_step_priority_override`,
-a configuration option which allows specifying priority of each step using
+a configuration option that allows specifying the priority of each step using
 multiple configuration values:
 
 .. code-block:: ini
@@ -421,7 +421,7 @@ Why can't I power on/off a node while it's cleaning?
 ----------------------------------------------------
 During cleaning, nodes may be performing actions that shouldn't be
 interrupted, such as BIOS or Firmware updates. As a result, operators are
-forbidden from changing power state via the ironic API while a node is
+forbidden from changing the power state via the ironic API while a node is
 cleaning.
 
 Advanced topics
@@ -436,7 +436,7 @@ account child nodes. Mainly, the concept of executing clean steps in relation
 to child nodes.
 
 In this context, a child node is primarily intended to be an embedded device
-with it's own management controller. For example "SmartNIC's" or Data
+with its own management controller. For example "SmartNIC's" or Data
 Processing Units (DPUs) which may have their own management controller and
 power control.
 
@@ -447,9 +447,9 @@ The relationship between a parent node and a child node is established on the ch
 Child Node Clean Step Execution
 -------------------------------
 
-You can execute steps which perform actions on child nodes. For example,
+You can execute steps that perform actions on child nodes. For example,
 turn them on (via step ``power_on``), off (via step ``power_off``), or to
-signal a BMC controlled reboot (via step ``reboot``).
+signal a BMC-controlled reboot (via step ``reboot``).
 
 For example, if you need to explicitly power off child node power, before
 performing another step, you can articulate it with a step such as::
@@ -501,8 +501,8 @@ If cleaning fails on a node, the node will be put into ``clean failed`` state.
 If the failure happens while running a clean step, the node is also placed in
 maintenance mode to prevent ironic from taking actions on the node. The
 operator should validate that no permanent damage has been done to the
-node and no processes are still running on it before removing the maintenance
-mode.
+node and that no processes are still running on it before removing the
+maintenance mode.
 
 .. note:: Older versions of ironic may put the node to maintenance even when
           no clean step has been running.

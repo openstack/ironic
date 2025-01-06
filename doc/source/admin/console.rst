@@ -7,9 +7,9 @@ Configuring Web or Serial Console
 Overview
 --------
 
-There are two types of console which are available in Bare Metal service,
+There are two types of consoles which are available in Bare Metal service,
 one is web console (`Node web console`_) which is available directly from web
-browser, another is serial console (`Node serial console`_).
+browser, and another is serial console (`Node serial console`_).
 
 Node web console
 ----------------
@@ -17,14 +17,14 @@ Node web console
 The web console can be configured in Bare Metal service in the following way:
 
 * Install shellinabox in ironic conductor node. For RHEL/CentOS, shellinabox package
-  is not present in base repositories, user must enable EPEL repository, you can find
-  more from `FedoraProject page`_.
+  is not present in base repositories, the user must enable EPEL repository, you can
+  find more from `FedoraProject page`_.
 
   .. note::
 
      shellinabox is no longer maintained by the authorized author.
      `This <https://github.com/shellinabox/shellinabox>`_ is a fork of the
-     project on GitHub that aims to continue with maintenance of the
+     project on GitHub that aims to continue with the maintenance of the
      shellinabox project.
 
   Installation example:
@@ -66,7 +66,7 @@ The web console can be configured in Bare Metal service in the following way:
 * Customize the console section in the Bare Metal service configuration
   file (/etc/ironic/ironic.conf), if you want to use SSL certificate in
   shellinabox, you should specify ``terminal_cert_dir``.
-  for example::
+  For example::
 
    [console]
 
@@ -147,9 +147,9 @@ The web console can be configured in Bare Metal service in the following way:
    | console_info    | {u'url': u'http://<url>:<customized_port>', u'type': u'shellinabox'} |
    +-----------------+----------------------------------------------------------------------+
 
-  You can open web console using above ``url`` through web browser. If ``console_enabled`` is
-  ``false``, ``console_info`` is ``None``, web console is disabled. If you want to launch web
-  console, see the ``Configure node web console`` part.
+  You can open the web console using the above ``url`` through web browser. If
+  ``console_enabled`` is ``false``, ``console_info`` is ``None``, web console is disabled.
+  If you want to launch the web console, see the ``Configure node web console`` part.
 
   .. note::
 
@@ -235,7 +235,7 @@ If ``console_enabled`` is ``false`` or ``console_info`` is ``None`` then
 the serial console is disabled. If you want to launch serial console, see the
 ``Configure node console``.
 
-Node serial console of the Bare Metal service is compatible with the
+The node serial console of the Bare Metal service is compatible with the
 serial console of the Compute service. Hence, serial consoles to
 Bare Metal nodes can be seen and interacted with via the Dashboard service.
 In order to achieve that, you need to follow the documentation for
@@ -269,7 +269,7 @@ configuration, you may consider some settings below.
 
 * The Compute service's caching feature may need to be enabled in order
   to make the Bare Metal serial console work under a HA configuration.
-  Here is an example of caching configuration in ``nova.conf``.
+  Here is an example of a caching configuration in ``nova.conf``.
 
   .. code-block:: ini
 

@@ -7,13 +7,13 @@ Conductor Groups
 Overview
 ========
 
-Large scale operators tend to have needs that involve creating
-well defined and delinated resources. In some cases, these systems
-may reside close by or in far away locations. Reasoning may be simple
+Large-scale operators tend to have needs that involve creating
+well-defined and delineated resources. In some cases, these systems
+may reside close by or in faraway locations. The reasoning may be simple
 or complex, and yet is only known to the deployer and operator of the
 infrastructure.
 
-A common case is the need for delineated high availability domains
+A common case is the need for delineated high-availability domains
 where it would be much more efficient to manage a datacenter in Antarctica
 with a conductor in Antarctica, as opposed to a conductor in New York City.
 
@@ -44,7 +44,7 @@ only managing nodes with a matching ``conductor_group`` string.
 How to use
 ==========
 
-A conductor group value may be any case insensitive string up to 255
+A conductor group value may be any case-insensitive string up to 255
 characters long which matches the ``^[a-zA-Z0-9_\-\.]*$`` regular
 expression.
 
@@ -61,6 +61,6 @@ expression.
     baremetal node set \
         --conductor-group "OperatorDefinedString" <uuid>
 
-#. As desired and as needed, remaining conductors can be updated with
+#. As desired and as needed, the remaining conductors can be updated with
    the first two steps. Please be mindful of the constraints covered
-   earlier in the document related to ability to manage nodes.
+   earlier in the document related to the ability to manage nodes.
