@@ -10,13 +10,14 @@ Overview
 Workflows to onboard new hardware often include a stress-testing step to
 provoke early failures and to avoid that these load-triggered issues only
 occur when the nodes have already moved to production. These ``burn-in``
-tests typically include CPU, memory, disk, and network. With the Xena
+tests typically include CPU, GPU, memory, disk, and network. With the Xena
 release, Ironic supports such tests as part of the cleaning framework.
 
 The burn-in steps rely on standard tools such as
 `stress-ng <https://wiki.ubuntu.com/Kernel/Reference/stress-ng>`_ for CPU
-and memory, or `fio <https://fio.readthedocs.io/en/latest/>`_ for disk and
-network. The burn-in cleaning steps are part of the generic hardware manager
+and memory, `fio <https://fio.readthedocs.io/en/latest/>`_ for disk and
+network, or `gpu-burn <https://github.com/wilicc/gpu-burn>`_ for GPU tests.
+The burn-in cleaning steps are part of the generic hardware manager
 in the Ironic Python Agent (IPA) and therefore the agent ramdisk does not
 need to be bundled with a specific
 :ironic-python-agent-doc:`IPA hardware manager
@@ -200,6 +201,41 @@ The actual network burn-in can then be launched with:
 
 Both nodes will wait for the other node to show up and block while waiting.
 If the partner does not show up, the cleaning timeout will step in.
+
+GPU burn-in
+============
+
+The GPU burn-in tests come in two parts:
+
+* Check that the correct number of GPUs are visible by the operating system
+* GPU burn-in test using `gpu-burn <https://github.com/wilicc/gpu-burn>`_
+
+The first check will only be performed if the option
+``agent_burnin_gpu_count`` has been set to a value above 0.
+
+The options, following a ``agent_burnin_`` + gpu stressor (``gpu``) option
+schema, are:
+
+* ``agent_burnin_gpu_install_dir`` (default: /opt/gpu-burn)
+* ``agent_burnin_gpu_timeout`` (default: 24 hours)
+* ``agent_burnin_gpu_memory`` (default: 95%)
+* ``agent_burnin_gpu_count`` (default: 0, The GPU count check is disabled by
+  default)
+
+For instance, in order to limit the time of the GPU burn-in to 10 minutes
+do:
+
+.. code-block:: console
+
+    baremetal node set --driver-info agent_burnin_gpu_timeout=600 \
+        $NODE_NAME_OR_UUID
+
+Then launch the test with:
+
+.. code-block:: console
+
+   baremetal node clean --clean-steps '[{"step": "burnin_gpu", \
+       "interface": "deploy"}]' $NODE_NAME_OR_UUID
 
 Logging
 =======
