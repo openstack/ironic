@@ -1,0 +1,14 @@
+---
+fixes:
+  - |
+    The image format inspection and image safety check have been disabled
+    for ISO images cached by Ironic. The feature has been disabled in order
+    to fix issues originally described in bug 2091611. On occasion Ironic has
+    detected multiple image formats for ISO image that contained GPT, the
+    issue originated from the fact that by default the oslo_utils.imageutils
+    library handles the GPT partition table format as additional image format
+    but allows only 1 image format for each image and throws an error if it
+    detects gpt+iso. As the image inspection and safety check was intended to
+    fix a security problem related to qemu-img-tools and qcow images, it has
+    been decided that the inspection and safety check can be disabled ISO
+    images without degrading Ironic's security.

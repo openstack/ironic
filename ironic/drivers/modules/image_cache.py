@@ -52,7 +52,7 @@ class ImageCache(object):
     """Class handling access to cache for master images."""
 
     def __init__(self, master_dir, cache_size, cache_ttl,
-                 disable_validation=False):
+                 disable_validation=False, force_raw=True):
         """Constructor.
 
         :param master_dir: cache directory to work on
@@ -64,11 +64,12 @@ class ImageCache(object):
         self.master_dir = master_dir
         self._cache_size = cache_size
         self._cache_ttl = cache_ttl
+        self._force_raw = force_raw
+        self._disable_validation = disable_validation
         if master_dir is not None:
             fileutils.ensure_tree(master_dir)
-        self._disable_validation = disable_validation
 
-    def fetch_image(self, href, dest_path, ctx=None, force_raw=True,
+    def fetch_image(self, href, dest_path, ctx=None, force_raw=None,
                     expected_format=None, expected_checksum=None,
                     expected_checksum_algo=None):
         """Fetch image by given href to the destination path.
@@ -90,6 +91,7 @@ class ImageCache(object):
         :param expected_checksum_algo: The expected image checksum algorithm,
                                        if needed/supplied.
         """
+        force_raw = force_raw if force_raw is not None else self._force_raw
         if expected_format is not None and self._disable_validation:
             raise AssertionError("BUG: passing expected_format to caches with "
                                  "disabled validation makes no sense")
@@ -176,9 +178,8 @@ class ImageCache(object):
         self.clean_up()
 
     def _download_image(self, href, master_path, dest_path, img_info,
-                        ctx=None, force_raw=True, expected_format=None,
-                        expected_checksum=None,
-                        expected_checksum_algo=None):
+                        ctx=None, force_raw=None, expected_format=None,
+                        expected_checksum=None, expected_checksum_algo=None):
         """Download image by href and store at a given path.
 
         This method should be called with uuid-specific lock taken.
@@ -201,7 +202,7 @@ class ImageCache(object):
         # TODO(ghe): logging when image cannot be created
         tmp_dir = tempfile.mkdtemp(dir=self.master_dir)
         tmp_path = os.path.join(tmp_dir, os.path.basename(master_path))
-
+        force_raw = force_raw if force_raw is not None else self._force_raw
         try:
             with _concurrency_semaphore:
                 _fetch(ctx, href, tmp_path, force_raw, expected_format,
@@ -371,8 +372,9 @@ def _free_disk_space_for(path):
     return stat.f_frsize * stat.f_bavail
 
 
-def _fetch(context, image_href, path, force_raw=False, expected_format=None,
-           expected_checksum=None, expected_checksum_algo=None,
+def _fetch(context, image_href, path, force_raw=False,
+           expected_format=None, expected_checksum=None,
+           expected_checksum_algo=None,
            disable_validation=False):
     """Fetch image and convert to raw format if needed."""
     assert not (disable_validation and expected_format)

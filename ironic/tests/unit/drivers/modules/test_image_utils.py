@@ -18,14 +18,18 @@ import os
 import tempfile
 from unittest import mock
 
+from oslo_config import cfg
 from oslo_utils import uuidutils
 
+from ironic.common import image_service
 from ironic.common import images
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.drivers.modules import deploy_utils
+from ironic.drivers.modules import image_cache
 from ironic.drivers.modules import image_utils
+from ironic.tests import base
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.db import utils as db_utils
 from ironic.tests.unit.objects import utils as obj_utils
@@ -33,6 +37,45 @@ from ironic.tests.unit.objects import utils as obj_utils
 
 INFO_DICT = db_utils.get_test_redfish_info()
 INFO_DICT_ILO = db_utils.get_test_ilo_info()
+
+
+@mock.patch.object(image_service, 'get_image_service', autospec=True)
+@mock.patch.object(image_cache.ImageCache, 'clean_up', autospec=True)
+class ISOCacheTestCase(base.TestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.master_dir = tempfile.mkdtemp()
+        cfg.CONF.set_override('iso_master_path', self.master_dir,
+                              group='deploy')
+        self.cache = image_utils.ISOImageCache()
+        self.dest_dir = tempfile.mkdtemp()
+        self.dest_path = os.path.join(self.dest_dir, 'dest')
+        self.uuid = uuidutils.generate_uuid()
+        self.master_path = ''.join([os.path.join(self.master_dir, self.uuid),
+                                    '.converted'])
+        self.img_info = {}
+
+    @mock.patch.object(image_cache.ImageCache, '_download_image',
+                       autospec=True)
+    @mock.patch.object(image_cache, '_fetch', autospec=True)
+    def test_fetch_image_iso(self, mock_fetch, mock_download, mock_clean_up,
+                             mock_image_service):
+        self.cache.master_dir = None
+        self.cache.fetch_image(self.uuid, self.dest_path)
+        mock_fetch.assert_called_once_with(mock.ANY, self.uuid, self.dest_path,
+                                           False, mock.ANY, mock.ANY, mock.ANY,
+                                           disable_validation=True)
+
+    @mock.patch.object(os, 'link', autospec=True)
+    @mock.patch.object(image_cache, '_fetch', autospec=True)
+    def test__download_image_iso(self, mock_fetch, mock_link, mock_clean_up,
+                                 mock_image_service):
+        self.cache._download_image(self.uuid, self.master_path, self.dest_path,
+                                   self.img_info)
+        mock_fetch.assert_called_once_with(mock.ANY, self.uuid, mock.ANY,
+                                           False, mock.ANY, mock.ANY, mock.ANY,
+                                           disable_validation=True)
 
 
 class RedfishImageHandlerTestCase(db_base.DbTestCase):
