@@ -141,8 +141,8 @@ To leave some version space for releases from these branches, releases of these
 projects from the master branch always increase either the major or the minor
 version.
 
-Currently releases and retirements from bugfix branches cannot be automated and
-must be done by the release team manually.
+Currently retirement of bugfix branches cannot be automated and
+must be done by the ironic team manually as explained below.
 
 There are usually 3 bugfix branches present at all time, the latest 2 are
 actively maintained, while the third one is considered unmaintained.
@@ -190,12 +190,16 @@ the creation of a new one:
 
    git push gerrit --delete bugfix/24.0
 
-After the creation of a bugfix branch it may be necessary to update
+After the creation of a bugfix branch it is highly recommended to update
 the upper-constraints link for the tests in the tox.ini file, plus override
 the branch for the requirements project to be sure to use the correct
-upper-constraints; for example see the following change:
+upper-constraints from the branch creation time; for example see the
+following change:
 
-https://review.opendev.org/c/openstack/Ironic-python-agent/+/841290
+https://review.opendev.org/c/openstack/ironic/+/938660
+
+It is also mandatory to comment out the metal3 integration job as it is not
+supposed to run in stable or bugfix branches.
 
 Things to do before releasing
 =============================
