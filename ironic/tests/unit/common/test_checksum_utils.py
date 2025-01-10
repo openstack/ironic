@@ -17,6 +17,7 @@
 from unittest import mock
 
 from oslo_config import cfg
+from oslo_utils import fileutils
 
 from ironic.common import checksum_utils
 from ironic.common import exception
@@ -148,6 +149,18 @@ class IronicChecksumUtilsTestCase(base.TestCase):
         mock_get.assert_called_once_with(value, 'image-ref')
         self.assertEqual('f' * 128, csum)
         self.assertEqual('sha512', algo)
+
+    @mock.patch.object(fileutils, 'compute_file_checksum', autospec=True)
+    def test_get_checksum_and_algo_no_checksum_file_url(self, mock_cfc):
+        i_info = {
+            'image_source': 'file:///var/lib/ironic/images/foo.raw'
+        }
+        mock_cfc.return_value = 'f' * 64
+        csum, algo = checksum_utils.get_checksum_and_algo(i_info)
+        mock_cfc.assert_called_once_with('/var/lib/ironic/images/foo.raw',
+                                         algorithm='sha256')
+        self.assertEqual('f' * 64, csum)
+        self.assertEqual('sha256', algo)
 
 
 @mock.patch.object(image_service.HttpImageService, 'get',
