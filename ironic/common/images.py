@@ -417,6 +417,34 @@ def fetch_into(context, image_href, image_file,
     return None
 
 
+def _handle_zstd_compression(path):
+    zstd_comp = False
+    with open(path, 'rb') as comp_check:
+        # Check for zstd compression. Zstd has a variable window for streaming
+        # clients with transparent connections, and 128 byte blocks.
+        # Ultimately, requests can't support handling of such content without
+        # the zstandard library (bsd), but that is not available in global
+        # requirements. As such, and likely best complexity wise, if we find it
+        # we can handle it directly.
+        # https://github.com/facebook/zstd/blob/dev/doc/zstd_compression_format.md
+        # Ensure we're at the start of the file
+        comp_check.seek(0)
+        read = comp_check.read(4)
+        if read.startswith(b"\x28\xb5\x2f\xfd"):
+            zstd_comp = True
+
+    if zstd_comp and not CONF.conductor.disable_zstandard_decompression:
+        temp_path = path + '.zstd'
+        shutil.move(path, temp_path)
+        try:
+            utils.execute('zstd', '-d', '--rm', temp_path)
+        except OSError as e:
+            LOG.error('Failed to decompress a zstd compressed file: %s', e)
+            # Restore the downloaded file... We might want to fail the
+            # entire process.
+            shutil.move(temp_path, path)
+
+
 def fetch(context, image_href, path, force_raw=False,
           checksum=None, checksum_algo=None,
           image_auth_data=None):
@@ -428,8 +456,11 @@ def fetch(context, image_href, path, force_raw=False,
                 and checksum):
             checksum_utils.validate_checksum(path, checksum, checksum_algo)
 
-    # FIXME(TheJulia): need to check if we need to extract the file
-    # i.e. zstd... before forcing raw.
+    # Check and decompress zstd files, since python-requests realistically
+    # can't do it for us as-is. Also, some OCI container registry artifacts
+    # may generally just be zstd compressed, regardless if it is a raw file
+    # or a qcow2 file.
+    _handle_zstd_compression(path)
 
     if force_raw:
         image_to_raw(image_href, path, "%s.part" % path)
