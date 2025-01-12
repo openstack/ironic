@@ -61,7 +61,7 @@ The different attributes of the ``update_firmware`` cleaning step are as follows
     "``args``", "Keyword-argument entry (<name>: <value>) being passed to the step"
     "``args.firmware_images``", "Ordered list of dictionaries of firmware images to be applied"
 
-Each firmware image dictionary, is of the form::
+Each firmware image dictionary is of the form::
 
     {
       "url": "<URL of firmware image file>",
@@ -101,8 +101,8 @@ Next, construct the JSON for the firmware update cleaning step to be executed.
 When launching the firmware update, the JSON may be specified on the command
 line directly or in a file. The following example shows one cleaning step that
 installs four firmware updates. All except 3rd entry that has explicit
-``source`` added, uses setting from :oslo.config:option:`redfish.firmware_source` to determine
-if and where to stage the files:
+``source`` added, uses the setting from :oslo.config:option:`redfish.firmware_source`
+to determine if and where to stage the files:
 
 .. code-block:: json
 
@@ -195,7 +195,7 @@ The different attributes of the ``update`` step are as follows:
     "``args``", "Keyword-argument entry (<name>: <value>) being passed to the step"
     "``args.settings``", "Ordered list of dictionaries of firmware updates to be applied"
 
-Each firmware image dictionary, is of the form::
+Each firmware image dictionary is of the form::
 
     {
       "component": "The desired component to have the firmware updated, only bios and bmc are currently supported",
@@ -280,7 +280,7 @@ In the following example, the JSON is specified directly on the command line:
        '[{"interface": "firmware", "step": "update", "args": {"settings":[{"component": "bios", "url":"http://192.168.0.8:8080/bios.bin"}]}}]'
 
 .. note::
-   For Dell machines you must extract the firmimgFIT.d9 from the iDRAC.exe
+   For Dell machines, you must extract the firmimgFIT.d9 from the iDRAC.exe
    This can be done using the command ``7za e iDRAC_<VERSION>.exe``.
 
 .. note::

@@ -8,11 +8,11 @@ It is first booted during in-band inspection or cleaning (whatever happens
 first) and is only shut down before rebooting into the final instance.
 Depending on the configuration, this mode can save several reboots and is
 particularly useful for scenarios where nodes are enrolled, prepared and
-provisioned within a short period of time.
+provisioned within a short time.
 
 .. warning::
    Fast track deployment targets standalone use cases and is only tested with
-   the ``noop`` networking. The case where inspection, cleaning and
+   the ``noop`` networking. The case where inspection, cleaning, and
    provisioning networks are different is not supported.
 
 .. note::
@@ -20,7 +20,7 @@ provisioned within a short period of time.
    side that may prevent agent heartbeats from being registered.
 
    For example, converting a large image to the raw format may take long enough
-   to reach the fast track timeout. In this case, you can either :ref:`use raw
+   to reach the fast-track timeout. In this case, you can either :ref:`use raw
    images <stream_raw_images>` or move the conversion to the agent side with:
 
    .. code-block:: ini
