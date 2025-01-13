@@ -285,7 +285,7 @@ class Portgroup(base.IronicObject, object_base.VersionedObjectDictCompat):
         :raises: PortgroupNotEmpty, PortgroupNotFound
 
         """
-        self.dbapi.destroy_portgroup(self.uuid)
+        self.dbapi.destroy_portgroup(self.id)
         self.obj_reset_changes()
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable

@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix portgroup deletion failure by resolving id/uuid mix-up and adding a
+    port-to-portgroup join query.
