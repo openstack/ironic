@@ -163,7 +163,8 @@
       Test ironic standalone configured with redfish hardware type, ansible and
       direct and ansible deploy interfaces, rescue it's not enabled.
     required-projects:
-      - opendev.org/openstack/sushy-tools
+      - name: opendev.org/openstack/sushy-tools
+        override-checkout: 1.3.0
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -223,7 +224,8 @@
       Test ironic with the anaconda deployment interface.
       Test also uses Redfish.
     required-projects:
-      - opendev.org/openstack/sushy-tools
+      - name: opendev.org/openstack/sushy-tools
+        override-checkout: 1.3.0
     irrelevant-files:
       - ^.*\.rst$
       - ^api-ref/.*$
@@ -263,7 +265,8 @@
     description: "Deploy ironic node over PXE using BIOS boot mode"
     parent: ironic-tempest-uefi-redfish-vmedia
     required-projects:
-      - opendev.org/openstack/sushy-tools
+      - name: opendev.org/openstack/sushy-tools
+        override-checkout: 1.3.0
     vars:
       devstack_localrc:
         IRONIC_ENABLED_BOOT_INTERFACES: ipxe
