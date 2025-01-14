@@ -17,7 +17,6 @@ import os
 import ssl
 import time
 
-from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_serialization import jsonutils
 from oslo_utils import excutils
@@ -27,6 +26,7 @@ import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.common import utils
 from ironic.conf import CONF
 

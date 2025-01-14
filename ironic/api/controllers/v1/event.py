@@ -12,7 +12,6 @@
 
 from http import client as http_client
 
-from ironic_lib import metrics_utils
 from oslo_log import log
 import pecan
 
@@ -20,6 +19,7 @@ from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import method
 from ironic.common import args
 from ironic.common import exception
+from ironic.common import metrics_utils
 
 METRICS = metrics_utils.get_metrics_logger(__name__)
 

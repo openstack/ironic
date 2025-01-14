@@ -15,7 +15,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from ironic_lib import auth_basic
 import keystonemiddleware.audit as audit_middleware
 from keystonemiddleware import auth_token
 from oslo_config import cfg
@@ -31,6 +30,7 @@ from ironic.api import hooks
 from ironic.api import middleware
 from ironic.api.middleware import auth_public_routes
 from ironic.api.middleware import json_ext
+from ironic.common import auth_basic
 from ironic.common import exception
 from ironic.conf import CONF
 

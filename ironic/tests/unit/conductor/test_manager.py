@@ -26,7 +26,6 @@ from unittest import mock
 
 import eventlet
 from futurist import waiters
-from ironic_lib import metrics as ironic_metrics
 from oslo_config import cfg
 import oslo_messaging as messaging
 from oslo_utils import uuidutils
@@ -42,6 +41,7 @@ from ironic.common import exception
 from ironic.common import faults
 from ironic.common import images
 from ironic.common import indicator_states
+from ironic.common import metrics as ironic_metrics
 from ironic.common import nova
 from ironic.common import states
 from ironic.conductor import cleaning

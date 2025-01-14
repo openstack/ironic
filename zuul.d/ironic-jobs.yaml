@@ -1104,7 +1104,6 @@
     required-projects:
       - opendev.org/openstack/grenade
       - opendev.org/openstack/ironic
-      - opendev.org/openstack/ironic-lib
       - opendev.org/openstack/ironic-python-agent
       - opendev.org/openstack/ironic-python-agent-builder
       - opendev.org/openstack/ironic-tempest-plugin

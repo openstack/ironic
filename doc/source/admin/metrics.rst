@@ -87,8 +87,6 @@ or via notifier plugin (such as is done with ironic-prometheus-exporter).
    Ironic service model. A separate webserver process presently does not have
    the capability of triggering the call to retrieve and transmit the data.
 
-.. NOTE::
-   This functionality requires ironic-lib version 5.4.0 to be installed.
 
 Types of Metrics Emitted
 ========================

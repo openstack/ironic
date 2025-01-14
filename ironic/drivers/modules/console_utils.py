@@ -28,7 +28,6 @@ import socket
 import subprocess
 import time
 
-from ironic_lib import utils as ironic_utils
 from oslo_concurrency import lockutils
 from oslo_log import log as logging
 from oslo_service import loopingcall
@@ -134,7 +133,7 @@ def _stop_console(node_uuid):
             LOG.warning("Console process for node %s is not running "
                         "but pid file exists.", node_uuid)
     finally:
-        ironic_utils.unlink_without_raise(_get_console_pid_file(node_uuid))
+        utils.unlink_without_raise(_get_console_pid_file(node_uuid))
 
 
 def make_persistent_password_file(path, password):

@@ -15,9 +15,11 @@ from oslo_log import log
 import ironic.conf
 
 
+# NOTE(JayF): Please keep this in ABC order by group (with DEFAULT first)
 _opts = [
     ('DEFAULT', ironic.conf.default.list_opts()),
     ('agent', ironic.conf.agent.opts),
+    ('anaconda', ironic.conf.anaconda.opts),
     ('ansible', ironic.conf.ansible.opts),
     ('api', ironic.conf.api.opts),
     ('audit', ironic.conf.audit.opts),
@@ -29,6 +31,7 @@ _opts = [
     ('dhcp', ironic.conf.dhcp.opts),
     ('disk_utils', ironic.conf.disk_utils.opts),
     ('drac', ironic.conf.drac.opts),
+    ('errors', ironic.conf.exception.opts),
     ('glance', ironic.conf.glance.list_opts()),
     ('healthcheck', ironic.conf.healthcheck.opts),
     ('ilo', ironic.conf.ilo.opts),
@@ -36,9 +39,10 @@ _opts = [
     ('inventory', ironic.conf.inventory.opts),
     ('ipmi', ironic.conf.ipmi.opts),
     ('irmc', ironic.conf.irmc.opts),
-    ('anaconda', ironic.conf.anaconda.opts),
+    ('json_rpc', ironic.conf.json_rpc.list_opts()),
+    ('mdns', ironic.conf.mdns.opts),
     ('metrics', ironic.conf.metrics.opts),
-    ('metrics_statsd', ironic.conf.metrics_statsd.opts),
+    ('metrics_statsd', ironic.conf.metrics.statsd_opts),
     ('molds', ironic.conf.molds.opts),
     ('neutron', ironic.conf.neutron.list_opts()),
     ('nova', ironic.conf.nova.list_opts()),

@@ -30,12 +30,12 @@ import tempfile
 import time
 from unittest import mock
 
-from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_service import loopingcall
 import psutil
 
 from ironic.common import exception
+from ironic.common import utils
 from ironic.drivers.modules import console_utils
 from ironic.drivers.modules import ipmitool as ipmi
 from ironic.tests.unit.db import base as db_base
@@ -147,7 +147,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                           console_utils._get_console_pid,
                           self.info['uuid'])
 
-    @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(utils, 'unlink_without_raise', autospec=True)
     @mock.patch.object(os, 'kill', autospec=True)
     @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
     def test__stop_console(self, mock_pid, mock_kill, mock_unlink):
@@ -164,7 +164,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_kill.assert_any_call(mock_pid.return_value, signal.SIGTERM)
         mock_unlink.assert_called_once_with(pid_file)
 
-    @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(utils, 'unlink_without_raise', autospec=True)
     @mock.patch.object(os, 'kill', autospec=True)
     @mock.patch.object(psutil, 'pid_exists', autospec=True, return_value=True)
     @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
@@ -181,7 +181,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         mock_kill.assert_any_call(mock_pid.return_value, signal.SIGKILL)
         mock_unlink.assert_called_once_with(pid_file)
 
-    @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(utils, 'unlink_without_raise', autospec=True)
     @mock.patch.object(os, 'kill', autospec=True)
     @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
     def test__stop_console_nopid(self, mock_pid, mock_kill, mock_unlink):
@@ -196,7 +196,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
         self.assertFalse(mock_kill.called)
         mock_unlink.assert_called_once_with(pid_file)
 
-    @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(utils, 'unlink_without_raise', autospec=True)
     @mock.patch.object(os, 'kill', autospec=True)
     @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
     def test__stop_console_shellinabox_not_running(self, mock_pid,
@@ -212,7 +212,7 @@ class ConsoleUtilsTestCase(db_base.DbTestCase):
                                           signal.SIGTERM)
         mock_unlink.assert_called_once_with(pid_file)
 
-    @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(utils, 'unlink_without_raise', autospec=True)
     @mock.patch.object(os, 'kill', autospec=True)
     @mock.patch.object(console_utils, '_get_console_pid', autospec=True)
     def test__stop_console_exception(self, mock_pid, mock_kill, mock_unlink):

@@ -24,7 +24,6 @@ import shutil
 import tempfile
 from unittest import mock
 
-from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_utils import importutils
 from oslo_utils import uuidutils
@@ -34,6 +33,7 @@ from ironic.common import exception
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import swift
+from ironic.common import utils
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils
 from ironic.drivers.modules.ilo import common as ilo_common
@@ -980,7 +980,7 @@ class IloCommonMethodsTestCase(BaseIloTest):
         copy_mock.assert_called_once_with(source, image_path)
         self.assertFalse(chmod_mock.called)
 
-    @mock.patch.object(ilo_common, 'ironic_utils', autospec=True)
+    @mock.patch.object(ilo_common, 'utils', autospec=True)
     def test_remove_image_from_web_server(self, utils_mock):
         # | GIVEN |
         CONF.set_override('http_url', 'http://x.y.z.a/webserver/', 'deploy')
@@ -1087,7 +1087,7 @@ class IloCommonMethodsTestCase(BaseIloTest):
                                                "alice_in_wonderland"),
                        'err': raised_exc})
 
-    @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
+    @mock.patch.object(utils, 'unlink_without_raise', spec_set=True,
                        autospec=True)
     @mock.patch.object(ilo_common, '_get_floppy_image_name', spec_set=True,
                        autospec=True)
@@ -1133,7 +1133,7 @@ class IloCommonMethodsTestCase(BaseIloTest):
             func_set_boot_device.assert_called_once_with(task,
                                                          boot_devices.CDROM)
 
-    @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
+    @mock.patch.object(utils, 'unlink_without_raise', spec_set=True,
                        autospec=True)
     def test_remove_single_or_list_of_files_with_file_list(self, unlink_mock):
         # | GIVEN |
@@ -1148,7 +1148,7 @@ class IloCommonMethodsTestCase(BaseIloTest):
                  mock.call('/any_path3/any_file3')]
         unlink_mock.assert_has_calls(calls)
 
-    @mock.patch.object(ironic_utils, 'unlink_without_raise', spec_set=True,
+    @mock.patch.object(utils, 'unlink_without_raise', spec_set=True,
                        autospec=True)
     def test_remove_single_or_list_of_files_with_file_str(self, unlink_mock):
         # | GIVEN |

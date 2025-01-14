@@ -13,13 +13,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from ironic_lib import metrics_utils
 from pecan import rest
 
 from ironic import api
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api import method
 from ironic.common import args
+from ironic.common import metrics_utils
 from ironic import objects
 
 METRICS = metrics_utils.get_metrics_logger(__name__)

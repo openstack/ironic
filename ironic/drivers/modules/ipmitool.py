@@ -37,8 +37,6 @@ import tempfile
 import time
 
 from eventlet.green import subprocess as green_subprocess
-from ironic_lib import metrics_utils
-from ironic_lib import utils as ironic_utils
 from oslo_concurrency import processutils
 from oslo_log import log as logging
 from oslo_utils import excutils
@@ -47,6 +45,7 @@ from oslo_utils import strutils
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import task_manager
@@ -1660,8 +1659,7 @@ class IPMIShellinaboxConsole(IPMIConsole):
         try:
             console_utils.stop_shellinabox_console(task.node.uuid)
         finally:
-            ironic_utils.unlink_without_raise(
-                _console_pwfile_path(task.node.uuid))
+            utils.unlink_without_raise(_console_pwfile_path(task.node.uuid))
         _release_allocated_port(task)
 
     def _exec_stop_console(self, driver_info):
@@ -1727,8 +1725,7 @@ class IPMISocatConsole(IPMIConsole):
         try:
             console_utils.stop_socat_console(task.node.uuid)
         finally:
-            ironic_utils.unlink_without_raise(
-                _console_pwfile_path(task.node.uuid))
+            utils.unlink_without_raise(_console_pwfile_path(task.node.uuid))
         self._exec_stop_console(driver_info)
         _release_allocated_port(task)
 

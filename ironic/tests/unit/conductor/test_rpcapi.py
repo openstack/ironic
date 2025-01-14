@@ -21,7 +21,6 @@ Unit Tests for :py:class:`ironic.conductor.rpcapi.ConductorAPI`.
 import copy
 from unittest import mock
 
-from ironic_lib.json_rpc import client as json_rpc
 from oslo_config import cfg
 import oslo_messaging as messaging
 from oslo_messaging import _utils as messaging_utils
@@ -31,6 +30,7 @@ from ironic.common import boot_modes
 from ironic.common import components
 from ironic.common import exception
 from ironic.common import indicator_states
+from ironic.common.json_rpc import client as json_rpc
 from ironic.common import release_mappings
 from ironic.common import rpc
 from ironic.common import states

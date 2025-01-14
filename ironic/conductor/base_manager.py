@@ -20,7 +20,6 @@ import eventlet
 import futurist
 from futurist import periodics
 from futurist import rejection
-from ironic_lib import mdns
 from oslo_db import exception as db_exception
 from oslo_log import log
 from oslo_utils import excutils
@@ -32,6 +31,7 @@ from ironic.common import driver_factory
 from ironic.common import exception
 from ironic.common import hash_ring
 from ironic.common.i18n import _
+from ironic.common import mdns
 from ironic.common import release_mappings as versions
 from ironic.common import rpc
 from ironic.common import states

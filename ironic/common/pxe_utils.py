@@ -20,7 +20,6 @@ import shutil
 import tempfile
 from urllib import parse as urlparse
 
-from ironic_lib import utils as ironic_utils
 import jinja2
 from oslo_concurrency import processutils
 from oslo_log import log as logging
@@ -108,7 +107,7 @@ def _link_mac_pxe_configs(task, ipxe_enabled=False):
     """
 
     def create_link(mac_path):
-        ironic_utils.unlink_without_raise(mac_path)
+        utils.unlink_without_raise(mac_path)
         relative_source_path = os.path.relpath(
             pxe_config_file_path, os.path.dirname(mac_path))
         utils.create_link_without_raise(relative_source_path, mac_path)
@@ -159,7 +158,7 @@ def _link_ip_address_pxe_configs(task, ipxe_enabled=False):
         ip_addrs = []
     for port_ip_address in ip_addrs:
         ip_address_path = _get_pxe_ip_address_path(port_ip_address)
-        ironic_utils.unlink_without_raise(ip_address_path)
+        utils.unlink_without_raise(ip_address_path)
         relative_source_path = os.path.relpath(
             pxe_config_file_path, os.path.dirname(ip_address_path))
         utils.create_link_without_raise(relative_source_path,
@@ -429,18 +428,19 @@ def clean_up_pxe_config(task, ipxe_enabled=False):
             except exception.FailedToGetIPAddressOnPort:
                 continue
             # Cleaning up config files created for grub2.
-            ironic_utils.unlink_without_raise(ip_address_path)
+            utils.unlink_without_raise(ip_address_path)
 
     for port in task.ports:
         client_id = port.extra.get('client-id')
         # syslinux, ipxe, etc.
-        ironic_utils.unlink_without_raise(
-            _get_pxe_mac_path(port.address, client_id=client_id,
+        utils.unlink_without_raise(
+            _get_pxe_mac_path(port.address,
+                              client_id=client_id,
                               ipxe_enabled=ipxe_enabled))
         # Grub2 MAC address based configuration
         for path in _get_pxe_grub_mac_path(port.address,
                                            ipxe_enabled=ipxe_enabled):
-            ironic_utils.unlink_without_raise(path)
+            utils.unlink_without_raise(path)
     utils.rmtree_without_raise(os.path.join(_get_root_dir(ipxe_enabled),
                                             task.node.uuid))
 
@@ -1348,7 +1348,7 @@ def clean_up_pxe_env(task, images_info, ipxe_enabled=False):
     """
     for label in images_info:
         path = images_info[label][1]
-        ironic_utils.unlink_without_raise(path)
+        utils.unlink_without_raise(path)
 
     clean_up_pxe_config(task, ipxe_enabled=ipxe_enabled)
     TFTPImageCache().clean_up()

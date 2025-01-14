@@ -14,7 +14,6 @@
 
 from urllib import parse as urlparse
 
-from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import strutils
 from oslo_utils import units
@@ -27,6 +26,7 @@ from ironic.common.glance_service import service_utils
 from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import images
+from ironic.common import metrics_utils
 from ironic.common import raid
 from ironic.common import states
 from ironic.common import utils

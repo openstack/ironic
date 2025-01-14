@@ -15,7 +15,6 @@ import os.path
 import shutil
 from urllib import parse as urlparse
 
-from ironic_lib import utils as ironic_utils
 from oslo_log import log
 
 from ironic.common import exception
@@ -114,7 +113,7 @@ class LocalPublisher(AbstractPublisher):
     def unpublish(self, file_name):
         published_file = os.path.join(
             CONF.deploy.http_root, self.image_subdir, file_name)
-        ironic_utils.unlink_without_raise(published_file)
+        utils.unlink_without_raise(published_file)
 
 
 class SwiftPublisher(AbstractPublisher):

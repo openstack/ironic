@@ -14,7 +14,6 @@
 
 import random
 
-from ironic_lib import metrics_utils
 from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import excutils
@@ -22,6 +21,7 @@ import tenacity
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic import objects

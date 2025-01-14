@@ -14,8 +14,6 @@ import os
 import shutil
 from unittest import mock
 
-from ironic_lib import utils as ironic_utils
-
 from ironic.common import image_publisher
 from ironic.common import utils
 from ironic.tests.unit.db import base as db_base
@@ -174,7 +172,7 @@ class LocalPublisherTestCase(db_base.DbTestCase):
         mock_chmod.assert_called_once_with('/httpboot/redfish/boot.iso',
                                            0o644)
 
-    @mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(utils, 'unlink_without_raise', autospec=True)
     def test_unpublish_local(self, mock_unlink):
         object_name = 'boot.iso'
         expected_file = '/httpboot/redfish/' + object_name

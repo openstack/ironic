@@ -17,7 +17,6 @@ import collections
 import time
 from urllib.parse import urlparse
 
-from ironic_lib import metrics_utils
 from oslo_log import log
 from oslo_utils import timeutils
 import sushy
@@ -28,6 +27,7 @@ from ironic.common import components
 from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import indicator_states
+from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import periodics

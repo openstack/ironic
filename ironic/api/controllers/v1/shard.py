@@ -10,7 +10,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from ironic_lib import metrics_utils
 from oslo_config import cfg
 import pecan
 
@@ -20,6 +19,7 @@ from ironic.api.controllers.v1 import versions
 from ironic.api import method
 from ironic.api import validation
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 
 
 CONF = cfg.CONF

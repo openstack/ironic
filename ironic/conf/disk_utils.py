@@ -14,7 +14,7 @@ from oslo_config import cfg
 
 
 # NOTE(TheJulia): If you make *any* chance to this code, you may need
-# to make an identitical or similar change to ironic-python-agent.
+# to make an identical or similar change to ironic-python-agent.
 # These options were  originally taken from ironic-lib upon the decision
 # to move the qemu-img image conversion calls into the projects in
 # order to simplify fixes related to them.

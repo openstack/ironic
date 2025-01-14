@@ -19,13 +19,13 @@ import uuid
 import eventlet
 import futurist
 from futurist import periodics
-from ironic_lib import mdns
 from oslo_config import cfg
 from oslo_db import exception as db_exception
 from oslo_utils import uuidutils
 
 from ironic.common import driver_factory
 from ironic.common import exception
+from ironic.common import mdns
 from ironic.common import states
 from ironic.common import utils as common_utils
 from ironic.conductor import base_manager

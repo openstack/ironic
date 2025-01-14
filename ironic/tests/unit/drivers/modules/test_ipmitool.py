@@ -31,7 +31,6 @@ import types
 from unittest import mock
 
 import fixtures
-from ironic_lib import utils as ironic_utils
 from oslo_concurrency import processutils
 from oslo_config import cfg
 from oslo_config import fixture as cfg_fixture
@@ -4463,10 +4462,8 @@ class IPMIToolSocatDriverTestCase(IPMIToolShellinaboxTestCase):
 
     @mock.patch.object(ipmi.IPMISocatConsole, '_exec_stop_console',
                        autospec=True)
-    @mock.patch.object(ironic_utils, 'unlink_without_raise',
-                       autospec=True)
-    @mock.patch.object(console_utils, 'stop_socat_console',
-                       autospec=True)
+    @mock.patch.object(utils, 'unlink_without_raise', autospec=True)
+    @mock.patch.object(console_utils, 'stop_socat_console', autospec=True)
     def test_stop_console_fail(self, mock_stop, mock_unlink, mock_exec_stop):
         mock_stop.side_effect = exception.ConsoleError()
 

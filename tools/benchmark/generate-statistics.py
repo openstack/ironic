@@ -16,7 +16,6 @@ import sys
 import time
 from unittest import mock
 
-from ironic_lib import metrics_utils
 import oslo_policy
 from oslo_utils import timeutils
 
@@ -24,6 +23,7 @@ from ironic.api.controllers.v1 import node as node_api
 from ironic.api.controllers.v1 import port as port_api
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.common import context
+from ironic.common import metrics_utils
 from ironic.common import service
 from ironic.conf import CONF  # noqa To Load Configuration
 from ironic.db import api as db_api

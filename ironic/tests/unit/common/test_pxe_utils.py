@@ -20,7 +20,6 @@ import shutil
 import tempfile
 from unittest import mock
 
-from ironic_lib import utils as ironic_utils
 from oslo_config import cfg
 from oslo_utils import fileutils
 from oslo_utils import uuidutils
@@ -381,7 +380,7 @@ class TestPXEUtils(db_base.DbTestCase):
         self.assertEqual(str(expected_template), rendered_template)
 
     @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
-    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
     def test__write_mac_pxe_configs(self, unlink_mock, create_link_mock):
         port_1 = object_utils.create_test_port(
             self.context, node_id=self.node.id,
@@ -419,7 +418,7 @@ class TestPXEUtils(db_base.DbTestCase):
         create_link_mock.assert_has_calls(create_link_calls)
 
     @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
-    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
     def test__write_infiniband_mac_pxe_configs(
             self, unlink_mock, create_link_mock):
         client_id1 = (
@@ -464,7 +463,7 @@ class TestPXEUtils(db_base.DbTestCase):
         create_link_mock.assert_has_calls(create_link_calls)
 
     @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
-    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
     def test__write_mac_ipxe_configs(self, unlink_mock, create_link_mock):
         port_1 = object_utils.create_test_port(
             self.context, node_id=self.node.id,
@@ -549,7 +548,7 @@ class TestPXEUtils(db_base.DbTestCase):
                 create_link_mock.mock_calls)
 
     @mock.patch('ironic.common.utils.create_link_without_raise', autospec=True)
-    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider',
                 autospec=True)
     def test__link_ip_address_pxe_configs(self, provider_mock, unlink_mock,
@@ -801,7 +800,7 @@ class TestPXEUtils(db_base.DbTestCase):
     @mock.patch('ironic.dhcp.neutron.NeutronDHCPApi.get_ip_addresses',
                 autospec=True)
     @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
-    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
     def test_clean_up_pxe_config(self, unlink_mock, rmtree_mock,
                                  mock_get_ip_addr):
         address = "aa:aa:aa:aa:aa:aa"
@@ -1096,7 +1095,7 @@ class TestPXEUtils(db_base.DbTestCase):
                                            ipxe_enabled=True)
 
     @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
-    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider',
                 autospec=True)
     def test_clean_up_pxe_config_uefi(self, provider_mock, unlink_mock,
@@ -1124,7 +1123,7 @@ class TestPXEUtils(db_base.DbTestCase):
                 os.path.join(CONF.pxe.tftp_root, self.node.uuid))
 
     @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
-    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider',
                 autospec=True)
     def test_clean_up_pxe_config_uefi_mac_address(
@@ -1154,7 +1153,7 @@ class TestPXEUtils(db_base.DbTestCase):
                 os.path.join(CONF.pxe.tftp_root, self.node.uuid))
 
     @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
-    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider',
                 autospec=True)
     def test_clean_up_pxe_config_uefi_instance_info(self,
@@ -1182,7 +1181,7 @@ class TestPXEUtils(db_base.DbTestCase):
                 os.path.join(CONF.pxe.tftp_root, self.node.uuid))
 
     @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
-    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
     @mock.patch('ironic.common.dhcp_factory.DHCPFactory.provider',
                 autospec=True)
     def test_clean_up_pxe_config_uefi_no_ipaddress(self, provider_mock,
@@ -2524,7 +2523,7 @@ class iPXEBuildConfigOptionsTestCase(db_base.DbTestCase):
         self._test_build_pxe_config_options_ipxe(iso_boot=True)
 
     @mock.patch('ironic.common.utils.rmtree_without_raise', autospec=True)
-    @mock.patch('ironic_lib.utils.unlink_without_raise', autospec=True)
+    @mock.patch('ironic.common.utils.unlink_without_raise', autospec=True)
     def test_clean_up_ipxe_config_uefi(self, unlink_mock, rmtree_mock):
         self.config(http_root='/httpboot', group='deploy')
         address = "aa:aa:aa:aa:aa:aa"
@@ -2604,7 +2603,7 @@ class iPXEBuildServicePXEConfigTestCase(db_base.DbTestCase):
         mock_switch.assert_called()
 
 
-@mock.patch.object(ironic_utils, 'unlink_without_raise', autospec=True)
+@mock.patch.object(utils, 'unlink_without_raise', autospec=True)
 @mock.patch.object(pxe_utils, 'clean_up_pxe_config', autospec=True)
 @mock.patch.object(pxe_utils, 'TFTPImageCache', autospec=True)
 class CleanUpPxeEnvTestCase(db_base.DbTestCase):

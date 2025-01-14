@@ -11,13 +11,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ironic_lib import utils as il_utils
 from oslo_config import cfg
 from oslo_log import log as logging
 from oslo_utils import units
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import utils
 from ironic.drivers.modules.inspector.hooks import base
 
 CONF = cfg.CONF
@@ -34,7 +34,7 @@ class RootDeviceHook(base.InspectionHook):
         skip_list = set()
 
         for hint in skip_list_hints:
-            skipped_devs = il_utils.find_devices_by_hints(block_devices, hint)
+            skipped_devs = utils.find_devices_by_hints(block_devices, hint)
             excluded_devs = {dev['name'] for dev in skipped_devs}
             skipped_devices = excluded_devs.difference(skip_list)
             skip_list = skip_list.union(excluded_devs)
@@ -61,8 +61,8 @@ class RootDeviceHook(base.InspectionHook):
             inventory_disks = inventory['disks']
 
         try:
-            root_device = il_utils.match_root_device_hints(inventory_disks,
-                                                           hints)
+            root_device = utils.match_root_device_hints(inventory_disks,
+                                                        hints)
         except (TypeError, ValueError) as e:
             raise exception.HardwareInspectionFailure(
                 _('No disks could be found using root device hints %(hints)s '

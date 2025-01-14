@@ -16,13 +16,13 @@ iRMC Inspect Interface
 """
 import re
 
-from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_utils import importutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import utils as manager_utils

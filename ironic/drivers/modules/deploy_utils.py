@@ -17,8 +17,6 @@
 import os
 import re
 
-from ironic_lib import metrics_utils
-from ironic_lib import utils as il_utils
 from oslo_log import log as logging
 from oslo_utils import excutils
 from oslo_utils import fileutils
@@ -34,6 +32,7 @@ from ironic.common.i18n import _
 from ironic.common import image_service
 from ironic.common import images
 from ironic.common import keystone
+from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.common import utils
 from ironic.conductor import utils as manager_utils
@@ -1131,7 +1130,7 @@ def destroy_images(node_uuid):
 
     :param node_uuid: the uuid of the ironic node.
     """
-    il_utils.unlink_without_raise(_get_image_file_path(node_uuid))
+    utils.unlink_without_raise(_get_image_file_path(node_uuid))
     utils.rmtree_without_raise(_get_image_dir_path(node_uuid))
     InstanceImageCache().clean_up()
 
@@ -1148,7 +1147,7 @@ def compute_image_checksum(image_path, algorithm='md5'):
 
 def remove_http_instance_symlink(node_uuid):
     symlink_path = _get_http_image_symlink_file_path(node_uuid)
-    il_utils.unlink_without_raise(symlink_path)
+    utils.unlink_without_raise(symlink_path)
 
 
 def destroy_http_instance_images(node):
@@ -1231,7 +1230,7 @@ def _validate_image_url(node, url, secret=False, inspect_image=None,
             expected_format=expected_format)
         # NOTE(TheJulia): We explicitly delete this file because it has no use
         # in the cache after this point.
-        il_utils.unlink_without_raise(image_path)
+        utils.unlink_without_raise(image_path)
         image_info['disk_format'] = img_format
     return image_info
 
@@ -1699,7 +1698,7 @@ def get_root_device_for_deploy(node):
         source = 'instance_info'
 
     try:
-        return il_utils.parse_root_device_hints(hints)
+        return utils.parse_root_device_hints(hints)
     except ValueError as e:
         raise exception.InvalidParameterValue(
             _('Failed to validate the root device hints %(hints)s (from the '

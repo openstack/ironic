@@ -17,7 +17,6 @@
 import sys
 import time
 
-from ironic_lib.json_rpc import server as json_rpc
 from oslo_config import cfg
 from oslo_log import log
 import oslo_messaging as messaging
@@ -25,6 +24,7 @@ from oslo_service import service
 from oslo_utils import importutils
 
 from ironic.common import context
+from ironic.common.json_rpc import server as json_rpc
 from ironic.common import rpc
 from ironic.objects import base as objects_base
 

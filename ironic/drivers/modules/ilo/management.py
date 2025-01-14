@@ -18,7 +18,6 @@ import os
 import shutil
 from urllib import parse as urlparse
 
-from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import excutils
@@ -29,6 +28,7 @@ from ironic.common import boot_devices
 from ironic.common import boot_modes
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils as manager_utils

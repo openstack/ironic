@@ -15,13 +15,13 @@
 """
 iRMC Power Driver using the Base Server Profile
 """
-from ironic_lib import metrics_utils
 from oslo_log import log as logging
 from oslo_service import loopingcall
 from oslo_utils import importutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import metrics_utils
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conf import CONF

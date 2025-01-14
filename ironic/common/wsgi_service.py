@@ -12,7 +12,6 @@
 
 import socket
 
-from ironic_lib import utils as il_utils
 from oslo_concurrency import processutils
 from oslo_service import service
 from oslo_service import wsgi
@@ -20,6 +19,7 @@ from oslo_service import wsgi
 from ironic.api import app
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common import utils
 from ironic.conf import CONF
 
 
@@ -50,7 +50,7 @@ class WSGIService(service.ServiceBase):
                   "must be greater than 0.") % self.workers)
 
         if CONF.api.unix_socket:
-            il_utils.unlink_without_raise(CONF.api.unix_socket)
+            utils.unlink_without_raise(CONF.api.unix_socket)
             self.server = wsgi.Server(CONF, name, self.app,
                                       socket_family=socket.AF_UNIX,
                                       socket_file=CONF.api.unix_socket,
@@ -76,7 +76,7 @@ class WSGIService(service.ServiceBase):
         """
         self.server.stop()
         if CONF.api.unix_socket:
-            il_utils.unlink_without_raise(CONF.api.unix_socket)
+            utils.unlink_without_raise(CONF.api.unix_socket)
 
     def wait(self):
         """Wait for the service to stop serving this API.

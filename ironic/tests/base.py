@@ -31,7 +31,6 @@ import warnings
 import eventlet
 eventlet.monkey_patch(os=False)
 import fixtures
-from ironic_lib import utils
 from oslo_concurrency import processutils
 from oslo_config import fixture as config_fixture
 from oslo_log import log as logging
@@ -45,7 +44,7 @@ from ironic.common import context as ironic_context
 from ironic.common import driver_factory
 from ironic.common import hash_ring
 from ironic.common import rpc
-from ironic.common import utils as common_utils
+from ironic.common import utils
 from ironic.conf import CONF
 from ironic.drivers import base as drivers_base
 from ironic.objects import base as objects_base
@@ -264,7 +263,7 @@ class TestCase(oslo_test_base.BaseTestCase):
     def config_temp_dir(self, option, group=None):
         """Override a config option with a temporary directory."""
         temp_dir = tempfile.mkdtemp()
-        self.addCleanup(lambda: common_utils.rmtree_without_raise(temp_dir))
+        self.addCleanup(lambda: utils.rmtree_without_raise(temp_dir))
         self.config(**{option: temp_dir, 'group': group})
 
     def set_defaults(self, **kw):
@@ -315,7 +314,7 @@ class TestCase(oslo_test_base.BaseTestCase):
 def do_not_call(*args, **kwargs):
     """Helper function to raise an exception if it is called"""
     raise Exception(
-        "Don't call ironic_lib.utils.execute() / "
+        "Don't call utils.execute() / "
         "processutils.execute() or similar functions in tests!")
 
 
