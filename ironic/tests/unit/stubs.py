@@ -140,11 +140,38 @@ class FakeNeutronSubnet(dict):
                         'gateway_ip',
                         'ipv6_address_mode',
                         'ipv6_ra_mode',
-                        'subnetpool_id']
+                        'subnetpool_id',
+                        'segment_id']
 
         raw = dict.fromkeys(SUBNET_ATTRS)
         raw.update(attrs)
         super(FakeNeutronSubnet, self).__init__(raw)
+
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(key)
+
+    def __setattr__(self, key, value):
+        if key in self:
+            self[key] = value
+        else:
+            raise AttributeError(key)
+
+
+class FakeNeutronSegment(dict):
+    def __init__(self, **attrs):
+        SEGMENT_ATTRS = ['id',
+                         'name',
+                         'network_id',
+                         'network_type',
+                         'physical_network',
+                         'segmentation_id']
+
+        raw = dict.fromkeys(SEGMENT_ATTRS)
+        raw.update(attrs)
+        super(FakeNeutronSegment, self).__init__(raw)
 
     def __getattr__(self, key):
         try:
