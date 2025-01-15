@@ -722,7 +722,8 @@ def _validate_user_steps(task, user_steps, driver_steps, step_type,
             # as we have the original API request context to leverage
             # for RBAC validation.
             continue
-        if user_step.get('step') in ['power_on', 'power_off', 'reboot']:
+        if user_step.get('step') in ['power_on', 'power_off', 'reboot',
+                                     'hold', 'wait']:
             # NOTE(TheJulia): These are flow related steps the conductor
             # resolves internally.
             continue
