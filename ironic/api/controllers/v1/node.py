@@ -1842,8 +1842,9 @@ def node_sanitize(node, fields, cdict=None,
         if node['instance_info'].get('image_url'):
             node['instance_info']['image_url'] = "******"
 
-    if node.get('driver_internal_info', {}).get('agent_secret_token'):
-        node['driver_internal_info']['agent_secret_token'] = "******"
+    if 'driver_internal_info' in node_keys and not show_driver_secrets:
+        node['driver_internal_info'] = strutils.mask_dict_password(
+            node['driver_internal_info'], "******")
 
     if 'provision_state' in node_keys:
         # Update legacy state data for provision state, but only if
