@@ -886,7 +886,7 @@ class AgentClient(object):
         try:
             self._command(node=node, method='system.lockdown', params={})
         except Exception as e:
-            with excutils.save_and_raise_exception():
+            with excutils.save_and_reraise_exception():
                 LOG.error('Failed to lock down node %(node_uuid)s. '
                           '%(cls)s: %(error)s',
                           {'node_uuid': node.uuid,
