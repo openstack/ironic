@@ -6,6 +6,7 @@
         metal3_dev_env_src_dir: '{{ ansible_user_dir }}/metal3-dev-env'
         metal3_environment:
           ANSIBLE_VERBOSITY: 2
+          BOOT_MODE: "legacy"
           CONTROL_PLANE_MACHINE_COUNT: 1
           DOCKER_REGISTRY_IMAGE: "quay.io/libpod/registry:2.8"
           IMAGE_OS: ubuntu
