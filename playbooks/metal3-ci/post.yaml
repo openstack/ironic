@@ -105,7 +105,7 @@
     - name: Copy libvirt logs
       ignore_errors: true
       copy:
-        src: /var/log/libvirt/qemu/
+        src: /var/log/libvirt/
         dest: "{{ logs_root }}/libvirt/"
         remote_src: true
       become: true
