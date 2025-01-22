@@ -1147,3 +1147,18 @@ def get_route_source(dest, ignore_link_local=True):
     except (IndexError, ValueError):
         LOG.debug('No route to host %(dest)s, route record: %(rec)s',
                   {'dest': dest, 'rec': out})
+
+
+def parse_inverted_operator(op):
+    """Handle inverted operators."""
+    op = op.strip()
+    if op.count('!') > 1:
+        msg = _("Multiple exclamation marks are not allowed. "
+                "To apply the invert of an operation, simply put an "
+                "exclamation mark (with an optional space) before "
+                "the op, e.g. eq - !eq.")
+        raise ValueError(msg)
+
+    is_inverted = op.startswith('!')
+    op = op.lstrip('!').strip()
+    return op, is_inverted
