@@ -32,6 +32,7 @@ from ironic.api.controllers.v1 import conductor
 from ironic.api.controllers.v1 import deploy_template
 from ironic.api.controllers.v1 import driver
 from ironic.api.controllers.v1 import event
+from ironic.api.controllers.v1 import inspection_rule
 from ironic.api.controllers.v1 import node
 from ironic.api.controllers.v1 import port
 from ironic.api.controllers.v1 import portgroup
@@ -79,6 +80,7 @@ VERSIONED_CONTROLLERS = {
     'deploy_templates': utils.allow_deploy_templates,
     'shards': utils.allow_shards_endpoint,
     'runbooks': utils.allow_runbooks,
+    'inspection_rules': utils.allow_inspection_rules,
     # NOTE(dtantsur): continue_inspection is available in 1.1 as a
     # compatibility hack to make it usable with IPA without changes.
     # Hide this fact from consumers since it was not actually available
@@ -133,7 +135,8 @@ class Controller(object):
         'deploy_templates': deploy_template.DeployTemplatesController(),
         'shards': shard.ShardController(),
         'continue_inspection': ramdisk.ContinueInspectionController(),
-        'runbooks': runbook.RunbooksController()
+        'runbooks': runbook.RunbooksController(),
+        'inspection_rules': inspection_rule.InspectionRuleController()
     }
 
     @method.expose()

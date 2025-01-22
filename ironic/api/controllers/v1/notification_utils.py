@@ -24,6 +24,7 @@ from ironic.objects import allocation as allocation_objects
 from ironic.objects import chassis as chassis_objects
 from ironic.objects import deploy_template as deploy_template_objects
 from ironic.objects import fields
+from ironic.objects import inspection_rule as inspection_rule_objects
 from ironic.objects import node as node_objects
 from ironic.objects import notification
 from ironic.objects import port as port_objects
@@ -57,6 +58,9 @@ CRUD_NOTIFY_OBJ = {
     'volumetarget':
         (volume_target_objects.VolumeTargetCRUDNotification,
          volume_target_objects.VolumeTargetCRUDPayload),
+    'inspectionrule':
+        (inspection_rule_objects.InspectionRuleCRUDNotification,
+         inspection_rule_objects.InspectionRuleCRUDPayload),
 }
 
 

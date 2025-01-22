@@ -1621,6 +1621,14 @@ def allow_runbooks():
     return api.request.version.minor >= versions.MINOR_92_RUNBOOKS
 
 
+def allow_inspection_rules():
+    """Check if accessing inspection rule endpoints is allowed.
+
+    Version 1.96 of the API exposed rule endpoints.
+    """
+    return api.request.version.minor >= versions.MINOR_96_INSPECTION_RULES
+
+
 def check_owner_policy(object_type, policy_name, owner, lessee=None,
                        conceal_node=False):
     """Check if the policy authorizes this request on an object.

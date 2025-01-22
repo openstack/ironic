@@ -224,3 +224,15 @@ def post_get_test_deploy_template(**kw):
 def post_get_test_runbook(**kw):
     """Return a Runbook object with appropriate attributes."""
     return runbook_post_data(**kw)
+
+
+def inspection_rule_post_data(**kw):
+    """Return a Inspection Rule object"""
+    inspection_rule = db_utils.get_test_inspection_rule(**kw)
+    inspection_rule.pop('version')
+    return inspection_rule
+
+
+def post_get_test_inspection_rule(**kw):
+    """Return a Inspection Rule object"""
+    return inspection_rule_post_data(**kw)

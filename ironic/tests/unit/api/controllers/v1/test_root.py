@@ -106,6 +106,12 @@ class TestV1Routing(api_base.BaseApiTest):
             })
         self.assertEqual({
             'id': 'v1',
+            'inspection_rules': [
+                {'href': 'http://localhost/v1/inspection_rules/',
+                 'rel': 'self'},
+                {'href': 'http://localhost/inspection_rules/',
+                 'rel': 'bookmark'}
+            ],
             'links': [
                 {'href': 'http://localhost/v1/', 'rel': 'self'},
                 {'href': 'https://docs.openstack.org//ironic/latest'
