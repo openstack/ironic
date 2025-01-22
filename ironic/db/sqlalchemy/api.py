@@ -3171,3 +3171,76 @@ class Connection(api.Connection):
                     continue
                 nodes.append(r[0])
             return nodes
+
+    def create_inspection_rule(self, values):
+        """Create new rule"""
+        inspection_rule = models.InspectionRule()
+        inspection_rule.update(values)
+
+        with _session_for_write() as session:
+            try:
+                session.add(inspection_rule)
+                session.flush()
+            except db_exc.DBDuplicateEntry:
+                raise exception.InspectionRuleAlreadyExists(
+                    uuid=values['uuid'])
+        return inspection_rule
+
+    def update_inspection_rule(self, rule_uuid, values):
+        """Update an existing inspection rule.
+
+        :param values: Dict of values to update with.
+        :param rule_id: The rule id.
+        """
+        with _session_for_write() as session:
+            query = session.query(models.InspectionRule).filter_by(
+                uuid=rule_uuid)
+            try:
+                ref = query.with_for_update().one()
+            except NoResultFound:
+                raise exception.InspectionRuleNotFound(
+                    rule=rule_uuid)
+            ref.update(values)
+        return ref
+
+    def _get_inspection_rule(self, field, value):
+        """Helper method for retrieving an inspection rule."""
+        query = sa.select(models.InspectionRule).where(field == value)
+        try:
+            with _session_for_read() as session:
+                res = session.execute(query).one()[0]
+            return res
+        except NoResultFound:
+            raise exception.InspectionRuleNotFound(rule=value)
+
+    def get_inspection_rule_by_uuid(self, inspection_rule_uuid):
+        return self._get_inspection_rule(models.InspectionRule.uuid,
+                                         inspection_rule_uuid)
+
+    def get_inspection_rule_by_id(self, inspection_rule_id):
+        return self._get_inspection_rule(models.InspectionRule.id,
+                                         inspection_rule_id)
+
+    def get_inspection_rule_list(self, limit=None, marker=None, filters=None,
+                                 sort_key=None, sort_dir=None):
+        query = (sa.select(models.InspectionRule))
+        if filters is None:
+            filters = dict()
+        supported_filters = {'phase', 'scope'}
+        unsupported_filters = set(filters).difference(supported_filters)
+        if unsupported_filters:
+            msg = _("SqlAlchemy API does not support "
+                    "filtering by %s") % ', '.join(unsupported_filters)
+            raise ValueError(msg)
+        for field in filters:
+            query = query.filter_by(**{field: filters[field]})
+        return _paginate_query(models.InspectionRule, limit, marker,
+                               sort_key, sort_dir, query)
+
+    def destroy_inspection_rule(self, inspection_rule_id):
+        with _session_for_write() as session:
+            count = session.query(models.InspectionRule).filter_by(
+                id=inspection_rule_id).delete()
+            if count == 0:
+                raise exception.InspectionRuleNotFound(
+                    rule=inspection_rule_id)

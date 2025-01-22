@@ -563,6 +563,26 @@ class RunbookStep(Base):
     )
 
 
+class InspectionRule(Base):
+    __tablename__ = 'inspection_rules'
+    __table_args__ = (
+        schema.UniqueConstraint('uuid', name='uniq_inspection_rules0uuid'),
+        Index('inspection_rule_scope_idx', 'scope'),
+        Index('inspection_rule_phase_idx', 'phase'),
+        table_args())
+    id = Column(Integer, primary_key=True)
+    uuid = Column(String(36), nullable=False)
+    priority = Column(Integer, nullable=False, default=0)
+    description = Column(String(255), nullable=True)
+    scope = Column(String(255), nullable=True)
+    sensitive = Column(Boolean, default=False)
+    phase = Column(String(16), nullable=True, default='main')
+    conditions = Column(db_types.JsonEncodedList(mysql_as_long=True),
+                        nullable=True)
+    actions = Column(db_types.JsonEncodedList(mysql_as_long=True),
+                     nullable=False)
+
+
 def get_class(model_name):
     """Returns the model class with the specified name.
 

@@ -1637,3 +1637,63 @@ class Connection(object, metaclass=abc.ABCMeta):
             should include child nodes with their own power supplies.
         :returns: A list of tuples.
         """
+
+    @abc.abstractmethod
+    def create_inspection_rule(self, values):
+        """Create an inspection rule.
+
+        :param values: A dict describing the rule.
+        :raises: InspectionRuleAlreadyExists if an inspection rule with the
+            same UUID exists.
+        :returns: A rule.
+        """
+
+    @abc.abstractmethod
+    def update_inspection_rule(self, inspection_rule_id, values):
+        """Update an inspection rule.
+
+        :param inspection_rule_id: The id or uuid of an inspection rule.
+        :param values: Dict of values to update.
+        :raises: InspectionRuleNotFound if the rule does not exist.
+        :returns: A rule.
+        """
+
+    @abc.abstractmethod
+    def get_inspection_rule_by_uuid(self, inspection_rule_uuid):
+        """Retrieve an inspection rule by UUID.
+
+        :param inspection_rule_uuid: UUID of the rule to retrieve.
+        :raises: InspectionRuleNotFound if the rule does not exist.
+        :returns: A rule.
+        """
+
+    @abc.abstractmethod
+    def get_inspection_rule_by_id(self, inspection_rule_id):
+        """Retrieve an inspection rule by id.
+
+        :param inspection_rule_id: id of the rule to retrieve.
+        :raises: InspectionRuleNotFound if the rule does not exist.
+        :returns: A rule.
+        """
+
+    @abc.abstractmethod
+    def get_inspection_rule_list(self, limit=None, marker=None, filters=None,
+                                 sort_key=None, sort_dir=None):
+        """Retrieve a list of inspection rules.
+
+        :param limit: Maximum number of rules to return.
+        :param marker: The last item of the previous page; we return the next
+                       result set.
+        :param sort_key: Attribute by which results should be sorted.
+        :param sort_dir: Direction in which results should be sorted.
+                         (asc, desc)
+        :returns: A list of inspection rules.
+        """
+
+    @abc.abstractmethod
+    def destroy_inspection_rule(self, inspection_rule_id):
+        """Destroy an inspection rule.
+
+        :param inspection_rule_id: ID of the inspection_rule to destroy.
+        :raises: inspection_ruleNotFound if the inspection_rule does not exist.
+        """

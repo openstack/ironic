@@ -1085,3 +1085,13 @@ class ImageServiceAuthenticationRequired(ImageUnacceptable):
     _msg_fmt = _("The requested image %(image_ref)s requires "
                  "authentication which has not been provided. "
                  "Unable to proceed.")
+
+
+class InspectionRuleAlreadyExists(Conflict):
+    """Rule requested already exists in the database."""
+    _msg_fmt = _("A rule with UUID %(uuid)s already exists.")
+
+
+class InspectionRuleNotFound(NotFound):
+    """The requested rule was not found."""
+    _msg_fmt = _("Rule %(rule)s could not be found.")

@@ -796,6 +796,7 @@ RELEASE_MAPPING = {
             'VolumeTarget': ['1.0'],
             'FirmwareComponent': ['1.0'],
             'Runbook': ['1.0'],
+            'InspectionRule': ['1.0'],
         }
     },
 }
