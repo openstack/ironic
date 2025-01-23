@@ -96,8 +96,10 @@ the Ironic service:
   support for the switches attached to the baremetal servers so they can be
   programmed. This interface generally requires use of ML2 plugins or other
   Neutron SDN integrations to facilitate the port configuration actions in
-  the network fabric. When using IPv6, use of the ``neutron`` interface
-  is preferred.
+  the network fabric. When using IPv6, use of the ``neutron`` interface is
+  highly recommended as use of the ``dhcpv6-stateful`` configuration model
+  for IPv6 with Neutron also automatically creates multiple address records
+  for stateful address resolution.
 
 To use these interfaces, they need to be enabled in *ironic.conf* utilizing
 the :oslo.config:option:`enabled_network_interfaces` setting.

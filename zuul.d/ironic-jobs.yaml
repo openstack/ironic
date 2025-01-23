@@ -874,6 +874,13 @@
         SWIFT_TEMPURL_KEY: secretkey
         IRONIC_BOOT_MODE: bios
 
+# NOTE(TheJulia): This job does not work on Ubuntu Noble, much less
+# newer EDK2 images when in UEFI mode. As such is being disabled.
+# Reasons: EDK2 has a ton of ipv6 bugs. IPv6 support not in qemu/ipxe
+# bios roms *either*. Concurrently, this means we can't test realistic
+# deployment and booting, nor can we test a short circuited ipxe workflow
+# upstream. In case this situation changes, keeping the job configuration
+# below.
 - job:
     name: ironic-tempest-ipxe-ipv6
     description: ironic-tempest-ipxe-ipv6
@@ -930,6 +937,7 @@
         BUILD_TIMEOUT: 2000
         IRONIC_TEMPEST_BUILD_TIMEOUT: 2000
         IRONIC_PING_TIMEOUT: 1440
+        IRONIC_BOOT_MODE: bios
 
 # NOTE(rpittau): OLD TINYIPA JOBS
 # Those jobs are used by other projects, we leave them here until

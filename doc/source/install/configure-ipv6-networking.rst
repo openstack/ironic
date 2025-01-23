@@ -6,6 +6,13 @@ configuration. This page covers the IPv6 specifics only. Please refer to
 :doc:`/install/configure-tenant-networks` and
 :doc:`/install/configure-networking` for general networking configuration.
 
+.. WARNING::
+   IPv6 Networking is not actively tested in upstream Continuous
+   Integration pipelines, in large part because test virtual machines
+   have limited support and known issues. Hardware vendors often have
+   better firmware which enables this functionality, but may require
+   specific operating modes, such as ``stateless`` or ``stateful``
+   depending on the requirements placed upon them by their customers.
 
 Configure ironic PXE driver for provisioning using IPv6 addressing
 ==================================================================

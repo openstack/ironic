@@ -1,0 +1,19 @@
+---
+issues:
+  - |
+    IPv6 testing in the upstream Continuous Integration (CI) pipelines has
+    been removed. This was the result of the move to UEFI booting in general,
+    combined with the the state of the EDK2 virtual machine firmware which
+    is known to have
+    `many issues with IPv6 <https://github.com/tianocore/edk2/issues?q=is%3Aissue%20state%3Aopen%20ipv6>`_,
+    and thus cannot be tested in an automated fashion upstream.
+    Previously Ironic tested IPv6 utilizing BIOS boot, but recent move to
+    leverage Ubuntu Noble in upstream CI also limited the community's
+    options as the BIOS ROM firmware images no longer contain IPv6 support.
+
+    As a result of this, we are forced to remove the CI job from testing.
+
+    We hope to restore this testing at some point in the future, should
+    EDK2 fix some of the known issues. This issue does not impact support
+    for physical machines which has long been validated as known working
+    through operator reports and downstream vendor testing activities.
