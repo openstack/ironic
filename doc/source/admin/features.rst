@@ -25,3 +25,4 @@ Bare Metal Service Features
    Deploying without BMC Credentials <agent-power>
    Layer 3 or DHCP-less Ramdisk Booting <dhcp-less>
    Deploying with Anaconda <anaconda-deploy-interface>
+   Node History <node-history>
