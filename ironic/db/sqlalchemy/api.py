@@ -1276,11 +1276,13 @@ class Connection(api.Connection):
     def destroy_portgroup(self, portgroup_id):
         def portgroup_not_empty(session):
             """Checks whether the portgroup does not have ports."""
-            with _session_for_read() as session:
-                res = session.scalar(
-                    sa.select(
-                        sa.func.count(models.Port.id)
-                    ).where(models.Port.portgroup_id == portgroup_id)) != 0
+            res = session.scalar(
+                sa.select(
+                    sa.func.count(models.Port.id)
+                ).join(
+                    models.Portgroup,
+                    models.Port.portgroup_id == models.Portgroup.id
+                ).where(models.Port.portgroup_id == portgroup_id)) != 0
             return res
 
         with _session_for_write() as session:
