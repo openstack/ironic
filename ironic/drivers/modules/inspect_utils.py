@@ -18,6 +18,7 @@ import socket
 import urllib
 
 from oslo_log import log as logging
+from oslo_utils import excutils
 from oslo_utils import netutils
 import stevedore
 
@@ -519,3 +520,97 @@ def validate_inspection_hooks():
         raise exception.HardwareInspectionFailure(error=msg)
 
     return valid_hooks
+
+
+def run_inspection_hooks(task,
+                         inventory,
+                         plugin_data,
+                         hooks,
+                         on_error_plugin_data):
+    """Process data from the ramdisk using inspection hooks."""
+
+    try:
+        _run_preprocess_hooks(task, inventory, plugin_data, hooks)
+    except exception.HardwareInspectionFailure:
+        with excutils.save_and_reraise_exception():
+            if on_error_plugin_data:
+                on_error_plugin_data(plugin_data, task.node)
+
+    try:
+        _run_post_hooks(task, inventory, plugin_data, hooks)
+    except exception.HardwareInspectionFailure:
+        with excutils.save_and_reraise_exception():
+            if on_error_plugin_data:
+                on_error_plugin_data(plugin_data, task.node)
+    except Exception as exc:
+        LOG.exception('Unexpected exception while running inspection hooks for'
+                      ' node %(node)s', {'node': task.node.uuid})
+        msg = _('Unexpected exception %(exc_class)s during processing for '
+                'node: %(node)s. Error: %(error)s' %
+                {'exc_class': exc.__class__.__name__,
+                 'node': task.node.uuid,
+                 'error': exc})
+        if on_error_plugin_data:
+            on_error_plugin_data(plugin_data, task.node)
+        raise exception.HardwareInspectionFailure(error=msg)
+
+
+def _run_preprocess_hooks(task, inventory, plugin_data, hooks):
+    """Executes the preprocess() for each hook.
+
+    :param task: a TaskManager instance
+    :param inventory: Hardware inventory information. Must not by modified.
+    :param plugin_data: Plugin data information.
+    :param hooks: List of hooks to execute.
+    :returns: nothing.
+    :raises: HardwareInspectionFailure on hook error
+    """
+    failures = []
+
+    for hook in hooks:
+        LOG.debug('Running preprocess inspection hook: %(hook)s for node: '
+                  '%(node)s', {'hook': hook.name, 'node': task.node.uuid})
+
+        # NOTE(dtantsur): catch exceptions, so that we have changes to update
+        # node inspection status with after look up
+        try:
+            hook.obj.preprocess(task, inventory, plugin_data)
+        except exception.HardwareInspectionFailure as exc:
+            LOG.error('Preprocess hook: %(hook)s failed for node %(node)s '
+                      'with error: %(error)s', {'hook': hook.name,
+                                                'node': task.node.uuid,
+                                                'error': exc})
+            failures.append(_('Error in preprocess hook %(hook)s: %(error)s' %
+                              {'hook': hook.name, 'error': exc}))
+        except Exception as exc:
+            LOG.exception('Preprocess hook: %(hook)s failed for node %(node)s '
+                          'with error: %(error)s', {'hook': hook.name,
+                                                    'node': task.node.uuid,
+                                                    'error': exc})
+            failures.append(_('Unexpected exception %(exc_class)s during '
+                              'preprocess hook %(hook)s: %(error)s' %
+                              {'exc_class': exc.__class__.__name__,
+                               'hook': hook.name, 'error': exc}))
+
+    if failures:
+        msg = _('The following failures happened while running preprocess '
+                'hooks for node %(node)s:\n%(failures)s' %
+                {'node': task.node.uuid, 'failures': '\n'.join(failures)})
+        raise exception.HardwareInspectionFailure(error=msg)
+
+    # TODO(masghar): Store unprocessed inspection data
+
+
+def _run_post_hooks(task, inventory, plugin_data, hooks):
+    """Executes each supplied hook.
+
+    :param task: a TaskManager instance
+    :param inventory: Hardware inventory information. Must not by modified.
+    :param plugin_data: Plugin data information.
+    :param hooks: List of hooks to execute.
+    :returns: nothing.
+    """
+    for hook in hooks:
+        LOG.debug('Running inspection hook %(hook)s for node %(node)s',
+                  {'hook': hook.name, 'node': task.node.uuid})
+        hook.obj.__call__(task, inventory, plugin_data)

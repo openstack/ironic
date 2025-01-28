@@ -16,7 +16,6 @@ In-band inspection implementation.
 
 from oslo_config import cfg
 from oslo_log import log as logging
-from oslo_utils import excutils
 
 from ironic.common import boot_devices
 from ironic.common import exception
@@ -26,8 +25,7 @@ from ironic.conductor import utils as cond_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.inspector import interface as common
-from ironic.drivers import utils as driver_utils
-
+from ironic.drivers import utils as drivers_utils
 
 LOG = logging.getLogger(__name__)
 
@@ -89,7 +87,10 @@ class AgentInspect(common.Common):
         :param plugin_data: optional plugin-specific data.
         """
         # Run the inspection hooks
-        run_inspection_hooks(task, inventory, plugin_data, self.hooks)
+        inspect_utils.run_inspection_hooks(task, inventory, plugin_data,
+                                           self.hooks, _store_logs)
+        if CONF.agent.deploy_logs_collect == 'always':
+            _store_logs(plugin_data, task.node)
         common.clean_up(task, finish=False, always_power_off=True)
 
 
@@ -101,80 +102,7 @@ def _store_logs(plugin_data, node):
         return
 
     try:
-        driver_utils.store_ramdisk_logs(node, logs, label='inspect')
+        drivers_utils.store_ramdisk_logs(node, logs, label='inspect')
     except exception:
         LOG.exception('Could not store the ramdisk logs for node %(node)s. ',
                       {'node': node.uuid})
-
-
-def run_inspection_hooks(task, inventory, plugin_data, hooks):
-    """Process data from the ramdisk using inspection hooks."""
-
-    _run_preprocess_hooks(task, inventory, plugin_data, hooks)
-
-    try:
-        _run_post_hooks(task, inventory, plugin_data, hooks)
-    except exception.HardwareInspectionFailure:
-        with excutils.save_and_reraise_exception():
-            _store_logs(plugin_data, task.node)
-    except Exception as exc:
-        LOG.exception('Unexpected exception while running inspection hooks for'
-                      ' node %(node)s', {'node': task.node.uuid})
-        msg = _('Unexpected exception %(exc_class)s during processing for '
-                'node: %(node)s. Error: %(error)s' %
-                {'exc_class': exc.__class__.__name__,
-                 'node': task.node.uuid,
-                 'error': exc})
-        _store_logs(plugin_data, task.node)
-        raise exception.HardwareInspectionFailure(error=msg)
-
-    if CONF.agent.deploy_logs_collect == 'always':
-        _store_logs(plugin_data, task.node)
-
-
-def _run_preprocess_hooks(task, inventory, plugin_data, hooks):
-    failures = []
-
-    for hook in hooks:
-        LOG.debug('Running preprocess inspection hook: %(hook)s for node: '
-                  '%(node)s', {'hook': hook.name, 'node': task.node.uuid})
-
-        # NOTE(dtantsur): catch exceptions, so that we have changes to update
-        # node inspection status with after look up
-        try:
-            hook.obj.preprocess(task, inventory, plugin_data)
-        except exception.HardwareInspectionFailure as exc:
-            LOG.error('Preprocess hook: %(hook)s failed for node %(node)s '
-                      'with error: %(error)s', {'hook': hook.name,
-                                                'node': task.node.uuid,
-                                                'error': exc})
-            failures.append('Error in preprocess hook %(hook)s: %(error)s',
-                            {'hook': hook.name,
-                             'error': exc})
-        except Exception as exc:
-            LOG.exception('Preprocess hook: %(hook)s failed for node %(node)s '
-                          'with error: %(error)s', {'hook': hook.name,
-                                                    'node': task.node.uuid,
-                                                    'error': exc})
-            failures.append(_('Unexpected exception %(exc_class)s during '
-                              'preprocess hook %(hook)s: %(error)s' %
-                              {'exc_class': exc.__class__.__name__,
-                               'hook': hook.name,
-                               'error': exc}))
-
-    if failures:
-        msg = _('The following failures happened while running preprocess '
-                'hooks for node %(node)s:\n%(failures)s',
-                {'node': task.node.uuid,
-                 'failures': '\n'.join(failures)})
-        _store_logs(plugin_data, task.node)
-        raise exception.HardwareInspectionFailure(error=msg)
-
-    # TODO(masghar): Store unprocessed inspection data
-
-
-def _run_post_hooks(task, inventory, plugin_data, hooks):
-    for hook in hooks:
-        LOG.debug('Running inspection hook %(hook)s for node %(node)s',
-                  {'hook': hook.name, 'node': task.node.uuid})
-        hook.obj.__call__(task, inventory, plugin_data)
