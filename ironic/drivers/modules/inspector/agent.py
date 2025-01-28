@@ -25,7 +25,6 @@ from ironic.common import states
 from ironic.conductor import utils as cond_utils
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import inspect_utils
-from ironic.drivers.modules.inspector.hooks import base as hooks_base
 from ironic.drivers.modules.inspector import interface as common
 from ironic.drivers import utils as driver_utils
 
@@ -42,7 +41,7 @@ class AgentInspect(common.Common):
 
     def __init__(self):
         super().__init__()
-        self.hooks = hooks_base.validate_inspection_hooks()
+        self.hooks = inspect_utils.validate_inspection_hooks()
 
     def _start_managed_inspection(self, task):
         """Start inspection with boot managed by ironic."""

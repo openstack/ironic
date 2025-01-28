@@ -19,8 +19,10 @@ import urllib
 
 from oslo_log import log as logging
 from oslo_utils import netutils
+import stevedore
 
 from ironic.common import exception
+from ironic.common.i18n import _
 from ironic.common import states
 from ironic.common import swift
 from ironic.common import utils
@@ -30,6 +32,7 @@ from ironic import objects
 from ironic.objects import node_inventory
 
 LOG = logging.getLogger(__name__)
+_HOOKS_MGR = None
 _OBJECT_NAME_PREFIX = 'inspector_data'
 AUTO_DISCOVERED_FLAG = 'auto_discovered'
 
@@ -458,3 +461,61 @@ def cache_lookup_addresses(node):
 def clear_lookup_addresses(node):
     """Remove lookup addresses cached on the node."""
     return node.del_driver_internal_info(LOOKUP_CACHE_FIELD)
+
+
+def missing_entrypoints_callback(names):
+    """Raise RuntimeError with comma-separated list of missing hooks"""
+    error = _('The following hook(s) are missing or failed to load: %s')
+    raise RuntimeError(error % ', '.join(names))
+
+
+def _inspection_hooks_manager(*args):
+    """Create a Stevedore extension manager for inspection hooks.
+
+    :param args: arguments to pass to the hooks constructor
+    :returns: a Stevedore NamedExtensionManager
+    """
+    global _HOOKS_MGR
+    if _HOOKS_MGR is None:
+        enabled_hooks = [x.strip()
+                         for x in CONF.inspector.hooks.split(',')
+                         if x.strip()]
+        _HOOKS_MGR = stevedore.NamedExtensionManager(
+            'ironic.inspection.hooks',
+            names=enabled_hooks,
+            invoke_on_load=True,
+            invoke_args=args,
+            on_missing_entrypoints_callback=missing_entrypoints_callback,
+            name_order=True)
+    return _HOOKS_MGR
+
+
+def validate_inspection_hooks():
+    """Validate the enabled inspection hooks.
+
+    :raises: RuntimeError on missing or failed to load hooks
+    :returns: the list of hooks that passed validation
+    """
+    conf_hooks = [ext for ext in _inspection_hooks_manager()]
+    valid_hooks = []
+    valid_hook_names = set()
+    errors = []
+
+    for hook in conf_hooks:
+        deps = getattr(hook.obj, 'dependencies', ())
+        missing = [d for d in deps if d not in valid_hook_names]
+        if missing:
+            errors.append('Hook %(hook)s requires these missing hooks to be '
+                          'enabled before it: %(missing)s' %
+                          {'hook': hook.name, 'missing': ', '.join(missing)})
+        else:
+            valid_hooks.append(hook)
+            valid_hook_names.add(hook.name)
+
+    if errors:
+        msg = _('Some hooks failed to load due to dependency problems: '
+                '%(errors)s') % {'errors': ', '.join(errors)}
+        LOG.error(msg)
+        raise exception.HardwareInspectionFailure(error=msg)
+
+    return valid_hooks
