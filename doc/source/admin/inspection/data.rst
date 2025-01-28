@@ -4,9 +4,10 @@ Inspection data
 The in-band inspection processes collects a lot of information about the node.
 This data consists of two parts:
 
-* *Inventory* is :ironic-python-agent-doc:`hardware inventory
-  <admin/how_it_works.html#hardware-inventory>` reported by the agent.
+* *Inventory* depends on the inspection interface used. See
+  :ref:`inventory`.
 * *Plugin data* is data populated by ramdisk-side and server-side plug-ins.
+  See :ref:`plugin-data`.
 
 After a successful inspection, you can get both parts as JSON with:
 
@@ -49,6 +50,41 @@ Use ``jq`` to filter the parts you need, e.g. only the inventory itself:
        "pxe_enabled": true
      }
    }
+
+.. _inventory:
+
+Inventory
+---------
+
+The shape of the ``inventory`` depends on the inspection interface used.
+
+* *agent* - For information on what gets reported by this interface see
+  :ironic-python-agent-doc:`hardware inventory
+  <admin/how_it_works.html#hardware-inventory>`.
+* *redfish* - This interface aspires to the *agent* implementation but
+  is known to be incomplete at this time.
+
+Since many server-side plug-ins, known as
+:doc:`hooks` live in the Ironic source tree
+an effort is being made to define it here.
+
+Top-Level
+~~~~~~~~~
+
+.. csv-table::
+    :header: "Key", "Details"
+
+    "``cpu``", "JSON object of CPU details"
+    "``memory``", "JSON object of memory details"
+    "``bmc_address``", "Optional IPv4 address as a string"
+    "``bmc_v6address``", "Optional IPv6 address as a string"
+    "``disk``", "List of JSON objects of disk details"
+    "``interfaces``", "List of JSON objects of NIC details"
+    "``system_vendor``", "JSON object of SMBIOS details"
+    "``boot``", "JSON object of boot details"
+    "``lldp_raw``", "Optional JSON object of LLDP data"
+    "``pci_devices``", "Optional list of JSON objects of PCI details"
+    "``usb_devices``", "Optional list of JSON objects of USB details"
 
 .. _plugin-data:
 

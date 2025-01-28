@@ -15,7 +15,7 @@ to the `bug 1405131 <https://bugs.launchpad.net/ironic/+bug/1405131>`_.
 There are three kinds of inspection supported by Bare Metal service:
 
 #. Out-of-band inspection is currently implemented by several hardware types,
-   including ``ilo``, ``idrac`` and ``irmc``.
+   including ``redfish``, ``ilo``, ``idrac`` and ``irmc``.
 
 #. :doc:`In-band inspection </admin/inspection/inspector>` utilizing
    the ironic-inspector_ project. This is now deprecated.
