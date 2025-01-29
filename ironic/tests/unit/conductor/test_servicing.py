@@ -374,7 +374,8 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
             target_provision_state=tgt_prov_state,
             last_error=None,
             driver_internal_info={'service_steps': self.service_steps,
-                                  'service_step_index': 0},
+                                  'service_step_index': 0,
+                                  'servicing_polling': True},
             service_step=self.service_steps[0])
         mock_execute.return_value = return_state
 
@@ -390,6 +391,7 @@ class DoNodeServiceTestCase(db_base.DbTestCase):
         self.assertEqual(1, node.driver_internal_info['service_step_index'])
         mock_execute.assert_called_once_with(
             mock.ANY, mock.ANY, self.service_steps[1])
+        self.assertNotIn('servicing_polling', node.driver_internal_info)
 
     def test_do_next_clean_step_continue_from_last_cleaning(self):
         self._do_next_clean_step_continue_from_last_cleaning(

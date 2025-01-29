@@ -106,7 +106,8 @@ def set_node_flags(node, reboot=None, skip_current_step=None, polling=None,
     :param polling: Boolean value to set for node's driver_internal_info flag
         deployment_polling, servicing_polling or cleaning_polling. If it is
         None, the corresponding polling flag is not set in the node's
-        driver_internal_info.
+        driver_internal_info. A polling flag is otherwise deleted from
+        the node's driver_internal_info.
     :param step_type: The type of steps to process: 'clean', 'service'
         or 'deploy'. If None, detected from the node.
     """
@@ -134,6 +135,9 @@ def set_node_flags(node, reboot=None, skip_current_step=None, polling=None,
         node.set_driver_internal_info(skip_field, skip_current_step)
     if polling is not None:
         node.set_driver_internal_info(polling_field, polling)
+    else:
+        # Always unset the value *if* previously set.
+        node.del_driver_internal_info(polling_field)
     node.save()
 
 
