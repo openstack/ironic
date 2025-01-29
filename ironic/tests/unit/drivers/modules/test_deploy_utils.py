@@ -3307,3 +3307,15 @@ class AsyncStepTestCase(db_base.DbTestCase):
                                    skip_current_step=True,
                                    polling=True)
         self.assertEqual(expected, self.node.driver_internal_info)
+
+    def test_set_async_step_flags_clears_polling_if_not_set(self):
+        self.node.clean_step = {'step': 'create_configuration',
+                                'interface': 'raid'}
+        self.node.driver_internal_info = {'agent_secret_token': 'test',
+                                          'cleaning_polling': True}
+        expected = {'cleaning_reboot': True,
+                    'skip_current_clean_step': True}
+        self.node.save()
+        utils.set_async_step_flags(self.node, reboot=True,
+                                   skip_current_step=True)
+        self.assertEqual(expected, self.node.driver_internal_info)

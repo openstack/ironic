@@ -1,0 +1,13 @@
+---
+fixes:
+  - |
+    Fixes an issue where operators executing complex arrangement of steps
+    which include out-of-band and in-band steps, for example a hardware
+    RAID ``create_configuration`` step followed by in-band steps inside of
+    the agent, would effectively get the agent stuck in a ``wait`` state in
+    the Cleaning, Servicing, or Deploying workflows.
+    This was related to the way out-of-band steps are executed and monitored.
+    Ironic, before starting to execute a new step, now cleans the polling
+    lockout flag for the respective workflow being executed to prevent the
+    agent from getting stuck. For more information, please see
+    `bug 2096938 <https://bugs.launchpad.net/ironic/+bug/2096938>`_.
