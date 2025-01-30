@@ -212,9 +212,13 @@ class SessionCache(object):
         # include it in the session key.
         # NOTE(TheJulia): Multiplying the address by 4, to ensure
         # we meet a minimum of 16 bytes for salt.
+        # NOTE(frickler): password may be None, make sure we have a str
+        password = driver_info.get('password')
+        if not password:
+            password = ''
         pw_hash = hashlib.pbkdf2_hmac(
             'sha512',
-            driver_info.get('password').encode('utf-8'),
+            password.encode('utf-8'),
             str(driver_info.get('address') * 4).encode('utf-8'), 40)
         self._driver_info = driver_info
         # Assemble the session key and append the hashed password to it,
