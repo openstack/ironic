@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds a schema validation framework to the API. This allows for the validation
+    of incoming requests and outgoing responses against a JSON schema, right at
+    the beginning and end of the request processing pipeline.

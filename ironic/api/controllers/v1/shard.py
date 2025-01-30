@@ -17,6 +17,7 @@ from ironic import api
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
 from ironic.api import method
+from ironic.api.schemas.v1 import shard as schema
 from ironic.api import validation
 from ironic.common.i18n import _
 from ironic.common import metrics_utils
@@ -36,6 +37,8 @@ class ShardController(pecan.rest.RestController):
         min_version=versions.MINOR_82_NODE_SHARD,
         message=_('The API version does not allow shards'),
     )
+    @validation.request_query_schema(schema.index_request_query)
+    @validation.response_body_schema(schema.index_response_body)
     def get_all(self):
         """Retrieve a list of shards.
 
@@ -53,6 +56,6 @@ class ShardController(pecan.rest.RestController):
         min_version=versions.MINOR_82_NODE_SHARD,
         message=_('The API version does not allow shards'),
     )
-    def get_one(self, __):
+    def get_one(self, _):
         """Explicitly do not support getting one."""
         pecan.abort(404)
