@@ -667,7 +667,8 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
                 autospec=True)
     def test__do_next_deploy_step_in_deploywait(self, mock_execute):
         driver_internal_info = {'deploy_step_index': None,
-                                'deploy_steps': self.deploy_steps}
+                                'deploy_steps': self.deploy_steps,
+                                'deployment_polling': True}
         self._start_service()
         node = obj_utils.create_test_node(
             self.context, driver='fake-hardware',
@@ -692,6 +693,7 @@ class DoNextDeployStepTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.ACTIVE, node.target_provision_state)
         self.assertEqual(expected_first_step, node.deploy_step)
         self.assertEqual(0, node.driver_internal_info['deploy_step_index'])
+        self.assertNotIn('deployment_polling', node.driver_internal_info)
         mock_execute.assert_called_once_with(mock.ANY, task,
                                              self.deploy_steps[0])
 
