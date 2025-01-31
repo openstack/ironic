@@ -8425,6 +8425,18 @@ class TestNodeHistory(test_api_base.BaseApiTest):
                             headers={api_base.Version.string: self.version})
         self.assertEqual({'history': []}, ret)
 
+    def test_get_all_history_with_sort(self):
+        self._add_history_entries()
+        # sort_key defaults to created_at
+        ret = self.get_json(
+            '/nodes/{}/history?sort_dir=desc'.format(
+                self.node.uuid),
+            headers={api_base.Version.string: self.version})
+        self.assertEqual(
+            [self.event3.uuid, self.event2.uuid, self.event1.uuid],
+            [h['uuid'] for h in ret['history']]
+        )
+
     def test_get_all_old_version(self):
         ret = self.get_json('/nodes/%s/history' % self.node.uuid,
                             headers={api_base.Version.string: "1.77"},

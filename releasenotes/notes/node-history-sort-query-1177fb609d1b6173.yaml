@@ -1,0 +1,4 @@
+---
+features:
+  - |
+    Node history API now support querying with sort_key and sort_dir.

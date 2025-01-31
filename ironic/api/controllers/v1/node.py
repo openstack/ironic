@@ -2127,8 +2127,10 @@ class NodeHistoryController(rest.RestController):
 
     @METRICS.timer('NodeHistoryController.get_all')
     @method.expose()
-    @args.validate(detail=args.boolean, marker=args.uuid, limit=args.integer)
-    def get_all(self, detail=False, marker=None, limit=None):
+    @args.validate(detail=args.boolean, marker=args.uuid, limit=args.integer,
+                   sort_key=args.string, sort_dir=args.string)
+    def get_all(self, detail=False, marker=None, limit=None,
+                sort_key='created_at', sort_dir='asc'):
         """List node history."""
         node = api_utils.check_node_policy_and_retrieve(
             'baremetal:node:history:get', self.node_ident)
@@ -2140,11 +2142,14 @@ class NodeHistoryController(rest.RestController):
             marker_obj = objects.NodeHistory.get_by_uuid(api.request.context,
                                                          marker)
         limit = api_utils.validate_limit(limit)
+        sort_dir = api_utils.validate_sort_dir(sort_dir)
 
         events = objects.NodeHistory.list_by_node_id(api.request.context,
                                                      node.id,
                                                      marker=marker_obj,
-                                                     limit=limit)
+                                                     limit=limit,
+                                                     sort_key=sort_key,
+                                                     sort_dir=sort_dir)
 
         return collection.list_convert_with_links(
             items=[
@@ -2156,6 +2161,8 @@ class NodeHistoryController(rest.RestController):
             fields=fields,
             marker=marker_obj,
             limit=limit,
+            sort_key=sort_key,
+            sort_dir=sort_dir
         )
 
     @METRICS.timer('NodeHistoryController.get_one')
