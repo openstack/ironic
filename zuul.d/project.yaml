@@ -61,8 +61,6 @@
             voting: false
         - ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib:
             voting: false
-        - ironic-tempest-ipxe-ipv6:
-            voting: false
         - ironic-standalone-anaconda:
             voting: false
         - bifrost-integration-tinyipa-ubuntu-noble:
