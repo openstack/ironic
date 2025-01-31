@@ -171,11 +171,11 @@ After provisioning work has been completed, and prior to the node being
 moved to the ``ACTIVE`` ``provision_state``, the previously attached ports
 are unbound.
 
-In the case of the ``flat`` ``network_interface```, the requested VIF(s)
+In the case of the ``network_interface`` set to ``flat``, the requested VIF(s)
 utilized for all binding configurations in all states.
 
-In the case of the ``neutron`` ``network_interface``, the user requested VIFs
-are attached to the Ironic node for the first time, as the time spent in
+In the case of the ``network_interface`` set to ``neutron``, the user requested
+VIFs are attached to the Ironic node for the first time, as the time spent in
 the *provisioning network* was utilizing VIFs which Ironic created and then
 deleted as part of the baremetal node's movement through the state machine.
 
