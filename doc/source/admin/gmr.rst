@@ -6,10 +6,10 @@ administrators can generate a report about the state of running Bare Metal
 executables (ironic-api and ironic-conductor). This report is called a Guru
 Meditation Report (GMR for short).
 GMR provides useful debugging information that can be used to obtain
-an accurate view on the current live state of the system. For example,
+an accurate view of the current live state of the system. For example,
 what threads are running, what configuration parameters are in effect,
 and more. The eventlet backdoor facility provides an interactive shell
-interface for any eventlet based process, allowing an administrator to
+interface for any eventlet-based process, allowing an administrator to
 telnet to a pre-defined port and execute a variety of commands.
 
 Configuration

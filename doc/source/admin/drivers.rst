@@ -1,6 +1,6 @@
-==========================================================
-Drivers, Hardware Types and Hardware Interfaces for Ironic
-==========================================================
+===========================================================
+Drivers, Hardware Types, and Hardware Interfaces for Ironic
+===========================================================
 
 Generic Interfaces
 ------------------
@@ -40,7 +40,7 @@ Any hardware interfaces can be specified on enrollment as well::
     baremetal node create --driver <hardware type> \
         --deploy-interface direct --<other>-interface <other implementation>
 
-For the remaining interfaces the default value is assigned as described in
+For the remaining interfaces, the default value is assigned as described in
 :ref:`hardware_interfaces_defaults`. Both the hardware type and the hardware
 interfaces can be changed later via the node update API.
 
@@ -69,7 +69,7 @@ not work::
 
 This is because the ``fake-hardware`` hardware type defaults to ``fake``
 implementations for some or all interfaces, but the ``ipmi`` hardware type is
-not compatible with them. There are three ways to deal with this situation:
+incompatible with them. There are three ways to deal with this situation:
 
 #. Provide new values for all incompatible interfaces, for example::
 
@@ -114,7 +114,7 @@ implementation with the ``ipmi`` and ``redfish`` hardware types. In this case
 the Bare Metal service will not change the boot device for you, leaving
 the pre-configured boot order.
 
-For example, in case of the :ref:`pxe-boot`:
+For example, in the case of the :ref:`pxe-boot`:
 
 #. Via any available means configure the boot order on the node as follows:
 
@@ -124,7 +124,7 @@ For example, in case of the :ref:`pxe-boot`:
          If it is not possible to limit network boot to only provisioning NIC,
          make sure that no other DHCP/PXE servers are accessible by the node.
 
-   #. Boot from hard drive.
+   #. Boot from the hard drive.
 
 #. Make sure the ``noop`` management interface is enabled, for example:
 

@@ -39,7 +39,7 @@ stress-ng option schema, are:
 
 to limit the overall runtime and to pick the number of CPUs to stress.
 
-For instance, in order to limit the time of the CPU burn-in to 10 minutes
+For instance, to limit the time of the CPU burn-in to 10 minutes
 do:
 
 .. code-block:: console
@@ -65,7 +65,7 @@ stress-ng option schema, are:
 
 to limit the overall runtime and to set the fraction of RAM to stress.
 
-For instance, in order to limit the time of the memory burn-in to 1 hour
+For instance, to limit the time of the memory burn-in to 1 hour
 and the amount of RAM to be used to 75% run:
 
 .. code-block:: console
@@ -94,7 +94,7 @@ fio option schema, are:
 to set the time limit and the number of iterations when going
 over the disks.
 
-For instance, in order to limit the number of loops to 2 set:
+For instance, to limit the number of loops to 2 set:
 
 .. code-block:: console
 
@@ -108,7 +108,7 @@ Then launch the test with:
     baremetal node clean --clean-steps '[{"step": "burnin_disk", \
         "interface": "deploy"}]' $NODE_NAME_OR_UUID
 
-In order to launch a parallel SMART self test on all devices after the
+To launch a parallel SMART self-test on all devices after the
 disk burn-in (which will fail the step if any of the tests fail), set:
 
 .. code-block:: console
@@ -119,7 +119,7 @@ disk burn-in (which will fail the step if any of the tests fail), set:
 Network burn-in
 ===============
 
-Burning in the network needs a little more config, since we need a pair
+Burning in the network needs a little more config since we need a pair
 of nodes to perform the test. This pairing can be done either in a static
 way, i.e. pairs are defined upfront, or dynamically via a distributed
 coordination backend which orchestrates the pair matching. While the
@@ -145,7 +145,7 @@ hostname of the other node to test), like:
 Dynamic network burn-in configuration
 -------------------------------------
 
-In order to use dynamic pair matching, a coordination backend is used
+To use dynamic pair matching, a coordination backend is used
 via `tooz <https://docs.openstack.org/tooz/latest/>`_. The corresponding
 backend URL then needs to be added to the node, e.g. for a Zookeeper
 backend it would look similar to:
@@ -209,7 +209,7 @@ performance of the stressed components, keeping this information for
 verification or acceptance purposes may be desirable. By default, the
 output of the burn-in tools goes to the journal of the Ironic Python
 Agent and is therefore sent back as an archive to the conductor. In order
-to consume the output of the burn-in steps more easily, or even in real-time,
+to consume the output of the burn-in steps more easily, or even in real time,
 the nodes can be configured to store the output of the individual steps to
 files in the ramdisk (from where they can be picked up by a logging pipeline).
 
