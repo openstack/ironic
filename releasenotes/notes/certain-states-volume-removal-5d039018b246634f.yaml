@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Allow volume connector and volume target to be removed in same states that
+    a node can be removed, ignoring of node power states.
