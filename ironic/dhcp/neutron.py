@@ -34,8 +34,7 @@ LOG = logging.getLogger(__name__)
 class NeutronDHCPApi(base.BaseDHCP):
     """API for communicating to neutron 2.x API."""
 
-    def update_port_dhcp_opts(self, port_id, dhcp_options, token=None,
-                              context=None):
+    def update_port_dhcp_opts(self, port_id, dhcp_options, context=None):
         """Update a port's attributes.
 
         Update one or more DHCP options on the specified port.
@@ -54,15 +53,14 @@ class NeutronDHCPApi(base.BaseDHCP):
                                {'opt_name': '66',
                                 'opt_value': '123.123.123.456'},
                                 'ip_version': 4}]
-        :param token: optional auth token. Deprecated, use context.
         :param context: request context
         :type context: ironic.common.context.RequestContext
         :raises: FailedToUpdateDHCPOptOnPort
         """
         super(NeutronDHCPApi, self).update_port_dhcp_opts(
-            port_id, dhcp_options, token=token, context=context)
+            port_id, dhcp_options, context=context)
         try:
-            neutron_client = neutron.get_client(token=token, context=context)
+            neutron_client = neutron.get_client(context=context)
 
             fips = []
             port = neutron_client.get_port(port_id)

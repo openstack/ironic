@@ -28,8 +28,7 @@ class BaseDHCP(object, metaclass=abc.ABCMeta):
     """Base class for DHCP provider APIs."""
 
     @abc.abstractmethod
-    def update_port_dhcp_opts(self, port_id, dhcp_options, token=None,
-                              context=None):
+    def update_port_dhcp_opts(self, port_id, dhcp_options, context=None):
         """Update one or more DHCP options on the specified port.
 
         :param port_id: designate which port these attributes
@@ -44,16 +43,10 @@ class BaseDHCP(object, metaclass=abc.ABCMeta):
                                {'opt_name': '66',
                                 'opt_value': '123.123.123.456',
                                 'ip_version': 4}]
-        :param token: An optional authentication token. Deprecated, use context
         :param context: request context
         :type context: ironic.common.context.RequestContext
         :raises: FailedToUpdateDHCPOptOnPort
         """
-        # TODO(pas-ha) ignore token arg in Rocky
-        if token:
-            LOG.warning("Using the 'token' argument is deprecated, "
-                        "use the 'context' argument to pass the "
-                        "full request context instead.")
 
     @abc.abstractmethod
     def update_dhcp_opts(self, task, options, vifs=None):
