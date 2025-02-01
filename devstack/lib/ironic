@@ -999,6 +999,11 @@ function cleanup_virtualbmc {
     local unitfile="$SYSTEMD_DIR/$IRONIC_VBMC_SYSTEMD_SERVICE"
     sudo rm -f $unitfile
 
+    local vbmc_dir="${HOME}/.vbmc"
+    if [[ -d "$vbmc_dir" ]]; then
+        sudo rm -rf "$vbmc_dir"
+    fi
+
     $SYSTEMCTL daemon-reload
 }
 
