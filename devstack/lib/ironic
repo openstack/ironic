@@ -3566,12 +3566,14 @@ function downgrade_dnsmasq {
         sudo dpkg -r dnsmasq-base
         # NOTE(JayF) Cannot shallow clone; need to checkout a commit that
         # is not part of a named tag
-        git clone http://thekelleys.org.uk/git/dnsmasq.git
-        pushd dnsmasq
+        DNSMASQ_DIR=$(mktemp --tmpdir -u dnsmasq.XXXXXX)
+        git clone http://thekelleys.org.uk/git/dnsmasq.git $DNSMASQ_DIR
+        pushd $DNSMASQ_DIR
         # https://thekelleys.org.uk/gitweb/?p=dnsmasq.git;a=commitdiff;h=f006be7842104a9f86fbf419326b7aad08ade61d
         git checkout f006be7842104a9f86fbf419326b7aad08ade61d
         sudo make PREFIX=/usr install
         popd
+        rm -rf $DNSMASQ_DIR
     fi
 }
 
