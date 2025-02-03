@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fixes step validation where some of the reserved step names, ``hold``,
+    and ``wait``, were not being properly handled by the step validation code.

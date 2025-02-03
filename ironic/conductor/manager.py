@@ -1362,7 +1362,14 @@ class ConductorManager(base_manager.BaseConductorManager):
                 # up and it continue it's operation.
                 task.process_event('unhold')
                 return
-
+            if (action == states.VERBS['unhold']
+                    and node.provision_state == states.SERVICEHOLD):
+                task.process_event(
+                    'unhold',
+                    callback=self._spawn_worker,
+                    call_args=(servicing.continue_node_service, task),
+                    err_handler=utils.servicing_error_handler)
+                return
             try:
                 task.process_event(action)
             except exception.InvalidState:

@@ -3422,7 +3422,26 @@ class DoNodeServiceTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             call_args=(servicing.do_node_service, mock.ANY,
                        {'foo': 'bar'}, False),
             err_handler=mock.ANY, target_state='active')
-# end legacy
+
+    @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
+                autospec=True)
+    def test_do_node_provision_action_unhold_service(self, mock_spawn):
+        node = obj_utils.create_test_node(
+            self.context, driver='fake-hardware',
+            provision_state=states.SERVICEHOLD,
+            target_provision_state=states.ACTIVE,
+            driver_internal_info={
+                'service_steps': [
+                    {'step': 'hold', 'priority': 9, 'interface': 'power'},
+                ],
+                'clean_step_index': 1
+            }
+        )
+        self._start_service()
+        self.service.do_provisioning_action(self.context, node.uuid, 'unhold')
+        mock_spawn.assert_called_with(
+            self.service, servicing.continue_node_service, mock.ANY)
+        self._stop_service()
 
 
 class DoNodeRescueTestCase(mgr_utils.CommonMixIn, mgr_utils.ServiceSetUpMixin,

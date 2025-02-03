@@ -885,7 +885,9 @@ class NodeCleaningStepsTestCase(db_base.DbTestCase):
         mock_steps.return_value = self.clean_steps
 
         user_steps = [{'step': 'update_firmware', 'interface': 'power'},
-                      {'step': 'erase_disks', 'interface': 'deploy'}]
+                      {'step': 'erase_disks', 'interface': 'deploy'},
+                      {'step': 'hold', 'interface': 'deploy'},
+                      {'step': 'wait', 'interface': 'deploy'}]
 
         with task_manager.acquire(self.context, node.uuid) as task:
             result = conductor_steps._validate_user_clean_steps(task,
