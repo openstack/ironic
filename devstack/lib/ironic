@@ -175,10 +175,17 @@ IRONIC_RESCUE_NET_NAME=${IRONIC_RESCUE_NET_NAME:-${IRONIC_CLEAN_NET_NAME}}
 IRONIC_INSPECTION_NET_NAME=${IRONIC_INSPECTION_NET_NAME:-${IRONIC_CLEAN_NET_NAME}}
 IRONIC_EXTRA_PXE_PARAMS=${IRONIC_EXTRA_PXE_PARAMS:-}
 IRONIC_TTY_DEV=${IRONIC_TTY_DEV:-ttyS0,115200}
+IRONIC_USE_PORT_GROUP=$(trueorfalse False IRONIC_USE_PORT_GROUP)
+IRONIC_PORT_GROUP_MODE=${IRONIC_PORT_GROUP_MODE:-"balance-rr"}
 
 IRONIC_TEMPEST_BUILD_TIMEOUT=${IRONIC_TEMPEST_BUILD_TIMEOUT:-${BUILD_TIMEOUT:-}}
 if [[ -n "$BUILD_TIMEOUT" ]]; then
     echo "WARNING: BUILD_TIMEOUT variable is renamed to IRONIC_TEMPEST_BUILD_TIMEOUT and will be deprecated in Pike."
+fi
+
+
+if [[ "$IRONIC_USE_PORT_GROUP" == "True" && ${IRONIC_VM_INTERFACE_COUNT} -ne 2 ]]; then
+    die $LINENO "To use portgroups IRONIC_USE_PORT_GROUP=True 2 interfaces for VM is required IRONIC_VM_INTERFACE_COUNT"
 fi
 
 hostdomain=$(hostname)
@@ -3358,12 +3365,20 @@ function enroll_nodes {
         # Otherwise API will return 406 ERROR
         # NOTE(vsaienko) interface_info is in the following format here:
         # mac1,tap-node0i1;mac2,tap-node0i2;...;macN,tap-node0iN
+        if [[ $IRONIC_USE_PORT_GROUP == "True" ]]; then
+            pg_mac_address=$(echo ${interface_info} | awk -F ';' '{print $1}' | awk -F ',' '{print $1}')
+            pg_id=$($IRONIC_CMD port group create --node $node_id --address $pg_mac_address --mode ${IRONIC_PORT_GROUP_MODE} -f value -c uuid)
+            die_if_not_set $LINENO pg_id "Failed to create portgroup"
+        fi
         for info in ${interface_info//;/ }; do
             local mac_address=""
             local port_id=""
             local llc_port_opt=""
             local physical_network=""
+            local portgroup=""
+
             echo "Processing Interface Info $interface_info"
+
             mac_address=$(echo $info| awk -F ',' '{print $1}')
             port_id=$(echo $info| awk -F ',' '{print $2}')
             if [[ "${IRONIC_USE_LINK_LOCAL}" == "True" ]]; then
@@ -3376,7 +3391,10 @@ function enroll_nodes {
             if [[ "${IRONIC_USE_NEUTRON_SEGMENTS}" == "True" ]]; then
                 physical_network=" --physical-network ${PHYSICAL_NETWORK} "
             fi
-            $IRONIC_CMD port create --node $node_id $llc_opts $llc_port_opt $mac_address $physical_network
+            if [[ $IRONIC_USE_PORT_GROUP == "True" ]]; then
+                portgroup="--port-group ${pg_id}"
+            fi
+            $IRONIC_CMD port create --node $node_id $llc_opts $llc_port_opt $mac_address $physical_network $portgroup
         done
 
         # NOTE(vsaienko) use node-update instead of specifying network_interface
