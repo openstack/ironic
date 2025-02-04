@@ -139,7 +139,7 @@ function destroy {
     openstack router unset --external-gateway neutron_grenade || /bin/true
     openstack router remove subnet neutron_grenade neutron_grenade || /bin/true
     openstack router delete neutron_grenade || /bin/true
-    openstack network neutron_grenade || /bin/true
+    openstack network delete neutron_grenade || /bin/true
 }
 
 # Dispatcher
