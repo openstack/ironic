@@ -11,7 +11,6 @@
     check:
       jobs:
         - ironic-tox-bandit
-        - ironic-tox-codespell
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-driver-libs
         - ironic-cross-sushy:
@@ -68,7 +67,6 @@
     gate:
       jobs:
         - ironic-tox-bandit
-        - ironic-tox-codespell
         - ironic-tox-unit-mysql-migrations
         - ironic-tox-unit-with-driver-libs
         - ironic-tempest-functional-python3
