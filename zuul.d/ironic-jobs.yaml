@@ -1226,10 +1226,3 @@
       grenade_localrc:
         # NOTE(iurygregory): This is required for skip upgrades.
         NOVA_ENABLE_UPGRADE_WORKAROUND: True
-
-- job:
-    name: ironic-tox-codespell
-    parent: openstack-tox
-    timeout: 7200
-    vars:
-      tox_envlist: codespell
