@@ -99,6 +99,14 @@ Contributor Guide
 
    contributor/index
 
+References
+==========
+
+.. toctree::
+   :maxdepth: 2
+
+   references/index
+
 .. only:: html
 
    Indices and tables
