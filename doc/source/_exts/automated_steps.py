@@ -62,11 +62,14 @@ def _list_table(add, headers, data, title='', columns=None):
 def _format_doc(doc):
     "Format one method docstring to be shown in the step table."
     paras = doc.split('\n\n')
-    if paras[-1].startswith(':'):
+    formatted_docstring = []
+    for line in paras:
+        if line.startswith(':'):
+            continue
         # Remove the field table that commonly appears at the end of a
         # docstring.
-        paras = paras[:-1]
-    return '\n\n'.join(paras)
+        formatted_docstring.append(line)
+    return '\n\n'.join(formatted_docstring)
 
 
 _clean_steps = {}
