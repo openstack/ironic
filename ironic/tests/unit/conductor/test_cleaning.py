@@ -607,7 +607,8 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
             target_provision_state=tgt_prov_state,
             last_error=None,
             driver_internal_info={'clean_steps': self.clean_steps,
-                                  'clean_step_index': 0},
+                                  'clean_step_index': 0,
+                                  'cleaning_polling': True},
             clean_step=self.clean_steps[0])
         mock_execute.return_value = return_state
 
@@ -623,6 +624,7 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         self.assertEqual(1, node.driver_internal_info['clean_step_index'])
         mock_execute.assert_called_once_with(
             mock.ANY, mock.ANY, self.clean_steps[1])
+        self.assertNotIn('cleaning_polling', node.driver_internal_info)
 
     def test_do_next_clean_step_continue_from_last_cleaning(self):
         self._do_next_clean_step_continue_from_last_cleaning(states.CLEANWAIT)

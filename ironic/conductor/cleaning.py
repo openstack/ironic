@@ -175,6 +175,11 @@ def do_next_clean_step(task, step_index, disable_ramdisk=None):
         eocn = step.get('execute_on_child_nodes', False)
         result = None
         try:
+            if async_steps.CLEANING_POLLING in node.driver_internal_info:
+                # We're executing a new step, so a prior polling
+                # flag should be dictated by the new step, *not* a
+                # prior step.
+                node.del_driver_internal_info(async_steps.CLEANING_POLLING)
             if not eocn:
                 LOG.info('Executing %(step)s on node %(node)s',
                          {'step': step, 'node': node.uuid})
