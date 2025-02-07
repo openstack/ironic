@@ -1165,11 +1165,20 @@ class RedfishManagement(base.ManagementInterface):
             runtime error.
         :raises: UnsupportedDriverExtension if secure boot is
                  not supported by the hardware.
-        :returns: Boolean
+        :returns: Boolean or None if status cannot be retrieved
         """
         system = redfish_utils.get_system(task.node)
         try:
             return system.secure_boot.enabled
+        except sushy.exceptions.AccessError as e:
+            if 'OemLicenseNotPassed' in str(e):
+                # NOTE(cid): Supermicro gear requires a license to report
+                # secure boot status.
+                LOG.info("Secure boot status request through Redfish failed "
+                         "for node %(node)s: %(error)s",
+                         {'node': task.node.uuid, 'error': e})
+                return None
+            raise
         except sushy.exceptions.MissingAttributeError:
             raise exception.UnsupportedDriverExtension(
                 driver=task.node.driver, extension='get_secure_boot_state')

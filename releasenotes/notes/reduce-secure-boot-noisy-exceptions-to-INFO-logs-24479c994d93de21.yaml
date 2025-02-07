@@ -1,0 +1,4 @@
+---
+fixes:
+  - |
+    Log non-recoverable secure boot status check failures at INFO level.
