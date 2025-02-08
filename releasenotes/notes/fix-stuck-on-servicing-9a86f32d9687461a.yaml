@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Fix the issue that restart of conductor service can not recover
+    a node stuck at the ``servicing`` state.
