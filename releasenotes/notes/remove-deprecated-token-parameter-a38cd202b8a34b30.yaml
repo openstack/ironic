@@ -1,0 +1,5 @@
+---
+upgrade:
+  - |
+    Remove unused and (pre-Rocky release) deprecated `token` parameter from
+    the DHCP driver interface method.

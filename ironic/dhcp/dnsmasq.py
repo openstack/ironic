@@ -27,8 +27,7 @@ LOG = logging.getLogger(__name__)
 class DnsmasqDHCPApi(base.BaseDHCP):
     """API for managing host specific Dnsmasq configuration."""
 
-    def update_port_dhcp_opts(self, port_id, dhcp_options, token=None,
-                              context=None):
+    def update_port_dhcp_opts(self, port_id, dhcp_options, context=None):
         pass
 
     def update_dhcp_opts(self, task, options, vifs=None):

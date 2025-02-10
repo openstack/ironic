@@ -69,23 +69,6 @@ class TestNeutronClient(base.TestCase):
         client_mock.assert_called_once_with(oslo_conf=mock.ANY,
                                             session=mock.sentinel.session)
 
-    @mock.patch('ironic.common.context.RequestContext', autospec=True)
-    def test_get_neutron_client_with_token(self, mock_ctxt, mock_client_init,
-                                           mock_session, mock_adapter,
-                                           mock_auth, mock_sauth):
-        mock_ctxt.return_value = ctxt = mock.Mock()
-        ctxt.auth_token = 'test-token-123'
-        ctxt.system_scope = None
-        neutron.get_client(token='test-token-123')
-        mock_ctxt.assert_called_once_with(auth_token='test-token-123')
-        mock_client_init.assert_called_once_with(oslo_conf=mock.ANY,
-                                                 session=mock.sentinel.session)
-
-        # testing handling of default url_timeout
-        mock_session.assert_has_calls(
-            [mock.call('neutron', timeout=10),
-             mock.call('neutron', auth=mock.sentinel.sauth, timeout=10)])
-
     def test_get_neutron_client_with_context(self, mock_client_init,
                                              mock_session, mock_adapter,
                                              mock_auth, mock_sauth):
