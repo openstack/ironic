@@ -27,7 +27,9 @@ fi
 # The overhead is essentially another 78 bytes. In order to
 # handle both cases, lets go ahead and drop the maximum by
 # 78 bytes, while not going below 1280 to make IPv6 work at all.
-PUBLIC_BRIDGE_MTU=${OVERRIDE_PUBLIC_BRIDGE_MTU:-$((local_mtu - 78))}
-if [ $PUBLIC_BRIDGE_MTU -lt 1280 ]; then
-    PUBLIC_BRIDGE_MTU=1280
+if [[ "$HOST_TOPOLOGY" == "multinode" ]]; then
+    # This logic is to artificially pin down the PUBLIC_BRIDGE_MTU for
+    # when we are using mutlinode architecture, as to transfer the
+    # bytes over the multinode VXLAN tunnel, we need to drop the mtu.
+    PUBLIC_BRIDGE_MTU=${OVERRIDE_PUBLIC_BRIDGE_MTU:-$((local_mtu - 78))}
 fi
