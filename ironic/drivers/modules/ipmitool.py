@@ -584,9 +584,11 @@ def check_cipher_suite_errors(cmd_stderr):
     :returns: True if the cmd_stderr contains a cipher suite error,
         False otherwise.
     """
-    cs_errors = ["Unsupported cipher suite ID",
-                 "Error in open session response message :"
-                 " no matching cipher suite"]
+    cs_errors = [
+        "Unsupported cipher suite ID",
+        "Error in open session response message : no matching cipher suite",
+        "Error in open session response message : invalid role",
+    ]
     for cs_err in cs_errors:
         if cmd_stderr is not None and cs_err in cmd_stderr:
             return True
