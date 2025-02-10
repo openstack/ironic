@@ -62,6 +62,7 @@ class IronicImagesTestCase(base.TestCase):
     @mock.patch.object(builtins, 'open', autospec=True)
     def test_fetch_image_service_force_raw(self, open_mock, image_to_raw_mock,
                                            image_service_mock):
+        image_service_mock.return_value.transfer_verified_checksum = None
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'file'
         open_mock.return_value = mock_file_handle
@@ -82,6 +83,7 @@ class IronicImagesTestCase(base.TestCase):
     def test_fetch_image_service_force_raw_with_checksum(
             self, open_mock, image_to_raw_mock,
             image_service_mock, mock_checksum):
+        image_service_mock.return_value.transfer_verified_checksum = None
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'file'
         open_mock.return_value = mock_file_handle
@@ -105,6 +107,7 @@ class IronicImagesTestCase(base.TestCase):
     def test_fetch_image_service_with_checksum_mismatch(
             self, open_mock, image_to_raw_mock,
             image_service_mock, mock_checksum):
+        image_service_mock.return_value.transfer_verified_checksum = None
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'file'
         open_mock.return_value = mock_file_handle
@@ -130,6 +133,7 @@ class IronicImagesTestCase(base.TestCase):
     def test_fetch_image_service_force_raw_no_checksum_algo(
             self, open_mock, image_to_raw_mock,
             image_service_mock, mock_checksum):
+        image_service_mock.return_value.transfer_verified_checksum = None
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'file'
         open_mock.return_value = mock_file_handle
@@ -153,6 +157,7 @@ class IronicImagesTestCase(base.TestCase):
     def test_fetch_image_service_force_raw_combined_algo(
             self, open_mock, image_to_raw_mock,
             image_service_mock, mock_checksum):
+        image_service_mock.return_value.transfer_verified_checksum = None
         mock_file_handle = mock.MagicMock(spec=io.BytesIO)
         mock_file_handle.__enter__.return_value = 'file'
         open_mock.return_value = mock_file_handle
@@ -167,6 +172,35 @@ class IronicImagesTestCase(base.TestCase):
             'image_href', 'file')
         image_to_raw_mock.assert_called_once_with(
             'image_href', 'path', 'path.part')
+
+    @mock.patch.object(fileutils, 'compute_file_checksum',
+                       autospec=True)
+    @mock.patch.object(image_service, 'get_image_service', autospec=True)
+    @mock.patch.object(images, 'image_to_raw', autospec=True)
+    @mock.patch.object(builtins, 'open', autospec=True)
+    def test_fetch_image_service_auth_data_checksum(
+            self, open_mock, image_to_raw_mock,
+            svc_mock, mock_checksum):
+        svc_mock.return_value.transfer_verified_checksum = 'f00'
+        svc_mock.return_value.is_auth_set_needed = True
+        mock_file_handle = mock.MagicMock(spec=io.BytesIO)
+        mock_file_handle.__enter__.return_value = 'file'
+        open_mock.return_value = mock_file_handle
+        mock_checksum.return_value = 'f00'
+
+        images.fetch('context', 'image_href', 'path', force_raw=True,
+                     checksum='sha512:f00', image_auth_data='meow')
+        # In this case, the image service does the checksum so we know
+        # we don't need to do a checksum pass as part of the common image
+        # handling code path.
+        mock_checksum.assert_not_called()
+        open_mock.assert_called_once_with('path', 'wb')
+        svc_mock.return_value.download.assert_called_once_with(
+            'image_href', 'file')
+        image_to_raw_mock.assert_called_once_with(
+            'image_href', 'path', 'path.part')
+        svc_mock.return_value.set_image_auth.assert_called_once_with(
+            'image_href', 'meow')
 
     @mock.patch.object(image_format_inspector, 'detect_file_format',
                        autospec=True)
@@ -438,10 +472,12 @@ class IronicImagesTestCase(base.TestCase):
     @mock.patch.object(images, 'image_show', autospec=True)
     def test_download_size(self, show_mock):
         show_mock.return_value = {'size': 123456}
-        size = images.download_size('context', 'image_href', 'image_service')
+        size = images.download_size('context', 'image_href', 'image_service',
+                                    image_auth_data='meow')
         self.assertEqual(123456, size)
         show_mock.assert_called_once_with('context', 'image_href',
-                                          'image_service')
+                                          image_service='image_service',
+                                          image_auth_data='meow')
 
     @mock.patch.object(image_format_inspector, 'detect_file_format',
                        autospec=True)
@@ -539,6 +575,25 @@ class IronicImagesTestCase(base.TestCase):
         self.assertTrue(is_whole_disk_image)
         mock_igi.assert_called_once_with(image_source)
         mock_gip.assert_called_once_with('context', image_source)
+
+    @mock.patch.object(images, 'get_image_properties', autospec=True)
+    @mock.patch.object(image_service, 'is_container_registry_url',
+                       autospec=True)
+    @mock.patch.object(glance_utils, 'is_glance_image', autospec=True)
+    def test_is_whole_disk_image_whole_disk_image_oci(self, mock_igi,
+                                                      mock_ioi,
+                                                      mock_gip):
+        mock_igi.return_value = False
+        mock_ioi.return_value = True
+        mock_gip.return_value = {}
+        instance_info = {'image_source': 'oci://image'}
+        image_source = instance_info['image_source']
+        is_whole_disk_image = images.is_whole_disk_image('context',
+                                                         instance_info)
+        self.assertTrue(is_whole_disk_image)
+        mock_igi.assert_called_once_with(image_source)
+        mock_ioi.assert_called_once_with(image_source)
+        mock_gip.assert_not_called()
 
     @mock.patch.object(images, 'get_image_properties', autospec=True)
     @mock.patch.object(glance_utils, 'is_glance_image', autospec=True)

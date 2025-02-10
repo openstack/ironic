@@ -720,6 +720,21 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             pxe_boot_validate_mock.assert_called_once_with(
                 task.driver.boot, task)
 
+    @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)
+    def test_validate_oci_no_checksum(
+            self, pxe_boot_validate_mock):
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'oci://image-ref'
+        del i_info['image_checksum']
+        self.node.instance_info = i_info
+        self.node.save()
+
+        with task_manager.acquire(
+                self.context, self.node.uuid, shared=False) as task:
+            self.driver.validate(task)
+            pxe_boot_validate_mock.assert_called_once_with(
+                task.driver.boot, task)
+
     @mock.patch.object(agent, 'validate_http_provisioning_configuration',
                        autospec=True)
     @mock.patch.object(pxe.PXEBoot, 'validate', autospec=True)

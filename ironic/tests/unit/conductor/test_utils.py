@@ -3184,7 +3184,8 @@ class ServiceUtilsTestCase(db_base.DbTestCase):
             'service_disable_ramdisk': False,
             'skip_current_service_step': False,
             'steps_validated': 'meow'
-            'agent_secret_token'}
+            'agent_secret_token',
+            'image_source': 'image_ref'}
         self.node.save()
         not_in_list = ['agent_cached_service_steps',
                        'servicing_reboot',
@@ -3192,7 +3193,8 @@ class ServiceUtilsTestCase(db_base.DbTestCase):
                        'service_disable_ramdisk',
                        'skip_current_service_step',
                        'steps_validated',
-                       'agent_secret_token']
+                       'agent_secret_token'
+                       'image_source']
         with task_manager.acquire(self.context, self.node.id,
                                   shared=True) as task:
             conductor_utils.wipe_service_internal_info(task)

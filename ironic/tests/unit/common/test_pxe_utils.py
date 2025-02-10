@@ -1646,22 +1646,31 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
                                                  mock.ANY,
                                                  [('deploy_kernel',
                                                    image_path)],
-                                                 True)
+                                                 True,
+                                                 image_auth_data=None)
 
+    @mock.patch.object(base_image_service, 'get_image_service_auth_override',
+                       autospec=True)
     @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch.object(pxe_utils, 'TFTPImageCache', lambda: None)
     @mock.patch.object(pxe_utils, 'ensure_tree', autospec=True)
     @mock.patch.object(deploy_utils, 'fetch_images', autospec=True)
     def test_cache_ramdisk_kernel(self, mock_fetch_image, mock_ensure_tree,
-                                  mock_chmod):
+                                  mock_chmod, mock_get_auth):
+        auth_dict = {'foo': 'bar'}
         fake_pxe_info = pxe_utils.get_image_info(self.node)
         expected_path = os.path.join(CONF.pxe.tftp_root, self.node.uuid)
+        mock_get_auth.return_value = auth_dict
         with task_manager.acquire(self.context, self.node.uuid,
                                   shared=True) as task:
             pxe_utils.cache_ramdisk_kernel(task, fake_pxe_info)
+            mock_get_auth.assert_called_once_with(
+                task.node,
+                permit_user_auth=False)
         mock_ensure_tree.assert_called_with(expected_path)
         mock_fetch_image.assert_called_once_with(
-            self.context, mock.ANY, list(fake_pxe_info.values()), True)
+            self.context, mock.ANY, list(fake_pxe_info.values()), True,
+            image_auth_data=auth_dict)
 
     @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch.object(pxe_utils, 'TFTPImageCache', lambda: None)
@@ -1679,7 +1688,8 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         mock_ensure_tree.assert_called_with(expected_path)
         mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
                                                  list(fake_pxe_info.values()),
-                                                 True)
+                                                 True,
+                                                 image_auth_data=None)
 
     @mock.patch.object(os, 'chmod', autospec=True)
     @mock.patch.object(pxe_utils, 'TFTPImageCache', lambda: None)
@@ -1719,7 +1729,8 @@ class PXEInterfacesTestCase(db_base.DbTestCase):
         mock_ensure_tree.assert_called_with(expected_path)
         mock_fetch_image.assert_called_once_with(self.context, mock.ANY,
                                                  list(expected.values()),
-                                                 True)
+                                                 True,
+                                                 image_auth_data=None)
 
 
 @mock.patch.object(pxe.PXEBoot, '__init__', lambda self: None)

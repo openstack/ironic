@@ -1062,3 +1062,26 @@ class ServiceRegistrationFailure(IronicException):
 class Unauthorized(IronicException):
     code = http_client.UNAUTHORIZED
     headers = {'WWW-Authenticate': 'Basic realm="Baremetal API"'}
+
+
+class ImageHostRateLimitFailure(TemporaryFailure):
+    _msg_fmt = _("The image registry has indicates the rate limit has been "
+                 "exceeded for url %(image_ref)s. Please try again later or "
+                 "consider using authentication and/or trying again.")
+
+
+class ImageMatchFailure(InvalidImage):
+    _msg_fmt = _("The requested image lacks the required attributes to "
+                 "identify the file to select.")
+
+
+class OciImageNotSpecific(InvalidImage):
+    _msg_fmt = _("The requested image (%(image_ref)s) was not specific. "
+                 "Please supply a full URL mapping to the manifest to be "
+                 "utilized for the file download.")
+
+
+class ImageServiceAuthenticationRequired(ImageUnacceptable):
+    _msg_fmt = _("The requested image %(image_ref)s requires "
+                 "authentication which has not been provided. "
+                 "Unable to proceed.")

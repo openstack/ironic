@@ -1328,8 +1328,16 @@ def cache_ramdisk_kernel(task, pxe_info, ipxe_enabled=False):
     LOG.debug("Fetching necessary kernel and ramdisk for node %s",
               node.uuid)
     images_info = list(t_pxe_info.values())
+
+    # Call the central auth override lookup, but signal it is not
+    # for *user* direct artifacts, i.e. this is system related
+    # activity as we're getting TFTP Image cache artifacts.
+    img_service_auth = service.get_image_service_auth_override(
+        task.node, permit_user_auth=False)
+
     deploy_utils.fetch_images(ctx, TFTPImageCache(), images_info,
-                              CONF.force_raw_images)
+                              CONF.force_raw_images,
+                              image_auth_data=img_service_auth)
     if CONF.pxe.file_permission:
         for info in images_info:
             os.chmod(info[1], CONF.pxe.file_permission)

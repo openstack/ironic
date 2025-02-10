@@ -67,7 +67,8 @@ class TestImageCacheFetch(BaseTest):
         self.assertFalse(mock_download.called)
         mock_fetch.assert_called_once_with(
             None, self.uuid, self.dest_path, True,
-            None, None, None, disable_validation=False)
+            None, None, None, disable_validation=False,
+            image_auth_data=None)
         self.assertFalse(mock_clean_up.called)
         mock_image_service.assert_not_called()
 
@@ -85,7 +86,8 @@ class TestImageCacheFetch(BaseTest):
         self.assertFalse(mock_download.called)
         mock_fetch.assert_called_once_with(
             None, self.uuid, self.dest_path, True,
-            None, None, None, disable_validation=False)
+            None, None, None, disable_validation=False,
+            image_auth_data=None)
         self.assertFalse(mock_clean_up.called)
         mock_image_service.assert_not_called()
 
@@ -161,7 +163,8 @@ class TestImageCacheFetch(BaseTest):
             self.cache, self.uuid, self.master_path, self.dest_path,
             mock_image_service.return_value.show.return_value,
             ctx=None, force_raw=True, expected_format=None,
-            expected_checksum=None, expected_checksum_algo=None)
+            expected_checksum=None, expected_checksum_algo=None,
+            image_auth_data=None)
         mock_clean_up.assert_called_once_with(self.cache)
         mock_image_service.assert_called_once_with(self.uuid, context=None)
         mock_image_service.return_value.show.assert_called_once_with(self.uuid)
@@ -184,7 +187,8 @@ class TestImageCacheFetch(BaseTest):
             self.cache, self.uuid, self.master_path, self.dest_path,
             mock_image_service.return_value.show.return_value,
             ctx=None, force_raw=True, expected_format=None,
-            expected_checksum=None, expected_checksum_algo=None)
+            expected_checksum=None, expected_checksum_algo=None,
+            image_auth_data=None)
         mock_clean_up.assert_called_once_with(self.cache)
 
     def test_fetch_image_not_uuid(self, mock_download, mock_clean_up,
@@ -198,7 +202,8 @@ class TestImageCacheFetch(BaseTest):
             self.cache, href, master_path, self.dest_path,
             mock_image_service.return_value.show.return_value,
             ctx=None, force_raw=True, expected_format=None,
-            expected_checksum=None, expected_checksum_algo=None)
+            expected_checksum=None, expected_checksum_algo=None,
+            image_auth_data=None)
         self.assertTrue(mock_clean_up.called)
 
     def test_fetch_image_not_uuid_no_force_raw(self, mock_download,
@@ -214,7 +219,8 @@ class TestImageCacheFetch(BaseTest):
             self.cache, href, master_path, self.dest_path,
             mock_image_service.return_value.show.return_value,
             ctx=None, force_raw=False, expected_format=None,
-            expected_checksum='f00', expected_checksum_algo='sha256')
+            expected_checksum='f00', expected_checksum_algo='sha256',
+            image_auth_data=None)
         self.assertTrue(mock_clean_up.called)
 
     @mock.patch.object(image_cache, '_fetch', autospec=True)
@@ -227,7 +233,8 @@ class TestImageCacheFetch(BaseTest):
         mock_download.assert_not_called()
         mock_fetch.assert_called_once_with(
             None, self.uuid, self.dest_path, True,
-            None, None, None, disable_validation=True)
+            None, None, None, disable_validation=True,
+            image_auth_data=None)
         mock_clean_up.assert_not_called()
         mock_image_service.assert_not_called()
 
@@ -334,6 +341,26 @@ class TestUpdateImages(BaseTest):
             self, mock_path_exists, mock_unlink):
         res = image_cache._delete_master_path_if_stale(self.master_path,
                                                        self.uuid,
+                                                       self.img_info)
+        self.assertFalse(mock_unlink.called)
+        mock_path_exists.assert_called_once_with(self.master_path)
+        self.assertTrue(res)
+
+    @mock.patch.object(os.path, 'exists', return_value=False, autospec=True)
+    def test__delete_master_path_if_stale_oci_img_not_cached(
+            self, mock_path_exists, mock_unlink):
+        res = image_cache._delete_master_path_if_stale(self.master_path,
+                                                       'oci://foo',
+                                                       self.img_info)
+        self.assertFalse(mock_unlink.called)
+        mock_path_exists.assert_called_once_with(self.master_path)
+        self.assertFalse(res)
+
+    @mock.patch.object(os.path, 'exists', return_value=True, autospec=True)
+    def test__delete_master_path_if_stale_oci_img(
+            self, mock_path_exists, mock_unlink):
+        res = image_cache._delete_master_path_if_stale(self.master_path,
+                                                       'oci://foo',
                                                        self.img_info)
         self.assertFalse(mock_unlink.called)
         mock_path_exists.assert_called_once_with(self.master_path)
@@ -819,16 +846,55 @@ class TestFetchCleanup(base.TestCase):
         mock_size.return_value = 100
         image_cache._fetch('fake', 'fake-uuid', '/foo/bar', force_raw=True,
                            expected_checksum='1234',
-                           expected_checksum_algo='md5')
+                           expected_checksum_algo='md5',
+                           image_auth_data=None)
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
                                            '/foo/bar.part', force_raw=False,
                                            checksum='1234',
-                                           checksum_algo='md5')
+                                           checksum_algo='md5',
+                                           image_auth_data=None)
         mock_clean.assert_called_once_with('/foo', 100)
         mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
                                          '/foo/bar.part')
         mock_remove.assert_not_called()
-        mock_show.assert_called_once_with('fake', 'fake-uuid')
+        mock_show.assert_called_once_with('fake', 'fake-uuid',
+                                          image_auth_data=None)
+        mock_format_inspector.assert_called_once_with('/foo/bar.part')
+        image_check.safety_check.assert_called_once()
+        self.assertEqual(1, image_check.__str__.call_count)
+
+    @mock.patch.object(image_format_inspector, 'detect_file_format',
+                       autospec=True)
+    @mock.patch.object(images, 'image_show', autospec=True)
+    @mock.patch.object(os, 'remove', autospec=True)
+    @mock.patch.object(images, 'converted_size', autospec=True)
+    @mock.patch.object(images, 'fetch', autospec=True)
+    @mock.patch.object(images, 'image_to_raw', autospec=True)
+    @mock.patch.object(image_cache, '_clean_up_caches', autospec=True)
+    def test__fetch_with_image_auth(
+            self, mock_clean, mock_raw, mock_fetch,
+            mock_size, mock_remove, mock_show, mock_format_inspector):
+        image_check = mock.MagicMock()
+        image_check.__str__.side_effect = iter(['qcow2', 'raw'])
+        image_check.safety_check.return_value = True
+        mock_format_inspector.return_value = image_check
+        mock_show.return_value = {}
+        mock_size.return_value = 100
+        image_cache._fetch('fake', 'fake-uuid', '/foo/bar', force_raw=True,
+                           expected_checksum='1234',
+                           expected_checksum_algo='md5',
+                           image_auth_data='foo')
+        mock_fetch.assert_called_once_with('fake', 'fake-uuid',
+                                           '/foo/bar.part', force_raw=False,
+                                           checksum='1234',
+                                           checksum_algo='md5',
+                                           image_auth_data='foo')
+        mock_clean.assert_called_once_with('/foo', 100)
+        mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
+                                         '/foo/bar.part')
+        mock_remove.assert_not_called()
+        mock_show.assert_called_once_with('fake', 'fake-uuid',
+                                          image_auth_data='foo')
         mock_format_inspector.assert_called_once_with('/foo/bar.part')
         image_check.safety_check.assert_called_once()
         self.assertEqual(1, image_check.__str__.call_count)
@@ -856,12 +922,14 @@ class TestFetchCleanup(base.TestCase):
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
                                            '/foo/bar.part', force_raw=False,
                                            checksum='1234',
-                                           checksum_algo='md5')
+                                           checksum_algo='md5',
+                                           image_auth_data=None)
         mock_clean.assert_called_once_with('/foo', 100)
         mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
                                          '/foo/bar.part')
         mock_remove.assert_not_called()
-        mock_show.assert_called_once_with('fake', 'fake-uuid')
+        mock_show.assert_called_once_with('fake', 'fake-uuid',
+                                          image_auth_data=None)
         mock_format_inspector.assert_called_once_with('/foo/bar.part')
         image_check.safety_check.assert_called_once()
         self.assertEqual(1, image_check.__str__.call_count)
@@ -889,7 +957,8 @@ class TestFetchCleanup(base.TestCase):
         image_cache._fetch('fake', 'fake-uuid', '/foo/bar', force_raw=True)
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
                                            '/foo/bar.part', force_raw=False,
-                                           checksum=None, checksum_algo=None)
+                                           checksum=None, checksum_algo=None,
+                                           image_auth_data=None)
         mock_clean.assert_called_once_with('/foo', 100)
         mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
                                          '/foo/bar.part')
@@ -923,7 +992,8 @@ class TestFetchCleanup(base.TestCase):
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
                                            '/foo/bar.part', force_raw=False,
                                            checksum='1234',
-                                           checksum_algo='md5')
+                                           checksum_algo='md5',
+                                           image_auth_data=None)
         mock_clean.assert_called_once_with('/foo', 100)
         mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
                                          '/foo/bar.part')
@@ -958,13 +1028,15 @@ class TestFetchCleanup(base.TestCase):
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
                                            '/foo/bar.part', force_raw=False,
                                            checksum='f00',
-                                           checksum_algo='sha256')
+                                           checksum_algo='sha256',
+                                           image_auth_data=None)
         mock_clean.assert_called_once_with('/foo', 100)
         mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
                                          '/foo/bar.part')
         self.assertEqual(1, mock_exists.call_count)
         self.assertEqual(1, mock_remove.call_count)
-        mock_image_show.assert_called_once_with('fake', 'fake-uuid')
+        mock_image_show.assert_called_once_with('fake', 'fake-uuid',
+                                                image_auth_data=None)
         mock_format_inspector.assert_called_once_with('/foo/bar.part')
         image_check.safety_check.assert_called_once()
         self.assertEqual(1, image_check.__str__.call_count)
@@ -992,11 +1064,13 @@ class TestFetchCleanup(base.TestCase):
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
                                            '/foo/bar.part', force_raw=False,
                                            checksum='e00',
-                                           checksum_algo='sha256')
+                                           checksum_algo='sha256',
+                                           image_auth_data=None)
         mock_clean.assert_not_called()
         mock_size.assert_not_called()
         mock_raw.assert_not_called()
-        mock_show.assert_called_once_with('fake', 'fake-uuid')
+        mock_show.assert_called_once_with('fake', 'fake-uuid',
+                                          image_auth_data=None)
         mock_format_inspector.assert_called_once_with('/foo/bar.part')
         image_check.safety_check.assert_called_once()
         self.assertEqual(1, image_check.__str__.call_count)
@@ -1025,11 +1099,13 @@ class TestFetchCleanup(base.TestCase):
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
                                            '/foo/bar.part', force_raw=False,
                                            checksum='e00',
-                                           checksum_algo='sha256')
+                                           checksum_algo='sha256',
+                                           image_auth_data=None)
         mock_clean.assert_not_called()
         mock_size.assert_not_called()
         mock_raw.assert_not_called()
-        mock_show.assert_called_once_with('fake', 'fake-uuid')
+        mock_show.assert_called_once_with('fake', 'fake-uuid',
+                                          image_auth_data=None)
         mock_format_inspector.assert_called_once_with('/foo/bar.part')
         image_check.safety_check.assert_called_once()
         self.assertEqual(1, image_check.__str__.call_count)
@@ -1060,11 +1136,13 @@ class TestFetchCleanup(base.TestCase):
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
                                            '/foo/bar.part', force_raw=False,
                                            checksum='a00',
-                                           checksum_algo='sha512')
+                                           checksum_algo='sha512',
+                                           image_auth_data=None)
         mock_clean.assert_not_called()
         mock_size.assert_not_called()
         mock_raw.assert_not_called()
-        mock_show.assert_called_once_with('fake', 'fake-uuid')
+        mock_show.assert_called_once_with('fake', 'fake-uuid',
+                                          image_auth_data=None)
         mock_format_inspector.assert_called_once_with('/foo/bar.part')
         image_check.safety_check.assert_called_once()
         self.assertEqual(1, image_check.__str__.call_count)
@@ -1091,11 +1169,13 @@ class TestFetchCleanup(base.TestCase):
                           '/foo/bar', force_raw=True)
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
                                            '/foo/bar.part', force_raw=False,
-                                           checksum=None, checksum_algo=None)
+                                           checksum=None, checksum_algo=None,
+                                           image_auth_data=None)
         mock_clean.assert_not_called()
         mock_size.assert_not_called()
         mock_raw.assert_not_called()
-        mock_show.assert_called_once_with('fake', 'fake-uuid')
+        mock_show.assert_called_once_with('fake', 'fake-uuid',
+                                          image_auth_data=None)
         mock_format_inspector.assert_called_once_with('/foo/bar.part')
         image_check.safety_check.assert_called_once()
         self.assertEqual(0, image_check.__str__.call_count)
@@ -1121,7 +1201,8 @@ class TestFetchCleanup(base.TestCase):
         image_cache._fetch('fake', 'fake-uuid', '/foo/bar', force_raw=True)
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
                                            '/foo/bar.part', force_raw=False,
-                                           checksum=None, checksum_algo=None)
+                                           checksum=None, checksum_algo=None,
+                                           image_auth_data=None)
         mock_size.assert_has_calls([
             mock.call('/foo/bar.part', estimate=False),
             mock.call('/foo/bar.part', estimate=True),
@@ -1132,7 +1213,8 @@ class TestFetchCleanup(base.TestCase):
         ])
         mock_raw.assert_called_once_with('fake-uuid', '/foo/bar',
                                          '/foo/bar.part')
-        mock_show.assert_called_once_with('fake', 'fake-uuid')
+        mock_show.assert_called_once_with('fake', 'fake-uuid',
+                                          image_auth_data=None)
         mock_format_inspector.assert_called_once_with('/foo/bar.part')
         image_check.safety_check.assert_called_once()
         self.assertEqual(1, image_check.__str__.call_count)
@@ -1159,11 +1241,13 @@ class TestFetchCleanup(base.TestCase):
         image_cache._fetch('fake', 'fake-uuid', '/foo/bar', force_raw=True)
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
                                            '/foo/bar.part', force_raw=False,
-                                           checksum=None, checksum_algo=None)
+                                           checksum=None, checksum_algo=None,
+                                           image_auth_data=None)
         mock_clean.assert_not_called()
         mock_raw.assert_not_called()
         mock_remove.assert_not_called()
-        mock_show.assert_called_once_with('fake', 'fake-uuid')
+        mock_show.assert_called_once_with('fake', 'fake-uuid',
+                                          image_auth_data=None)
         mock_format_inspector.assert_called_once_with('/foo/bar.part')
         image_check.safety_check.assert_called_once()
         self.assertEqual(1, image_check.__str__.call_count)
@@ -1191,11 +1275,13 @@ class TestFetchCleanup(base.TestCase):
         image_cache._fetch('fake', 'fake-uuid', '/foo/bar', force_raw=True)
         mock_fetch.assert_called_once_with('fake', 'fake-uuid',
                                            '/foo/bar.part', force_raw=False,
-                                           checksum=None, checksum_algo=None)
+                                           checksum=None, checksum_algo=None,
+                                           image_auth_data=None)
         mock_clean.assert_not_called()
         mock_raw.assert_not_called()
         mock_remove.assert_not_called()
-        mock_show.assert_called_once_with('fake', 'fake-uuid')
+        mock_show.assert_called_once_with('fake', 'fake-uuid',
+                                          image_auth_data=None)
         mock_format_inspector.assert_called_once_with('/foo/bar.part')
         image_check.safety_check.assert_called_once()
         self.assertEqual(1, image_check.__str__.call_count)

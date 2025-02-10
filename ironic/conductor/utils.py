@@ -662,6 +662,7 @@ def wipe_deploy_internal_info(task):
     node.del_driver_internal_info('agent_cached_deploy_steps')
     node.del_driver_internal_info('deploy_step_index')
     node.del_driver_internal_info('steps_validated')
+    node.del_driver_internal_info('image_source')
     async_steps.remove_node_flags(node)
 
 
@@ -687,6 +688,7 @@ def wipe_service_internal_info(task):
     node.del_driver_internal_info('service_step_index')
     node.del_driver_internal_info('service_disable_ramdisk')
     node.del_driver_internal_info('steps_validated')
+    node.del_driver_internal_info('image_source')
     async_steps.remove_node_flags(node)
 
 

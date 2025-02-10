@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds support for OCI Container Registries for the retrieval of deployment
+    artifacts and whole-disk images to be written to a remote host.

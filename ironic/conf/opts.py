@@ -46,6 +46,7 @@ _opts = [
     ('molds', ironic.conf.molds.opts),
     ('neutron', ironic.conf.neutron.list_opts()),
     ('nova', ironic.conf.nova.list_opts()),
+    ('oci', ironic.conf.oci.opts),
     ('pxe', ironic.conf.pxe.opts),
     ('redfish', ironic.conf.redfish.opts),
     ('sensor_data', ironic.conf.sensor_data.opts),

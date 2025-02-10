@@ -611,7 +611,8 @@ class AgentDeploy(CustomAgentDeploy):
         # NOTE(dtantsur): glance images contain a checksum; for file images we
         # will recalculate the checksum anyway.
         if (not service_utils.is_glance_image(image_source)
-                and not image_source.startswith('file://')):
+                and not image_source.startswith('file://')
+                and not image_source.startswith('oci://')):
 
             def _raise_missing_checksum_exception(node):
                 raise exception.MissingParameterValue(_(
