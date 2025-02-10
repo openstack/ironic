@@ -1,0 +1,11 @@
+---
+features:
+  - |
+    Adds the capability for Ironic's conductor to detect Zstandard
+    compressed content and to automatically decompress the files
+    to enable image format detection and conversion.
+
+    This is due to use of Zstandard compression upon artifacts stored
+    in container registries is a popular practice, and can be disabled
+    using the ``[conductor]disable_zstandard_decompression``
+    configuration option.

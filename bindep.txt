@@ -94,3 +94,5 @@ unzip [imagebuild]
 sudo [imagebuild]
 gawk [imagebuild]
 mtools [imagebuild]
+# For automatic artifact decompression
+zstd [devstack]

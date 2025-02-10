@@ -522,6 +522,15 @@ opts = [
                        'functionality by setting this option to True will '
                        'create a more secure environment, however it may '
                        'break users in an unexpected fashion.')),
+    cfg.BoolOpt('disable_zstandard_decompression',
+                default=False,
+                mutable=False,
+                help=_('Option to enable disabling transparent decompression '
+                       'of files which are compressed with Zstandard '
+                       'compression. This option is provided should operators '
+                       'wish to disable this functionality, otherwise it is '
+                       'automaticly applied by the conductor should a '
+                       'compressed artifact be detected.')),
 ]
 
 
