@@ -1,0 +1,11 @@
+---
+fixes:
+  - |
+    The set of strings used to detect cipher suite version related errors
+    in the ``ipmitool`` command was expanded.
+    If the string ``Error in open session response message : invalid role``
+    is contained in the output of a failed ``ipmitool`` command execution,
+    such error will be now considered as related to inappropriate ciphers too,
+    and will be retried with another cipher suite version
+    if Ironic is configured to do so.
+    See `bug 2085137 <https://launchpad.net/bugs/2085137>`_ for more details.
