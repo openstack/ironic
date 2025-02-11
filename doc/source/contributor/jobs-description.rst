@@ -115,6 +115,6 @@ The description of each jobs that runs in the CI when you submit a patch for
     - Tests the integration between Ironic and `Metal3`_ using the
       `metal3-dev-env`_ environment
 
-.. _metal3-integration: :doc:`/contributor/metal3-integration`
+.. _metal3-integration: metal3-integration.html
 .. _Metal3: https://metal3.io/
 .. _metal3-dev-env: https://github.com/metal3-io/metal3-dev-env
