@@ -548,6 +548,100 @@ class TestCustomAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             node_power_action_mock.assert_not_called()
 
 
+class TestBootcAgentDeploy(db_base.DbTestCase):
+
+    def setUp(self):
+        super().setUp()
+        self.deploy = agent.BootcAgentDeploy()
+        self.node = object_utils.create_test_node(
+            self.context,
+            instance_info={
+                'image_source': 'oci://localhost/user/container:tag',
+                'image_pull_secret': 'f00'})
+
+    def test_validate(self):
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.deploy.validate(task)
+
+    def test_validate_fails_with_non_oci(self):
+        i_info = self.node.instance_info
+        i_info['image_source'] = 'http://foo/bar'
+        self.node.instance_info = i_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.assertRaises(exception.InvalidImageRef,
+                              self.deploy.validate, task)
+
+    def test_validate_fails_image_source_not_set(self):
+        i_info = self.node.instance_info
+        i_info.pop('image_source')
+        self.node.instance_info = i_info
+        self.node.save()
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.assertRaises(exception.InvalidImageRef,
+                              self.deploy.validate, task)
+
+    @mock.patch.object(agent_base, 'execute_step', autospec=True)
+    def test_execute_bootc_install(self, execute_mock):
+        src = self.node.instance_info.get('image_source')
+        expected_step = {
+            'interface': 'deploy',
+            'step': 'execute_bootc_install',
+                    'args': {'image_source': src,
+                             'configdrive': None,
+                             'oci_pull_secret': b'ZjAw'}
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            execute_mock.return_value = states.DEPLOYWAIT
+            res = self.deploy.execute_bootc_install(task)
+            self.assertEqual(states.DEPLOYWAIT, res)
+            execute_mock.assert_called_once_with(task, expected_step,
+                                                 'deploy', client=mock.ANY)
+
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode', autospec=True,
+                       return_value='whatever')
+    def test_set_boot_to_disk(self, boot_mode_mock,
+                              try_set_boot_device_mock,
+                              install_bootloader_mock):
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.deploy.set_boot_to_disk(task)
+            try_set_boot_device_mock.assert_called_once_with(
+                task, boot_devices.DISK, persistent=True)
+            boot_mode_mock.assert_not_called()
+            # While not referenced, just want to make sure somehow
+            # we don't again wire this together, since it is not needed
+            # in the bootc case as it does it for us as part of deploy.
+            install_bootloader_mock.assert_not_called()
+
+    @mock.patch.object(agent_client.AgentClient, 'install_bootloader',
+                       autospec=True)
+    @mock.patch.object(deploy_utils, 'try_set_boot_device', autospec=True)
+    @mock.patch.object(boot_mode_utils, 'get_boot_mode', autospec=True,
+                       return_value='uefi')
+    def test_set_boot_to_disk_lenovo(self, boot_mode_mock,
+                                     try_set_boot_device_mock,
+                                     install_bootloader_mock):
+        props = self.node.properties
+        props['vendor'] = 'Lenovo'
+        props['capabilities'] = 'boot_mode:uefi'
+        self.node.properties = props
+        self.node.save()
+        with task_manager.acquire(self.context, self.node['uuid'],
+                                  shared=False) as task:
+            self.deploy.set_boot_to_disk(task)
+            try_set_boot_device_mock.assert_not_called()
+            boot_mode_mock.assert_not_called()
+            install_bootloader_mock.assert_not_called()
+
+
 class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
     def setUp(self):
         super(TestAgentDeploy, self).setUp()

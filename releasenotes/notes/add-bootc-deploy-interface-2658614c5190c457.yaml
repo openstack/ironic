@@ -1,0 +1,10 @@
+---
+features:
+  - |
+    Adds a ``bootc`` deploy interface which can be enabled by an Ironic
+    deployment administrator, which can then enable users of the ``bootc``
+    deploy interface to have a streamlined path for the deployment of
+    bootc supporting container images to a host directly,
+    without additional intermediate steps. More information about
+    bootc can be found on the
+    `bootc website <https://containers.github.io/bootc/>`_.
