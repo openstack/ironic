@@ -1446,6 +1446,13 @@ function configure_ironic_inspection_network {
 }
 
 function configure_ironic_provision_network {
+    if [[ "$HOST_TOPOLOGY" == "multinode" ]]; then
+        # This should artificially drop the default before we get any
+        # further into the overall process, as post neutron setup, before
+        # the plugin proceeds past neutorn, this gets set. Which is fine, but
+        # if we're in a multinode topology, we need to pin this down to match.
+        iniset $NEUTRON_CONF DEFAULT global_physnet_mtu "$PUBLIC_BRIDGE_MTU"
+    fi
     configure_neutron_dhcp_enable_addr6_list
     if [[ "$IRONIC_IP_VERSION" == "6" ]]; then
         # NOTE(TheJulia): Ideally we should let this happen
