@@ -950,6 +950,56 @@ class OciImageServiceTestCase(base.TestCase):
             'dc773fa7821a')
 
     @mock.patch.object(ociclient, 'get_manifest', autospec=True)
+    @mock.patch.object(ociclient, 'get_artifact_index', autospec=True)
+    def test_identify_specific_image_specific_digest(
+            self, mock_get_artifact_index, mock_get_manifest):
+
+        mock_get_manifest.return_value = {
+            'schemaVersion': 2,
+            'mediaType': 'application/vnd.oci.image.manifest.v1+json',
+            'config': {
+                'mediaType': 'application/vnd.oci.empty.v1+json',
+                'digest': ('sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21'
+                           'fe77e8310c060f61caaff8a'),
+                'size': 2,
+                'data': 'e30='},
+            'layers': [
+                {
+                    'mediaType': 'application/zstd',
+                    'digest': ('sha256:047caa9c410038075055e1e41d520fc975a097'
+                               '97838541174fa3066e58ebd8ea'),
+                    'size': 1060062418,
+                    'annotations': {
+                        'org.opencontainers.image.title': ('podman-machine.'
+                                                           'x86_64.applehv.'
+                                                           'raw.zst')}
+                }
+            ]
+        }
+
+        expected_data = {
+            'image_checksum': ('047caa9c410038075055e1e41d520fc975a0979783'
+                               '8541174fa3066e58ebd8ea'),
+            'image_disk_format': 'unknown',
+            'image_request_authorization_secret': None,
+            'image_url': ('https://localhost/v2/podman/machine-os/blobs/'
+                          'sha256:047caa9c410038075055e1e41d520fc975a097'
+                          '97838541174fa3066e58ebd8ea'),
+            'oci_image_manifest_url': ('oci://localhost/podman/machine-os'
+                                       '@sha256:9d046091b3dbeda26e1f4364a'
+                                       '116ca8d94284000f103da7310e3a4703d'
+                                       'f1d3e4')
+        }
+        url = ('oci://localhost/podman/machine-os@sha256:9d046091b3dbeda26e'
+               '1f4364a116ca8d94284000f103da7310e3a4703df1d3e4')
+        img_data = self.service.identify_specific_image(
+            url, cpu_arch='amd64')
+        self.assertEqual(expected_data, img_data)
+        mock_get_artifact_index.assert_not_called()
+        mock_get_manifest.assert_called_once_with(
+            mock.ANY, url)
+
+    @mock.patch.object(ociclient, 'get_manifest', autospec=True)
     @mock.patch.object(ociclient, 'get_artifact_index',
                        autospec=True)
     def test_identify_specific_image_bad_manifest(

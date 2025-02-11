@@ -615,6 +615,7 @@ class OciImageService(BaseImageService):
             # Identify the blob URL from the defining manifest for IPA.
             image_url = self._client.get_blob_url(image_href,
                                                   manifest['digest'])
+            cached_auth = self._client.get_cached_auth()
             return {
                 # Return an OCI url in case Ironic is doing the download
                 'oci_image_manifest_url': image_href,
@@ -627,6 +628,7 @@ class OciImageService(BaseImageService):
                 # We can't look up, we're pointed at a manifest URL
                 # with limited information.
                 'image_disk_format': 'unknown',
+                'image_request_authorization_secret': cached_auth,
             }
 
         # Query the remote API for a list index list of manifests

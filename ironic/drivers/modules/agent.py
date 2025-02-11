@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
 from urllib import parse as urlparse
 
 from oslo_log import log
@@ -681,6 +682,11 @@ class AgentDeploy(CustomAgentDeploy):
                 'image_os_hash_algo']
             image_info['os_hash_value'] = node.instance_info[
                 'image_os_hash_value']
+
+        if node.instance_info.get('image_request_authorization_secret'):
+            ah = node.instance_info.get('image_request_authorization_secret')
+            ah = base64.standard_b64encode(ah.encode())
+            image_info['image_request_authorization'] = ah
 
         proxies = {}
         for scheme in ('http', 'https'):
