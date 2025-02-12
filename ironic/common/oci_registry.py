@@ -21,7 +21,6 @@ import base64
 import json
 import re
 import requests
-from requests.adapters import HTTPAdapter
 from requests import auth as requests_auth
 import tenacity
 from urllib import parse
@@ -67,12 +66,6 @@ class MakeSession(object):
     def __init__(self, verify=True):
         self.session = requests.Session()
         self.session.verify = verify
-        adapter = HTTPAdapter(
-            max_retries=3,
-            pool_block=False
-        )
-        self.session.mount('http://', adapter)
-        self.session.mount('https://', adapter)
 
     def create(self):
         return self.__enter__()
