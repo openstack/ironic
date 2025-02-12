@@ -1,0 +1,38 @@
+---
+features:
+  - |
+    Added a new configuration option
+    ``[conductor]error_on_ramdisk_config_inconsistency`` to control how Ironic
+    handles inconsistent kernel and ramdisk configurations.
+
+    When ``error_on_ramdisk_config_inconsistency`` is set to ``True``, Ironic
+    will raise a ``MissingParameterValue`` exception when it encounters
+    inconsistent kernel/ramdisk configurations, such as:
+
+    * A node's ``driver_info`` containing only ``deploy_kernel`` but missing
+      ``deploy_ramdisk`` (or vice versa)
+    * The ``[conductor]deploy_kernel_by_arch`` configuration having entries for
+      architectures that are missing from ``[conductor]deploy_ramdisk_by_arch``
+      (or vice versa)
+    * Similar inconsistencies with rescue kernel/ramdisk configurations
+
+    When set to ``False`` (the default), Ironic will log warning messages about
+    these inconsistencies but continue operation by falling back to global
+    configuration values when possible.
+
+    In a future Ironic release, the default of this value will be changed to
+    True to enforce strict validation.
+
+upgrade:
+  - |
+    The new ``[conductor]error_on_ramdisk_config_inconsistency`` configuration
+    option defaults to ``False`` to maintain backward compatibility. Existing
+    deployments with inconsistent kernel/ramdisk configurations will continue
+    to work as before, with warning messages logged to help identify potential
+    configuration issues.
+
+    Operators who want strict validation of kernel/ramdisk configurations can
+    set this option to ``True``, but should first review their configurations
+    to ensure consistency across all node ``driver_info`` entries and
+    architecture-specific configuration options. Ironic expects to enable
+    strict validation of these values in a future release.
