@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Includes the agent token parameter in get command status requests as
+    the endpoint now requires authentication.
