@@ -316,9 +316,15 @@ class AgentClient(object):
         url = self._get_command_url(node)
         LOG.debug('Fetching status of agent commands for node %s', node.uuid)
 
+        request_params = {}
+        agent_token = node.driver_internal_info.get('agent_secret_token')
+        if agent_token:
+            request_params['agent_token'] = agent_token
+
         def _get():
             try:
                 return self.session.get(url,
+                                        params=request_params,
                                         verify=self._get_verify(node),
                                         timeout=CONF.agent.command_timeout)
             except (requests.ConnectionError, requests.Timeout) as e:
