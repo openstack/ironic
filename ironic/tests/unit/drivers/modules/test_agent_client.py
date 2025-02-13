@@ -552,7 +552,7 @@ class TestAgentClient(base.TestCase):
             params={'wait': 'false'},
             timeout=60,
             verify=True)
-        self.client.session.get.assert_called_with(url, timeout=60,
+        self.client.session.get.assert_called_with(url, params={}, timeout=60,
                                                    verify=True)
         mock_sleep.assert_called_with(CONF.agent.command_wait_interval)
 
@@ -571,7 +571,7 @@ class TestAgentClient(base.TestCase):
             '%(agent_url)s/%(api_version)s/commands/' % {
                 'agent_url': agent_url,
                 'api_version': CONF.agent.agent_api_version},
-            verify=True, timeout=CONF.agent.command_timeout)
+            params={}, verify=True, timeout=CONF.agent.command_timeout)
 
     def test_get_commands_status_retries(self):
         res = mock.MagicMock(spec_set=['json'])
@@ -608,7 +608,7 @@ class TestAgentClient(base.TestCase):
             '%(agent_url)s/%(api_version)s/commands/' % {
                 'agent_url': agent_url,
                 'api_version': CONF.agent.agent_api_version},
-            verify='/path/to/agent.crt',
+            params={}, verify='/path/to/agent.crt',
             timeout=CONF.agent.command_timeout)
 
     def _test_install_bootloader(self, root_uuid, efi_system_part_uuid=None,
