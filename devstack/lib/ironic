@@ -2919,34 +2919,36 @@ function configure_iptables {
 }
 
 function configure_tftpd {
-    # stop tftpd and setup serving via xinetd
-    stop_service tftpd-hpa || true
-    [ -f /etc/init/tftpd-hpa.conf ] && echo "manual" | sudo tee /etc/init/tftpd-hpa.override
-    sudo cp $IRONIC_TEMPLATES_DIR/tftpd-xinetd.template /etc/xinetd.d/tftp
-    sudo sed -e "s|%TFTPBOOT_DIR%|$IRONIC_TFTPBOOT_DIR|g" -i /etc/xinetd.d/tftp
-    sudo sed -e "s|%MAX_BLOCKSIZE%|$IRONIC_TFTP_BLOCKSIZE|g" -i /etc/xinetd.d/tftp
-    if [[ "$IRONIC_IP_VERSION" == '6' ]]; then
-        sudo sed -e "s|IPv4|IPv6|g" -i /etc/xinetd.d/tftp
+    if [[ "${IRONIC_ENABLE_TFTP:-True}" == "True" ]]; then
+        # stop tftpd and setup serving via xinetd
+        stop_service tftpd-hpa || true
+        [ -f /etc/init/tftpd-hpa.conf ] && echo "manual" | sudo tee /etc/init/tftpd-hpa.override
+        sudo cp $IRONIC_TEMPLATES_DIR/tftpd-xinetd.template /etc/xinetd.d/tftp
+        sudo sed -e "s|%TFTPBOOT_DIR%|$IRONIC_TFTPBOOT_DIR|g" -i /etc/xinetd.d/tftp
+        sudo sed -e "s|%MAX_BLOCKSIZE%|$IRONIC_TFTP_BLOCKSIZE|g" -i /etc/xinetd.d/tftp
+        if [[ "$IRONIC_IP_VERSION" == '6' ]]; then
+            sudo sed -e "s|IPv4|IPv6|g" -i /etc/xinetd.d/tftp
+        fi
+        # setup tftp file mapping to satisfy requests at the root (booting) and
+        # /tftpboot/ sub-dir (as per deploy-ironic elements)
+        # this section is only for ubuntu and fedora
+        if [[ "$IRONIC_IPXE_ENABLED" == "False" && \
+                ( "$IRONIC_BOOT_MODE" == "uefi" || "$IRONIC_SECURE_BOOT" == "True" ) && \
+                "$IRONIC_UEFI_BOOT_LOADER" == "grub2" ]]; then
+
+            echo "re ^($IRONIC_TFTPBOOT_DIR/) $IRONIC_TFTPBOOT_DIR/\2"  >$IRONIC_TFTPBOOT_DIR/map-file
+            echo "re ^$IRONIC_TFTPBOOT_DIR/ $IRONIC_TFTPBOOT_DIR/"  >>$IRONIC_TFTPBOOT_DIR/map-file
+            echo "re ^(^/) $IRONIC_TFTPBOOT_DIR/\1"  >>$IRONIC_TFTPBOOT_DIR/map-file
+            echo "re ^([^/]) $IRONIC_TFTPBOOT_DIR/\1" >>$IRONIC_TFTPBOOT_DIR/map-file
+
+        else
+            echo "r ^([^/]) $IRONIC_TFTPBOOT_DIR/\1" >$IRONIC_TFTPBOOT_DIR/map-file
+            echo "r ^(/tftpboot/) $IRONIC_TFTPBOOT_DIR/\2" >>$IRONIC_TFTPBOOT_DIR/map-file
+        fi
+
+        sudo chmod -R 0755 $IRONIC_TFTPBOOT_DIR
+        restart_service xinetd
     fi
-    # setup tftp file mapping to satisfy requests at the root (booting) and
-    # /tftpboot/ sub-dir (as per deploy-ironic elements)
-    # this section is only for ubuntu and fedora
-    if [[ "$IRONIC_IPXE_ENABLED" == "False" && \
-            ( "$IRONIC_BOOT_MODE" == "uefi" || "$IRONIC_SECURE_BOOT" == "True" ) && \
-            "$IRONIC_UEFI_BOOT_LOADER" == "grub2" ]]; then
-
-        echo "re ^($IRONIC_TFTPBOOT_DIR/) $IRONIC_TFTPBOOT_DIR/\2"  >$IRONIC_TFTPBOOT_DIR/map-file
-        echo "re ^$IRONIC_TFTPBOOT_DIR/ $IRONIC_TFTPBOOT_DIR/"  >>$IRONIC_TFTPBOOT_DIR/map-file
-        echo "re ^(^/) $IRONIC_TFTPBOOT_DIR/\1"  >>$IRONIC_TFTPBOOT_DIR/map-file
-        echo "re ^([^/]) $IRONIC_TFTPBOOT_DIR/\1" >>$IRONIC_TFTPBOOT_DIR/map-file
-
-    else
-        echo "r ^([^/]) $IRONIC_TFTPBOOT_DIR/\1" >$IRONIC_TFTPBOOT_DIR/map-file
-        echo "r ^(/tftpboot/) $IRONIC_TFTPBOOT_DIR/\2" >>$IRONIC_TFTPBOOT_DIR/map-file
-    fi
-
-    sudo chmod -R 0755 $IRONIC_TFTPBOOT_DIR
-    restart_service xinetd
 }
 
 function build_ipa_ramdisk {
