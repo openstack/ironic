@@ -12,7 +12,6 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import builtins
 import hashlib
 import io
 import json
@@ -866,38 +865,32 @@ class TestRegistrySessionHelper(base.TestCase):
             oci_registry.RegistrySessionHelper.get_token_from_config(
                 'foo.bar'))
 
-    @mock.patch.object(builtins, 'open', autospec=True)
-    def test_get_token_from_config(self, mock_open):
+    def test_get_token_from_config(self):
         CONF.set_override('authentication_config', '/tmp/foo',
                           group='oci')
-        mock_file = mock.MagicMock(spec=io.BytesIO)
-        mock_file.__enter__.return_value = \
-            """{"auths": {"foo.fqdn": {"auth": "secret"}}}"""
-        mock_open.return_value = mock_file
-        res = oci_registry.RegistrySessionHelper.get_token_from_config(
-            'foo.fqdn')
+        read_data = """{"auths": {"foo.fqdn": {"auth": "secret"}}}"""
+        with mock.patch('builtins.open', mock.mock_open(
+                read_data=read_data)):
+            res = oci_registry.RegistrySessionHelper.get_token_from_config(
+                'foo.fqdn')
         self.assertEqual('secret', res)
 
-    @mock.patch.object(builtins, 'open', autospec=True)
-    def test_get_token_from_config_no_match(self, mock_open):
+    def test_get_token_from_config_no_match(self):
         CONF.set_override('authentication_config', '/tmp/foo',
                           group='oci')
-        mock_file = mock.MagicMock(spec=io.BytesIO)
-        mock_file.__enter__.return_value = \
-            """{"auths": {"bar.fqdn": {}}}"""
-        mock_open.return_value = mock_file
-        res = oci_registry.RegistrySessionHelper.get_token_from_config(
-            'foo.fqdn')
+        read_data = """{"auths": {"bar.fqdn": {}}}"""
+        with mock.patch('builtins.open', mock.mock_open(
+                read_data=read_data)):
+            res = oci_registry.RegistrySessionHelper.get_token_from_config(
+                'foo.fqdn')
         self.assertIsNone(res)
 
-    @mock.patch.object(builtins, 'open', autospec=True)
-    def test_get_token_from_config_bad_file(self, mock_open):
+    def test_get_token_from_config_bad_file(self):
         CONF.set_override('authentication_config', '/tmp/foo',
                           group='oci')
-        mock_file = mock.MagicMock(spec=io.BytesIO)
-        mock_file.__enter__.return_value = \
-            """{"auths":..."""
-        mock_open.return_value = mock_file
-        res = oci_registry.RegistrySessionHelper.get_token_from_config(
-            'foo.fqdn')
+        read_data = """{"auths":..."""
+        with mock.patch('builtins.open', mock.mock_open(
+                read_data=read_data)):
+            res = oci_registry.RegistrySessionHelper.get_token_from_config(
+                'foo.fqdn')
         self.assertIsNone(res)

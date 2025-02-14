@@ -224,7 +224,7 @@ class RegistrySessionHelper(object):
         auth = None
         try:
             with open(CONF.oci.authentication_config, 'r') as auth_file:
-                auth_dict = json.loads(auth_file)
+                auth_dict = json.load(auth_file)
         except OSError as e:
             LOG.error('Failed to load pre-shared authentication token '
                       'data: %s', e)
