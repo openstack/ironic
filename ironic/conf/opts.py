@@ -53,6 +53,7 @@ _opts = [
     ('service_catalog', ironic.conf.service_catalog.list_opts()),
     ('snmp', ironic.conf.snmp.opts),
     ('swift', ironic.conf.swift.list_opts()),
+    ('vnc', ironic.conf.vnc.opts),
 ]
 
 
