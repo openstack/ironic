@@ -1303,6 +1303,8 @@ function install_ironic {
             NOVNC_WEB_DIR=$DEST/novnc
             git_clone $NOVNC_REPO $NOVNC_WEB_DIR $NOVNC_BRANCH
         fi
+        # podman, systemd-container required by the systemd container provider
+        install_package podman systemd-container
     fi
 }
 
@@ -2046,12 +2048,17 @@ function configure_ironic_novnc {
     # TODO(stevebaker) handle configuring tls-proxy
     local service_protocol=http
 
+    # TODO(stevebaker) check for existence of vnc_lite.html vs vnc_auto.html
+    # from older NoVNC releases
     novnc_url=$service_protocol://$SERVICE_HOST:$service_port/vnc_lite.html
     iniset $IRONIC_CONF_FILE vnc enabled True
     iniset $IRONIC_CONF_FILE vnc public_url $novnc_url
     iniset $IRONIC_CONF_FILE vnc host_ip $SERVICE_HOST
     iniset $IRONIC_CONF_FILE vnc port $service_port
     iniset $IRONIC_CONF_FILE vnc novnc_web $NOVNC_WEB_DIR
+    iniset $IRONIC_CONF_FILE vnc container_provider systemd
+    # TODO(stevebaker) build this locally during the devstack run
+    # iniset $IRONIC_CONF_FILE vnc console_image localhost/ironic-vnc-container
 
 }
 
@@ -2064,6 +2071,19 @@ function create_ironic_cache_dir {
     sudo mkdir -p $IRONIC_AUTH_CACHE_DIR/registry
     sudo chown $STACK_USER $IRONIC_AUTH_CACHE_DIR/registry
     rm -f $IRONIC_AUTH_CACHE_DIR/registry/*
+}
+
+# create_systemd_container_dir() - Part of the init_ironic() process
+function create_systemd_container_dir {
+
+    local uid=$(id -u)
+    local user_dir=/etc/containers/systemd/users/$uid
+    if [ ! -d "$user_dir" ]; then
+        sudo mkdir -p $user_dir
+        sudo chown $STACK_USER $user_dir
+        # container files have BMC credentials, limit non stack user
+        sudo chmod 0750 $user_dir
+    fi
 }
 
 # create_ironic_accounts() - Set up common required ironic accounts
@@ -2117,6 +2137,9 @@ function init_ironic {
     $IRONIC_BIN_DIR/ironic-status upgrade check && ret_val=$? || ret_val=$?
     if [ $ret_val -gt 1 ] ; then
         die $LINENO "The `ironic-status upgrade check` command returned an error. Cannot proceed."
+    fi
+    if is_service_enabled ir-novnc; then
+        create_systemd_container_dir
     fi
 }
 
@@ -2182,7 +2205,9 @@ function start_ironic_api {
 # start_ironic_conductor() - Used by start_ironic().
 # Starts Ironic conductor.
 function start_ironic_conductor {
-    run_process ir-cond "$IRONIC_BIN_DIR/ironic-conductor --config-file=$IRONIC_CONF_FILE"
+    # NOTE(stevebaker) set DBUS_SESSION_BUS_ADDRESS so that systemd calls can be made
+    # for the systemd console container provider.
+    run_process ir-cond "$IRONIC_BIN_DIR/ironic-conductor --config-file=$IRONIC_CONF_FILE" "" "" "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID/bus"
 
     # Unset variables which we shouldn't have... Grenade resets these :\
     # in grenade/projects/60_nova/resources.sh as part of the resource

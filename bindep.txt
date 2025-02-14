@@ -96,3 +96,7 @@ gawk [imagebuild]
 mtools [imagebuild]
 # For automatic artifact decompression
 zstd [devstack]
+
+# For graphical console support
+podman [devstack]
+systemd-container [devstack]

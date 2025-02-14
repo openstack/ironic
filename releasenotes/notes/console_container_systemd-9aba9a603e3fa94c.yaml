@@ -1,0 +1,17 @@
+---
+features:
+  - |
+    A new entry point ``ironic.console.container`` is added to determine how
+    console containers are orchestrated when ``ironic.conf``
+    ``[vnc]enabled=True``. By default the ``fake`` provider is specified by
+    ``[vnc]container_provider`` which performs no orchestration. The only
+    functional implementation included is ``systemd`` which manages containers
+    as Systemd Quadlet containers. These containers run as user services and
+    rootless podman containers. Having ``podman`` installed is also a
+    dependency for this provider. See ``ironic.conf`` ``[vnc]`` options
+    to see how this provider can be configured.
+
+    The ``systemd`` provider is opinionated and will not be appropriate for
+    some Ironic deployment methods, especially those which run Ironic inside
+    containers. External implementations of ``ironic.console.container`` are
+    encouraged to integrate with other deployment / management methods.
