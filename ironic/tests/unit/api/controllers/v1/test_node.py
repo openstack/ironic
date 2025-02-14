@@ -851,11 +851,15 @@ class TestListNodes(test_api_base.BaseApiTest):
     def test_get_one_with_no_agent_secret(self):
         node = obj_utils.create_test_node(
             self.context,
-            driver_internal_info={'agent_secret_token': 'abcdefg'})
+            driver_internal_info={
+                'agent_secret_token': 'abcdefg',
+                'agent_secret_token_pregenerated': '12345678'
+            })
         response = self.get_json('/nodes/%s' % (node.uuid),
                                  headers={api_base.Version.string: '1.52'})
-        token_value = response['driver_internal_info']['agent_secret_token']
-        self.assertEqual('******', token_value)
+        dii = response['driver_internal_info']
+        self.assertEqual('******', dii['agent_secret_token'])
+        self.assertEqual('******', dii['agent_secret_token_pregenerated'])
 
     def test_get_disable_power_off_fields(self):
         node = obj_utils.create_test_node(self.context,
