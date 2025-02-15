@@ -17,6 +17,7 @@ from oslo_utils import excutils
 
 from ironic.common import exception
 from ironic.common.i18n import _
+from ironic.common.inspection_rules import engine
 from ironic.common import states
 from ironic.conductor import task_manager
 from ironic.conductor import utils
@@ -66,7 +67,7 @@ def inspect_hardware(task):
                  {'node': node.uuid})
     elif new_state == states.INSPECTWAIT:
         task.process_event('wait')
-        LOG.info('Successfully started introspection on node %(node)s',
+        LOG.info('Successfully started inspection on node %(node)s',
                  {'node': node.uuid})
     else:
         error = (_("During inspection, driver returned unexpected "
@@ -130,6 +131,10 @@ def continue_inspection(task, inventory, plugin_data):
             LOG.debug('Waiting for inspection data to be processed '
                       'asynchronously for node %s', node.uuid)
             return
+
+        result = engine.apply_rules(task, inventory, plugin_data, 'main')
+        if result and 'plugin_data' in result:
+            plugin_data = result['plugin_data']
 
         # NOTE(dtantsur): logs can be huge and are stored separately
         plugin_data.pop('logs', None)

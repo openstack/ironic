@@ -155,6 +155,10 @@ discovery_opts = [
                mutable=True,
                help=_("The default driver to use for newly enrolled nodes. "
                       "Must be set when enabling auto-discovery.")),
+    cfg.StrOpt('inspection_scope',
+               default=None,
+               help=_("The default inspection scope for nodes enrolled via "
+                      "auto-discovery.")),
 ]
 
 pxe_filter_opts = [
@@ -174,11 +178,23 @@ pxe_filter_opts = [
                       "of dnsmasq with the database.")),
 ]
 
+inspection_rule_opts = [
+    cfg.StrOpt('built_in_rules',
+               mutable=True,
+               help=_("Path to YAML file of built-in inspection rules.")),
+    cfg.StrOpt('mask_secrets',
+               default='always',
+               choices=['always', 'never', 'sensitive'],
+               help=_("Whether to mask secrets in the node information "
+                      "passed to the rules."))
+]
+
 
 def register_opts(conf):
     conf.register_opts(opts, group='inspector')
     conf.register_opts(discovery_opts, group='auto_discovery')
     conf.register_opts(pxe_filter_opts, group='pxe_filter')
+    conf.register_opts(inspection_rule_opts, group='inspection_rules')
     auth.register_auth_opts(conf, 'inspector',
                             service_type='baremetal-introspection')
 
