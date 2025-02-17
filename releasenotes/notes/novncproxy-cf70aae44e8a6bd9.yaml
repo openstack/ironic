@@ -1,0 +1,12 @@
+---
+features:
+  - |
+    A new service ``ironic-novncproxy`` has been added which allows the
+    graphical console of a host to be presented in a NoVNC web browser
+    interface. Hosts required a supported ``console`` driver to access its
+    graphical console.
+upgrade:
+  - |
+    If graphical console support is required, the ``ironic-novncproxy`` service
+    needs to be started and managed. Graphical console specific options need
+    to be set in the ``[vnc]`` section of ``ironic.conf``.

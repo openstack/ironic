@@ -27,6 +27,10 @@ ironic-python-agent
   ironic-conductor and ironic-inspector services with remote access, in-band
   hardware control, and hardware introspection.
 
+ironic-novncproxy
+  A python service which proxies graphical consoles from hosts using the
+  NoVNC web browser interface.
+
 Additionally, the Bare Metal service has certain external dependencies, which
 are very similar to other OpenStack services:
 

@@ -8,10 +8,10 @@ resources and low number of nodes to handle.
 
 .. note:: This feature is available starting with the Yoga release series.
 
-#. Start with setting up the environment as described in both `Configuring
-   ironic-api service`_ and `Configuring ironic-conductor service`_, but do not
-   start any services. Merge configuration options into a single configuration
-   file.
+#. Start with setting up the environment as described in `Configuring
+   ironic-api service`_, `Configuring ironic-conductor service`_, and
+   `Configuring ironic-novncproxy service`_, but do not start any services. Merge
+   configuration options into a single configuration file.
 
    .. note::
       Any RPC settings will only take effect if you have more than one combined
@@ -31,11 +31,13 @@ resources and low number of nodes to handle.
 
        sudo systemctl stop openstack-ironic-api
        sudo systemctl stop openstack-ironic-conductor
+       sudo systemctl stop openstack-ironic-novncproxy
 
    Ubuntu/Debian::
 
        sudo service ironic-api stop
        sudo service ironic-conductor stop
+       sudo service ironic-novncproxy stop
 
 #. Start or restart the ironic service:
 

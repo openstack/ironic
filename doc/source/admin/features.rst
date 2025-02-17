@@ -14,7 +14,7 @@ Bare Metal Service Features
    Firmware Updates <firmware-updates>
    Node Rescuing <rescue>
    Booting from Volume <boot-from-volume>
-   Configuring Web or Serial Console <console>
+   Configuring Consoles <console>
    Enabling Notifications <notifications>
    Node Multi-Tenancy <node-multitenancy>
    Booting a Ramdisk or an ISO <ramdisk-boot>

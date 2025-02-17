@@ -76,6 +76,9 @@ services provide their public API.
 The Bare Metal API will be served to the operators and to the Compute service
 through this network.
 
+The ``ironic-novncproxy`` NoVNC proxy service will serve the graphical console
+user interface via this network.
+
 Public network
 ~~~~~~~~~~~~~~
 
@@ -122,6 +125,9 @@ of the bare metal nodes must not have access to it.
     :doc:`/admin/drivers` require the *management network* to have access
     to the Object storage service backend.
 
+The ``ironic-novncproxy`` NoVNC proxy service needs access to this network
+to connect to the host BMC graphical console.
+
 Controllers
 -----------
 
@@ -155,6 +161,13 @@ The following components of the Bare Metal service are installed on a
   * *control plane* for interacting with other services
   * *management* for contacting node's BMCs
   * *bare metal* for contacting deployment, cleaning or rescue ramdisks
+
+* The ``ironic-novncproxy`` NoVNC proxy is run directly as a web server
+  process. Typically, a load balancer, such as HAProxy, spreads the load
+  between the NoVNC instances on the *controllers*.
+
+  The NoVNC proxy has to be served on the *control plane network*. Additionally,
+  it has to be exposed to the *management network* to access BMC graphical consoles.
 
 * TFTP and HTTP service for booting the nodes. Each ``ironic-conductor``
   process has to have a matching TFTP and HTTP service. They should be exposed

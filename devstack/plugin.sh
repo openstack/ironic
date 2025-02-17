@@ -7,7 +7,7 @@
 echo_summary "ironic devstack plugin.sh called: $1/$2"
 source $DEST/ironic/devstack/lib/ironic
 
-if is_service_enabled ir-api ir-cond; then
+if is_service_enabled ir-api ir-cond ir-novnc; then
     if [[ "$1" == "stack" ]]; then
         if [[ "$2" == "install" ]]; then
         # stack/install - Called after the layer 1 and 2 projects source and
