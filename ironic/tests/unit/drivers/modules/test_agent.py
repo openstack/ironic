@@ -1532,6 +1532,16 @@ class TestAgentDeploy(CommonTestsMixin, db_base.DbTestCase):
             }
         )
 
+    def test_write_image_oci_authorization(self):
+        i_info = self.node.instance_info
+        i_info['image_request_authorization_secret'] = 'Bearer f00'
+        self.node.instance_info = i_info
+        self._test_write_image(
+            additional_expected_image_info={
+                'image_request_authorization': b'QmVhcmVyIGYwMA=='
+            }
+        )
+
     def test_write_image_partition_image(self):
         self.node.provision_state = states.DEPLOYWAIT
         self.node.target_provision_state = states.ACTIVE

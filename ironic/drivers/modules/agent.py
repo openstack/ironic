@@ -730,6 +730,11 @@ class AgentDeploy(CustomAgentDeploy):
             image_info['os_hash_value'] = node.instance_info[
                 'image_os_hash_value']
 
+        if node.instance_info.get('image_request_authorization_secret'):
+            ah = node.instance_info.get('image_request_authorization_secret')
+            ah = base64.standard_b64encode(ah.encode())
+            image_info['image_request_authorization'] = ah
+
         proxies = {}
         for scheme in ('http', 'https'):
             proxy_param = 'image_%s_proxy' % scheme
