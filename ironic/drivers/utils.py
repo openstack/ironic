@@ -185,6 +185,27 @@ def add_node_capability(task, capability, value):
     node.save()
 
 
+def remove_node_capability(task, name):
+    """Remove 'capability' from node's 'capabilities' property.
+
+    If 'capability' is empty, do nothing.
+
+    :param task: Task object.
+    :param capability: Capability key.
+
+    """
+    node = task.node
+    properties = node.properties
+    capabilities = properties.get('capabilities', '').split(',')
+    if not capabilities:
+        return
+    updated_capabilities = [cap for cap in capabilities
+                            if not cap.startswith("%s:" % name)]
+    properties['capabilities'] = ','.join(updated_capabilities or [])
+    node.properties = properties
+    node.save()
+
+
 def ensure_next_boot_device(task, driver_info):
     """Ensure boot from correct device if persistent is True
 

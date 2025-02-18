@@ -132,9 +132,7 @@ def continue_inspection(task, inventory, plugin_data):
                       'asynchronously for node %s', node.uuid)
             return
 
-        result = engine.apply_rules(task, inventory, plugin_data, 'main')
-        if result and 'plugin_data' in result:
-            plugin_data = result['plugin_data']
+        engine.apply_rules(task, inventory, plugin_data, 'main')
 
         # NOTE(dtantsur): logs can be huge and are stored separately
         plugin_data.pop('logs', None)

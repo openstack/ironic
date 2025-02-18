@@ -1,6 +1,3 @@
-# Copyright 2013 Red Hat, Inc.
-# All Rights Reserved.
-#
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -13,12 +10,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import abc
+import inspect
 
 from oslo_log import log
 
+from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common import utils as common_utils
+from ironic.common.inspection_rules import utils
 import ironic.conf
 
 
@@ -29,70 +27,69 @@ SENSITIVE_FIELDS = ['password', 'auth_token', 'bmc_password']
 
 class Base(object):
 
-    USES_PLUGIN_DATA = False
+    REQUIRES_PLUGIN_DATA = False
     """Flag to indicate if this action needs plugin_data as an arg."""
 
-    OPTIONAL_ARGS = set()
-    """Set with names of optional parameters."""
+    def _get_validation_signature(self):
+        """Get the signature to validate against."""
+        signature = inspect.signature(self.__call__)
 
-    @classmethod
-    @abc.abstractmethod
-    def get_arg_names(cls):
-        """Return list of argument names in order expected."""
-        raise NotImplementedError
+        # Strip off 'task' parameter.
+        parameters = list(signature.parameters.values())[1:]
 
-    def _normalize_list_args(self, *args, **kwargs):
-        """Convert list arguments into dictionary format.
+        required_args = [p.name for p in parameters
+                         if p.default is inspect.Parameter.empty]
+        optional_args = [p.name for p in parameters
+                         if p.default is not inspect.Parameter.empty]
+        return required_args, optional_args
 
-        """
-        op_name = kwargs['op']
-        arg_list = kwargs['args']
-        if not isinstance(arg_list, list):
-            if isinstance(arg_list, dict) and 'plugin-data' in op_name:
-                arg_list['plugin_data'] = {}
-            return arg_list
+    def _normalize_list_args(self, required_args, optional_args, op_args):
+        """Convert list arguments into dictionary format."""
+        if not isinstance(op_args, list):
+            # Initialize required context fields if needed
+            if isinstance(op_args, dict) and self.REQUIRES_PLUGIN_DATA:
+                op_args['plugin_data'] = {}
+            return op_args
 
-        # plugin_data is a required argument during validation but since
-        # it comes from the inspection data and added later, we need to
-        # make sure validation does not fail for that sake.
-        if 'plugin-data' in op_name:
-            arg_list.append('{}')
+        # Initialize required context fields if needed
+        if self.REQUIRES_PLUGIN_DATA:
+            op_args.append({})
 
-        arg_names = set(self.__class__.get_arg_names())
-        if len(arg_list) < len(arg_names):
-            missing = arg_names[len(arg_list):]
+        if len(op_args) < len(required_args):
+            missing = [p for p in required_args[len(op_args):]]
             msg = (_("Not enough arguments provided. Missing: %s"),
                    ", ".join(missing))
-            LOG.error(msg)
-            raise ValueError(msg)
+            raise exception.InspectionRuleValidationFailure(msg)
 
-        arg_list = {name: arg_list[i] for i, name in enumerate(arg_names)}
+        normalized_args = {name: op_args[i]
+                           for i, name in enumerate(required_args)}
 
         # Add optional args if they exist in the input
-        start_idx = len(arg_names)
-        for i, opt_arg in enumerate(self.OPTIONAL_ARGS):
-            if start_idx + i < len(arg_list):
-                arg_list[opt_arg] = arg_list[start_idx + i]
+        normalized_args.update(
+            zip(optional_args, op_args[len(required_args):])
+        )
 
-        return arg_list
+        return normalized_args
 
-    def validate(self, *args, **kwargs):
+    def validate(self, op_args):
         """Validate args passed during creation.
 
         Default implementation checks for presence of required fields.
 
-        :param args: args as a dictionary
-        :param kwargs: used for extensibility without breaking existing plugins
-        :raises: ValueError on validation failure
+        :param op_args: Operator args as a dictionary
+        :raises: InspectionRuleValidationFailure on validation failure
         """
-        required_args = set(self.__class__.get_arg_names())
+        required_args, optional_args = self._get_validation_signature()
         normalized_args = self._normalize_list_args(
-            args=kwargs.get('args', {}), op=kwargs['op'])
+            required_args=required_args, optional_args=optional_args,
+            op_args=op_args)
 
+        # If after normalization attempt, we still do not have a dictionary,
+        # then it was never a list, so, not a supported type.
         if isinstance(normalized_args, dict):
-            provided = set(normalized_args.keys())
-            missing = required_args - provided
-            unexpected = provided - (required_args | self.OPTIONAL_ARGS)
+            provided = set(normalized_args)
+            missing = set(required_args) - provided
+            unexpected = provided - (set(required_args) | set(optional_args))
 
             msg = []
             if missing:
@@ -102,11 +99,12 @@ class Base(object):
                 msg.append(_('unexpected argument(s): %s')
                            % ', '.join(unexpected))
             if msg:
-                raise ValueError('; '.join(msg))
+                raise exception.InspectionRuleValidationFailure(
+                    '; '.join(msg))
         else:
-            raise ValueError(_("args must be either a list or dictionary"))
+            raise exception.InspectionRuleValidationFailure(
+                _("args must be either a list or dictionary"))
 
-    @staticmethod
     def interpolate_variables(value, node, inventory, plugin_data):
         if isinstance(value, str):
             try:
@@ -135,21 +133,25 @@ class Base(object):
 
         op = operation.get('op')
         if not op:
-            raise ValueError("Operation must contain 'op' key")
+            raise exception.InspectionRuleExecutionFailure(
+                _("Operation must contain 'op' key"))
 
-        op, invtd = common_utils.parse_inverted_operator(op)
-        dict_args = self._normalize_list_args(args=operation.get('args', {}),
-                                              op=op)
+        required_args, optional_args = self._get_validation_signature()
+
+        op, invtd = utils.parse_inverted_operator(op)
+        dict_args = self._normalize_list_args(
+            required_args=required_args, optional_args=optional_args,
+            op_args=operation.get('args', {}))
 
         # plugin-data becomes available during inspection,
         # we need to populate with the actual value.
-        if 'plugin_data' in dict_args or 'plugin-data' in op:
+        if self.REQUIRES_PLUGIN_DATA:
             dict_args['plugin_data'] = plugin_data
 
         node = task.node
         formatted_args = getattr(self, 'FORMATTED_ARGS', [])
         return {
-            k: (self.interpolate_variables(v, node, inventory, plugin_data)
+            k: (Base.interpolate_variables(v, node, inventory, plugin_data)
                 if k in formatted_args else v)
             for k, v in dict_args.items()
         }

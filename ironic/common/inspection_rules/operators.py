@@ -1,6 +1,3 @@
-# Copyright 2013 Red Hat, Inc.
-# All Rights Reserved.
-#
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -20,9 +17,10 @@ import re
 import netaddr
 from oslo_log import log
 
+from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.inspection_rules import base
-from ironic.common import utils as common_utils
+from ironic.common.inspection_rules import utils
 
 
 LOG = log.getLogger(__name__)
@@ -59,14 +57,11 @@ def coerce(value, expected):
 class OperatorBase(base.Base, metaclass=abc.ABCMeta):
     """Abstract base class for rule condition plugins."""
 
-    OPTIONAL_ARGS = set()
-    """Set with names of optional parameters."""
-
     @abc.abstractmethod
-    def check(self, *args, **kwargs):
-        """Check if condition holds for a given field."""
+    def __call__(self, task, *args, **kwargs):
+        """Checks if condition holds for a given field."""
 
-    def _check_with_loop(self, task, condition, inventory, plugin_data):
+    def check_with_loop(self, task, condition, inventory, plugin_data):
         loop_items = condition.get('loop', [])
         multiple = condition.get('multiple', 'any')
         results = []
@@ -75,8 +70,8 @@ class OperatorBase(base.Base, metaclass=abc.ABCMeta):
             for item in loop_items:
                 condition_copy = condition.copy()
                 condition_copy['args'] = item
-                result = self._check_condition(task, condition_copy,
-                                               inventory, plugin_data)
+                result = self.check_condition(task, condition_copy,
+                                              inventory, plugin_data)
                 results.append(result)
 
                 if multiple == 'first' and result:
@@ -89,9 +84,9 @@ class OperatorBase(base.Base, metaclass=abc.ABCMeta):
             elif multiple == 'all':
                 return all(results)
             return results[0] if results else False
-        return self._check_condition(task, condition, inventory, plugin_data)
+        return self.check_condition(task, condition, inventory, plugin_data)
 
-    def _check_condition(self, task, condition, inventory, plugin_data):
+    def check_condition(self, task, condition, inventory, plugin_data):
         """Process condition arguments and apply the check logic.
 
         :param task: TaskManger instance
@@ -99,37 +94,41 @@ class OperatorBase(base.Base, metaclass=abc.ABCMeta):
         :param args: parameters as a dictionary, changing it here will change
                      what will be stored in database
         :param kwargs: used for extensibility without breaking existing plugins
-        :raises ValueError: on unacceptable field value
+        :raises InspectionRuleExecutionFailure: on unacceptable field value
         :returns: True if check succeeded, otherwise False
         """
-        op, is_inverted = common_utils.parse_inverted_operator(
+        op, is_inverted = utils.parse_inverted_operator(
             condition['op'])
 
         processed_args = self._process_args(task, condition, inventory,
                                             plugin_data)
-        arg_values = [processed_args[arg_name]
-                      for arg_name in self.get_arg_names()]
 
-        for optional_arg in self.OPTIONAL_ARGS:
-            arg_values.append(processed_args.get(optional_arg, False))
-
-        result = self.check(*arg_values)
+        result = self(task, **processed_args)
         return not result if is_inverted else result
 
 
 class SimpleOperator(OperatorBase):
 
     op = None
-    OPTIONAL_ARGS = {'force_strings'}
 
-    @classmethod
-    def get_arg_names(cls):
-        return ['values']
+    def __call__(self, task, values, force_strings=False):
+        if not isinstance(values, list):
+            msg = _("Failed to check condition: '%(op)s' on values: "
+                    "%(values)s: Expected list for 'values', got: "
+                    "%(invalid_type)s") % {
+                        'op': self.op.__name__, 'values': values,
+                        "invalid_type": type(values).__name__}
+            LOG.error(msg)
+            raise exception.RuleConditionCheckFailure(reason=msg)
 
-    def check(self, values, force_strings=False):
+        if len(values) < 2:
+            return True
+
         if force_strings:
             values = [coerce(value, str) for value in values]
-        return self.op(values)
+
+        return all(self.op(values[i], values[i + 1])
+                   for i in range(len(values) - 1))
 
 
 class EqOperator(SimpleOperator):
@@ -145,42 +144,31 @@ class GtOperator(SimpleOperator):
 
 
 class EmptyOperator(OperatorBase):
+
     FORMATTED_ARGS = ['value']
 
-    @classmethod
-    def get_arg_names(cls):
-        return ['value']
-
-    def check(self, value):
+    def __call__(self, task, value):
         return str(value) in ("", 'None', '[]', '{}')
 
 
 class NetOperator(OperatorBase):
+
     FORMATTED_ARGS = ['address', 'subnet']
 
-    @classmethod
-    def get_arg_names(cls):
-        return ['address', 'subnet']
-
-    def validate(self, address, subnet):
+    def __call__(self, task, address, subnet):
         try:
-            netaddr.IPNetwork(subnet)
+            network = netaddr.IPNetwork(subnet)
         except netaddr.AddrFormatError as exc:
-            LOG.error(_('invalid value: %s'), exc)
-
-    def check(self, address, subnet):
-        network = netaddr.IPNetwork(subnet)
+            raise exception.InspectionRuleExecutionFailure(
+                _('invalid value: %s') % exc)
         return netaddr.IPAddress(address) in network
 
 
 class IsTrueOperator(OperatorBase):
+
     FORMATTED_ARGS = ['value']
 
-    @classmethod
-    def get_arg_names(cls):
-        return ['value']
-
-    def check(self, value):
+    def __call__(self, task, value):
         if isinstance(value, bool):
             return value
         if isinstance(value, (int, float)):
@@ -191,13 +179,10 @@ class IsTrueOperator(OperatorBase):
 
 
 class IsFalseOperator(OperatorBase):
+
     FORMATTED_ARGS = ['value']
 
-    @classmethod
-    def get_arg_names(cls):
-        return ['value']
-
-    def check(self, value):
+    def __call__(self, task, value):
         if isinstance(value, bool):
             return not value
         if isinstance(value, (int, float)):
@@ -208,44 +193,36 @@ class IsFalseOperator(OperatorBase):
 
 
 class IsNoneOperator(OperatorBase):
+
     FORMATTED_ARGS = ['value']
 
-    @classmethod
-    def get_arg_names(cls):
-        return ['value']
-
-    def check(self, value):
+    def __call__(self, task, value):
         return str(value) == 'None'
 
 
 class OneOfOperator(OperatorBase):
+
     FORMATTED_ARGS = ['value']
 
-    @classmethod
-    def get_arg_names(cls):
-        return ['value', 'values']
-
-    def check(self, value, values=[]):
+    def __call__(self, task, value, values=[]):
         return value in values
 
 
 class ReOperator(OperatorBase):
-    FORMATTED_ARGS = ['value']
 
-    @classmethod
-    def get_arg_names(cls):
-        return ['value', 'regex']
+    FORMATTED_ARGS = ['value']
 
     def validate_regex(self, regex):
         try:
             re.compile(regex)
         except re.error as exc:
-            raise ValueError(_('invalid regular expression: %s') % exc)
+            raise exception.InspectionRuleExecutionFailure(
+                _('invalid regular expression: %s') % exc)
 
 
 class MatchesOperator(ReOperator):
 
-    def check(self, value, regex):
+    def __call__(self, task, value, regex):
         self.validate_regex(regex)
         if regex[-1] != '$':
             regex += '$'
@@ -254,6 +231,6 @@ class MatchesOperator(ReOperator):
 
 class ContainsOperator(ReOperator):
 
-    def check(self, value, regex):
+    def __call__(self, task, value, regex):
         self.validate_regex(regex)
         return re.search(regex, str(value)) is not None

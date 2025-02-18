@@ -1,6 +1,3 @@
-# Copyright 2013 Red Hat, Inc.
-# All Rights Reserved.
-#
 #    Licensed under the Apache License, Version 2.0 (the "License"); you may
 #    not use this file except in compliance with the License. You may obtain
 #    a copy of the License at
@@ -22,7 +19,7 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common.inspection_rules import actions
 from ironic.common.inspection_rules import operators
-from ironic.common import utils as common_utils
+from ironic.common.inspection_rules import utils
 
 
 _CONDITIONS_SCHEMA = None
@@ -125,7 +122,7 @@ VALIDATOR = args.and_valid(
 )
 
 
-def validate_inspection_rule(rule):
+def validate_rule(rule):
     """Validate an inspection rule using the JSON schema.
 
     :param rule: The inspection rule to validate.
@@ -158,14 +155,14 @@ def validate_inspection_rule(rule):
 
     # Additional plugin-specific validation
     for condition in rule.get('conditions', []):
-        op, invtd = common_utils.parse_inverted_operator(
+        op, invtd = utils.parse_inverted_operator(
             condition['op'])
         plugin = operators.get_operator(op)
         if not plugin or not callable(plugin):
             errors.append(
                 _('Unsupported condition operator: %s') % op)
         try:
-            plugin().validate(**condition)
+            plugin().validate(condition.get('args', {}))
         except ValueError as exc:
             errors.append(_('Invalid parameters for condition operator '
                             '%(op)s: %(error)s') % {'op': op,
@@ -176,7 +173,7 @@ def validate_inspection_rule(rule):
         if not plugin or not callable(plugin):
             errors.append(_('Unsupported action operator: %s') % action['op'])
         try:
-            plugin().validate(**action)
+            plugin().validate(action.get('args', {}))
         except ValueError as exc:
             errors.append(_('Invalid parameters for action operator %(op)s: '
                             '%(error)s') % {'op': action['op'], 'error': exc})
