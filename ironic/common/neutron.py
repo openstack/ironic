@@ -259,7 +259,8 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
     """
     client = get_client(context=task.context)
     node = task.node
-    add_all_ports = CONF.neutron.add_all_ports
+    pxe_capability = 'pxe_boot' in task.driver.boot.capabilities
+    add_all_ports = CONF.neutron.add_all_ports or not pxe_capability
 
     # If Security Groups are specified, verify that they exist
     _verify_security_groups(security_groups, client)
