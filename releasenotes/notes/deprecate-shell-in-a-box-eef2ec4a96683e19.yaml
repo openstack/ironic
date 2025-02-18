@@ -1,0 +1,8 @@
+---
+deprecations:
+  - |
+    Use of the console driver ``ipmitool-shellinabox`` has been deprecated and
+    will be removed in a future release of Ironic. This decision was reached
+    with the reality that the fork of shellinabox appears abandoned with no
+    changes in 7 years and open issues to call for the project to hand over
+    `maintainership <https://github.com/shellinabox/shellinabox/issues/531>`_.
