@@ -20,7 +20,6 @@ from ironic.conf import CONF
 from ironic.drivers.modules import deploy_utils
 from ironic.drivers.modules import inspect_utils
 from ironic.drivers.modules.inspector import agent as inspector
-from ironic.drivers.modules.inspector.hooks import base as hooks_base
 from ironic.drivers.modules.inspector import interface as common
 from ironic.drivers import utils as driver_utils
 from ironic.tests.unit.db import base as db_base
@@ -149,8 +148,9 @@ class InspectHardwareTestCase(db_base.DbTestCase):
         self.assertFalse(self.driver.boot.clean_up_ramdisk.called)
 
 
+@mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)
 @mock.patch.object(common, 'tear_down_managed_boot', autospec=True)
-@mock.patch.object(inspector, 'run_inspection_hooks', autospec=True)
+@mock.patch.object(inspect_utils, 'run_inspection_hooks', autospec=True)
 class ContinueInspectionTestCase(db_base.DbTestCase):
     def setUp(self):
         super().setUp()
@@ -164,63 +164,40 @@ class ContinueInspectionTestCase(db_base.DbTestCase):
             inspect_interface='agent',
             provision_state=states.INSPECTING)
         self.iface = inspector.AgentInspect()
+        self.plugin_data = {"logs": "abcd"}
 
-    def test(self, mock_inspection_hooks, mock_tear_down):
+    def test(self, mock_inspection_hooks, mock_tear_down, mock_ramdisk_logs):
         mock_tear_down.return_value = None
         with task_manager.acquire(self.context, self.node.id) as task:
             result = self.iface.continue_inspection(
-                task, mock.sentinel.inventory, mock.sentinel.plugin_data)
+                task, mock.sentinel.inventory, self.plugin_data)
             mock_inspection_hooks.assert_called_once_with(
-                task, mock.sentinel.inventory, mock.sentinel.plugin_data,
-                self.iface.hooks)
+                task, mock.sentinel.inventory, self.plugin_data,
+                self.iface.hooks, inspector._store_logs)
             mock_tear_down.assert_called_once_with(task, always_power_off=True)
             self.assertEqual(states.INSPECTING, task.node.provision_state)
 
         self.assertIsNone(result)
-
-
-@mock.patch.object(driver_utils, 'store_ramdisk_logs', autospec=True)
-class RunInspectionHooksTestCase(db_base.DbTestCase):
-    def setUp(self):
-        super().setUp()
-        CONF.set_override('enabled_inspect_interfaces',
-                          ['agent', 'no-inspect'])
-        self.node = obj_utils.create_test_node(
-            self.context,
-            inspect_interface='agent',
-            provision_state=states.INSPECTING)
-        self.task = mock.Mock(spec=task_manager.TaskManager, node=self.node)
-        self.hooks = [
-            mock.Mock(name=str(i),
-                      obj=mock.MagicMock(spec=hooks_base.InspectionHook))
-            for i in range(2)
-        ]
-        self.inventory = {"interfaces": [42]}
-        self.plugin_data = {"logs": "abcd"}
-
-    def test(self, mock_ramdisk_logs):
-        inspector.run_inspection_hooks(self.task, self.inventory,
-                                       self.plugin_data, self.hooks)
-        for hook in self.hooks:
-            hook.obj.preprocess.assert_called_once_with(
-                self.task, self.inventory, self.plugin_data)
-            hook.obj.assert_called_once_with(
-                self.task, self.inventory, self.plugin_data)
-
         mock_ramdisk_logs.assert_not_called()
 
-    def test_always_collect_logs(self, mock_ramdisk_logs):
+    def test_store_logs(self,
+                        mock_inspection_hooks,
+                        mock_tear_down,
+                        mock_ramdisk_logs):
         CONF.set_override('deploy_logs_collect', 'always', group='agent')
-        inspector.run_inspection_hooks(self.task, self.inventory,
-                                       self.plugin_data, self.hooks)
-        for hook in self.hooks:
-            hook.obj.preprocess.assert_called_once_with(
-                self.task, self.inventory, self.plugin_data)
-            hook.obj.assert_called_once_with(
-                self.task, self.inventory, self.plugin_data)
+        mock_tear_down.return_value = None
+        with task_manager.acquire(self.context, self.node.id) as task:
+            result = self.iface.continue_inspection(
+                task, mock.sentinel.inventory, self.plugin_data)
+            mock_inspection_hooks.assert_called_once_with(
+                task, mock.sentinel.inventory, self.plugin_data,
+                self.iface.hooks, inspector._store_logs)
+            mock_tear_down.assert_called_once_with(task, always_power_off=True)
+            mock_ramdisk_logs.assert_called_once_with(
+                mock.ANY, "abcd", label="inspect")
+            self.assertEqual(states.INSPECTING, task.node.provision_state)
 
-        mock_ramdisk_logs.assert_called_once_with(
-            self.node, "abcd", label="inspect")
+        self.assertIsNone(result)
 
 
 @mock.patch.object(common, 'tear_down_managed_boot', autospec=True)

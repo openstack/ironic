@@ -25,6 +25,7 @@ from ironic.common import swift
 from ironic.conductor import task_manager
 from ironic.conf import CONF
 from ironic.drivers.modules import inspect_utils as utils
+from ironic.drivers.modules.inspector.hooks import base as hooks_base
 from ironic import objects
 from ironic.tests.unit.db import base as db_base
 from ironic.tests.unit.objects import utils as obj_utils
@@ -542,3 +543,67 @@ class LookupCacheTestCase(db_base.DbTestCase):
         mock_get_addr.return_value = set()
         utils.cache_lookup_addresses(self.node)
         self.assertEqual({}, self.node.driver_internal_info)
+
+
+class RunInspectionHooksTestCase(db_base.DbTestCase):
+    def setUp(self):
+        super().setUp()
+        CONF.set_override('enabled_inspect_interfaces',
+                          ['agent', 'no-inspect'])
+        self.node = obj_utils.create_test_node(
+            self.context,
+            inspect_interface='agent',
+            provision_state=states.INSPECTING)
+        self.task = mock.Mock(spec=task_manager.TaskManager, node=self.node)
+        self.hooks = [
+            mock.Mock(name=str(i),
+                      obj=mock.MagicMock(spec=hooks_base.InspectionHook))
+            for i in range(2)
+        ]
+        self.on_error_plugin_data = mock.MagicMock()
+        self.inventory = {"interfaces": [42]}
+        self.plugin_data = {"logs": "abcd"}
+
+    def test_no_on_error(self):
+        utils.run_inspection_hooks(self.task, self.inventory,
+                                   self.plugin_data, self.hooks,
+                                   None)
+        for hook in self.hooks:
+            hook.obj.preprocess.assert_called_once_with(
+                self.task, self.inventory, self.plugin_data)
+            hook.obj.assert_called_once_with(
+                self.task, self.inventory, self.plugin_data)
+
+        self.on_error_plugin_data.assert_not_called()
+
+    def test_pre_hook_on_error_callback(self):
+        failing_pre_hook = mock.MagicMock(spec=hooks_base.InspectionHook)
+        failing_pre_hook.preprocess.side_effect = (
+            exception.HardwareInspectionFailure("fake exception")
+        )
+        failing_hooks = self.hooks.copy()
+        failing_hooks.append(mock.Mock(name="failing", obj=failing_pre_hook))
+
+        self.assertRaises(exception.HardwareInspectionFailure,
+                          utils.run_inspection_hooks,
+                          self.task, self.inventory, self.plugin_data,
+                          failing_hooks,
+                          self.on_error_plugin_data)
+
+        self.on_error_plugin_data.assert_called_once()
+
+    def test_post_hook_on_error_callback(self):
+        failing_post_hook = mock.MagicMock(spec=hooks_base.InspectionHook)
+        failing_post_hook.__call__ = mock.Mock(
+            side_effect=exception.HardwareInspectionFailure("fake exception")
+        )
+        failing_hooks = self.hooks.copy()
+        failing_hooks.append(mock.Mock(name="failing", obj=failing_post_hook))
+
+        self.assertRaises(exception.HardwareInspectionFailure,
+                          utils.run_inspection_hooks,
+                          self.task, self.inventory, self.plugin_data,
+                          failing_hooks,
+                          self.on_error_plugin_data)
+
+        self.on_error_plugin_data.assert_called_once()
