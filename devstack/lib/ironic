@@ -304,7 +304,8 @@ fi
 # NOTE(TheJulia): If we ever run any arm64, we will need to consider doing
 # the same. Nested virt is not a thing there.
 # Prevent a case that will likely result in a failure.
-if [[ $IRONIC_HW_ARCH != "aarch64" ]]; then
+# NOTE(hjensas): tinyipa does not support dhcpv6-stateful
+if [[ $IRONIC_HW_ARCH != "aarch64" ]] && [[ $IRONIC_IPV6_ADDRESS_MODE != "dhcpv6-stateful" ]]; then
     if [[ "$hostdomain" =~ "rax" ]] || [[ "$hostdomain" =~ "iweb" ]] || ! $(grep -q -E 'vmx|svm' /proc/cpuinfo) ; then
         if [[ "$IRONIC_RAMDISK_TYPE" == "dib" ]]; then
             echo "** WARNING ** - DIB based IPA images have been defined, however we are running devstack on an environment which does not support nested VMs. Due to virtualization constraints, we are automatically falling back to TinyIPA to ensure CI job passage."
@@ -528,16 +529,9 @@ if [[ "$IRONIC_IP_VERSION" != '6' ]]; then
     IRONIC_PROVISION_SUBNET_PREFIX=${IRONIC_PROVISION_SUBNET_PREFIX:-'10.0.5.0/24'}
 else
     IRONIC_IP_VERSION='6'
-    # NOTE(TheJulia): The IPv6 address devstack has identified is the
-    # local loopback. This does not really serve our purposes very
-    # well, so we need to setup something that will work.
-    if [[ "$HOST_IPV6" == '::1' ]] || [[ ! $HOST_IPV6 =~ "::" ]]; then
     # We setup an address elsewhere because the service address of
-    # loopback cannot be used for v6 testing.
-        IRONIC_HOST_IPV6='fc00::1'
-    else
-        IRONIC_HOST_IPV6=$HOST_IPV6
-    fi
+    # HOST_IPV6 cannot be used for v6 testing.
+    IRONIC_HOST_IPV6='fc00::1'
     IRONIC_PROVISION_SUBNET_GATEWAY=${IRONIC_PROVISION_SUBNET_GATEWAY:-'fc01::1'}
     IRONIC_PROVISION_SUBNET_SUBNODE_IP=${IRONIC_PROVISION_SUBNET_SUBNODE_IP:-'fc01::2'}
     IRONIC_PROVISION_SUBNET_PREFIX=${IRONIC_PROVISION_SUBNET_PREFIX:-'fc01::/64'}
@@ -1519,6 +1513,10 @@ function configure_ironic_provision_network {
                 --subnet-range $IRONIC_PROVISION_SUBNET_PREFIX \
                 --dns-nameserver 8.8.8.8 -f value -c id)"
         else
+            # NOTE(hjensas) Ensure mtu matches public bridge mtu, to avoid "dropped over-mtu packet" issue on IPv6
+            if [[ -n "$PUBLIC_BRIDGE_MTU" ]]; then
+                openstack network set --mtu "$PUBLIC_BRIDGE_MTU" $net_id
+            fi
             subnet_id="$(openstack --os-cloud $OS_CLOUD subnet create --ip-version 6 \
                 --ipv6-address-mode $IRONIC_IPV6_ADDRESS_MODE \
                 --ipv6-ra-mode $IRONIC_IPV6_ADDRESS_MODE \

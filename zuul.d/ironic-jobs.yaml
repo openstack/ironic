@@ -939,6 +939,64 @@
         IRONIC_PING_TIMEOUT: 1440
         IRONIC_BOOT_MODE: bios
 
+- job:
+    name: ironic-tempest-ovn-uefi-ipxe-ipv6
+    description: ironic-tempest-ovn-uefi-ipxe-ipv6
+    parent: ironic-base
+    required-projects:
+      - opendev.org/openstack/networking-generic-switch
+    vars:
+      tempest_test_timeout: 2400
+      devstack_services:
+        q-agt: false
+        q-dhcp: false
+        q-l3: false
+        ovn-controller: true
+        ovn-northd: true
+        ovsdb-server: true
+        q-ovn-metadata-agent: true
+        q-metering: false
+        swift: true
+      devstack_plugins:
+        ironic: https://opendev.org/openstack/ironic
+        networking-generic-switch: https://opendev.org/openstack/networking-generic-switch
+      tempest_test_regex: BaremetalSingleTenant
+      devstack_localrc:
+        IRONIC_AGENT_IMAGE_DOWNLOAD_SOURCE: http
+        IRONIC_RAMDISK_TYPE: dib
+        IRONIC_DIB_RAMDISK_OS: centos9
+        IPV6_ENABLED: True
+        IRONIC_IP_VERSION: 6
+        IRONIC_IPV6_ADDRESS_MODE: dhcpv6-stateful
+        IRONIC_AUTOMATED_CLEAN_ENABLED: False
+        IRONIC_ENABLED_BOOT_INTERFACES: ipxe,pxe
+        IRONIC_DEFAULT_BOOT_INTERFACE: ipxe
+        IRONIC_IPXE_ENABLED: True
+        IRONIC_PROVISION_NETWORK_NAME: ironic-provision
+        OVS_PHYSICAL_BRIDGE: brbm
+        PHYSICAL_NETWORK: mynetwork
+        OVN_BRIDGE_MAPPINGS: "public:br-ex,mynetwork:brbm"
+        TENANT_VLAN_RANGE: 100:150
+        IRONIC_ENABLED_NETWORK_INTERFACES: flat,neutron
+        IRONIC_NETWORK_INTERFACE: neutron
+        IRONIC_DEFAULT_RESCUE_INTERFACE: no-rescue
+        IRONIC_USE_LINK_LOCAL: True
+        IRONIC_TEMPEST_WHOLE_DISK_IMAGE: True
+        IRONIC_VM_EPHEMERAL_DISK: 0
+        IRONIC_VM_INTERFACE_COUNT: 1
+        IRONIC_VM_SPECS_CPU: 2
+        Q_AGENT: ovn
+        ENABLE_CHASSIS_AS_GW: true
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn
+        ML2_L3_PLUGIN: ovn-router,trunk
+        ENABLE_TENANT_VLANS: True
+        Q_ML2_TENANT_NETWORK_TYPE: vlan
+        PUBLIC_PHYSICAL_NETWORK: public
+        PUBLIC_PROVIDERNET_TYPE: flat
+        BUILD_TIMEOUT: 2000
+        IRONIC_TEMPEST_BUILD_TIMEOUT: 2000
+        IRONIC_PING_TIMEOUT: 1440
+
 # NOTE(rpittau): OLD TINYIPA JOBS
 # Those jobs are used by other projects, we leave them here until
 # we can convert them to dib.
