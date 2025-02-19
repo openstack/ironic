@@ -1606,6 +1606,14 @@ class IPMIConsole(base.ConsoleInterface):
 class IPMIShellinaboxConsole(IPMIConsole):
     """A ConsoleInterface that uses ipmitool and shellinabox."""
 
+    # TODO(TheJulia): This interface is deprecated due to the shellinabox
+    # project being abandoned. It should be removed after the release of
+    # 2025.2 in advance of 2026.1's release.
+    # https://github.com/shellinabox/shellinabox
+    # https://github.com/shellinabox/shellinabox/issues/531
+
+    supported = False
+
     def _get_ipmi_cmd(self, driver_info, pw_file):
         """Get ipmi command for ipmitool usage.
 

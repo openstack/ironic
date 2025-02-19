@@ -20,12 +20,14 @@ The web console can be configured in Bare Metal service in the following way:
   is not present in base repositories, the user must enable EPEL repository, you can
   find more from `FedoraProject page`_.
 
-  .. note::
+  .. warning::
 
-     shellinabox is no longer maintained by the authorized author.
-     `This <https://github.com/shellinabox/shellinabox>`_ is a fork of the
-     project on GitHub that aims to continue with the maintenance of the
-     shellinabox project.
+     Shell In A Box is considered abandoned by the Ironic community. The
+     original maintainer stopped maintaining the project and the project
+     was thus forked. The resulting
+     `fork <https://github.com/shellinabox/shellinabox>`_ has not received
+     updates in a number of years and is considered abandoned.
+     As such, shellinabox support has been deprecated by the Ironic community.
 
   Installation example:
 
