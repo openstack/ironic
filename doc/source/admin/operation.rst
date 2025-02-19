@@ -17,7 +17,6 @@ Configuration and Operation
    Ceph Object Gateway <radosgw>
    Emitting Software Metrics <metrics>
    Auditing API Traffic <api-audit-support>
-   Service State Reporting <gmr>
    Tuning Ironic <tuning>
    Role Based Access Control <secure-rbac>
    Dashboard Integration <dashboard>

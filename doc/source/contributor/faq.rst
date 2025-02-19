@@ -133,10 +133,3 @@ the preferred process is:
 .. _IRC: https://wiki.openstack.org/wiki/Ironic#IRC
 .. _mailing list: http://lists.openstack.org/cgi-bin/mailman/listinfo/openstack-discuss
 .. _process for making decisions: http://lists.openstack.org/pipermail/openstack-dev/2016-May/095460.html
-
-...add support for GMRs to new executables and extending the GMR?
------------------------------------------------------------------
-
-For more information, see the
-:oslo.reports-doc:`oslo.reports documentation <user/usage.html>`
-page.
