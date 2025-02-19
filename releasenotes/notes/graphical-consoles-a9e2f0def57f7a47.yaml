@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    New ``console`` drivers ``redfish-graphical`` and ``fake-graphical`` have
+    been added. This allows the graphical console to be accessed for Dell
+    iDRAC, HPE iLO, and Supermicro hosts. The ``fake-graphical`` driver is
+    useful for demonstrating the full integration of ``ironic-novncproxy`` and
+    the ``systemd`` provider of ``ironic.console.container``.

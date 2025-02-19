@@ -1,15 +1,55 @@
 .. _console:
 
-=================================
-Configuring Web or Serial Console
-=================================
+====================
+Configuring Consoles
+====================
 
 Overview
 --------
 
-There are two types of consoles which are available in Bare Metal service,
-one is web console (`Node web console`_) which is available directly from web
-browser, and another is serial console (`Node serial console`_).
+There are three types of consoles which are available in Bare Metal service:
+
+* (`Node graphical console`_) for a graphical console from a NoVNC web browser
+* (`Node web console`_) a terminal available from a web browser
+* (`Node serial console`_) for serial console support
+
+Node graphical console
+----------------------
+
+Graphical console drivers require a configured and running ``ironic-novncproxy``
+service. Each supported driver is described below.
+
+redfish-graphical
+~~~~~~~~~~~~~~~~~
+
+A driver for a subset of Redfish hosts. Starting the console will start a
+container which exposes a VNC server for ``ironic-novncproxy`` to attach to.
+When attached, a browser will start which displays an HTML5 based console on
+the following supported hosts:
+
+* Dell iDRAC
+* HPE iLO
+* Supermicro
+
+.. code-block:: ini
+
+    [DEFAULT]
+    enabled_hardware_types = redfish
+    enabled_console_interfaces = redfish-graphical,no-console
+
+fake-graphical
+~~~~~~~~~~~~~~~~~
+
+A driver for demonstrating working graphical console infrastructure. Starting
+the console will start a container which exposes a VNC server for
+``ironic-novncproxy`` to attach to. When attached, a browser will start which
+displays an animation.
+
+.. code-block:: ini
+
+    [DEFAULT]
+    enabled_hardware_types = fake-hardware
+    enabled_console_interfaces = fake-graphical,no-console
 
 Node web console
 ----------------
