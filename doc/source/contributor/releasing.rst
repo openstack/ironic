@@ -198,8 +198,10 @@ following change:
 
 https://review.opendev.org/c/openstack/ironic/+/938660
 
-It is also mandatory to comment out the metal3 integration job as it is not
-supposed to run in stable or bugfix branches.
+It is also mandatory to comment out or remove the metal3 integration job as it
+is not supposed to run in stable or bugfix branches, and also comment out or
+remove the tox codespell job to avoid failures due to version changes, spelling
+is fixed in master and most recent stable branches only and backported "as is".
 
 Things to do before releasing
 =============================
