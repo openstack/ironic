@@ -12,7 +12,7 @@ export PS4='+ ${BASH_SOURCE:-}:${FUNCNAME[0]:-}:L${LINENO:-}:   '
 # Keep track of the DevStack directory
 TOP_DIR=$(cd $(dirname "$0")/.. && pwd)
 
-while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:D:v:P:t:B:" arg; do
+while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:D:v:P:t:B:s:" arg; do
     case $arg in
         n) NAME=$OPTARG;;
         c) CPU=$OPTARG;;
@@ -38,6 +38,7 @@ while getopts "n:c:i:m:M:d:a:b:e:E:p:o:f:l:L:N:A:D:v:P:t:B:" arg; do
         P) STORAGE_POOL=$OPTARG;;
         t) MACHINE_TYPE=$OPTARG;;
         B) BLOCK_SIZE=$OPTARG;;
+        s) NET_SIMULATOR=$OPTARG;;
     esac
 done
 
@@ -87,10 +88,29 @@ BLOCK_SIZE=${BLOCK_SIZE:-512}
 # when VM is in shutdown state
 INTERFACE_COUNT=${INTERFACE_COUNT:-1}
 
-for int in $(seq 1 $INTERFACE_COUNT); do
-    ovsif=ovs-${NAME}i${int}
-    sudo ovs-vsctl --no-wait add-port $BRIDGE $ovsif
-done
+if [[ "${NET_SIMULATOR:-ovs}" == "ovs" ]]; then
+    for int in $(seq 1 $INTERFACE_COUNT); do
+        ovsif=ovs-${NAME}i${int}
+        sudo ovs-vsctl --no-wait add-port $BRIDGE $ovsif
+    done
+else
+    for int in $(seq 1 $INTERFACE_COUNT); do
+        # NOTE(TheJulia): A simulator's setup will need to come along
+        # and identify all of the simulators for required configuration.
+        # NOTE(TheJulia): It would be way easier if we just sequentally
+        # numbered *all* interfaces together, but the per-vm execution
+        # model of this script makes it... difficult.
+        simif=sim-${NAME}i${int}
+        tapif=tap-${NAME}i${int}
+        # NOTE(vsaienko) use veth pair here to ensure that interface
+        # exists when VMs are turned off.
+        sudo ip link add dev $tapif type veth peer name $simif || true
+        for l in $tapif $simif; do
+            sudo ip link set dev $l up
+            sudo ip link set $l mtu $INTERFACE_MTU
+        done
+    done
+fi
 
 if [ -n "$MAC_ADDRESS" ] ; then
     MAC_ADDRESS="--mac $MAC_ADDRESS"
@@ -125,9 +145,16 @@ if ! virsh list --all | grep -q $NAME; then
         --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
         --disk-format $DISK_FORMAT $VM_LOGGING --engine $ENGINE $UEFI_OPTS $vm_opts \
         --interface-count $INTERFACE_COUNT $MAC_ADDRESS --machine_type $MACHINE_TYPE \
-        --block-size $BLOCK_SIZE --mtu ${INTERFACE_MTU} >&2
+        --block-size $BLOCK_SIZE --mtu ${INTERFACE_MTU} --net_simulator ${NET_SIMULATOR:-ovs} >&2
 fi
 
 # echo mac in format mac1,ovs-node-0i1;mac2,ovs-node-0i2;...;macN,ovs-node0iN
-VM_MAC=$(echo -n $(virsh domiflist $NAME |awk '/ovs-/{print $5","$1}')|tr ' ' ';')
+# NOTE(TheJulia): Based upon the interface format, we need to search for slightly
+# different output from the script run because we have to use different attachment
+# names.
+if [[ "${NET_SIMULATOR:-ovs}" == "ovs" ]]; then
+    VM_MAC=$(echo -n $(virsh domiflist $NAME |awk '/ovs-/{print $5","$1}')|tr ' ' ';')
+else
+    VM_MAC=$(echo -n $(virsh domiflist $NAME |awk '/tap-/{print $5","$1}')|tr ' ' ';')
+fi
 echo -n "$VM_MAC $VBMC_PORT $PDU_OUTLET"

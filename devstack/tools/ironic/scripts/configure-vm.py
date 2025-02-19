@@ -81,6 +81,8 @@ def main():
                         help='The mac for the first interface on the vm')
     parser.add_argument('--mtu', default=None,
                         help='The mtu for the interfaces on the vm')
+    parser.add_argument('--net_simulator', default='ovs',
+                        help='Network simulator is in use.')
     parser.add_argument('--console-log',
                         help='File to log console')
     parser.add_argument('--emulator', default=None,
@@ -117,6 +119,7 @@ def main():
         'interface_count': args.interface_count,
         'mac': args.mac,
         'mtu': args.mtu,
+        'net_simulator': args.net_simulator,
         'nicdriver': args.libvirt_nic_driver,
         'emulator': args.emulator,
         'disk_format': args.disk_format,

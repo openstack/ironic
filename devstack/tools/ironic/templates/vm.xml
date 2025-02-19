@@ -50,11 +50,19 @@
     </disk>
     {% endfor %}
     {% for n in range(1, interface_count+1) %}
+    {% if net_simulator == 'ovs' %}
     <interface type='ethernet'>
+    {% else %}
+    <interface type='direct'>
+    {% endif %}
       {% if n == 1 and mac %}
       <mac address='{{ mac }}'/>
       {% endif %}
+      {% if net_simulator == 'ovs' %}
       <target dev='{{ "ovs-" + name + "i" + n|string }}'/>
+      {% else %}
+      <source dev='{{ "tap-" + name + "i" + n|string }}'/>
+      {% endif %}
       <model type='{{ nicdriver }}' />
       {% if uefi_loader and bootdev == 'network' %}
       <boot order='{{ n|string }}'/>
