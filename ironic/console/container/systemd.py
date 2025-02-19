@@ -192,6 +192,7 @@ class SystemdConsoleContainer(base.BaseConsoleContainer):
                 'port': CONF.vnc.systemd_container_publish_port,
                 'app': app_name,
                 'app_info': json.dumps(app_info),
+                'read_only': CONF.vnc.read_only,
             }
 
             LOG.debug('Writing %s', container_file)

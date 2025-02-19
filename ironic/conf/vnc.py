@@ -71,6 +71,12 @@ opts = [
         default=['none'],
         help='The allowed authentication schemes to use with proxied '
              'VNC connections'),
+    cfg.BoolOpt(
+        'read_only',
+        default=False,
+        help='When True, keyboard and mouse events will not be passed '
+             'to the console.'
+    ),
     cfg.IntOpt(
         'token_timeout',
         default=600,

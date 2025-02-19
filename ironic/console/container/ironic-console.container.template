@@ -6,6 +6,7 @@ Image={{ image }}
 PublishPort={{ port }}
 Environment=APP={{ app }}
 Environment=APP_INFO='{{ app_info }}'
+Environment=READ_ONLY={{ read_only }}
 
 [Install]
 WantedBy=default.target
