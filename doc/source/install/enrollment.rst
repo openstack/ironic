@@ -678,4 +678,4 @@ nodes - please see :doc:`/admin/inspection` for details.
 Tenant Networks and Port Groups
 -------------------------------
 
-See :doc:`/admin/multitenancy` and :doc:`/admin/portgroups`.
+See :ref:`admin-networking` and :doc:`/admin/portgroups`.

@@ -123,7 +123,7 @@ Optional hooks
 
 ``physical-network``
     Populates the ``physical_network`` port field for
-    :doc:`/admin/multitenancy` based on the detected IP addresses. The mapping
+    :ref:`admin-networking` based on the detected IP addresses. The mapping
     is provided by the
     :oslo.config:option:`inspector.physical_network_cidr_map` option.
 
