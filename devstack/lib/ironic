@@ -262,6 +262,9 @@ IRONIC_DEFAULT_VENDOR_INTERFACE=${IRONIC_DEFAULT_VENDOR_INTERFACE:-}
 
 IRONIC_UNMANAGED_INSPECTION=$(trueorfalse False IRONIC_UNMANAGED_INSPECTION)
 
+# If we should setup a TFTP server for devstack
+IRONIC_ENABLE_TFTP=${IRONIC_ENABLE_TFTP:-True}
+
 # If IRONIC_VM_ENGINE is explicitly set to "auto" or "kvm",
 # devstack will attempt to use hardware virtualization
 # (aka nested kvm). We do not enable it in the infra gates
@@ -2919,7 +2922,12 @@ function configure_iptables {
 }
 
 function configure_tftpd {
-    if [[ "${IRONIC_ENABLE_TFTP:-True}" == "True" ]]; then
+    if [[ "$IRONIC_ENABLE_TFTP" == "True" ]]; then
+        # NOTE(TheJulia): This was added as Centos9 and beyond lacks an xinetd
+        # service, and realistically we want users to begin using virtual media
+        # instead of TFTP.
+        # https://bugs.launchpad.net/ironic/+bug/2098533
+        #
         # stop tftpd and setup serving via xinetd
         stop_service tftpd-hpa || true
         [ -f /etc/init/tftpd-hpa.conf ] && echo "manual" | sudo tee /etc/init/tftpd-hpa.override
