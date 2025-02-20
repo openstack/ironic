@@ -105,7 +105,12 @@ if [[ ! "$IRONIC_HW_ARCH" =~ $IRONIC_SUPPORTED_HW_ARCH_TYPES_RE ]]; then
     die $LINENO "Unsupported IRONIC_HW_ARCH: $IRONIC_HW_ARCH. Expected either of 'x86_64' or 'aarch64'."
 fi
 
-IRONIC_VM_EMULATOR="/usr/bin/qemu-system-${IRONIC_HW_ARCH}"
+if is_ubuntu; then
+    IRONIC_VM_EMULATOR="/usr/bin/qemu-system-${IRONIC_HW_ARCH}"
+else
+    # Fedora/Centos
+    IRONIC_VM_EMULATOR="/usr/libexec/qemu-kvm"
+fi
 
 GRUB_ARCH=x64
 if [[ $IRONIC_HW_ARCH == "aarch64" ]]; then
@@ -714,6 +719,20 @@ if [[ "$IRONIC_BOOT_MODE" == "uefi" ]]; then
                 IRONIC_GRUB2_SHIM_FILE=/usr/lib/shim/shimaa64.efi.signed
                 IRONIC_GRUB2_FILE=/usr/lib/grub/arm64-efi-signed/grubaa64.efi.signed
                 IRONIC_GRUB2_NETWORK_FILE=/usr/lib/grub/arm64-efi-signed/grubnetaa64.efi.signed
+            fi
+        fi
+    elif is_fedora && grep -qs "CentOS" /etc/redhat-release; then
+        if [[ $IRONIC_HW_ARCH == "x86_64" ]]; then
+            if [[ -z $IRONIC_GRUB2_FILE ]]; then
+                IRONIC_GRUB2_SHIM_FILE=/boot/efi/EFI/centos/shimx64.efi
+                IRONIC_GRUB2_FILE=/boot/efi/EFI/centos/grubx64.efi
+                IRONIC_GRUB2_NETWORK_FILE=/boot/efi/EFI/centos/grubx64.efi
+            fi
+        elif [[ $IRONIC_HW_ARCH == "aarch64" ]]; then
+            if [[ -z $IRONIC_GRUB2_FILE ]]; then
+                IRONIC_GRUB2_SHIM_FILE=/boot/efi/EFI/centos/shimaa64.efi
+                IRONIC_GRUB2_FILE=/boot/efi/EFI/centos/grubaa64.efi
+                IRONIC_GRUB2_NETWORK_FILE=/boot/efi/EFI/centos/grubaa64.efi
             fi
         fi
     elif is_fedora; then
