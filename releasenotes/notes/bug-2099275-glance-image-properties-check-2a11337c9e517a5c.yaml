@@ -1,0 +1,10 @@
+---
+fixes:
+  - |
+    When changing from glanceclient to OpenStack SDK to communicate with
+    Glance, a bug was introduced reading image properties causing the
+    Anaconda deploy interface to be unable to use Glance images. Other
+    deploy interfaces continued to function but could have resulted in
+    some properties not taking affect.
+    See `bug 2099275 <https://bugs.launchpad.net/ironic/+bug/2099953>`_ for
+    more details.

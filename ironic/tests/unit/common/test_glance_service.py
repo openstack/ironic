@@ -100,9 +100,11 @@ class TestGlanceImageService(base.TestCase):
     @staticmethod
     def _make_fixture(**kwargs):
         fixture = {'name': None,
+                   'owner': None,
+                   'properties': {},
                    'status': "active"}
         fixture.update(kwargs)
-        return stubs.FakeImage(fixture)
+        return openstack.image.v2.image.Image.new(**fixture)
 
     @property
     def endpoint(self):
@@ -142,7 +144,7 @@ class TestGlanceImageService(base.TestCase):
             'schema': None,
             'size': None,
             'status': "active",
-            'tags': None,
+            'tags': [],
             'updated_at': None,
             'visibility': None,
             'os_hash_algo': None,
