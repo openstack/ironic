@@ -38,14 +38,26 @@ LOG = log.getLogger(__name__)
 
 def _extract_attributes(image):
     output = {}
+    # copies attributes from the openstacksdk Image object
+    # to a dictionary
     for attr in _IMAGE_ATTRIBUTES:
         output[attr] = getattr(image, attr, None)
 
-    output['properties'] = {}
+    # copy the properties over to start so that image properties
+    # are not nested in another properties key
+    output['properties'] = getattr(image, 'properties', {})
     output['schema'] = image.schema
 
-    for image_property in set(image) - set(_IMAGE_ATTRIBUTES):
-        output['properties'][image_property] = image[image_property]
+    # attributes already copied so we copy the rest into properties
+    copied = set(_IMAGE_ATTRIBUTES)
+    copied.add('properties')
+
+    for image_property in set(image) - copied:
+        # previously with glanceclient only set things
+        # were on the object that came back but the SDK
+        # defines every possible attribute so we need to filter
+        if image[image_property]:
+            output['properties'][image_property] = image[image_property]
 
     return output
 
