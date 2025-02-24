@@ -1064,6 +1064,20 @@ class Unauthorized(IronicException):
     headers = {'WWW-Authenticate': 'Basic realm="Baremetal API"'}
 
 
+class SecurityProxyNegotiationFailed(IronicException):
+    _msg_fmt = _("Failed to negotiate security type with server: %(reason)s")
+
+
+class RFBAuthHandshakeFailed(IronicException):
+    _msg_fmt = _("Failed to complete auth handshake: %(reason)s")
+
+
+class RFBAuthNoAvailableScheme(IronicException):
+    _msg_fmt = _("No matching auth scheme: allowed types: "
+                 "'%(allowed_types)s', "
+                 "desired types: '%(desired_types)s'")
+
+
 class ImageHostRateLimitFailure(TemporaryFailure):
     _msg_fmt = _("The image registry has indicates the rate limit has been "
                  "exceeded for url %(image_ref)s. Please try again later or "

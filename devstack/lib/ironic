@@ -429,6 +429,7 @@ fi
 IRONIC_SERVICE_PROTOCOL=${IRONIC_SERVICE_PROTOCOL:-$SERVICE_PROTOCOL}
 IRONIC_SERVICE_PORT=${IRONIC_SERVICE_PORT:-6385}
 IRONIC_SERVICE_PORT_INT=${IRONIC_SERVICE_PORT_INT:-16385}
+IRONIC_NOVNCPROXY_PORT=${IRONIC_NOVNCPROXY_PORT:-6090}
 IRONIC_HOSTPORT=${IRONIC_HOSTPORT:-$SERVICE_HOST/baremetal}
 
 # Enable iPXE
@@ -1276,6 +1277,33 @@ function install_ironic {
     if is_ansible_deploy_enabled; then
         pip_install "$(grep '^ansible' $IRONIC_DIR/driver-requirements.txt | awk '{print $1}')"
     fi
+
+    if is_service_enabled ir-novnc; then
+        # a websockets/html5 or flash powered VNC console for vm instances
+        NOVNC_FROM_PACKAGE=$(trueorfalse False NOVNC_FROM_PACKAGE)
+        if [ "$NOVNC_FROM_PACKAGE" = "True" ]; then
+            # Installing novnc on Debian bullseye breaks the global pip
+            # install. This happens because novnc pulls in distro cryptography
+            # which will be preferred by distro pip, but if anything has
+            # installed pyOpenSSL from pypi (keystone) that is not compatible
+            # with distro cryptography. Fix this by installing
+            # python3-openssl (pyOpenSSL) from the distro which pip will prefer
+            # on Debian. Ubuntu has inverse problems so we only do this for
+            # Debian.
+            local novnc_packages
+            novnc_packages="novnc"
+            GetOSVersion
+            if [[ "$os_VENDOR" = "Debian" ]] ; then
+                novnc_packages="$novnc_packages python3-openssl"
+            fi
+
+            NOVNC_WEB_DIR=/usr/share/novnc
+            install_package $novnc_packages
+        else
+            NOVNC_WEB_DIR=$DEST/novnc
+            git_clone $NOVNC_REPO $NOVNC_WEB_DIR $NOVNC_BRANCH
+        fi
+    fi
 }
 
 # install_ironicclient() - Collect sources and prepare
@@ -1711,6 +1739,11 @@ function configure_ironic {
         configure_ironic_api
     fi
 
+    # Configure Ironic noVNC proxy, if it was enabled.
+    if is_service_enabled ir-novnc; then
+        configure_ironic_novnc
+    fi
+
     # Format logging
     setup_logging $IRONIC_CONF_FILE
 
@@ -2005,6 +2038,23 @@ function configure_inspection {
     fi
 }
 
+# configure_ironic_novnc() - Is used by configure_ironic(). Performs
+# noVNC proxy specific configuration.
+function configure_ironic_novnc {
+
+    local service_port=$IRONIC_NOVNCPROXY_PORT
+    # TODO(stevebaker) handle configuring tls-proxy
+    local service_protocol=http
+
+    novnc_url=$service_protocol://$SERVICE_HOST:$service_port/vnc_lite.html
+    iniset $IRONIC_CONF_FILE vnc enabled True
+    iniset $IRONIC_CONF_FILE vnc public_url $novnc_url
+    iniset $IRONIC_CONF_FILE vnc host_ip $SERVICE_HOST
+    iniset $IRONIC_CONF_FILE vnc port $service_port
+    iniset $IRONIC_CONF_FILE vnc novnc_web $NOVNC_WEB_DIR
+
+}
+
 # create_ironic_cache_dir() - Part of the init_ironic() process
 function create_ironic_cache_dir {
     # Create cache dir
@@ -2092,6 +2142,11 @@ function start_ironic {
         start_ironic_conductor
     fi
 
+    # Start Ironic noVNC proxy server, if enabled.
+    if is_service_enabled ir-novnc; then
+        start_ironic_novnc
+    fi
+
     # Start Apache if iPXE or agent+http is enabled
     if is_http_server_required; then
         restart_apache_server
@@ -2155,10 +2210,18 @@ function start_ironic_conductor {
     done
 }
 
+# start_ironic_novnc() - Used by start_ironic().
+# Starts Ironic noVNC proxy server.
+function start_ironic_novnc {
+    run_process ir-novnc "$IRONIC_BIN_DIR/ironic-novncproxy --config-file=$IRONIC_CONF_FILE"
+    # TODO(stevebaker) confirm the web server is returning content
+}
+
 # stop_ironic() - Stop running processes
 function stop_ironic {
     stop_process ir-api
     stop_process ir-cond
+    stop_process ir-novnc
 }
 
 # create_ovs_taps is also called by the devstack/upgrade/resources.sh script

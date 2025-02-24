@@ -1,4 +1,4 @@
-enable_service ironic ir-api ir-cond
+enable_service ironic ir-api ir-cond ir-novnc
 
 source $DEST/ironic/devstack/common_settings
 

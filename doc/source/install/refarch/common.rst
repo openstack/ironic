@@ -12,7 +12,7 @@ architectures.
 Components
 ----------
 
-As explained in :doc:`../get_started`, the Bare Metal service has three
+As explained in :doc:`../get_started`, the Bare Metal service has four
 components.
 
 * The Bare Metal API service (``ironic-api``) should be deployed in a similar
@@ -42,6 +42,14 @@ components.
 
   * There must be mutual connectivity between the conductor and the nodes
     being deployed or cleaned. See Networking_ for details.
+
+* The NoVNC graphical console proxy service (``ironic-novncproxy``) can be
+  optionally run to enable connecting to graphical consoles for hosts which
+  have a supported console driver. Like (``ironic-api``) it needs to be deployed
+  like other control plane services, allowing users to access the NoVNC interface
+  via a web browser. Additionally it also like (``ironic-conductor``) in requiring
+  access to the management network to connect to the graphical console managed
+  by the host BMC.
 
 * The provisioning ramdisk which runs the ``ironic-python-agent`` service
   on start up.
@@ -291,6 +299,13 @@ the space requirements are different:
 
 .. [1] http://lists.openstack.org/pipermail/openstack-dev/2017-June/118033.html
 .. [2] http://lists.openstack.org/pipermail/openstack-dev/2017-June/118327.html
+
+ironic-novncproxy
+~~~~~~~~~~~~~~~~~
+
+The NoVNC proxy service is stateless, and thus can be scaled horizontally. Any
+load balancing or reverse proxy architecture also needs to support websockets,
+as this is how the VNC traffic communicates with the service.
 
 Other services
 ~~~~~~~~~~~~~~

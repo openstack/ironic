@@ -43,7 +43,7 @@ Using DNF on RHEL/CentOS Stream and RDO_ packages:
 
 .. code-block:: console
 
-   # dnf install openstack-ironic-api openstack-ironic-conductor python3-ironicclient
+   # dnf install openstack-ironic-api openstack-ironic-conductor openstack-ironic-novncproxy python3-ironicclient
 
 .. _rdo: https://www.rdoproject.org/
 
@@ -51,7 +51,7 @@ On Ubuntu_/Debian:
 
 .. code-block:: console
 
-   # apt-get install ironic-api ironic-conductor python3-ironicclient
+   # apt-get install ironic-api ironic-conductor ironic-novncproxy python3-ironicclient
 
 .. _ubuntu: https://docs.openstack.org/install-guide/environment-packages-ubuntu.html
 
@@ -59,7 +59,7 @@ On openSUSE/SLES:
 
 .. code-block:: console
 
-   # zypper install openstack-ironic-api openstack-ironic-conductor python3-ironicclient
+   # zypper install openstack-ironic-api openstack-ironic-conductor ironic-novncproxy python3-ironicclient
 
 .. warning::
    Support for SUSE systems is best effort, it is not tested in the CI.
@@ -71,5 +71,7 @@ On openSUSE/SLES:
 .. include:: include/configure-ironic-api-mod_wsgi.inc
 
 .. include:: include/configure-ironic-conductor.inc
+
+.. include:: include/configure-ironic-novncproxy.inc
 
 .. include:: include/configure-ironic-singleprocess.inc

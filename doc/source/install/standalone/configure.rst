@@ -92,8 +92,8 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
     username = myName
     password = myPassword
 
-#. Starting with the Yoga release series, you can use a combined API+conductor
-   service and completely disable the RPC. Set
+#. Starting with the Yoga release series, you can use a combined
+   API+conductor+novncproxy service and completely disable the RPC. Set
 
    .. code-block:: ini
 
