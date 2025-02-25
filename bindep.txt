@@ -100,3 +100,4 @@ zstd [devstack]
 # For graphical console support
 podman [devstack]
 systemd-container [devstack]
+buildah [devstack]
