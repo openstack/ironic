@@ -122,7 +122,7 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
                                   shared=True) as task:
             image_utils.cleanup_floppy_image(task)
 
-            object_name = 'image-%s' % task.node.uuid
+            object_name = 'image-%s.img' % task.node.uuid
 
             mock_unpublish.assert_called_once_with(mock.ANY, object_name)
 
@@ -139,13 +139,13 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
 
             url = image_utils.prepare_floppy_image(task)
 
-            object_name = 'image-%s' % task.node.uuid
+            object_name = 'image-%s.img' % task.node.uuid
 
             mock_publish_image.assert_called_once_with(mock.ANY, mock.ANY,
                                                        object_name, None)
 
             mock_create_vfat_image.assert_called_once_with(
-                mock.ANY, parameters=None)
+                mock.ANY, fs_size_kib=1440, parameters=None)
 
             self.assertEqual(expected_url, url)
 
@@ -163,13 +163,14 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
 
             url = image_utils.prepare_floppy_image(task)
 
-            object_name = 'image-%s' % task.node.uuid
+            object_name = 'image-%s.img' % task.node.uuid
 
             mock_publish_image.assert_called_once_with(mock.ANY, mock.ANY,
                                                        object_name, None)
 
             mock_create_vfat_image.assert_called_once_with(
-                mock.ANY, parameters={"ipa-api-url": "http://callback"})
+                mock.ANY, fs_size_kib=1440,
+                parameters={"ipa-api-url": "http://callback"})
 
             self.assertEqual(expected_url, url)
 
@@ -189,13 +190,14 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
 
             url = image_utils.prepare_floppy_image(task)
 
-            object_name = 'image-%s' % task.node.uuid
+            object_name = 'image-%s.img' % task.node.uuid
 
             mock_publish_image.assert_called_once_with(mock.ANY, mock.ANY,
                                                        object_name, None)
 
             mock_create_vfat_image.assert_called_once_with(
-                mock.ANY, parameters={"ipa-api-url": "http://callback"})
+                mock.ANY, fs_size_kib=1440,
+                parameters={"ipa-api-url": "http://callback"})
 
             self.assertEqual(expected_url, url)
 
@@ -218,13 +220,14 @@ class RedfishImageUtilsTestCase(db_base.DbTestCase):
 
             url = image_utils.prepare_floppy_image(task)
 
-            object_name = 'image-%s' % task.node.uuid
+            object_name = 'image-%s.img' % task.node.uuid
 
             mock_publish_image.assert_called_once_with(
                 mock.ANY, mock.ANY, object_name, override_url)
 
             mock_create_vfat_image.assert_called_once_with(
-                mock.ANY, parameters={"ipa-api-url": "http://callback"})
+                mock.ANY, fs_size_kib=1440,
+                parameters={"ipa-api-url": "http://callback"})
 
             self.assertEqual(expected_url, url)
 
