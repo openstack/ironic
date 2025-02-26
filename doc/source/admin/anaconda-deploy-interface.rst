@@ -2,7 +2,7 @@ Deploying with anaconda deploy interface
 ========================================
 
 Ironic supports deploying an OS with the `anaconda`_ installer.
-This anaconda deploy interface works with ``pxe`` and ``ipxe`` boot interfaces.
+This anaconda deploy interface *ONLY* works with ``pxe`` and ``ipxe`` boot interfaces.
 
 Configuration
 -------------
@@ -28,7 +28,7 @@ but can be modified to be some other template.
 .. code-block::  ini
 
    [anaconda]
-   default_ks_template = file:///etc/ironic/ks.cfg.template
+   default_ks_template = /etc/ironic/ks.cfg.template
 
 
 When creating an ironic node, specify ``anaconda`` as the deploy interface.
@@ -102,48 +102,104 @@ The kernel and ramdisk can be found at ``/images/pxeboot/vmlinuz`` and
 image can be normally found at ``/LiveOS/squashfs.img`` or
 ``/images/install.img``.
 
-The OS tarball must be configured with the following properties in glance, in
-order to be used with the anaconda deploy driver:
+The anaconda deploy driver uses the following image properties from glance,
+which are all optional depending on how you create your bare metal server:
 
 * ``kernel_id``
 * ``ramdisk_id``
 * ``stage2_id``
-* ``disk_file_extension`` (optional)
+* ``ks_template``
+* ``disk_file_extension``
 
-Valid ``disk_file_extension`` values are ``.img``, ``.tar``, ``.tbz``,
-``.tgz``, ``.txz``, ``.tar.gz``, ``.tar.bz2``, and ``.tar.xz``. When
-``disk_file_extension`` property is not set to one of the above valid values
-the anaconda installer will assume that the image provided is a mountable
+All except ``disk_file_extension`` are glance image IDs. They can be prefixed
+with ``glance://``.
+
+Valid ``disk_file_extension`` values are:
+
+* ``.img``
+* ``.tar``
+* ``.tbz``
+* ``.tgz``
+* ``.txz``
+* ``.tar.gz``
+* ``.tar.bz2``
+* ``.tar.xz``
+
+When the ``disk_file_extension`` property is not set to one of the above valid
+values the anaconda installer will assume that the image provided is a mountable
 OS disk.
 
-This is an example of adding the anaconda-related images and the OS tarball to
-glance:
+An example of creating the necessary glance images with the anaconda files
+and the OS tarball and setting properties to refer to components can be seen below.
+
+.. Note:: The various images must be shared except for the OS image
+          with the properties set. This image must be set to public.
+          See `bug 2099276 <https://bugs.launchpad.net/ironic/+bug/2099276>`_ for
+          more details.
 
 .. code-block:: shell
 
-        openstack image create --file ./vmlinuz --container-format bare \
-            --disk-format raw --shared anaconda-kernel-<version>
-        openstack image create --file ./initrd.img --container-format bare \
-            --disk-format raw --shared anaconda-ramdisk-<version>
-        openstack image create --file ./squashfs.img --container-format bare \
-            --disk-format raw --shared anaconda-stage-<version>
-        openstack image create --file ./os-image.tar.gz \
-            --container-format bare --disk-format raw --shared \
-            --property kernel_id=<glance_uuid_vmlinuz> \
-            --property ramdisk_id=<glance_uuid_ramdisk> \
-            --property stage2_id=<glance_uuid_stage2> disto-name-version \
-            --property disk_file_extension=.tgz
+        # vmlinuz
+        openstack image create --container-format bare --disk-format raw --shared \
+            --file ./vmlinuz anaconda-kernel-<version>
 
-Creating a bare metal server
-----------------------------
+        # initrd/initramfs/ramdisk
+        openstack image create --container-format bare --disk-format raw --shared \
+            --file ./initrd.img anaconda-ramdisk-<version>
 
-Apart from uploading a custom kickstart template to glance and associating it
-with the OS image via the ``ks_template`` property in glance, operators can
-also set the kickstart template in the ironic node's ``instance_info`` field.
-The kickstart template set in ``instance_info`` takes precedence over the one
-specified via the OS image in glance. If no kickstart template is specified
-(via the node's ``instance_info``  or ``ks_template`` glance image property),
-the default kickstart template will be used to deploy the OS.
+        # squashfs/stage2
+        openstack image create --container-format bare --disk-format raw --shared \
+            --file ./squashfs.img anaconda-stage2-<version>
+
+        KERNEL_ID=$(openstack image show -f value -c id anaconda-kernel-<version>)
+        RAMDISK_ID=$(openstack image show -f value -c id anaconda-ramdisk-<version>)
+        STAGE2_ID=$(openstack image show -f value -c id anaconda-stage2-<version>)
+
+        # the actual OS image we'll use as our source
+        openstack image create --container-format bare --disk-format raw --public \
+            --property kernel_id=${KERNEL_ID} \
+            --property ramdisk_id=${RAMDISK_ID} \
+            --property stage2_id=${STAGE2_ID} \
+            --property disk_file_extension=.tgz \
+            --file ./os-image.tar.gz \
+            my-anaconda-based-os-<version>
+
+
+Deploying a node
+----------------
+
+To be able to deploy a node with the anaconda deploy interface the node's
+``instance_info`` must have an ``image_source`` at a minimum but depending
+on how your node is being deployed more fields must be populated.
+
+If you are using Ironic via Nova then it will only set the ``image_source``
+on ``instance_info`` so the following image properties are required:
+
+* ``kernel_id``
+* ``ramdisk_id``
+* ``stage2_id``
+
+You may optionally upload a custom kickstart template to glance an associate
+it to the OS image via the ``ks_template`` property.
+
+.. code-block:: shell
+
+        openstack server create --image my-anaconda-based-os-<version> ...
+
+If you are not using Ironic via Nova then all properties except
+``disk_file_extension`` can be supplied via ``instance_info`` or via the
+OS image properties. The values in ``instance_info`` will take precedence
+over those specified in the OS image. However most of their names are
+slightly altered.
+
+* ``kernel_id`` OS image property is ``kernel`` in ``instance_info``
+* ``ramdisk_id`` OS image property is ``ramdisk`` in ``instance_info``
+* ``stage2_id`` OS image property is ``stage2`` in ``instance_info``
+
+Only the ``ks_template`` property remains the same in ``instance_info``.
+
+.. Note:: If no ``ks_template`` is supplied then
+          :oslo.config:option:`anaconda.default_ks_template` will be used.
 
 This is an example of how to set the kickstart template for a specific
 ironic node:
@@ -152,6 +208,15 @@ ironic node:
 
         openstack baremetal node set <node> \
             --instance_info ks_template=glance://uuid
+
+Ultimately to deploy your node it must be able to find the kernel, the
+ramdisk, the stage2 file, and your OS image via glance image properties
+or via ``instance_info``.
+
+.. code-block:: shell
+
+        openstack baremetal node set <node> \
+            --instance_info image_source=glance://uuid
 
 .. warning::
    In the Ironic Project terminology, the word ``template`` often refers to
