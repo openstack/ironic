@@ -210,7 +210,7 @@ def prepare_floppy_image(task, params=None):
     :raises: SwiftOperationError, if any operation with Swift fails.
     :returns: image URL for the floppy image.
     """
-    object_name = _get_name(task.node, prefix='image')
+    object_name = _get_name(task.node, prefix='image', suffix='.img')
     params = override_api_url(params)
 
     LOG.debug("Trying to create floppy image for node "
@@ -220,7 +220,8 @@ def prepare_floppy_image(task, params=None):
             dir=CONF.tempdir, suffix='.img') as vfat_image_tmpfile_obj:
 
         vfat_image_tmpfile = vfat_image_tmpfile_obj.name
-        images.create_vfat_image(vfat_image_tmpfile, parameters=params)
+        images.create_vfat_image(vfat_image_tmpfile, fs_size_kib=1440,
+                                 parameters=params)
 
         img_handler = ImageHandler(task.node.driver)
         node_http_url = task.node.driver_info.get("external_http_url")
@@ -241,7 +242,8 @@ def cleanup_floppy_image(task):
 
     :param task: an ironic node object.
     """
-    ImageHandler.unpublish_image_for_node(task.node, prefix='image')
+    ImageHandler.unpublish_image_for_node(task.node, prefix='image',
+                                          suffix='.img')
 
 
 def prepare_configdrive_image(task, content):
