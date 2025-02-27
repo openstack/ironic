@@ -1007,6 +1007,7 @@
     description: ironic-tempest-wholedisk-bios-ipmi-direct-tinyipa that also tests cleaning.
     parent: ironic-base
     vars:
+      tempest_test_regex: test_baremetal_server_ops_wholedisk_image
       devstack_localrc:
         IRONIC_DEFAULT_RESCUE_INTERFACE: agent
         IRONIC_ENABLED_RESCUE_INTERFACES: "fake,agent,no-rescue"
