@@ -1,0 +1,8 @@
+---
+fixes:
+  - |
+    Fixes an issue with the ``neutron`` ``network_interface`` driver where
+    validate calls by ``member`` scoped API users, triggered through a port
+    update or explicit node interface validation action would fail due to
+    the user being unable to resolve provisioning or cleaning networks
+    because the networks are in a different project.
