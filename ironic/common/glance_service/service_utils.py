@@ -16,6 +16,7 @@
 
 import copy
 
+from oslo_log import log
 from oslo_serialization import jsonutils
 from oslo_utils import timeutils
 from oslo_utils import uuidutils
@@ -30,6 +31,9 @@ _IMAGE_ATTRIBUTES = ['size', 'disk_format', 'owner',
                      'min_disk', 'min_ram', 'tags', 'visibility',
                      'protected', 'file', 'schema', 'os_hash_algo',
                      'os_hash_value']
+
+
+LOG = log.getLogger(__name__)
 
 
 def _extract_attributes(image):
@@ -107,18 +111,30 @@ def is_image_available(context, image):
     This check is needed in case Nova and Glance are deployed
     without authentication turned on.
     """
+    auth_token = getattr(context, 'auth_token', None)
+    image_visibility = getattr(image, 'visibility', None)
+    image_owner = getattr(image, 'owner', None)
+    image_id = getattr(image, 'id', 'unknown')
+    project_id = getattr(context, 'project_id', None)
+    project = getattr(context, 'project', 'unknown')
     # The presence of an auth token implies this is an authenticated
     # request and we need not handle the noauth use-case.
-    if hasattr(context, 'auth_token') and context.auth_token:
+    if auth_token:
         # We return true here since we want the *user* request context to
         # be able to be used.
         return True
 
-    if getattr(image, 'visibility', None) == 'public':
+    if image_visibility == 'public':
         return True
 
-    return (context.project_id
-            and getattr(image, 'owner', None) == context.project_id)
+    if project_id and image_owner == project_id:
+        return True
+
+    LOG.info(
+        'Access to %s owned by %s denied to requester %s',
+        image_id, image_owner, project
+    )
+    return False
 
 
 def is_image_active(image):
