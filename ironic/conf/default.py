@@ -69,6 +69,12 @@ api_opts = [
                default='/etc/ironic/htpasswd',
                help=_('Path to Apache format user authentication file used '
                       'when auth_strategy=http_basic')),
+    cfg.BoolOpt(
+        'ignore_project_check_for_admin_tasks',
+        default=True,
+        help=_('If True, allows admin tasks to access image without'
+               'matching project_id')
+    ),
     cfg.BoolOpt('debug_tracebacks_in_api',
                 default=False,
                 help=_('Return server tracebacks in the API response for any '

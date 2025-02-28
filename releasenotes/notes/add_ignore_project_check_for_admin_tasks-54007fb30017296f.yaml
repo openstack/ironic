@@ -1,0 +1,4 @@
+---
+features:
+  - If `ignore_project_check_for_admin_tasks` is set to `True`, the system will check if the requester
+   is an admin for verifying image availability, bypassing the project check for administrative tasks.
