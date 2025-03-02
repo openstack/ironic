@@ -163,11 +163,13 @@ The following components of the Bare Metal service are installed on a
   * *bare metal* for contacting deployment, cleaning or rescue ramdisks
 
 * The ``ironic-novncproxy`` NoVNC proxy is run directly as a web server
-  process. Typically, a load balancer, such as HAProxy, spreads the load
-  between the NoVNC instances on the *controllers*.
+  process and only serves consoles for bare metal nodes for the adjacent
+  ``ironic-controller``. This means one ``ironic-novncproxy`` needs to be
+  run for each ``ironic-conductor`` process
 
   The NoVNC proxy has to be served on the *control plane network*. Additionally,
-  it has to be exposed to the *management network* to access BMC graphical consoles.
+  it needs to make VNC connections to the console containers initiated by
+  ``ironic-conductor``.
 
 * TFTP and HTTP service for booting the nodes. Each ``ironic-conductor``
   process has to have a matching TFTP and HTTP service. They should be exposed

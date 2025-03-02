@@ -92,6 +92,19 @@ You should make the following changes to ``/etc/ironic/ironic.conf``:
     username = myName
     password = myPassword
 
+#. To make graphical consoles available for local viewing, set the following,
+   including an appropriate container image reference for console_image.
+
+   .. code-block:: ini
+
+    [vnc]
+    enabled=True
+    port=6090
+    host_ip=127.0.0.1
+    public_url=http://127.0.0.1:6090/vnc_lite.html
+    container_provider=systemd
+    console_image=<image reference>
+
 #. Starting with the Yoga release series, you can use a combined
    API+conductor+novncproxy service and completely disable the RPC. Set
 

@@ -21,6 +21,7 @@ It contains the following sections:
    enrollment.rst
    standalone.rst
    configdrive.rst
+   graphical-console.rst
    advanced.rst
    troubleshooting.rst
    next-steps.rst

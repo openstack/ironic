@@ -210,6 +210,56 @@ Configuring ironic-conductor service
 #. Configure the network for ironic-conductor service to perform node
    cleaning, see :ref:`cleaning` from the admin guide.
 
+#. If ironic-novncproxy is enabled, ironic-conductor must be configured to
+   build valid console URLs and it also needs to be configured with a console
+   container provider. Each enabled console has a corresponding running
+   container which runs a headless X11 session, connects to the graphical
+   console of the BMC, and exposes a VNC server for ironic-novncproxy to
+   connect to.
+
+   Replace ``PUBLIC_IP`` and ``PUBLIC_PORT`` with appropriate values:
+
+   .. code-block:: ini
+
+      [vnc]
+
+      # Base url used to build browser links to graphical consoles. If a
+      # reverse proxy is used the protocol, IP, and port needs to match how
+      # users will access the service. When there is no reverse proxy
+      # ``PUBLIC_IP`` should match ``[vnc]host_ip`` and ``PUBLIC_PORT`` should
+      # match ``[vnc]port``
+      public_url=http://PUBLIC_IP:PUBLIC_PORT/vnc_lite.html
+
+      # The only functional container provider included is the systemd
+      # provider which manages containers as Systemd Quadlet containers. This
+      # provider is appropriate to use when the Ironic services themselves are
+      # not containerised, otherwise a custom external provider may be
+      # required
+      container_provider=systemd
+
+      # For the ``container_provider=systemd``, set a valid container image
+      # reference available to the podman image storage of the user running
+      # ironic-conductor. See /usr/share/ironic/vnc-container for instructions
+      # to build a compatible image.
+      console_image=localhost/vnc-container
+
+
+   When ``[vnc]container_provider=systemd`` then the
+   ``openstack-ironic-conductor`` service needs to be able to make ``systemctl
+   --user`` calls for the user which both ironic-conductor and
+   ironic-novncproxy run as.
+
+   Assuming the services are running as user ``ironic``, discover the <UID>
+   for that user by running ``id -u ironic``. Edit
+   ``openstack-ironic-conductor.service`` to add environment variable
+   ``DBUS_SESSION_BUS_ADDRESS``, substituting the <UID>
+
+   .. code-block:: ini
+
+      [Service]
+      ...
+      Environment = DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/<UID>/bus
+
 #. Restart the ironic-conductor service:
 
    RHEL/CentOS/SUSE::
