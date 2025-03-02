@@ -1556,7 +1556,6 @@ class Connection(object, metaclass=abc.ABCMeta):
         :returns: list of dicts containing shard names and count
         """
 
-    @classmethod
     @abc.abstractmethod
     def create_firmware_component(self, values):
         """Create a FirmwareComponent record for a given node.
@@ -1577,7 +1576,6 @@ class Connection(object, metaclass=abc.ABCMeta):
             records already exists.
         """
 
-    @classmethod
     @abc.abstractmethod
     def update_firmware_component(self, node_id, component, values):
         """Update a FirmwareComponent record.
@@ -1610,7 +1608,6 @@ class Connection(object, metaclass=abc.ABCMeta):
             is not found.
         """
 
-    @classmethod
     @abc.abstractmethod
     def get_firmware_component_list(self, node_id):
         """Retrieve a list Firmware Components of a given node.
@@ -1620,7 +1617,6 @@ class Connection(object, metaclass=abc.ABCMeta):
         :raises: NodeNotFound if the node is not found.
         """
 
-    @classmethod
     @abc.abstractmethod
     def get_child_node_ids_by_parent_uuid(self, node_uuid,
                                           exclude_dedicated_power=False):
