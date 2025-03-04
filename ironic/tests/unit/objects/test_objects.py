@@ -17,7 +17,6 @@ import datetime
 import types
 from unittest import mock
 
-import iso8601
 from oslo_utils import timeutils
 from oslo_versionedobjects import base as object_base
 from oslo_versionedobjects import exception as object_exception
@@ -291,7 +290,7 @@ class _TestObject(object):
         self.assertEqual('updated', obj.bar)
 
     def test_base_attributes(self):
-        dt = datetime.datetime(1955, 11, 5, 0, 0, tzinfo=iso8601.UTC)
+        dt = datetime.datetime(1955, 11, 5, 0, 0, tzinfo=datetime.timezone.utc)
         datatime = fields.DateTimeField()
         obj = MyObj(self.context)
         obj.created_at = dt
