@@ -3671,7 +3671,7 @@ function downgrade_dnsmasq {
         # includes the fix for the crash issue described in
         # https://bugs.launchpad.net/ironic/+bug/2026757
         # This patch has yet to be included in a release.
-        if dnsmasq --version | grep -q "Dnsmasq version 2.90"; then
+        if [[ -f /opt/stack/.patched-dnsmasq ]]; then
             # NOTE(JayF) Keep Ironic devstack plugin idempotent by skipping
             # downgrade if we already have the desired version.
             echo "Dnsmasq already downgraded, continuing..."
@@ -3684,8 +3684,11 @@ function downgrade_dnsmasq {
             git clone http://thekelleys.org.uk/git/dnsmasq.git $DNSMASQ_DIR
             pushd $DNSMASQ_DIR
             # https://thekelleys.org.uk/gitweb/?p=dnsmasq.git;a=commitdiff;h=f006be7842104a9f86fbf419326b7aad08ade61d
-            git checkout f006be7842104a9f86fbf419326b7aad08ade61d
+            # above is the specific patch we need; but using the 2.91 RC which
+            # includes that (and more)
+            git checkout v2.91rc5
             sudo make PREFIX=/usr install
+            sudo touch /opt/stack/.patched-dnsmasq
             popd
             rm -rf $DNSMASQ_DIR
         fi
