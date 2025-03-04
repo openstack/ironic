@@ -214,6 +214,12 @@
         # a small root partition, so use /opt which is mounted from a bigger
         # ephemeral partition on such nodes
         LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
+        Q_AGENT: ovn
+        Q_ML2_TENANT_NETWORK_TYPE: vlan
+        Q_ML2_PLUGIN_MECHANISM_DRIVERS: ovn
+        ENABLE_CHASSIS_AS_GW: True
+        ML2_L3_PLUGIN: "ovn-router,trunk"
+        OVN_DBS_LOG_LEVEL: dbg
       devstack_services:
         n-api: False
         n-api-meta: False
@@ -227,6 +233,12 @@
         s-container: False
         s-object: False
         s-proxy: False
+        q-agt: False
+        q-dhcp: False
+        q-l3: False
+        ovn-controller: True
+        ovn-northd: True
+        q-ovn-metadata-agent: True
 
 - job:
     name: ironic-standalone-redfish
