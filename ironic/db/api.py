@@ -1620,7 +1620,8 @@ class Connection(object, metaclass=abc.ABCMeta):
         :raises: NodeNotFound if the node is not found.
         """
 
-    @abc.abstractclassmethod
+    @classmethod
+    @abc.abstractmethod
     def get_child_node_ids_by_parent_uuid(self, node_uuid,
                                           exclude_dedicated_power=False):
         """Retrieve a list of child node IDs for a given parent UUID.
