@@ -39,7 +39,11 @@ class AgentInspect(common.Common):
 
     def __init__(self):
         super().__init__()
-        self.hooks = inspect_utils.validate_inspection_hooks()
+        enabled_hooks = [x.strip()
+                         for x in CONF.inspector.hooks.split(',')
+                         if x.strip()]
+        self.hooks = inspect_utils.validate_inspection_hooks("agent",
+                                                             enabled_hooks)
 
     def _start_managed_inspection(self, task):
         """Start inspection with boot managed by ironic."""

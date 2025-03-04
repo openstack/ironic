@@ -88,7 +88,8 @@ opts = [
     cfg.StrOpt('default_hooks',
                default='ramdisk-error,validate-interfaces,ports,architecture',
                help=_('A comma-separated lists of inspection hooks that are '
-                      'run by default. In most cases, the operators will not '
+                      'run by default for the "agent" inspection interface. '
+                      'In most cases, the operators will not '
                       'modify this. The default (somewhat conservative) hooks '
                       'will raise an exception in case the ramdisk reports an '
                       'error, validate interfaces in the inventory, create '
@@ -96,7 +97,8 @@ opts = [
     cfg.StrOpt('hooks',
                default='$default_hooks',
                help=_('Comma-separated list of enabled hooks for processing '
-                      'pipeline. The default for this is $default_hooks. '
+                      'pipeline for the "agent" inspection interface. '
+                      'The default for this is $default_hooks. '
                       'Hooks can be added before or after the defaults '
                       'like this: "prehook,$default_hooks,posthook".')),
     cfg.StrOpt('known_accelerators',

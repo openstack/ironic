@@ -15,6 +15,7 @@
 
 from http import client as http_client
 import socket
+import typing
 import urllib
 
 from oslo_log import log as logging
@@ -33,7 +34,7 @@ from ironic import objects
 from ironic.objects import node_inventory
 
 LOG = logging.getLogger(__name__)
-_HOOKS_MGR = None
+_HOOKS_MGR = {}
 _OBJECT_NAME_PREFIX = 'inspector_data'
 AUTO_DISCOVERED_FLAG = 'auto_discovered'
 
@@ -470,34 +471,38 @@ def missing_entrypoints_callback(names):
     raise RuntimeError(error % ', '.join(names))
 
 
-def _inspection_hooks_manager(*args):
+def _inspection_hooks_manager(intf: str,
+                              enabled_hooks: typing.List[str],
+                              *args):
     """Create a Stevedore extension manager for inspection hooks.
 
+    :param intf: Inspection interface
+    :param enabled_hooks: Hooks to be enabled for the inspection interface
     :param args: arguments to pass to the hooks constructor
     :returns: a Stevedore NamedExtensionManager
     """
     global _HOOKS_MGR
-    if _HOOKS_MGR is None:
-        enabled_hooks = [x.strip()
-                         for x in CONF.inspector.hooks.split(',')
-                         if x.strip()]
-        _HOOKS_MGR = stevedore.NamedExtensionManager(
+    if _HOOKS_MGR.get(intf) is None:
+        _HOOKS_MGR[intf] = stevedore.NamedExtensionManager(
             'ironic.inspection.hooks',
             names=enabled_hooks,
             invoke_on_load=True,
             invoke_args=args,
             on_missing_entrypoints_callback=missing_entrypoints_callback,
             name_order=True)
-    return _HOOKS_MGR
+    return _HOOKS_MGR[intf]
 
 
-def validate_inspection_hooks():
+def validate_inspection_hooks(intf: str, enabled_hooks: typing.List[str]):
     """Validate the enabled inspection hooks.
 
+    :param intf: Inspection interface
+    :param enabled_hooks: Hooks to be enabled for the inspection interface
     :raises: RuntimeError on missing or failed to load hooks
     :returns: the list of hooks that passed validation
     """
-    conf_hooks = [ext for ext in _inspection_hooks_manager()]
+    conf_hooks = [ext for ext in
+                  _inspection_hooks_manager(intf, enabled_hooks)]
     valid_hooks = []
     valid_hook_names = set()
     errors = []
