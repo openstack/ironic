@@ -35,8 +35,10 @@ from ironic.common import exception
 from ironic.common.i18n import _
 from ironic.common import indicator_states
 from ironic.common import states
+from ironic.conductor import periodics
 from ironic.conf import CONF
 from ironic.drivers import base
+from ironic.drivers.modules import graphical_console
 from ironic import objects
 
 
@@ -257,6 +259,33 @@ class FakeConsole(base.ConsoleInterface):
 
     def get_console(self, task):
         return {}
+
+
+class FakeGraphicalConsole(graphical_console.GraphicalConsole):
+    """Console which displays the console container 'fake' app."""
+
+    def get_properties(self):
+        return {}
+
+    def validate(self, task):
+        pass
+
+    def get_app_name(self):
+        return 'fake'
+
+    @periodics.node_periodic(
+        purpose='checking active console sessions',
+        spacing=CONF.vnc.expire_console_session_interval,
+        filters={'console_enabled': True},
+        predicate_extra_fields=['console_interface', 'driver_internal_info'],
+        predicate=lambda n: (
+            'fake-graphical' == n.console_interface
+                and n.driver_internal_info.get('novnc_secret_token')
+        ),
+    )
+    def _expire_fake_console_sessions(self, task, manager, context):
+        """Periodic task to close expired console sessions"""
+        self._expire_console_sessions(task)
 
 
 class FakeManagement(base.ManagementInterface):
