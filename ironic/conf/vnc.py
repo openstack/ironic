@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
+
 from oslo_config import cfg
 from oslo_config import types
 
@@ -74,6 +76,51 @@ opts = [
         default=600,
         min=10,
         help='The lifetime of a console auth token (in seconds).'),
+    cfg.IntOpt(
+        'expire_console_session_interval',
+        default=120,
+        min=1,
+        help='Interval (in seconds) between periodic checks to determine '
+             'whether active console sessions have expired and need to be '
+             'closed.'),
+    cfg.StrOpt(
+        'container_provider',
+        default='fake',
+        help='Console container provider which manages the containers that '
+             'expose a VNC service to ironic-novncproxy or nova-novncproxy. '
+             'Each container runs an X11 session and a browser showing the '
+             'actual BMC console. '
+             '"systemd" manages containers as systemd units via podman '
+             'Quadlet support. The default is "fake" which returns an '
+             'unusable VNC host and port. This needs to be changed if enabled '
+             'is True'),
+    cfg.StrOpt(
+        'console_image',
+        mutable=True,
+        help='Container image reference for the "systemd" console container '
+             'provider, and any other out-of-tree provider which requires a '
+             'configurable image reference.'),
+    cfg.StrOpt(
+        'systemd_container_template',
+        default=os.path.join(
+            '$pybasedir',
+            'console/container/ironic-console.container.template'),
+        mutable=True,
+        help='For the systemd provider, path to the template for defining a '
+             'console container. The default template requires that '
+             '"console_image" be set.'),
+    cfg.StrOpt(
+        'systemd_container_publish_port',
+        default='$my_ip::5900',
+        help='Equivalent to the podman run --port argument for the '
+             'mapping of VNC port 5900 to the host. An IP address is '
+             'required to bind to, defaulting to $my_ip. The VNC port '
+             'exposed on the host will be a randomly allocated high port. '
+             'These containers expose VNC servers which must be accessible '
+             'by ironic-novncproxy and/or nova-novncproxy. The VNC servers '
+             'have no authentication or encryption so they also should not '
+             'be exposed to public access. Additionally, the containers '
+             'need to be able to access BMC management endpoints. '),
 ]
 
 

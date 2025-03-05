@@ -1078,6 +1078,11 @@ class RFBAuthNoAvailableScheme(IronicException):
                  "desired types: '%(desired_types)s'")
 
 
+class ConsoleContainerError(IronicException):
+    _msg_fmt = _("Console container error with provider '%(provider)s', "
+                 "reason: %(reason)s")
+
+
 class ImageHostRateLimitFailure(TemporaryFailure):
     _msg_fmt = _("The image registry has indicates the rate limit has been "
                  "exceeded for url %(image_ref)s. Please try again later or "

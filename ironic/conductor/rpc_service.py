@@ -18,6 +18,7 @@ from oslo_config import cfg
 from oslo_log import log
 from oslo_utils import timeutils
 
+from ironic.common import console_factory
 from ironic.common import rpc
 from ironic.common import rpc_service
 
@@ -35,6 +36,11 @@ class RPCService(rpc_service.BaseRPCService):
     def _real_start(self):
         super()._real_start()
         rpc.set_global_manager(self.manager)
+
+        # Start in a known state of no console containers running.
+        # Any enabled console managed by this conductor will be started
+        # after this
+        self._stop_console_containers()
 
     def stop(self):
         initial_time = timeutils.utcnow()
@@ -71,6 +77,9 @@ class RPCService(rpc_service.BaseRPCService):
                  '%(host)s.',
                  {'service': self.topic, 'host': self.host})
 
+        # Stop all running console containers
+        self._stop_console_containers()
+
         # Wait for reservation locks held by this conductor.
         # The conductor process will end when one of the following occurs:
         # - All reservations for this conductor are released
@@ -87,6 +96,12 @@ class RPCService(rpc_service.BaseRPCService):
         self.manager.keepalive_halt()
 
         rpc.set_global_manager(None)
+
+    def _stop_console_containers(self):
+        # the default provider is fake, so this can be called even when
+        # CONF.vnc.enabled is false
+        provider = console_factory.ConsoleContainerFactory().provider
+        provider.stop_all_containers()
 
     def _shutdown_timeout_reached(self, initial_time):
         if self.draining:

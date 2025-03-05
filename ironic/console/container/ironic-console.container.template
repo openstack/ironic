@@ -1,0 +1,11 @@
+[Unit]
+Description={{ description }}
+
+[Container]
+Image={{ image }}
+PublishPort={{ port }}
+Environment=APP={{ app }}
+Environment=APP_INFO='{{ app_info }}'
+
+[Install]
+WantedBy=default.target

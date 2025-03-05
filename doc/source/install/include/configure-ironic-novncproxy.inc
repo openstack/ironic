@@ -38,6 +38,12 @@ Configuring ironic-novncproxy service
       # proxy is used the protocol, IP, and port needs to match how users will access the service
       public_url=http://PUBLIC_IP:6090/vnc_auto.html
 
+      # The only functional container provider included is the systemd provider which manages
+      # containers as Systemd Quadlet containers. This provider is appropriate to use when the
+      # Ironic services themselves are not containerised, otherwise a custom external provider
+      # may be required
+      container_provider=systemd
+
 
 #. Restart the ironic-novncproxy service:
 
