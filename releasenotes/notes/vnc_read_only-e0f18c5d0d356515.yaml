@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    When ``ironic.conf`` ``[vnc]read_only=True`` is set, keyboard and mouse
+    events will not be passed to the console.

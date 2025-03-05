@@ -183,6 +183,10 @@ class TestSystemdConsoleContainer(base.TestCase):
             'console_image',
             'localhost/ironic-vnc-container',
             group='vnc')
+        CONF.set_override(
+            'read_only',
+            True,
+            group='vnc')
 
         uuid = '1234'
         container_path = self.provider._container_path(uuid)
@@ -200,6 +204,7 @@ Image=localhost/ironic-vnc-container
 PublishPort=192.0.2.2::5900
 Environment=APP=fake
 Environment=APP_INFO='{}'
+Environment=READ_ONLY=True
 
 [Install]
 WantedBy=default.target""", f.read())
