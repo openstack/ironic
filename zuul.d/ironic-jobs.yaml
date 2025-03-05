@@ -723,6 +723,7 @@
         # a small root partition, so use /opt which is mounted from a bigger
         # ephemeral partition on such nodes
         LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
+        ML2_L3_PLUGIN: router,trunk
 
       devstack_plugins:
         ironic: https://opendev.org/openstack/ironic
