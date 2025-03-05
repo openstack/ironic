@@ -1279,7 +1279,7 @@ function install_ironic {
     fi
 
     if is_service_enabled ir-novnc; then
-        # a websockets/html5 or flash powered VNC console for vm instances
+        # a websockets/html5 VNC console for bare metal hosts
         NOVNC_FROM_PACKAGE=$(trueorfalse False NOVNC_FROM_PACKAGE)
         if [ "$NOVNC_FROM_PACKAGE" = "True" ]; then
             # Installing novnc on Debian bullseye breaks the global pip
@@ -1304,7 +1304,11 @@ function install_ironic {
             git_clone $NOVNC_REPO $NOVNC_WEB_DIR $NOVNC_BRANCH
         fi
         # podman, systemd-container required by the systemd container provider
-        install_package podman systemd-container
+        # buildah required below to build the VNC container
+        install_package podman systemd-container buildah
+        pushd $IRONIC_DIR/tools/vnc-container
+        buildah bud -f ./Containerfile -t localhost/ironic-vnc-container
+        popd
     fi
 }
 
@@ -2057,8 +2061,7 @@ function configure_ironic_novnc {
     iniset $IRONIC_CONF_FILE vnc port $service_port
     iniset $IRONIC_CONF_FILE vnc novnc_web $NOVNC_WEB_DIR
     iniset $IRONIC_CONF_FILE vnc container_provider systemd
-    # TODO(stevebaker) build this locally during the devstack run
-    # iniset $IRONIC_CONF_FILE vnc console_image localhost/ironic-vnc-container
+    iniset $IRONIC_CONF_FILE vnc console_image localhost/ironic-vnc-container
 
 }
 
