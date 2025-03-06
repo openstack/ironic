@@ -1169,6 +1169,8 @@ function cleanup_redfish {
 function install_redfish {
     # TODO(lucasagomes): Use Apache WSGI instead of gunicorn
 
+    . /opt/stack/data/venv/bin/activate
+
     if is_fedora; then
         install_package python3-gunicorn
     else
@@ -1196,7 +1198,14 @@ function install_redfish {
     # NOTE(dtantsur): log all accesses to stdout
     cmd+=" --access-logfile=- --error-logfile=-"
 
+    # Exit virtualenv once installation is complete
+    deactivate
+
     write_user_unit_file $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE "$cmd" "" "$STACK_USER"
+
+    # update unit file reference
+    local unitfile="$SYSTEMD_DIR/$IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE"
+    iniset -sudo $unitfile "Service" "Environment" "PATH=/opt/stack/data/venv/bin:$PATH"
 
     enable_service $IRONIC_REDFISH_EMULATOR_SYSTEMD_SERVICE
 }
