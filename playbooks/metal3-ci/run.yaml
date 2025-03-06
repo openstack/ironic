@@ -13,10 +13,12 @@
           IMAGE_USERNAME: zuul
           IRONIC_FROM_SOURCE: "true"
           IRONIC_SOURCE: "/home/zuul/src/opendev.org/openstack/ironic"
+          LIBVIRT_DOMAIN_TYPE: "qemu"
           # NOTE(dtantsur): we don't have enough resources to provision even
           # a 2-node cluster, so only provision a control plane node.
           NUM_NODES: 2
-          LIBVIRT_DOMAIN_TYPE: "qemu"
+          TEST_TIME_INTERVAL: 9
+          TEST_MAX_TIME: 200
           WORKER_MACHINE_COUNT: 1
 
     # TODO(dtantsur): add metal3-io/metal3-dev-env as a recognized project to
