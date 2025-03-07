@@ -127,6 +127,19 @@ opts = [
              'have no authentication or encryption so they also should not '
              'be exposed to public access. Additionally, the containers '
              'need to be able to access BMC management endpoints. '),
+    cfg.StrOpt(
+        'ssl_cert_file',
+        help="Certificate file to use when starting the server securely."),
+    cfg.StrOpt(
+        'ssl_key_file',
+        help="Private key file to use when starting the server securely."),
+    cfg.StrOpt(
+        'ssl_minimum_version',
+        help="The minimum SSL version to use."),
+    cfg.StrOpt(
+        'ssl_ciphers',
+        help="Sets the list of available ciphers. value should be a "
+             "string in the OpenSSL cipher list format."),
 ]
 
 
