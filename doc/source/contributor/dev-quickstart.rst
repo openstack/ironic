@@ -26,7 +26,7 @@ convenient way to ensure your code complies with these rules is via the use of
 `pre-commit <https://pre-commit.com/>`_.
 
 To configure your environment for automatic checking of code spelling and linting
-before commit, install ``pre-commit``:
+before commit, install ``pre-commit``::
 
   pip install --user pre-commit
   cd /path/to/ironic/checkout
@@ -246,7 +246,7 @@ to setup a quick webserver to check your docs build::
     cd ~/ironic/doc/build/html/
 
     # Create a server using python on port 8000
-    python -m SimpleHTTPServer 8000
+    python3 -m SimpleHTTPServer 8000
 
     # Now use your browser to open the top-level index.html located at:
     http://remote_ip:8000

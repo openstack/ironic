@@ -20,7 +20,7 @@ one workload to another.
 Automated cleaning
 ==================
 
-When hardware is recycled from one workload to another, ironic performs
+When hardware is recycled from one workload to another, Ironic performs
 automated cleaning on the node to ensure it's ready for another workload. This
 ensures the tenant will get a consistent bare metal node deployed every time.
 
@@ -52,7 +52,7 @@ To enable automated cleaning, ensure that your ironic.conf is set as follows:
   automated_clean=true
 
 This will enable the default set of cleaning steps, based on your hardware and
-ironic hardware types used for nodes. This includes, by default, erasing all
+Ironic hardware types used for nodes. This includes, by default, erasing all
 of the previous tenant's data.
 
 You may also need to configure a `Cleaning Network`_.
@@ -66,7 +66,7 @@ between priorities across interfaces, the following resolution order is used:
 Power, Management, Deploy, BIOS, and RAID interfaces.
 
 You can skip a cleaning step by setting the priority for that cleaning step
-to zero or 'None'.
+to zero or ``None``.
 
 You can reorder the cleaning steps by modifying the integer priorities of the
 cleaning steps.
@@ -210,13 +210,13 @@ dictionary (JSON), in the form::
   {
       "interface": "<interface>",
       "step": "<name of cleaning step>",
-      "args": {"<arg1>": "<value1>", ..., "<argn>": <valuen>}
+      "args": {"<arg1>": "<value1>", ..., "<argn>": "<valuen>"}
   }
 
 The 'interface' and 'step' keys are required for all steps. If a cleaning step
 method takes keyword arguments, the 'args' key may be specified. It
 is a dictionary of keyword variable arguments, with each keyword-argument entry
-being <name>: <value>.
+being ``<name>: <value>``.
 
 If any step is missing a required keyword argument, manual cleaning will not be
 performed and the node will be put in ``clean failed`` provision state with an
@@ -265,7 +265,7 @@ The argument ``--clean-steps`` must be specified. Its value is one of:
 
 - a JSON string
 - path to a JSON file whose contents are passed to the API
-- '-', to read from stdin. This allows piping in the clean steps.
+- ``-`` to read from stdin. This allows piping in the clean steps.
   Using '-' to signify stdin is common in Unix utilities.
 
 The following examples assume that the Bare Metal API version was set via
@@ -294,12 +294,13 @@ Or with stdin::
 
 Runbooks for Manual Cleaning
 ----------------------------
+
 Instead of passing a list of clean steps, operators can now use runbooks.
 Runbooks are curated lists of steps that can be associated with nodes via
 traits which simplifies the process of performing consistent cleaning
 operations across similar nodes.
 
-To use a runbook for manual cleaning:
+To use a runbook for manual cleaning::
 
     baremetal node clean <node> --runbook <runbook_name_or_uuid>
 
@@ -325,7 +326,7 @@ out-of-band. Ironic supports using both methods to clean a node.
 
 In-band
 -------
-In-band steps are performed by ironic making API calls to a ramdisk running
+In-band steps are performed by Ironic making API calls to a ramdisk running
 on the node using a deploy interface. Currently, all the deploy interfaces
 support in-band cleaning. By default, ironic-python-agent ships with a minimal
 cleaning configuration, only erasing disks. However, you can add your own
@@ -335,7 +336,7 @@ Hardware Manager.
 Out-of-band
 -----------
 Out-of-band are actions performed by your management controller, such as IPMI,
-iLO, or DRAC. Out-of-band steps will be performed by ironic using a power or
+iLO, or DRAC. Out-of-band steps will be performed by Ironic using a power or
 management interface. Which steps are performed depends on the hardware type
 and hardware itself.
 
@@ -362,7 +363,7 @@ order.
 
 How do I skip a cleaning step?
 ------------------------------
-For automated cleaning, cleaning steps with a priority of 0 or None are skipped.
+For automated cleaning, cleaning steps with a priority of zero or ``None`` are skipped.
 
 .. _clean_step_priority:
 
@@ -405,8 +406,8 @@ the node failed before going into ``clean failed`` state.
 
 Should I disable automated cleaning?
 ------------------------------------
-Automated cleaning is recommended for ironic deployments, however, there are
-some tradeoffs to having it enabled. For instance, ironic cannot deploy a new
+Automated cleaning is recommended for Ironic deployments, however, there are
+some tradeoffs to having it enabled. For instance, Ironic cannot deploy a new
 instance to a node that is currently cleaning, and cleaning can be a time
 consuming process. To mitigate this, we suggest using NVMe drives with support
 for NVMe Secure Erase (based on ``nvme-cli`` format command) or ATA drives
@@ -418,7 +419,7 @@ Why can't I power on/off a node while it's cleaning?
 ----------------------------------------------------
 During cleaning, nodes may be performing actions that shouldn't be
 interrupted, such as BIOS or Firmware updates. As a result, operators are
-forbidden from changing the power state via the ironic API while a node is
+forbidden from changing the power state via the Ironic API while a node is
 cleaning.
 
 Advanced topics
@@ -496,12 +497,12 @@ Troubleshooting
 ===============
 If cleaning fails on a node, the node will be put into ``clean failed`` state.
 If the failure happens while running a clean step, the node is also placed in
-maintenance mode to prevent ironic from taking actions on the node. The
+maintenance mode to prevent Ironic from taking actions on the node. The
 operator should validate that no permanent damage has been done to the
 node and that no processes are still running on it before removing the
 maintenance mode.
 
-.. note:: Older versions of ironic may put the node to maintenance even when
+.. note:: Older versions of Ironic may put the node to maintenance even when
           no clean step has been running.
 
 Nodes in ``clean failed`` will not be powered off, as the node might be in a
@@ -509,7 +510,7 @@ state such that powering it off could damage the node or remove useful
 information about the nature of the cleaning failure.
 
 A ``clean failed`` node can be moved to ``manageable`` state, where it cannot
-be scheduled by nova and you can safely attempt to fix the node. To move a node
+be scheduled by Nova and you can safely attempt to fix the node. To move a node
 from ``clean failed`` to ``manageable``::
 
   baremetal node manage $node_ident
@@ -517,19 +518,19 @@ from ``clean failed`` to ``manageable``::
 You can now take actions on the node, such as replacing a bad disk drive.
 
 Strategies for determining why a cleaning step failed include checking the
-ironic conductor logs, viewing logs on the still-running ironic-python-agent
+Ironic conductor logs, viewing logs on the still-running ironic-python-agent
 (if an in-band step failed), or performing general hardware troubleshooting on
 the node.
 
 When the node is repaired, you can move the node back to ``available`` state,
-to allow it to be scheduled by nova.
+to allow it to be scheduled by Nova.
 
 ::
 
   # First, move it out of maintenance mode
   baremetal node maintenance unset $node_ident
 
-  # Now, make the node available for scheduling by nova
+  # Now, make the node available for scheduling by Nova
   baremetal node provide $node_ident
 
 The node will begin automated cleaning from the start, and move to
