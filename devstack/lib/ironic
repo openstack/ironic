@@ -1362,6 +1362,13 @@ function cleanup_ironic {
 
     # Remove the hook to disable log rotate
     sudo rm -rf $IRONIC_LIBVIRT_HOOKS_PATH/qemu
+
+    # Force fresh rebuild of local build IPA on next run
+    if [[ "$IRONIC_BUILD_DEPLOY_RAMDISK" == "True" ]]; then
+        sudo rm -f $IRONIC_DEPLOY_KERNEL
+        sudo rm -f $IRONIC_DEPLOY_RAMDISK
+        sudo rm -f $IRONIC_DEPLOY_ISO
+    fi
 }
 
 # configure_ironic_dirs() - Create all directories required by Ironic and
