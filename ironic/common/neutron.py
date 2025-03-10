@@ -881,11 +881,51 @@ def _get_port_by_uuid(client, port_uuid):
     return port
 
 
+def _get_segment_by_subnet_uuid(client, subnet_uuid):
+    """Return a neutron segment from a subnet UUID.
+
+    :param client: A Neutron client object.
+    :param subnet_uuid: UUID of a Neutron subnet to query.
+    :returns: A dict describing the neutron segment, or None.
+    :raises: InvalidParameterValue if the subnet or segment does not exist.
+    :raises: NetworkError on failure to contact Neutron.
+    """
+    try:
+        subnet = client.get_subnet(subnet_uuid)
+    except openstack_exc.ResourceNotFound:
+        raise exception.InvalidParameterValue(
+            _('Neutron subnet %(subnet_uuid)s was not found') %
+            {'subnet_uuid': subnet_uuid})
+    except openstack_exc.OpenStackCloudException as exc:
+        raise exception.NetworkError(
+            _('Could not retrieve neutron subnet: %s') %
+            exc)
+
+    segment_id = subnet.get('segment_id')
+    if segment_id is None:
+        return None
+
+    try:
+        segment = client.get_segment(segment_id)
+    except openstack_exc.ResourceNotFound:
+        raise exception.InvalidParameterValue(
+            _('Neutron segment %(segment_id)s was not found') %
+            {'segment_id': segment_id})
+    except openstack_exc.OpenStackCloudException as exc:
+        raise exception.NetworkError(
+            _('Could not retrieve neutron segment: %s') %
+            exc)
+
+    return segment
+
+
 def get_physnets_by_port_uuid(client, port_uuid):
     """Return the set of physical networks associated with a neutron port.
 
     Query the network to which the port is attached and return the set of
-    physical networks associated with the segments in that network.
+    physical networks associated with the segments in that network. If a port
+    is assigned to a subnet with a direct segment mapping, return the physnet
+    associated with its segment instead.
 
     :param client: A Neutron client object.
     :param port_uuid: UUID of a Neutron port to query.
@@ -899,6 +939,20 @@ def get_physnets_by_port_uuid(client, port_uuid):
     network = _get_network_by_uuid_or_name(client, network_uuid)
 
     if network.segments is not None:
+        # If a port already has IP addresses assigned, this may indicate
+        # which segment it is connected to.
+        for fixed_ip in port.get('fixed_ips', []):
+            segment = _get_segment_by_subnet_uuid(client,
+                                                  fixed_ip.get('subnet_id'))
+            # When a network uses l2_adjancency, subnets don't map directly to
+            # segments
+            if segment is not None:
+                physnet = segment.get('physical_network')
+                # Return the segment's physnet if there is one for this network
+                # type
+                if physnet is not None:
+                    return set([physnet])
+
         # A network with multiple segments will have a 'segments' parameter
         # which will contain a list of segments. Each segment should have a
         # 'provider:physical_network' parameter which contains the physical

@@ -1,0 +1,6 @@
+---
+fixes:
+  - |
+    Fixes the identification of physical network segment mapping so a virtual
+    interface (VIF) which has already been mapped to a physical network segment
+    can be identified.
