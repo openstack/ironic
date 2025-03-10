@@ -2390,6 +2390,13 @@ function create_bridge_and_vms {
         local log_arg=""
     fi
 
+    if [ -x /etc/redhat-release ]; then
+        # We're on a rhel-ey distro, and default permissions
+        # restrict other users from reading these artifacts by
+        # default which prevents VMs from launching.
+        sudo chmod +r /var/lib/libvirt/images
+    fi
+
     local vbmc_port=$IRONIC_VBMC_PORT_RANGE_START
     local pdu_outlet=$IRONIC_VPDU_PORT_RANGE_START
     local vm_name
