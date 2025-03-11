@@ -17,7 +17,6 @@ import os
 from oslo_config import cfg
 from oslo_log import log
 from oslo_service import service
-from oslo_service import sslutils
 
 from ironic.common import exception
 from ironic.console.securityproxy import rfb
@@ -58,13 +57,12 @@ class NoVNCProxyService(service.Service):
             'security_proxy': rfb.RFBSecurityProxy(),
         }
         if CONF.vnc.enable_ssl:
-            sslutils.is_enabled(CONF)
             kwargs.update({
-                'cert': CONF.ssl.cert_file,
-                'key': CONF.ssl.key_file,
+                'cert': CONF.vnc.ssl_cert_file,
+                'key': CONF.vnc.ssl_key_file,
                 'ssl_only': CONF.vnc.enable_ssl,
-                'ssl_ciphers': CONF.ssl.ciphers,
-                'ssl_minimum_version': CONF.ssl.version,
+                'ssl_ciphers': CONF.vnc.ssl_ciphers,
+                'ssl_minimum_version': CONF.vnc.ssl_minimum_version,
             })
 
         # Check to see if tty html/js/css files are present
