@@ -103,6 +103,7 @@
         - lsblk -ap
 
     - name: Copy libvirt logs
+      ignore_errors: true
       copy:
         src: /var/log/libvirt/qemu/
         dest: "{{ logs_root }}/libvirt/"
