@@ -27,6 +27,7 @@ from ironic.objects import chassis
 from ironic.objects import conductor
 from ironic.objects import deploy_template
 from ironic.objects import firmware
+from ironic.objects import inspection_rule as rule
 from ironic.objects import node
 from ironic.objects import node_history
 from ironic.objects import node_inventory
@@ -822,3 +823,60 @@ def get_test_firmware_component_list():
         {'component': 'BIOS', 'initial_version': 'v1.5.0',
          'current_version': 'v1.5.0', 'last_version_flashed': None},
     ]
+
+
+def get_test_inspection_rule(**kw):
+    default_uuid = uuidutils.generate_uuid()
+    return {
+        'version': kw.get('version', rule.InspectionRule.VERSION),
+        'uuid': kw.get('uuid', default_uuid),
+        'description': kw.get('description', 'an inspection rule'),
+        'sensitive': kw.get('sensitive', False),
+        'phase': kw.get('phase', 'main'),
+        'priority': kw.get('priority', 0),
+        'actions': kw.get('actions', [get_test_inspection_rule_action(
+            inspection_rule_id=kw.get('uuid'))]),
+        'conditions': kw.get('conditions', [
+            get_test_inspection_rule_condition(
+                inspection_rule_id=kw.get('uuid'))]),
+    }
+
+
+def get_test_inspection_rule_action(**kw):
+    action = {
+        'op': kw.get('op', 'set-attribute'),
+        'args': kw.get('args', ["/driver", "idrac"]),
+    }
+
+    if 'id' in kw:
+        action['id'] = kw['id']
+
+    action.update({k: v for k, v in kw.items() if k not in action})
+    return action
+
+
+def get_test_inspection_rule_condition(**kw):
+    condition = {
+        'op': kw.get('op', 'is-true'),
+        'args': kw.get('args', ["{node.auto_discovered}"]),
+        'multiple': kw.get('multiple', 'any'),
+    }
+
+    if 'id' in kw:
+        condition['id'] = kw['id']
+
+    condition.update({k: v for k, v in kw.items() if k not in condition})
+    return condition
+
+
+def create_test_inspection_rule(**kw):
+    """Create a inspection rule in the DB and return InspectionRule model.
+
+    :param kw: kwargs with overriding values for the inspection rule.
+    :returns: Test InspectionRule DB object.
+    """
+    inspection_rule = get_test_inspection_rule(**kw)
+    dbapi = db_api.get_instance()
+    if 'uuid' not in kw:
+        del inspection_rule['uuid']
+    return dbapi.create_inspection_rule(inspection_rule)

@@ -459,3 +459,27 @@ def create_test_firmware_component(ctxt, **kw):
     fw_cmp = get_test_firmware_component(ctxt, **kw)
     fw_cmp.create()
     return fw_cmp
+
+
+def get_test_inspection_rule(ctxt, **kw):
+    """Return an InpsectionRule object with appropriate attributes.
+
+    NOTE: The object leaves the attributes marked as changed, such
+    that a create() could be used to commit it to the DB.
+    """
+    db_inspection_rule = db_utils.get_test_inspection_rule(**kw)
+    inspection_rule = objects.InspectionRule(ctxt)
+    for key in db_inspection_rule:
+        setattr(inspection_rule, key, db_inspection_rule[key])
+    return inspection_rule
+
+
+def create_test_inspection_rule(ctxt, **kw):
+    """Create and return a test inspection rule object.
+
+    NOTE: The object leaves the attributes marked as changed, such
+    that a create() could be used to commit it to the DB.
+    """
+    inspection_rule = get_test_inspection_rule(ctxt, **kw)
+    inspection_rule.create()
+    return inspection_rule

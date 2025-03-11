@@ -1114,3 +1114,24 @@ class InspectionRuleAlreadyExists(Conflict):
 class InspectionRuleNotFound(NotFound):
     """The requested rule was not found."""
     _msg_fmt = _("Rule %(rule)s could not be found.")
+
+
+class InspectionRuleValidationFailure(IronicException):
+    """Inspection rule validation fails during creation or execution."""
+    _msg_fmt = _("Inspection rule validation failed. Reason: %(reason)s")
+
+
+class InspectionRuleExecutionFailure(HardwareInspectionFailure):
+    """Raised when an inspection rule fails during execution."""
+    _msg_fmt = _("Inspection rule execution failed. Reason: %(reason)s")
+
+
+class RuleActionExecutionFailure(InspectionRuleExecutionFailure):
+    """Raised when an inspection rule action fails during execution."""
+    _msg_fmt = _("Inspection rule action execution failed. "
+                 "Reason: %(reason)s")
+
+
+class RuleConditionCheckFailure(InspectionRuleExecutionFailure):
+    """Raised when an inspection rule condition fails during execution."""
+    _msg_fmt = _("Inspection rule condition check failed. Reason: %(reason)s")
