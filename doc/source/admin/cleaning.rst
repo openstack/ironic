@@ -292,10 +292,6 @@ Or with stdin::
     cat my-clean-steps.txt | baremetal node clean <node> \
         --clean-steps -
 
-To use a runbook instead of specifying clean steps:
-
-    baremetal node clean <node> --runbook <runbook_name_or_uuid>
-
 Runbooks for Manual Cleaning
 ----------------------------
 Instead of passing a list of clean steps, operators can now use runbooks.
@@ -309,6 +305,7 @@ To use a runbook for manual cleaning:
 
 Runbooks must be created and associated with nodes beforehand. Only runbooks
 that match the node's traits can be used for cleaning that node.
+For more information on the runbook API usage, see :ref:`runbooks`.
 
 Cleaning Network
 ================
