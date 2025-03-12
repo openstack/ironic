@@ -51,33 +51,6 @@ class FakeImageDownload(object):
         self.content = content
 
 
-class FakeImage(dict):
-    def __init__(self, metadata):
-        IMAGE_ATTRIBUTES = ['size', 'disk_format', 'owner',
-                            'container_format', 'checksum', 'id',
-                            'name', 'deleted', 'status',
-                            'min_disk', 'min_ram', 'tags', 'visibility',
-                            'protected', 'file', 'schema', 'os_hash_algo',
-                            'os_hash_value']
-        raw = dict.fromkeys(IMAGE_ATTRIBUTES)
-        raw.update(metadata)
-        # raw['created_at'] = NOW_GLANCE_FORMAT
-        # raw['updated_at'] = NOW_GLANCE_FORMAT
-        super(FakeImage, self).__init__(raw)
-
-    def __getattr__(self, key):
-        try:
-            return self[key]
-        except KeyError:
-            raise AttributeError(key)
-
-    def __setattr__(self, key, value):
-        if key in self:
-            self[key] = value
-        else:
-            raise AttributeError(key)
-
-
 class FakeNeutronPort(dict):
     def __init__(self, **attrs):
         PORT_ATTRS = ['admin_state_up',
