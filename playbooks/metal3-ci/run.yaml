@@ -21,6 +21,24 @@
           TEST_MAX_TIME: 200
           WORKER_MACHINE_COUNT: 1
 
+    - name: Format bigger partition for /opt/metal3-dev-env if available
+      filesystem:
+        fstype: ext4
+        dev: /dev/xvde1
+        force: true
+      become: true
+      when: ansible_devices.xvde.partitions.xvde1 is defined
+
+    - name: Mount /opt/metal3-dev-env in bigger partition if available
+      mount:
+        path: /opt/metal3-dev-env
+        src: /dev/xvde1
+        fstype: ext4
+        state: ephemeral
+        boot: false
+      become: true
+      when: ansible_devices.xvde.partitions.xvde1 is defined
+
     # TODO(dtantsur): add metal3-io/metal3-dev-env as a recognized project to
     # https://opendev.org/openstack/project-config/src/commit/e15b9cae77bdc243322cee64b3688a2a43dd193c/zuul/main.yaml#L1416
     - name: Clone metal3-dev-env
