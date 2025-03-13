@@ -22,7 +22,7 @@ from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from ironic.common import exception
-
+from ironic.conf import CONF
 
 _IMAGE_ATTRIBUTES = ['size', 'disk_format', 'owner',
                      'container_format', 'checksum', 'id',
@@ -127,6 +127,7 @@ def is_image_available(context, image):
     image_visibility = getattr(image, 'visibility', None)
     image_owner = getattr(image, 'owner', None)
     image_id = getattr(image, 'id', 'unknown')
+    is_admin = 'admin' in getattr(context, 'roles', [])
     project_id = getattr(context, 'project_id', None)
     project = getattr(context, 'project', 'unknown')
     # The presence of an auth token implies this is an authenticated
@@ -140,6 +141,9 @@ def is_image_available(context, image):
         return True
 
     if project_id and image_owner == project_id:
+        return True
+
+    if is_admin and CONF.ignore_project_check_for_admin_tasks:
         return True
 
     LOG.info(
