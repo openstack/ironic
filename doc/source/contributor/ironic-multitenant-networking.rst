@@ -152,10 +152,21 @@ you should mentally model it as an appliance.
 
 Currently supported by the devstack plugin:
 
+ * cisco_nexus9k - Cisco Nexus 9000 series virtual switch simulator. This
+   requires access to Cisco's Nexus switch simulator downloads, which you
+   must download, and place in /opt/stack on the host upon which you are
+   executing devstack.
  * force10_9 - Dell Force10 OS9 based switches utilizing the OS9 simulator
-   installation ISO image.
+   installation ISO image. Devstack is able to download this file.
  * force10_10 - Dell Force10 OS10 (SmartFabric) switches utilizing a user
-   downloaded switch simulator zip file.
+   downloaded switch simulator zip file. The simulator package must be
+   downloaded and extracted into /opt/stack for this to be leveraged.
+
+.. warning::
+   The support for these switch simulators in the devstack plugin generally
+   revolves around the use of versioned files and downloads. You will likely
+   need to consult the devstack plugin source if you wish to leverage this
+   functionality.
 
 The plugin generally work by attempting to plug the Virtual Machines used
 for CI testing through to networking for the virtual switch appliance, while
