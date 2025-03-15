@@ -88,16 +88,8 @@ BLOCK_SIZE=${BLOCK_SIZE:-512}
 INTERFACE_COUNT=${INTERFACE_COUNT:-1}
 
 for int in $(seq 1 $INTERFACE_COUNT); do
-    tapif=tap-${NAME}i${int}
     ovsif=ovs-${NAME}i${int}
-    # NOTE(vsaienko) use veth pair here to ensure that interface
-    # exists in OVS even when VM is powered off.
-    sudo ip link add dev $tapif type veth peer name $ovsif
-    for l in $tapif $ovsif; do
-        sudo ip link set dev $l up
-        sudo ip link set $l mtu $INTERFACE_MTU
-    done
-    sudo ovs-vsctl add-port $BRIDGE $ovsif
+    sudo ovs-vsctl --no-wait add-port $BRIDGE $ovsif
 done
 
 if [ -n "$MAC_ADDRESS" ] ; then
@@ -133,9 +125,9 @@ if ! virsh list --all | grep -q $NAME; then
         --arch $ARCH --cpus $CPU --memory $MEM --libvirt-nic-driver $LIBVIRT_NIC_DRIVER \
         --disk-format $DISK_FORMAT $VM_LOGGING --engine $ENGINE $UEFI_OPTS $vm_opts \
         --interface-count $INTERFACE_COUNT $MAC_ADDRESS --machine_type $MACHINE_TYPE \
-        --block-size $BLOCK_SIZE >&2
+        --block-size $BLOCK_SIZE --mtu ${INTERFACE_MTU} >&2
 fi
 
 # echo mac in format mac1,ovs-node-0i1;mac2,ovs-node-0i2;...;macN,ovs-node0iN
-VM_MAC=$(echo -n $(virsh domiflist $NAME |awk '/tap-/{print $5","$3}')|tr ' ' ';' |sed s/tap-/ovs-/g)
+VM_MAC=$(echo -n $(virsh domiflist $NAME |awk '/ovs-/{print $5","$1}')|tr ' ' ';')
 echo -n "$VM_MAC $VBMC_PORT $PDU_OUTLET"

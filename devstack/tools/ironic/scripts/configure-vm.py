@@ -79,6 +79,8 @@ def main():
                         help='The number of interfaces to add to VM.'),
     parser.add_argument('--mac', default=None,
                         help='The mac for the first interface on the vm')
+    parser.add_argument('--mtu', default=None,
+                        help='The mtu for the interfaces on the vm')
     parser.add_argument('--console-log',
                         help='File to log console')
     parser.add_argument('--emulator', default=None,
@@ -114,6 +116,7 @@ def main():
         'bootdev': args.bootdev,
         'interface_count': args.interface_count,
         'mac': args.mac,
+        'mtu': args.mtu,
         'nicdriver': args.libvirt_nic_driver,
         'emulator': args.emulator,
         'disk_format': args.disk_format,
