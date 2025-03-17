@@ -16,6 +16,7 @@
 from oslo_config import cfg
 
 from ironic.conf import agent
+from ironic.conf import agent_containers
 from ironic.conf import anaconda
 from ironic.conf import ansible
 from ironic.conf import api
@@ -57,6 +58,7 @@ from ironic.conf import vnc
 CONF = cfg.CONF
 
 agent.register_opts(CONF)
+agent_containers.register_opts(CONF)
 anaconda.register_opts(CONF)
 ansible.register_opts(CONF)
 api.register_opts(CONF)

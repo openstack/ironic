@@ -66,6 +66,19 @@ class TestLookup(test_api_base.BaseApiTest):
 
     def _check_config(self, data):
         expected_config = {
+            'agent_containers': {
+                'allow_arbitrary_containers': CONF.agent_containers
+                .allow_arbitrary_containers,
+                'allowed_containers': CONF.agent_containers
+                .allowed_containers,
+                'container_steps_file': CONF.agent_containers
+                .container_steps_file,
+                'runner': CONF.agent_containers.runner,
+                'pull_options': CONF.agent_containers.pull_options,
+                'run_options': CONF.agent_containers.run_options,
+                'container_conf_file': CONF.agent_containers
+                .container_conf_file,
+            },
             'metrics': {
                 'backend': 'statsd',
                 'prepend_host': CONF.metrics.agent_prepend_host,
@@ -442,6 +455,7 @@ class TestHeartbeat(test_api_base.BaseApiTest):
 class TestLookupScopedRBAC(TestLookup):
 
     """Test class to execute the Lookup tests with RBAC enforcement."""
+
     def setUp(self):
         super(TestLookupScopedRBAC, self).setUp()
 
@@ -456,6 +470,7 @@ class TestLookupScopedRBAC(TestLookup):
 class TestHeartbeatScopedRBAC(TestHeartbeat):
 
     """Test class to execute the Heartbeat tests with RBAC enforcement."""
+
     def setUp(self):
         super(TestHeartbeatScopedRBAC, self).setUp()
 
