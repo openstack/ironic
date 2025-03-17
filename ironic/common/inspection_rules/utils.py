@@ -56,10 +56,6 @@ class ShallowMaskList(abc.MutableSequence):
     def __delitem__(self, index):
         del self._original[index]
 
-    def __iter__(self):
-        for item in self._original:
-            yield self._mask_value(item)
-
     def __len__(self):
         return len(self._original)
 
