@@ -27,3 +27,4 @@ Bare Metal Service Features
    Deploying with Anaconda <anaconda-deploy-interface>
    Node History <node-history>
    OCI Container Registry Support <oci-container-registry>
+   Runbooks for Cleaning & Servicing <runbooks>
