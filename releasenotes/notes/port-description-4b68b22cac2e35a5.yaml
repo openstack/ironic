@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    A new "description" field has been added to the Port object. This field
+    allows operators to provide human-readable descriptions to easily identify
+    physical ports on bare metal hosts.

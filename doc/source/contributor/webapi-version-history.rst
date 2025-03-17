@@ -2,6 +2,11 @@
 REST API Version History
 ========================
 
+1.97 (Flamingo)
+-----------------------
+
+Add a 'description' field to the Port object.
+
 1.95 (Epoxy)
 -----------------------
 

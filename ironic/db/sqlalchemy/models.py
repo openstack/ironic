@@ -269,6 +269,7 @@ class Port(Base):
     physical_network = Column(String(64), nullable=True)
     is_smartnic = Column(Boolean, nullable=True, default=False)
     name = Column(String(255), nullable=True)
+    description = Column(String(255), nullable=True)
 
     _node_uuid = orm.relationship(
         "Node",

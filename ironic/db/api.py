@@ -285,7 +285,7 @@ class Connection(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_port_list(self, limit=None, marker=None,
-                      sort_key=None, sort_dir=None):
+                      sort_key=None, sort_dir=None, filters=None):
         """Return a list of ports.
 
         :param limit: Maximum number of ports to return.
@@ -294,11 +294,12 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param sort_key: Attribute by which results should be sorted.
         :param sort_dir: direction in which results should be sorted.
                          (asc, desc)
+        :param filters: Filters to apply, defaults to None
         """
 
     @abc.abstractmethod
     def get_ports_by_shards(self, shards, limit=None, marker=None,
-                            sort_key=None, sort_dir=None):
+                            sort_key=None, sort_dir=None, filters=None):
         """Return a list of ports contained in the provided shards.
 
         :param shard_ids: A list of shards to filter ports by.
@@ -306,7 +307,7 @@ class Connection(object, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_ports_by_node_id(self, node_id, limit=None, marker=None,
-                             sort_key=None, sort_dir=None):
+                             sort_key=None, sort_dir=None, filters=None):
         """List all the ports for a given node.
 
         :param node_id: The integer node ID.
@@ -316,12 +317,13 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param sort_key: Attribute by which results should be sorted
         :param sort_dir: direction in which results should be sorted
                          (asc, desc)
+        :param filters: Filters to apply, defaults to None
         :returns: A list of ports.
         """
 
     @abc.abstractmethod
     def get_ports_by_portgroup_id(self, portgroup_id, limit=None, marker=None,
-                                  sort_key=None, sort_dir=None):
+                                  sort_key=None, sort_dir=None, filters=None):
         """List all the ports for a given portgroup.
 
         :param portgroup_id: The integer portgroup ID.
@@ -331,6 +333,7 @@ class Connection(object, metaclass=abc.ABCMeta):
         :param sort_key: Attribute by which results should be sorted
         :param sort_dir: Direction in which results should be sorted
                          (asc, desc)
+        :param filters: Filters to apply, defaults to None
         :returns: A list of ports.
         """
 

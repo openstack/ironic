@@ -35,7 +35,8 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
 
     def setUp(self):
         super(TestPortObject, self).setUp()
-        self.fake_port = db_utils.get_test_port(name='port-name')
+        self.fake_port = db_utils.get_test_port(
+            name='port-name', description='port-description')
 
     def test_get_by_id(self):
         port_id = self.fake_port['id']
@@ -166,7 +167,7 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             self.assertEqual(self.context, ports[0]._context)
             mock_get_list.assert_called_once_with(
                 limit=None, marker=None, project=None, sort_dir=None,
-                sort_key=None)
+                sort_key=None, filters=None)
 
     def test_list_deprecated_owner(self):
         with mock.patch.object(self.dbapi, 'get_port_list',
@@ -179,7 +180,7 @@ class TestPortObject(db_base.DbTestCase, obj_utils.SchemasTestMixIn):
             self.assertEqual(self.context, ports[0]._context)
             mock_get_list.assert_called_once_with(
                 limit=None, marker=None, project='12345', sort_dir=None,
-                sort_key=None)
+                sort_key=None, filters=None)
 
     @mock.patch.object(obj_base.IronicObject, 'supports_version',
                        spec_set=types.FunctionType)

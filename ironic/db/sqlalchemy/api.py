@@ -250,6 +250,16 @@ def add_port_filter(query, value):
         return add_identity_filter(query, value)
 
 
+def add_port_filter_description_contains(query, filters):
+    filters = filters or {}
+    if 'description_contains' in filters:
+        keyword = filters['description_contains']
+        if keyword is not None:
+            query = query.filter(
+                models.Port.description.like(r'%{}%'.format(keyword)))
+    return query
+
+
 def add_port_filter_by_node(query, value):
     if strutils.is_int_like(value):
         return query.filter_by(node_id=value)
@@ -1070,45 +1080,49 @@ class Connection(api.Connection):
 
     def get_port_list(self, limit=None, marker=None,
                       sort_key=None, sort_dir=None, owner=None,
-                      project=None):
+                      project=None, filters=None):
         query = sa.select(models.Port)
         if owner:
             query = add_port_filter_by_node_owner(query, owner)
         elif project:
             query = add_port_filter_by_node_project(query, project)
+        query = add_port_filter_description_contains(query, filters)
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir, query)
 
     def get_ports_by_shards(self, shards, limit=None, marker=None,
-                            sort_key=None, sort_dir=None):
+                            sort_key=None, sort_dir=None, filters=None):
         shard_node_ids = sa.select(models.Node) \
             .where(models.Node.shard.in_(shards)) \
             .with_only_columns(models.Node.id)
         query = sa.select(models.Port) \
             .where(models.Port.node_id.in_(shard_node_ids))
+        query = add_port_filter_description_contains(query, filters)
         return _paginate_query(
             models.Port, limit, marker, sort_key, sort_dir, query)
 
     def get_ports_by_node_id(self, node_id, limit=None, marker=None,
                              sort_key=None, sort_dir=None, owner=None,
-                             project=None):
+                             project=None, filters=None):
         query = sa.select(models.Port).where(models.Port.node_id == node_id)
         if owner:
             query = add_port_filter_by_node_owner(query, owner)
         elif project:
             query = add_port_filter_by_node_project(query, project)
+        query = add_port_filter_description_contains(query, filters)
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir, query)
 
     def get_ports_by_portgroup_id(self, portgroup_id, limit=None, marker=None,
                                   sort_key=None, sort_dir=None, owner=None,
-                                  project=None):
+                                  project=None, filters=None):
         query = sa.select(models.Port).where(
             models.Port.portgroup_id == portgroup_id)
         if owner:
             query = add_port_filter_by_node_owner(query, owner)
         elif project:
             query = add_port_filter_by_node_project(query, project)
+        query = add_port_filter_description_contains(query, filters)
         return _paginate_query(models.Port, limit, marker,
                                sort_key, sort_dir, query)
 

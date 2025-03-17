@@ -134,6 +134,7 @@ BASE_VERSION = 1
 # v1.94: Add node name support for port creation
 # v1.95: Add node support for disable_power_off
 # v1.96: Migrate inspection rules from Inspector
+# v1.97: Add description field to port.
 
 MINOR_0_JUNO = 0
 MINOR_1_INITIAL_VERSION = 1
@@ -232,6 +233,7 @@ MINOR_93_GET_VMEDIA = 93
 MINOR_94_PORT_NODENAME = 94
 MINOR_95_DISABLE_POWER_OFF = 95
 MINOR_96_INSPECTION_RULES = 96
+MINOR_97_PORT_DESCRIPTION = 97
 
 # When adding another version, update:
 # - MINOR_MAX_VERSION
@@ -239,7 +241,7 @@ MINOR_96_INSPECTION_RULES = 96
 #   explanation of what changed in the new version
 # - common/release_mappings.py, RELEASE_MAPPING['master']['api']
 
-MINOR_MAX_VERSION = MINOR_96_INSPECTION_RULES
+MINOR_MAX_VERSION = MINOR_97_PORT_DESCRIPTION
 
 # String representations of the minor and maximum versions
 _MIN_VERSION_STRING = '{}.{}'.format(BASE_VERSION, MINOR_1_INITIAL_VERSION)

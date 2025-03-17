@@ -197,7 +197,7 @@ class TestPortsController__GetPortsCollection(base.TestCase):
                                               resource_url='ports')
         mock_list.assert_called_once_with('fake-context', 1000, None,
                                           project=None, sort_dir='asc',
-                                          sort_key=None)
+                                          sort_key=None, filters={})
 
 
 @mock.patch.object(objects.Port, 'get_by_address', autospec=True)
@@ -298,12 +298,13 @@ class TestListPorts(test_api_base.BaseApiTest):
 
     def test_get_one_custom_fields(self):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id)
-        fields = 'address,extra'
+        fields = 'address,extra,description'
         data = self.get_json(
             '/ports/%s?fields=%s' % (port.uuid, fields),
             headers={api_base.Version.string: str(api_v1.max_version())})
         # We always append "links"
-        self.assertCountEqual(['address', 'extra', 'links'], data)
+        self.assertCountEqual(['address', 'extra', 'description', 'links'],
+                              data)
 
     def test_hide_fields_in_newer_versions_internal_info(self):
         port = obj_utils.create_test_port(self.context, node_id=self.node.id,
@@ -1107,6 +1108,31 @@ class TestListPorts(test_api_base.BaseApiTest):
         self.assertEqual(http_client.BAD_REQUEST, response.status_int)
         self.assertIn('Expected UUID or name for portgroup',
                       response.json['error_message'])
+
+    def test_get_ports_by_description(self):
+        port1 = obj_utils.create_test_port(self.context,
+                                           address='52:54:00:cf:2d:31',
+                                           node_id=self.node.id,
+                                           uuid=uuidutils.generate_uuid(),
+                                           description='some cats here')
+        port2 = obj_utils.create_test_port(self.context,
+                                           node_id=self.node.id,
+                                           address='52:54:00:cf:2d:32',
+                                           uuid=uuidutils.generate_uuid(),
+                                           description='some dogs there')
+        data = self.get_json(
+            '/ports?description_contains=cat',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        uuids = [n['uuid'] for n in data['ports']]
+        self.assertIn(port1.uuid, uuids)
+        self.assertNotIn(port2.uuid, uuids)
+
+        data = self.get_json(
+            '/ports?description_contains=dog',
+            headers={api_base.Version.string: str(api_v1.max_version())})
+        uuids = [n['uuid'] for n in data['ports']]
+        self.assertIn(port2.uuid, uuids)
+        self.assertNotIn(port1.uuid, uuids)
 
 
 class TestListPortsByShard(test_api_base.BaseApiTest):
@@ -1920,6 +1946,7 @@ class TestPost(test_api_base.BaseApiTest):
         pdict.pop('is_smartnic')
         pdict.pop('portgroup_uuid')
         pdict.pop('name')
+        pdict.pop('description')
         headers = {api_base.Version.string: str(api_v1.min_version())}
         response = self.post_json('/ports', pdict, headers=headers)
         self.assertEqual('application/json', response.content_type)

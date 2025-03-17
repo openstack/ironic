@@ -283,3 +283,29 @@ class DbPortTestCase(base.DbTestCase):
                           uuid=self.port.uuid,
                           node_id=self.node.id,
                           address='aa-bb-cc-33-11-22')
+
+    def test_create_port_with_description(self):
+        description = 'Management Port'
+        port1 = db_utils.create_test_port(
+            uuid=uuidutils.generate_uuid(),
+            node_id=self.node.id,
+            address='52:54:00:cf:2d:42',
+            description=description)
+
+        port2 = db_utils.create_test_port(
+            uuid=uuidutils.generate_uuid(),
+            node_id=self.node.id,
+            address='52:54:00:cf:2d:45',
+            description=description)
+
+        self.assertEqual(description, port1.description)
+        self.assertEqual(description, port2.description)
+
+        new_description = 'Updated Description'
+        updated_port = self.dbapi.update_port(
+            port1.id, {'description': new_description})
+
+        self.assertEqual(new_description, updated_port.description)
+
+        retrieved_port1 = self.dbapi.get_port_by_uuid(port1.uuid)
+        self.assertEqual(new_description, retrieved_port1.description)

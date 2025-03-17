@@ -2228,3 +2228,11 @@ def allow_get_vmedia():
 def allow_node_ident_as_param_for_port_creation():
     """Check if 'node_ident' parameter is allowed for port creation."""
     return api.request.version.minor >= versions.MINOR_94_PORT_NODENAME
+
+
+def allow_port_description():
+    """Check if description is allowed for ports.
+
+    Version 1.97 of the API added description field to the port object.
+    """
+    return api.request.version.minor >= versions.MINOR_97_PORT_DESCRIPTION

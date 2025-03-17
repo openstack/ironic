@@ -45,7 +45,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Version 1.9: Add support for Smart NIC port
     # Version 1.10: Add name field
     # Version 1.11: Add node_uuid field
-    VERSION = '1.11'
+    # Version 1.12: Add description field
+    VERSION = '1.12'
 
     dbapi = dbapi.get_instance()
 
@@ -65,24 +66,36 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         'is_smartnic': object_fields.BooleanField(nullable=True,
                                                   default=False),
         'name': object_fields.StringField(nullable=True),
+        'description': object_fields.StringField(nullable=True),
     }
 
-    def _convert_name_field(self, target_version,
-                            remove_unavailable_fields=True):
-        name_is_set = self.obj_attr_is_set('name')
-        if target_version >= (1, 10):
-            # Target version supports name. Set it to its default
+    def _convert_field_by_version(self, field_name, introduced_version,
+                                  target_version,
+                                  remove_unavailable_fields=True,
+                                  default_value=None):
+        """Convert a field based on version compatibility.
+
+        :param field_name: Name of the field to convert
+        :param introduced_version: Version tuple when the field was introduced
+        :param target_version: Target version to convert to
+        :param remove_unavailable_fields: Whether to remove fields not in
+            target version
+        :param default_value: Default value to set if field is not set
+        """
+        field_is_set = self.obj_attr_is_set(field_name)
+        if target_version >= introduced_version:
+            # Target version supports this field. Set it to its default
             # value if it is not set.
-            if not name_is_set:
-                self.name = None
-        elif name_is_set:
-            # Target version does not support name, and it is set.
+            if not field_is_set:
+                setattr(self, field_name, default_value)
+        elif field_is_set:
+            # Target version does not support this field, and it is set.
             if remove_unavailable_fields:
                 # (De)serialising: remove unavailable fields.
-                delattr(self, 'name')
-            elif self.name is not None:
+                delattr(self, field_name)
+            elif getattr(self, field_name) is not default_value:
                 # DB: set unavailable fields to their default.
-                self.name = None
+                setattr(self, field_name, default_value)
 
     def _convert_to_version(self, target_version,
                             remove_unavailable_fields=True):
@@ -126,41 +139,18 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                         self.internal_info = internal_info
 
         # Convert the physical_network field.
-        physnet_is_set = self.obj_attr_is_set('physical_network')
-        if target_version >= (1, 7):
-            # Target version supports physical_network. Set it to its default
-            # value if it is not set.
-            if not physnet_is_set:
-                self.physical_network = None
-        elif physnet_is_set:
-            # Target version does not support physical_network, and it is set.
-            if remove_unavailable_fields:
-                # (De)serialising: remove unavailable fields.
-                delattr(self, 'physical_network')
-            elif self.physical_network is not None:
-                # DB: set unavailable fields to their default.
-                self.physical_network = None
-
+        self._convert_field_by_version('physical_network', (1, 7),
+                                       target_version,
+                                       remove_unavailable_fields)
         # Convert is_smartnic field.
-        is_smartnic_set = self.obj_attr_is_set('is_smartnic')
-        if target_version >= (1, 9):
-            # Target version supports is_smartnic. Set it to its default
-            # value if it is not set.
-            if not is_smartnic_set:
-                self.is_smartnic = False
-
-        # handle is_smartnic field in older version
-        elif is_smartnic_set:
-            # Target version does not support is_smartnic, and it is set.
-            if remove_unavailable_fields:
-                # (De)serialising: remove unavailable fields.
-                delattr(self, 'is_smartnic')
-            elif self.is_smartnic is not False:
-                # DB: set unavailable fields to their default.
-                self.is_smartnic = False
-
+        self._convert_field_by_version('is_smartnic', (1, 9), target_version,
+                                       remove_unavailable_fields, False)
         # Convert the name field.
-        self._convert_name_field(target_version, remove_unavailable_fields)
+        self._convert_field_by_version('name', (1, 10), target_version,
+                                       remove_unavailable_fields)
+        # Convert the description field.
+        self._convert_field_by_version('description', (1, 12), target_version,
+                                       remove_unavailable_fields)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
     # methods can be used in the future to replace current explicit RPC calls.
@@ -275,8 +265,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     # Implications of calling new remote procedures should be thought through.
     # @object_base.remotable_classmethod
     @classmethod
-    def list(cls, context, limit=None, marker=None,
-             sort_key=None, sort_dir=None, owner=None, project=None):
+    def list(cls, context, limit=None, marker=None, sort_key=None,
+             sort_dir=None, owner=None, project=None, filters=None):
         """Return a list of Port objects.
 
         :param context: Security context.
@@ -286,6 +276,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         :param sort_dir: direction to sort. "asc" or "desc".
         :param owner: DEPRECATED a node owner to match against
         :param project: a node owner or lessee to match against
+        :param filters: Filters to apply, defaults to None
         :returns: a list of :class:`Port` object.
         :raises: InvalidParameterValue
 
@@ -296,12 +287,14 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                            marker=marker,
                                            sort_key=sort_key,
                                            sort_dir=sort_dir,
-                                           project=project)
+                                           project=project,
+                                           filters=filters)
         return cls._from_db_object_list(context, db_ports)
 
     @classmethod
     def list_by_node_shards(cls, context, shards, limit=None, marker=None,
-                            sort_key=None, sort_dir=None, project=None):
+                            sort_key=None, sort_dir=None, project=None,
+                            filters=None):
         """Return a list of Port objects associated with nodes in shards
 
         :param context: Security context.
@@ -311,13 +304,15 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         :param sort_key: column to sort results by.
         :param sort_dir: direction to sort. "asc" or "desc".
         :param project: a node owner or lessee to match against
+        :param filters: Filters to apply, defaults to None
         :returns: a list of :class:`Port` object.
 
         """
         db_ports = cls.dbapi.get_ports_by_shards(shards, limit=limit,
                                                  marker=marker,
                                                  sort_key=sort_key,
-                                                 sort_dir=sort_dir)
+                                                 sort_dir=sort_dir,
+                                                 filters=filters)
         return cls._from_db_object_list(context, db_ports)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -327,7 +322,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     @classmethod
     def list_by_node_id(cls, context, node_id, limit=None, marker=None,
                         sort_key=None, sort_dir=None, owner=None,
-                        project=None):
+                        project=None, filters=None):
         """Return a list of Port objects associated with a given node ID.
 
         :param context: Security context.
@@ -338,6 +333,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         :param sort_dir: direction to sort. "asc" or "desc".
         :param owner: DEPRECATED a node owner to match against
         :param project: a node owner or lessee to match against
+        :param filters: Filters to apply, defaults to None
         :returns: a list of :class:`Port` object.
 
         """
@@ -347,7 +343,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                   marker=marker,
                                                   sort_key=sort_key,
                                                   sort_dir=sort_dir,
-                                                  project=project)
+                                                  project=project,
+                                                  filters=filters)
         return cls._from_db_object_list(context, db_ports)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -357,7 +354,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
     @classmethod
     def list_by_portgroup_id(cls, context, portgroup_id, limit=None,
                              marker=None, sort_key=None, sort_dir=None,
-                             owner=None, project=None):
+                             owner=None, project=None, filters=None):
         """Return a list of Port objects associated with a given portgroup ID.
 
         :param context: Security context.
@@ -368,6 +365,7 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
         :param sort_dir: direction to sort. "asc" or "desc".
         :param owner: DEPRECATED a node owner to match against
         :param project: a node owner or lessee to match against
+        :param filters: Filters to apply, defaults to None
         :returns: a list of :class:`Port` object.
 
         """
@@ -378,7 +376,8 @@ class Port(base.IronicObject, object_base.VersionedObjectDictCompat):
                                                        marker=marker,
                                                        sort_key=sort_key,
                                                        sort_dir=sort_dir,
-                                                       project=project)
+                                                       project=project,
+                                                       filters=filters)
         return cls._from_db_object_list(context, db_ports)
 
     # NOTE(xek): We don't want to enable RPC on this call just yet. Remotable
@@ -522,7 +521,8 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
     # Version 1.2: Add "physical_network" field
     # Version 1.3: Add "is_smartnic" field
     # Version 1.4: Add "name" field
-    VERSION = '1.4'
+    # Version 1.5: Add "description" field
+    VERSION = '1.5'
 
     SCHEMA = {
         'address': ('port', 'address'),
@@ -535,6 +535,7 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
         'uuid': ('port', 'uuid'),
         'is_smartnic': ('port', 'is_smartnic'),
         'name': ('port', 'name'),
+        'description': ('port', 'description'),
     }
 
     fields = {
@@ -552,6 +553,7 @@ class PortCRUDPayload(notification.NotificationPayloadBase):
         'is_smartnic': object_fields.BooleanField(nullable=True,
                                                   default=False),
         'name': object_fields.StringField(nullable=True),
+        'description': object_fields.StringField(nullable=True),
     }
 
     def __init__(self, port, node_uuid, portgroup_uuid):
