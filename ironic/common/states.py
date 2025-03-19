@@ -666,3 +666,6 @@ machine.add_transition(SERVICEFAIL, SERVICING, 'service')
 
 # A node in service fail can be rescued
 machine.add_transition(SERVICEFAIL, RESCUING, 'rescue')
+
+# A no in service fail may be deleted.
+machine.add_transition(SERVICEFAIL, DELETING, 'delete')

@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Add support for a node in service failed state can be unprovisioned
+    via the ``delete`` provision action.
