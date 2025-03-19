@@ -1,0 +1,5 @@
+---
+fixes:
+  - |
+    Some vendors insist that floppy images must be 1440 KiB in size and
+    that the file name ends with ``.img``. Make it so.
