@@ -6212,6 +6212,23 @@ ORHMKeXMO8fcK0By7CiMKwHSXCoEQgfQhWwpMdSsO8LgHCjh87DQc= """
                             expect_errors=True)
         self.assertEqual(http_client.BAD_REQUEST, ret.status_code)
 
+    def test_provision_with_unprovision_after_service_failed(self):
+        node = self.node
+        node.provision_state = states.SERVICEFAIL
+        node.target_provision_state = states.ACTIVE
+        node.save()
+        ret = self.put_json('/nodes/%s/states/provision' % node.uuid,
+                            {'target': states.DELETED})
+        self.assertEqual(http_client.ACCEPTED, ret.status_code)
+        self.assertEqual(b'', ret.body)
+        self.mock_dntd.assert_called_once_with(
+            mock.ANY, mock.ANY, node.uuid, 'test-topic')
+        # Check location header
+        self.assertIsNotNone(ret.location)
+        expected_location = '/v1/nodes/%s/states' % node.uuid
+        self.assertEqual(urlparse.urlparse(ret.location).path,
+                         expected_location)
+
     @mock.patch.object(rpcapi.ConductorAPI, 'do_provisioning_action',
                        autospec=True)
     def test_provide_from_manage(self, mock_dpa):
