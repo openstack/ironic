@@ -140,34 +140,9 @@
       ignore_errors: true
       when: kubectl_result is succeeded
 
-    # FIXME(dtantsur): this is horrible, do something about it
-    - name: Fetch kubelet status logs from the master user metal3
-      shell: |
-        ssh -vvv -o StrictHostKeyChecking=accept-new metal3@192.168.111.100 "sudo systemctl status kubelet" > "{{ logs_root }}/kubelet-0-metal3-status.log"
-      ignore_errors: true
-      register: kubelet0metal3status
-
-    - debug:
-        var: kubelet0metal3status.stdout_lines
-
-    - debug:
-        var: kubelet0metal3status.stderr_lines
-
-    - name: Fetch kubelet journal logs from the master user metal3
-      shell: |
-        ssh -vvv -o StrictHostKeyChecking=accept-new metal3@192.168.111.100 "sudo journalctl -xeu kubelet" > "{{ logs_root }}/kubelet-0-metal3-journal.log"
-      ignore_errors: true
-      register: kubelet0metal3journal
-
-    - debug:
-        var: kubelet0metal3journal.stdout_lines
-
-    - debug:
-        var: kubelet0metal3journal.stderr_lines
-
     - name: Fetch kubelet status logs from the master user zuul
       shell: |
-        ssh -vvv -o StrictHostKeyChecking=accept-new zuul@192.168.111.100 "sudo systemctl status kubelet" > "{{ logs_root }}/kubelet-0-zuul-status.log"
+        ssh -vvv -o StrictHostKeyChecking=accept-new zuul@192.168.111.1 "sudo systemctl status kubelet" > "{{ logs_root }}/kubelet-0-zuul-status.log"
       ignore_errors: true
       register: kubelet0zuulstatus
 
@@ -179,7 +154,7 @@
 
     - name: Fetch kubelet journal logs from the master user zuul
       shell: |
-        ssh -vvv -o StrictHostKeyChecking=accept-new zuul@192.168.111.100 "sudo journalctl -xeu kubelet" > "{{ logs_root }}/kubelet-0-zuul-journal.log"
+        ssh -vvv -o StrictHostKeyChecking=accept-new zuul@192.168.111.1 "sudo journalctl -xeu kubelet" > "{{ logs_root }}/kubelet-0-zuul-journal.log"
       ignore_errors: true
       register: kubelet0zuuljournal
 
