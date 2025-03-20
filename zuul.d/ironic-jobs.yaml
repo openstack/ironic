@@ -85,6 +85,7 @@
         # TODO: re-enable dstat once https://storyboard.openstack.org/#!/story/2008185
         # is resolved
         dstat: false
+        atop: True
         q-agt: true
         q-dhcp: true
         q-l3: true
@@ -153,6 +154,7 @@
         # ephemeral partition on such nodes
         LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
       devstack_services:
+        atop: True
         n-api: False
         n-api-meta: False
         n-cond: False
@@ -221,6 +223,7 @@
         ML2_L3_PLUGIN: "ovn-router,trunk"
         OVN_DBS_LOG_LEVEL: dbg
       devstack_services:
+        atop: True
         n-api: False
         n-api-meta: False
         n-cond: False
@@ -278,6 +281,7 @@
         # ephemeral partition on such nodes
         LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
       devstack_services:
+        atop: True
         n-api: False
         n-api-meta: False
         n-cond: False
@@ -347,6 +351,7 @@
         # Test sharding support
         IRONIC_SHARDS: 1
       devstack_services:
+        atop: True
         # Parent job uses swift, this one does not, thus we can turn it off.
         s-account: False
         s-container: False
@@ -379,6 +384,7 @@
         IRONIC_GRUB2_CONFIG_PATH: EFI/BOOT/grub.cfg
         IRONIC_REDFISH_EMULATOR_FEATURE_SET: vmedia
       devstack_services:
+        atop: True
         s-account: True
         s-container: True
         s-object: True
@@ -410,6 +416,7 @@
         IRONIC_GRUB2_FILE: "https://{{ zuul_site_mirror_fqdn }}/centos-stream/9-stream/BaseOS/x86_64/os/EFI/BOOT/grubx64.efi"
         IRONIC_GRUB2_CONFIG_PATH: EFI/BOOT/grub.cfg
       devstack_services:
+        atop: True
         s-account: True
         s-container: True
         s-object: True
@@ -433,6 +440,7 @@
       devstack_plugins:
         ironic-inspector: https://opendev.org/openstack/ironic-inspector
       devstack_services:
+        atop: True
         ironic-inspector: True
         ironic-inspector-dhcp: True
 
@@ -453,6 +461,7 @@
         SWIFT_TEMPURL_KEY: secretkey
         IRONIC_BOOT_MODE: bios
       devstack_services:
+        atop: True
         s-account: True
         s-container: True
         s-object: True
@@ -484,6 +493,7 @@
         ML2_L3_PLUGIN: "ovn-router,trunk"
         OVN_DBS_LOG_LEVEL: dbg
       devstack_services:
+        atop: True
         q-agt: False
         q-dhcp: False
         q-l3: False
@@ -520,6 +530,7 @@
         ML2_L3_PLUGIN: "ovn-router,trunk"
         OVN_DBS_LOG_LEVEL: dbg
       devstack_services:
+        atop: True
         q-agt: False
         q-dhcp: False
         q-l3: False
@@ -547,6 +558,7 @@
         SWIFT_TEMPURL_KEY: secretkey
         IRONIC_ENFORCE_SCOPE: True
       devstack_services:
+        atop: True
         c-api: True
         c-bak: True
         c-sch: True
@@ -590,6 +602,7 @@
       devstack_plugins:
         ironic-inspector: https://opendev.org/openstack/ironic-inspector
       devstack_services:
+        atop: True
         s-account: True
         s-container: True
         s-object: True
@@ -621,6 +634,7 @@
         IRONIC_VM_EPHEMERAL_DISK: 0
         IRONIC_RPC_TRANSPORT: json-rpc
       devstack_services:
+        atop: True
         rabbit: True
         g-api: False
         n-api: False
@@ -734,6 +748,7 @@
         '{{ devstack_base_dir }}/ironic-bm-logs': 'logs'
         '{{ devstack_base_dir }}/data/networking-generic-switch/netmiko_session.log': 'logs'
       devstack_services:
+        atop: True
         c-api: False
         c-bak: False
         c-sch: False
@@ -798,6 +813,7 @@
           PUBLIC_BRIDGE: br-infra
           LIBVIRT_STORAGE_POOL_PATH: /opt/libvirt/images
         devstack_services:
+          atop: True
           c-api: False
           c-bak: False
           c-sch: False
@@ -873,6 +889,7 @@
     parent: ironic-base
     vars:
       devstack_services:
+        atop: True
         s-account: True
         s-container: True
         s-object: True
@@ -903,6 +920,7 @@
     vars:
       tempest_test_timeout: 2400
       devstack_services:
+        atop: True
         # NOTE(TheJulia): It seems our devstack plugin does not play well
         # with multitenancy and the newer neutron service names.
         q-agt: True
@@ -961,6 +979,7 @@
     vars:
       tempest_test_timeout: 2400
       devstack_services:
+        atop: True
         q-agt: false
         q-dhcp: false
         q-l3: false
@@ -1032,6 +1051,7 @@
         SWIFT_TEMPURL_KEY: secretkey
         IRONIC_BOOT_MODE: bios
       devstack_services:
+        atop: True
         s-account: True
         s-container: True
         s-object: True
@@ -1241,6 +1261,7 @@
         ironic: https://opendev.org/openstack/ironic
         networking-generic-switch: https://opendev.org/openstack/networking-generic-switch
       devstack_services:
+        atop: True
         c-api: False
         c-bak: False
         c-sch: False
@@ -1264,6 +1285,7 @@
           ironic: https://opendev.org/openstack/ironic
           networking-generic-switch: https://opendev.org/openstack/networking-generic-switch
         devstack_services:
+          atop: True
           c-api: False
           c-bak: False
           c-sch: False
