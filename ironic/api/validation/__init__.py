@@ -16,12 +16,18 @@ import functools
 import inspect
 import typing as ty
 
+import jsonschema.exceptions
+from oslo_config import cfg
+from oslo_log import log
 from oslo_serialization import jsonutils
 from webob import exc as webob_exc
 
 from ironic import api
 from ironic.api.validation import validators
 from ironic.common.i18n import _
+
+CONF = cfg.CONF
+LOG = log.getLogger(__name__)
 
 
 def api_version(
@@ -350,6 +356,11 @@ def response_body_schema(
         def wrapper(*args, **kwargs):
             response = func(*args, **kwargs)
 
+            if CONF.api.response_validation == 'ignore':
+                # don't waste our time checking anything if we're ignoring
+                # schema errors
+                return response
+
             # FIXME(stephenfin): How is ironic/pecan doing jsonification? The
             # below will fail on e.g. date-time fields
 
@@ -362,13 +373,20 @@ def response_body_schema(
             else:
                 body = jsonutils.loads(_body)
 
-            _schema_validator(
-                schema,
-                body,
-                min_version,
-                max_version,
-                is_body=True,
-            )
+            try:
+                _schema_validator(
+                    schema,
+                    body,
+                    min_version,
+                    max_version,
+                    is_body=True,
+                )
+            except jsonschema.exceptions.ValidationError:
+                if CONF.api.response_validation == 'warn':
+                    LOG.exception('Schema failed to validate')
+                else:
+                    raise
+
             return response
 
         if hasattr(func, 'arguments_transformed'):
