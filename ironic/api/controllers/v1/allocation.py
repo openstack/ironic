@@ -24,6 +24,7 @@ from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import utils as api_utils
 from ironic.api.controllers.v1 import versions
 from ironic.api import method
+from ironic.api.schemas.v1 import allocation as schema
 from ironic.api import validation
 from ironic.common import args
 from ironic.common import exception
@@ -237,19 +238,16 @@ class AllocationsController(pecan.rest.RestController):
 
     @METRICS.timer('AllocationsController.get_all')
     @method.expose()
+    # TODO(stephenfin): We are currently using this for side-effects to e.g.
+    # convert a CSV string to an array or a string to an integer. We should
+    # probably rename this decorator or provide a separate, simpler decorator.
+    @args.validate(limit=args.integer, fields=args.string_list)
     @validation.api_version(
         min_version=versions.MINOR_52_ALLOCATION,
         message=_('The API version does not allow allocations'),
     )
-    @args.validate(node=args.uuid_or_name,
-                   resource_class=args.string,
-                   state=args.string,
-                   marker=args.uuid,
-                   limit=args.integer,
-                   sort_key=args.string,
-                   sort_dir=args.string,
-                   fields=args.string_list,
-                   owner=args.string)
+    @validation.request_query_schema(schema.index_request_query, None, 59)
+    @validation.request_query_schema(schema.index_request_query_v60, 60)
     def get_all(self, node=None, resource_class=None, state=None, marker=None,
                 limit=None, sort_key='id', sort_dir='asc', fields=None,
                 owner=None):
@@ -295,7 +293,13 @@ class AllocationsController(pecan.rest.RestController):
         min_version=versions.MINOR_52_ALLOCATION,
         message=_('The API version does not allow allocations'),
     )
-    @args.validate(allocation_ident=args.uuid_or_name, fields=args.string_list)
+    # TODO(stephenfin): We are currently using this for side-effects to e.g.
+    # convert a CSV string to an array or a string to an integer. We should
+    # probably rename this decorator or provide a separate, simpler decorator.
+    @args.validate(fields=args.string_list)
+    @validation.request_parameter_schema(schema.show_request_parameter)
+    @validation.request_query_schema(schema.show_request_query, None, 59)
+    @validation.request_query_schema(schema.show_request_query_v60, 60)
     def get_one(self, allocation_ident, fields=None):
         """Retrieve information about the given allocation.
 
@@ -311,7 +315,6 @@ class AllocationsController(pecan.rest.RestController):
         return convert_with_links(rpc_allocation, fields=fields)
 
     def _authorize_create_allocation(self, allocation):
-
         try:
             # PRE-RBAC this rule was logically restricted, it is more-unlocked
             # post RBAC, but we need to ensure it is not abused.
@@ -351,7 +354,8 @@ class AllocationsController(pecan.rest.RestController):
         message=_('The API version does not allow allocations'),
         exception_class=webob_exc.HTTPMethodNotAllowed,
     )
-    @args.validate(allocation=ALLOCATION_VALIDATOR)
+    @validation.request_body_schema(schema.create_request_body, None, 57)
+    @validation.request_body_schema(schema.create_request_body_v58, 58)
     def post(self, allocation):
         """Create a new allocation.
 
@@ -489,7 +493,9 @@ class AllocationsController(pecan.rest.RestController):
         message=_('The API version does not allow updating allocations'),
         exception_class=webob_exc.HTTPMethodNotAllowed,
     )
-    @args.validate(allocation_ident=args.string, patch=args.patch)
+    @validation.request_parameter_schema(schema.update_request_parameter)
+    @validation.request_body_schema(schema.update_request_body, None, 59)
+    @validation.request_body_schema(schema.update_request_body_v60, 60)
     def patch(self, allocation_ident, patch):
         """Update an existing allocation.
 
@@ -533,7 +539,7 @@ class AllocationsController(pecan.rest.RestController):
         message=_('The API version does not allow allocations'),
         exception_class=webob_exc.HTTPMethodNotAllowed,
     )
-    @args.validate(allocation_ident=args.uuid_or_name)
+    @validation.request_parameter_schema(schema.delete_request_parameter)
     def delete(self, allocation_ident):
         """Delete an allocation.
 
