@@ -22,7 +22,9 @@ from ironic.api.controllers import link
 from ironic.api.controllers.v1 import collection
 from ironic.api.controllers.v1 import notification_utils as notify
 from ironic.api.controllers.v1 import utils as api_utils
+from ironic.api.controllers.v1 import versions
 from ironic.api import method
+from ironic.api import validation
 from ironic.common import args
 from ironic.common import exception
 from ironic.common.i18n import _
@@ -122,16 +124,6 @@ class AllocationsController(pecan.rest.RestController):
     """REST controller for allocations."""
 
     invalid_sort_key_list = ['extra', 'candidate_nodes', 'traits']
-
-    @pecan.expose()
-    def _route(self, args, request=None):
-        if not api_utils.allow_allocations():
-            msg = _("The API version does not allow allocations")
-            if api.request.method == "GET":
-                raise webob_exc.HTTPNotFound(msg)
-            else:
-                raise webob_exc.HTTPMethodNotAllowed(msg)
-        return super(AllocationsController, self)._route(args, request)
 
     def _get_allocations_collection(self, node_ident=None, resource_class=None,
                                     state=None, owner=None, marker=None,
@@ -245,6 +237,10 @@ class AllocationsController(pecan.rest.RestController):
 
     @METRICS.timer('AllocationsController.get_all')
     @method.expose()
+    @validation.api_version(
+        min_version=versions.MINOR_52_ALLOCATION,
+        message=_('The API version does not allow allocations'),
+    )
     @args.validate(node=args.uuid_or_name,
                    resource_class=args.string,
                    state=args.string,
@@ -295,6 +291,10 @@ class AllocationsController(pecan.rest.RestController):
 
     @METRICS.timer('AllocationsController.get_one')
     @method.expose()
+    @validation.api_version(
+        min_version=versions.MINOR_52_ALLOCATION,
+        message=_('The API version does not allow allocations'),
+    )
     @args.validate(allocation_ident=args.uuid_or_name, fields=args.string_list)
     def get_one(self, allocation_ident, fields=None):
         """Retrieve information about the given allocation.
@@ -346,6 +346,11 @@ class AllocationsController(pecan.rest.RestController):
     @METRICS.timer('AllocationsController.post')
     @method.expose(status_code=http_client.CREATED)
     @method.body('allocation')
+    @validation.api_version(
+        min_version=versions.MINOR_52_ALLOCATION,
+        message=_('The API version does not allow allocations'),
+        exception_class=webob_exc.HTTPMethodNotAllowed,
+    )
     @args.validate(allocation=ALLOCATION_VALIDATOR)
     def post(self, allocation):
         """Create a new allocation.
@@ -479,6 +484,11 @@ class AllocationsController(pecan.rest.RestController):
     @METRICS.timer('AllocationsController.patch')
     @method.expose()
     @method.body('patch')
+    @validation.api_version(
+        min_version=versions.MINOR_57_ALLOCATION_UPDATE,
+        message=_('The API version does not allow updating allocations'),
+        exception_class=webob_exc.HTTPMethodNotAllowed,
+    )
     @args.validate(allocation_ident=args.string, patch=args.patch)
     def patch(self, allocation_ident, patch):
         """Update an existing allocation.
@@ -488,10 +498,6 @@ class AllocationsController(pecan.rest.RestController):
            :allocation_ident: allocation_ident
            :patch: allocation_patch
         """
-        if not api_utils.allow_allocation_update():
-            raise webob_exc.HTTPMethodNotAllowed(_(
-                "The API version does not allow updating allocations"))
-
         context = api.request.context
         rpc_allocation = api_utils.check_allocation_policy_and_retrieve(
             'baremetal:allocation:update', allocation_ident)
@@ -522,6 +528,11 @@ class AllocationsController(pecan.rest.RestController):
 
     @METRICS.timer('AllocationsController.delete')
     @method.expose(status_code=http_client.NO_CONTENT)
+    @validation.api_version(
+        min_version=versions.MINOR_52_ALLOCATION,
+        message=_('The API version does not allow allocations'),
+        exception_class=webob_exc.HTTPMethodNotAllowed,
+    )
     @args.validate(allocation_ident=args.uuid_or_name)
     def delete(self, allocation_ident):
         """Delete an allocation.

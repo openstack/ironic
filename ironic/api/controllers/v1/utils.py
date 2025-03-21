@@ -2085,14 +2085,6 @@ def allow_configdrive_vendor_data():
             >= versions.MINOR_59_CONFIGDRIVE_VENDOR_DATA)
 
 
-def allow_allocation_update():
-    """Check if updating an existing allocation is allowed or not.
-
-    Version 1.57 of the API added support for updating an allocation.
-    """
-    return api.request.version.minor >= versions.MINOR_57_ALLOCATION_UPDATE
-
-
 def allow_allocation_backfill():
     """Check if backfilling allocations is allowed.
 
