@@ -439,7 +439,8 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         node.refresh()
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
-        mock_steps.assert_called_once_with(mock.ANY, disable_ramdisk=False)
+        mock_steps.assert_called_once_with(mock.ANY, disable_ramdisk=False,
+                                           use_existing_steps=mock.ANY)
         self.assertFalse(node.maintenance)
         self.assertIsNone(node.fault)
 
@@ -470,7 +471,8 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         node.refresh()
         self.assertEqual(states.CLEANFAIL, node.provision_state)
         self.assertEqual(tgt_prov_state, node.target_provision_state)
-        mock_steps.assert_called_once_with(mock.ANY, disable_ramdisk=False)
+        mock_steps.assert_called_once_with(mock.ANY, disable_ramdisk=False,
+                                           use_existing_steps=mock.ANY)
         self.assertTrue(mock_power.called)
 
     def test__do_node_clean_automated_steps_fail(self):
@@ -491,13 +493,13 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
                 autospec=True)
     def __do_node_clean(self, mock_power_valid, mock_network_valid,
                         mock_next_step, mock_steps, clean_steps=None,
-                        disable_ramdisk=False):
-        if clean_steps:
+                        disable_ramdisk=False, automated_with_steps=False):
+        if clean_steps and not automated_with_steps:
             tgt_prov_state = states.MANAGEABLE
         else:
             tgt_prov_state = states.AVAILABLE
 
-            def set_steps(task, disable_ramdisk=None):
+            def set_steps(task, disable_ramdisk=None, use_existing_steps=None):
                 dii = task.node.driver_internal_info
                 dii['clean_steps'] = self.clean_steps
                 task.node.driver_internal_info = dii
@@ -516,7 +518,8 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
         with task_manager.acquire(
                 self.context, node.uuid, shared=False) as task:
             cleaning.do_node_clean(task, clean_steps=clean_steps,
-                                   disable_ramdisk=disable_ramdisk)
+                                   disable_ramdisk=disable_ramdisk,
+                                   automated_with_steps=automated_with_steps)
 
             node.refresh()
 
@@ -529,7 +532,8 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
             mock_next_step.assert_called_once_with(
                 task, 0, disable_ramdisk=disable_ramdisk)
             mock_steps.assert_called_once_with(
-                task, disable_ramdisk=disable_ramdisk)
+                task, disable_ramdisk=disable_ramdisk,
+                use_existing_steps=mock.ANY)
             if clean_steps:
                 self.assertEqual(clean_steps,
                                  node.driver_internal_info['clean_steps'])
@@ -1203,6 +1207,12 @@ class DoNodeCleanTestCase(db_base.DbTestCase):
 
     def test_continue_node_clean_no_skip_step(self):
         self._continue_node_clean(skip=False)
+
+    def test__do_node_clean_automated_with_steps(self):
+        """Test automated cleaning with steps from runbook."""
+        self.__do_node_clean(
+            clean_steps=self.clean_steps,
+            automated_with_steps=True)
 
 
 class DoNodeCleanAbortTestCase(db_base.DbTestCase):

@@ -2551,7 +2551,7 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertNotIn('automatic_lessee', node.driver_internal_info)
         self.assertNotIn('is_source_a_path', node.driver_internal_info)
         mock_tear_down.assert_called_once_with(task.driver.deploy, task)
-        mock_clean.assert_called_once_with(task)
+        mock_clean.assert_called_once_with(task, mock.ANY, mock.ANY, mock.ANY)
         self.assertEqual({}, port.internal_info)
         mock_unbind.assert_called_once_with('foo', context=mock.ANY)
         if enabled_console:
@@ -2600,7 +2600,8 @@ class DoNodeTearDownTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertIsNone(node.last_error)
         self.assertEqual({}, node.instance_info)
         mock_tear_down.assert_called_once_with(mock.ANY, mock.ANY)
-        mock_clean.assert_called_once_with(mock.ANY)
+        mock_clean.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
+                                           mock.ANY)
         if is_rescue_state:
             mock_rescue_clean.assert_called_once_with(mock.ANY, mock.ANY)
         else:
@@ -2735,7 +2736,8 @@ class DoProvisioningActionTestCase(mgr_utils.ServiceSetUpMixin,
         self.assertEqual(states.AVAILABLE, node.target_provision_state)
         self.assertIsNone(node.last_error)
         mock_spawn.assert_called_with(self.service,
-                                      cleaning.do_node_clean, mock.ANY)
+                                      cleaning.do_node_clean,
+                                      mock.ANY, mock.ANY, mock.ANY, mock.ANY)
 
     @mock.patch('ironic.conductor.manager.ConductorManager._spawn_worker',
                 autospec=True)
@@ -2974,7 +2976,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_power_valid.assert_called_once_with(mock.ANY, mock.ANY)
         mock_network_valid.assert_called_once_with(mock.ANY, mock.ANY)
         mock_spawn.assert_called_with(
-            self.service, cleaning.do_node_clean, mock.ANY, clean_steps, False)
+            self.service, cleaning.do_node_clean, mock.ANY, clean_steps,
+            False, False)
         node.refresh()
         # Node will be moved to CLEANING
         self.assertEqual(states.CLEANING, node.provision_state)
@@ -3007,7 +3010,8 @@ class DoNodeCleanTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         mock_power_valid.assert_called_once_with(mock.ANY, mock.ANY)
         mock_network_valid.assert_called_once_with(mock.ANY, mock.ANY)
         mock_spawn.assert_called_with(
-            self.service, cleaning.do_node_clean, mock.ANY, clean_steps, False)
+            self.service, cleaning.do_node_clean, mock.ANY, clean_steps,
+            False, False)
         node.refresh()
         # Make sure states were rolled back
         self.assertEqual(prv_state, node.provision_state)
@@ -6730,6 +6734,194 @@ class ParallelPowerSyncTestCase(mgr_utils.CommonMixIn, db_base.DbTestCase):
 
             expected_calls = [mock.call([2]), mock.call([0]), mock.call([1])]
             queue_mock.return_value.put.assert_has_calls(expected_calls)
+
+
+@mgr_utils.mock_record_keepalive
+@mock.patch.object(task_manager, 'acquire', autospec=True)
+class GetStepsForAutomatedCleaningTestCase(mgr_utils.ServiceSetUpMixin,
+                                           mgr_utils.CommonMixIn,
+                                           db_base.DbTestCase):
+    def _set_node_trait(self, name):
+        self.node.traits = objects.TraitList.create(context=self.context,
+                                                    node_id=self.node.id,
+                                                    traits=[name])
+
+    def setUp(self):
+        super(GetStepsForAutomatedCleaningTestCase, self).setUp()
+        self._start_service()
+        self.node = obj_utils.create_test_node(
+            self.context,
+            driver='fake-hardware',
+            uuid=uuidutils.generate_uuid())
+        self.node.create()
+        self.task = self._create_task(node=self.node)
+        self.rb_name = 'CUSTOM_BM_RB'
+        self._set_node_trait(self.rb_name)
+
+    @mock.patch.object(manager.ConductorManager, 'get_runbook', autospec=True)
+    def test_gsfac_runbook_by_resource_class(self, mock_get_runbook, mt):
+        CONF.set_override('automated_cleaning_step_source', 'runbook',
+                          group='conductor')
+        CONF.set_override('automated_cleaning_runbook_by_resource_class',
+                          {'baremetal': self.rb_name},
+                          group='conductor')
+        self.node.resource_class = 'baremetal'
+        rb = mock.Mock(spec_set=objects.Runbook)
+        rb.name = self.rb_name
+        exp_steps = [{'interface': 'deploy', 'step': 'test_step', 'args': {}}]
+        rb.steps = exp_steps
+        rb.disable_ramdisk = True
+        mock_get_runbook.return_value = rb
+
+        steps, dr = self.service._get_steps_for_automated_cleaning(self.task)
+
+        mock_get_runbook.assert_called_once_with(mock.ANY, mock.ANY,
+                                                 self.rb_name)
+        self.assertEqual(exp_steps, steps)
+        self.assertTrue(dr)
+
+    @mock.patch.object(manager.ConductorManager, 'get_runbook', autospec=True)
+    def test_gsfac_fallback_to_default_runbook(self, mock_get_runbook, mt):
+        rb_to_use = 'CUSTOM_DEFAULT'
+        CONF.set_override('automated_cleaning_step_source', 'runbook',
+                          group='conductor')
+        CONF.set_override('automated_cleaning_runbook', rb_to_use,
+                          group='conductor')
+        CONF.set_override('automated_cleaning_runbook_by_resource_class',
+                          {'other': 'CUSTOM_OTHER'}, group='conductor')
+        self.node.resource_class = 'baremetal'
+        self._set_node_trait(rb_to_use)
+        rb = mock.Mock(spec_set=objects.Runbook)
+        rb.name = rb_to_use
+        exp_steps = [{'interface': 'deploy', 'step': 'test_step', 'args': {}}]
+        rb.steps = exp_steps
+        rb.disable_ramdisk = True
+        mock_get_runbook.return_value = rb
+        steps, dr = self.service._get_steps_for_automated_cleaning(self.task)
+
+        mock_get_runbook.assert_called_once_with(mock.ANY, mock.ANY, rb_to_use)
+        self.assertEqual(exp_steps, steps)
+        self.assertTrue(dr)
+
+    @mock.patch.object(manager.ConductorManager, 'get_runbook', autospec=True)
+    def test_gsfac_autogenerated(self, mock_get_runbook, mt):
+        CONF.set_override('automated_cleaning_step_source', 'autogenerated',
+                          group='conductor')
+        CONF.set_override('automated_cleaning_runbook_by_resource_class',
+                          {'baremetal': self.rb_name},
+                          group='conductor')
+        self.node.resource_class = 'baremetal'
+
+        steps, dr = self.service._get_steps_for_automated_cleaning(self.task)
+
+        self.assertIsNone(steps)
+        self.assertFalse(dr)
+        mock_get_runbook.assert_not_called()
+
+    @mock.patch.object(manager.ConductorManager, 'get_runbook', autospec=True)
+    def test_gsfac_runbook_from_node(self, mock_get_runbook, mt):
+        rb_to_use = 'CUSTOM_NODE_RB'
+        CONF.set_override('automated_cleaning_step_source', 'runbook',
+                          group='conductor')
+        CONF.set_override('automated_cleaning_runbook_from_node', True,
+                          group='conductor')
+        self.node.driver_info = {'cleaning_runbook': rb_to_use}
+        self._set_node_trait(rb_to_use)
+        rb = mock.Mock(spec_set=objects.Runbook)
+        rb.name = rb_to_use
+        exp_steps = [{'interface': 'deploy', 'step': 'test_step', 'args': {}}]
+        rb.steps = exp_steps
+        rb.disable_ramdisk = True
+        mock_get_runbook.return_value = rb
+
+        steps, dr = self.service._get_steps_for_automated_cleaning(self.task)
+
+        mock_get_runbook.assert_called_once_with(mock.ANY, mock.ANY,
+                                                 rb_to_use)
+        self.assertEqual(steps, exp_steps)
+        self.assertTrue(dr)
+
+    @mock.patch.object(manager.ConductorManager, 'get_runbook', autospec=True)
+    def test_gsfac_hybrid_no_runbook(self, mock_get_runbook, mt):
+        CONF.set_override('automated_cleaning_step_source', 'hybrid',
+                          group='conductor')
+        CONF.set_override('automated_cleaning_runbook', None,
+                          group='conductor')
+        CONF.set_override('automated_cleaning_runbook_by_resource_class',
+                          {}, group='conductor')
+
+        steps, dr = self.service._get_steps_for_automated_cleaning(self.task)
+
+        self.assertFalse(mock_get_runbook.called)
+        self.assertIsNone(steps)
+        self.assertFalse(dr)
+
+    @mock.patch.object(manager.ConductorManager, 'get_runbook', autospec=True)
+    def test_gsfac_no_runbook_required(self, mock_get_runbook, mt):
+        CONF.set_override('automated_cleaning_step_source', 'runbook',
+                          group='conductor')
+        CONF.set_override('automated_cleaning_runbook', None,
+                          group='conductor')
+        CONF.set_override('automated_cleaning_runbook_by_resource_class',
+                          {}, group='conductor')
+
+        self.assertRaises(exception.NodeCleaningFailure,
+                          self.service._get_steps_for_automated_cleaning,
+                          self.task)
+        self.assertFalse(mock_get_runbook.called)
+
+    @mock.patch.object(manager.ConductorManager, 'get_runbook', autospec=True)
+    def test_gsfac_runbook_incompatible_with_node(self, mock_get_runbook, mt):
+        bad_rb_name = "CUSTOM_INCOMPATIBLE_RB"
+        CONF.set_override('automated_cleaning_step_source', 'runbook',
+                          group='conductor')
+        CONF.set_override('automated_cleaning_runbook_by_resource_class',
+                          {'baremetal': bad_rb_name},
+                          group='conductor')
+        # NOTE(JayF): We specifically are not adding bad_rb_name to traits,
+        #             which means this should be considered incompatible
+        self.node.resource_class = 'baremetal'
+        rb = mock.Mock(spec_set=objects.Runbook)
+        rb.name = bad_rb_name
+#        exp_steps = [{'interface': 'deploy', 'step': 'test_step', 'args': {}}]
+#        rb.steps = exp_steps
+#        rb.disable_ramdisk = True
+        mock_get_runbook.return_value = rb
+
+        self.assertRaises(exception.NodeCleaningFailure,
+                          self.service._get_steps_for_automated_cleaning,
+                          self.task)
+        # NOTE(JayF): get_runbook is called in this case because we need to
+        #             fetch the runbook to know it's incompatible
+        self.assertTrue(mock_get_runbook.called)
+
+    @mock.patch.object(manager.ConductorManager, 'get_runbook', autospec=True)
+    def test_gsfac_runbook_incompatible_with_node_ignored(
+            self, mock_get_runbook, mt):
+        bad_rb_name = "CUSTOM_INCOMPATIBLE_RB"
+        CONF.set_override('automated_cleaning_runbook_validate_traits', False,
+                          group='conductor')
+        CONF.set_override('automated_cleaning_step_source', 'runbook',
+                          group='conductor')
+        CONF.set_override('automated_cleaning_runbook_by_resource_class',
+                          {'baremetal': bad_rb_name},
+                          group='conductor')
+        # NOTE(JayF): We specifically are not adding bad_rb_name to traits,
+        #             which means this should be considered incompatible
+        self.node.resource_class = 'baremetal'
+        rb = mock.Mock(spec_set=objects.Runbook)
+        rb.name = bad_rb_name
+        exp_steps = [{'interface': 'deploy', 'step': 'test_step', 'args': {}}]
+        rb.steps = exp_steps
+        rb.disable_ramdisk = True
+        mock_get_runbook.return_value = rb
+
+        steps, dr = self.service._get_steps_for_automated_cleaning(self.task)
+
+        mock_get_runbook.assert_called_once_with(mock.ANY, mock.ANY,
+                                                 bad_rb_name)
+        self.assertEqual(steps, exp_steps)
+        self.assertTrue(dr)
 
 
 @mock.patch.object(task_manager, 'acquire', autospec=True)

@@ -29,7 +29,8 @@ LOG = log.getLogger(__name__)
 
 
 @task_manager.require_exclusive_lock
-def do_node_clean(task, clean_steps=None, disable_ramdisk=False):
+def do_node_clean(task, clean_steps=None, disable_ramdisk=False,
+                  automated_with_steps=False):
     """Internal RPC method to perform cleaning of a node.
 
     :param task: a TaskManager instance with an exclusive lock on its node
@@ -38,9 +39,11 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False):
                         For more information, see the clean_steps parameter
                         of :func:`ConductorManager.do_node_clean`.
     :param disable_ramdisk: Whether to skip booting ramdisk for cleaning.
+    :param automated_with_steps: Indicates this is a declarative automated
+                                 clean powered by a runbook.
     """
     node = task.node
-    manual_clean = clean_steps is not None
+    manual_clean = clean_steps is not None and automated_with_steps is False
     clean_type = 'manual' if manual_clean else 'automated'
     LOG.debug('Starting %(type)s cleaning for node %(node)s',
               {'type': clean_type, 'node': node.uuid})
@@ -77,10 +80,11 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False):
         return utils.cleaning_error_handler(task, msg)
 
     utils.wipe_cleaning_internal_info(task)
-    if manual_clean:
+    if clean_steps:
         node.set_driver_internal_info('clean_steps', clean_steps)
         node.set_driver_internal_info('cleaning_disable_ramdisk',
                                       disable_ramdisk)
+        node.set_driver_internal_info('declarative_cleaning', True)
     task.node.save()
 
     utils.node_update_cache(task)
@@ -120,7 +124,9 @@ def do_node_clean(task, clean_steps=None, disable_ramdisk=False):
 
     try:
         conductor_steps.set_node_cleaning_steps(
-            task, disable_ramdisk=disable_ramdisk)
+            task, disable_ramdisk=disable_ramdisk,
+            use_existing_steps=bool(clean_steps)
+        )
     except Exception as e:
         # Catch all exceptions and follow the error handling
         # path so things are cleaned up properly.
