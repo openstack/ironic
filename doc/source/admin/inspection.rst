@@ -8,9 +8,7 @@ Overview
 Inspection allows Bare Metal service to discover required node properties
 once required ``driver_info`` fields (for example, IPMI credentials) are set
 by an operator. Inspection will also create the Bare Metal service ports for the
-discovered ethernet MACs. Operators will have to manually delete the Bare Metal
-service ports for which physical media is not connected. This is required due
-to the `bug 1405131 <https://bugs.launchpad.net/ironic/+bug/1405131>`_.
+discovered ethernet MACs.
 
 There are three kinds of inspection supported by Bare Metal service:
 

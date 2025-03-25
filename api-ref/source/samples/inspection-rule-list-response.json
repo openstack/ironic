@@ -1,0 +1,55 @@
+{
+    "inspection_rules": [
+      {
+        "description": "BMC credentials",
+        "phase": "main",
+        "priority": 100,
+        "sensitive": true,
+        "links": [
+          {
+            "href": "http://10.60.253.180:6385/v1/inspection_rules/783bf33a-a8e3-1e23-a645-1e95a1f95186",
+            "rel": "self"
+          },
+          {
+            "href": "http://10.60.253.180:6385/inspection_rules/783bf33a-a8e3-1e23-a645-1e95a1f95186",
+            "rel": "bookmark"
+          }
+        ],
+        "uuid": "783bf33a-a8e3-1e23-a645-1e95a1f95186"
+      },
+      {
+        "description": "Set properties on discovered data",
+        "phase": "main",
+        "priority": 50,
+        "sensitive": false,
+        "links": [
+          {
+            "href": "http://10.60.253.180:6385/v1/inspection_rules/1f3ee449-08cd-9e3f-e1e5-9cfda674081a",
+            "rel": "self"
+          },
+          {
+            "href": "http://10.60.253.180:6385/inspection_rules/1f3ee449-08cd-9e3f-e1e5-9cfda674081a",
+            "rel": "bookmark"
+          }
+        ],
+        "uuid": "1f3ee449-08cd-9e3f-e1e5-9cfda674081a"
+      },
+      {
+        "description": "Memory systems",
+        "phase": "main",
+        "priority": 0,
+        "sensitive": false,
+        "links": [
+          {
+            "href": "http://10.60.253.180:6385/v1/inspection_rules/210055f4-7367-ff8d-ae42-f4f9e8e85e8a",
+            "rel": "self"
+          },
+          {
+            "href": "http://10.60.253.180:6385/inspection_rules/210055f4-7367-ff8d-ae42-f4f9e8e85e8a",
+            "rel": "bookmark"
+          }
+        ],
+        "uuid": "210055f4-7367-ff8d-ae42-f4f9e8e85e8a"
+      }
+    ]
+  }

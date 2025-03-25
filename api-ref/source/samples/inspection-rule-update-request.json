@@ -1,0 +1,28 @@
+[
+    {
+      "path": "/description",
+      "value": "Updated rule for setting hardware properties",
+      "op": "replace"
+    },
+    {
+      "path": "/priority",
+      "value": 75,
+      "op": "replace"
+    },
+    {
+      "path": "/conditions/0",
+      "value": {
+        "op": "is-true",
+        "args": {"value": "{inventory[cpu][count]}"}
+      },
+      "op": "replace"
+    },
+    {
+      "path": "/actions/-",
+      "value": {
+        "op": "set-attribute",
+        "args": {"path": "/properties/local_gb", "value": "{inventory[disks][0][size]}"}
+      },
+      "op": "add"
+    }
+  ]

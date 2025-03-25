@@ -1156,6 +1156,106 @@ inspection_finished_at:
   in: body
   required: true
   type: string
+inspection_rule_action_args:
+  description: |
+    A list (in the sense of Python ``*args``)
+    or a dict (in the sense of Python ``**kwargs``) with arguments for
+    the action operator.
+  in: body
+  required: true
+  type: array
+inspection_rule_action_loop:
+  description: |
+    This is an Ansible-style loop field. It contains a list or dictionary
+    of items to iterate over for the same action.
+  in: body
+  required: false
+  type: array
+inspection_rule_action_op:
+  description: |
+    The operator to execute with specified arguments when conditions are met.
+  in: body
+  required: true
+  type: string
+inspection_rule_actions:
+  description: |
+    A list of actions to run during inspection. An action is a dictionary
+    or list, with required keys 'op' and 'args', and optional key 'loop'.
+  in: body
+  required: true
+  type: array
+inspection_rule_condition_args:
+  description: |
+    A list (in the sense of Python ``*args``)
+    or a dict (in the sense of Python ``**kwargs``) with arguments for
+    the condition operator.
+  in: body
+  required: true
+  type: array
+inspection_rule_condition_loop:
+  description: |
+    This is an Ansible-style loop field. It contains a list or dictionary
+    of items to iterate over for the same condition.
+  in: body
+  required: false
+  type: array
+inspection_rule_condition_multiple:
+  description: |
+    Determines how the results of all loop iterations are combined, whether
+    a condition is returned as true if 'any' check passes,
+    or only when 'all'; the 'first', or the 'last' check is true.
+  in: body
+  required: false
+  type: string
+inspection_rule_condition_op:
+  description: |
+    The operator to run conditions by, with specified arguments.
+  in: body
+  required: true
+  type: string
+inspection_rule_conditions:
+  description: |
+    A list of conditions to check before applying the rule. A
+    condition is a dictionary or list, with required keys 'op' and 'args', and
+    optional keys 'loop' and 'multiple'.
+  in: body
+  required: false
+  type: array
+inspection_rule_description:
+  description: |
+    Informational text about this rule.
+  in: body
+  required: false
+  type: string
+inspection_rule_ident:
+  description: |
+     The UUID of the inspection rule.
+  in: body
+  required: false
+  type: string
+inspection_rule_phase:
+  description: |
+    Specifies the phase when the rule should run, defaults to 'main'.
+  in: body
+  required: false
+  type: string
+inspection_rule_priority:
+  description: |
+    A non-negative integer priority for the rule. Specifies the rule's
+    precedence level during execution. Priorities between 0 and 9999 can be
+    used by all rules, negative value and values above 10000 are reserved for
+    built-in rules. The default priority is 0.
+  in: body
+  required: false
+  type: int
+inspection_rule_sensitive:
+  description: |
+    Indicates whether the rule contains sensitive information. A sensitive
+    rule will also have the ability to see sensitive fields on inspection
+    data.
+  in: body
+  required: false
+  type: string
 inspection_started_at:
   description: |
     The UTC date and time when the hardware inspection was started,
@@ -1732,6 +1832,12 @@ req_extra:
 req_inspect_interface:
   description: |
     The interface used for node inspection, e.g. "no-inspect".
+  in: body
+  required: false
+  type: string
+req_inspection_rule_phase:
+  description: |
+    Specifies the phase when the rule should run, defaults to 'main'.
   in: body
   required: false
   type: string
