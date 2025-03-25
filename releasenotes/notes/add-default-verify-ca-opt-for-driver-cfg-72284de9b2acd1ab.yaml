@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    Allows users to specify the verify_ca path for the corresponding driver
+    through the ``verify_ca`` option under the ``[<driver>]`` section in the configuration.
+    When ``[driver_info]/<driver>_verify_ca`` is specified as None or True,
+    it will be replaced by the value of the ``verify_ca`` option.
+    NOTE: For the ``idrac`` driver, it uses the same options as the ``redfish`` driver.

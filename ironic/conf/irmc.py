@@ -138,6 +138,9 @@ opts = [
                       '/proc/cmdline. Mind severe cmdline size limit! Can be '
                       'overridden by `instance_info/kernel_append_params` '
                       'property.')),
+    cfg.StrOpt('verify_ca',
+               help=_('The default verify_ca path when irmc_verify_ca '
+                      'in driver_info is missing or set to True.')),
 ]
 
 

@@ -29,6 +29,7 @@ from ironic.common.i18n import _
 from ironic.common import utils
 from ironic.conf import CONF
 from ironic.drivers.modules import snmp
+from ironic.drivers import utils as driver_utils
 
 scci = importutils.try_import('scciclient.irmc.scci')
 elcm = importutils.try_import('scciclient.irmc.elcm')
@@ -182,7 +183,7 @@ def parse_driver_info(node):
             _("Value '%s' is not supported for 'irmc_sensor_method'.") %
             d_info['irmc_sensor_method'])
 
-    verify_ca = d_info.get('irmc_verify_ca')
+    verify_ca = driver_utils.get_verify_ca(node, d_info.get('irmc_verify_ca'))
     if verify_ca is None:
         d_info['irmc_verify_ca'] = verify_ca = CONF.webserver_verify_ca
 
