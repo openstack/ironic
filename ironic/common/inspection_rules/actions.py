@@ -68,20 +68,29 @@ class ActionBase(base.Base, metaclass=abc.ABCMeta):
         """Run action on successful rule match."""
 
     def execute_with_loop(self, task, action, inventory, plugin_data):
-        loop_items = action.get('loop', [])
-        results = []
+        loop_items = None
+        if action.get('loop', []):
+            loop_items = action['loop']
 
         if isinstance(loop_items, (list, dict)):
-            for item in loop_items:
+            if isinstance(loop_items, dict):
+                loop_context = {'item': loop_items}
                 action_copy = action.copy()
-                action_copy['args'] = item
-                results.append(self.execute_action(task, action_copy,
-                                                   inventory, plugin_data))
-        return results
+                self.execute_action(task, action_copy, inventory, plugin_data,
+                                    loop_context)
+                return
 
-    def execute_action(self, task, action, inventory, plugin_data):
+            for item in loop_items:
+                loop_context = {'item': item}
+                action_copy = action.copy()
+                self.execute_action(task, action_copy, inventory, plugin_data,
+                                    loop_context)
+
+    def execute_action(self, task, action, inventory, plugin_data,
+                       loop_context=None):
         processed_args = self._process_args(task, action, inventory,
-                                            plugin_data)
+                                            plugin_data, loop_context)
+
         return self(task, **processed_args)
 
 
