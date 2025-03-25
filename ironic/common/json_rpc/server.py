@@ -31,7 +31,7 @@ import webob
 from ironic.common import auth_basic
 from ironic.common import exception
 from ironic.common.i18n import _
-from ironic.common.json_rpc import wsgi
+from ironic.common import wsgi_service
 from ironic.conf import json_rpc
 
 
@@ -93,7 +93,7 @@ class EmptyContext:
         return self.__dict__.copy()
 
 
-class WSGIService(wsgi.WSGIService):
+class WSGIService(wsgi_service.BaseWSGIService):
     """Provides ability to launch JSON RPC as a WSGI application."""
 
     def __init__(self, manager, serializer, context_class=EmptyContext):
