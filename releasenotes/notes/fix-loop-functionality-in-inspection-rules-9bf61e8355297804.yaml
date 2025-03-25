@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Fixes loop functionality to align more closely with the spec where,
+    with `loop` present, `args` reference loop items using '{item}'
+    placeholder to support direct array iteration; plus,
+    separately handle list and dict loop item types.

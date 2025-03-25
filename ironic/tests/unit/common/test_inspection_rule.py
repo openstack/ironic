@@ -16,6 +16,7 @@ from oslo_utils import uuidutils
 
 from ironic.common import exception
 from ironic.common import inspection_rules
+from ironic.common.inspection_rules import base
 from ironic.common.inspection_rules import engine
 from ironic.common.inspection_rules import utils
 from ironic.conductor import task_manager
@@ -27,7 +28,10 @@ class TestInspectionRules(db_base.DbTestCase):
     def setUp(self):
         super(TestInspectionRules, self).setUp()
         self.node = obj_utils.create_test_node(self.context,
-                                               driver='fake-hardware')
+                                               driver='fake-hardware',
+                                               driver_info={},
+                                               extra={})
+
         self.sensitive_fields = ['password', 'auth_token', 'bmc_password']
         self.test_data = {
             'username': 'testuser',
@@ -378,40 +382,78 @@ class TestOperators(TestInspectionRules):
 
     def test_operator_with_loop(self):
         """Test operator check_with_loop method."""
-        condition = {
+        eq_condition = {
             'op': 'eq',
-            'loop': [
-                {'values': [1, 1]},
-                {'values': [2, 2]},
-                {'values': [3, 4]}
-            ],
+            'args': {'values': [1, '{item}']},
+            'loop': [1, 2, 3, 4],
             'multiple': 'any'
         }
 
-        inventory = {'data': 'test'}
-        plugin_data = {'plugin': 'data'}
+        contains_condition = {
+            'op': 'contains',
+            'args': {'value': '{item}', 'regex': '4'},
+            'loop': ['test4', 'value5', 'string6'],
+            'multiple': 'any'
+        }
+
+        oneof_condition = {
+            'op': 'one-of',
+            'args': {'value': '{inventory[cpu][architecture]}',
+                     'values': ['{item}']},
+            'loop': ['x86_64', 'aarch64', 'ppc64le'],
+            'multiple': 'any'
+        }
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            op = inspection_rules.operators.EqOperator()
+            eq_op = inspection_rules.operators.EqOperator()
+            contains_op = inspection_rules.operators.ContainsOperator()
+            oneof_op = inspection_rules.operators.OneOfOperator()
 
             # 'any' multiple (should return True)
-            self.assertTrue(op.check_with_loop(task, condition, inventory,
-                                               plugin_data))
+            self.assertTrue(eq_op.check_with_loop(
+                task, eq_condition, self.inventory, self.plugin_data))
+            self.assertTrue(contains_op.check_with_loop(
+                task, contains_condition, self.inventory, self.plugin_data))
+            self.assertTrue(oneof_op.check_with_loop(
+                task, oneof_condition, self.inventory, self.plugin_data))
 
             # 'all' multiple (should return False)
-            condition['multiple'] = 'all'
-            self.assertFalse(op.check_with_loop(task, condition, inventory,
-                                                plugin_data))
+            eq_condition['multiple'] = 'all'
+            contains_condition['multiple'] = 'all'
+            oneof_condition['multiple'] = 'all'
+
+            self.assertFalse(eq_op.check_with_loop(
+                task, eq_condition, self.inventory, self.plugin_data))
+            self.assertFalse(contains_op.check_with_loop(
+                task, contains_condition, self.inventory, self.plugin_data))
+            self.assertFalse(oneof_op.check_with_loop(
+                task, oneof_condition, self.inventory, self.plugin_data))
 
             # 'first' multiple (should return True)
-            condition['multiple'] = 'first'
-            self.assertTrue(op.check_with_loop(task, condition, inventory,
-                                               plugin_data))
+            eq_condition['multiple'] = 'first'
+            contains_condition['multiple'] = 'first'
+            oneof_condition['multiple'] = 'first'
 
-            # 'last' multiple (should return False)
-            condition['multiple'] = 'last'
-            self.assertFalse(op.check_with_loop(task, condition, inventory,
-                                                plugin_data))
+            self.assertTrue(eq_op.check_with_loop(
+                task, eq_condition, self.inventory, self.plugin_data))
+            self.assertTrue(contains_op.check_with_loop(
+                task, contains_condition, self.inventory, self.plugin_data))
+            self.assertTrue(oneof_op.check_with_loop(
+                task, oneof_condition, self.inventory, self.plugin_data))
+
+            # 'last' multiple (should return False for eq, True for others)
+            eq_condition['multiple'] = 'last'
+            contains_condition['multiple'] = 'last'
+            oneof_condition['multiple'] = 'last'
+
+            self.assertFalse(eq_op.check_with_loop(task, eq_condition,
+                                                   self.inventory,
+                                                   self.plugin_data))
+            self.assertFalse(contains_op.check_with_loop(
+                task, contains_condition, self.inventory, self.plugin_data))
+            # This should be False since 'ppc64le' doesn't match 'x86_64'
+            self.assertFalse(oneof_op.check_with_loop(
+                task, oneof_condition, self.inventory, self.plugin_data))
 
     def test_rule_operators(self):
         """Test all inspection_rules.operators with True and False cases."""
@@ -492,12 +534,34 @@ class TestActions(TestInspectionRules):
             self.assertRaises(exception.HardwareInspectionFailure,
                               action, task, msg=error_msg)
 
+    def test_action_path_dot_slash_notation(self):
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            action = inspection_rules.actions.SetAttributeAction()
+
+            # slash notation
+            action(
+                task, path='driver_info/new', value={'new_key': 'test_value'})
+
+            # dot notation
+            action(task, path='driver_info.next.nested.deeper',
+                   value={'next_key': 'test_value'})
+
+            self.assertEqual(
+                {'new_key': 'test_value'}, task.node.driver_info['new'])
+            self.assertEqual(
+                {'nested': {'deeper': {'next_key': 'test_value'}}},
+                task.node.driver_info['next'])
+
     def test_set_attribute_action(self):
         """Test SetAttributeAction sets node attribute."""
         with task_manager.acquire(self.context, self.node.uuid) as task:
             action = inspection_rules.actions.SetAttributeAction()
-            action(task, path='extra', value={'test_key': 'test_value'})
-            self.assertEqual({'test_key': 'test_value'}, task.node.extra)
+
+            action(
+                task, path='driver_info/new', value={'new_key': 'test_value'})
+
+            self.assertEqual(
+                {'new_key': 'test_value'}, task.node.driver_info['new'])
 
     def test_extend_attribute_action(self):
         """Test ExtendAttributeAction extends a list attribute."""
@@ -667,31 +731,50 @@ class TestActions(TestInspectionRules):
                 log_action, task, msg='test message', level='invalid_level'
             )
 
-    def test_action_with_loop(self):
+    def test_action_with_list_loop(self):
         """Test action execute_with_loop method."""
-        action_data = {
+        list_loop_data = {
             'op': 'set-attribute',
+            'args': {'path': '{item[path]}', 'value': '{item[value]}'},
             'loop': [
-                {'path': 'extra/test1', 'value': 'value1'},
-                {'path': 'extra/test2', 'value': 'value2'}
+                {'path': 'driver_info/ipmi_username', 'value': 'cidadmin'},
+                {'path': 'driver_info/ipmi_password', 'value': 'cidpassword'},
+                {
+                    'path': 'driver_info/ipmi_address',
+                    'value': '{inventory[bmc_address]}'
+                }
             ]
         }
 
-        inventory = {'data': 'test'}
-        plugin_data = {'plugin': 'data'}
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            action = inspection_rules.actions.SetAttributeAction()
+            action.execute_with_loop(task, list_loop_data, self.inventory,
+                                     self.plugin_data)
+            self.assertEqual('cidadmin',
+                             task.node.driver_info['ipmi_username'])
+            self.assertEqual('cidpassword',
+                             task.node.driver_info['ipmi_password'])
+            self.assertEqual('192.168.1.100',
+                             task.node.driver_info['ipmi_address'])
+
+    def test_action_with_dict_loop(self):
+        """Test action execute_with_loop method."""
+        dict_loop_data = {
+            'op': 'set-attribute',
+            'args': {'path': '{item[path]}', 'value': '{item[value]}'},
+            'loop': {
+                'path': 'driver_info/ipmi_address',
+                'value': '{inventory[bmc_address]}'
+            }
+        }
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
-            task.node.extra = {}
-
-            # execute_with_loop
             action = inspection_rules.actions.SetAttributeAction()
-            results = action.execute_with_loop(task, action_data, inventory,
-                                               plugin_data)
+            action.execute_with_loop(task, dict_loop_data, self.inventory,
+                                     self.plugin_data)
 
-            # verify both loop items were processed
-            self.assertEqual(2, len(results))
-            self.assertEqual('value1', task.node.extra['test1'])
-            self.assertEqual('value2', task.node.extra['test2'])
+            self.assertEqual('192.168.1.100',
+                             task.node.driver_info['ipmi_address'])
 
 
 class TestShallowMask(TestInspectionRules):
@@ -806,3 +889,106 @@ class TestShallowMask(TestInspectionRules):
 
         self.assertEqual('new_value', original_data['new_key'])
         self.assertEqual([1, 2, 3, 4], original_data['data'])
+
+
+class TestInterpolation(TestInspectionRules):
+    def setUp(self):
+        super(TestInterpolation, self).setUp()
+
+    def test_variable_interpolation(self):
+        """Test variable interpolation."""
+        loop_context = {
+            'item': {
+                'key': 'value',
+                'nested': {'deep': 'nested_value'}
+            }
+        }
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            value = "{inventory[cpu][architecture]}"
+            result = base.Base.interpolate_variables(
+                value, task.node, self.inventory, self.plugin_data)
+            self.assertEqual("x86_64", result)
+
+            value = "{inventory[interfaces][0][mac_address]}"
+            result = base.Base.interpolate_variables(
+                value, task.node, self.inventory, self.plugin_data)
+            self.assertEqual("2a:03:9c:53:4e:46", result)
+
+            value = "{plugin_data[plugin]}"
+            result = base.Base.interpolate_variables(
+                value, task.node, self.inventory, self.plugin_data)
+            self.assertEqual("data", result)
+
+            value = "{node.driver}"
+            result = base.Base.interpolate_variables(
+                value, task.node, self.inventory, self.plugin_data)
+            self.assertEqual("fake-hardware", result)
+
+            value = "{item}"
+            result = base.Base.interpolate_variables(
+                value, task.node, self.inventory,
+                self.plugin_data, loop_context)
+
+            self.assertEqual(
+                "{'key': 'value', 'nested': {'deep': 'nested_value'}}",
+                result)
+
+            value = "{item[key]}"
+            result = base.Base.interpolate_variables(
+                value, task.node, self.inventory,
+                self.plugin_data, loop_context)
+            self.assertEqual("value", result)
+
+            value = "{item[nested][deep]}"
+            result = base.Base.interpolate_variables(
+                value, task.node, self.inventory,
+                self.plugin_data, loop_context)
+            self.assertEqual("nested_value", result)
+
+            value = "CPU: {inventory[cpu][count]}, Item: {item[key]}"
+            result = base.Base.interpolate_variables(
+                value, task.node, self.inventory,
+                self.plugin_data, loop_context)
+            self.assertEqual("CPU: 4, Item: value", result)
+
+            dict_value = {
+                "normal_key": "normal_value",
+                "interpolated_key": "{inventory[cpu][architecture]}",
+                "nested": {
+                    "item_key": "{item[key]}",
+                    "inventory_key": "{inventory[bmc_address]}"
+                }
+            }
+            result = base.Base.interpolate_variables(
+                dict_value, task.node, self.inventory,
+                self.plugin_data, loop_context)
+            self.assertEqual({
+                "normal_key": "normal_value",
+                "interpolated_key": "x86_64",
+                "nested": {
+                    "item_key": "value",
+                    "inventory_key": "192.168.1.100"
+                }
+            }, result)
+
+            list_value = [
+                "normal_value",
+                "{inventory[cpu][architecture]}",
+                "{item[key]}",
+                ["{inventory[bmc_address]}", "{item[nested][deep]}"]
+            ]
+            result = base.Base.interpolate_variables(
+                list_value, task.node, self.inventory,
+                self.plugin_data, loop_context)
+            self.assertEqual([
+                "normal_value",
+                "x86_64",
+                "value",
+                ["192.168.1.100", "nested_value"]
+            ], result)
+
+            value = "{inventory[missing][key]}"
+            result = base.Base.interpolate_variables(
+                value, task.node, self.inventory, self.plugin_data)
+            self.assertEqual(value, result)

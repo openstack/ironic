@@ -30,7 +30,7 @@ class Base(object):
     REQUIRES_PLUGIN_DATA = False
     """Flag to indicate if this action needs plugin_data as an arg."""
 
-    def _get_validation_signature(self):
+    def get_validation_signature(self):
         """Get the signature to validate against."""
         signature = inspect.signature(self.__call__)
 
@@ -79,7 +79,7 @@ class Base(object):
         :param op_args: Operator args as a dictionary
         :raises: InspectionRuleValidationFailure on validation failure
         """
-        required_args, optional_args = self._get_validation_signature()
+        required_args, optional_args = self.get_validation_signature()
         normalized_args = self._normalize_list_args(
             required_args=required_args, optional_args=optional_args,
             op_args=op_args)
@@ -105,30 +105,70 @@ class Base(object):
             raise exception.InspectionRuleValidationFailure(
                 _("args must be either a list or dictionary"))
 
-    def interpolate_variables(value, node, inventory, plugin_data):
+    def interpolate_variables(value, node, inventory, plugin_data,
+                              loop_context=None):
+        loop_context = loop_context or {}
+        format_context = {
+            'node': node,
+            'inventory': inventory,
+            'plugin_data': plugin_data,
+            **loop_context
+        }
+
+        def safe_format(val, context):
+            if isinstance(val, str):
+                try:
+                    return val.format(**context)
+                except (AttributeError, KeyError, ValueError, IndexError,
+                        TypeError) as e:
+                    LOG.warning(
+                        "Interpolation failed: %(value)s: %(error_class)s, "
+                        "%(error)s", {'value': val,
+                                      'error_class': e.__class__.__name__,
+                                      'error': e})
+                    return val
+            return val
+
+        if loop_context:
+            # Format possible dictionary loop item containing replacement
+            # fields.
+            #
+            # E.g:
+            #   'args': {'path': '{item[path]}', 'value': '{item[value]}'},
+            #   'loop': [
+            #       {
+            #           'path': 'driver_info/ipmi_address',
+            #           'value': '{inventory[bmc_address]}'
+            #       }
+            #   ]
+            # or a dict loop (which seems to defeat the purpose of a loop
+            # field, but is supported all the same):
+            #   'args': {'path': '{item[path]}', 'value': '{item[value]}'},
+            #   'loop': {
+            #           'path': 'driver_info/ipmi_address',
+            #           'value': '{inventory[bmc_address]}'
+            #       }
+            value = safe_format(value, format_context)
+
         if isinstance(value, str):
-            try:
-                return value.format(node=node, inventory=inventory,
-                                    plugin_data=plugin_data)
-            except (AttributeError, KeyError, ValueError, IndexError,
-                    TypeError) as e:
-                LOG.warning(
-                    "Interpolation failed: %(value)s: %(error_class)s, "
-                    "%(error)s", {'value': value,
-                                  'error_class': e.__class__.__name__,
-                                  'error': e})
-                return value
+            return safe_format(value, format_context)
         elif isinstance(value, dict):
             return {
-                Base.interpolate_variables(k, node, inventory, plugin_data):
-                Base.interpolate_variables(v, node, inventory, plugin_data)
-                for k, v in value.items()}
+                safe_format(k, format_context): Base.interpolate_variables(
+                    v, node, inventory, plugin_data, loop_context)
+                for k, v in value.items()
+            }
         elif isinstance(value, list):
-            return [Base.interpolate_variables(
-                v, node, inventory, plugin_data) for v in value]
+            return [
+                safe_format(v, format_context) if isinstance(v, str)
+                else Base.interpolate_variables(
+                    v, node, inventory, plugin_data, loop_context)
+                for v in value
+            ]
         return value
 
-    def _process_args(self, task, operation, inventory, plugin_data):
+    def _process_args(self, task, operation, inventory, plugin_data,
+                      loop_context=None):
         "Normalize and process args based on the operator."
 
         op = operation.get('op')
@@ -136,7 +176,7 @@ class Base(object):
             raise exception.InspectionRuleExecutionFailure(
                 _("Operation must contain 'op' key"))
 
-        required_args, optional_args = self._get_validation_signature()
+        required_args, optional_args = self.get_validation_signature()
 
         op, invtd = utils.parse_inverted_operator(op)
         dict_args = self._normalize_list_args(
@@ -151,7 +191,8 @@ class Base(object):
         node = task.node
         formatted_args = getattr(self, 'FORMATTED_ARGS', [])
         return {
-            k: (Base.interpolate_variables(v, node, inventory, plugin_data)
-                if k in formatted_args else v)
+            k: (Base.interpolate_variables(
+                v, node, inventory, plugin_data, loop_context)
+                if (k in formatted_args or loop_context) else v)
             for k, v in dict_args.items()
         }

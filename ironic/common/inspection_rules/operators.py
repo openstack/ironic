@@ -45,15 +45,6 @@ def get_operator(op_name):
     return globals()[class_name]
 
 
-def coerce(value, expected):
-    if isinstance(expected, float):
-        return float(value)
-    elif isinstance(expected, int):
-        return int(value)
-    else:
-        return value
-
-
 class OperatorBase(base.Base, metaclass=abc.ABCMeta):
     """Abstract base class for rule condition plugins."""
 
@@ -62,22 +53,36 @@ class OperatorBase(base.Base, metaclass=abc.ABCMeta):
         """Checks if condition holds for a given field."""
 
     def check_with_loop(self, task, condition, inventory, plugin_data):
-        loop_items = condition.get('loop', [])
-        multiple = condition.get('multiple', 'any')
+        loop_items = None
+        if condition.get('loop', []):
+            loop_items = condition['loop']
+            multiple = condition.get('multiple', 'any')
+
         results = []
-
         if isinstance(loop_items, (list, dict)):
-            for item in loop_items:
+            if isinstance(loop_items, dict):
+                loop_context = {'item': loop_items}
                 condition_copy = condition.copy()
-                condition_copy['args'] = item
                 result = self.check_condition(task, condition_copy,
-                                              inventory, plugin_data)
+                                              inventory, plugin_data,
+                                              loop_context)
                 results.append(result)
+                if multiple in ('first', 'last'):
+                    return result
 
-                if multiple == 'first' and result:
-                    return True
-                elif multiple == 'last':
-                    results = [result]
+            elif isinstance(loop_items, list):
+                for item in loop_items:
+                    loop_context = {'item': item}
+                    condition_copy = condition.copy()
+                    result = self.check_condition(task, condition_copy,
+                                                  inventory, plugin_data,
+                                                  loop_context)
+                    results.append(result)
+
+                    if multiple == 'first' and result:
+                        return True
+                    elif multiple == 'last':
+                        results = [result]
 
             if multiple == 'any':
                 return any(results)
@@ -86,14 +91,15 @@ class OperatorBase(base.Base, metaclass=abc.ABCMeta):
             return results[0] if results else False
         return self.check_condition(task, condition, inventory, plugin_data)
 
-    def check_condition(self, task, condition, inventory, plugin_data):
+    def check_condition(self, task, condition, inventory, plugin_data,
+                        loop_context=None):
         """Process condition arguments and apply the check logic.
 
         :param task: TaskManger instance
         :param condition: condition to check
-        :param args: parameters as a dictionary, changing it here will change
-                     what will be stored in database
-        :param kwargs: used for extensibility without breaking existing plugins
+        :param inventory: Node inventory data with hardware information
+        :param plugin_data: Data from inspection plugins
+        :param loop_context: Current loop item when called from check_with_loop
         :raises InspectionRuleExecutionFailure: on unacceptable field value
         :returns: True if check succeeded, otherwise False
         """
@@ -101,7 +107,15 @@ class OperatorBase(base.Base, metaclass=abc.ABCMeta):
             condition['op'])
 
         processed_args = self._process_args(task, condition, inventory,
-                                            plugin_data)
+                                            plugin_data, loop_context)
+
+        required_args, optional_args = self.get_validation_signature()
+        if loop_context and 'force_strings' in optional_args:
+            # When in a loop context, variable interpolation might convert
+            # numbers to strings. Setting force_strings ensures consistent
+            # comparison by converting all values to strings before
+            # comparison.
+            processed_args['force_strings'] = True
 
         result = self(task, **processed_args)
         return not result if is_inverted else result
@@ -125,7 +139,7 @@ class SimpleOperator(OperatorBase):
             return True
 
         if force_strings:
-            values = [coerce(value, str) for value in values]
+            values = [str(value) for value in values]
 
         return all(self.op(values[i], values[i + 1])
                    for i in range(len(values) - 1))
