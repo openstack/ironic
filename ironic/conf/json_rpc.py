@@ -43,6 +43,12 @@ opts = [
     cfg.BoolOpt('use_ssl',
                 default=False,
                 help=_('Whether to use TLS for JSON RPC')),
+    cfg.BoolOpt('client_use_ssl',
+                default=False,
+                help=_('Set to True for force TLS connections in the client '
+                       'even if use_ssl is set to False. Only makes sense '
+                       'if server-side TLS is provided outside of Ironic '
+                       '(e.g. with httpd acting as a reverse proxy).')),
     cfg.StrOpt('http_basic_username',
                deprecated_for_removal=True,
                deprecated_reason=_("Use username instead"),

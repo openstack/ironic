@@ -1,0 +1,6 @@
+---
+features:
+  - |
+    Adds a new option ``[json_rpc]client_use_ssl``. It can be set to True in
+    situations where server-side TLS is handled by a reverse proxy, and thus
+    ``[json_rpc]use_ssl`` is set to False.
