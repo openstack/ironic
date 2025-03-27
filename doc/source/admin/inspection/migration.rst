@@ -32,8 +32,7 @@ This list currently includes:
   <https://docs.openstack.org/python-ironic-inspector-client/latest/cli/index.html#list-interface-data>`_.
 
 :ironic-inspector-doc:`Inspection rules <user/usage.html#introspection-rules>`
-are also currently not implemented but are planned for the 2024.2 release or
-later.
+have now been implemented as of 2025.1 "Epoxy" release.
 
 New defaults
 ~~~~~~~~~~~~

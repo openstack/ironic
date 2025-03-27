@@ -1,0 +1,34 @@
+{
+    "description": "BMC credentials",
+    "phase": "main",
+    "priority": 100,
+    "sensitive": true,
+    "conditions": [
+      {
+        "op": "contains",
+        "args": {"value": "{inventory[system_vendor][manufacturer]}", "regex": "(?i)dell"}
+      },
+      {
+        "op": "is-true",
+        "args": {"value": "{node.auto_discovered}"}
+      }
+    ],
+    "actions": [
+      {
+        "op": "set-attribute",
+        "args": {"path": "/driver", "value": "idrac"}
+      },
+      {
+        "op": "set-attribute",
+        "args": {"path": "driver_info.redfish_address", "value": "https://{inventory[bmc_address]}"}
+      },
+      {
+        "op": "set-attribute",
+        "args": {"path": "/driver_info/redfish_username", "value": "admin"}
+      },
+      {
+        "op": "set-attribute",
+        "args": {"path": "/driver_info/redfish_password", "value": "password"}
+      }
+    ]
+  }

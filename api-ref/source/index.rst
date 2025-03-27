@@ -33,6 +33,7 @@
 .. include:: baremetal-api-v1-nodes-history.inc
 .. include:: baremetal-api-v1-nodes-inventory.inc
 .. include:: baremetal-api-v1-shards.inc
+.. include:: baremetal-api-v1-inspection-rules.inc
 .. NOTE(dtantsur): keep chassis close to the end since it's semi-deprecated
 .. include:: baremetal-api-v1-chassis.inc
 .. NOTE(dtantsur): keep misc last, since it covers internal API

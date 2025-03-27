@@ -1,0 +1,43 @@
+{
+    "created_at": "2025-03-23T22:28:48.643434+11:11",
+    "description": "Updated rule for setting hardware properties",
+    "phase": "main",
+    "priority": 75,
+    "sensitive": false,
+    "conditions": [
+      {
+        "op": "is-true",
+        "args": {"value": "{inventory[cpu][count]}"}
+      }
+    ],
+    "actions": [
+      {
+        "op": "set-attribute",
+        "args": {"path": "/properties/cpus", "value": "{inventory[cpu][count]}"}
+      },
+      {
+        "op": "set-attribute",
+        "args": {"path": "/properties/memory_mb", "value": "{inventory[memory][physical_mb]}"}
+      },
+      {
+        "op": "set-attribute",
+        "args": {"path": "/properties/cpu_arch", "value": "{inventory[cpu][architecture]}"}
+      },
+      {
+        "op": "set-attribute",
+        "args": {"path": "/properties/local_gb", "value": "{inventory[disks][0][size]}"}
+      }
+    ],
+    "links": [
+      {
+        "href": "http://10.60.253.180:6385/v1/inspection_rules/1f3ee449-08cd-9e3f-e1e5-9cfda674081a",
+        "rel": "self"
+      },
+      {
+        "href": "http://10.60.253.180:6385/inspection_rules/1f3ee449-08cd-9e3f-e1e5-9cfda674081a",
+        "rel": "bookmark"
+      }
+    ],
+    "uuid": "1f3ee449-08cd-9e3f-e1e5-9cfda674081a",
+    "updated_at": "2025-03-24T11:42:18.763029+00:00"
+  }
