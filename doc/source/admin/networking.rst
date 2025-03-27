@@ -204,9 +204,13 @@ Physical networks
 An Ironic port may be associated with a physical network using its
 ``physical_network`` field. Ironic uses this information when
 mapping between virtual ports in Neutron and physical ports and
-port groups.  A port's physical network field is optional, and if not
+port groups. A port's physical network field is optional, and if not
 set then any VIF may be mapped to that port, provided that no free
 Ironic port with a suitable physical network assignment exists.
+When set, its value must be a name that corresponds to a physical network
+in Neutron for the networking-baremetal integration to properly reconcile
+the port. This has to be a name (not a UUID) since physical networks are
+configured in Neutron by name.
 
 The physical network of a port group is defined by the physical network of its
 constituent ports. The Ironic service ensures that all ports in a port
