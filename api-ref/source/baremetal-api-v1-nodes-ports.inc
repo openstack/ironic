@@ -12,7 +12,7 @@ by accessing the Port resources under the ``/v1/ports`` endpoint.
 
 
 List Ports by Node
-===================
+==================
 
 .. rest_method:: GET /v1/nodes/{node_ident}/ports
 

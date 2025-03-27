@@ -35,7 +35,7 @@ depending on the service configuration.
 
 
 Validate Node
-===============
+=============
 
 .. rest_method:: GET /v1/nodes/{node_ident}/validate
 
@@ -85,7 +85,7 @@ the Node's driver does not support that interface.
 
 
 Set Maintenance Flag
-=============================
+====================
 
 .. rest_method:: PUT /v1/nodes/{node_ident}/maintenance
 
@@ -110,7 +110,7 @@ Request
 .. literalinclude:: samples/node-maintenance-request.json
 
 Clear Maintenance Flag
-==============================
+======================
 
 .. rest_method:: DELETE /v1/nodes/{node_ident}/maintenance
 
@@ -198,7 +198,7 @@ Response
 
 
 Get Supported Boot Devices
-===========================
+==========================
 
 .. rest_method:: GET /v1/nodes/{node_ident}/management/boot_device/supported
 
