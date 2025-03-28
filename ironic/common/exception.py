@@ -526,7 +526,7 @@ class ServiceUnavailable(IronicException):
 
 
 class Forbidden(IronicException):
-    _msg_fmt = _("Requested OpenStack Images API is forbidden")
+    _msg_fmt = _("Requested OpenStack Baremetal API is forbidden")
 
 
 # TODO(dtantsur): leave only one variant
