@@ -435,7 +435,7 @@ class CustomAgentDeploy(agent_base.AgentBaseMixin,
                       '%(node)s. %(cls)s: %(error)s',
                       {'node': task.node.uuid,
                        'cls': e.__class__.__name__, 'error': e})
-            msg = _('Failed to prepare instance for booting')
+            msg = _('Failed to prepare instance for booting: %s') % e
             agent_base.log_and_raise_deployment_error(task, msg, exc=e)
 
     @METRICS.timer('CustomAgentDeploy.tear_down_agent')
@@ -861,7 +861,7 @@ class AgentDeploy(CustomAgentDeploy):
                       '%(instance)s. %(cls)s: %(error)s',
                       {'instance': node.instance_uuid,
                        'cls': e.__class__.__name__, 'error': e})
-            msg = _('Failed to prepare instance for booting')
+            msg = _('Failed to prepare instance for booting: %s') % e
             agent_base.log_and_raise_deployment_error(task, msg, exc=e)
 
     @METRICS.timer('AgentDeploy.configure_local_boot')
