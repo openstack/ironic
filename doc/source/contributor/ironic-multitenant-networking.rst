@@ -129,3 +129,36 @@ configured in Neutron.
     LOGFILE=$HOME/devstack.log
     LOGDIR=$HOME/logs
     IRONIC_VM_LOG_DIR=$HOME/ironic-bm-logs
+
+Use of Switch Simulators
+------------------------
+
+The devstack plugin has logic to enable to exercising of simulated network
+switches. This support in devstack exists to aid developers in verification
+of networking-generic-switch or other ML2 plugin behavior, and is *not*
+intended to be used to actually exercise the end behavior of the virtalized
+switch.
+
+To be very specific: This is not for Continuous Integration. Switch simulators
+are exceptionally slow and are designed largely for users to ping across,
+not attempt to perform deployments of machines across.
+
+Generally, the starting point is to leverage the ``IRONIC_NETWORK_SIMULATOR``
+setting and set it to a supported value. However, due to vendor limitations
+on accessing product firmware artifacts, you may need to perform some initial
+downloads of artifacts and even update filenames in the devstack plugin if
+you need to leverage a different version. Thinking of the simulator,
+you should mentally model it as an appliance.
+
+Currently supported by the devstack plugin:
+
+ * force10_9 - Dell Force10 OS9 based switches utilizing the OS9 simulator
+   installation ISO image.
+ * force10_10 - Dell Force10 OS10 (SmartFabric) switches utilizing a user
+   downloaded switch simulator zip file.
+
+The plugin generally work by attempting to plug the Virtual Machines used
+for CI testing through to networking for the virtual switch appliance, while
+also attaching the switch to the general networking of the host devstack is
+running on, and establishing the necessary configuration so
+networking-generic-switch may access the device and assert configuration.
