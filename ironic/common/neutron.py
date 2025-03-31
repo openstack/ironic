@@ -823,6 +823,9 @@ def is_smartnic_port(port_data):
     if isinstance(port_data, dict):
         return port_data.get('is_smartnic', False)
 
+    if isinstance(port_data, objects.Portgroup):
+        return False
+
     LOG.warning('Unknown port data type: %(type)s', {'type': type(port_data)})
     return False
 
