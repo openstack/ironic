@@ -2635,6 +2635,12 @@ function configure_ngs_for_simulator {
             switch_pass="system_secret"
             enable_pass=""
         ;;
+        "cisco_nexus9k")
+            switch_type="netmiko_cisco_nxos"
+            trunk_port="ethernet1/1"
+            switch_pass="system_s3cret!"
+            enable_pass=""
+        ;;
     esac
     # NOTE(TheJulia) This is for a dell force10 switch, and it may need
     # to be broken up to be more in-line with per-type options.
@@ -2674,6 +2680,9 @@ function create_network_simulator_vm {
         ;;
         force10_10)
             create_network_simulator_vm_force10_10 $2 $3
+        ;;
+        cisco_nexus9k)
+            create_network_simulator_vm_cisco_nexus $2 $3
         ;;
     esac
 }
@@ -2846,6 +2855,95 @@ function create_network_simulator_vm_force10_9 {
     send_switch_config_line localhost 55001 "wri mem"
 }
 
+function create_network_simulator_vm_cisco_nexus {
+    # Cisco's Nexus network switch simulator starts as a disk image,
+    # however if there are failures, the saved state on the disk image can
+    # be inconsistent state. As such, for sanity, we're going to copy the
+    # disk image.
+    # The TLDR how to use this, just download and set the variable below
+    # to one of the images.
+    local base_image=/opt/stack/nexus9300v64.10.3.7.M.qcow2
+    local use_disk=/opt/stack/nexus_disk_image.qcow2
+    local gns3_edk2_file=/opt/stack/OVMF-edk2-stable202305.fd
+    # The disk image stores persistent state, so we need to replace it.
+    cp $base_image $use_disk
+
+    # This is specifically so we have what seems to be a switch friendly
+    # edk2 firmware rom.
+    wget https://sourceforge.net/projects/gns-3/files/Qemu%20Appliances/OVMF-edk2-stable202305.fd.zip/download -O $gns3_edk2_file.zip
+    unzip $gns3_edk2_file.zip -d /opt/stack
+
+    # For extra context:
+    # * 8096 MB of RAM
+    # * 2 vCPU
+    # * UEFI mode/Q35 hardware.
+    # * SATA for the disk.
+    # * e1000 for each port
+    # First port is mapped to mgmt0.
+    # The VM will crash if the first interface is not present.
+    local emu_cmd="$IRONIC_VM_EMULATOR -enable-kvm -machine q35 -smbios type=0,uefi=on -drive if=pflash,format=raw,readonly=on,file=$gns3_edk2_file -drive file=$use_disk,id=disk0,format=qcow2,if=none -device ahci,id=ahci -device ide-hd,drive=disk0,bus=ahci.0 -m 8096M -smp cpus=2 -display none -serial telnet:localhost:55001,server,nowait "
+
+    # Base interfaces, attaches the trunk and the management interfaces.
+    emu_cmd+=" -device e1000,netdev=net0 -netdev tap,id=net0,ifname=$1,script=no,downscript=no -device e1000,netdev=net1 -netdev tap,id=net1,ifname=$2,script=no,downscript=no,sndbuf=1048576"
+
+    # Get a list of links, cut everything *after* "@" since taps duplicate
+    # entries, limit to "sim-node" to match our nodes, and extract only
+    # the actual interface name.
+    local net_interface=2
+    for i in $(ip link show up |cut -f1 -d "@" |grep "sim-node"|cut -f2 -d" "|cut -d":" -f1|sed s/sim/sw/g); do
+        emu_cmd+=" -device e1000,netdev=net$net_interface -netdev tap,id=net$net_interface,ifname=$i,sndbuf=1048576"
+        net_interface=$(( net_interface + 1))
+    done
+    run_process ir-sw-sim "$emu_cmd" "root" "root"
+    # wait for the enable prompt
+
+    # Connect to localhost on 55001, wait 120 seconds to start,
+    # try 10 times, look for the "login prompt".
+    # Because we must start from a clean state, it takes the switch about
+    # 400-500 seconds to get into a deployed ready state.
+    wait_for_switch_prompt localhost 55001 500 10 "Abort Power On Auto Provisioning" False
+
+    sleep 2
+    send_switch_config_line localhost 55001 "skip" # username
+
+    # When you skip POAP, it is noted by the CLI that doing os
+    # can take 5-15 minutes. In reality, this seems to only take
+    # ~120 seconds on the virtual switch simulator.
+    wait_for_switch_prompt localhost 55001 120 10 "login:" False
+    sleep 1
+    # Default credentials are "admin" and an empty password
+    send_switch_config_line localhost 55001 "admin"  # username
+    sleep 1
+    send_switch_config_line localhost 55001 "" # blank password
+    sleep 4
+    send_switch_config_line localhost 55001 "configure"
+    sleep 1
+    send_switch_config_line localhost 55001 "feature lldp"
+
+    send_switch_config_line localhost 55001 "username admin password system_s3cret! role network-admin"
+
+    send_switch_config_line localhost 55001 "int mgmt0"
+    send_switch_config_line localhost 55001 "ip address 172.24.5.20/24"
+    send_switch_config_line localhost 55001 "lldp transmit"
+    send_switch_config_line localhost 55001 "exit"
+    send_switch_config_line localhost 55001 "int ethernet1/1"
+    send_switch_config_line localhost 55001 "switchport mode trunk"
+    # Just allow *everything*, but not required.
+    send_switch_config_line localhost 55001 "switchport trunk allowed vlan all"
+    send_switch_config_line localhost 55001 "exit"
+    # Interfaces in *order*
+    # ethernet1/2 through 1/7
+    for interface in 2 3 4 5 6 7 8 9; do
+        send_switch_config_line localhost 55001 "int ethernet1/$interface"
+        send_switch_config_line localhost 55001 "switchport mode access"
+        send_switch_config_line localhost 55001 "lldp transmit"
+        send_switch_config_line localhost 55001 "exit"
+    done
+    sleep 10
+    send_switch_config_line localhost 55001 "exit"
+    send_switch_config_line localhost 55001 "copy run start"
+}  # End of Cisco Nexus 9k simulator setup
+
 function wait_for_switch_prompt {
     local host=$1
     local port=$2
@@ -2858,7 +2956,7 @@ function wait_for_switch_prompt {
     sleep $sleep_first
 
     local attempt=1
-    if [[ -n "$use_enable" ]]; then
+    if [[ -n "$use_enable" ]] && [[ "$use_enable" != "False" ]]; then
         use_enable="True"
     fi
 
@@ -3377,7 +3475,10 @@ function identify_port_for_switch {
         ;; # end of force10_9
         force10_10)
             identify_force10_10_port $vm_port
-    ;;
+        ;;
+        cisco_nexus9k)
+            identify_cisco_nexus_port $vm_port
+        ;;
     esac
 }
 
@@ -3423,6 +3524,29 @@ function identify_force10_10_port {
         ;;
         ovs-node-2i2)
             echo -n "ethernet1/1/7"
+        ;;
+    esac
+}
+
+function identify_cisco_nexus_port {
+    case $1 in
+        ovs-node-0i1)
+            echo -n "ethernet1/2"
+        ;;
+        ovs-node-0i2)
+            echo -n "ethernet1/3"
+        ;;
+        ovs-node-1i1)
+            echo -n "ethernet1/4"
+        ;;
+        ovs-node-1i2)
+            echo -n "ethernet1/5"
+        ;;
+        ovs-node-2i1)
+            echo -n "ethernet1/6"
+        ;;
+        ovs-node-2i2)
+            echo -n "ethernet1/7"
         ;;
     esac
 }
