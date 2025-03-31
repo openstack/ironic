@@ -2626,11 +2626,19 @@ function configure_ngs_for_simulator {
         "force10_9")
             switch_type="netmiko_dell_force10"
             trunk_port="forty0/0"
+            switch_pass="admin_secret"
+            enable_pass=""
+        ;;
+        "force10_10")
+            switch_type="netmiko_dell_os10"
+            trunk_port="ethernet1/1/1"
+            switch_pass="system_secret"
+            enable_pass=""
         ;;
     esac
     # NOTE(TheJulia) This is for a dell force10 switch, and it may need
     # to be broken up to be more in-line with per-type options.
-    add_generic_switch_to_ml2_config $switch "" admin 172.24.5.20 $switch_type "" "" admin_secret admin_secret "$trunk_port"
+    add_generic_switch_to_ml2_config $switch "" admin 172.24.5.20 $switch_type "" "" "$switch_pass" "$enable_pass" "$trunk_port"
     stop_neutron
     # Start neutron and agents
     start_neutron_service_and_check
@@ -2663,9 +2671,99 @@ function create_network_simulator_vm {
     case $1 in
         force10_9)
             create_network_simulator_vm_force10_9 $2 $3
-          ;;
+        ;;
+        force10_10)
+            create_network_simulator_vm_force10_10 $2 $3
+        ;;
     esac
 }
+
+function create_network_simulator_vm_force10_10 {
+    # Dell does not supply a easy to access download url for these assets.
+    # And blocks non-browsers from accessing the artifacts. So this requires
+    # some advance setup.
+    # 1) Download via https://www.dell.com/support/product-details/en-us/product/smartfabric-os10-emp-partner/drivers
+    # 2) Unzip files
+    # 3) Fix variables.
+    local base_image=/opt/stack/OS10_Virtualization_10.6.0.2.74V.zip
+    # Unzipping the package puts us in a clean state to get started.
+    unzip -d /opt/stack -o $base_image
+    local onie_disk=/opt/stack/OS10-Disk-1.0.0.vmdk
+    local installer_disk=/opt/stack/OS10-Installer-10.6.0.2.74.vmdk
+    local profile_disk=/opt/stack/OS10-platform-S5248F-10.6.0.2.74.vmdk
+
+    if ! test -f $onie_disk || ! test -f $installer_disk || ! test -f $profile_disk; then
+        die $LINENO "Failed to find required artifacts for Force 10 OS10 setup."
+    fi
+    # For extra context:
+    # * 4 GB of RAM
+    # * 2 vCPU
+    # * Must boot from ONIE disk as a SATA device, and all other devices must
+    #   be attached as virtio devices for the installer to succeed.
+    # * BIOS mode/Q35 hardware.
+    # * e1000 for each port
+    # First port is mapped to management0/0
+    local emu_cmd="$IRONIC_VM_EMULATOR -boot order=b -enable-kvm -machine q35 -drive file=$onie_disk,id=diska,format=vmdk,if=none -device ich9-ahci,id=ahci -device ide-hd,drive=diska,bus=ahci.0 -drive file=$installer_disk,id=diskb,format=vmdk,if=none -device virtio-blk-pci,drive=diskb -drive file=$profile_disk,id=diskc,format=vmdk,if=none -device virtio-blk-pci,drive=diskc -m 4G -smp cpus=2 -display none -serial telnet:localhost:55001,server,nowait"
+
+    # Base interfaces, attaches the trunk and the management interfaces.
+    emu_cmd+=" -device e1000,netdev=net0 -netdev tap,id=net0,ifname=$1,script=no,downscript=no -device e1000,netdev=net1 -netdev tap,id=net1,ifname=$2,script=no,downscript=no,sndbuf=1048576"
+
+    # Get a list of links, cut everything *after* "@" since taps duplicate
+    # entries, limit to "sim-node" to match our nodes, and extract only
+    # the actual interface name.
+    local net_interface=2
+    for i in $(ip link show up |cut -f1 -d "@" |grep "sim-node"|cut -f2 -d" "|cut -d":" -f1|sed s/sim/sw/g); do
+        emu_cmd+=" -device e1000,netdev=net$net_interface -netdev tap,id=net$net_interface,ifname=$i,sndbuf=1048576"
+        net_interface=$(( net_interface + 1))
+    done
+    run_process ir-sw-sim "$emu_cmd" "root" "root"
+    # wait for the enable prompt
+
+    # Connect to localhost on 55001, wait 120 seconds to start,
+    # try 10 times, look for the "login prompt".
+    # Because we must start from a clean state, it takes the switch about
+    # 400-500 seconds to get into a deployed ready state.
+    wait_for_switch_prompt localhost 55001 500 10 "^OS10 login:" False
+
+    # NOTE(TheJulia): default credentials is admin/admin
+    # Start base configuration, but we also need to login and set a password
+    send_switch_config_line localhost 55001 "admin"  # username
+    # This seems sufficient to wake up the VM's tty management service
+    sleep 6
+    send_switch_config_line localhost 55001 "admin"  # username
+    send_switch_config_line localhost 55001 "admin"  # password
+    # It takes a moment or six for the ability to execute the command shell to engage.
+    sleep 6
+    send_switch_config_line localhost 55001 "configure terminal"
+    # And it takes a moment for configuration mode to load...
+    sleep 2
+    # NOTE(TheJulia): Force10 OS doesn't let admin be in the password.
+    # Also, once this is set, a new console connection doesn't seem to work,
+    # however post-setup we can verify that NGS is configuring ports as we
+    # expect.
+    send_switch_config_line localhost 55001 "username admin password system_secret role sysadmin"
+    send_switch_config_line localhost 55001 "ip ssh server enable"
+    send_switch_config_line localhost 55001 "ip ssh server password-authentication"
+    send_switch_config_line localhost 55001 "int mgmt1/1/1"
+    send_switch_config_line localhost 55001 "no ip address dhcp"
+    send_switch_config_line localhost 55001 "no ipv6 address autoconfig"
+    send_switch_config_line localhost 55001 "ip address 172.24.5.20/24"
+    send_switch_config_line localhost 55001 "exit"  # Must always exit each interface.
+    send_switch_config_line localhost 55001 "int ethernet1/1/1"
+    send_switch_config_line localhost 55001 "switchport mode trunk"
+    send_switch_config_line localhost 55001 "exit"
+    # Interfaces in *order*
+    # ethernet1/1/2 through ethernet 1/1/9
+    for interface in 2 3 4 5 6 7 8 9; do
+        send_switch_config_line localhost 55001 "int ethernet1/1/$interface"
+        send_switch_config_line localhost 55001 "lldp port-description-tlv advertise port-id"
+        send_switch_config_line localhost 55001 "exit"
+    done
+    send_switch_config_line localhost 55001 "exit"
+    sleep 10
+    send_switch_config_line localhost 55001 "exit"
+    send_switch_config_line localhost 55001 "write memory"
+}  # End of Force 10 OS10 setup
 
 function create_network_simulator_vm_force10_9 {
     # Pattern for this method is do the specific needful to get the emulator *up*.
@@ -2754,11 +2852,15 @@ function wait_for_switch_prompt {
     local sleep_first=$3
     local max_attempts=$4
     local expeted_string=$5
+    local use_enable=$6
 
     echo_summary "Waiting for $sleep_first seconds before polling the switch"
     sleep $sleep_first
 
     local attempt=1
+    if [[ -n "$use_enable" ]]; then
+        use_enable="True"
+    fi
 
     for i in $(seq 1 $max_attempts); do
     # NOTE(TheJulia): Strip non-ascii characters so we suppress the control
@@ -2766,11 +2868,20 @@ function wait_for_switch_prompt {
     # NOTE(TheJulia): This will likely fail on the first attempt even if the
     # switch is ready as the pre-written command prompt on the buffer has not
     # yet updated from the command.
-        if $(echo "en" | nc -w1 $host $port | strings |grep -q "$expected_string"); then
-            echo_summary "Got switch prompt - Switch ready for configuration."
-            return 0
+        if [[ "$use_enable" == "True" ]]; then
+            if $(echo "en" | nc -w1 $host $port | strings |grep -q "$expected_string"); then
+                echo_summary "Got switch prompt - Switch ready for configuration."
+                return 0
+            else
+                echo_summary "Switch not online yet."
+            fi
         else
-            echo_summary "Switch not online yet."
+            if $(echo "" | nc -w1 $host $port | strings |grep -q "$expected_string"); then
+                echo_summary "Got switch prompt - Switch ready for configuration."
+                return 0
+            else
+                echo_summary "Switch not online yet."
+            fi
         fi
         if [ $attempt -gt $max_attempts ]; then
             die $LINENO "Failed to find switch prompt in the allotted time."
@@ -3262,8 +3373,11 @@ function identify_port_for_switch {
     local vm_port=$2
     case $simulator in
         force10_9)
-            identify_force10_port $vm_port
+            identify_force10_9_port $vm_port
         ;; # end of force10_9
+        force10_10)
+            identify_force10_10_port $vm_port
+    ;;
     esac
 }
 
@@ -3289,6 +3403,30 @@ function identify_force10_port {
         ;;
     esac
 }
+
+function identify_force10_10_port {
+    case $1 in
+        ovs-node-0i1)
+            echo -n "ethernet1/1/2"
+        ;;
+        ovs-node-0i2)
+            echo -n "ethernet1/1/3"
+        ;;
+        ovs-node-1i1)
+            echo -n "ethernet1/1/4"
+        ;;
+        ovs-node-1i2)
+            echo -n "ethernet1/1/5"
+        ;;
+        ovs-node-2i1)
+            echo -n "ethernet1/1/6"
+        ;;
+        ovs-node-2i2)
+            echo -n "ethernet1/1/7"
+        ;;
+    esac
+}
+
 
 function configure_iptables {
     # enable tftp natting for allowing connections to HOST_IP's tftp server
