@@ -374,7 +374,8 @@ following needs to be considered:
   ``ironic/common/release_mappings.py``.
 - New objects must be added to ``ironic/common/release_mappings.py``. Also for
   the first releases they should be excluded from the version check by adding
-  their class names to the ``NEW_MODELS`` list in ``ironic/cmd/dbsync.py``.
+  their class names to the ``NEW_MODELS`` list in
+  ``ironic/command/dbsync.py``.
 - The arguments of remotable methods (methods which are remoted to the
   conductor via RPC) can only be added as optional. They cannot be removed or
   changed in an incompatible way (to the previous release).
@@ -479,7 +480,7 @@ In this method, the version column can be used to select and update old
 objects.
 
 The method name should be added to the list of ``ONLINE_MIGRATIONS`` in
-``ironic/cmd/dbsync.py``.
+``ironic/command/dbsync.py``.
 
 The method should be removed in the next named release after this one.
 
@@ -504,4 +505,4 @@ versions are the versions specified in
 ``ironic.common.release_mappings.RELEASE_MAPPING``.
 The newly created tables cannot pass this check and thus have to be excluded by
 adding their object class names (e.g. ``Node``) to
-``ironic.cmd.dbsync.NEW_MODELS``.
+``ironic.command.dbsync.NEW_MODELS``.

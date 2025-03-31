@@ -15,7 +15,7 @@ from unittest import mock
 
 from oslo_config import cfg
 
-from ironic.cmd import conductor
+from ironic.command import conductor
 from ironic.tests.unit.db import base as db_base
 
 
