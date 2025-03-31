@@ -1364,6 +1364,13 @@ function cleanup_ironic_config_files {
     sudo rm -rf $IRONIC_VM_LOG_DIR/*
 }
 
+function cleanup_switch_bridges {
+    interfaces=$(ip link |grep swbr|cut -d":" -f2)
+    for interface in interfaces; do
+        sudo ip link del dev $interface
+    done
+}
+
 # cleanup_ironic() - Clean everything left from Ironic
 function cleanup_ironic {
     cleanup_ironic_config_files
@@ -1374,7 +1381,7 @@ function cleanup_ironic {
     cleanup_virtualbmc
     cleanup_virtualpdu
     cleanup_redfish
-
+    cleanup_switch_bridges
     # Remove the hook to disable log rotate
     sudo rm -rf $IRONIC_LIBVIRT_HOOKS_PATH/qemu
 
@@ -2266,6 +2273,7 @@ function stop_ironic {
     stop_process ir-api
     stop_process ir-cond
     stop_process ir-novnc
+    stop_process ir-sw-sim
 }
 
 # create_ovs_taps is also called by the devstack/upgrade/resources.sh script
@@ -2324,15 +2332,23 @@ function create_ovs_taps {
     sudo ip link set dev br-int up
     sudo ip link set dev br-ex up
 
-
+    # What is happening here:
+    # We are taking the vlan tag ID which is reserved, and physically cross connecting
+    # it over to be available on $ovs_tap, which later on would be bound to $brbm_tap,
+    # better known as brbm. If we're doing *anything* else for VM networking, we need
+    # to wire this all up differently.
     if [[ "$Q_AGENT" != "ovn" ]]; then
         sudo ovs-vsctl -- --if-exists del-port $ovs_tap -- add-port br-int $ovs_tap tag=$tag_id
     else
         # OVN defaults to everything on "public" which is br-ex
         sudo ovs-vsctl -- --if-exists del-port $ovs_tap -- add-port br-ex $ovs_tap tag=$tag_id
     fi
-    sudo ovs-vsctl -- --if-exists del-port $brbm_tap -- add-port $IRONIC_VM_NETWORK_BRIDGE $brbm_tap
-
+    if [[ "${IRONIC_NETWORK_SIMULATOR:-ovs}" == "ovs" ]]; then
+        # This binds the $brbm_tap to the $IRONIC_VM_NETWORK_BRIDGE (typically brbm)
+        sudo ovs-vsctl -- --if-exists del-port $brbm_tap -- add-port $IRONIC_VM_NETWORK_BRIDGE $brbm_tap
+    fi
+    # In the event this doesn't match, then the physical network bridge is not attached
+    # And nodes *must* be attached somehow, but not inhernetly directly by default.
 
     # Finally, share the fixed tenant network across all tenants.  This allows the host
     # to serve TFTP to a single network namespace via the tap device created above.
@@ -2394,8 +2410,10 @@ function initialize_libvirt_storage_pool {
 }
 
 function create_bridge_and_vms {
-    # Call libvirt setup scripts in a new shell to ensure any new group membership
-    sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/setup-network.sh $IRONIC_VM_NETWORK_BRIDGE $PUBLIC_BRIDGE_MTU"
+    if [[ "${IRONIC_NETWORK_SIMULATOR:-ovs}" == "ovs" ]]; then
+        # Call libvirt setup scripts in a new shell to ensure any new group membership
+        sudo su $STACK_USER -c "$IRONIC_SCRIPTS_DIR/setup-network.sh $IRONIC_VM_NETWORK_BRIDGE $PUBLIC_BRIDGE_MTU ${IRONIC_NETWORK_SIMULATOR:-ovs}"
+    fi
     if [[ "$IRONIC_VM_LOG_CONSOLE" == "True" ]] ; then
         local log_arg="-l $IRONIC_VM_LOG_DIR"
 
@@ -2446,7 +2464,8 @@ function create_bridge_and_vms {
                 -a $IRONIC_HW_ARCH -b $IRONIC_VM_NETWORK_BRIDGE $vm_opts -p $vbmc_port -o $pdu_outlet \
                 -i $IRONIC_VM_INTERFACE_COUNT -f $IRONIC_VM_SPECS_DISK_FORMAT -M $PUBLIC_BRIDGE_MTU $log_arg \
                 -v $IRONIC_VM_VOLUME_COUNT -P $LIBVIRT_STORAGE_POOL \
-                -t $IRONIC_MACHINE_TYPE -B $IRONIC_VM_BLOCK_SIZE >> $IRONIC_VM_MACS_CSV_FILE
+                -t $IRONIC_MACHINE_TYPE -B $IRONIC_VM_BLOCK_SIZE \
+                -s ${IRONIC_NETWORK_SIMULATOR:-ovs} >> $IRONIC_VM_MACS_CSV_FILE
 SUBSHELL
 
         if is_deployed_by_ipmi; then
@@ -2550,6 +2569,227 @@ SUBSHELL
         # Route back to our test subnet. Static should be safe for a while.
         sudo ip -6 route add fd00::/8 via $IPV6_ROUTER_GW_IP
     fi
+    if [[ "${IRONIC_NETWORK_SIMULATOR:-ovs}" != "ovs" ]]; then
+        create_network_simulator
+    fi
+} # End: create_bridge_and_vms
+
+function create_network_simulator {
+    # Variables
+    local sim_trunk="sim-trunk"
+    local mgmt_int="sim-mgmt"
+
+    # *first* - Create the simulator. It needs to be bound to tap interfaces
+    create_network_simulator_vm $IRONIC_NETWORK_SIMULATOR $mgmt_int $sim_trunk
+
+    # *second* - Ensure our interfaces for the switch is up
+    # The VM Creation *creates* tap interfaces, which we then need to bind to.
+    sudo ip link set dev $sim_trunk up
+    sudo ip link set dev $mgmt_int up
+
+    # *third* - determine network bridge and attach that to the VM.
+    if [[ "$Q_AGENT" != "ovn" ]]; then
+        local network_bridge="br-int"
+    else
+        local network_bridge="br-ex"
+    fi
+
+    #
+    # Attach the trunk to a veth tap and all, and attach the whole thing.
+    sudo ovs-vsctl -- --if-exists del-port $sim_trunk -- add-port $network_bridge $sim_trunk
+
+    # Seems like br-infra might be right for the switch management access
+    sudo ovs-vsctl -- --if-exists del-port $mgmt_int -- add-port br-infra $mgmt_int
+
+    # *forth* - Join the rest of the interfaces
+    attach_switch_taps_to_vm_veth
+
+    # *fifth* - Apply NGS configuration
+    # This is done now because we can't do it earlier, as ngs gets pulled in
+    # and setup before ironic. So we will also need to restart neutron in this
+    # step to load the new configuration. This is actually for the best because
+    # you can't expect an operator to pre-configure neutron perfectly
+    # and the plugin needs to be able to handle "oh, I didn't know about that
+    # network cases as well.
+    configure_ngs_for_simulator
+}
+
+function configure_ngs_for_simulator {
+    # Ironic is using a network simulator which has been bolted into
+    # place. As such, configuration is going to be different, and we
+    # can begin configuring it from here.
+    if [ -f $DEST/networking-generic-switch/devstack/plugin.sh ]; then
+        source $DEST/networking-generic-switch/devstack/plugin.sh
+    fi
+    switch="genericswitch:$IRONIC_NETWORK_SIMULATOR"
+    case "$IRONIC_NETWORK_SIMULATOR" in
+        "force10_9")
+            switch_type="netmiko_dell_force10"
+            trunk_port="forty0/0"
+        ;;
+    esac
+    # NOTE(TheJulia) This is for a dell force10 switch, and it may need
+    # to be broken up to be more in-line with per-type options.
+    add_generic_switch_to_ml2_config $switch "" admin 172.24.5.20 $switch_type "" "" admin_secret admin_secret "$trunk_port"
+    stop_neutron
+    # Start neutron and agents
+    start_neutron_service_and_check
+    start_neutron_agents
+}
+
+function attach_switch_taps_to_vm_veth {
+    # Count always starts at 2, since we pre-bind the switch interface
+    echo_summary "Creating bridges to bind the VM veths to the switch VM taps"
+    count=2
+    for i in $(ip link show up |cut -f1 -d "@" |grep "sim-node"|cut -f2 -d" "|cut -d":" -f1); do
+        local vm_int=$i
+        local sw_int=$( echo -n $i | sed s/sim/sw/ )
+        local sw_br_int="swbr-$count"
+        sudo ip link del dev $sw_br_int || true
+        sudo ip link add name $sw_br_int type bridge
+        sudo ip link set dev $sw_br_int up
+        sudo ip link set dev $vm_int up
+        sudo ip link set dev $sw_int up
+        sudo ip link set dev $vm_int  master $sw_br_int
+        sudo ip link set dev $sw_int master $sw_br_int
+        count=$(( count + 1 ))
+    done
+}
+
+function create_network_simulator_vm {
+    # $1 is the simulator
+    # $2 is the management interface
+    # $3 is the network trunk
+    case $1 in
+        force10_9)
+            create_network_simulator_vm_force10_9 $2 $3
+          ;;
+    esac
+}
+
+function create_network_simulator_vm_force10_9 {
+    # Pattern for this method is do the specific needful to get the emulator *up*.
+    # Download the OS
+    wget https://downloads.dell.com/translatedpdf/force10/os9/FTOS-SI-9.13.0.0.zip
+    unzip FTOS-SI-9.13.0.0.zip
+    mv FTOS-SI-9.13.0.0.iso /opt/stack
+    # Make a 30G disk, required.
+    qemu-img create -f qcow2 /opt/stack/FTOS.qcow2 30G
+    # Next step is to make the command line for the VM. Libvirt is so built
+    # around providing a graphical device, that it won't invoke qemu in the way
+    # necessary to create a telnet-able console to enable configuration.
+    # It works on direct launch via command line, likely because nothing in the
+    # stack is trying to do much more than basic serial IO on a console.
+    #
+    # For extra context:
+    # * 30G disk storage
+    # * 1 GB of RAM
+    # * 2 vCPU
+    # * Must boot from CD
+    # * BIOS Mode - No-display
+    # * e1000 for each port
+    # First port is mapped to management0/0
+    local emu_cmd="$IRONIC_VM_EMULATOR -boot d -cdrom /opt/stack/FTOS-SI-9.13.0.0.iso -enable-kvm -hda /opt/stack/FTOS.qcow2 -m 1G -smp cpus=2 -serial telnet:localhost:55001,server,nowait -display none"
+    # Base interfaces, attaches the trunk and the management interfaces.
+    emu_cmd+=" -device e1000,netdev=net0 -netdev tap,id=net0,ifname=$1,script=no,downscript=no -device e1000,netdev=net1 -netdev tap,id=net1,ifname=$2,script=no,downscript=no,sndbuf=1048576"
+    # Get a list of links, cut everything *after* "@" since taps duplicate
+    # entries, limit to "sim-node" to match our nodes, and extract only
+    # the actual interface name.
+    local net_interface=2
+    for i in $(ip link show up |cut -f1 -d "@" |grep "sim-node"|cut -f2 -d" "|cut -d":" -f1|sed s/sim/sw/g); do
+        emu_cmd+=" -device e1000,netdev=net$net_interface -netdev tap,id=net$net_interface,ifname=$i,sndbuf=1048576"
+    net_interface=$(( net_interface + 1))
+    done
+    # TODO, figure out if we can just run this as stack... We might not be able to
+    # due to permissions.
+    run_process ir-sw-sim "$emu_cmd" "root" "root"
+    # wait for the enable prompt
+
+    # Connect to localhost on 55001, wait 120 seconds to start,
+    # try 10 times, look for the "Dell#" prompt.
+    wait_for_switch_prompt localhost 55001 400 10 "^Dell#"
+
+    # NOTE(TheJulia): default credentials is admin/admin
+    # Start base configuration
+    send_switch_config_line localhost 55001 "conf t"
+    send_switch_config_line localhost 55001 "int management 0/0"
+    send_switch_config_line localhost 55001 "no shutdown"
+    send_switch_config_line localhost 55001 "no keepalive"
+    # FIXME(TheJulia) This won't work for a multinode job, but I doubt
+    # we will ever try this with multinode CI jobs as there is not really
+    # value in doing so for a simulated switch.
+    send_switch_config_line localhost 55001 "ip address 172.24.5.20 255.255.255.0"
+    send_switch_config_line localhost 55001 "exit"
+    # Interfaces in *order*
+    # fortygig0/0, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60,
+    # 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 124
+    for interface in 0/0 0/4 0/8 0/12 0/16 0/20 0/24 0/28 0/32 0/36; do
+        send_switch_config_line localhost 55001 "int fortygigE $interface"
+        send_switch_config_line localhost 55001 "no keepalive"
+        send_switch_config_line localhost 55001 "no shutdown"
+        # Setting switchport helps avoid errors like:
+        # % Error: Port is not in Layer-2 mode
+        send_switch_config_line localhost 55001 "switchport"
+        send_switch_config_line localhost 55001 "protocol lldp"
+        send_switch_config_line localhost 55001 "exit"
+    done
+
+    # Setup SSH server
+    send_switch_config_line localhost 55001 "exit"
+    send_switch_config_line localhost 55001 "username admin secret admin_secret"
+    send_switch_config_line localhost 55001 "enable secret admin_secret"
+    # Looks like setting up the ssh server automatically sets up
+    # the crypto key
+    send_switch_config_line localhost 55001 "ip ssh server enable"
+    # Need to wait before proceeding since crypto key generation
+    # takes a moment or ten.
+    sleep 10
+    send_switch_config_line localhost 55001 "exit"
+    send_switch_config_line localhost 55001 "wri mem"
+}
+
+function wait_for_switch_prompt {
+    local host=$1
+    local port=$2
+    local sleep_first=$3
+    local max_attempts=$4
+    local expeted_string=$5
+
+    echo_summary "Waiting for $sleep_first seconds before polling the switch"
+    sleep $sleep_first
+
+    local attempt=1
+
+    for i in $(seq 1 $max_attempts); do
+    # NOTE(TheJulia): Strip non-ascii characters so we suppress the control
+    # characters which would otherwise make grep complain about binary output.
+    # NOTE(TheJulia): This will likely fail on the first attempt even if the
+    # switch is ready as the pre-written command prompt on the buffer has not
+    # yet updated from the command.
+        if $(echo "en" | nc -w1 $host $port | strings |grep -q "$expected_string"); then
+            echo_summary "Got switch prompt - Switch ready for configuration."
+            return 0
+        else
+            echo_summary "Switch not online yet."
+        fi
+        if [ $attempt -gt $max_attempts ]; then
+            die $LINENO "Failed to find switch prompt in the allotted time."
+            return 1
+        fi
+        attempt=$(( attempt + 1))
+        sleep 15
+    done
+}
+
+function send_switch_config_line {
+    local host=$1
+    local port=$2
+    local cmd=$3
+    # FIXME(TheJulia): There has to be a better way to do this,
+    # but we also need to bootstrap some very early configuration...
+    # NOTE(TheJulia): *Always* strings the output, in case 0xFF can
+    # break devstack's executor.
+    echo "$cmd" | nc -w1 $host $port | strings
 }
 
 function wait_for_nova_resources {
@@ -2746,6 +2986,7 @@ function enroll_nodes {
     local node_id
 
     while read hardware_info; do
+        echo "Processing $hardware_info"
         local node_name
         node_name=$node_prefix-$total_nodes
 
@@ -2785,9 +3026,13 @@ function enroll_nodes {
             if [[ "${IRONIC_USE_LINK_LOCAL}" == "True" ]]; then
                 local switch_info
                 local switch_id
-
-                switch_id=$(echo $hardware_info |awk '{print $4}')
-                switch_info=$(echo $hardware_info |awk '{print $5}')
+                if [[ "${IRONIC_NETWORK_SIMULATOR:-ovs}" == "ovs" ]]; then
+                    switch_id=$(echo $hardware_info |awk '{print $4}')
+                    switch_info=$(echo $hardware_info |awk '{print $5}')
+                else
+                    switch_id="00:00:00:00:00:00"
+                    switch_info=${IRONIC_NETWORK_SIMULATOR:-brbm}
+                fi
 
                 # NOTE(vsaienko) we will add port_id later in the code.
                 llc_opts="--local-link-connection switch_id=${switch_id} \
@@ -2909,10 +3154,15 @@ function enroll_nodes {
             local port_id=""
             local llc_port_opt=""
             local physical_network=""
+            echo "Processing Interface Info $interface_info"
             mac_address=$(echo $info| awk -F ',' '{print $1}')
             port_id=$(echo $info| awk -F ',' '{print $2}')
             if [[ "${IRONIC_USE_LINK_LOCAL}" == "True" ]]; then
-                llc_port_opt+=" --local-link-connection port_id=${port_id} "
+                if [[ "${IRONIC_NETWORK_SIMULATOR:-ovs}" == "ovs" ]]; then
+                    llc_port_opt+=" --local-link-connection port_id=${port_id} "
+                else
+                    llc_port_opt+=" --local-link-connection port_id=$(identify_port_for_switch $IRONIC_NETWORK_SIMULATOR $port_id) "
+                fi
             fi
             if [[ "${IRONIC_USE_NEUTRON_SEGMENTS}" == "True" ]]; then
                 physical_network=" --physical-network ${PHYSICAL_NETWORK} "
@@ -3000,6 +3250,44 @@ function die_if_module_not_loaded {
     if ! grep -q $1 /proc/modules; then
         die $LINENO "$1 kernel module is not loaded"
     fi
+}
+
+function identify_port_for_switch {
+    # TODO(TheJulia): The exisence of this function is kind of awful.
+    # tl;dr, we don't have the port id for ngs, so we *should wire things
+    # up so inspection can trigger and we can discover these via lldp...
+    # Ideall, before the fixme so the fixme is just a bug.
+    # FIXME(TheJulia): this only maps up with 2 ports per VM.
+    local simulator=$1
+    local vm_port=$2
+    case $simulator in
+        force10_9)
+            identify_force10_port $vm_port
+        ;; # end of force10_9
+    esac
+}
+
+function identify_force10_port {
+    case $1 in
+        ovs-node-0i1)
+            echo -n "forty0/4"
+        ;;
+        ovs-node-0i2)
+            echo -n "forty0/8"
+        ;;
+        ovs-node-1i1)
+            echo -n "forty0/12"
+        ;;
+        ovs-node-1i2)
+            echo -n "forty0/16"
+        ;;
+        ovs-node-2i1)
+            echo -n "forty0/20"
+        ;;
+        ovs-node-2i2)
+            echo -n "forty0/24"
+        ;;
+    esac
 }
 
 function configure_iptables {
