@@ -319,11 +319,11 @@ def add_ports_to_network(task, network_uuid, security_groups=None):
         # Determine if network type is OVN
         if is_ovn_vtep_port(ironic_port):
             vtep_logical_switch = \
-                portmap[ironic_port.uuid]['vtep_logical_switch']
+                portmap[ironic_port.uuid]['vtep-logical-switch']
             vtep_physical_switch = \
-                portmap[ironic_port.uuid]['vtep_physical_switch']
-            binding_profile['vtep_logical_switch'] = vtep_logical_switch
-            binding_profile['vtep_physical_switch'] = vtep_physical_switch
+                portmap[ironic_port.uuid]['vtep-physical-switch']
+            binding_profile['vtep-logical-switch'] = vtep_logical_switch
+            binding_profile['vtep-physical-switch'] = vtep_physical_switch
 
         update_port_attrs['binding:profile'] = binding_profile
 
