@@ -18,8 +18,8 @@ from oslo_db import sqlalchemy
 from oslo_upgradecheck.upgradecheck import Code
 from sqlalchemy.engine import url as sa_url
 
-from ironic.cmd import dbsync
-from ironic.cmd import status
+from ironic.command import dbsync
+from ironic.command import status
 from ironic.tests.unit.db import base as db_base
 
 

@@ -21,7 +21,7 @@ from oslo_upgradecheck import common_checks
 from oslo_upgradecheck import upgradecheck
 import sqlalchemy
 
-from ironic.cmd import dbsync
+from ironic.command import dbsync
 from ironic.common import driver_factory
 from ironic.common.i18n import _
 from ironic.common import policy  # noqa importing to load policy config.

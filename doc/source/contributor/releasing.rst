@@ -397,7 +397,7 @@ We need to submit patches for changes on master to:
     support upgrades between adjacent named releases, the master branch will
     only support upgrades from the most recent named release to master.
 
-  * remove any DB migration scripts from ``ironic.cmd.dbsync.ONLINE_MIGRATIONS``
+  * remove any DB migration scripts from ``ironic.command.dbsync.ONLINE_MIGRATIONS``
     and remove the corresponding code from Ironic. (These migration scripts
     are used to migrate from an old release to this latest release; they
     shouldn't be needed after that.)

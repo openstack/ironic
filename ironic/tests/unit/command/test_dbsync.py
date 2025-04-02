@@ -15,7 +15,7 @@
 
 from unittest import mock
 
-from ironic.cmd import dbsync
+from ironic.command import dbsync
 from ironic.common import context
 from ironic.db import migration
 from ironic.tests.unit.db import base as db_base
