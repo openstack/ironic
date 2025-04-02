@@ -207,7 +207,7 @@ def request_parameter_schema(
         if not hasattr(wrapper, 'request_parameter_schemas'):
             wrapper.request_parameter_schemas = Schemas()
 
-        wrapper.request_parameter_schemas .add_schema(
+        wrapper.request_parameter_schemas.add_schema(
             schema, min_version, max_version
         )
 
@@ -248,7 +248,7 @@ def request_query_schema(
         if not hasattr(wrapper, 'request_query_schemas'):
             wrapper.request_query_schemas = Schemas()
 
-        wrapper.request_query_schemas .add_schema(
+        wrapper.request_query_schemas.add_schema(
             schema, min_version, max_version
         )
 
@@ -259,8 +259,8 @@ def request_query_schema(
 
 def request_body_schema(
     schema: ty.Dict[str, ty.Any],
-    min_version: ty.Optional[str] = None,
-    max_version: ty.Optional[str] = None,
+    min_version: ty.Optional[int] = None,
+    max_version: ty.Optional[int] = None,
 ):
     """Decorator for registering a request body schema on API methods.
 
@@ -268,10 +268,10 @@ def request_body_schema(
     method is executed.
 
     :param schema: The JSON Schema schema used to validate the target.
-    :param min_version: A string indicating the minimum API version ``schema``
-        applies against.
-    :param max_version: A string indicating the maximum API version ``schema``
-        applies against.
+    :param min_version: An integer indicating the minimum API version
+        ``schema`` applies against.
+    :param max_version: An integer indicating the maximum API version
+        ``schema`` applies against.
     """
 
     def add_validator(func):
@@ -301,7 +301,7 @@ def request_body_schema(
         if not hasattr(wrapper, 'request_body_schemas'):
             wrapper.request_body_schemas = Schemas()
 
-        wrapper.request_body_schemas .add_schema(
+        wrapper.request_body_schemas.add_schema(
             schema, min_version, max_version
         )
 
@@ -312,8 +312,8 @@ def request_body_schema(
 
 def response_body_schema(
     schema: ty.Dict[str, ty.Any],
-    min_version: ty.Optional[str] = None,
-    max_version: ty.Optional[str] = None,
+    min_version: ty.Optional[int] = None,
+    max_version: ty.Optional[int] = None,
 ):
     """Decorator for registering a response body schema on API methods.
 
@@ -321,10 +321,10 @@ def response_body_schema(
     method is executed.
 
     :param schema: The JSON Schema schema used to validate the target.
-    :param min_version: A string indicating the minimum API version ``schema``
-        applies against.
-    :param max_version: A string indicating the maximum API version ``schema``
-        applies against.
+    :param min_version: An integer indicating the minimum API version
+        ``schema`` applies against.
+    :param max_version: An integer indicating the maximum API version
+        ``schema`` applies against.
     """
 
     def add_validator(func):
@@ -356,7 +356,7 @@ def response_body_schema(
         if not hasattr(wrapper, 'response_body_schemas'):
             wrapper.response_body_schemas = Schemas()
 
-        wrapper.response_body_schemas .add_schema(
+        wrapper.response_body_schemas.add_schema(
             schema, min_version, max_version
         )
 
