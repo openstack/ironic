@@ -107,9 +107,10 @@ the :oslo.config:option:`enabled_network_interfaces` setting.
 VIF Attachment flow
 -------------------
 
-When creating a VIF, the action occurs against the Neutron Networking Service,
-such as by using the ``openstack port create`` command, and then the port ID
-is submitted to Ironic to facilitate a VIF attachment.
+When creating a virtual interface (VIF), the action occurs against the
+Neutron Networking Service, such as by using the ``openstack port create``
+command, and then the port ID is submitted to Ironic to facilitate a VIF
+attachment.
 
 .. NOTE::
    Instances created with Nova can have a Neutron port created under a variety
@@ -149,10 +150,47 @@ ports, the maximum number of VIFs is determined by the number of configured
 and available ports represented in Ironic, as framed by the suitablity
 criteria noted above.
 
-When Ironic goes to attach *any* supplied, selected, or even self-created
-VIFs, Ironic explicitly sets the physical port's MAC address for which the
-VIF will be bound. If a node is already in an ``ACTIVE`` state, then the
-vif attachment is updated with Neutron.
+Ironic goes to attach *any* supplied, selected, or even self-created
+VIFs, in two distinct steps.
+
+If a host is *not* active:
+
+The first step, as a result of
+`bug 2106073 <https://bugs.launchpad.net/ironic/+bug/2106073>`_,
+Ironic provides an initial ``host_id`` to Neutron so neutron can perform
+any deferred address assignment to enable appropriate network mapping. This
+initial binding lacks all detail to enable binding to an exact port.
+For a short period of time, the VIF binding may show as "ACTIVE" in Neutron.
+
+.. NOTE::
+   If the port was bound in *advance* of being submitted to Ironic,
+   and we must perform an initial bind, the port will be unbound and rebound
+   as part of the workflow.
+
+Once we're handing the instance over to the user, Ironic sets the physical
+port's MAC address, and provides additional context, such as the physical
+switch and switchport metadata which may be used. This action effectively
+"re-binds" the port, and the port state in Neutron can change as a result
+if binding is successful or fails. That may, ultimately, have no realistic
+impact to availability of ability to pass traffic over an interface, but
+can be rooted in the overall ``network_interface`` driver in use as well.
+
+.. NOTE::
+   Ironic's ``network_interface`` driver selection does influence the base
+   binding model behavior and as such the resulting state as reported by
+   Neutron. Specifically ``flat`` assumes a pre-wired, static, never changing
+   physical network. Neutron port states indicating a failure when using the
+   ``flat`` interface is often more a sign of the ``networking-baremetal``
+   ML2 plugin not being configured in Neutron.
+   The ``neutron`` interface is far more dynamic and the binding state can
+   generally be relied upon if any operator configured ML2 plugins are
+   functional.
+
+If the host in in an *active* state:
+
+Ironic explicitly sets the physical port's MAC address for which the
+VIF will be bound, and is immediately attached to the host with any
+required metadata for port binding, which is then transmitted to Neutron.
 
 When Ironic goes to unbind the VIF, Ironic makes a request for Neutron to
 "reset" the assigned MAC address in order to avoid conflicts with Neutron's

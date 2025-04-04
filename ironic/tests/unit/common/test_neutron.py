@@ -1254,6 +1254,78 @@ class TestUnbindPort(base.TestCase):
         mock_log.info.assert_called_once_with('Port %s was not found while '
                                               'unbinding.', port_id)
 
+    @mock.patch.object(neutron, 'get_client', autospec=True)
+    def test_unbind_neutron_port_if_bound(self, mock_client, mock_unp):
+        fake_client = mock.Mock()
+        fake_client.get_port.return_value.binding_host_id = 'foo'
+        mock_client.return_value = fake_client
+        port_id = 'fake-port-id'
+        neutron.unbind_neutron_port_if_bound(port_id, context=self.context)
+        mock_client.assert_called_once_with(context=self.context)
+        fake_client.get_port.assert_called_once_with(port_id)
+        mock_unp.assert_has_calls([
+            mock.call(None, 'fake-port-id',
+                      {'binding:host_id': '', 'binding:profile': {}},
+                      None),
+            mock.call(None, 'fake-port-id',
+                      {'mac_address': None},
+                      None)
+        ])
+
+    @mock.patch.object(neutron, 'get_client', autospec=True)
+    def test_unbind_neutron_port_if_bound_not_bound(self, mock_client,
+                                                    mock_unp):
+        fake_client = mock.Mock()
+        fake_client.get_port.return_value.binding_host_id = None
+        mock_client.return_value = fake_client
+        port_id = 'fake-port-id'
+        neutron.unbind_neutron_port_if_bound(port_id, context=self.context)
+        mock_client.assert_called_once_with(context=self.context)
+        fake_client.get_port.assert_called_once_with(port_id)
+        mock_unp.assert_not_called()
+
+    @mock.patch.object(neutron, 'get_client', autospec=True)
+    def test_unbind_neutron_port_if_bound_not_bound_empty(self, mock_client,
+                                                          mock_unp):
+        fake_client = mock.Mock()
+        # While it should be none, it can be set to empty value.
+        fake_client.get_port.return_value.binding_host_id = ''
+        mock_client.return_value = fake_client
+        port_id = 'fake-port-id'
+        neutron.unbind_neutron_port_if_bound(port_id, context=self.context)
+        mock_client.assert_called_once_with(context=self.context)
+        fake_client.get_port.assert_called_once_with(port_id)
+        mock_unp.assert_not_called()
+
+    @mock.patch.object(neutron, 'get_client', autospec=True)
+    def test_unbind_neutron_port_if_bound_port_not_found(self, mock_client,
+                                                         mock_unp):
+        fake_client = mock.Mock()
+        fake_client.get_port.side_effect = openstack_exc.ResourceNotFound()
+        mock_client.return_value = fake_client
+        port_id = 'fake-port-id'
+        self.assertRaises(exception.NetworkError,
+                          neutron.unbind_neutron_port_if_bound,
+                          port_id, context=self.context)
+        mock_client.assert_called_once_with(context=self.context)
+        fake_client.get_port.assert_called_once_with(port_id)
+        mock_unp.assert_not_called()
+
+    @mock.patch.object(neutron, 'get_client', autospec=True)
+    def test_unbind_neutron_port_if_bound_port_osc_error(self, mock_client,
+                                                         mock_unp):
+        fake_client = mock.Mock()
+        fake_client.get_port.side_effect = (
+            openstack_exc.OpenStackCloudException())
+        mock_client.return_value = fake_client
+        port_id = 'fake-port-id'
+        self.assertRaises(exception.NetworkError,
+                          neutron.unbind_neutron_port_if_bound,
+                          port_id, context=self.context)
+        mock_client.assert_called_once_with(context=self.context)
+        fake_client.get_port.assert_called_once_with(port_id)
+        mock_unp.assert_not_called()
+
 
 class TestGetNetworkByUUIDOrName(base.TestCase):
 

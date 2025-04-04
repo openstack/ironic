@@ -3337,6 +3337,10 @@ class ConductorManager(base_manager.BaseConductorManager):
         with task_manager.acquire(context, node_id,
                                   purpose='attach vif') as task:
             task.driver.network.validate(task)
+            # NOTE(TheJulia): It is the responsibility of the vif_attach
+            # method provided by the driver to raise an appropriate
+            # exception should it identify an error which would apply
+            # in *its* context of execution.
             task.driver.network.vif_attach(task, vif_info)
         LOG.info("VIF %(vif_id)s successfully attached to node %(node_id)s",
                  {'vif_id': vif_info['id'], 'node_id': node_id})

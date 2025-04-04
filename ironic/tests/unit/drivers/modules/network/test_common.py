@@ -711,6 +711,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         self.neutron_port = {'id': '132f871f-eaec-4fed-9475-0d54465e0f00',
                              'mac_address': '52:54:00:cf:2d:32'}
 
+    @mock.patch.object(neutron_common, 'update_neutron_port',
+                       autospec=True)
     @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
                        autospec=True)
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
@@ -719,7 +721,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
                        autospec=True)
     def test_vif_attach(self, mock_gpbpi, mock_upa, mock_client, mock_gfp,
-                        mock_save):
+                        mock_save, mock_update_port):
         vif = {'id': "fake_vif_id"}
         mock_gfp.return_value = self.port
         with task_manager.acquire(self.context, self.node.id) as task:
@@ -727,6 +729,18 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             mock_client.assert_called_once_with(context=task.context)
             mock_upa.assert_called_once_with(
                 "fake_vif_id", self.port.address, context=task.context)
+            mock_update_port.assert_has_calls([
+                mock.call(None, 'fake_vif_id',
+                          {'binding:host_id': '', 'binding:profile': {}},
+                          None),
+                mock.call(None, 'fake_vif_id',
+                          {'mac_address': None}, None),
+                mock.call(task.context, mock.ANY,
+                          {'binding:vnic_type': 'baremetal',
+                           'binding:host_id': mock.ANY,
+                           'binding:profile': {}},
+                          client=None)
+            ])
         self.assertFalse(mock_gpbpi.called)
         mock_gfp.assert_called_once_with(task, 'fake_vif_id', set(),
                                          {'id': 'fake_vif_id'})
@@ -750,6 +764,10 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
                                          {'id': 'fake_vif_id'})
         self.assertFalse(mock_save.called)
 
+    @mock.patch.object(neutron_common, 'unbind_neutron_port_if_bound',
+                       autospec=True)
+    @mock.patch.object(neutron_common, 'update_neutron_port',
+                       autospec=True)
     @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
                        autospec=True)
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
@@ -758,7 +776,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
                        autospec=True)
     def test_vif_attach_with_physnet(self, mock_gpbpi, mock_upa, mock_client,
-                                     mock_gfp, mock_save):
+                                     mock_gfp, mock_save, mock_port_update,
+                                     mock_unbind):
         self.port.physical_network = 'physnet1'
         self.port.save()
         vif = {'id': "fake_vif_id"}
@@ -767,14 +786,24 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.vif_attach(task, vif)
             mock_client.assert_called_once_with(context=task.context)
+            mock_unbind.assert_called_once_with("fake_vif_id", client=mock.ANY,
+                                                context=task.context)
             mock_upa.assert_called_once_with(
                 "fake_vif_id", self.port.address, context=task.context)
+            mock_port_update.assert_called_once_with(
+                task.context, mock.ANY,
+                {'binding:vnic_type': 'baremetal',
+                 'binding:host_id': mock.ANY,
+                 'binding:profile': {}},
+                client=None)
         mock_gpbpi.assert_called_once_with(mock_client.return_value,
                                            'fake_vif_id')
         mock_gfp.assert_called_once_with(task, 'fake_vif_id', {'physnet1'},
                                          {'id': 'fake_vif_id'})
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
 
+    @mock.patch.object(neutron_common, 'update_neutron_port',
+                       autospec=True)
     @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
                        autospec=True)
     @mock.patch.object(common, 'plug_port_to_tenant_network', autospec=True)
@@ -784,7 +813,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
                        autospec=True)
     def test_vif_attach_active_node(self, mock_gpbpi, mock_upa, mock_client,
-                                    mock_gfp, mock_plug, mock_save):
+                                    mock_gfp, mock_plug, mock_save,
+                                    mock_port_update):
         self.node.provision_state = states.ACTIVE
         self.node.save()
         vif = {'id': "fake_vif_id"}
@@ -794,6 +824,7 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
             mock_client.assert_called_once_with(context=task.context)
             mock_upa.assert_called_once_with(
                 "fake_vif_id", self.port.address, context=task.context)
+            mock_port_update.assert_not_called()
         self.assertFalse(mock_gpbpi.called)
         mock_gfp.assert_called_once_with(task, 'fake_vif_id', set(),
                                          {'id': 'fake_vif_id'})
@@ -828,6 +859,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         mock_save.assert_called_once_with(self.port, "fake_vif_id")
         mock_plug.assert_called_once_with(task, self.port, mock.ANY)
 
+    @mock.patch.object(neutron_common, 'update_neutron_port',
+                       autospec=True)
     @mock.patch.object(common.VIFPortIDMixin, '_save_vif_to_port_like_obj',
                        autospec=True)
     @mock.patch.object(common, 'get_free_port_like_object', autospec=True)
@@ -836,7 +869,8 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
     @mock.patch.object(neutron_common, 'get_physnets_by_port_uuid',
                        autospec=True)
     def test_vif_attach_portgroup_no_address(self, mock_gpbpi, mock_upa,
-                                             mock_client, mock_gfp, mock_save):
+                                             mock_client, mock_gfp, mock_save,
+                                             mock_port_update):
         pg = obj_utils.create_test_portgroup(
             self.context, node_id=self.node.id, address=None)
         mock_gfp.return_value = pg
@@ -844,6 +878,19 @@ class TestNeutronVifPortIDMixin(db_base.DbTestCase):
         with task_manager.acquire(self.context, self.node.id) as task:
             self.interface.vif_attach(task, vif)
             mock_client.assert_called_once_with(context=task.context)
+            mock_port_update.assert_has_calls([
+                mock.call(None, 'fake_vif_id',
+                          {'binding:host_id': '', 'binding:profile': {}},
+                          None),
+                mock.call(None, 'fake_vif_id',
+                          {'mac_address': None}, None),
+                mock.call(task.context, mock.ANY,
+                          {'binding:vnic_type': 'baremetal',
+                           'binding:host_id': mock.ANY,
+                           'binding:profile': {}},
+                          client=None)
+            ])
+
         self.assertFalse(mock_gpbpi.called)
         mock_gfp.assert_called_once_with(task, 'fake_vif_id', set(),
                                          {'id': 'fake_vif_id'})
