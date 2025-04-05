@@ -24,15 +24,6 @@ class IronicObjectIndirectionAPI(object_base.VersionedObjectIndirectionAPI):
         return self._conductor.object_action(context, objinst, objmethod,
                                              args, kwargs)
 
-    def object_class_action(self, context, objname, objmethod, objver,
-                            args, kwargs):
-        # NOTE(xek): This method is implemented for compatibility with
-        # oslo.versionedobjects 0.10.0 and older. It will be replaced by
-        # object_class_action_versions.
-        versions = object_base.obj_tree_get_versions(objname)
-        return self.object_class_action_versions(
-            context, objname, objmethod, versions, args, kwargs)
-
     def object_class_action_versions(self, context, objname, objmethod,
                                      object_versions, args, kwargs):
         return self._conductor.object_class_action_versions(
