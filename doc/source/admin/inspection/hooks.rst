@@ -42,7 +42,7 @@ option:
     Validates network interfaces and stores the result in the ``plugin_data``
     in two fields:
 
-    * ``all_interfaces`` - all interfaces that pass the basic sanity check.
+    * ``all_interfaces`` - all interfaces that pass the basic functional check.
     * ``valid_interfaces`` - interfaces that satisfy the configuration
       in the :oslo.config:option:`inspector.add_ports` option.
 

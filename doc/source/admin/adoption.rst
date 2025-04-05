@@ -184,7 +184,7 @@ re-attempted.  Example::
 
   baremetal node adopt <node name or uuid>
 
-If a user wishes to abort their attempt at adopting, they can then move
+If a user wishes to cancel their attempt at adopting, they can then move
 the node back to ``manageable`` from ``adopt failed`` state by issuing the
 ``manage`` verb.  Example::
 
