@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The ``ipmitool-socat`` console interface is now available for users of the
+    ``redfish`` hardware type. This was done as an enablement action for
+    operators to be able to leverage IPMI based Serial-over-Lan connections.
+    This option requires the IPMI parameters to be configured on the baremetal
+    node in addition to the ``redfish`` hardware type.

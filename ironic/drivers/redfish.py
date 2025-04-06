@@ -15,6 +15,7 @@
 
 from ironic.drivers import generic
 from ironic.drivers.modules import agent
+from ironic.drivers.modules import ipmitool
 from ironic.drivers.modules import noop
 from ironic.drivers.modules import noop_mgmt
 from ironic.drivers.modules.redfish import bios as redfish_bios
@@ -78,4 +79,6 @@ class RedfishHardware(generic.GenericHardware):
     @property
     def supported_console_interfaces(self):
         """List of supported console interfaces."""
-        return [graphical_console.RedfishGraphicalConsole, noop.NoConsole]
+        return [graphical_console.RedfishGraphicalConsole,
+                ipmitool.IPMISocatConsole,
+                noop.NoConsole]

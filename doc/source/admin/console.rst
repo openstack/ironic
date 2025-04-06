@@ -213,7 +213,12 @@ Node serial console
 -------------------
 
 Serial consoles for nodes are implemented using `socat`_. It is supported by
-the ``ipmi`` and ``irmc`` hardware types.
+the ``ipmi``, ``irmc``, and ``redfish`` hardware types.
+
+.. NOTE::
+   The use of the ``ipmitool-socat`` console interface on any hardware type
+   requires the ipmi connection parameters to be set into the ``driver_info``
+   filed on the node.
 
 Serial consoles can be configured in the Bare Metal service as follows:
 
