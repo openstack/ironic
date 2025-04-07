@@ -99,6 +99,16 @@ Contributor Guide
 
    contributor/index
 
+Support Resources
+=================
+
+.. toctree::
+   :maxdepth: 2
+
+   support/index
+
+.. only:: html
+
 References
 ==========
 
