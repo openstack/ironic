@@ -16,6 +16,8 @@ from ironic.drivers import base
 class NoopNetwork(base.NetworkInterface):
     """Noop network interface."""
 
+    capabilities = []
+
     def port_changed(self, task, port_obj):
         """Handle any actions required when a port changes
 

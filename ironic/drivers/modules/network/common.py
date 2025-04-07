@@ -683,7 +683,9 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         """Get network configuration data for node ports.
 
         Pull network data from ironic node object if present, otherwise
-        collect it for Neutron VIFs.
+        collect it for Neutron VIFs. The intended use of this method is to
+        generate data *for* virtual media based deployments so a minimal
+        configuration can be injected into the ramdisk.
 
         :param task: A TaskManager instance.
         :raises: InvalidParameterValue, if the network interface configuration
@@ -706,6 +708,10 @@ class NeutronVIFPortIDMixin(VIFPortIDMixin):
         network_data = collections.defaultdict(list)
 
         for port_obj in task.ports:
+            # FIXME(TheJulia) This code ignores portgroups, but also nobody
+            # has complained about this issue *and* it uses get_current_vif
+            # which doesn't handle *tenant* vifs. The model of this is
+            # around deployment, not instances, really.
             vif_port_id = self.get_current_vif(task, port_obj)
 
             LOG.debug('Considering node %(node)s port %(port)s, VIF %(vif)s',

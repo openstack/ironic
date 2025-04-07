@@ -1605,6 +1605,12 @@ class NetworkInterface(BaseInterface):
 
     interface_type = 'network'
 
+    # By default, no base network interface should suggest
+    # any capability for other code to key off of to understand
+    # if the requested instance has attributes which may trigger
+    # additional code paths.
+    capabilities = []
+
     def get_properties(self):
         """Return the properties of the interface.
 

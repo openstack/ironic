@@ -1,0 +1,15 @@
+---
+fixes:
+  - |
+    Fixes an issue where a Nova, or other consumer attempting to send network
+    data to Ironic can send grossly invalid network metadata which needs to
+    be replaced. Ironic now identifies the condition, and regenerates the network
+    metadata utilizing the attached VIF records. This results in some minor
+    data differences, such as Nova's internal VIF tap naming which is redundant,
+    and MTUs to be included in the Network data when they might not have been
+    included previously. More information about this bug can be found in
+    bug `2106073 <https://bugs.launchpad.net/ironic/+bug/2106073>`_. This logic
+    does *not* attempt to patch or modify configuration drive URLs which are
+    supplied by tools like Bifrost, which is unaffected by this issue.
+    This fix can be disabled by setting ``[conductor]disable_configdrive_check``
+    to ``True``.

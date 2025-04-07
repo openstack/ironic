@@ -34,6 +34,10 @@ class FlatNetwork(common.NeutronVIFPortIDMixin,
                   neutron.NeutronNetworkInterfaceMixin, base.NetworkInterface):
     """Flat network interface."""
 
+    # Indicator signaling  metadata generation/handling can be achieved on this
+    # interface.
+    capabilities = ['metadata']
+
     def __init__(self):
         cleaning_net = CONF.neutron.cleaning_network
         if not cleaning_net:

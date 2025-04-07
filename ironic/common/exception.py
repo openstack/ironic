@@ -1135,3 +1135,9 @@ class RuleActionExecutionFailure(InspectionRuleExecutionFailure):
 class RuleConditionCheckFailure(InspectionRuleExecutionFailure):
     """Raised when an inspection rule condition fails during execution."""
     _msg_fmt = _("Inspection rule condition check failed. Reason: %(reason)s")
+
+
+class ConfigDriveRegenerationFailure(IronicException):
+    """Raised when we fail to handle configuration drive corrections."""
+    # NOTE(TheJulia): This is not intended to get raised to a user, but more
+    # so we handle known possible failure cases and don't fail horribly.

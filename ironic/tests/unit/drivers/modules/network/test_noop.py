@@ -101,3 +101,4 @@ class NoopInterfaceTestCase(db_base.DbTestCase):
             network_data = self.interface.get_node_network_data(task)
 
         self.assertEqual({}, network_data)
+        self.assertEqual([], self.interface.capabilities)

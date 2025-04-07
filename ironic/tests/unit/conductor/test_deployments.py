@@ -24,6 +24,7 @@ from ironic.common import images
 from ironic.common import lessee_sources
 from ironic.common import states
 from ironic.common import swift
+from ironic.conductor import configdrive_utils as cd_utils
 from ironic.conductor import deployments
 from ironic.conductor import steps as conductor_steps
 from ironic.conductor import task_manager
@@ -126,9 +127,13 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self._test__do_node_deploy_driver_exception(RuntimeError('test'),
                                                     unexpected=True)
 
+    @mock.patch.object(cd_utils, 'check_and_fix_configdrive',
+                       autospec=True)
     @mock.patch.object(deployments, '_store_configdrive', autospec=True)
-    def _test__do_node_deploy_ok(self, mock_store, configdrive=None,
-                                 expected_configdrive=None, fast_track=False):
+    def _test__do_node_deploy_ok(self, mock_store, mock_c_cd,
+                                 configdrive=None,
+                                 expected_configdrive=None,
+                                 fast_track=False):
         if fast_track:
             self.config(fast_track=True, group='deploy')
         expected_configdrive = expected_configdrive or configdrive
@@ -143,6 +148,8 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                 driver_internal_info={'agent_url': 'url',
                                       'agent_secret_token': 'token'})
             task = task_manager.TaskManager(self.context, self.node.uuid)
+            if expected_configdrive:
+                mock_c_cd.return_value = configdrive
 
             deployments.do_node_deploy(task, self.service.conductor.id,
                                        configdrive=configdrive)
@@ -152,6 +159,8 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             self.assertIsNone(self.node.last_error)
             mock_deploy.assert_called_once_with(mock.ANY, mock.ANY)
             if configdrive:
+                mock_c_cd.assert_called_once_with(
+                    task, configdrive)
                 mock_store.assert_called_once_with(task.node,
                                                    expected_configdrive)
             else:
@@ -175,11 +184,13 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
     def test__do_node_deploy_fast_track(self):
         self._test__do_node_deploy_ok(fast_track=True)
 
+    @mock.patch.object(cd_utils, 'check_and_fix_configdrive',
+                       autospec=True)
     @mock.patch.object(swift, 'SwiftAPI', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
                 autospec=True)
     def test__do_node_deploy_configdrive_swift_error(self, mock_prepare,
-                                                     mock_swift):
+                                                     mock_swift, mock_c_cd):
         CONF.set_override('configdrive_use_object_store', True,
                           group='deploy')
         self._start_service()
@@ -187,7 +198,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
                                           provision_state=states.DEPLOYING,
                                           target_provision_state=states.ACTIVE)
         task = task_manager.TaskManager(self.context, node.uuid)
-
+        mock_c_cd.return_value = 'fake config drive'
         mock_swift.side_effect = exception.SwiftOperationError('error')
         self.assertRaises(exception.SwiftOperationError,
                           deployments.do_node_deploy, task,
@@ -198,10 +209,14 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.ACTIVE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
         self.assertFalse(mock_prepare.called)
+        self.assertTrue(mock_c_cd.called)
 
+    @mock.patch.object(cd_utils, 'check_and_fix_configdrive',
+                       autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
                 autospec=True)
-    def test__do_node_deploy_configdrive_db_error(self, mock_prepare):
+    def test__do_node_deploy_configdrive_db_error(self, mock_prepare,
+                                                  mock_c_cd):
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=states.DEPLOYING,
@@ -209,6 +224,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         task = task_manager.TaskManager(self.context, node.uuid)
         task.node.save()
         expected_instance_info = dict(node.instance_info)
+        mock_c_cd.return_value = 'fake config drive'
         with mock.patch.object(dbapi.IMPL, 'update_node',
                                autospec=True) as mock_db:
             db_node = self.dbapi.get_node_by_uuid(node.uuid)
@@ -238,12 +254,19 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
             ]
             self.assertEqual(expected_calls, mock_db.mock_calls)
             self.assertFalse(mock_prepare.called)
+            self.assertTrue(mock_c_cd.called)
 
+    @mock.patch.object(cd_utils, 'check_and_fix_configdrive',
+                       autospec=True)
     @mock.patch.object(deployments, '_store_configdrive', autospec=True)
     @mock.patch('ironic.drivers.modules.fake.FakeDeploy.prepare',
                 autospec=True)
     def test__do_node_deploy_configdrive_unexpected_error(self, mock_prepare,
-                                                          mock_store):
+                                                          mock_store,
+                                                          mock_c_cd):
+        CONF.set_override('disable_configdrive_check', True,
+                          group="conductor")
+        mock_c_cd.return_value = 'fake config drive'
         self._start_service()
         node = obj_utils.create_test_node(self.context, driver='fake-hardware',
                                           provision_state=states.DEPLOYING,
@@ -260,6 +283,7 @@ class DoNodeDeployTestCase(mgr_utils.ServiceSetUpMixin, db_base.DbTestCase):
         self.assertEqual(states.ACTIVE, node.target_provision_state)
         self.assertIsNotNone(node.last_error)
         self.assertFalse(mock_prepare.called)
+        self.assertFalse(mock_c_cd.called)
 
     def test__do_node_deploy_ok_2(self):
         # NOTE(rloo): a different way of testing for the same thing as in
