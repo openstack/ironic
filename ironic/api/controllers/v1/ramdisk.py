@@ -57,6 +57,15 @@ def config(token):
             'statsd_port': CONF.metrics_statsd.agent_statsd_port
         },
         'heartbeat_timeout': CONF.api.ramdisk_heartbeat_timeout,
+        'agent_containers': {
+            'allow_arbitrary_containers': CONF.agent_containers.allow_arbitrary_containers,  # noqa
+            'allowed_containers': CONF.agent_containers.allowed_containers,
+            'container_steps_file': CONF.agent_containers.container_steps_file,
+            'runner': CONF.agent_containers.runner,
+            'pull_options': CONF.agent_containers.pull_options,
+            'run_options': CONF.agent_containers.run_options,
+            'container_conf_file': CONF.agent_containers.container_conf_file,
+        },
         'agent_token': token,
         # Since this is for the Victoria release, we send this as an
         # explicit True statement for newer agents to lock the setting

@@ -1,0 +1,7 @@
+---
+features:
+  - |
+    Add a new configuration group [agent_containers] that allows
+    users to dynamically configure container-based cleaning via
+    Ironic conductor.
+
