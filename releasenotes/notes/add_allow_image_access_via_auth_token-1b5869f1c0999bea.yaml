@@ -1,0 +1,19 @@
+---
+features:
+  - |
+    If `allow_image_access_via_auth_token` is set to `True`, Ironic allows access to
+    Glance images if an auth_token is present in the request context.
+upgrade:
+  - |
+    In this release, the default value of `allow_image_access_via_auth_token` has been
+    changed to `True`. This enables Ironic to access Glance images when an auth token
+    is present in the request context.
+
+    This change was backported from the master branch but with a modified default value
+    for this stable release. OpenStack integrated operators should ensure images for
+    Ironic use are using image visibility "public" or "community" for the most reliable
+    results.
+deprecation:
+  - |
+    CONF.allow_image_access_via_auth_token is deprecated, and will be removed,
+    along with legacy image access logic, in or after the OpenStack 2026.2 release.
