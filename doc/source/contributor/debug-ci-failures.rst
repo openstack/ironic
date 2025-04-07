@@ -28,3 +28,39 @@ The page has three tabs: ``Summary``, ``Logs`` and ``Console``.
   arrow before each playbook name you can find the roles and commands that were
   executed.
 
+Frequent Annoying Quirks (FAQ)
+==============================
+
+Networking (external/infra)
+---------------------------
+
+Ironic jobs, with more frequency than most, use external network resources
+and are more susceptible to failures caused by temporary connectivity issues.
+
+Known issues may include:
+
+- Failures building IPA images in any job ending in -src or jobs running
+  against ironic-python-agent-builder. We should ensure the outage is resolved
+  by testing the URL locally before rechceking.
+- Unexpected/unexplainable failures in multinode may be caused by failed
+  connectivity between two deployed devstack nodes. Any failures in the CI
+  donor cloud causing network issues between two separate devstack VMs under
+  coordinated test will cause failures.
+
+Networking (OpenStack)
+----------------------
+
+There are issues which can also cause networking failures to occur inside
+the job directly.
+
+Known issues may include:
+
+- Some dnsmasq versions have an issue which causes them to crash or segfault
+  during automatic reconfiguration. Certain errors in the neutron dhcp agent
+  (q-dhcp service in devstack) indicate that dnsmasq errored and must be
+  respawned. One quick way to rule this out is to search ``screen-q-dhcp.txt``
+  for the string ``'dnsmasq', '--no-hosts'`` -- these spawn logs should only
+  show up after an inability to find a PID file (Error: No such file or
+  directory /opt/stack/data/neutron/UUID/pid). There should be no messages
+  about respawning the process.
+- EDK2 firmwares have known issues with IPv6, limiting our ability to test it.
