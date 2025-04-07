@@ -159,8 +159,10 @@
 - job:
     name: ironic-standalone-aarch64
     description:
-      Test ironic standalone configured with ipmi hardware type, ramdisk and
-      direct deploy interfaces, rescue enabled.
+      Test ironic standalone configured with redfish hardware type, ramdisk
+      and direct deploy interfaces, rescue enabled using ARM64 VMs as deploy
+      targets. If this job fails alone, there may be an issue with ARM support
+      specifically.
     parent: ironic-base
     irrelevant-files:
       - ^.*\.rst$
@@ -225,11 +227,13 @@
 # UEFI mode. Although the redfish test runs the exact same tests and *more*.
 # On top of that, there really is not a good variation which would be
 # impacted through IPMI while we keep other ipmi jobs in our CI config.
+# NOTE(JayF) 2025 Apr 7 noticed usage in IPA; removal in
+# https://review.opendev.org/c/openstack/ironic-python-agent/+/946580
 - job:
     name: ironic-standalone
     description:
-      Test ironic standalone configured with ipmi hardware type, ramdisk and
-      direct deploy interfaces, rescue enabled.
+      Deprecated standalone job. Do not use this as a parent or run it.
+      Scheduled for removal.
     parent: ironic-base
     nodeset: ironic-single-node-noble
     irrelevant-files:
@@ -298,8 +302,10 @@
     parent: ironic-base
     nodeset: ironic-single-node-noble
     description:
-      Test ironic standalone configured with redfish hardware type, ansible and
-      direct and ansible deploy interfaces, rescue it's not enabled.
+      Test ironic standalone configured with redfish hardware type,
+      direct, and ansible deploy interfaces, rescue is not enabled.
+      If this job fails alone, look for regressions in the ansible deploy
+      interfaces.
     required-projects:
       - opendev.org/openstack/sushy-tools
       - opendev.org/openstack/ironic-python-agent-builder
@@ -354,8 +360,10 @@
     parent: ironic-standalone-redfish
     nodeset: openstack-single-node-noble
     description:
-      Test ironic with the anaconda deployment interface.
-      Test also uses Redfish.
+      Test Ironic with the anaconda deployment interface. If this fails alone,
+      check for regressions in the anaconda deployment interface. Also,
+      this job uses external, third-party mirrors and is susceptible to
+      network failures.
     required-projects:
       - opendev.org/openstack/sushy-tools
     vars:
@@ -408,13 +416,12 @@
         s-proxy: False
 
 
-# NOTE(TheJulia): This job should likely be phased out as the standalone
-# job mostly checks the related code paths, the overlap pertinant here is
-# BIOS mode, which is not commonly deployed, and the minimum feature set
-# flag for the emulator.
 - job:
     name: ironic-tempest-bios-redfish-pxe
-    description: "Deploy ironic node over PXE using BIOS boot mode"
+    description: Ironic configured with legacy BIOS boot, a minimal
+      redfish bmc, and shards. If this job fails alone, check for regressions
+      around legacy bios booting or an accidental requirement of some advanced
+      redfish feature.
     parent: ironic-tempest-uefi-redfish-vmedia
     required-projects:
       - opendev.org/openstack/sushy-tools
@@ -443,7 +450,9 @@
 
 - job:
     name: ironic-tempest-uefi-redfish-vmedia
-    description: "Deploy ironic node over Redfish virtual media using UEFI boot mode"
+    description: Happy path virtual media deploy over Redfish using UEFI boot
+      mode. If this job fails alone, it indicates a failure either with grub
+      booting, an issue with swift, or an issue with virtual media support.
     parent: ironic-base
     vars:
       # NOTE(iurygregory): switch to only wholedisk test, since the
@@ -475,7 +484,10 @@
 
 - job:
     name: ironic-tempest-uefi-redfish-https
-    description: "Deploy ironic node utilizing https boot interface"
+    description: Identical to ironic-tempest-uefi-redfish-vmedia except
+      instead of virtual media, uefi http(s) boot is used. If only this
+      job fails, it's likely a regression in EDK2 (QEMU VM firmware) or
+      our UEFI http(s) boot support.
     parent: ironic-base
     required-projects:
       - opendev.org/openstack/sushy
@@ -505,6 +517,8 @@
         s-object: True
         s-proxy: True
 
+# NOTE(JayF) Ironic inspector is deprecated and pending removal.
+# TODO(JayF) Remove this job.
 - job:
     name: ironic-inspector-tempest-uefi-redfish-vmedia
     description: "Inspect and deploy ironic node over Redfish virtual media using UEFI"
@@ -529,9 +543,15 @@
 
 # NOTE(rpittau): converted job but not running for now as there
 # could be an issue with the lookup in ironic-python-agent
+# NOTE(JayF): ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa
+# is based on this job, and is used by Nova, Glance, and Neutron as a
+# basis for their CI jobs.
 - job:
     name: ironic-tempest-ipa-wholedisk-bios-agent_ipmitool
-    description: Gate-ish job with classic name. Executes rescue!
+    description: Base for
+      ironic-tempest-ipa-wholedisk-bios-agent_ipmitool-tinyipa, which is used
+      by Nova, Glance, and Neutron as a basis for their CI jobs. Not used in
+      any Ironic project.
     parent: ironic-base
     vars:
       devstack_localrc:
@@ -550,6 +570,11 @@
         s-object: True
         s-proxy: True
 
+# TODO(JayF): Tempest CI for SNMP is on its last legs; we are holding back
+# all openstack projects from updating pyasn1* packages due to our use of
+# pysnmp-lextudio instead of modern pysnmp. This job should be reworked to
+# no longer require SNMP and instead test the other items this job is for
+# and a mail sent to the list asking for action to keep it alive.
 - job:
     name: ironic-tempest-ramdisk-bios-snmp-pxe
     description: SNMP power, iPXE, OVN, no-op management and whole disk images.
@@ -598,7 +623,9 @@
 
 - job:
     name: ironic-tempest-ovn-uefi-ipmi-pxe
-    description: IPMI power, UEFI, iPXE, OVN image.
+    description: IPMI power, UEFI, iPXE, OVN, image-based deployment. A
+      failure in only this and other *ovn* jobs is likely a regression in
+      Ironic or Neutron support for OVN.
     parent: ironic-base
     vars:
       # NOTE(iurygregory): switch to only wholedisk test, since the
@@ -624,7 +651,10 @@
 
 - job:
     name: ironic-tempest-bfv
-    description: ironic-tempest-bfv
+    description: Chainloads from iPXE into a cinder iSCSI volume. If this job
+      fails alone, it likely indicates a regression in boot from volume
+      support in Ironic, Nova virt driver, or Cinder, iPXE changes,
+      or some combination of them.
     parent: ironic-base
     vars:
       tempest_test_regex: baremetal_boot_from_volume
@@ -647,6 +677,8 @@
         c-vol: True
         cinder: True
 
+# TODO(JayF): Ironic inspector is deprecated and scheduled for retirement
+# we should remove this job soon. Apr 7 2025
 - job:
     name: ironic-inspector-tempest
     description: ironic-inspector-tempest
@@ -690,9 +722,14 @@
         s-object: True
         s-proxy: True
 
+# TODO(JayF): Ironic inspector is deprecated and scheduled for retirement
+# we should remove this job soon. Apr 7 2025
 - job:
     name: ironic-tempest-functional-python3
-    description: ironic-tempest-functional-python3
+    description: This runs the API-based tempest tests from
+      ironic-tempest-plugin. A failure here is likely a violation
+      of our API contract in some way or a default configuration
+      being changed.
     parent: ironic-base
     pre-run: playbooks/ci-workarounds/etc-neutron.yaml
     vars:
@@ -718,10 +755,13 @@
         placement-api: False
         # NOTE(TheJulia): This job runs neutron so neutron dependent
         # tests can also exercised as part of CI.
-
 - job:
     name: ironic-tempest-ipa-wholedisk-direct-multinode
-    description: ironic-tempest-ipa-wholedisk-direct-multinode
+    description: Utilizes multiple devstack nodes to test
+      ML2 integration between Ironic, Neutron, and
+      networking-generic-switch. Most common cause of failure is
+      resource contention with other jobs, causing cross-node
+      communication failures or DHCP issues.
     parent: tempest-multinode-full-base
     nodeset: ironic-three-node-noble
     pre-run: playbooks/ci-workarounds/pre.yaml
@@ -910,6 +950,9 @@
     parent: ironic-tempest-ipa-wholedisk-direct-multinode-shard
 
 
+# TODO(JayF): This job should be consolidaated into the
+# ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode -- there is no
+# value in running a separate unsharded multinode test.
 - job:
     # NOTE(JayF) This job sets up two nova-computes with two different shards
     # TODO(JayF) Add a post-run validation to ensure the two n-cpus did not
@@ -944,14 +987,19 @@
     vars:
       tox_envlist: unit-with-driver-libs
 
+# TODO(JayF): We likely no longer need to segregate these.
 - job:
     name: ironic-tox-unit-mysql-migrations
     parent: openstack-tox
     description: |
-      Run MySQL based data model migrations separate to isolate failures.
+      Run MySQL based data model migrations. These are excluded from
+      typical unit test runs.
     vars:
       tox_envlist: mysql-migrations
 
+# TODO(JayF): Ironic inspector is deprecated and scheduled for retirement
+# we should restructure and rename this job to ensure it keeps working.
+# This is the only job that tests fast track. Apr 7 2025
 - job:
     name: ironic-inspector-tempest-discovery-fast-track
     description: ironic-inspector-tempest-discovery-fast-track
@@ -965,7 +1013,9 @@
 
 - job:
     name: ironic-tempest-ipa-partition-uefi-pxe-grub2
-    description: Ironic tempest scenario test utilizing PXE, UEFI, and Grub2
+    description: Ironic tempest scenario test utilizing PXE (NOT iPXE),
+      UEFI, and grub2. If this job fails alone, it indicates grub2 network
+      booting or UEFI-based network booting is failed.
     parent: ironic-base
     vars:
       devstack_localrc:
@@ -973,9 +1023,15 @@
         IRONIC_ENABLED_BOOT_INTERFACES: pxe
         IRONIC_IPXE_ENABLED: False
         IRONIC_AUTOMATED_CLEAN_ENABLED: False
-
+# NOTE(JayF): This is when pairing stopped
+# TODO(JayF): Remove ^^^^ once reviewed by Julia
 - job:
     name: ironic-tempest-ipa-wholedisk-bios-ipmi-direct-dib
+    description: Tests whole disk booting with swift and an image
+      built using ironic-python-agent-builder with diskimage-builder.
+      If this job fails alone, ensure the DIB image our CI is using from
+      tarballs.openstack.org is valid and that there was enough resources
+      to run it in the test VM.
     parent: ironic-base
     vars:
       devstack_services:
@@ -1003,7 +1059,10 @@
 # below.
 - job:
     name: ironic-tempest-ipxe-ipv6
-    description: ironic-tempest-ipxe-ipv6
+    description: Test ironic workflows with IPv6 enabled tests. If this job
+      fails alone, ensure Ironic, Neutron, or networking-generic-switch has
+      not introduced changes to regress IPv6 support. Also beware of bugs in
+      EDK2 (VM firmware) images causing false failures in this job.
     parent: ironic-base
     required-projects:
       - opendev.org/openstack/networking-generic-switch
@@ -1061,7 +1120,10 @@
 
 - job:
     name: ironic-tempest-ovn-uefi-ipxe-ipv6
-    description: ironic-tempest-ovn-uefi-ipxe-ipv6
+    description: Test ironic with OVN and IPv6. If this job fails alone,
+      it may indicate a regression in IPv6 support generally with Ironic,
+      Neutron, OVN, networking-generic-switch, or the EDK2 firmware running
+      on qemu test vms.
     parent: ironic-base
     required-projects:
       - opendev.org/openstack/networking-generic-switch
@@ -1176,6 +1238,11 @@
 
 - job:
     name: ironic-grenade
+    description: This job deploys the previous release of Ironic with devstack,
+      then runs scripts to upgrade it to the master release. If this job fails
+      alone, it indicates we may have broken upgrading Ironic. This job is also
+      more likely to be the victim of resource contention as it is one of the
+      longest running jobs.
     parent: grenade
     timeout: 10800
     irrelevant-files:
@@ -1302,9 +1369,15 @@
 
 - job:
     name: ironic-grenade-skip-level
+    description:
+        This job deploys the previous SLURP release of Ironic with devstack,
+        then runs scripts to upgrade it to the master release. If this job fails
+        alone, it indicates we may have broken upgrading Ironic across SLURP
+        releases. This job is also more likely to be the victim of resource
+        contention as it is one of the longest running jobs.
     parent: ironic-grenade
     vars:
-      grenade_from_branch: stable/zed
+      grenade_from_branch: stable/2025.1
       grenade_to_branch: master
       grenade_localrc:
         # NOTE(iurygregory): This is required for skip upgrades.
