@@ -17,7 +17,7 @@ Two kinds of images are published on every commit from every branch of
   * For Ussuri and up to Yoga use CentOS 8 images.
   * For Zed and newer use CentOS 9 images.
 
-  .. warning:: CentOS 7 master images are no longer updated and must not be
+  .. warning:: CentOS 7 images are no longer updated and must not be
                used.
 
   .. warning:: The published images will not work for dhcp-less deployments
