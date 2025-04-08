@@ -106,6 +106,24 @@ only the main image is used.
 If you want to use Fedora image, replace ``ubuntu`` with ``fedora`` in the
 chosen command.
 
+To build images for distributions other than ubuntu, follow the build method
+for Whole disk images.
+
+- Example for Rocky Linux
+
+  If you use the rocky-container element, specify the ``openssh-server`` and
+  ``cloud-init`` elements to enable ssh login with a key pair, and specify the
+  ``growroot`` element to adjust the disk size.
+
+  .. code-block:: console
+
+     $ export DIB_CONTAINERFILE_PODMAN_ROOT=1
+     $ disk-image-create rocky-container vm dhcp-all-interfaces \
+     > block-device-efi openssh-server cloud-init growroot -o my-image
+
+If you want to use Alma Linux image, replace ``rocky-container`` with
+``almalinux-container`` in the chosen command.
+
 .. _disk-image-builder: https://docs.openstack.org/diskimage-builder/latest/
 
 Virtual machine
