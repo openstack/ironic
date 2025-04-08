@@ -299,7 +299,7 @@ IRONIC_VM_LOG_ROTATE=$(trueorfalse True IRONIC_VM_LOG_ROTATE)
 IRONIC_DEFAULT_RESOURCE_CLASS=${IRONIC_DEFAULT_RESOURCE_CLASS:-baremetal}
 
 # Set traits for nodes. Traits should be separated by whitespace.
-IRONIC_DEFAULT_TRAITS=${IRONIC_DEFAULT_TRAITS-CUSTOM_GOLD}
+IRONIC_DEFAULT_TRAITS=${IRONIC_DEFAULT_TRAITS:-CUSTOM_GOLD}
 
 # Whether to build the ramdisk or download a prebuilt one.
 IRONIC_BUILD_DEPLOY_RAMDISK=$(trueorfalse True IRONIC_BUILD_DEPLOY_RAMDISK)
