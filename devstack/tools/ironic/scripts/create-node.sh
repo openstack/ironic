@@ -155,6 +155,6 @@ fi
 if [[ "${NET_SIMULATOR:-ovs}" == "ovs" ]]; then
     VM_MAC=$(echo -n $(virsh domiflist $NAME |awk '/ovs-/{print $5","$1}')|tr ' ' ';')
 else
-    VM_MAC=$(echo -n $(virsh domiflist $NAME |awk '/tap-/{print $5","$1}')|tr ' ' ';')
+    VM_MAC=$(echo -n $(virsh domiflist $NAME |awk '/tap-/{print $5","$3}')|tr ' ' ';')
 fi
 echo -n "$VM_MAC $VBMC_PORT $PDU_OUTLET"
