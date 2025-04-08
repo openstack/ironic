@@ -1375,6 +1375,54 @@ def get_image_download_source(node):
             or CONF.agent.image_download_source)
 
 
+def _instance_info_for_glance(task, instance_info, image_download_source,
+                              image_source, iwdi):
+    """Helper for build_instance_info_for_deploy with glance."""
+    # This is a helper method which should only contain code as it relates
+    # to interacting with glance.
+    glance = image_service.GlanceImageService(context=task.context)
+    image_info = glance.show(image_source)
+    LOG.debug('Got image info: %(info)s for node %(node)s.',
+              {'info': image_info, 'node': task.node.uuid})
+    # Values are explicitly set into the instance info field
+    # so IPA have the values available.
+    instance_info['image_checksum'] = image_info['checksum']
+    instance_info['image_os_hash_algo'] = image_info['os_hash_algo']
+    instance_info['image_os_hash_value'] = image_info['os_hash_value']
+    if image_download_source == 'swift':
+        # In this case, we are getting a file *from* swift for a glance
+        # image which is backed by swift. IPA downloads the file directly
+        # from swift, but cannot get any metadata related to it otherwise.
+        swift_temp_url = glance.swift_temp_url(image_info)
+        image_format = image_info.get('disk_format')
+        # In the process of validating the URL is valid, we will perform
+        # the requisite safety checking of the asset as we can end up
+        # converting it in the agent, or needing the disk format value
+        # to be correct for the Ansible deployment interface.
+        validate_results = _validate_image_url(
+            task.node, swift_temp_url, secret=True,
+            expected_format=image_format)
+        instance_info['image_url'] = swift_temp_url
+        instance_info['image_disk_format'] = \
+            validate_results.get('disk_format', image_format)
+    else:
+        # In this case, we're directly downloading the glance image and
+        # hosting it locally for retrieval by the IPA.
+        _cache_and_convert_image(task, instance_info, image_info)
+
+    # We're just populating extra information for a glance backed image in
+    # case a deployment interface driver needs them at some point.
+    instance_info['image_container_format'] = (
+        image_info['container_format'])
+    instance_info['image_tags'] = image_info.get('tags', [])
+    instance_info['image_properties'] = image_info['properties']
+
+    if not iwdi and get_boot_option(task.node) != 'local':
+        instance_info['kernel'] = image_info['properties']['kernel_id']
+        instance_info['ramdisk'] = image_info['properties']['ramdisk_id']
+    return instance_info, image_info
+
+
 @METRICS.timer('build_instance_info_for_deploy')
 def build_instance_info_for_deploy(task):
     """Build instance_info necessary for deploying to a node.
@@ -1408,7 +1456,6 @@ def build_instance_info_for_deploy(task):
     # we can only deploy this in limited cases for drivers and tools
     # which are aware of such. i.e. anaconda.
     image_download_source = get_image_download_source(node)
-    boot_option = get_boot_option(task.node)
 
     # There is no valid reason this should already be set, and
     # and gets replaced at various points in this sequence.
@@ -1433,51 +1480,11 @@ def build_instance_info_for_deploy(task):
         # We know the image source is likely rooted from a glance record,
         # so we don't need to do other checks unrelated to non-glance flows.
         is_glance_image = True
+        # Trigger the glance image handling code path
+        (instance_info, image_info) = _instance_info_for_glance(
+            task, instance_info, image_download_source, image_source,
+            iwdi)
 
-        # TODO(TheJulia): At some point, break all of the glance check/set
-        # work into a helper method to be called so we minimize the amount
-        # of glance specific code in this overall multi-image-service flow
-        # for future maintainer sanity.
-        glance = image_service.GlanceImageService(context=task.context)
-        image_info = glance.show(image_source)
-        LOG.debug('Got image info: %(info)s for node %(node)s.',
-                  {'info': image_info, 'node': node.uuid})
-        # Values are explicitly set into the instance info field
-        # so IPA have the values available.
-        instance_info['image_checksum'] = image_info['checksum']
-        instance_info['image_os_hash_algo'] = image_info['os_hash_algo']
-        instance_info['image_os_hash_value'] = image_info['os_hash_value']
-        if image_download_source == 'swift':
-            # In this case, we are getting a file *from* swift for a glance
-            # image which is backed by swift. IPA downloads the file directly
-            # from swift, but cannot get any metadata related to it otherwise.
-            swift_temp_url = glance.swift_temp_url(image_info)
-            image_format = image_info.get('disk_format')
-            # In the process of validating the URL is valid, we will perform
-            # the requisite safety checking of the asset as we can end up
-            # converting it in the agent, or needing the disk format value
-            # to be correct for the Ansible deployment interface.
-            validate_results = _validate_image_url(
-                node, swift_temp_url, secret=True,
-                expected_format=image_format)
-            instance_info['image_url'] = swift_temp_url
-            instance_info['image_disk_format'] = \
-                validate_results.get('disk_format', image_format)
-        else:
-            # In this case, we're directly downloading the glance image and
-            # hosting it locally for retrieval by the IPA.
-            _cache_and_convert_image(task, instance_info, image_info)
-
-        # We're just populating extra information for a glance backed image in
-        # case a deployment interface driver needs them at some point.
-        instance_info['image_container_format'] = (
-            image_info['container_format'])
-        instance_info['image_tags'] = image_info.get('tags', [])
-        instance_info['image_properties'] = image_info['properties']
-
-        if not iwdi and boot_option != 'local':
-            instance_info['kernel'] = image_info['properties']['kernel_id']
-            instance_info['ramdisk'] = image_info['properties']['ramdisk_id']
     elif image_service.is_container_registry_url(image_source):
         # Is an oci image, we need to figure out the particulars...
         # but we *don't* need to also handle special casing with Swift.
