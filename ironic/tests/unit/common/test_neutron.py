@@ -224,7 +224,8 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
     @mock.patch.object(neutron, 'update_neutron_port', autospec=True)
     def _test_add_ports_to_network(self, update_mock, is_client_id,
                                    security_groups=None,
-                                   add_all_ports=False):
+                                   add_all_ports=False,
+                                   boot_not_pxe=False):
         # Ports will be created only if pxe_enabled is True
         self.node.network_interface = 'neutron'
         self.node.save()
@@ -263,7 +264,7 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             expected_create_attrs['extra_dhcp_opts'] = (
                 [{'opt_name': '61', 'opt_value': self._CLIENT_ID}])
 
-        if add_all_ports:
+        if add_all_ports or boot_not_pxe:
             expected_create_attrs2 = copy.deepcopy(expected_create_attrs)
             expected_update_attrs2 = copy.deepcopy(expected_update_attrs)
             expected_update_attrs2['mac_address'] = port2.address
@@ -284,10 +285,13 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
             expected = {port.uuid: self.neutron_port['id']}
 
         with task_manager.acquire(self.context, self.node.uuid) as task:
+            if boot_not_pxe:
+                # force override of driver properties, just to keep it simple.
+                task.driver.boot.capabilities = ['not_pxe']
             ports = neutron.add_ports_to_network(
                 task, self.network_uuid, security_groups=security_groups)
             self.assertEqual(expected, ports)
-            if add_all_ports:
+            if add_all_ports or boot_not_pxe:
                 create_calls = [mock.call(**expected_create_attrs),
                                 mock.call(**expected_create_attrs2)]
                 update_calls = [
@@ -312,6 +316,10 @@ class TestNeutronNetworkActions(db_base.DbTestCase):
         self._test_add_ports_to_network(is_client_id=False,
                                         security_groups=None,
                                         add_all_ports=True)
+
+    def test_add_ports_to_network_all_ports_via_not_pxe(self):
+        self._test_add_ports_to_network(is_client_id=False,
+                                        boot_not_pxe=True)
 
     @mock.patch.object(neutron, '_verify_security_groups', autospec=True)
     def test_add_ports_to_network_with_sg(self, verify_mock):
