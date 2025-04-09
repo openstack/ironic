@@ -1,0 +1,36 @@
+---
+features:
+  - |
+    Added a new 'api-call' action plugin for Ironic inspection rules.
+
+    This action allows triggering an HTTP GET request to a given URL when a
+    rule matches successfully during node inspection. It is useful for
+    integrating with external systems such as webhooks, alerting, or
+    automation tools.
+
+    The following options are supported:
+
+    * url (required): The HTTP endpoint to call
+    * timeout (optional, default: 5): Timeout in seconds
+    * retries (optional, default: 3): Number of retries on failure
+    * backoff_factor (optional, default: 0.3): Delay factor for retry attempts
+    * headers, proxies (optional): Additional request configuration
+
+    Retry applies to status codes 429, 500, 502, 503, and 504.
+
+    Example rule::
+
+      [
+        {
+          "description": "Trigger webhook after node inspection",
+          "actions": [
+            {
+              "action": "api-call",
+              "url": "http://example.com/hook",
+              "timeout": 10,
+              "retries": 5,
+              "backoff_factor": 1
+            }
+          ]
+        }
+      ]

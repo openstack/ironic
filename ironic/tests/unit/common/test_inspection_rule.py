@@ -693,6 +693,27 @@ class TestActions(TestInspectionRules):
             self.assertEqual('value1', task.node.extra['test1'])
             self.assertEqual('value2', task.node.extra['test2'])
 
+    @mock.patch(
+        'ironic.common.inspection_rules.actions.requests.Session',
+        autospec=True)
+    def test_call_api_hook_action_success(self, mock_session):
+        """Test CallAPIHookAction successfully calls an API."""
+        mock_session_instance = mock_session.return_value
+        mock_response = mock.Mock()
+        mock_response.status_code = 200
+        mock_response.raise_for_status.return_value = None
+        mock_session_instance.get.return_value = mock_response
+
+        with task_manager.acquire(self.context, self.node.uuid) as task:
+            action = inspection_rules.actions.CallAPIHookAction()
+            test_url = 'http://example.com/simple_hook'
+            action(task, url=test_url)
+            mock_session_instance.mount.assert_any_call("http://", mock.ANY)
+            mock_session_instance.mount.assert_any_call("https://", mock.ANY)
+            mock_session_instance.get.assert_called_once_with(
+                test_url, timeout=5)
+            mock_response.raise_for_status.assert_called_once()
+
 
 class TestShallowMask(TestInspectionRules):
     def setUp(self):
