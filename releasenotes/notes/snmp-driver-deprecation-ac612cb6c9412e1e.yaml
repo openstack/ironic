@@ -1,0 +1,10 @@
+deprecations:
+  - |
+    The SNMP hardware type and associated interfaces have been deprecated
+    for removal in a future Ironic release. It currently depends on an
+    outdated, unsupported library and unless it is migrated off that library
+    by the end of the 2026.1 cycle it will be removed.
+
+    Operators utilizing this driver will need to find an alternate way
+    to manage their machines. Alternatively, the Ironic community welcomes
+    contributions to keep this driver alive.
