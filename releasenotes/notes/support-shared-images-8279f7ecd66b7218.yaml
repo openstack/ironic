@@ -1,0 +1,8 @@
+---
+features:
+  - |
+    The Ironic conductor can now access images that are
+    shared with its project, in addition to those it owns.
+
+    To use the feature, ensure the images are shared with
+    the project associated with the conductor's credentials.

@@ -22,6 +22,7 @@ from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from ironic.common import exception
+from ironic.common import image_service as service
 from ironic.common import keystone
 from ironic.conf import CONF
 
@@ -140,10 +141,13 @@ def is_image_available(context, image):
     image_visibility = getattr(image, 'visibility', None)
     image_owner = getattr(image, 'owner', None)
     image_id = getattr(image, 'id', 'unknown')
+    image_shared_member_list = get_image_member_list(image_id, context)
     is_admin = 'admin' in getattr(context, 'roles', [])
     project = getattr(context, 'project', 'unknown')
+
     # If an auth token is present and the config allows access via auth token,
     #  allow image access.
+    # NOTE(satoshi): This config should be removed in the H (2026.2) cycle
     if CONF.allow_image_access_via_auth_token and auth_token:
         # We return true here since we want the *user* request context to
         # be able to be used.
@@ -159,7 +163,11 @@ def is_image_available(context, image):
     #  allow access.
     if image_visibility == 'private' and image_owner == conductor_project_id:
         return True
-
+    # If the image is shared and the conductor_project_id is in the shared
+    # member list, allow access
+    if image_visibility == 'shared'\
+            and conductor_project_id in image_shared_member_list:
+        return True
     LOG.info(
         'Access to %s owned by %s denied to requester %s',
         image_id, image_owner, project
@@ -198,3 +206,17 @@ def get_conductor_project_id():
     except Exception as e:
         LOG.debug("Error getting conductor project ID: %s", str(e))
     return None
+
+
+def get_image_member_list(image_id, context):
+    try:
+        glance_service = service.GlanceImageService(context=context)
+        members = glance_service.client.image.members(image_id)
+        return [
+            member['member_id']
+            for member in members
+        ]
+    except Exception as e:
+        LOG.error("Unable to retrieve image members for image %s: %s",
+                  image_id, e)
+        return []

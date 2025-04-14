@@ -33,6 +33,13 @@ the Image service for each one as it is generated.
    Images from Glance used by Ironic must be flagged as ``public``, which
    requires administrative privileges with the Glance image service to set.
 
+.. note::
+   Starting with the 2025.2 release, the Ironic conductor can access images that
+   are shared with its project, in addition to those it owns.
+
+   To use this feature, ensure the required images are shared with the project
+   associated with the conductor's credentials.
+
 - For *whole disk images* just upload the image:
 
   .. code-block:: console
