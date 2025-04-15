@@ -69,6 +69,12 @@ api_opts = [
                default='/etc/ironic/htpasswd',
                help=_('Path to Apache format user authentication file used '
                       'when auth_strategy=http_basic')),
+    cfg.BoolOpt('allow_image_access_via_auth_token',
+                default=False,
+                deprecated_for_removal=True,
+                help=_('If True, Ironic allows access to Glance images if an '
+                       'auth_token is present in the request context.')
+                ),
     cfg.BoolOpt(
         'ignore_project_check_for_admin_tasks',
         default=True,

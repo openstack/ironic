@@ -22,6 +22,7 @@ from oslo_utils import timeutils
 from oslo_utils import uuidutils
 
 from ironic.common import exception
+from ironic.common import keystone
 from ironic.conf import CONF
 
 _IMAGE_ATTRIBUTES = ['size', 'disk_format', 'owner',
@@ -34,6 +35,7 @@ _IMAGE_ATTRIBUTES = ['size', 'disk_format', 'owner',
 
 
 LOG = log.getLogger(__name__)
+_GLANCE_SESSION = None
 
 
 def _extract_attributes(image):
@@ -123,27 +125,39 @@ def is_image_available(context, image):
     This check is needed in case Nova and Glance are deployed
     without authentication turned on.
     """
+    # NOTE: Any support for private/shared images in Ironic requires a secure
+    # way for ironic to know the original requester:
+    #  - If we trust node[instance_info][project_id], we are susceptible to a
+    #    node.owner stealing another project's private image by lying in
+    #    instance_info.
+    #  - As of 2025.1, the project_id attached to the auth context at this
+    #    point is more likely to be the nova-computes service user rather
+    #    than the original requester. This is a missing feature from the
+    #    Ironic/Nova virt driver.
+
     auth_token = getattr(context, 'auth_token', None)
+    conductor_project_id = get_conductor_project_id()
     image_visibility = getattr(image, 'visibility', None)
     image_owner = getattr(image, 'owner', None)
     image_id = getattr(image, 'id', 'unknown')
     is_admin = 'admin' in getattr(context, 'roles', [])
-    project_id = getattr(context, 'project_id', None)
     project = getattr(context, 'project', 'unknown')
-    # The presence of an auth token implies this is an authenticated
-    # request and we need not handle the noauth use-case.
-    if auth_token:
+    # If an auth token is present and the config allows access via auth token,
+    #  allow image access.
+    if CONF.allow_image_access_via_auth_token and auth_token:
         # We return true here since we want the *user* request context to
         # be able to be used.
         return True
-
-    if image_visibility == 'public':
+    # If the image visibility is public or community, allow access.
+    if image_visibility in ['public', 'community']:
         return True
-
-    if project_id and image_owner == project_id:
-        return True
-
+    # If the user is an admin and the config allows ignoring project checks for
+    #  admin tasks, allow access.
     if is_admin and CONF.ignore_project_check_for_admin_tasks:
+        return True
+    # If the image is private and the owner is the conductor project,
+    #  allow access.
+    if image_visibility == 'private' and image_owner == conductor_project_id:
         return True
 
     LOG.info(
@@ -167,3 +181,20 @@ def is_glance_image(image_href):
         return False
     return (image_href.startswith('glance://')
             or uuidutils.is_uuid_like(image_href))
+
+
+def get_conductor_project_id():
+    global _GLANCE_SESSION
+    if not _GLANCE_SESSION:
+        _GLANCE_SESSION = keystone.get_session('glance')
+    session = _GLANCE_SESSION
+    service_auth = keystone.get_auth('glance')
+
+    try:
+        if service_auth and hasattr(service_auth, 'get_project_id'):
+            return service_auth.get_project_id(session)
+        elif hasattr(session, 'get_project_id') and session.auth:
+            return session.get_project_id()
+    except Exception as e:
+        LOG.debug("Error getting conductor project ID: %s", str(e))
+    return None
