@@ -7,3 +7,19 @@ pci_devices:
     device_id: "1df6"
     type: GPU
     device_info: NVIDIA Corporation GV100GL
+  - vendor_id: "10de"
+    device_id: "2236"
+    type: GPU
+    device_info: NVIDIA Corporation A10
+  - vendor_id: "10de"
+    device_id: "2235"
+    type: GPU
+    device_info: NVIDIA Corporation A40
+  - vendor_id: "10de"
+    device_id: "26b9"
+    type: GPU
+    device_info: NVIDIA Corporation L40S
+  - vendor_id: "10de"
+    device_id: "26ba"
+    type: GPU
+    device_info: NVIDIA Corporation L20
