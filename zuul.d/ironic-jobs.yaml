@@ -832,6 +832,7 @@
     #            see each others' nodes
     name: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode-shard
     description: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode-shard
+      with automated cleaning enabled.
     parent: ironic-tempest-ipa-wholedisk-direct-tinyipa-multinode
     nodeset: openstack-two-node-noble
     vars:
@@ -839,6 +840,7 @@
       devstack_localrc:
         IRONIC_SHARDS: 1
         IRONIC_SHARD_1_NAME: "main-node"
+        IRONIC_AUTOMATED_CLEAN_ENABLED: True
     group-vars:
       subnode:
         devstack_localrc:
