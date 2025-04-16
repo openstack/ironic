@@ -466,9 +466,38 @@ def fetch(context, image_href, path, force_raw=False,
         image_to_raw(image_href, path, "%s.part" % path)
 
 
+def detect_file_format(path):
+    """Re-implementation of detect_file_format from oslo.utils
+
+    This implementation specifically allows for single multi-format
+    combination of ISO+GPT, which it treats like ISO.
+    """
+
+    with open(path, 'rb') as f:
+        wrapper = image_format_inspector.InspectWrapper(f)
+        try:
+            while f.peek():
+                wrapper.read(4096)
+                if wrapper.formats:
+                    break
+        finally:
+            wrapper.close()
+    try:
+        return wrapper.format
+    except image_format_inspector.ImageFormatError:
+        format_names = set(str(x) for x in wrapper.formats)
+        if format_names == {'iso', 'gpt'}:
+            # If iso+gpt, we choose the iso because bootable-as-block ISOs
+            # can legitimately have a GPT bootloader in front.
+            LOG.debug('Detected %s as ISO+GPT, allowing as ISO', path)
+            return [x for x in wrapper.formats if str(x) == 'iso'][0]
+        # Any other case of multiple formats is an error
+        raise
+
+
 def get_source_format(image_href, path):
     try:
-        img_format = image_format_inspector.detect_file_format(path)
+        img_format = detect_file_format(path)
     except image_format_inspector.ImageFormatError as exc:
         LOG.error("Parsing of the image %s failed: %s", image_href, exc)
         raise exception.ImageUnacceptable(
@@ -567,7 +596,7 @@ def converted_size(path, estimate=False):
         the original image scaled by the configuration value
         `raw_image_growth_factor`.
     """
-    data = image_format_inspector.detect_file_format(path)
+    data = detect_file_format(path)
     if not estimate:
         return data.virtual_size
     growth_factor = CONF.raw_image_growth_factor
@@ -919,7 +948,7 @@ def safety_check_image(image_path, node=None):
     """
     id_string = __node_or_image_cache(node)
     try:
-        img_class = image_format_inspector.detect_file_format(image_path)
+        img_class = detect_file_format(image_path)
         if img_class is None:
             LOG.error("Security: The requested user image for the "
                       "deployment node %(node)s does not match any known "
