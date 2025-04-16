@@ -90,7 +90,7 @@ def check_conditions(task, rule, inventory, plugin_data):
                 raise ValueError(msg)
 
             plugin = operators.get_operator(op)
-            if 'loop' in condition:
+            if condition.get('loop', []):
                 result = plugin().check_with_loop(task, condition, inventory,
                                                   plugin_data)
             else:
@@ -123,7 +123,7 @@ def apply_actions(task, rule, inventory, plugin_data):
                 raise ValueError(msg)
 
             plugin = actions.get_action(op)
-            if 'loop' in action:
+            if action.get('loop', []):
                 plugin().execute_with_loop(task, action, inventory,
                                            plugin_data)
             else:
