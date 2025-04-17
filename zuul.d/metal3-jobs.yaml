@@ -6,7 +6,7 @@
     nodeset: openstack-single-node-noble
     run: playbooks/metal3-ci/run.yaml
     post-run: playbooks/metal3-ci/post.yaml
-    timeout: 10800
+    timeout: 5400
     required-projects:
       - opendev.org/openstack/ironic
       - opendev.org/openstack/ironic-inspector
