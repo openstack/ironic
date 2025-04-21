@@ -1,0 +1,26 @@
+---
+security:
+  - |
+    Fixes OSSA-2025-001, where Ironic did not properly filter file:// paths
+    when used as image sources. This would permit any file accessible by the
+    conductor to be used as an image to attempt deployment. Ironic now
+    unconditionally forbids paths that provide access to system
+    configuration (/dev, /sys, /proc, /boot, /run, and /etc).
+
+    Adds ``CONF.conductor.file_url_allowed_paths``, an allowlist configuration
+    defaulting to ``/var/lib/ironic``, ``/shared/html``,
+    ``/opt/cache/files``, ``/vagrant``, and  ``/templates``,
+    permits operators to further restrict where the conductor will fetch
+    images for when provided a file:// URL. This default value was chosen
+    based on known usage by projects downstream of Ironic, including Metal3,
+    Bifrost, and OpenShift. These defaults may change to be more restrictive
+    at a later date. Operators using file:// URLs are encouraged to explicitly
+    set this value even if the current default is sufficient. Operators wishing
+    to fully disable the ability to deploy with a file:// URL should set this
+    configuration to "" (empty).
+
+    This issue only poses a significant security risk when Ironic's
+    automated cleaning process is disabled and the service is configured in
+    such a way that permits direct deployment by an untrusted API user, such as
+    standalone Ironic installations or environments granting ownership of nodes
+    to projects.
