@@ -529,7 +529,7 @@ opts = [
                        'of files which are compressed with Zstandard '
                        'compression. This option is provided should operators '
                        'wish to disable this functionality, otherwise it is '
-                       'automaticly applied by the conductor should a '
+                       'automatically applied by the conductor should a '
                        'compressed artifact be detected.')),
 ]
 
