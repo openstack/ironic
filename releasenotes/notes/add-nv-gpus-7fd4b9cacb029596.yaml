@@ -1,0 +1,5 @@
+---
+features:
+  - |
+    Adds NVIDIA A10/A40/L40S/L20 to known accelerators that can be reported
+    when present in bare metals.
