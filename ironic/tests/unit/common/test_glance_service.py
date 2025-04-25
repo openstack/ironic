@@ -1041,8 +1041,24 @@ class TestIsImageAvailable(base.TestCase):
         self.assertTrue(service_utils.is_image_available(
             self.context, self.image))
 
+    @mock.patch.object(service_utils, 'get_image_member_list', autospec=True)
+    def test_allow_shared_image_if_member(self, mock_get_members):
+        self.image.visibility = 'shared'
+        self.image.id = 'shared-image-id'
+        self.image.owner = 'some-other-project'
+
+        self.context.project = 'test-project'
+
+        # Mock the conductor project ID and the shared member list
+        conductor_id = service_utils.get_conductor_project_id()
+        mock_get_members.return_value = [conductor_id]
+
+        self.assertTrue(service_utils.is_image_available(
+            self.context, self.image))
+        mock_get_members.assert_called_once_with('shared-image-id',
+                                                 self.context)
+
     def test_deny_private_image_different_owner(self):
-        self.config(allow_image_access_via_auth_token=False)
         self.config(ignore_project_check_for_admin_tasks=False)
 
         self.image.visibility = 'private'
