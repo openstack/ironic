@@ -121,7 +121,9 @@ class TestNetwork(db_base.DbTestCase):
     def test_get_node_vif_ids_during_rescuing(self):
         self._test_get_node_vif_ids_multitenancy('rescuing_vif_port_id')
 
-    def test_remove_vifs_from_node(self):
+    @mock.patch.object(neutron_common, 'unbind_neutron_port',
+                       autospec=True)
+    def test_remove_vifs_from_node(self, mock_unp):
         db_utils.create_test_port(
             node_id=self.node.id, address='aa:bb:cc:dd:ee:ff',
             internal_info={driver_common.TENANT_VIF_KEY: 'test-vif-A'})
@@ -134,6 +136,7 @@ class TestNetwork(db_base.DbTestCase):
             result = network.get_node_vif_ids(task)
         self.assertEqual({}, result['ports'])
         self.assertEqual({}, result['portgroups'])
+        self.assertTrue(mock_unp.called)
 
 
 class TestRemoveVifsTestCase(db_base.DbTestCase):
