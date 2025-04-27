@@ -1,0 +1,9 @@
+---
+fixes:
+  - |
+    Fix an issue in the OpenStack Nova-integrated installation that
+    mac address may conflict at Neutron service during baremetal instance
+    re-scheduling, by allowing VIFs to be unplugged when a node is in
+    the AVAILABLE state. See bug
+    `bug 2109300 <https://bugs.launchpad.net/ironic/+bug/2109300>`_
+    for more details.
