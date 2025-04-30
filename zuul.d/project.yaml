@@ -52,7 +52,10 @@
         # NOTE(TheJulia): At present, metal3 doesn't leverage
         # stable branches, and as far as we are aware these jobs
         # can be removed once this branch is made stable.
-        - metal3-integration
+        # TODO(JayF): Make this vote again once metal3-dev-env is no longer
+        # trying to run Ironic under python 3.9.
+        - metal3-integration:
+            voting: false
         # Non-voting jobs
         - ironic-inspector-tempest:
             voting: false
@@ -95,7 +98,9 @@
         # NOTE(TheJulia): At present, metal3 doesn't leverage
         # stable branches, and as far as we are aware these jobs
         # can be removed once this branch is made stable.
-        - metal3-integration
+        # TODO(JayF): Make this vote again once metal3-dev-env is no longer
+        # trying to run Ironic under python 3.9.
+        #- metal3-integration
     experimental:
       jobs:
         # NOTE(dtantsur): this job is rarely used, no need to run it always.
