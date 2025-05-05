@@ -204,6 +204,12 @@ def request_parameter_schema(
             )
             return func(*args, **kwargs)
 
+        if hasattr(func, 'arguments_transformed'):
+            raise RuntimeError(
+                'The ironic.common.args.validate decorator must wrap (come '
+                'before) the schema decorators to ensure side effects occur.'
+            )
+
         if not hasattr(wrapper, 'request_parameter_schemas'):
             wrapper.request_parameter_schemas = Schemas()
 
@@ -244,6 +250,12 @@ def request_query_schema(
                 is_body=True,
             )
             return func(*args, **kwargs)
+
+        if hasattr(func, 'arguments_transformed'):
+            raise RuntimeError(
+                'The ironic.common.args.validate decorator must wrap (come '
+                'before) the schema decorators to ensure side effects occur.'
+            )
 
         if not hasattr(wrapper, 'request_query_schemas'):
             wrapper.request_query_schemas = Schemas()
@@ -297,6 +309,12 @@ def request_body_schema(
                 is_body=True,
             )
             return func(*args, **kwargs)
+
+        if hasattr(func, 'arguments_transformed'):
+            raise RuntimeError(
+                'The ironic.common.args.validate decorator must wrap (come '
+                'before) the schema decorators to ensure side effects occur.'
+            )
 
         if not hasattr(wrapper, 'request_body_schemas'):
             wrapper.request_body_schemas = Schemas()
@@ -352,6 +370,12 @@ def response_body_schema(
                 is_body=True,
             )
             return response
+
+        if hasattr(func, 'arguments_transformed'):
+            raise RuntimeError(
+                'The ironic.common.args.validate decorator must wrap (come '
+                'before) the schema decorators to ensure side effects occur.'
+            )
 
         if not hasattr(wrapper, 'response_body_schemas'):
             wrapper.response_body_schemas = Schemas()
