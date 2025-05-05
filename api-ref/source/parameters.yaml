@@ -1553,6 +1553,12 @@ port_address:
   in: body
   required: true
   type: string
+port_description:
+  description: |
+    Descriptive text about the network Port.
+  in: body
+  required: false
+  type: string
 port_name:
   description: |
     The name assigned to the network Port.
@@ -1947,6 +1953,12 @@ req_port_address:
     MAC address.
   in: body
   required: true
+  type: string
+req_port_description:
+  description: |
+    Descriptive text about the network Port.
+  in: body
+  required: false
   type: string
 req_port_name:
   description: |
