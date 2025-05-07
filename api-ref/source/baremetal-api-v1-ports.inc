@@ -53,6 +53,9 @@ By default, this query will return the uuid and address for each Port.
   Added the ability to filter ports based on the shard of the node they are
   associated with.
 
+.. versionadded:: 1.97
+  Added the ``description`` field.
+
 Normal response code: 200
 
 Request
@@ -122,6 +125,9 @@ This method requires a Node UUID and the physical hardware address for the Port
 .. versionadded:: 1.94
   Added support to create ports passing in either the node name or UUID.
 
+.. versionadded:: 1.97
+  Added the ``description`` field.
+
 Normal response code: 201
 
 Request
@@ -139,6 +145,7 @@ Request
     - extra: req_extra
     - is_smartnic: req_is_smartnic
     - uuid: req_uuid
+    - description: req_port_description
 
 .. note::
    Either `node_ident` or `node_uuid` is a valid parameter.
@@ -167,6 +174,7 @@ Response
     - updated_at: updated_at
     - links: links
     - is_smartnic: is_smartnic
+    - description: port_description
 
 **Example Port creation response:**
 
@@ -205,6 +213,9 @@ Return a list of bare metal Ports, with detailed information.
 .. versionadded:: 1.88
   Added the ``name`` field.
 
+.. versionadded:: 1.97
+  Added the ``description`` field.
+
 Normal response code: 200
 
 Request
@@ -242,6 +253,7 @@ Response
     - updated_at: updated_at
     - links: links
     - is_smartnic: is_smartnic
+    - description: port_description
 
 **Example detailed Port list response:**
 
@@ -274,7 +286,10 @@ Show details for the given Port.
   Added the ``is_smartnic`` response fields.
 
 .. versionadded:: 1.88
-  Added the ``name``
+  Added the ``name`` field.
+
+.. versionadded:: 1.97
+  Added the ``description`` field.
 
 Normal response code: 200
 
@@ -305,6 +320,7 @@ Response
     - updated_at: updated_at
     - links: links
     - is_smartnic: is_smartnic
+    - description: port_description
 
 **Example Port details:**
 
@@ -332,12 +348,15 @@ Update a Port.
   Added the ``is_smartnic`` fields.
 
 .. versionadded:: 1.88
-  Added the ``name``
+  Added the ``name`` field.
 
 .. versionadded:: 1.90
   ``local_link_connection`` fields now accepts a dictionary
   of ``vtep-logical-switch``, ``vtep-physical-switch`` and ``port_id``
   to identify ovn vtep switches.
+
+.. versionadded:: 1.97
+  Added the ``description`` field.
 
 
 Normal response code: 200
@@ -376,6 +395,7 @@ Response
     - updated_at: updated_at
     - links: links
     - is_smartnic: is_smartnic
+    - description: port_description
 
 **Example Port update response:**
 
