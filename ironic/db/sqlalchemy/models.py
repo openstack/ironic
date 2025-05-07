@@ -256,6 +256,7 @@ class Port(Base):
         schema.UniqueConstraint('address', name='uniq_ports0address'),
         schema.UniqueConstraint('uuid', name='uniq_ports0uuid'),
         schema.UniqueConstraint('name', name='uniq_ports0name'),
+        Index('ports_node_id_idx', 'node_id'),
         table_args())
     id = Column(Integer, primary_key=True)
     uuid = Column(String(36))
